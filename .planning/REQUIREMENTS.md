@@ -10,18 +10,18 @@ Requirements for the initial release: the functional print-control core, testabl
 ### Connection
 
 - [ ] **CONN-01**: User can enter and save a Moonraker connection (host/IP, port), persisted locally across app restarts
-- [ ] **CONN-02**: User can supply optional Moonraker auth (API key / trusted-client) used on the websocket and REST calls
+- [x] **CONN-02**: User can supply optional Moonraker auth (API key / trusted-client) used on the websocket and REST calls
 - [ ] **CONN-03**: App maintains a long-lived Moonraker websocket and auto-reconnects with backoff after drops, without user intervention
 - [ ] **CONN-04**: On every (re)connect the app performs a full resync handshake (identify → objects.query snapshot → objects.subscribe) so displayed state is never stale after a disconnect
 - [x] **CONN-05**: App connects to a plaintext `ws://`/`http://` Moonraker on the LAN from an Android 6 (API 23) device (cleartext network-security policy correctly configured) — proven on real flox hardware (LineageOS 18.1 / API 30) against live Moonraker; exercised the NSC (API-24+) cleartext path. API-23 manifest-flag path config-validated + deferred. See 01-02-SUMMARY.md.
-- [ ] **CONN-06**: Connection state (connecting / connected / disconnected / error) is always visible to the user
+- [x] **CONN-06**: Connection state (connecting / connected / disconnected / error) is always visible to the user
 
 ### Printer State Core
 
 - [ ] **STATE-01**: App merges Moonraker `notify_status_update` partial diffs into a single retained source-of-truth printer state that panels observe reactively
 - [ ] **STATE-02**: App detects printer capabilities from `printer.objects.list` and gates UI so only supported controls/panels appear (heaters, extruders, fans, macros, etc.)
 - [ ] **STATE-03**: High-rate update streams (temperature, position) are throttled (~2–4 Hz) before driving UI to protect weak-GPU rendering
-- [ ] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
+- [x] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
 - [ ] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
 
 ### App Shell
@@ -144,14 +144,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 |-------------|-------|--------|
 | PKG-02 | Phase 1 | Complete |
 | CONN-05 | Phase 1 | Complete |
-| CONN-02 | Phase 2 | Pending |
+| CONN-02 | Phase 2 | Complete |
 | CONN-03 | Phase 2 | Pending |
 | CONN-04 | Phase 2 | Pending |
-| CONN-06 | Phase 2 | Pending |
+| CONN-06 | Phase 2 | Complete |
 | STATE-01 | Phase 2 | Pending |
 | STATE-02 | Phase 2 | Pending |
 | STATE-03 | Phase 2 | Pending |
-| STATE-04 | Phase 2 | Pending |
+| STATE-04 | Phase 2 | Complete |
 | STATE-05 | Phase 2 | Pending |
 | CONN-01 | Phase 3 | Pending |
 | SHELL-01 | Phase 3 | Pending |

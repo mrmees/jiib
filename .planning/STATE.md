@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-30T18:21:38.445Z"
-last_activity: 2026-05-30 -- Phase 2 planning complete
+last_updated: "2026-05-30T18:49:44.409Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 13
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 2 — connection & state foundation
+**Current focus:** Phase 02 — connection-state-foundation
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 02 (connection-state-foundation) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 2 planning complete
+Last activity: 2026-05-30
 
-Progress: [██████████] 100%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | Phase 01 P01-03 | 7 | 2 tasks | 8 files |
 | Phase 01 P01-02 | 9 | 3 tasks | 2 files |
 | Phase 01 P01-04 | 20 | 2 tasks | 5 files |
+| Phase 02 P01 | 7 | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1/01-03]: Toolkit benchmark harness built — one deterministic SyntheticFeed drives a Compose scene and a hybrid-Views scene rendering identical worst-case layout with REAL Coil decode at 1920x1200; gfxinfo framestats parser is system of record, FrameTimingMetric corroboration only (no baseline-profile gate).
 - [Phase 1/01-02]: CONN-05 cleartext smoke PASSED on real hardware. DEVICE-REALITY FINDING: the physical "Nexus 7 2013" (flox) runs LineageOS 18.1 / Android 11 / API 30, NOT stock Android 6 / API 23 — so the proof exercised the NSC (API-24+) cleartext path; the API-23 manifest-flag path is config-validated + deferred. minSdk 23 retained as install floor. 01-04 benchmark runs on this device with an ART caveat (API-30 runtime newer than stock-6; same Adreno 320 / 2GB / 1920x1200).
 - [Phase 1/01-04]: Toolkit verdict = HYBRID (Compose shell + classic Views for Files list / temp graph / Console scrollback). On-device release benchmark on real flox showed Views ~2x lower p95/max frame time; both cleared floors (p50<16.6ms, 0 frozen). ADR: docs/adr/0001-ui-toolkit-decision.md. Gates all Phase 2+ panel architecture.
+- [Phase ?]: [Phase 2/02-01]: Live Ender-5-Plus capture unavailable at execution; synthetic fallback corpus copied to golden/*.json names — fallback is the autonomous floor, GoldenFixtures.resolve() prefers live when later added.
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T17:17:26.677Z
+Last session: 2026-05-30T18:49:37.387Z
 Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-connection-state-foundation/02-CONTEXT.md
+Resume file: None

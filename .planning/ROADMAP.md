@@ -79,7 +79,7 @@ Plans:
 **Plans**: 4 plansPlans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Wave-0 foundation: test source set + `kotlinx-coroutines-test`, BuildConfig/DevConfig static config (D-05), public contracts (JSON-RPC envelopes, PrinterState, Capabilities), golden+adversarial fixtures + FakeWebSocket harness
+- [x] 02-01-PLAN.md — Wave-0 foundation: test source set + `kotlinx-coroutines-test`, BuildConfig/DevConfig static config (D-05), public contracts (JSON-RPC envelopes, PrinterState, Capabilities), golden+adversarial fixtures + FakeWebSocket harness
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
-| 2. Connection & State Foundation | 0/4 | Not started | - |
+| 2. Connection & State Foundation | 1/4 | In Progress|  |
 | 3. Service, Shell & State-Driven Navigation | 0/TBD | Not started | - |
 | 4. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 5. Files / Print | 0/TBD | Not started | - |
