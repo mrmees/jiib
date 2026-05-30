@@ -2,6 +2,7 @@ package works.mees.dinghy.net
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
@@ -78,8 +79,14 @@ class SessionTestHarness {
                     }
                     ?: """{"jsonrpc":"2.0","result":{"connection_id":1730367696},"id":$id}"""
             JsonRpcMethods.OBJECTS_LIST -> reIdResult(objectsListJson, id)
-            JsonRpcMethods.OBJECTS_QUERY -> reIdResult(snapshotJson, id)
-            JsonRpcMethods.OBJECTS_SUBSCRIBE -> reIdResult(subscribeSnapshotJson ?: snapshotJson, id)
+            JsonRpcMethods.OBJECTS_QUERY ->
+                invalidObjectsSubset(obj)?.let {
+                    """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
+                } ?: reIdResult(snapshotJson, id)
+            JsonRpcMethods.OBJECTS_SUBSCRIBE ->
+                invalidObjectsSubset(obj)?.let {
+                    """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
+                } ?: reIdResult(subscribeSnapshotJson ?: snapshotJson, id)
             else -> """{"jsonrpc":"2.0","result":{},"id":$id}"""
         }
     }
@@ -96,6 +103,32 @@ class SessionTestHarness {
             if (v.isNullOrBlank()) return arg
         }
         return null
+    }
+
+    /**
+     * Validate the `params.objects` subset for objects.query / objects.subscribe against the objects the
+     * printer actually DEFINES (`objects.list` `result.objects`) — the A3 correctness seam: "never query
+     * or subscribe to an object the printer doesn't define". Returns a Moonraker-style error message when
+     * the subset is absent, empty, or names an object not present in the objects-list fixture; null when
+     * it is a valid non-empty subset. Mirrors [missingIdentifyArg] so the fake is no more lenient than the
+     * real server — a regression that subscribed to nothing, or to a wrong/absent object, now fails a
+     * test instead of silently passing (WR-02).
+     */
+    private fun invalidObjectsSubset(requestObj: JsonObject): String? {
+        val requested = requestObj["params"]?.jsonObject
+            ?.get("objects")?.jsonObject
+            ?.keys
+            ?: return "Invalid argument: objects"
+        if (requested.isEmpty()) return "Invalid argument: objects (empty subset)"
+
+        val defined = MoonrakerJson.parseToJsonElement(objectsListJson)
+            .jsonObject["result"]?.jsonObject
+            ?.get("objects")?.jsonArray
+            ?.mapNotNull { runCatching { it.jsonPrimitive.content }.getOrNull() }
+            .orEmpty()
+            .toSet()
+        val absent = requested.firstOrNull { it !in defined }
+        return absent?.let { "Invalid object: $it" }
     }
 
     private fun reIdResult(fixtureJson: String, id: Long): String {
