@@ -9,7 +9,7 @@ progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 01 (platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol) — EXECUTING
-Plan: 02 of 4 — AT BLOCKING CHECKPOINT (Task 3 on-device smoke run)
-Status: Tasks 1-2 complete (cleartext config confirmed; smoke probe written + compiles); paused at human-verify gate for the physical Nexus 7 + live Moonraker run
+Plan: 3 of 4 complete (01-01, 01-03, 01-02) — next: 01-04 (Wave 3, on-device benchmark, blocking checkpoint)
+Status: 01-02 on-device cleartext smoke PASSED on real flox tablet (LineageOS 18.1 / API 30) vs live Moonraker; CONN-05 satisfied (NSC/API-24+ path). Only 01-04 remains.
 Last activity: 2026-05-30
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [█████░░░░░] 50%
 *Updated after each plan completion*
 | Phase 01 P01-01 | 38 | 3 tasks | 16 files |
 | Phase 01 P01-03 | 7 | 2 tasks | 8 files |
+| Phase 01 P01-02 | 9 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1/01-01]: verifyMinSdk delivered as a precompiled build-logic script plugin (not apply(from=)) so it uses AGP SingleArtifact.MERGED_MANIFEST; PKG-02 floor proven adversarially.
 - [Phase ?]: [Phase 1/01-01]: Release APK ships armeabi-v7a only via splits.abi; Compose UI resolves to 1.11.1; cleartext posture owned by the shared manifest/NSC (single-owner for Wave-2).
 - [Phase ?]: [Phase 1/01-03]: Toolkit benchmark harness built — one deterministic SyntheticFeed drives a Compose scene and a hybrid-Views scene rendering identical worst-case layout with REAL Coil decode at 1920x1200; gfxinfo framestats parser is system of record, FrameTimingMetric corroboration only (no baseline-profile gate).
+- [Phase 1/01-02]: CONN-05 cleartext smoke PASSED on real hardware. DEVICE-REALITY FINDING: the physical "Nexus 7 2013" (flox) runs LineageOS 18.1 / Android 11 / API 30, NOT stock Android 6 / API 23 — so the proof exercised the NSC (API-24+) cleartext path; the API-23 manifest-flag path is config-validated + deferred. minSdk 23 retained as install floor. 01-04 benchmark runs on this device with an ART caveat (API-30 runtime newer than stock-6; same Adreno 320 / 2GB / 1920x1200).
 
 ### Pending Todos
 
@@ -90,6 +92,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T15:50:22.198Z
-Stopped at: 01-02 Task 3 — BLOCKING human-verify checkpoint (run CleartextMoonrakerSmokeTest on the real Nexus 7 against live Moonraker)
-Resume file: .planning/phases/01-platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol/01-02-PLAN.md
+Last session: 2026-05-30
+Stopped at: 01-02 checkpoint RESOLVED (on-device smoke passed). Next: 01-04 (Wave 3) — on-device toolkit benchmark, also a blocking human-verify checkpoint.
+Resume file: .planning/phases/01-platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol/01-04-PLAN.md

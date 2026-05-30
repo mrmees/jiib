@@ -13,7 +13,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **CONN-02**: User can supply optional Moonraker auth (API key / trusted-client) used on the websocket and REST calls
 - [ ] **CONN-03**: App maintains a long-lived Moonraker websocket and auto-reconnects with backoff after drops, without user intervention
 - [ ] **CONN-04**: On every (re)connect the app performs a full resync handshake (identify → objects.query snapshot → objects.subscribe) so displayed state is never stale after a disconnect
-- [ ] **CONN-05**: App connects to a plaintext `ws://`/`http://` Moonraker on the LAN from an Android 6 (API 23) device (cleartext network-security policy correctly configured)
+- [x] **CONN-05**: App connects to a plaintext `ws://`/`http://` Moonraker on the LAN from an Android 6 (API 23) device (cleartext network-security policy correctly configured) — proven on real flox hardware (LineageOS 18.1 / API 30) against live Moonraker; exercised the NSC (API-24+) cleartext path. API-23 manifest-flag path config-validated + deferred. See 01-02-SUMMARY.md.
 - [ ] **CONN-06**: Connection state (connecting / connected / disconnected / error) is always visible to the user
 
 ### Printer State Core
@@ -143,7 +143,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PKG-02 | Phase 1 | Complete |
-| CONN-05 | Phase 1 | Pending |
+| CONN-05 | Phase 1 | Complete |
 | CONN-02 | Phase 2 | Pending |
 | CONN-03 | Phase 2 | Pending |
 | CONN-04 | Phase 2 | Pending |
