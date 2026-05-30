@@ -15,6 +15,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
@@ -147,7 +148,9 @@ class JsonRpcClient(
             val error = obj["error"]
             if (error != null) {
                 val errObj = error.jsonObject
-                val code = errObj["code"]?.jsonPrimitive?.intOrNullSafe() ?: 0
+                // intOrNull (NOT content.toInt() coerced to 0): garbage/absent code → null, which
+                // classifyIdentifyError maps to the safe AuthRequired fallback, not ServerError(0) (WR-05).
+                val code = errObj["code"]?.jsonPrimitive?.intOrNull
                 val message = errObj["message"]?.jsonPrimitive?.contentSafe() ?: "JSON-RPC error"
                 deferred.completeExceptionally(RpcError(code, message))
             } else {
@@ -216,7 +219,6 @@ class JsonRpcClient(
         obj["params"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.contentSafe()
     }.getOrNull()
 
-    private fun JsonPrimitive.intOrNullSafe(): Int? = runCatching { content.toInt() }.getOrNull()
     private fun JsonPrimitive.contentSafe(): String? = runCatching { content }.getOrNull()
 
     companion object {

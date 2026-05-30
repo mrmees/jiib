@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.WebSocketListener
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -106,6 +107,32 @@ class JsonRpcClientTest {
             assertEquals(-32602, ex.code)
             assertEquals("Unauthorized", ex.message)
             // And it classifies to AuthRequired (the CONN-02 surface).
+            assertEquals(ConnectionError.AuthRequired, classifyIdentifyError(ex.code, ex.message))
+        }
+
+    @Test
+    fun `error with a garbage code yields null code and classifies AuthRequired not ServerError`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val client = JsonRpcClient()
+            val (conn, fake) = connection()
+            client.bind(conn)
+
+            val reply = async { runCatching { client.request("server.connection.identify") } }
+            runCurrent()
+            val sentId = MoonrakerJson.parseToJsonElement(fake.sentFrames[0])
+                .jsonObject["id"]!!.jsonPrimitive.content
+
+            // A non-integer/garbage wire code must NOT coerce to 0 (which classifyIdentifyError would
+            // mis-type as ServerError(0) → retry-churn). It must parse to null → A5 AuthRequired (WR-05).
+            client.dispatch(
+                """{"jsonrpc":"2.0","error":{"code":"not-a-number","message":"weird"},"id":$sentId}""",
+            )
+            runCurrent()
+
+            val ex = reply.await().exceptionOrNull()
+            assertTrue("expected RpcError, got $ex", ex is RpcError)
+            ex as RpcError
+            assertNull("garbage wire code must parse to null, not 0", ex.code)
             assertEquals(ConnectionError.AuthRequired, classifyIdentifyError(ex.code, ex.message))
         }
 

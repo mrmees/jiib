@@ -38,9 +38,12 @@ sealed interface ConnectionError {
  * [ConnectionError.ServerError]/[ConnectionError.ProtocolError].
  */
 class RpcError(
-    val code: Int,
+    // Nullable: an absent or unparseable wire `code` is `null`, NOT a coerced `0`. A `0` would be
+    // mis-classified by [classifyIdentifyError] as ServerError(0) and provoke retry-churn; `null`
+    // routes to the safe A5 AuthRequired fallback instead (WR-05).
+    val code: Int?,
     override val message: String,
-) : Exception("JSON-RPC error $code: $message")
+) : Exception("JSON-RPC error ${code ?: "?"}: $message")
 
 /**
  * Pure classifier mapping an identify error response to a typed [ConnectionError]

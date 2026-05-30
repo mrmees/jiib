@@ -10,8 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
@@ -150,11 +149,24 @@ class MoonrakerSession(
         val closed = CompletableDeferred<ConnectionError?>()
 
         // Route the spine's notification flows into the store for the lifetime of this attempt.
+        // CR-01: each notification flow is a replay=0 SharedFlow, so a frame tryEmit'd before its
+        // collector has actually SUBSCRIBED is lost forever (never replayed to a late subscriber).
+        // Gate frame dispatch (the collector below) on all three collectors being live via
+        // onSubscription, so no early notify_* — notably the one-shot notify_klippy_ready — can be
+        // dropped in the socket-open → subscribers-attached window. (Collapsed the former redundant
+        // launch{ …launchIn } double-wrap to a single collect each — WR-03.)
+        val statusReady = CompletableDeferred<Unit>()
+        val klippyReady = CompletableDeferred<Unit>()
+        val gcodeReady = CompletableDeferred<Unit>()
         val routing: Job = launch {
-            launch { rpc.statusUpdates.onEach { store.onStatusDiff(it) }.launchIn(this) }
-            launch { rpc.klippyEvents.onEach { store.onKlippyMethod(it) }.launchIn(this) }
-            launch { rpc.gcodeResponses.onEach { store.onGcodeLine(it) }.launchIn(this) }
+            launch { rpc.statusUpdates.onSubscription { statusReady.complete(Unit) }.collect { store.onStatusDiff(it) } }
+            launch { rpc.klippyEvents.onSubscription { klippyReady.complete(Unit) }.collect { store.onKlippyMethod(it) } }
+            launch { rpc.gcodeResponses.onSubscription { gcodeReady.complete(Unit) }.collect { store.onGcodeLine(it) } }
         }
+        // Do NOT dispatch any inbound frame until all three notification subscribers are attached.
+        statusReady.await()
+        klippyReady.await()
+        gcodeReady.await()
 
         val collector = launch {
             socketEvents(token).collect { event ->
@@ -232,8 +244,12 @@ class MoonrakerSession(
         val status = parseStatus(queryResult)
         if (status != null) store.seed(reduceSnapshot(status))
 
-        // 5. objects.subscribe(subset) — register for diffs (reply is the same snapshot shape).
-        rpc.request(JsonRpcMethods.OBJECTS_SUBSCRIBE, objectsParam(subset))
+        // 5. objects.subscribe(subset) — register for diffs. Its reply IS the at-subscription
+        //    snapshot (same {eventtime,status} shape as query, verified live), so SEED FROM IT: it is
+        //    the authoritative post-subscribe truth, closing the query→subscribe gap where a change
+        //    would otherwise be missed until a later diff touched the same field (CR-02/WR-04, D-04).
+        val subResult = rpc.request(JsonRpcMethods.OBJECTS_SUBSCRIBE, objectsParam(subset))
+        parseStatus(subResult)?.let { store.seed(reduceSnapshot(it)) }
     }
 
     private fun identifyParams() = buildJsonObject {

@@ -148,4 +148,31 @@ class HandshakeTest {
 
         run.cancelAndJoin()
     }
+
+    @Test
+    fun seedsFromSubscribeReply_notJustQuery_closingTheQuerySubscribeGap() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(scope = backgroundScope, sampleMillis = 250L)
+        val rpc = JsonRpcClient(defaultTimeoutMs = 5_000L)
+        val harness = SessionTestHarness()
+        // The query snapshot reports heater_bed 23.8; the AUTHORITATIVE subscribe reply reports 99.9.
+        // The spine must seed from the subscribe reply (the at-subscription snapshot, CR-02/WR-04),
+        // so the final state reflects 99.9 — not the staler query value.
+        harness.subscribeSnapshotJson = """
+            {"jsonrpc":"2.0","result":{"eventtime":100001.0,"status":{
+              "heater_bed":{"temperature":99.9,"target":0.0,"power":0.0}
+            }},"id":1}
+        """.trimIndent()
+        val session = MoonrakerSession(store, rpc, harness.socketEvents())
+
+        val run = launch { session.run() }
+        session.connectionState.first { it is ConnectionState.Connected }
+
+        assertEquals(
+            "state must be seeded from the objects.subscribe reply (99.9), not the earlier query (23.8)",
+            99.9,
+            store.printerState.value.heaters["heater_bed"]?.temperature,
+        )
+
+        run.cancelAndJoin()
+    }
 }

@@ -29,6 +29,14 @@ class SessionTestHarness {
     var objectsListJson: String = GoldenFixtures.raw("objects_list.json")
     var snapshotJson: String = GoldenFixtures.raw("objects_query_snapshot.json")
 
+    /**
+     * The snapshot returned by the `objects.subscribe` reply. Defaults to [snapshotJson] (same shape,
+     * as real Moonraker), but is overridable so a test can prove the spine seeds from the AUTHORITATIVE
+     * subscribe reply — not just the earlier query — closing the query→subscribe gap (CR-02).
+     */
+    @Volatile
+    var subscribeSnapshotJson: String? = null
+
     /** If non-null, the identify reply is this raw error frame (drives the auth/protocol-error path). */
     @Volatile
     var identifyErrorFrame: String? = null
@@ -71,7 +79,7 @@ class SessionTestHarness {
                     ?: """{"jsonrpc":"2.0","result":{"connection_id":1730367696},"id":$id}"""
             JsonRpcMethods.OBJECTS_LIST -> reIdResult(objectsListJson, id)
             JsonRpcMethods.OBJECTS_QUERY -> reIdResult(snapshotJson, id)
-            JsonRpcMethods.OBJECTS_SUBSCRIBE -> reIdResult(snapshotJson, id)
+            JsonRpcMethods.OBJECTS_SUBSCRIBE -> reIdResult(subscribeSnapshotJson ?: snapshotJson, id)
             else -> """{"jsonrpc":"2.0","result":{},"id":$id}"""
         }
     }
