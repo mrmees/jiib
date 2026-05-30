@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 01 (platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol) — EXECUTING
-Plan: 3 of 4
-Status: Ready to execute
+Plan: 02 of 4 — AT BLOCKING CHECKPOINT (Task 3 on-device smoke run)
+Status: Tasks 1-2 complete (cleartext config confirmed; smoke probe written + compiles); paused at human-verify gate for the physical Nexus 7 + live Moonraker run
 Last activity: 2026-05-30
 
 Progress: [█████░░░░░] 50%
@@ -91,5 +91,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-30T15:50:22.198Z
-Stopped at: Phase 1 context gathered
-Resume file: None
+Stopped at: 01-02 Task 3 — BLOCKING human-verify checkpoint (run CleartextMoonrakerSmokeTest on the real Nexus 7 against live Moonraker)
+Resume file: .planning/phases/01-platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol/01-02-PLAN.md
