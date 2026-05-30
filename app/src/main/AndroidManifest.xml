@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SHARED MANIFEST — SINGLE OWNER (plan 01-01).
+  The Wave-2 plans (01-02 cleartext smoke, 01-03 benchmark scenes) MUST NOT edit
+  this file or res/xml/network_security_config.xml. This plan owns the cleartext
+  posture and activity registration so the wave never collides on shared files.
+
+  Cleartext posture (CONN-05 / D-10 / RESEARCH #6 — the two switches govern
+  DIFFERENT API ranges and never conflict on one device):
+    * android:usesCleartextTraffic="true"   -> governs API 23 (NSC is ignored < API 24)
+    * android:networkSecurityConfig=@xml/... -> governs API 24+ (wins over the flag there)
+  This phase proves the Marshmallow (API 23) path only; the API-24+ cleartext
+  path is re-validated in a later phase (D-11).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The only permission this phase needs: cleartext ws:// + http:// to LAN Moonraker. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Dinghy Display"
+        android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.DinghyDisplay">
+
+        <!-- Launcher entry point. Compose host; placeholder body this phase. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Dinghy Display">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Benchmark harness entry point — exported so :macrobenchmark / UiAutomator
+          can launch it with a scene-select intent extra. The scenes + synthetic
+          feed are implemented in plan 01-03; this is a registered stub for now.
+        -->
+        <activity
+            android:name=".bench.BenchActivity"
+            android:exported="true" />
+
+    </application>
+
+</manifest>

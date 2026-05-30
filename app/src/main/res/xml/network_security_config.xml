@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Config (CONN-05 / D-10 / D-11).
+
+  Honored on API 24+ ONLY (ignored on API 23, where the manifest
+  android:usesCleartextTraffic="true" governs instead). This config MUST permit
+  cleartext: Moonraker speaks ws:// and http:// on the LAN, and on API 28+
+  cleartext is default-DENY — so without this, the same APK would silently fail
+  to reach Moonraker on newer devices (RESEARCH Pitfall 6).
+
+  D-11 DEFERRED-SCOPING RISK: base-config permits cleartext app-wide. This is the
+  broad Phase-1 posture that proves the path. A later phase should TIGHTEN this to
+  a <domain-config> scoped to the Moonraker host(s) once the API-24+ cleartext
+  path is hardened (Security Domain: "over-broad NSC permitting cleartext").
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

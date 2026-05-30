@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      App theme. Uses a Material3 dark base (a printer-side screen wants a dark,
+      high-contrast surface). The AppCompat parent keeps the Views head-to-head
+      scene (01-03) able to inflate AppCompat widgets under the same theme.
+    -->
+    <style name="Theme.DinghyDisplay" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

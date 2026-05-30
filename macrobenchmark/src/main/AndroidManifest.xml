@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Minimal manifest for the :macrobenchmark (com.android.test) module.
+  No <application> component is declared here — a test module instruments the
+  target :app process; the benchmark test classes + UiAutomator script land in
+  plan 01-03.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
