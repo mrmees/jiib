@@ -69,6 +69,10 @@ class MoonrakerSession(
     private val rng: Random = Random.Default,
     private val clientName: String = "Dinghy Display",
     private val clientVersion: String = "0.1.0",
+    // Moonraker's `server.connection.identify` REQUIRES a non-empty `url` argument alongside
+    // client_name/version/type — omitting it returns `{code:400,"No data for argument: url"}`
+    // (verified live against Moonraker v0.13). Recorded by Moonraker for its connection list only.
+    private val clientUrl: String = "https://mees.works/dinghy-display",
 ) {
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     /** Always-observable five-state connection lifecycle (CONN-06). */
@@ -236,6 +240,9 @@ class MoonrakerSession(
         put("client_name", clientName)
         put("version", clientVersion)
         put("type", "display")
+        // REQUIRED by Moonraker — a missing/blank url fails identify with code 400 and the whole
+        // resync handshake never completes (connection loops on backoff forever). See [clientUrl].
+        put("url", clientUrl)
         // api_key passed to identify only when keyed; null on the open path (D-06).
         auth?.xApiKeyHeader()?.let { put("api_key", it) }
     }

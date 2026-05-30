@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -70,17 +71,15 @@ class LiveSocketReconnectTest {
             socketEvents = { _ -> MoonrakerSocket.real(client = client, wsUrl = wsUrl).events() },
         )
 
-        // Observe the connection-state sequence to prove Syncing precedes Connected.
-        val sawSyncing = java.util.concurrent.atomic.AtomicBoolean(false)
-        val sawConnectedAfterSyncing = java.util.concurrent.atomic.AtomicBoolean(false)
-        val observer = scope.launch {
-            session.connectionState.collect { state ->
-                when (state) {
-                    is ConnectionState.Syncing -> sawSyncing.set(true)
-                    is ConnectionState.Connected -> if (sawSyncing.get()) sawConnectedAfterSyncing.set(true)
-                    else -> Unit
-                }
-            }
+        // Observe the connection-state sequence with ONE collector (NOT two racing atomics): record the
+        // ordered transitions and assert Syncing precedes Connected by index. Started UNDISPATCHED so the
+        // collector is subscribed before run() drives the first transition. The previous two-collector +
+        // atomic scheme was racy — the main coroutine's own `first { Connected }` could return and read
+        // the atomics before this observer coroutine had processed the Connected emission, failing
+        // "Connected must follow Syncing" even though the spine emits Syncing → Connected correctly.
+        val observed = java.util.concurrent.CopyOnWriteArrayList<ConnectionState>()
+        val observer = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            session.connectionState.collect { observed.add(it) }
         }
 
         val run = scope.launch { session.run() }
@@ -89,8 +88,15 @@ class LiveSocketReconnectTest {
             withTimeout(CONNECT_TIMEOUT_MS) {
                 session.connectionState.first { it is ConnectionState.Connected }
             }
-            assertTrue("Syncing must be observed before Connected (resync gating)", sawSyncing.get())
-            assertTrue("Connected must follow Syncing", sawConnectedAfterSyncing.get())
+            // Let the recording collector catch up to the Connected emission (avoid a cross-coroutine
+            // read race), then assert ordering on the SINGLE recorded sequence.
+            withTimeout(2_000L) {
+                while (observed.none { it is ConnectionState.Connected }) delay(10)
+            }
+            val firstSyncing = observed.indexOfFirst { it is ConnectionState.Syncing }
+            val firstConnected = observed.indexOfFirst { it is ConnectionState.Connected }
+            assertTrue("Syncing must be observed before Connected (resync gating)", firstSyncing >= 0)
+            assertTrue("Connected must follow Syncing (resync gating)", firstConnected > firstSyncing)
 
             // 2. The query snapshot must have seeded state (a bed temperature is present on the Ender 5 Plus).
             val seeded = store.printerState.value

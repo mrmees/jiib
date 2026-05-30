@@ -61,12 +61,33 @@ class SessionTestHarness {
         return when (method) {
             JsonRpcMethods.IDENTIFY ->
                 identifyErrorFrame?.let { errorFrameWithId(it, id) }
+                    // Mirror Moonraker's REAL contract: client_name/version/type/url are all required.
+                    // A missing one returns `{code:400,"No data for argument: <name>"}` (verified live).
+                    // This is what catches a url-less identify — the fake must not be more lenient than
+                    // the server, or unit tests pass while the live handshake loops forever.
+                    ?: missingIdentifyArg(obj)?.let {
+                        """{"jsonrpc":"2.0","error":{"code":400,"message":"No data for argument: $it"},"id":$id}"""
+                    }
                     ?: """{"jsonrpc":"2.0","result":{"connection_id":1730367696},"id":$id}"""
             JsonRpcMethods.OBJECTS_LIST -> reIdResult(objectsListJson, id)
             JsonRpcMethods.OBJECTS_QUERY -> reIdResult(snapshotJson, id)
             JsonRpcMethods.OBJECTS_SUBSCRIBE -> reIdResult(snapshotJson, id)
             else -> """{"jsonrpc":"2.0","result":{},"id":$id}"""
         }
+    }
+
+    /**
+     * The first required `server.connection.identify` argument that is absent or blank, or null when
+     * all four are present. Mirrors Moonraker's required-field validation so the fake can't accept an
+     * identify the real server would reject (the bug that let a url-less identify pass unit tests).
+     */
+    private fun missingIdentifyArg(requestObj: JsonObject): String? {
+        val params = requestObj["params"]?.jsonObject
+        for (arg in listOf("client_name", "version", "type", "url")) {
+            val v = params?.get(arg)?.jsonPrimitive?.content
+            if (v.isNullOrBlank()) return arg
+        }
+        return null
     }
 
     private fun reIdResult(fixtureJson: String, id: Long): String {

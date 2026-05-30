@@ -61,6 +61,20 @@ class HandshakeTest {
             handshakeMethods,
         )
 
+        // identify MUST carry all four args Moonraker requires (client_name/version/type/url).
+        // A missing `url` is rejected live with code 400 and the handshake never completes —
+        // guard it here so the contract can't silently regress (the fake now enforces it too).
+        val identifyParams = fake.sentFrames.toList()
+            .map { MoonrakerJson.parseToJsonElement(it).jsonObject }
+            .first { it["method"]?.jsonPrimitive?.content == JsonRpcMethods.IDENTIFY }["params"]!!
+            .jsonObject
+        for (required in listOf("client_name", "version", "type", "url")) {
+            assertTrue(
+                "identify params must include a non-blank '$required' (Moonraker requires it)",
+                identifyParams[required]?.jsonPrimitive?.content?.isNotBlank() == true,
+            )
+        }
+
         // Capabilities re-derived from objects.list (the golden printer has a bed + macros).
         assertTrue(store.capabilities.value.hasBed)
         assertTrue(store.capabilities.value.macros.isNotEmpty())
