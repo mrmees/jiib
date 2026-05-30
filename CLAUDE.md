@@ -148,6 +148,43 @@ control-a-print loop must work flawlessly on a Nexus 7.
 ## Conventions
 
 Conventions not yet established. Will populate as patterns emerge during development.
+
+### Local Build Environment (READ THIS before running Gradle)
+
+This repo is developed under **WSL** but **builds Windows-side** so the USB Nexus 7 is reachable by
+adb natively. The committed `gradlew`/`gradlew.bat` are the stock cross-platform wrapper (CI builds
+on Linux) — do **not** replace them. Locally, **`./gradlew` does NOT work from WSL bash**; drive the
+Windows build via the helper instead.
+
+- **JDK:** Adoptium **JDK 21** — `C:\Program Files\Eclipse Adoptium\jdk-21.0.10.7-hotspot`
+- **Android SDK:** `E:\Android\Sdk` (platform-tools/adb, `platforms;android-35`, `build-tools;34.0.0`)
+- **Build helper:** `E:\Android\gw.bat` sets `JAVA_HOME`+`ANDROID_HOME` and calls the repo `gradlew.bat`.
+- **adb:** `E:\Android\Sdk\platform-tools\adb.exe` (run via interop from WSL).
+
+**Run any Gradle task** from the repo root:
+```bash
+/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat <gradle args>"
+# e.g. ... "E:\Android\gw.bat :app:assembleRelease --no-daemon"
+```
+Gradle prints CR progress bars — pipe through `tr -d '\r'`; the process exit code is authoritative.
+`local.properties` is gitignored and unneeded (`gw.bat` exports `ANDROID_HOME`).
+
+**Installing a RELEASE build on-device** (the release APK is unsigned until PKG-01/Phase 8): zipalign +
+debug-sign it, then `adb install`. Helper: `E:\Android\sign-release.bat <in.apk> <out.apk>` (uses the
+debug keystore at `C:\Users\matth\.android\debug.keystore`). `connectedAndroidTest`/`assembleDebug`
+are auto debug-signed, so instrumented tests install without this.
+
+**Device reality:** the physical "Nexus 7 2013" (`flox`) runs **LineageOS 18.1 / Android 11 / API 30**,
+not stock Android 6 / API 23. Hardware is genuine (Adreno 320 / 2GB / 1920×1200 / `armeabi-v7a`).
+`minSdk 23` is retained as the install floor; on-device evidence reflects API-30 (NSC cleartext path,
+newer ART). See `docs/adr/0001-ui-toolkit-decision.md` and the Phase-1 SUMMARYs.
+
+### UI toolkit (locked by ADR 0001)
+
+**Hybrid:** Jetpack Compose for the shell and most panels; **classic Views** (RecyclerView + custom
+`Canvas`) for the three high-churn surfaces — **Files list, live temperature graph, Console scrollback**
+(measured ~2× lower p95 frame time on the real device). Host Views in Compose via `AndroidView`/`ComposeView`;
+keep view-models toolkit-agnostic (StateFlow to both). See `docs/adr/0001-ui-toolkit-decision.md`.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
