@@ -9,7 +9,7 @@ progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 01 (platform-gate-toolkit-benchmark-cleartext-smoke-test-scaffol) — EXECUTING
-Plan: 3 of 4 complete (01-01, 01-03, 01-02) — next: 01-04 (Wave 3, on-device benchmark, blocking checkpoint)
-Status: 01-02 on-device cleartext smoke PASSED on real flox tablet (LineageOS 18.1 / API 30) vs live Moonraker; CONN-05 satisfied (NSC/API-24+ path). Only 01-04 remains.
+Plan: 4 of 4 complete — all plans done, awaiting phase verification
+Status: 01-04 on-device benchmark complete. VERDICT = HYBRID (Compose shell + Views for Files list/temp graph/console) recorded in docs/adr/0001-ui-toolkit-decision.md; Views ~2x lower tail latency on real flox. PKG-02 + CONN-05 both satisfied.
 Last activity: 2026-05-30
 
-Progress: [███████░░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [███████░░░] 75%
 | Phase 01 P01-01 | 38 | 3 tasks | 16 files |
 | Phase 01 P01-03 | 7 | 2 tasks | 8 files |
 | Phase 01 P01-02 | 9 | 3 tasks | 2 files |
+| Phase 01 P01-04 | 20 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1/01-01]: Release APK ships armeabi-v7a only via splits.abi; Compose UI resolves to 1.11.1; cleartext posture owned by the shared manifest/NSC (single-owner for Wave-2).
 - [Phase ?]: [Phase 1/01-03]: Toolkit benchmark harness built — one deterministic SyntheticFeed drives a Compose scene and a hybrid-Views scene rendering identical worst-case layout with REAL Coil decode at 1920x1200; gfxinfo framestats parser is system of record, FrameTimingMetric corroboration only (no baseline-profile gate).
 - [Phase 1/01-02]: CONN-05 cleartext smoke PASSED on real hardware. DEVICE-REALITY FINDING: the physical "Nexus 7 2013" (flox) runs LineageOS 18.1 / Android 11 / API 30, NOT stock Android 6 / API 23 — so the proof exercised the NSC (API-24+) cleartext path; the API-23 manifest-flag path is config-validated + deferred. minSdk 23 retained as install floor. 01-04 benchmark runs on this device with an ART caveat (API-30 runtime newer than stock-6; same Adreno 320 / 2GB / 1920x1200).
+- [Phase 1/01-04]: Toolkit verdict = HYBRID (Compose shell + classic Views for Files list / temp graph / Console scrollback). On-device release benchmark on real flox showed Views ~2x lower p95/max frame time; both cleared floors (p50<16.6ms, 0 frozen). ADR: docs/adr/0001-ui-toolkit-decision.md. Gates all Phase 2+ panel architecture.
 
 ### Pending Todos
 
