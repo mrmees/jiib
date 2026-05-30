@@ -52,7 +52,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Pinned version catalog + multi-module scaffold (:app + :macrobenchmark), shared manifest/NSC cleartext posture, armeabi-v7a release APK, and the verifyMinSdk merged-manifest gate (PKG-02)
 - [ ] 01-02-PLAN.md — Throwaway 3-step cleartext ws://+http:// Moonraker smoke test on the real Nexus 7 (CONN-05; device checkpoint)
-- [ ] 01-03-PLAN.md — Head-to-head benchmark harness: deterministic in-process feed, Compose + Views scenes, UiAutomator driver, gfxinfo framestats parser
+- [x] 01-03-PLAN.md — Head-to-head benchmark harness: deterministic in-process feed, Compose + Views scenes, UiAutomator driver, gfxinfo framestats parser
 - [ ] 01-04-PLAN.md — On-device benchmark run + gfxinfo capture (device checkpoint) and the recorded Compose-vs-Views ADR with raw captures
 **UI hint**: yes
 **Research note**: STANDARD — the on-device benchmark and cleartext smoke test are implementation/measurement work, not research. Stack versions verified against AndroidX/Compose docs (minSdk 23 baseline, Compose 1.11 / AGP 8.7.x line).
@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 1/4 | In Progress|  |
+| 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 2/4 | In Progress|  |
 | 2. Connection & State Foundation | 0/TBD | Not started | - |
 | 3. Service, Shell & State-Driven Navigation | 0/TBD | Not started | - |
 | 4. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
