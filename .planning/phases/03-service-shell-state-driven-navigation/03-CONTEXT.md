@@ -145,8 +145,10 @@ components.
 <code_context>
 - **Reusable:** `MoonrakerSession` at `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt` —
   the reconnect supervisor; service launches `run()` in its scope, exposes `connectionState`, and calls
-  `requestReconnectNow()`. Constructed with `(store, rpc, socketEvents={t -> socket.connect(wsUrl,t)},
-  auth, baseWsUrl, …)`.
+  `requestReconnectNow()`. Constructed with `(store, rpc, socketEvents: (token: String?) -> Flow<SocketEvent>,
+  auth, baseWsUrl, …)`. The `socketEvents` lambda builds a `MoonrakerSocket` per attempt and returns its
+  `.events()` flow; for the keyed path it folds the oneshot token into the URL via
+  `auth.buildAuthedWsUrl(baseWsUrl, token)`.
 - **Reusable:** `PrinterStateStore` at `.../state/PrinterStateStore.kt` — `printerState` / `capabilities`
   / `gcodeResponses` StateFlows; constructed with a `CoroutineScope`. The ~4 Hz high-rate conflation +
   immediate control-plane split is ALREADY built (the throttle half of the "shared render/throttle"
@@ -155,8 +157,10 @@ components.
   Ready/Error/Shutdown) and `printState` (Standby/Printing/Paused/Complete/Error/Cancelled) are the
   routing inputs; `ConnectionState` is the 5-state socket lifecycle (Connecting/Syncing/Connected/
   Disconnected/Error) for the status chrome.
-- **Reusable:** `MoonrakerSocket.connect(url, token): Flow<SocketEvent>` at `.../net/MoonrakerSocket.kt` —
-  the `socketEvents` factory; takes an injected `OkHttpClient`.
+- **Reusable:** `MoonrakerSocket` at `.../net/MoonrakerSocket.kt` — `events(): Flow<SocketEvent>` (Open/
+  Frame/Closed), built via the `MoonrakerSocket.real(client, wsUrl)` companion (URL baked into the
+  `Request` at construction) over a shared `OkHttpClient` (`readTimeout(0)`). Its `wsUrl` defaults to
+  `DevConfig.wsUrl` today — Phase 3 supplies the DataStore-sourced URL instead.
 - **Reusable:** `MoonrakerAuth` at `.../auth/MoonrakerAuth.kt` — oneshot-token + `X-Api-Key` when keyed;
   engages only when an API key is configured.
 - **Replace:** `config/DevConfig` (static, BuildConfig-backed) — Phase 3 swaps the config SOURCE to
