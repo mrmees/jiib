@@ -118,11 +118,12 @@ implementation(libs.androidx.datastore.preferences)
                      │    Connect  -> ConnectScreen              │
                      │    Splash   -> SplashScreen(reason,actions)│  ◄─ klippy non-ready
                      │    Shell    -> AppShell {                  │
-                     │       NavigationRail(dest)                 │
-                     │       TopBar(status + E-STOP hold)        │  ◄─ E-stop every screen
+                     │       full-bleed content (no rail/top-bar) │  ◄─ max canvas; status lives in drawer
+                     │       EdgeHandle + edge-swipe → AppDrawer  │  ◄─ full-screen tile launcher
                      │       when(dest) { Dashboard | Job | ... } │
                      │         Dashboard: Compose rows +          │
                      │           AndroidView(TempGraphView Canvas)│  ◄─ shared render primitive
+                     │           + E-STOP (hold) — Home only      │  ◄─ E-stop on dashboard only
                      │    }                                       │
                      │  }                                         │
                      │  primitives: ConfirmDialog, Keypad,        │
@@ -130,7 +131,7 @@ implementation(libs.androidx.datastore.preferences)
                      └──────────────────────────────────────────┘
 ```
 
-Trace the primary use case: app launch → service starts and (if config saved) builds the spine → `PrinterState` flows to `AppContainer` → Activity derives `TopRoute` → Klippy `Startup` shows Splash, `Ready` shows the nav-rail Shell, `Printing` lands on Job. Rotate the device → Activity is destroyed/recreated, re-collects the *same* process-held StateFlows, connection never dropped (it lives in the service).
+Trace the primary use case: app launch → service starts and (if config saved) builds the spine → `PrinterState` flows to `AppContainer` → Activity derives `TopRoute` → Klippy `Startup` shows Splash, `Ready` shows the full-bleed Shell (edge-swipe drawer for nav), `Printing` lands on Job. Rotate the device → Activity is destroyed/recreated, re-collects the *same* process-held StateFlows, connection never dropped (it lives in the service).
 
 ### Recommended Project Structure
 ```

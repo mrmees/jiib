@@ -49,19 +49,13 @@ pick-list, and (b) always-available manual host/IP + port (default `7125`) + opt
   (Preferences)**; this replaces `config/DevConfig` as the live config source. API-key auth stays minimal
   (the Phase-2 `MoonrakerAuth` path already exists); no trusted-client UI beyond the key field.
 
-**Shell — modern Material 3 navigation rail, NOT a KlipperScreen menu-hub:** Persistent left
-`NavigationRail` exposes the top-level destinations directly (no "back to a menu grid to switch panels"
-round-trip). A persistent top app-bar carries live connection/printer status and the Emergency Stop.
-- Rationale: Matthew's explicit steer — *"we're just using KlipperScreen as an idea of what panels we
-  need, it's not a port… this is modern and we want it to feel that way."* Make the modern feel a
-  first-class goal, not an afterthought.
-- Constraints: landscape-first (locked in PROJECT.md); the rail must not starve the 7″ 1920×1200 content
-  area. Exact placement of E-stop/status within the chrome is refinable in the UI phase
-  (`/gsd-ui-phase 3`), but E-stop is reachable on **every** screen and connection status is always visible.
+**Shell — minimal chrome, maximum canvas, edge-swipe full-screen app drawer (REVISED in `/gsd-ui-phase 3` — supersedes the earlier persistent-nav-rail decision):** NO persistent navigation rail and NO persistent top app-bar. The content surface is full-bleed (maximum open canvas). Navigation is an **edge-swipe-opened, full-screen app drawer** of big function tiles (Home/Dashboard + Job Status enabled; Temperature/Move/Files/Console rendered greyed "coming soon"); a **thin persistent edge handle** at the screen edge provides discoverability. Tapping a tile collapses the drawer to that panel.
+- Rationale: Matthew's explicit steer, revising the original rail call — *"remove the sidebar in favor of an expandable, full-screen app drawer… goal is usable space and clean interface."* On a 7″ panel, maximum content canvas + on-demand navigation beats always-visible chrome. Still modern Material 3, NOT a KlipperScreen port. This consciously trades the rail's one-tap panel switching for a cleaner canvas — accepted, and we iterate designs from a minimal baseline.
+- Constraints: landscape-first (locked in PROJECT.md). **No information is persistent on the content canvas** for now — connection/printer status is surfaced inside the app drawer and contextually, NOT in an always-on bar (Matthew: "start with maximum open canvas… we iterate designs"). Accent color is **cyan `#5BC8FF`** (chosen to stay clear of the amber=heating / green=at-temp / red=stop status semantics). The single bit of persistent chrome is the thin edge handle.
 
 **Navigation mechanism — state-holder routing, NO Navigation-Compose dep (v1):** A top-level
 `when(klippyState)` gate selects splash vs. in-app shell; inside the shell a simple route/state holder
-selects the rail destination. Do **not** add `androidx.navigation:navigation-compose` for v1.
+selects the active app-drawer destination. Do **not** add `androidx.navigation:navigation-compose` for v1.
 - Rationale: the top-level route is *reactive to `klippy_state`*, which fits a `when` wrapper far better
   than a back-stack model; v1 has a handful of destinations; keeps the dependency graph lean on 2GB
   hardware. (Matches the CLAUDE.md guidance: adopt Nav-Compose only when the panel count grows.)
@@ -107,9 +101,11 @@ this exact primitive into the full history graph.
 wrapper enforces an explicit network timeout (no infinite hang on a dropped packet), an in-flight
 disabled/busy state, and tap debounce for **all** Moonraker action calls. A single confirm-dialog
 primitive is the mandatory gate for the destructive set: **emergency stop, cancel print, disable motors,
-restart print, cooldown-while-printing**. E-stop is fast-but-deliberate (hold or double-tap), not a slow
-modal. Keypad / on-screen keyboard / severity-styled toast primitives are built here as panel-consumable
-components.
+restart print, cooldown-while-printing**. E-stop is fast-but-deliberate (**hold-to-confirm**, not a slow
+modal) and — per the revised minimal-chrome shell — lives **only on the Home/Dashboard surface for now**
+(NOT global chrome on every screen); additional surfaces gain it as later control panels are built. Text
+entry uses the **system IME**; numeric entry uses the **custom big-key keypad** (PRIM-01). Keypad /
+on-screen-keyboard / severity-styled toast primitives are built here as panel-consumable components.
 
 </decisions>
 
@@ -181,11 +177,12 @@ components.
 2. Splash during Klippy startup; routes to the main shell on Klippy ready; lands on Job Status when a
    print is active (but navigation stays open); splash shows shutdown/error reason + recovery actions —
    all driven by `klippy_state`, never socket state.
-3. The main shell is a modern Material 3 navigation-rail layout (not a menu-hub clone) with a compact
-   thermal dashboard proving the Views-based render/throttle graph primitive, smooth at ~2–4 Hz on the
-   Nexus 7.
-4. Emergency Stop (`printer.emergency_stop`) is reachable from every screen, hold/double-tap, with
-   connection/printer status always visible in the chrome.
+3. Home/Dashboard is a compact thermal dashboard proving the Views-based render/throttle graph primitive,
+   smooth at ~2–4 Hz on the Nexus 7; navigation to other functions is via an edge-swipe full-screen app
+   drawer (thin edge handle for discoverability), not a persistent rail — maximum content canvas.
+4. Emergency Stop (`printer.emergency_stop`) is present on the Home/Dashboard surface, hold-to-confirm;
+   the app has minimal/no persistent chrome — connection/printer status is surfaced in the app drawer and
+   contextually, not an always-visible status bar.
 5. The shared confirm dialog gates the destructive set; the shared command-dispatch primitive enforces
    timeout + in-flight/busy + debounce for all action calls; keypad, keyboard, and severity toast
    primitives exist and are panel-consumable.

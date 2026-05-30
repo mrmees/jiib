@@ -26,10 +26,10 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### App Shell
 
-- [ ] **SHELL-01**: Persistent shell with title bar, back/home navigation, and live connection/printer status
-- [ ] **SHELL-02**: Emergency Stop is reachable from the shell at all times and triggers `printer.emergency_stop`
+- [ ] **SHELL-01**: Minimal-chrome shell — navigation via an edge-swipe full-screen app drawer (thin edge handle for discoverability); maximum content canvas with no persistent title/status bar; connection/printer status surfaced in the drawer and contextually
+- [ ] **SHELL-02**: Emergency Stop is present on the Home/Dashboard (primary print-monitoring) surface and triggers `printer.emergency_stop`; fast-but-deliberate (hold-to-confirm). Additional surfaces gain it as later control panels are built
 - [ ] **SHELL-03**: A foreground service owns the connection so monitoring survives Activity recreation and screen-off
-- [ ] **SHELL-04**: Main menu doubles as a launcher and a compact thermal dashboard (heater rows + temperature graph)
+- [ ] **SHELL-04**: Home/Dashboard is the landing surface and a compact thermal dashboard (heater rows + temperature graph); function navigation is via the edge-swipe app drawer (not a persistent menu/rail)
 - [ ] **SHELL-05**: Splash/initializing surface shows startup/connection status with contextual recovery actions (retry, restart Klipper/firmware where exposed)
 
 ### UI Primitives
