@@ -98,8 +98,17 @@ class MoonrakerSession(
             // (a durable connection), NOT on every served-then-died attempt (WR-01). A socket that
             // connects then immediately dies in a loop (flapping AP / Klippy crash-loop) must escalate
             // the backoff like any other failure, not hammer the printer at the base interval forever.
-            val outcome = runCatching { connectAndServe(onConnected = { attempt = 0 }) }
-            val result = outcome.getOrElse { ConnectAttempt.Network }
+            // NOT runCatching: that catches Throwable incl. CancellationException, mapping a scope
+            // cancellation to a Network failure and running markStale/emit/backoff on an already-
+            // cancelling job (structured-concurrency anti-pattern). Rethrow cancellation so it
+            // propagates and the supervisor stops cleanly (WR-05).
+            val result = try {
+                connectAndServe(onConnected = { attempt = 0 })
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                ConnectAttempt.Network
+            }
 
             when (result) {
                 ConnectAttempt.AuthRequired -> {
