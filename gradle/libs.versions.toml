@@ -1,0 +1,100 @@
+# =============================================================================
+# Dinghy Display — pinned version catalog (PKG-02, D-04/D-09)
+#
+# This is the SINGLE SOURCE OF VERSIONS for the whole build. The project's
+# central risk is "a modern AndroidX/Compose lib silently raises the minSdk
+# floor above 23 (Nexus 7 2013)." Every version is pinned here so the floor is
+# auditable; the enforcement that actually proves the floor is the verifyMinSdk
+# task (see build-logic/verify-min-sdk.gradle.kts), because pins alone cannot
+# stop a *transitive* dep from raising the MERGED-manifest minSdk.
+#
+# Build quartet is VERIFIED (01-RESEARCH.md): Kotlin 2.1.21 / AGP 8.7.0 /
+# Gradle 8.9 / compileSdk 35 / build-tools 34 / Compose BOM 2026.05.00 (STABLE
+# channel → Compose UI 1.11.1).  Do NOT bump composeBom to an alpha channel —
+# the 2026.05.00 *alpha* points at the next Compose minor / compileSdk 37 /
+# AGP 9 line, the exact churn this project avoids.  No dynamic ("+") versions.
+# =============================================================================
+
+[versions]
+# --- Build quartet (VERIFIED) ---
+kotlin = "2.1.21"            # Kotlin 2.1.x ↔ Gradle 8.7–8.10; 2.1.21 fixes a >8.7 test-fixtures bug
+agp = "8.7.0"               # requires Gradle 8.9 + JDK 17+, build-tools 34, compileSdk ≤ 35
+composeBom = "2026.05.00"   # STABLE channel → Compose UI 1.11.1 (NOT the alpha channel)
+
+# --- SDK levels (also set in app/build.gradle.kts; mirrored here for audit) ---
+minSdk = "23"               # Nexus 7 2013 floor — asserted on the MERGED manifest by verifyMinSdk
+targetSdk = "35"
+compileSdk = "35"
+
+# --- AndroidX (minSdk-23 baseline since June 2025) ---
+activity = "1.9.3"
+lifecycle = "2.8.7"
+appcompat = "1.7.0"
+recyclerview = "1.3.2"
+constraintlayout = "2.1.4"
+coreKtx = "1.13.1"
+
+# --- Networking / serialization (locked stack) ---
+okhttp = "4.12.0"           # minSdk 21 — one client for ws:// + http://
+retrofit = "2.11.0"
+kotlinxSerialization = "1.7.3"
+coroutines = "1.9.0"
+
+# --- Imaging (Coil 3, minSdk 23 exactly, fixed large-PNG OOM on API ≤23) ---
+coil = "3.1.0"
+
+# --- Measurement tooling (:macrobenchmark) ---
+benchmarkMacro = "1.3.3"
+uiautomator = "2.3.0"
+profileinstaller = "1.4.1"
+junit = "4.13.2"
+androidxTestExtJunit = "1.2.1"
+androidxTestRunner = "1.6.2"
+
+[libraries]
+# --- Compose (versions governed by the BOM) ---
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+
+# --- AndroidX core / lifecycle / activity ---
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+
+# --- AndroidX Views (hybrid-Views head-to-head scene) ---
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+
+# --- Networking / serialization ---
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# --- Coil 3 ---
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# --- Measurement (:macrobenchmark) ---
+benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# Compose compiler ships WITH Kotlin 2.x — version == Kotlin, no separate pin.
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
