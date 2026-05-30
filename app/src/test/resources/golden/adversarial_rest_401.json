@@ -1,0 +1,14 @@
+{
+  "description": "CONN-02 REST auth-required marker. Describes the HTTP 401 the fake REST path returns when a key is required but missing/invalid (e.g. on the access.oneshot_token fetch). This is a MARKER fixture (not a websocket frame): the auth/REST unit tests in Wave 2 drive the fake REST layer to return this status/body, which must map to ConnectionState.Error(AuthRequired).",
+  "rest": {
+    "method": "GET",
+    "path": "/access/oneshot_token",
+    "status": 401,
+    "body": {
+      "error": {
+        "code": 401,
+        "message": "Unauthorized"
+      }
+    }
+  }
+}

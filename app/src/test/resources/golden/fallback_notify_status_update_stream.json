@@ -1,0 +1,57 @@
+{
+  "description": "Synthetic notify_status_update diff sequence (heating the bed then the extruder, then starting a print). Each entry is the raw JSON-RPC notification frame as it arrives on the socket; params is the 2-element [ {changed objects}, eventtime ] array. Replay these through FakeWebSocket and deep-merge onto fallback_objects_query_snapshot.json (STATE-01).",
+  "frames": [
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "heater_bed": { "target": 60.0 } },
+        100001.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "heater_bed": { "temperature": 41.2, "power": 0.95 } },
+        100005.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "heater_bed": { "temperature": 60.1, "power": 0.42 }, "extruder": { "target": 210.0 } },
+        100030.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "extruder": { "temperature": 209.8, "power": 0.30, "can_extrude": true } },
+        100070.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        {
+          "print_stats": { "filename": "calibration_cube.gcode", "state": "printing", "print_duration": 1.0 },
+          "virtual_sdcard": { "progress": 0.0, "is_active": true },
+          "toolhead": { "homed_axes": "xyz", "position": [110.0, 110.0, 0.3, 0.0] }
+        },
+        100072.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "virtual_sdcard": { "progress": 0.25 }, "display_status": { "progress": 0.25 } },
+        100400.0
+      ]
+    }
+  ]
+}

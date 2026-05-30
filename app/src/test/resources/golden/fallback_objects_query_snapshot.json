@@ -1,0 +1,54 @@
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "eventtime": 100000.0,
+    "status": {
+      "webhooks": {
+        "state": "ready",
+        "state_message": "Printer is ready"
+      },
+      "toolhead": {
+        "position": [0.0, 0.0, 0.0, 0.0],
+        "homed_axes": "",
+        "max_velocity": 300.0,
+        "status": "Ready"
+      },
+      "gcode_move": {
+        "speed_factor": 1.0,
+        "extrude_factor": 1.0,
+        "gcode_position": [0.0, 0.0, 0.0, 0.0]
+      },
+      "extruder": {
+        "temperature": 24.5,
+        "target": 0.0,
+        "power": 0.0,
+        "can_extrude": false
+      },
+      "heater_bed": {
+        "temperature": 23.8,
+        "target": 0.0,
+        "power": 0.0
+      },
+      "fan": {
+        "speed": 0.0,
+        "rpm": null
+      },
+      "print_stats": {
+        "filename": "",
+        "state": "standby",
+        "print_duration": 0.0,
+        "total_duration": 0.0
+      },
+      "virtual_sdcard": {
+        "progress": 0.0,
+        "is_active": false,
+        "file_position": 0
+      },
+      "display_status": {
+        "progress": 0.0,
+        "message": null
+      }
+    }
+  },
+  "id": 5434
+}

@@ -1,0 +1,9 @@
+{
+  "description": "STATE-04 klippy lifecycle. A notify_klippy_shutdown notification (verified to carry NO params) arrives mid-stream. The spine must flip KlippyState to Shutdown without crashing on the absent params. The ws socket itself stays open.",
+  "frames": [
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_klippy_shutdown"
+    }
+  ]
+}

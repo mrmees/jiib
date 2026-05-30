@@ -1,0 +1,24 @@
+{
+  "description": "CONN-02 / A5 auth-required signal over the websocket. server.connection.identify (id=4509) is answered with a JSON-RPC error -32602 'Unauthorized'. classifyIdentifyError(code,message) must map this to ConnectionError.AuthRequired, surfaced as ConnectionState.Error(AuthRequired) — never a crash.",
+  "request": {
+    "jsonrpc": "2.0",
+    "method": "server.connection.identify",
+    "params": {
+      "client_name": "Dinghy Display",
+      "version": "0.1.0",
+      "type": "display",
+      "url": "https://github.com/example/dinghy-display"
+    },
+    "id": 4509
+  },
+  "frames": [
+    {
+      "jsonrpc": "2.0",
+      "error": {
+        "code": -32602,
+        "message": "Unauthorized"
+      },
+      "id": 4509
+    }
+  ]
+}

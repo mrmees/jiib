@@ -1,0 +1,30 @@
+{
+  "description": "STATE-05 id-correlation under interleaving. A notify_status_update arrives BETWEEN an objects.query request (id=4654) and its matching {result,id} reply. A correct client must NOT consume the notification as the query answer — it has no id and must route to the status stream; only the frame whose id==4654 resolves the deferred. Replay 'frames' in order through FakeWebSocket after sending a query with id 4654.",
+  "request": {
+    "jsonrpc": "2.0",
+    "method": "printer.objects.query",
+    "params": { "objects": { "heater_bed": null, "extruder": null } },
+    "id": 4654
+  },
+  "frames": [
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_status_update",
+      "params": [
+        { "heater_bed": { "temperature": 58.9 } },
+        100050.0
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "eventtime": 100051.0,
+        "status": {
+          "heater_bed": { "temperature": 59.0, "target": 60.0, "power": 0.5 },
+          "extruder": { "temperature": 205.0, "target": 210.0, "power": 0.4 }
+        }
+      },
+      "id": 4654
+    }
+  ]
+}

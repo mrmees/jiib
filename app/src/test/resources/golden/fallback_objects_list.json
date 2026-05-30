@@ -1,0 +1,26 @@
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "objects": [
+      "webhooks",
+      "configfile",
+      "mcu",
+      "gcode_move",
+      "toolhead",
+      "extruder",
+      "heater_bed",
+      "fan",
+      "heater_fan hotend_fan",
+      "controller_fan board_fan",
+      "print_stats",
+      "virtual_sdcard",
+      "display_status",
+      "pause_resume",
+      "gcode_macro START_PRINT",
+      "gcode_macro END_PRINT",
+      "gcode_macro LOAD_FILAMENT",
+      "gcode_macro UNLOAD_FILAMENT"
+    ]
+  },
+  "id": 1454
+}
