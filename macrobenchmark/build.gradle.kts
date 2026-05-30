@@ -42,6 +42,17 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
+        // A `release` build type so `:macrobenchmark:assembleRelease` exists and compiles
+        // ToolkitBenchmark against the :app RELEASE variant (the measured artifact —
+        // D-03/D-07). A com.android.test module declares no `release` by default, so the
+        // plan's release-variant verify needs this. Debuggable + debug-signed because the
+        // Phase-1 :app release APK is still unsigned (real signing is PKG-01 / Phase 8);
+        // it still consumes :app's release output via the matching fallback.
+        create("release") {
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     // This is a com.android.test module measuring the :app under test.
