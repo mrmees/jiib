@@ -22,6 +22,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **STATE-02**: App detects printer capabilities from `printer.objects.list` and gates UI so only supported controls/panels appear (heaters, extruders, fans, macros, etc.)
 - [ ] **STATE-03**: High-rate update streams (temperature, position) are throttled (~2–4 Hz) before driving UI to protect weak-GPU rendering
 - [ ] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
+- [ ] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
 
 ### App Shell
 
@@ -35,8 +36,9 @@ Requirements for the initial release: the functional print-control core, testabl
 
 - [ ] **PRIM-01**: Reusable numeric keypad for value entry (targets, distances, weights)
 - [ ] **PRIM-02**: Reusable on-screen keyboard for text entry (console, search, config)
-- [ ] **PRIM-03**: Single mandatory confirm-action dialog used consistently for destructive/high-impact actions (cancel, disable motors, emergency stop)
+- [ ] **PRIM-03**: Single mandatory confirm-action dialog used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing
 - [ ] **PRIM-04**: Message/toast popup primitive with severity styling for transient feedback and errors
+- [ ] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
 
 ### Move
 
@@ -89,6 +91,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 - [ ] **PKG-01**: Project builds a signed release APK (R8/shrink) that installs and runs on a Nexus 7 2013 (API 23)
 - [ ] **PKG-02**: A pinned Gradle version catalog (`libs.versions.toml`) governs all dependencies so no library silently raises the minSdk floor
+- [ ] **PKG-03**: App survives Doze/always-on (battery-optimization exemption + foreground service + `FLAG_KEEP_SCREEN_ON`) and recovers from process death
 
 ## v2 Requirements
 
@@ -139,67 +142,72 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONN-01 | Phase 1 | Pending |
-| CONN-02 | Phase 1 | Pending |
-| CONN-03 | Phase 1 | Pending |
-| CONN-04 | Phase 1 | Pending |
-| CONN-05 | Phase 1 | Pending |
-| CONN-06 | Phase 1 | Pending |
-| STATE-01 | Phase 1 | Pending |
-| STATE-02 | Phase 1 | Pending |
-| STATE-03 | Phase 1 | Pending |
-| STATE-04 | Phase 1 | Pending |
 | PKG-02 | Phase 1 | Pending |
-| SHELL-01 | Phase 2 | Pending |
-| SHELL-02 | Phase 2 | Pending |
-| SHELL-03 | Phase 2 | Pending |
-| SHELL-04 | Phase 2 | Pending |
-| SHELL-05 | Phase 2 | Pending |
-| PRIM-01 | Phase 2 | Pending |
-| PRIM-02 | Phase 2 | Pending |
-| PRIM-03 | Phase 2 | Pending |
-| PRIM-04 | Phase 2 | Pending |
-| TEMP-01 | Phase 3 | Pending |
-| TEMP-02 | Phase 3 | Pending |
-| TEMP-03 | Phase 3 | Pending |
-| TEMP-04 | Phase 3 | Pending |
-| MOVE-01 | Phase 3 | Pending |
-| MOVE-02 | Phase 3 | Pending |
-| MOVE-03 | Phase 3 | Pending |
-| MOVE-04 | Phase 3 | Pending |
-| EXTR-01 | Phase 3 | Pending |
-| EXTR-02 | Phase 3 | Pending |
-| EXTR-03 | Phase 3 | Pending |
-| EXTR-04 | Phase 3 | Pending |
-| FILE-01 | Phase 4 | Pending |
-| FILE-02 | Phase 4 | Pending |
-| FILE-03 | Phase 4 | Pending |
-| FILE-04 | Phase 4 | Pending |
-| JOB-01 | Phase 4 | Pending |
-| JOB-02 | Phase 4 | Pending |
-| JOB-03 | Phase 4 | Pending |
-| JOB-04 | Phase 4 | Pending |
-| JOB-05 | Phase 4 | Pending |
-| MACRO-01 | Phase 5 | Pending |
-| MACRO-02 | Phase 5 | Pending |
-| MACRO-03 | Phase 5 | Pending |
-| CONS-01 | Phase 5 | Pending |
-| CONS-02 | Phase 5 | Pending |
-| PKG-01 | Phase 6 | Pending |
+| CONN-05 | Phase 1 | Pending |
+| CONN-02 | Phase 2 | Pending |
+| CONN-03 | Phase 2 | Pending |
+| CONN-04 | Phase 2 | Pending |
+| CONN-06 | Phase 2 | Pending |
+| STATE-01 | Phase 2 | Pending |
+| STATE-02 | Phase 2 | Pending |
+| STATE-03 | Phase 2 | Pending |
+| STATE-04 | Phase 2 | Pending |
+| STATE-05 | Phase 2 | Pending |
+| CONN-01 | Phase 3 | Pending |
+| SHELL-01 | Phase 3 | Pending |
+| SHELL-02 | Phase 3 | Pending |
+| SHELL-03 | Phase 3 | Pending |
+| SHELL-04 | Phase 3 | Pending |
+| SHELL-05 | Phase 3 | Pending |
+| PRIM-01 | Phase 3 | Pending |
+| PRIM-02 | Phase 3 | Pending |
+| PRIM-03 | Phase 3 | Pending |
+| PRIM-04 | Phase 3 | Pending |
+| PRIM-05 | Phase 3 | Pending |
+| TEMP-01 | Phase 4 | Pending |
+| TEMP-02 | Phase 4 | Pending |
+| TEMP-03 | Phase 4 | Pending |
+| TEMP-04 | Phase 4 | Pending |
+| MOVE-01 | Phase 4 | Pending |
+| MOVE-02 | Phase 4 | Pending |
+| MOVE-03 | Phase 4 | Pending |
+| MOVE-04 | Phase 4 | Pending |
+| EXTR-01 | Phase 4 | Pending |
+| EXTR-02 | Phase 4 | Pending |
+| EXTR-03 | Phase 4 | Pending |
+| EXTR-04 | Phase 4 | Pending |
+| FILE-01 | Phase 5 | Pending |
+| FILE-02 | Phase 5 | Pending |
+| FILE-03 | Phase 5 | Pending |
+| FILE-04 | Phase 5 | Pending |
+| JOB-01 | Phase 6 | Pending |
+| JOB-02 | Phase 6 | Pending |
+| JOB-03 | Phase 6 | Pending |
+| JOB-04 | Phase 6 | Pending |
+| JOB-05 | Phase 6 | Pending |
+| MACRO-01 | Phase 7 | Pending |
+| MACRO-02 | Phase 7 | Pending |
+| MACRO-03 | Phase 7 | Pending |
+| CONS-01 | Phase 7 | Pending |
+| CONS-02 | Phase 7 | Pending |
+| PKG-01 | Phase 8 | Pending |
+| PKG-03 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 47 total
-- Mapped to phases: 47 ✓
+- v1 requirements: 50 total
+- Mapped to phases: 50 ✓
 - Unmapped: 0 ✓
 
 **Per-phase counts:**
-- Phase 1 (Foundation): 11 — CONN-01..06, STATE-01..04, PKG-02
-- Phase 2 (Service/Shell/Nav): 9 — SHELL-01..05, PRIM-01..04
-- Phase 3 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
-- Phase 4 (Files/Job Status): 9 — FILE-01..04, JOB-01..05
-- Phase 5 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
-- Phase 6 (Hardening/Release): 1 — PKG-01
+- Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
+- Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
+- Phase 3 (Service, Shell & Navigation): 11 — CONN-01, SHELL-01..05, PRIM-01..05
+- Phase 4 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
+- Phase 5 (Files / Print): 4 — FILE-01..04
+- Phase 6 (Job Status): 5 — JOB-01..05
+- Phase 7 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
+- Phase 8 (Hardening/Release): 2 — PKG-01, PKG-03
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-30 after roadmap traceability mapping*
+*Last updated: 2026-05-30 after cross-AI review (Codex): structural splits (8 phases), added STATE-05/PRIM-05/PKG-03, expanded PRIM-03 confirm set, remapped CONN-01 to Shell phase*

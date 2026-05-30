@@ -2,7 +2,7 @@
 gsd_state_version: '1.0'  # placeholder; syncStateFrontmatter overwrites on first state.* call
 status: planning
 progress:
-  total_phases: 6
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 1 — Foundation (Connection, State & On-Device Toolkit Spike)
+**Current focus:** Phase 1 — Platform Gate (Toolkit Benchmark, Cleartext Smoke Test & Scaffold)
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation — Connection, State & On-Device Toolkit Spike)
+Phase: 1 of 8 (Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-05-30 — Roadmap created; 47 v1 requirements mapped across 6 phases
+Last activity: 2026-05-30 — Roadmap revised after cross-AI review (Codex); 50 v1 requirements mapped across 8 phases
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -54,7 +54,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Roadmap]: Infrastructure-first horizontal structure — connection/state spine built and proven (mock socket + real printer) before any panel.
-- [Phase 1]: UI-toolkit choice (Compose-everywhere vs. hybrid-Views) is an on-device Nexus 7 benchmark deliverable inside Foundation; it gates all panel architecture. Pin to Compose 1.11 / AGP 8.7.x line regardless.
+- [Roadmap revision]: Cross-AI review (Codex) applied in full. Old Phase 1 split into Platform Gate (1) + Connection & State Foundation (2); old Phase 4 split into Files/Print (5) + Job Status (6). Now 8 phases.
+- [Phase 1]: UI-toolkit choice (Compose-everywhere vs. hybrid-Views) is its own gate — an on-device Nexus 7 benchmark against a SYNTHETIC 2–4 Hz source (no full connection layer needed). It gates all panel architecture. Pin to Compose 1.11 / AGP 8.7.x line regardless.
+- [Phase 2]: Foundation connects via a STATIC/dev config; the user-facing connection config screen (CONN-01) moved to the Shell phase (3) where UI + DataStore live.
+- [Phase 3]: Added shared command-dispatch primitive (PRIM-05: timeouts + in-flight/busy + debounce). Shell thermal dashboard proves the SHARED render/throttle primitive; the Temperature panel (4) EXTENDS it into the full graph.
 - [Roadmap]: v1 = functional core only (Connect + Temp/Move/Extrude/Files/JobStatus/Macros/Console). Fine-tune + Camera are v2.
 
 ### Pending Todos
@@ -63,8 +66,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 1] Compose-vs-Views perf on the Nexus 7 is unresolved by design — only the on-device spike answers it. Hybrid (Views for high-churn: Files list, temp graph, Console scrollback) is the named fallback.
-- [Phase 1] Auth handshake edge cases (oneshot-token websocket, `X-Api-Key`, `401`) need exercising during implementation; flagged for deeper Phase 1 research.
+- [Phase 1] Compose-vs-Views perf on the Nexus 7 is unresolved by design — only the on-device spike (synthetic 2–4 Hz feed) answers it. Hybrid (Views for high-churn: Files list, temp graph, Console scrollback) is the named fallback.
+- [Phase 2] Auth handshake edge cases (oneshot-token websocket, `X-Api-Key`, `401`) need exercising during implementation; flagged for deeper Phase 2 research. JSON-RPC `id` correlation under interleaving notifications (STATE-05) must be covered by mock-socket tests.
 
 ## Deferred Items
 
@@ -77,5 +80,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-30
-Stopped at: Roadmap and STATE created; REQUIREMENTS traceability populated. Phase 1 ready to plan.
+Stopped at: Roadmap revised to 8 phases after Codex review; REQUIREMENTS traceability repopulated (50 reqs, zero orphans). Phase 1 ready to plan.
 Resume file: None
