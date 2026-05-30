@@ -583,17 +583,13 @@ fun deriveCapabilities(objects: List<String>): Capabilities {
 | A4 | Power devices come from `machine.device_power.devices`, not `printer.objects.list`. | Capability detection | Low — affects only where `powerDevices` is populated (deferred past Phase 2 anyway). |
 | A5 | The `-32602 Unauthorized` error on `server.connection.identify` is the canonical ws auth-required signal (vs the socket upgrade being rejected). | Auth | Medium — drives how the mock 401/auth test is shaped. Sourced from issue tracker + Mainsail, not the primary API page; confirm the exact code/message string when authoring the adversarial fixture. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does `objects.subscribe`/`query` error on objects the printer doesn't define?** (A3)
-   - What we know: `objects.list` enumerates available objects; subscribe takes a subset.
-   - What's unclear: whether requesting a non-existent object errors or is silently dropped.
-   - Recommendation: derive the subscribe set from `objects.list` (intersect with the v1 superset); add a unit test with a minimal golden `objects.list` (no second extruder, no chamber heater) to prove gating. Confirm on the live Ender 5 Plus during the on-device run.
+1. **Does `objects.subscribe`/`query` error on objects the printer doesn't define?** (A3) — **RESOLVED (planning):** Phase 2 derives the subscribe set from `objects.list` via the pure `deriveSubscribeSet(objects)` function (v1 superset ∩ detected objects), so the client never requests an undefined object. `DeriveCapabilitiesTest`/`deriveSubscribeSet` tests assert a minimal printer (no second extruder, no chamber heater) omits those from the subscribe set. The live-printer behavior for an undefined object is moot because we never send one; the on-device run confirms the derived set works against the real Ender 5 Plus.
+   - Original: `objects.list` enumerates available objects; subscribe takes a subset. Unclear whether requesting a non-existent object errors or is silently dropped → sidestepped by deriving the subset from `objects.list`.
 
-2. **Exact `error.code` for ws auth failure.** (A5)
-   - What we know: identify returns a JSON-RPC error; community sources report `code:-32602, message:"Unauthorized"`.
-   - What's unclear: whether all auth-required paths use that exact code/message across Moonraker versions.
-   - Recommendation: capture the real error frame if a key can be temporarily set on the test printer; otherwise hand-author the adversarial fixture using `-32602 / "Unauthorized"` and treat *any* identify-error as `AuthRequired` defensively.
+2. **Exact `error.code` for ws auth failure.** (A5) — **RESOLVED (planning, accepted uncertainty):** the exact code is left as MEDIUM-confidence and handled defensively. `classifyIdentifyError(...)` maps clearly-unauthorized shapes (`code:-32602 / "Unauthorized"`) → `AuthRequired`, classifies other RPC errors as `ProtocolError`/`ServerError`, and falls back to `AuthRequired` for unknown identify errors. The adversarial fixture is hand-authored with `-32602 / "Unauthorized"`. If a key can later be set on the test printer, capture the real frame to tighten the mapping — but no plan depends on knowing the exact code.
+   - Original: identify returns a JSON-RPC error; community sources report `code:-32602, message:"Unauthorized"`. Unclear whether all auth-required paths use that exact code/message across Moonraker versions → handled by the typed-error classifier with a defensive `AuthRequired` fallback.
 
 ## Environment Availability
 
