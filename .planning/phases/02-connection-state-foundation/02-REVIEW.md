@@ -26,7 +26,8 @@ findings:
   warning: 7
   info: 5
   total: 14
-status: issues_found
+status: blockers_resolved
+resolution: "CR-01, CR-02, WR-05 fixed in commit dbbd9b0 with regression tests; full unit suite + live tests (incl. LiveReconnectYankTest) re-verified green 2026-05-30. WR-01/WR-02/WR-06/WR-07 and INFO items remain as tracked, non-blocking follow-ups."
 ---
 
 # Phase 2: Code Review Report

@@ -1,13 +1,15 @@
 ---
 phase: 02-connection-state-foundation
 verified: 2026-05-30T00:00:00Z
-status: human_needed
+status: passed
 score: 9/9 must-haves verified
 overrides_applied: 0
 human_verification:
   - test: "Wi-Fi-yank reconnect proof — observe Disconnected → stale retained → backoff → resync → Connected on the real Ender 5 Plus"
     expected: "ConnectionState goes Disconnected while state remains non-blank with stale=true; after AP restore, ConnectionState reaches Syncing then Connected, stale clears, heater temps are correct"
-    why_human: "Cannot drive a physical network interruption programmatically from a verifier; the live test asserts the static path only; the Wi-Fi-yank path was observed manually (human-verify checkpoint in 02-04 Task 3) but that observation cannot be re-run here"
+    status: resolved
+    resolved_by: "LiveReconnectYankTest (commit dd99638) — orchestrated REAL Wi-Fi drop via adb svc wifi disable/enable over USB. Live evidence 2026-05-30: READY bed=55.22 → DROP_SEEN Disconnected (temp retained, stale=true) → RECONNECTED bed=55.18 (resync, non-stale). BUILD SUCCESSFUL. No longer human-only."
+post_review_fixes: "Code-review blockers CR-01 (notification subscriber race) + CR-02 (discarded subscribe snapshot) + WR-05 (error-code coercion) fixed in commit dbbd9b0 with regression tests; full unit suite + live tests re-verified green."
 ---
 
 # Phase 2: Connection & State Foundation — Verification Report
@@ -15,7 +17,7 @@ human_verification:
 **Phase Goal:** A resilient, fully testable Moonraker connection/state spine — one OkHttp websocket feeding a diff-merged single-source-of-truth PrinterState with capability detection, reconnect-with-resync, optional auth, and correct JSON-RPC id correlation — proven on a mock socket AND a real Ender 5 Plus via a static/dev config. No user-facing config screen and no panels in this phase; it connects with a hardcoded dev config so the spine is exercised in isolation.
 
 **Verified:** 2026-05-30
-**Status:** human_needed
+**Status:** passed (Wi-Fi-yank human item resolved on hardware; code-review blockers fixed — see frontmatter)
 **Re-verification:** No — initial verification
 
 ---
@@ -34,7 +36,7 @@ The ROADMAP defines five Success Criteria for Phase 2. All are verified below.
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Live ws + notify_status_update received; Wi-Fi yank triggers backoff reconnect + full resync handshake, connection state always observable | VERIFIED (partial — see human check) | `LiveSocketReconnectTest` GREEN on real flox/API-30 device against Ender 5 Plus v0.13: Connected reached only after Syncing, heaters seeded, non-stale state observed. Wi-Fi-yank manually observed at human checkpoint but cannot be re-run by this verifier. |
+| 1 | Live ws + notify_status_update received; Wi-Fi yank triggers backoff reconnect + full resync handshake, connection state always observable | VERIFIED (full) | `LiveSocketReconnectTest` GREEN on real flox/API-30 device against Ender 5 Plus v0.13: Connected reached only after Syncing, heaters seeded, non-stale. Wi-Fi-yank now PROVEN by `LiveReconnectYankTest` (orchestrated adb Wi-Fi drop): READY bed=55.22 → DROP_SEEN Disconnected (retained, stale) → RECONNECTED bed=55.18 (resync, non-stale), BUILD SUCCESSFUL. |
 | 2 | notify_status_update partial diffs merge into retained PrinterState StateFlow with high-rate streams conflated to ~2-4 Hz | VERIFIED | `PrinterStateStore.kt` implements split-plane: `delay(sampleMillis)` loop at 250ms for high-rate numeric, control-plane writes immediate. `ConflationTest` green (virtual time). `reduceDiff` deep-merges via field-by-field `applyStatus` — never replaces the base state. |
 | 3 | Capability detection from `printer.objects.list` as pure idempotent function, re-run each reconnect; Klippy lifecycle is first-class | VERIFIED | `DeriveCapabilities.kt` — `deriveCapabilities(List<String>): Capabilities` is pure (no I/O). Called in `MoonrakerSession.runHandshake()` step 3 on every reconnect. `KlippyState` enum in `PrinterState.kt`; `applyKlippyMethod` in `PrinterStateReducer.kt`. `DeriveCapabilitiesTest` + `KlippyLifecycleTest` green. |
 | 4 | JSON-RPC id correlation correct under interleaving: response matched to request id even with notify_* events between | VERIFIED | `JsonRpcClient.kt` uses `Map<Long, CompletableDeferred<JsonElement>>` guarded by `Mutex` + `AtomicLong` id counter. `dispatch()` routes by id for responses, by method for notifications — never treats next frame as answer. `JsonRpcClientTest` with `adversarial_interleaved.json` green (virtual time). |

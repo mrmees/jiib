@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 02-connection-state-foundation
 source: [02-VERIFICATION.md]
 started: 2026-05-30T00:00:00Z
@@ -8,7 +8,7 @@ updated: 2026-05-30T00:00:00Z
 
 ## Current Test
 
-[awaiting human testing]
+[all items resolved]
 
 ## Tests
 
@@ -19,7 +19,11 @@ RETAINED (shown stale, NOT blanked). Restoring the network triggers backoff+jitt
 the full identify → objects.list → objects.query → objects.subscribe resync handshake, after which
 displayed temps/position are correct (non-stale) again. (D-03 retain-on-drop → D-04 resync-overwrite;
 ROADMAP Phase-2 success criterion #1.)
-result: [pending]
+result: PASSED — proven on real hardware 2026-05-30 via LiveReconnectYankTest (commit dd99638),
+  an orchestrated adb `svc wifi disable/enable` Wi-Fi drop over USB against the live Ender 5 Plus:
+  READY bed=55.22 → DROP_SEEN Disconnected (temp retained, stale=true) → RECONNECTED bed=55.18
+  (resync overwrote → non-stale). BUILD SUCCESSFUL. The deterministic reconnect/resync logic is also
+  unit-proven (ReconnectSupervisorTest, ConnectionStateTest, HandshakeTest).
 
 how_to_run: |
   1. Build + install debug, or run the instrumented test harness pointed at the live printer.
@@ -34,9 +38,9 @@ how_to_run: |
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
