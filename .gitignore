@@ -1,0 +1,24 @@
+# Android / Gradle
+.gradle/
+build/
+*/build/
+local.properties
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.cxx/
+
+# Keystores / signing (never commit secrets)
+*.jks
+*.keystore
+keystore.properties
+
+# OS / misc
+.DS_Store
+Thumbs.db
