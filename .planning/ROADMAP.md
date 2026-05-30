@@ -31,7 +31,7 @@ process-death recovery, and a signed sideloadable release APK.
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold** - The Compose-vs-Views on-device go/no-go benchmark (synthetic 2–4 Hz source), a cleartext `ws://`/`http://` smoke test on a real API-23 device, the pinned `libs.versions.toml` catalog, and the build scaffold — the gate that must close before panel architecture begins (completed 2026-05-30)
-- [ ] **Phase 2: Connection & State Foundation** - Resilient Moonraker websocket, diff-merged single-source-of-truth `PrinterState`, capability detection, reconnect-with-resync handshake, optional auth, and JSON-RPC id correlation — proven against a mock socket and a real Ender 5 Plus via a static dev config, still no panels
+- [x] **Phase 2: Connection & State Foundation** - Resilient Moonraker websocket, diff-merged single-source-of-truth `PrinterState`, capability detection, reconnect-with-resync handshake, optional auth, and JSON-RPC id correlation — proven against a mock socket and a real Ender 5 Plus via a static dev config, still no panels (completed 2026-05-30)
 - [ ] **Phase 3: Service, Shell & State-Driven Navigation** - Foreground service, the user-facing connection config screen, splash/main/job state-driven routing, always-reachable Emergency Stop, and the UI primitives (keypad, keyboard, confirm dialog, toast, shared command-dispatch) + confirm policy + shared render/throttle dashboard every panel depends on
 - [ ] **Phase 4: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the shell's shared render/throttle primitive) — preheat, jog, and extrude on real hardware
 - [ ] **Phase 5: Files / Print** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm dialog, and delete files — the lead-in to the core print loop
@@ -88,7 +88,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-04-PLAN.md — Session integration: reconnect supervisor (D-01/D-02), resync handshake (CONN-04), ConnectionState (CONN-06), auth (CONN-02, mock), conflation (STATE-03) + on-device Ender 5 Plus live/reconnect proof
+- [x] 02-04-PLAN.md — Session integration: reconnect supervisor (D-01/D-02), resync handshake (CONN-04), ConnectionState (CONN-06), auth (CONN-02, mock), conflation (STATE-03) + on-device Ender 5 Plus live/reconnect proof
 
 **Research note**: Warrants DEEPER phase-specific research before planning — pin down the exact Moonraker `notify_*` set the app subscribes to (`notify_status_update`, `notify_gcode_response`, `notify_klippy_ready/disconnected/shutdown`, `notify_proc_stat_update`) and the auth handshake edge cases (oneshot-token websocket flow, `X-Api-Key`, graceful `401 auth required`). All other patterns verified against official Moonraker docs.
 
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
-| 2. Connection & State Foundation | 3/4 | In Progress|  |
+| 2. Connection & State Foundation | 4/4 | Complete   | 2026-05-30 |
 | 3. Service, Shell & State-Driven Navigation | 0/TBD | Not started | - |
 | 4. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 5. Files / Print | 0/TBD | Not started | - |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-05-30T19:08:54.236Z"
+status: verifying
+last_updated: "2026-05-30T20:12:21.197Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 13
+  completed_plans: 8
+  percent: 25
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 02 (connection-state-foundation) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-30
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████████░] 88%
 | Phase 02 P01 | 7 | 3 tasks | 15 files |
 | Phase 02 P02 | 6 | 2 tasks | 5 files |
 | Phase 02 P03 | 14 | 2 tasks | 6 files |
+| Phase 02 P04 | 110 | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 2/02-02]: Pure state layer landed — reduceSnapshot/reduceDiff deep-merge (STATE-01, no field-wipe), applyKlippyMethod folds notify_klippy_* (STATE-04), deriveCapabilities + deriveSubscribeSet (v1 superset INT objects.list, A3; powerDevices empty A4). All I/O-free; 02-04 re-runs derive* on every reconnect.
 - [Phase 02]: [Phase 2/02-03]: Transport seam landed — MoonrakerSocket callbackFlow bridge (injectable WebSocketFactory, FakeWebSocket-substitutable, readTimeout(0)); concrete RpcConnection binds send/close to the live socket (send-before-open unrepresentable, send-after-close throws); onFailure completes the flow normally carrying a typed Closed(cause).
 - [Phase 02]: [Phase 2/02-03]: JsonRpcClient correlates by id under interleaved notify_* (STATE-05), per-request withTimeout + close(cause) fails+clears all pending (review HIGH #1, no deadlock), routes notifications by method with a SEPARATE bounded gcode flow; RpcConnectionException is a plain Exception so completeExceptionally fails (not cancels) deferreds.
+- [Phase ?]: [Phase 2/02-04]: Session spine integrated and GATE-PROVEN on the real Ender 5 Plus. Critical finding AT the on-device gate: server.connection.identify REQUIRES a non-empty 'url' arg — the spine omitted it, so the live connection never reached Connected, yet the ENTIRE JVM suite was green because the FakeWebSocket mock was more lenient than the real server. Fix sends url + tightened the harness to enforce the required-field contract (regression guard). Lesson: a mock looser than the server hides protocol bugs; the real-hardware gate is the backstop.
+- [Phase ?]: [Phase 2/02-04]: Reconnect supervisor lands D-01 overflow-safe uncapped backoff+jitter (no give-up ceiling) + D-02 requestReconnectNow; ordered identify->objects.list->deriveCapabilities->query->subscribe once per reconnect overwriting stale state (D-04, STATE-02); Connected gated behind Syncing (CONN-06 review HIGH #3); gentle AuthRequired quiescence (no token-fetch storm); split-plane conflation samples only high-rate numeric fields while control-plane+gcode stay immediate (STATE-03).
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T19:08:39.681Z
-Stopped at: Phase 2 context gathered
+Last session: 2026-05-30T20:12:21.167Z
+Stopped at: Phase 2 complete — all 4 plans done, ready for verification (02-04 gate-proven on real Ender 5 Plus)
 Resume file: None
