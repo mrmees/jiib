@@ -22,7 +22,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [x] **STATE-02**: App detects printer capabilities from `printer.objects.list` and gates UI so only supported controls/panels appear (heaters, extruders, fans, macros, etc.)
 - [ ] **STATE-03**: High-rate update streams (temperature, position) are throttled (~2–4 Hz) before driving UI to protect weak-GPU rendering
 - [x] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
-- [ ] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
+- [x] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
 
 ### App Shell
 
@@ -152,7 +152,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | STATE-02 | Phase 2 | Complete |
 | STATE-03 | Phase 2 | Pending |
 | STATE-04 | Phase 2 | Complete |
-| STATE-05 | Phase 2 | Pending |
+| STATE-05 | Phase 2 | Complete |
 | CONN-01 | Phase 3 | Pending |
 | SHELL-01 | Phase 3 | Pending |
 | SHELL-02 | Phase 3 | Pending |

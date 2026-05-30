@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-30T18:56:07.100Z"
+last_updated: "2026-05-30T19:08:54.236Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 13
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 02 (connection-state-foundation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-30
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [████████░░] 75%
 | Phase 01 P01-04 | 20 | 2 tasks | 5 files |
 | Phase 02 P01 | 7 | 3 tasks | 15 files |
 | Phase 02 P02 | 6 | 2 tasks | 5 files |
+| Phase 02 P03 | 14 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 1/01-04]: Toolkit verdict = HYBRID (Compose shell + classic Views for Files list / temp graph / Console scrollback). On-device release benchmark on real flox showed Views ~2x lower p95/max frame time; both cleared floors (p50<16.6ms, 0 frozen). ADR: docs/adr/0001-ui-toolkit-decision.md. Gates all Phase 2+ panel architecture.
 - [Phase ?]: [Phase 2/02-01]: Live Ender-5-Plus capture unavailable at execution; synthetic fallback corpus copied to golden/*.json names — fallback is the autonomous floor, GoldenFixtures.resolve() prefers live when later added.
 - [Phase ?]: [Phase 2/02-02]: Pure state layer landed — reduceSnapshot/reduceDiff deep-merge (STATE-01, no field-wipe), applyKlippyMethod folds notify_klippy_* (STATE-04), deriveCapabilities + deriveSubscribeSet (v1 superset INT objects.list, A3; powerDevices empty A4). All I/O-free; 02-04 re-runs derive* on every reconnect.
+- [Phase 02]: [Phase 2/02-03]: Transport seam landed — MoonrakerSocket callbackFlow bridge (injectable WebSocketFactory, FakeWebSocket-substitutable, readTimeout(0)); concrete RpcConnection binds send/close to the live socket (send-before-open unrepresentable, send-after-close throws); onFailure completes the flow normally carrying a typed Closed(cause).
+- [Phase 02]: [Phase 2/02-03]: JsonRpcClient correlates by id under interleaved notify_* (STATE-05), per-request withTimeout + close(cause) fails+clears all pending (review HIGH #1, no deadlock), routes notifications by method with a SEPARATE bounded gcode flow; RpcConnectionException is a plain Exception so completeExceptionally fails (not cancels) deferreds.
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T18:56:02.701Z
+Last session: 2026-05-30T19:08:39.681Z
 Stopped at: Phase 2 context gathered
 Resume file: None
