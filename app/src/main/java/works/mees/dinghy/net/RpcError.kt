@@ -50,8 +50,10 @@ class RpcError(
  * (02-RESEARCH § "Auth handshake", A5). No I/O, no side effects.
  *
  * Mapping:
- * - code `-32602` with an "Unauthorized" message, OR any message containing "Unauthorized" →
- *   [ConnectionError.AuthRequired] (the canonical auth-required signal over the socket).
+ * - code `-32602` with an "Unauthorized" message, OR a code-less error whose message contains
+ *   "Unauthorized" → [ConnectionError.AuthRequired] (the canonical auth-required signal over the
+ *   socket). The substring test is GATED to those auth shapes — a code-bearing error is classified
+ *   by code, never by a stray "unauthorized" substring (CR-01).
  * - a NON-auth `-32602` (param error that is clearly not an auth failure) → [ConnectionError.ProtocolError].
  * - any other recognizable JSON-RPC method error → [ConnectionError.ProtocolError].
  * - a server-range failure → [ConnectionError.ServerError].
@@ -62,8 +64,12 @@ fun classifyIdentifyError(code: Int?, message: String?): ConnectionError {
     val msg = message.orEmpty()
     val saysUnauthorized = msg.contains("Unauthorized", ignoreCase = true)
 
-    // 1. Clearly unauthorized — the canonical -32602 "Unauthorized", or any explicit Unauthorized text.
-    if ((code == JsonRpcMethods.CODE_INVALID_PARAMS && saysUnauthorized) || saysUnauthorized) {
+    // 1. Canonical auth signal: the -32602 "Unauthorized", OR an unauthorized message with no code.
+    //    The substring test is GATED to the actual auth shapes (code == -32602, or a code-less error) —
+    //    NOT applied as a blanket override ahead of the code-based branches (CR-01). A code-bearing
+    //    server error whose message merely contains "unauthorized" must classify by code, below.
+    if ((code == JsonRpcMethods.CODE_INVALID_PARAMS && saysUnauthorized) ||
+        (code == null && saysUnauthorized)) {
         return ConnectionError.AuthRequired
     }
 
