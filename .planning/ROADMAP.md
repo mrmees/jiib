@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete   | 2026-05-30 |
+| 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 0/TBD | Not started | - |
 | 3. Service, Shell & State-Driven Navigation | 0/TBD | Not started | - |
 | 4. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
