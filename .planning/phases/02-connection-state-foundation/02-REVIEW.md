@@ -24,7 +24,8 @@ findings:
   warning: 6
   info: 5
   total: 12
-status: issues_found
+status: fixed
+resolution: "All Critical + Warning findings fixed via --fix pass (commits a4e2fdc CR-01, af0708a WR-01, 279828c WR-05, 3ccf125 WR-06, 1f195e5 WR-03, c7ae1db WR-04, f0358d9 WR-02). Re-verified green 2026-05-30: :app:testDebugUnitTest, LiveSocketReconnectTest, and the orchestrated LiveReconnectYankTest (real Wi-Fi drop) all pass. INFO items IN-01/IN-02/IN-04/IN-05 left as non-blocking (IN-03 subsumed by the CR-01 fix)."
 ---
 
 # Phase 2: Code Review Report
@@ -32,7 +33,7 @@ status: issues_found
 **Reviewed:** 2026-05-30
 **Depth:** standard
 **Files Reviewed:** 15
-**Status:** issues_found
+**Status:** fixed (all Critical + Warning resolved via --fix; re-verified green incl. live + Wi-Fi-yank — see frontmatter `resolution`)
 
 ## Summary
 
