@@ -2,7 +2,7 @@
 phase: 02-connection-state-foundation
 reviewed: 2026-05-30T00:00:00Z
 depth: standard
-files_reviewed: 17
+files_reviewed: 15
 files_reviewed_list:
   - app/src/main/java/works/mees/dinghy/net/JsonRpc.kt
   - app/src/main/java/works/mees/dinghy/net/JsonRpcClient.kt
@@ -19,325 +19,282 @@ files_reviewed_list:
   - app/src/main/java/works/mees/dinghy/state/DeriveCapabilities.kt
   - app/src/main/java/works/mees/dinghy/state/PrinterStateStore.kt
   - app/src/test/java/works/mees/dinghy/net/SessionTestHarness.kt
-  - app/src/test/java/works/mees/dinghy/net/FakeWebSocket.kt
-  - app/src/test/java/works/mees/dinghy/net/GoldenFixtures.kt
 findings:
-  critical: 2
-  warning: 7
+  critical: 1
+  warning: 6
   info: 5
-  total: 14
-status: blockers_resolved
-resolution: "CR-01, CR-02, WR-05 fixed in commit dbbd9b0 with regression tests; full unit suite + live tests (incl. LiveReconnectYankTest) re-verified green 2026-05-30. WR-01/WR-02/WR-06/WR-07 and INFO items remain as tracked, non-blocking follow-ups."
+  total: 12
+status: issues_found
 ---
 
 # Phase 2: Code Review Report
 
 **Reviewed:** 2026-05-30
 **Depth:** standard
-**Files Reviewed:** 17
+**Files Reviewed:** 15
 **Status:** issues_found
 
 ## Summary
 
-This is a well-architected, defensively-written connection/state spine. The id-correlation,
-close-fails-all-pending, overflow-safe backoff, typed-error classification, and pure-reducer
-seams are genuinely solid and clearly address the prior cross-AI review concerns. The Json
-posture is correct (loose, null-safe, no `!!` on wire data) and secret redaction is handled.
+Re-review of the Phase 2 connection + state spine after the prior blockers were fixed. The three
+prior BLOCKER fixes are genuinely resolved: CR-01 (notification-subscriber race) is now gated on all
+three `onSubscription` deferreds before any frame dispatches; CR-02/WR-04 (discarded subscribe
+snapshot) now seeds from the subscribe reply in `runHandshake` step 5; WR-05 (error-code coercion)
+parses via `intOrNull` and `RpcError.code` is nullable. Those are not re-reported.
 
-However, adversarial tracing surfaces two correctness BLOCKERS in the coroutine plumbing
-(`connectAndServe`) plus several robustness gaps. The most important: a **subscriber-not-yet-
-attached race** that silently drops early notification frames, and a **resync ordering hole**
-where `objects.subscribe` diffs can be dispatched and dropped before the seed query lands. There
-is also a real mock-leniency gap (the reviewer-flagged area): the harness validates identify args
-but does NOT validate that `objects.subscribe` actually requested the objects it later pushes
-diffs for, and the snapshot/subscribe replies reuse the SAME fixture id-blind — meaning a wrong
-subscribe payload would pass tests.
+This pass surfaces one new BLOCKER (a real classification bug in `classifyIdentifyError` whose first
+conditional collapses to a blanket "any message mentioning Unauthorized → AuthRequired", mis-routing
+code-bearing server errors into the gentle-quiescence park), confirms the six known-deferred items so
+the fixer can act, and records the five known INFO items. OOM/jank posture for the Adreno 320 / 2GB
+target is sound: notification buffers are bounded (`STATUS_BUFFER`/`GCODE_BUFFER`/`KLIPPY_BUFFER`) and
+the high-rate plane is conflated to ~4 Hz; nothing here risks unbounded allocation.
 
 ## Critical Issues
 
-### CR-01: Notification frames dropped due to subscriber-not-attached race in `connectAndServe`
+### CR-01: `classifyIdentifyError` first conditional collapses to a blanket "Unauthorized substring → AuthRequired", parking the supervisor on code-bearing server errors
 
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:153-174`
-
-**Issue:** The notification flows (`rpc.statusUpdates`, `klippyEvents`, `gcodeResponses`) are
-plain `MutableSharedFlow` with `replay = 0` and a finite `extraBufferCapacity` (see
-`JsonRpcClient.kt:59,63,67`). In `connectAndServe`, the `routing` job is `launch`ed and its three
-inner collectors begin subscribing **asynchronously**. Immediately afterward the `collector` job
-is `launch`ed and starts calling `rpc.dispatch(event.text)`. There is no happens-before guarantee
-that the three collectors have actually subscribed before frames start dispatching.
-
-For a `SharedFlow` with `replay = 0`, any value `tryEmit`ted while there are **zero subscribers**
-is buffered into `extraBufferCapacity` but is **never replayed** to a subscriber that attaches
-later — those values are lost the moment a subscriber that wasn't present misses them. So a
-`notify_klippy_ready` or an early `notify_status_update` that arrives in the window between socket
-open and the routing collectors attaching is silently dropped. On the target's resync path the
-very first klippy/status pushes can race exactly here.
-
-**Fix:** Make subscription deterministic before any dispatch. Either (a) use
-`shareIn`/`stateIn` with `SharingStarted.Eagerly` upstream, or (b) gate the collector on the
-routing collectors being live. Simplest robust fix — collect the notification flows via
-`MutableSharedFlow(replay = ...)` only as a fallback; the durable fix is to ensure subscription
-ordering:
-
+**File:** `app/src/main/java/works/mees/dinghy/net/RpcError.kt:66`
+**Issue:**
 ```kotlin
-val routingReady = CompletableDeferred<Unit>()
-val routing = launch {
-    coroutineScope {
-        launch { rpc.statusUpdates.collect { store.onStatusDiff(it) } }
-        launch { rpc.klippyEvents.collect { store.onKlippyMethod(it) } }
-        launch { rpc.gcodeResponses.collect { store.onGcodeLine(it) } }
-        // all three subscribed once the launches above have run their first suspension
-        routingReady.complete(Unit)
-    }
+if ((code == JsonRpcMethods.CODE_INVALID_PARAMS && saysUnauthorized) || saysUnauthorized) {
+    return ConnectionError.AuthRequired
 }
-routingReady.await()           // do not start dispatching until subscribers are attached
-val collector = launch { socketEvents(token).collect { ... } }
 ```
-
-Note `routingReady.complete` after the launches still does not strictly prove the children reached
-their collect suspension point — prefer giving each notification `SharedFlow` a small `replay` (1)
-OR using `onSubscription`. The current code has no guarantee at all.
-
-### CR-02: `objects.subscribe` diffs can be applied before/around the seed, racing the snapshot overwrite
-
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:231-236`
-
-**Issue:** The handshake does query (`seed`) at step 4, then `objects.subscribe` at step 5. But
-the moment `objects.subscribe` is sent, Moonraker begins pushing `notify_status_update` diffs, and
-the **subscribe reply itself carries a snapshot** (documented at line 235 "reply is the same
-snapshot shape") that is **thrown away** — `rpc.request(OBJECTS_SUBSCRIBE, ...)` ignores its
-return value. Combined with CR-01, the ordering of "seed lands → subscribe sent → diffs flow" is
-not enforced relative to the store accumulator. If a diff for an object is dispatched and reduced
-onto the accumulator and THEN a delayed/duplicate seed runs, or if the subscribe-reply snapshot
-(which is the authoritative post-subscribe truth) is discarded, the store can hold values that
-disagree with the server. D-04 ("seed overwrites stale state") is only correct if the seed is the
-last authoritative write; here the subscribe reply is the real post-subscribe snapshot and it is
-silently dropped.
-
-**Fix:** Use the subscribe reply as the authoritative seed (it is the snapshot taken at
-subscription time, so no diff can be lost between query and subscribe):
-
+The left disjunct `(code == CODE_INVALID_PARAMS && saysUnauthorized)` is fully subsumed by the right
+disjunct `saysUnauthorized` — the whole condition reduces to `if (saysUnauthorized)`. This is more than
+the cosmetic redundancy noted as IN-03; it changes behavior. Any server-range error (e.g. a Klipper
+host fault surfaced with `code = 500`, or any wrapped/localized message) whose `message` contains the
+substring "unauthorized" case-insensitively (e.g. `"command unauthorized at this stage"`) is classified
+`AuthRequired` and routed into the gentle-quiescence park in `MoonrakerSession.run()`
+(line 101-108). The supervisor then stops retrying a transient, recoverable server error and waits for
+a manual `requestReconnectNow()`. The documented A5 design is the opposite: recognizable shapes
+classify by *code first*, and only an *unrecognized* shape falls back to `AuthRequired`. The
+message-substring test must be gated to the actual auth cases (the `-32602` code, or a code-less
+error), not applied as a blanket override ahead of the code-based branches.
+**Fix:**
 ```kotlin
-// 5. subscribe — its reply IS the at-subscription snapshot; seed from it, not the earlier query.
-val subResult = rpc.request(JsonRpcMethods.OBJECTS_SUBSCRIBE, objectsParam(subset))
-parseStatus(subResult)?.let { store.seed(reduceSnapshot(it)) }
-```
+fun classifyIdentifyError(code: Int?, message: String?): ConnectionError {
+    val msg = message.orEmpty()
+    val saysUnauthorized = msg.contains("Unauthorized", ignoreCase = true)
 
-This also makes step 4's separate query redundant for seeding — keep query only if you need state
-before subscribe, otherwise drop it. As written, diffs arriving between the query reply and the
-subscribe call (or before the routing subscribers attach) corrupt the seeded state.
+    // 1. Canonical auth signal: the -32602 "Unauthorized", OR an unauthorized message with no code.
+    if ((code == JsonRpcMethods.CODE_INVALID_PARAMS && saysUnauthorized) ||
+        (code == null && saysUnauthorized)) {
+        return ConnectionError.AuthRequired
+    }
+
+    // 2. A non-auth invalid-params error.
+    if (code == JsonRpcMethods.CODE_INVALID_PARAMS) {
+        return ConnectionError.ProtocolError(code, msg)
+    }
+
+    // 3. Other JSON-RPC method errors: protocol range vs. server range.
+    if (code != null) {
+        return if (code in -32700..-32600) ConnectionError.ProtocolError(code, msg)
+        else ConnectionError.ServerError(code, msg)
+    }
+
+    // 4. Unknown / sentinel identify error with no recognizable shape — defensive A5 fallback.
+    return ConnectionError.AuthRequired
+}
+```
+This also resolves IN-03.
 
 ## Warnings
 
-### WR-01: `Served` branch resets `attempt` to 0 then immediately backs off — no progressive backoff on a flapping-after-connect socket
+### WR-01: `ConnectAttempt.Served` resets `attempt = 0` before backing off → no progressive backoff on a flapping-after-connect socket
 
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:110-116`
-
-**Issue:** When a socket connects successfully then dies (`ConnectAttempt.Served`), `attempt` is
-reset to 0 and `waitBackoffOrTrigger(0)` is called, i.e. `backoffDelay(0)` ≈ up to one `base`
-(500ms) wait. If the printer/Moonraker is in a crash-restart loop where it accepts the socket,
-completes resync, then drops repeatedly, every cycle resets `attempt=0`, so the client hammers
-reconnect at ~500ms forever with no progressive backoff — exactly the "gentle to the LAN" goal
-(T-02-09) defeated for the flapping case. Resetting on *successful sustained* connect is right;
-resetting on *every* served-then-died cycle is not.
-
-**Fix:** Only reset `attempt` after the connection has been `Connected` for some minimum duration,
-or track served-then-died as its own backed-off case:
-
+**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:109-115`
+**Issue:** A socket that connects, completes the handshake, then dies immediately and repeatedly (a
+flapping AP, a Klippy that connects then shuts down in a loop) hits the `Served` branch every cycle,
+which sets `attempt = 0` and then calls `waitBackoffOrTrigger(attempt)`. With `attempt` always 0 the
+backoff is always `backoffDelay(0, ...)` ≈ one base interval (~500 ms jittered). The client hammers a
+flapping printer at ~2 Hz forever with no escalation — defeating the LAN-gentleness backoff exists to
+provide (T-02-09). Resetting on a *successful* connect is correct; resetting on every *served-then-died*
+attempt is not.
+**Fix:** Escalate on a serve that died, and reset `attempt` only when a connect+handshake actually
+reaches `Connected`:
 ```kotlin
 ConnectAttempt.Served -> {
-    attempt += 1   // a connect that died still counts toward backoff; reset only on durable Connected
     store.markStale(ConnectionState.Disconnected)
     emit(ConnectionState.Disconnected)
+    attempt += 1                 // a serve that died still escalates the backoff
     waitBackoffOrTrigger(attempt)
 }
 ```
+and move `attempt = 0` to fire on reaching `Connected` (have `connectAndServe` signal success distinctly,
+or reset only after the serve loop confirms it reached Connected).
 
-### WR-02: Test harness reuses the SAME fixture for `objects.query` AND `objects.subscribe`, and never validates the subscribe payload — hides protocol bugs
+### WR-02: `SessionTestHarness` maps `objects.query` AND `objects.subscribe` to the same fixture and never validates the requested object subset
 
-**File:** `app/src/test/java/works/mees/dinghy/net/SessionTestHarness.kt:72-74`
-
-**Issue:** This is the exact class of mock-leniency the review flagged. `replyFor` maps both
-`OBJECTS_QUERY` and `OBJECTS_SUBSCRIBE` to the same `snapshotJson` and **does not inspect the
-requested `objects` subset at all**. Real Moonraker only returns status for objects you actually
-subscribed to, and rejects/ignores unknown objects. So a bug where `deriveSubscribeSet` produces
-the wrong set (or `objectsParam` builds a malformed `{objects:{...}}`) would still get a full happy
-snapshot back and pass every test — the same failure mode as the url-less-identify bug that
-already bit you. The harness validates identify args (good, lines 84-91) but applies no equivalent
-validation to subscribe/query.
-
-**Fix:** Validate the `objects.subscribe`/`objects.query` params in the harness — assert the
-requested object set is non-empty and well-formed, and project the snapshot fixture down to only
-the requested objects, mirroring Moonraker:
-
+**File:** `app/src/test/java/works/mees/dinghy/net/SessionTestHarness.kt:80-82`
+**Issue:**
 ```kotlin
-JsonRpcMethods.OBJECTS_SUBSCRIBE, JsonRpcMethods.OBJECTS_QUERY -> {
-    val requested = obj["params"]?.jsonObject?.get("objects")?.jsonObject?.keys
-        ?: return errorFrame(id, 400, "No data for argument: objects")
-    if (requested.isEmpty()) return errorFrame(id, 400, "objects empty")
-    reIdResult(projectSnapshotTo(snapshotJson, requested), id)
-}
+JsonRpcMethods.OBJECTS_QUERY -> reIdResult(snapshotJson, id)
+JsonRpcMethods.OBJECTS_SUBSCRIBE -> reIdResult(subscribeSnapshotJson ?: snapshotJson, id)
 ```
+The fake echoes the full snapshot fixture regardless of the `objects` subset the session requested. The
+harness now correctly rejects a url-less identify (`missingIdentifyArg`), but query/subscribe accept any
+params — including an empty or wrong subset. `deriveSubscribeSet` is the A3 correctness seam ("never
+subscribe to an object the printer doesn't define"), and the mock never exercises it: a regression that
+subscribed to the wrong set, or to nothing, would pass every test. Test leniency, not a runtime bug, but
+it leaves a real correctness path unguarded.
+**Fix:** In `replyFor`, parse `params.objects` keys for query/subscribe and assert they are a non-empty
+subset of the fixture's available objects; return an error frame (or expose a captured-subset field the
+test asserts on) when the subset is empty or names an absent object.
 
-### WR-03: `routing` uses pointless double-launch (`launch { ...launchIn(this) }`)
-
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:153-157`
-
-**Issue:** Each line is `launch { rpc.statusUpdates.onEach { ... }.launchIn(this) }`.
-`onEach{}.launchIn(this)` already starts a collecting coroutine; wrapping it in an outer `launch`
-creates a redundant coroutine whose only body is to start another one and then complete
-immediately. The outer coroutine completes the instant `launchIn` returns, leaving the inner
-collector parented to it — behavior is *probably* fine because `launchIn(this)` uses the inner
-`launch`'s scope, but the intent is muddled and it makes the CR-01 subscription-timing reasoning
-harder. This is a correctness-adjacent smell in the most timing-sensitive code in the phase.
-
-**Fix:** Collapse to a single collector each:
-
-```kotlin
-val routing = launch {
-    launch { rpc.statusUpdates.collect { store.onStatusDiff(it) } }
-    launch { rpc.klippyEvents.collect { store.onKlippyMethod(it) } }
-    launch { rpc.gcodeResponses.collect { store.onGcodeLine(it) } }
-}
-```
-
-### WR-04: Subscribe-reply snapshot discarded means a diff lost in the query→subscribe gap is never reconciled
-
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:231-236`
-
-**Issue:** (Companion to CR-02, kept distinct because it stands even if CR-02's race is otherwise
-mitigated.) Between sending `objects.query` and `objects.subscribe`, the printer state can change
-(a temp tick, a print-state transition). Those changes are not in the query snapshot and there is
-no subscription yet to deliver them as diffs, so they are simply missing until the next diff that
-happens to touch the same field. The subscribe reply is the canonical reconciliation point and it
-is discarded.
-
-**Fix:** Seed from the subscribe reply (see CR-02 fix); it is the snapshot at the instant the
-subscription begins, so no window exists.
-
-### WR-05: `intOrNullSafe` parses the JSON-RPC error code via `content.toInt()` — fails on a numeric-but-fractional or quoted code, silently coercing to `0`
-
-**File:** `app/src/main/java/works/mees/dinghy/net/JsonRpcClient.kt:150,219`
-
-**Issue:** Error-code parsing does `content.toInt()` inside `runCatching`, falling back to `0`. If
-a server (or a hostile/buggy peer) sends `"code": -32602.0` or `"code":"−32602"` with a non-ASCII
-minus, `toInt()` throws and the code silently becomes `0`. Code `0` then flows into
-`classifyIdentifyError(0, msg)`: with no "Unauthorized" text and `code != null`, `0` is not in
-`-32700..-32600`, so it classifies as **`ServerError(0, ...)`** — a real auth/protocol failure can
-be mis-typed, and the supervisor will retry-churn instead of quiescing. Wire data should never
-coerce to a sentinel that changes classification.
-
-**Fix:** Use kotlinx's `intOrNull` and treat a missing/unparseable code as `null` (which
-`classifyIdentifyError` already handles via its A5 fallback), not `0`:
-
-```kotlin
-val code = errObj["code"]?.jsonPrimitive?.intOrNull   // null, not 0, when absent/garbage
-val message = errObj["message"]?.jsonPrimitive?.contentOrNull ?: "JSON-RPC error"
-deferred.completeExceptionally(RpcError(code ?: 0, message))
-```
-
-and make `RpcError.code` nullable, or pass `code` straight through to classification rather than a
-coerced `0`.
-
-### WR-06: `RpcConnection.close(cause)` ignores `cause` — dead parameter, and uses `cancel()` for the normal-close path
+### WR-03: `RpcConnection.close(cause)` ignores `cause` and always hard-cancels — no graceful 1000 close on normal teardown
 
 **File:** `app/src/main/java/works/mees/dinghy/net/RpcConnection.kt:52-57`
-
-**Issue:** `close(cause)` takes a `ConnectionError?` and documents it as "advisory," but the body
-never reads `cause` — it is purely dead. Worse, both the normal-close path
-(`MoonrakerSocket.onClosing` → `connection?.close()`) and the failure path call the same
-`webSocket.cancel()`. `cancel()` is a hard, non-graceful teardown that does not send a close frame;
-for a normal server-initiated close this skips the WebSocket closing handshake. The comment at
-line 54 even says "1000 = normal closure" but no `close(1000, ...)` is ever issued — only
-`cancel()`. The comment is misleading dead intent.
-
-**Fix:** Either drop the unused `cause` param, or use it; and distinguish graceful close from hard
-cancel:
-
+**Issue:**
 ```kotlin
 fun close(cause: ConnectionError? = null) {
     if (open.compareAndSet(true, false)) {
-        if (cause == null) webSocket.close(1000, "client closing") else webSocket.cancel()
+        // 1000 = normal closure; OkHttp's cancel() is the hard teardown for failure paths.
+        webSocket.cancel()
+    }
+}
+```
+The `cause` parameter is accepted and documented as "advisory" but is entirely unused — every path calls
+`webSocket.cancel()` (the hard, no-close-frame teardown). On a normal close (`MoonrakerSocket.onClosing`
+calls `connection?.close()` with no cause) the client never sends a WebSocket 1000 close frame; it just
+yanks the socket. Moonraker sees an abnormal disconnect, and the inline comment ("1000 = normal closure")
+documents behavior the code does not implement. Functionally tolerable (OkHttp reaps the socket) but
+dead-parameter code with a misleading comment.
+**Fix:**
+```kotlin
+fun close(cause: ConnectionError? = null) {
+    if (open.compareAndSet(true, false)) {
+        if (cause == null) {
+            if (!webSocket.close(1000, "client closing")) webSocket.cancel()
+        } else {
+            webSocket.cancel() // failure path: hard teardown
+        }
     }
 }
 ```
 
-### WR-07: High-rate sampling can hide a terminal `Complete`/`Cancelled`/`Error` print-state if it arrives via `virtual_sdcard`/`display_status` only
+### WR-04: No test proves a `print_stats.state` change sharing a diff with high-rate fields bypasses the 250 ms sampler
 
-**File:** `app/src/main/java/works/mees/dinghy/state/PrinterStateStore.kt:90-98,137-143`
+**File:** `app/src/main/java/works/mees/dinghy/state/PrinterStateStore.kt:90-98` (gap in `ConflationTest.kt`)
+**Issue:** `onStatusDiff` publishes immediately when `touchesControlPlane(diff)` is true. The existing
+`controlPlaneTransition_isImmediate_notSampled` test sends a *control-plane-only* diff
+(`{"print_stats":{"state":"printing"}}`). It does NOT cover the realistic case where one
+`notify_status_update` carries `print_stats.state` *together with* high-rate fields — e.g.
+`{"print_stats":{"state":"complete"},"heater_bed":{"temperature":58.3},"virtual_sdcard":{"progress":0.99}}`
+— which is exactly how Moonraker batches a print-finish frame. The code handles it correctly
+(`touchesControlPlane` inspects the whole diff), but there is no regression guard: a refactor that split
+control vs high-rate fields into separate paths could silently delay a print-complete behind a sample
+tick. The reviewer brief asked to confirm this is tested; it is not.
+**Fix:** Add a test that seeds, sends one mixed diff, and asserts (with `runCurrent()` and NO
+`advanceTimeBy`) that the transition is visible immediately:
+```kotlin
+@Test fun controlPlaneMixedWithHighRate_isImmediate() = runTest {
+    val store = PrinterStateStore(scope = backgroundScope, sampleMillis = 250L)
+    store.seed(PrinterState())
+    store.onStatusDiff(statusDiff(
+        """{"print_stats":{"state":"complete"},"heater_bed":{"temperature":58.3}}"""))
+    runCurrent()
+    assertEquals(PrintState.Complete, store.printerState.value.printState)
+}
+```
 
-**Issue:** `touchesControlPlane` treats only `print_stats`, `webhooks`, and `toolhead.homed_axes`
-as immediate. A `display_status`/`virtual_sdcard` `progress` reaching `1.0` (print finished) or a
-`progress` reset is purely high-rate, so it can sit in the accumulator up to `sampleMillis` (250ms)
-before publishing. That is acceptable for progress. BUT the reducer also derives nothing terminal
-from progress, so this is borderline. The real latent issue: if a printer reports a print state
-transition by mutating `print_stats.state` in the SAME diff as a burst of heater noise, the
-control-plane check fires (good) — but the reverse is fine. Flagging because the conflation
-boundary is subtle and the 250ms window on a weak device could batch a `Connected`-adjacent
-flicker; verify there is a test asserting a `print_stats.state` change is never delayed when it
-shares a diff with high-rate fields.
+### WR-05: `run()` wraps `connectAndServe()` in `runCatching`, swallowing `CancellationException`
 
-**Fix:** Add an explicit test: a diff containing both `extruder.temperature` and
-`print_stats.state` must publish immediately with both fields, and confirm no terminal lifecycle
-signal can be delayed by the sampler. If progress-derived terminal UI is added later, route it
-through the control plane.
+**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:97-98`
+**Issue:**
+```kotlin
+val outcome = runCatching { connectAndServe() }
+val result = outcome.getOrElse { ConnectAttempt.Network }
+```
+`runCatching` catches `Throwable`, including `kotlinx.coroutines.CancellationException`. If the parent
+scope is cancelled while `connectAndServe()` is suspended, the cancellation is caught and mapped to
+`ConnectAttempt.Network`, and the loop falls through to `markStale`/`emit`/`waitBackoffOrTrigger` on an
+already-cancelling job. The next `while (isActive)` check usually unwinds it, but swallowing
+`CancellationException` is a structured-concurrency anti-pattern that can run cleanup/emit work on a
+dead scope and mask cancellation. Benign on the target today, but fragile.
+**Fix:** Re-throw cancellation explicitly:
+```kotlin
+val result = try {
+    connectAndServe()
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e
+} catch (e: Throwable) {
+    ConnectAttempt.Network
+}
+```
+
+### WR-06: `parseObjectsList` guards the whole `map` — one non-primitive entry discards the entire objects list (silent total capability loss)
+
+**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:273-276`
+**Issue:**
+```kotlin
+private fun parseObjectsList(result: JsonElement): List<String> =
+    runCatching {
+        (result.jsonObject["objects"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
+    }.getOrDefault(emptyList())
+```
+`runCatching` wraps the entire `map`, so if Moonraker's `objects` array contains a single
+non-string/non-primitive element (a nested object, or a JSON `null`), `it.jsonPrimitive` throws and the
+WHOLE list collapses to `emptyList()`. Empty objects → empty `Capabilities` and an empty
+`deriveSubscribeSet` → the session subscribes to nothing and the screen shows no heaters/temps: a
+silent, total capability loss from one malformed entry. This violates the codebase's own house rule
+(in `PrinterStateReducer`: "a bad field is skipped, never fatal") at the collection level. Adversarial
+or version-skewed `objects.list` payloads are exactly the hostile-JSON case T-02-04 calls out.
+**Fix:** Guard per element so one bad entry is dropped, not the whole list:
+```kotlin
+private fun parseObjectsList(result: JsonElement): List<String> =
+    runCatching {
+        (result.jsonObject["objects"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+            ?: emptyList()
+    }.getOrDefault(emptyList())
+```
 
 ## Info
 
-### IN-01: `MoonrakerSocket.events()` `awaitClose` may double-close but `connection?.close()` is idempotent — confirm no leak on `onFailure`
+### IN-01: Misleading close/cancel comment in `MoonrakerSocket.onClosing` vs `RpcConnection.close`
 
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSocket.kt:88-105`
+**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSocket.kt:82-86`, `RpcConnection.kt:54`
+**Issue:** `onClosing` calls `connection?.close()` (cause = null), then `trySend(Closed(null))`, then
+flow `close()`; `awaitClose` also calls `connection?.close()`. The second is a no-op (idempotent
+AtomicBoolean) — fine — but the `RpcConnection.close` "1000 = normal closure" comment describes behavior
+that never occurs (see WR-03). Align the comment once WR-03 lands.
+**Fix:** Update the comment to match implemented behavior.
 
-**Issue:** On `onFailure`, `connection?.close(...)` runs, then `close()` completes the flow, which
-triggers `awaitClose { connection?.close() }` again. `RpcConnection.close` is CAS-guarded so the
-second call is a no-op — fine. Noting only so a future change to `close()` semantics doesn't break
-idempotency silently.
+### IN-02: `GoldenFixtures` uses `!!` on `frames`/`objectsList` resource lookups
 
-**Fix:** No change required; add a comment that double-close is intentional and relies on the CAS.
+**File:** `app/src/test/java/works/mees/dinghy/net/GoldenFixtures.kt:44,48-49`
+**Issue:** `loadObject(name)["frames"]!!.jsonArray` and `result!!.jsonObject["objects"]!!.jsonArray`
+use `!!` on fixture JSON. Test-only, so no runtime risk, but a renamed/truncated fixture yields a bare
+NPE instead of a message naming the missing key — and production code rightly forbids `!!` on wire data.
+**Fix:** Replace with `requireNotNull(...) { "fixture <name> missing 'frames'/'result.objects'" }`.
 
-### IN-02: `GoldenFixtures.frames`/`objectsList` use `!!` on resource JSON
+### IN-03: Redundant disjunct in `classifyIdentifyError` (subsumed by CR-01)
 
-**File:** `app/src/test/java/works/mees/dinghy/net/GoldenFixtures.kt:44,48`
+**File:** `app/src/main/java/works/mees/dinghy/net/RpcError.kt:66`
+**Issue:** The `(code == CODE_INVALID_PARAMS && saysUnauthorized)` term is logically dead given the
+trailing `|| saysUnauthorized`. Resolved by the CR-01 rewrite.
+**Fix:** Resolved by CR-01.
 
-**Issue:** `loadObject(name)["frames"]!!` and the chained `!!`s will throw an opaque NPE if a
-fixture is malformed/missing a key, rather than a descriptive failure. Test-only, so low impact,
-but a bad fixture gives a useless stack trace.
+### IN-04: `EXTRUDER_N` regex (and heater-name predicates) duplicated across two files
 
-**Fix:** `requireNotNull(loadObject(name)["frames"]) { "fixture $name missing 'frames'" }`.
+**File:** `app/src/main/java/works/mees/dinghy/state/PrinterStateReducer.kt:107-110`,
+`app/src/main/java/works/mees/dinghy/state/DeriveCapabilities.kt:10-12`
+**Issue:** `Regex("""extruder\d+""")` is declared privately in both files, alongside near-identical
+`isExtruder`/`isHeaterObject` heater-name predicates. Two copies will drift if multi-extruder naming
+rules change, producing inconsistent capability-vs-reduce behavior.
+**Fix:** Hoist a single `internal val EXTRUDER_N` and shared heater predicates into one location in the
+`state` package; reference from both.
 
-### IN-03: `classifyIdentifyError` condition has a redundant disjunct
+### IN-05: `objects.subscribe` reply uses the same fixture as `objects.query` by default
 
-**File:** `app/src/main/java/works/mees/dinghy/net/RpcError.kt:63`
-
-**Issue:** `if ((code == CODE_INVALID_PARAMS && saysUnauthorized) || saysUnauthorized)` — the first
-disjunct is fully subsumed by the second (`saysUnauthorized` alone). The whole condition reduces to
-`if (saysUnauthorized)`. Dead logic; harmless but confusing about intent.
-
-**Fix:** `if (saysUnauthorized) return ConnectionError.AuthRequired`.
-
-### IN-04: `EXTRUDER_N` regex duplicated across two files
-
-**File:** `app/src/main/java/works/mees/dinghy/state/PrinterStateReducer.kt:110` and
-`app/src/main/java/works/mees/dinghy/state/DeriveCapabilities.kt:10`
-
-**Issue:** `Regex("""extruder\d+""")` and the `isExtruder`/`isHeaterObject` logic are defined twice.
-They can drift (e.g. one updated to handle `extruder` vs `extruder0`). Minor duplication.
-
-**Fix:** Hoist a single `internal val EXTRUDER_N` / `isExtruder` into one shared file in the `state`
-package.
-
-### IN-05: `objects.subscribe`/`query` reply parsing assumes `result.status` for query but subscribe shape may differ
-
-**File:** `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:262-263`
-
-**Issue:** `parseStatus` reads `result.status`. Moonraker's `objects.query` returns
-`{eventtime, status}`; the `objects.subscribe` reply is the same shape, so this is fine for the
-CR-02 fix. Noting only that if the subscribe reply shape is ever assumed elsewhere to be the
-2-element notify array (`[{...}, eventtime]`), `parseStatus` would silently return null and seed
-nothing. Confirm a fixture-backed test pins the subscribe reply shape.
-
-**Fix:** Keep a golden fixture for the subscribe reply distinct from `notify_status_update` so the
-two shapes can't be conflated.
+**File:** `app/src/test/java/works/mees/dinghy/net/SessionTestHarness.kt:82`
+**Issue:** The subscribe reply defaults to `snapshotJson` (the query fixture). Real Moonraker returns
+the same shape, so this is acceptable, but a distinct fixture would make the CR-02 seed-from-subscribe
+path self-documenting and let a default test prove the subscribe seed is consumed (not just the override
+path).
+**Fix:** Add a distinct golden `objects_subscribe_snapshot.json` and default `subscribeSnapshotJson` to it.
 
 ---
 
