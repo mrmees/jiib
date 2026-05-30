@@ -106,4 +106,12 @@ dependencies {
 
     // --- Profile installer: NO-OP on the API-23 target (D-03); present for API 24+ devices ---
     implementation(libs.androidx.profileinstaller)
+
+    // --- Instrumented test deps for the THROWAWAY cleartext smoke test (plan 01-02 / CONN-05) ---
+    // androidTest extends the main `implementation` configuration, so OkHttp +
+    // kotlinx.serialization (already declared above) are visible to the smoke test
+    // without re-declaring them. Only the AndroidX test-runner stack is added here.
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.junit)
 }
