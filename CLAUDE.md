@@ -19,7 +19,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 ### Constraints
 
 - **Compatibility**: minSdk 23 (Android 6.0, Nexus 7 2013 floor) — Why: target is cheap old hardware; this is the whole point of the project.
-- **Performance**: Must stay responsive on a Tegra-era GPU with 2GB RAM — Why: the device class is weak; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research).
+- **Performance**: Must stay responsive on an Adreno 320 (Snapdragon S4 Pro, 32-bit ARMv7) pushing a 1920×1200 panel with only 2GB RAM — Why: the device class is weak and the high-res panel makes fill rate the real bottleneck; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research). NOTE: the *2013* Nexus 7 is Snapdragon/Adreno 320 at 1920×1200 — NOT the *2012* model's Tegra 3 / 1280×800.
 - **Tech stack**: Native Android (to be confirmed in research) — Why: needs direct hardware/OS access, offline operation, and broad-device compatibility; rules out a web-wrapper approach that defeats the "lean on old hardware" goal.
 - **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; the printer and tablet share a LAN.
 - **Distribution**: Sideloaded signed APK via GitHub Releases — Why: no current Play Services on the target hardware.
@@ -41,7 +41,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | **Charting (temp history)** | **Custom Compose `Canvas`** for live temp graphs; **Vico** only if you want full axis/legend chrome | MEDIUM |
 | **Camera (later phase)** | OkHttp multipart MJPEG decode → Compose `Image`; defer WebRTC | MEDIUM |
 | **Build** | minSdk 23 / targetSdk 35 / compileSdk 35, AGP 8.7.x, Kotlin 2.1.x, **pin a known-good Compose BOM** | HIGH |
-## The Big Decision: Compose vs Views on Tegra-era / 2GB / API 23
+## The Big Decision: Compose vs Views on Adreno 320 / 2GB / 1920×1200 / API 23
 - Ship a **Baseline Profile** from day one.
 - Build/profile in **release mode** — debug Compose is 5–10× slower and will lie to you about jank.
 - Hoist state; use `StateFlow` + `collectAsStateWithLifecycle()`; wrap derived values in `derivedStateOf`.
@@ -64,7 +64,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | **DataStore (Preferences)** | androidx.datastore 1.1.x | Persist connection settings (host, port, API key, prefs) | Default choice. Coroutine/Flow-native, no main-thread ANR risk, supports minSdk 23. A handful of key/values = Preferences DataStore, not Proto, not Room. |
-| **androidx.profileinstaller + Baseline Profile** | 1.4.x | AOT-precompile hot paths | **Mandatory** for acceptable Compose startup/scroll on Tegra-era hardware. Generate via a Macrobenchmark module. |
+| **androidx.profileinstaller + Baseline Profile** | 1.4.x | AOT-precompile hot paths on API 24+ | ⚠ **NO-OP on the API-23 target.** Baseline Profiles need profile-guided compilation (API 24+); Android 6 / API 23 already does **full AOT at install**, so the profile is never consulted on a Nexus 7 2013. Useful only if/when newer devices run the APK. Do NOT gate perf on it for the target — measure the plain release/R8 build. Still build the Macrobenchmark module (for measurement, not the profile). |
 | **Vico** | 2.x | Temperature history chart *if* you want built-in axes/legends/markers | Only if custom Canvas chrome becomes tedious. Multiplatform, Compose + Views modules, draws via `android.graphics.Canvas`. See charting note — custom Canvas is the leaner default. |
 | **Navigation-Compose** | 2.8.x | Panel routing / back-stack | If you want structured nav for ~34 eventual panels. For v1's handful of panels a simple `when(screen)` state holder is lighter; adopt Nav-Compose when the panel count grows. |
 | **kotlinx-collections-immutable** | 0.3.x | `ImmutableList` for stable Compose params | Helps Compose skip recomposition for list params (lists are unstable by default). Cheap win on weak CPU. |
@@ -74,7 +74,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 |------|---------|-------|
 | **Android Gradle Plugin (AGP)** | Build | **Pin 8.7.x.** Do NOT jump to AGP 9 yet — Compose 1.12 will require compileSdk 37 + AGP 9; stay on the 8.x / compileSdk 35 line for stability. |
 | **Gradle Version Catalog** (`libs.versions.toml`) | Dependency management | Pin every version. This project's whole risk profile is "modern libs silently dropping API 23" — a version catalog makes the floor auditable. |
-| **Macrobenchmark module** | Generate Baseline Profile + measure real startup/jank | Run on a *real Nexus 7 or equivalent old device*, in release mode. Emulators lie about old-GPU performance. |
+| **Macrobenchmark module** | Measure real startup/jank (primary); generate a Baseline Profile (only useful on API 24+ devices) | Run on a *real Nexus 7 or equivalent old device*, in release mode. Emulators lie about old-GPU performance. NOTE: frame metrics (`FrameTimingMetric`) may not work on API 23 — fall back to raw `gfxinfo framestats` on-device. |
 | **`apksigner` / signing config** | Sign release APK for GitHub Releases | Generate a keystore, commit signing to CI (GitHub Actions), publish the signed APK as a release asset. No Play App Signing (no Play). |
 | **R8 (minify + shrink)** | Smaller APK, faster load | Enable for release. Smaller dex = faster install/verify on old hardware. Keep rules for kotlinx.serialization + Retrofit models. |
 ## Installation (Gradle, not npm — this is Android)
@@ -88,8 +88,8 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - **vs Java-WebSocket (org.java_websocket):** Bare, no coroutine story, no shared HTTP stack, you'd hand-roll TLS/keepalive. No reason over OkHttp.
 ## Charting note (temperature history on weak GPU)
 ## Camera note (later phase — not core)
-- **MJPEG (the common Klipper case, e.g. `ustreamer`/`mjpg-streamer`/crowsnest):** decode the `multipart/x-mixed-replace` stream yourself — OkHttp streaming response → split on the multipart boundary → `BitmapFactory.decodeByteArray` per frame → push into a Compose `Image`/`Canvas`. Reuse a bitmap and `inSampleSize`-downscale to the display size; on a 2GB Tegra device, decoding full-res MJPEG frames will OOM/jank, so scale down hard. Existing references: `niqdev/ipcam-view`, `perthcpe23/android-mjpeg-view` (both old/Java — use as reference, likely re-implement lean in Kotlin rather than depend on them).
-- **WebRTC (camera-streamer / go2rtc low-latency):** real WebRTC on API-23 Tegra hardware is heavy and the `org.webrtc` lib is large. **Defer past MJPEG.** Ship MJPEG first (covers most setups), add WebRTC only if low latency is demanded and the hardware can take it.
+- **MJPEG (the common Klipper case, e.g. `ustreamer`/`mjpg-streamer`/crowsnest):** decode the `multipart/x-mixed-replace` stream yourself — OkHttp streaming response → split on the multipart boundary → `BitmapFactory.decodeByteArray` per frame → push into a Compose `Image`/`Canvas`. Reuse a bitmap and `inSampleSize`-downscale to the display size; on a 2GB Adreno 320 device, decoding full-res MJPEG frames will OOM/jank, so scale down hard. Existing references: `niqdev/ipcam-view`, `perthcpe23/android-mjpeg-view` (both old/Java — use as reference, likely re-implement lean in Kotlin rather than depend on them).
+- **WebRTC (camera-streamer / go2rtc low-latency):** real WebRTC on API-23 Adreno 320 hardware is heavy and the `org.webrtc` lib is large. **Defer past MJPEG.** Ship MJPEG first (covers most setups), add WebRTC only if low latency is demanded and the hardware can take it.
 ## Alternatives Considered
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
@@ -112,7 +112,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | **Gson** | Reflection-based, slow on weak CPU, large, legacy. | kotlinx.serialization. |
 | **MPAndroidChart** | Heavy, View-based, GC-churn on live updates, near-unmaintained. | Custom Compose Canvas (or Vico). |
 | **Scarlet (Tinder websocket)** | Unmaintained; unnecessary abstraction. | OkHttp websocket + thin JSON-RPC layer. |
-| **WebRTC in v1** | `org.webrtc` is large and heavy on Tegra/API 23. | MJPEG decode first; WebRTC much later, if ever. |
+| **WebRTC in v1** | `org.webrtc` is large and heavy on Adreno 320 / API 23. | MJPEG decode first; WebRTC much later, if ever. |
 | **Google Play Services / Firebase deps** | Target hardware lacks current Play Services; you're sideloading. | Nothing — keep the dependency graph GMS-free so it runs on bare AOSP. |
 | **Hilt/Dagger (for v1)** | DI codegen is overkill for a single-screen-graph app; adds build complexity. | Manual DI / a simple service-locator object. Add Hilt only if the graph grows unwieldy. |
 | **SharedPreferences for the hot path** | Main-thread disk I/O → ANR risk on slow flash. | DataStore (coroutine-backed). |

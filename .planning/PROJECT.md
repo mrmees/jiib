@@ -70,9 +70,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - **Protocol:** Moonraker exposes a JSON-RPC websocket (subscriptions, `notify_*` push events)
   plus a REST API. The app is a Moonraker client — all printer state, files, history,
   thumbnails, macros, and actions flow through it on the local network.
-- **Why old hardware:** Nexus 7 (2013) tablets are cheap, plentiful, 7" 1280×800, and ideal
-  mounted next to a printer — but they ship Android 6.0.1 with weak Tegra/Snapdragon GPUs and
-  2GB RAM, which constrains the UI toolkit and rendering approach.
+- **Why old hardware:** Nexus 7 (2013) tablets are cheap, plentiful, 7" **1920×1200** (323 ppi), and
+  ideal mounted next to a printer — but they ship Android 6.0.1 on a **Snapdragon S4 Pro (APQ8064) /
+  Adreno 320**, only **2GB RAM**, and a **32-bit ARMv7** CPU. That high-res panel driven by a
+  2012-class GPU is exactly what constrains the UI toolkit and rendering approach. (The *2012* Nexus 7
+  was the Tegra 3 / 1280×800 model — this project targets the *2013* model.)
 - **Existing reference work:** A GTK4 KlipperScreen fork (`gtk4_klipperscreen`) lives in the
   same workspace and produced the catalog. It's prior research, not a dependency.
 - **Owner:** Matthew runs Klipper on two printers (Ender 5 Plus, Ender 3 Pro) — see
@@ -81,7 +83,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 ## Constraints
 
 - **Compatibility**: minSdk 23 (Android 6.0, Nexus 7 2013 floor) — Why: target is cheap old hardware; this is the whole point of the project.
-- **Performance**: Must stay responsive on a Tegra-era GPU with 2GB RAM — Why: the device class is weak; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research).
+- **Performance**: Must stay responsive on an Adreno 320 (Snapdragon S4 Pro) pushing a 1920×1200 panel with only 2GB RAM — Why: the device class is weak and the high-res panel makes fill rate the bottleneck; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research).
 - **Tech stack**: Native Android (to be confirmed in research) — Why: needs direct hardware/OS access, offline operation, and broad-device compatibility; rules out a web-wrapper approach that defeats the "lean on old hardware" goal.
 - **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; the printer and tablet share a LAN.
 - **Distribution**: Sideloaded signed APK via GitHub Releases — Why: no current Play Services on the target hardware.
