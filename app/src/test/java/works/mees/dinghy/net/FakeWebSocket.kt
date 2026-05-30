@@ -21,7 +21,7 @@ import okhttp3.WebSocketListener
  * Driving is synchronous (the caller decides ordering) — combine with `runTest` virtual time in
  * Wave 2/3 reducer/correlation tests.
  */
-class FakeWebSocket(
+open class FakeWebSocket(
     private val listener: WebSocketListener,
     private val request: Request = Request.Builder().url("http://localhost/websocket").build(),
 ) : WebSocket {
@@ -77,6 +77,8 @@ class FakeWebSocket(
         sentFrames += text
         return true
     }
+
+    /** Subclasses may observe/respond to sends; this base just records the frame. */
 
     override fun send(bytes: okio.ByteString): Boolean {
         if (closed) return false
