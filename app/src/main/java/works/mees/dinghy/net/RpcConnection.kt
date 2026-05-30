@@ -45,14 +45,22 @@ class RpcConnection internal constructor(
     }
 
     /**
-     * Invalidate this connection and cancel the underlying socket. Idempotent. After this returns,
-     * [isOpen] is false and any [send] throws. [cause] is advisory (the caller — typically the
-     * socket bridge or the JSON-RPC client — uses it to fail pending work with a typed reason).
+     * Invalidate this connection and tear down the underlying socket. Idempotent. After this returns,
+     * [isOpen] is false and any [send] throws. [cause] selects the teardown style: a null cause is a
+     * normal close (graceful WebSocket 1000 close frame), a non-null cause is a failure (hard cancel,
+     * no close frame). The caller also uses [cause] to fail pending work with a typed reason.
      */
     fun close(cause: ConnectionError? = null) {
         if (open.compareAndSet(true, false)) {
-            // 1000 = normal closure; OkHttp's cancel() is the hard teardown for failure paths.
-            webSocket.cancel()
+            // Honor [cause]: a normal teardown (cause == null) sends a graceful WebSocket 1000 close
+            // frame so Moonraker sees a clean disconnect; a failure path (cause != null) hard-cancels
+            // (no close frame) — OkHttp reaps the socket either way (WR-03).
+            if (cause == null) {
+                // close() returns false if a close/cancel is already in flight — fall back to cancel.
+                if (!webSocket.close(1000, "client closing")) webSocket.cancel()
+            } else {
+                webSocket.cancel() // failure path: hard teardown
+            }
         }
     }
 }
