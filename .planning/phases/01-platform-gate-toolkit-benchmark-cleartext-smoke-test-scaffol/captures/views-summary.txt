@@ -1,0 +1,8 @@
+frames (deduped):     313
+warmup excluded:      20
+frames measured:      293
+p50 frame time (ms):  7.57
+p90 frame time (ms):  36.02
+p95 frame time (ms):  43.82
+max frame time (ms):  70.12
+frames > 700 ms:      0
