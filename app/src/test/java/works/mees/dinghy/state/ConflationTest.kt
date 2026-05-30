@@ -69,6 +69,26 @@ class ConflationTest {
         assertEquals(PrintState.Printing, store.printerState.value.printState)
     }
 
+    /**
+     * WR-04 regression guard: a single notify_status_update carrying a control-plane field
+     * (print_stats.state) TOGETHER WITH high-rate fields — exactly how Moonraker batches a
+     * print-finish frame — must publish immediately with the state transition visible, NOT delayed
+     * behind the 250 ms sampler. touchesControlPlane inspects the whole diff, so the mixed frame is
+     * immediate; this test locks that in so a refactor splitting the planes can't silently delay a
+     * print-complete behind a sample tick.
+     */
+    @Test
+    fun controlPlaneMixedWithHighRate_isImmediate() = runTest {
+        val store = PrinterStateStore(scope = backgroundScope, sampleMillis = 250L)
+        store.seed(PrinterState())
+        store.onStatusDiff(statusDiff(
+            """{"print_stats":{"state":"complete"},"heater_bed":{"temperature":58.3},"virtual_sdcard":{"progress":0.99}}"""))
+        runCurrent() // NO advanceTimeBy — immediacy is the assertion.
+        assertEquals(PrintState.Complete, store.printerState.value.printState)
+        // And the high-rate values that rode along in the same diff are visible immediately too.
+        assertEquals(58.3, store.printerState.value.heaters["heater_bed"]?.temperature)
+    }
+
     @Test
     fun connectionAndStaleMarkers_areImmediate() = runTest {
         val store = PrinterStateStore(scope = backgroundScope, sampleMillis = 250L)
