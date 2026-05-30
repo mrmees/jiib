@@ -18,8 +18,8 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Printer State Core
 
-- [ ] **STATE-01**: App merges Moonraker `notify_status_update` partial diffs into a single retained source-of-truth printer state that panels observe reactively
-- [ ] **STATE-02**: App detects printer capabilities from `printer.objects.list` and gates UI so only supported controls/panels appear (heaters, extruders, fans, macros, etc.)
+- [x] **STATE-01**: App merges Moonraker `notify_status_update` partial diffs into a single retained source-of-truth printer state that panels observe reactively
+- [x] **STATE-02**: App detects printer capabilities from `printer.objects.list` and gates UI so only supported controls/panels appear (heaters, extruders, fans, macros, etc.)
 - [ ] **STATE-03**: High-rate update streams (temperature, position) are throttled (~2–4 Hz) before driving UI to protect weak-GPU rendering
 - [x] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
 - [ ] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
@@ -148,8 +148,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONN-03 | Phase 2 | Pending |
 | CONN-04 | Phase 2 | Pending |
 | CONN-06 | Phase 2 | Complete |
-| STATE-01 | Phase 2 | Pending |
-| STATE-02 | Phase 2 | Pending |
+| STATE-01 | Phase 2 | Complete |
+| STATE-02 | Phase 2 | Complete |
 | STATE-03 | Phase 2 | Pending |
 | STATE-04 | Phase 2 | Complete |
 | STATE-05 | Phase 2 | Pending |
