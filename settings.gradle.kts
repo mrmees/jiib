@@ -1,4 +1,6 @@
 pluginManagement {
+    // Convention/precompiled script plugins (verify-min-sdk → PKG-02) live here.
+    includeBuild("build-logic")
     repositories {
         google {
             content {

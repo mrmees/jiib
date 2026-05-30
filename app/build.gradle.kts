@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    // PKG-02 control: registers the verifyMinSdk merged-manifest assertion task.
+    // Precompiled script plugin from the build-logic included build
+    // (build-logic/src/main/kotlin/verify-min-sdk.gradle.kts).
+    id("verify-min-sdk")
 }
 
 android {
