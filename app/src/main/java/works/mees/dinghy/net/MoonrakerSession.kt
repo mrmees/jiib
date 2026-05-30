@@ -22,7 +22,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import works.mees.dinghy.auth.AuthException
@@ -291,7 +290,13 @@ class MoonrakerSession(
 
     private fun parseObjectsList(result: kotlinx.serialization.json.JsonElement): List<String> =
         runCatching {
-            (result.jsonObject["objects"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
+            // Guard PER ELEMENT (mapNotNull), not the whole map: one non-string/non-primitive entry
+            // (a nested object, a JSON null) must be skipped, NOT collapse the entire objects list to
+            // empty → empty Capabilities → subscribe to nothing → blank screen. Matches the house rule
+            // "a bad field is skipped, never fatal" at the collection level (WR-06 / T-02-04).
+            (result.jsonObject["objects"] as? JsonArray)
+                ?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+                ?: emptyList()
         }.getOrDefault(emptyList())
 
     private fun parseStatus(result: kotlinx.serialization.json.JsonElement): JsonObject? =
