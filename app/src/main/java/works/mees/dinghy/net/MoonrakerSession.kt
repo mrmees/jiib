@@ -94,7 +94,11 @@ class MoonrakerSession(
         while (isActive) {
             emit(ConnectionState.Connecting)
 
-            val outcome = runCatching { connectAndServe() }
+            // Reset the backoff counter ONLY when a connect+handshake actually reaches Connected
+            // (a durable connection), NOT on every served-then-died attempt (WR-01). A socket that
+            // connects then immediately dies in a loop (flapping AP / Klippy crash-loop) must escalate
+            // the backoff like any other failure, not hammer the printer at the base interval forever.
+            val outcome = runCatching { connectAndServe(onConnected = { attempt = 0 }) }
             val result = outcome.getOrElse { ConnectAttempt.Network }
 
             when (result) {
@@ -107,8 +111,11 @@ class MoonrakerSession(
                     attempt = 0
                 }
                 ConnectAttempt.Served -> {
-                    // Socket served then died normally — retain state stale, back off, retry (D-01/D-03).
-                    attempt = 0
+                    // Socket served then died — retain state stale, back off, retry (D-01/D-03). The
+                    // attempt counter was already reset to 0 via onConnected the moment this attempt
+                    // reached Connected; here we ESCALATE so a flapping-after-connect socket backs off
+                    // progressively instead of hammering at the base interval (WR-01).
+                    attempt += 1
                     store.markStale(ConnectionState.Disconnected)
                     emit(ConnectionState.Disconnected)
                     waitBackoffOrTrigger(attempt)
@@ -130,7 +137,7 @@ class MoonrakerSession(
      * One connect attempt: optional token fetch → open socket → identify → list → derive → query →
      * subscribe → emit Connected → serve frames until the socket closes. Returns when the socket dies.
      */
-    private suspend fun connectAndServe(): ConnectAttempt = coroutineScope {
+    private suspend fun connectAndServe(onConnected: () -> Unit = {}): ConnectAttempt = coroutineScope {
         // Auth: fetch a oneshot token immediately before connect when keyed (5 s TTL / single-use).
         val token: String? = if (auth?.isKeyed == true) {
             try {
@@ -215,7 +222,10 @@ class MoonrakerSession(
             }
         }
 
-        // Resync complete + subscribed → ONLY NOW Connected (review HIGH #3).
+        // Resync complete + subscribed → ONLY NOW Connected (review HIGH #3). Reaching Connected is
+        // the ONLY event that resets the supervisor's backoff counter (WR-01) — a durable connection,
+        // not a served-then-died flap.
+        onConnected()
         emit(ConnectionState.Connected)
 
         // Serve until the socket dies.
