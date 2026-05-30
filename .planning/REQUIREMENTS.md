@@ -90,7 +90,7 @@ Requirements for the initial release: the functional print-control core, testabl
 ### Packaging
 
 - [ ] **PKG-01**: Project builds a signed release APK (R8/shrink) that installs and runs on a Nexus 7 2013 (API 23)
-- [ ] **PKG-02**: A pinned Gradle version catalog (`libs.versions.toml`) governs all dependencies so no library silently raises the minSdk floor
+- [x] **PKG-02**: A pinned Gradle version catalog (`libs.versions.toml`) governs all dependencies so no library silently raises the minSdk floor
 - [ ] **PKG-03**: App survives Doze/always-on (battery-optimization exemption + foreground service + `FLAG_KEEP_SCREEN_ON`) and recovers from process death
 
 ## v2 Requirements
@@ -142,7 +142,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PKG-02 | Phase 1 | Pending |
+| PKG-02 | Phase 1 | Complete |
 | CONN-05 | Phase 1 | Pending |
 | CONN-02 | Phase 2 | Pending |
 | CONN-03 | Phase 2 | Pending |
