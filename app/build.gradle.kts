@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +10,18 @@ plugins {
     // (build-logic/src/main/kotlin/verify-min-sdk.gradle.kts).
     id("verify-min-sdk")
 }
+
+// D-05: static dev config. Host/port/optional API key are read from a GITIGNORED
+// `local.properties` (see .gitignore) into BuildConfig at build time — nothing secret
+// is committed. SAFE PLACEHOLDER defaults below let a fresh clone with no local.properties
+// still compile. To point at your printer: add `moonraker.host=<ip>` etc. to local.properties
+// then rebuild (BuildConfig regenerates each build). NEVER commit a real IP/key here.
+val devProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun devProp(key: String, default: String): String =
+    (devProps.getProperty(key) ?: default)
 
 android {
     namespace = "works.mees.dinghy"
@@ -21,6 +35,12 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // D-05 static config → BuildConfig (read from gitignored local.properties; placeholders only).
+        // Strings are emitted as quoted literals so DevConfig can read them directly.
+        buildConfigField("String", "MOONRAKER_HOST", "\"${devProp("moonraker.host", "192.168.1.50")}\"")
+        buildConfigField("String", "MOONRAKER_PORT", "\"${devProp("moonraker.port", "7125")}\"")
+        buildConfigField("String", "MOONRAKER_API_KEY", "\"${devProp("moonraker.apiKey", "")}\"")
     }
 
     // D-01a: the Nexus 7 2013 is 32-bit ARMv7. The ABI split restricts the APK
@@ -50,6 +70,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true   // D-05: emit BuildConfig with the MOONRAKER_* static-config fields
     }
 
     // The lintVital UAST detectors bundled with AGP 8.7 crash with an
@@ -114,4 +135,12 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.junit)
+
+    // --- JVM unit-test source set (Wave 0): the off-hardware proving ground for the spine ---
+    // kotlinx-coroutines-test gives virtual time (runTest) to Wave 2/3 reducer/correlation/reconnect
+    // tests; kotlinx-serialization-json lets unit tests + fixtures parse golden Moonraker frames.
+    // No RUNTIME dep is added here, so the merged-manifest minSdk-23 floor cannot move (verifyMinSdk).
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.serialization.json)
 }
