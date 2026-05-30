@@ -139,13 +139,67 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be filled by roadmapper) | — | Pending |
+| CONN-01 | Phase 1 | Pending |
+| CONN-02 | Phase 1 | Pending |
+| CONN-03 | Phase 1 | Pending |
+| CONN-04 | Phase 1 | Pending |
+| CONN-05 | Phase 1 | Pending |
+| CONN-06 | Phase 1 | Pending |
+| STATE-01 | Phase 1 | Pending |
+| STATE-02 | Phase 1 | Pending |
+| STATE-03 | Phase 1 | Pending |
+| STATE-04 | Phase 1 | Pending |
+| PKG-02 | Phase 1 | Pending |
+| SHELL-01 | Phase 2 | Pending |
+| SHELL-02 | Phase 2 | Pending |
+| SHELL-03 | Phase 2 | Pending |
+| SHELL-04 | Phase 2 | Pending |
+| SHELL-05 | Phase 2 | Pending |
+| PRIM-01 | Phase 2 | Pending |
+| PRIM-02 | Phase 2 | Pending |
+| PRIM-03 | Phase 2 | Pending |
+| PRIM-04 | Phase 2 | Pending |
+| TEMP-01 | Phase 3 | Pending |
+| TEMP-02 | Phase 3 | Pending |
+| TEMP-03 | Phase 3 | Pending |
+| TEMP-04 | Phase 3 | Pending |
+| MOVE-01 | Phase 3 | Pending |
+| MOVE-02 | Phase 3 | Pending |
+| MOVE-03 | Phase 3 | Pending |
+| MOVE-04 | Phase 3 | Pending |
+| EXTR-01 | Phase 3 | Pending |
+| EXTR-02 | Phase 3 | Pending |
+| EXTR-03 | Phase 3 | Pending |
+| EXTR-04 | Phase 3 | Pending |
+| FILE-01 | Phase 4 | Pending |
+| FILE-02 | Phase 4 | Pending |
+| FILE-03 | Phase 4 | Pending |
+| FILE-04 | Phase 4 | Pending |
+| JOB-01 | Phase 4 | Pending |
+| JOB-02 | Phase 4 | Pending |
+| JOB-03 | Phase 4 | Pending |
+| JOB-04 | Phase 4 | Pending |
+| JOB-05 | Phase 4 | Pending |
+| MACRO-01 | Phase 5 | Pending |
+| MACRO-02 | Phase 5 | Pending |
+| MACRO-03 | Phase 5 | Pending |
+| CONS-01 | Phase 5 | Pending |
+| CONS-02 | Phase 5 | Pending |
+| PKG-01 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 44 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 44 ⚠️
+- v1 requirements: 47 total
+- Mapped to phases: 47 ✓
+- Unmapped: 0 ✓
+
+**Per-phase counts:**
+- Phase 1 (Foundation): 11 — CONN-01..06, STATE-01..04, PKG-02
+- Phase 2 (Service/Shell/Nav): 9 — SHELL-01..05, PRIM-01..04
+- Phase 3 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
+- Phase 4 (Files/Job Status): 9 — FILE-01..04, JOB-01..05
+- Phase 5 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
+- Phase 6 (Hardening/Release): 1 — PKG-01
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-30 after initial definition*
+*Last updated: 2026-05-30 after roadmap traceability mapping*
