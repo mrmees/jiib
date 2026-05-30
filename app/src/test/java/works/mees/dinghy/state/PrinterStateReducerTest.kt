@@ -1,0 +1,96 @@
+package works.mees.dinghy.state
+
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import works.mees.dinghy.net.GoldenFixtures
+import works.mees.dinghy.net.MoonrakerJson
+
+/**
+ * STATE-01: prove the pure reducer SEEDS from an `objects.query` snapshot then DEEP-MERGES each
+ * `notify_status_update` partial diff without wiping un-diffed fields (Pitfall 1, merge-not-replace).
+ * Runs over the golden corpus, falling back to the synthetic `fallback_*` siblings automatically.
+ */
+class PrinterStateReducerTest {
+
+    /** The `result.status` object of an objects.query/subscribe snapshot fixture. */
+    private fun snapshotStatus(liveName: String): JsonObject =
+        GoldenFixtures.resolve(liveName).jsonObject["result"]!!.jsonObject["status"]!!.jsonObject
+
+    /** The `[0]` "changed objects" object of a notify_status_update frame string. */
+    private fun diffObjects(frame: String): JsonObject =
+        MoonrakerJson.parseToJsonElement(frame).jsonObject["params"]!!.jsonArray[0].jsonObject
+
+    @Test
+    fun seedsFromSnapshot() {
+        val state = reduceSnapshot(snapshotStatus("objects_query_snapshot.json"))
+
+        assertEquals(KlippyState.Ready, state.klippyState)
+        assertEquals(PrintState.Standby, state.printState)
+        assertNotNull("extruder heater seeded", state.heaters["extruder"])
+        assertNotNull("bed heater seeded", state.heaters["heater_bed"])
+        assertEquals(24.5, state.heaters["extruder"]!!.temperature, 0.0001)
+        assertEquals(23.8, state.heaters["heater_bed"]!!.temperature, 0.0001)
+        assertEquals(1.0, state.speedFactor, 0.0001)
+    }
+
+    @Test
+    fun tempOnlyDiffDoesNotWipeTarget() {
+        // Seed, then SET a bed target, then apply a temp-only bed diff — the target must survive (Pitfall 1).
+        val seeded = reduceSnapshot(snapshotStatus("objects_query_snapshot.json"))
+        val withTarget = reduceDiff(
+            seeded,
+            MoonrakerJson.parseToJsonElement("""{ "heater_bed": { "target": 60.0 } }""").jsonObject,
+        )
+        assertEquals(60.0, withTarget.heaters["heater_bed"]!!.target, 0.0001)
+
+        val afterTempOnly = reduceDiff(
+            withTarget,
+            MoonrakerJson.parseToJsonElement("""{ "heater_bed": { "temperature": 41.2, "power": 0.95 } }""").jsonObject,
+        )
+
+        // Temperature updated...
+        assertEquals(41.2, afterTempOnly.heaters["heater_bed"]!!.temperature, 0.0001)
+        // ...but the retained target was NOT wiped to 0.
+        assertEquals(60.0, afterTempOnly.heaters["heater_bed"]!!.target, 0.0001)
+    }
+
+    @Test
+    fun replayingDiffStreamYieldsExpectedFinalStateWithNoFieldReset() {
+        var state = reduceSnapshot(snapshotStatus("objects_query_snapshot.json"))
+        for (frame in GoldenFixtures.frames(streamName())) {
+            state = reduceDiff(state, diffObjects(frame))
+        }
+
+        // Final temps/targets from the captured stream (bed heated to 60, extruder to 210).
+        assertEquals(60.1, state.heaters["heater_bed"]!!.temperature, 0.0001)
+        assertEquals(60.0, state.heaters["heater_bed"]!!.target, 0.0001)
+        assertEquals(209.8, state.heaters["extruder"]!!.temperature, 0.0001)
+        assertEquals(210.0, state.heaters["extruder"]!!.target, 0.0001)
+
+        // Position/homed set by a later frame did NOT reset earlier-merged heater fields.
+        assertEquals("xyz", state.homedAxes)
+        assertNotNull(state.toolheadPosition)
+        assertEquals(110.0, state.toolheadPosition!![0], 0.0001)
+
+        // print_stats + progress flowed through as first-class fields.
+        assertEquals(PrintState.Printing, state.printState)
+        assertEquals("calibration_cube.gcode", state.printFilename)
+        assertEquals(0.25, state.progress, 0.0001)
+
+        // Nothing flickered to empty: the extruder seeded at start is still present.
+        assertTrue("extruder retained", state.heaters.containsKey("extruder"))
+    }
+
+    @Test
+    fun reduceSnapshotIsPureAndDeterministic() {
+        val status = snapshotStatus("objects_query_snapshot.json")
+        assertEquals(reduceSnapshot(status), reduceSnapshot(status))
+    }
+
+    private fun streamName(): String = "notify_status_update_stream.json"
+}
