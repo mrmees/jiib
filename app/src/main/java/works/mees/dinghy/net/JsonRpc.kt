@@ -1,0 +1,110 @@
+package works.mees.dinghy.net
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+
+/**
+ * JSON-RPC 2.0 envelope types for the Moonraker websocket
+ * (`ws://<host>:<port>/websocket`) — the public wire contract Wave 2/3 code against.
+ *
+ * Design note (locked per CLAUDE.md "Networking deep-dive" + 02-RESEARCH § "JSON-RPC framing"):
+ * `params`/`result` are LOOSE [JsonElement]?, NOT strict DTOs. Moonraker's `objects/subscribe`
+ * deltas and `notify_status_update` payloads are heterogeneous, partial, and schema-loose; the
+ * reducer (Wave 2) walks the [JsonElement] tree rather than decoding into rigid classes. The only
+ * things modeled strictly are the JSON-RPC frame itself and the error object.
+ *
+ * Frame shapes (02-RESEARCH, all CITED):
+ * - Request:      `{ "jsonrpc":"2.0", "method":..., "params":..., "id":N }`
+ * - Success:      `{ "jsonrpc":"2.0", "result":..., "id":N }`
+ * - Error:        `{ "jsonrpc":"2.0", "error":{ "code":Int, "message":String }, "id":N }`
+ * - Notification: `{ "jsonrpc":"2.0", "method":..., "params":... }`  (NO id — basis of STATE-05 routing)
+ */
+
+/** Outbound JSON-RPC request. [id] is client-chosen and unique (correlate the reply by id). */
+@Serializable
+data class JsonRpcRequest(
+    val method: String,
+    val params: JsonElement? = null,
+    val id: Long,
+    val jsonrpc: String = "2.0",
+)
+
+/**
+ * A JSON-RPC success response. Echoes the request [id]; [result] is the loose Moonraker payload
+ * (e.g. an `{eventtime, status}` snapshot for query/subscribe, or `{objects:[...]}` for list).
+ */
+@Serializable
+data class JsonRpcResponse(
+    val result: JsonElement? = null,
+    val id: Long? = null,
+    val jsonrpc: String = "2.0",
+)
+
+/**
+ * A JSON-RPC error response. The canonical "auth required" signal over the socket is an identify
+ * reply carrying `{code:-32602, message:"Unauthorized"}` (02-RESEARCH § "Auth handshake"); classify
+ * it via [RpcError.classifyIdentifyError].
+ */
+@Serializable
+data class JsonRpcErrorResponse(
+    val error: JsonRpcErrorObject,
+    val id: Long? = null,
+    val jsonrpc: String = "2.0",
+)
+
+/** The `error` object inside an error response. */
+@Serializable
+data class JsonRpcErrorObject(
+    val code: Int,
+    val message: String,
+)
+
+/**
+ * An UNSOLICITED server notification — has [method], has NO id. The presence of `method` with an
+ * absent `id` is exactly how STATE-05 routing distinguishes a push from a request reply.
+ *
+ * `notify_status_update` carries a 2-element array `[ {changed objects}, eventtime ]`;
+ * `notify_gcode_response` carries a 1-element `[ "message" ]`; the `notify_klippy_*` carry no params.
+ */
+@Serializable
+data class JsonRpcNotification(
+    val method: String,
+    val params: JsonElement? = null,
+    val jsonrpc: String = "2.0",
+)
+
+/**
+ * The SINGLE shared [Json] instance for the whole connection layer (02-PATTERNS § "Json posture").
+ * `ignoreUnknownKeys`/`isLenient` are mandatory for Moonraker's loose payloads. Do NOT build a
+ * `Json {}` per message — reuse this one (and walk wire data null-safely, never `!!`).
+ */
+val MoonrakerJson: Json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = true
+}
+
+/**
+ * Well-known JSON-RPC method names this phase models. Notification method names are matched on the
+ * inbound path; request method names are used to build [JsonRpcRequest]s in Wave 2.
+ */
+object JsonRpcMethods {
+    // Requests (client → server)
+    const val IDENTIFY = "server.connection.identify"
+    const val OBJECTS_LIST = "printer.objects.list"
+    const val OBJECTS_QUERY = "printer.objects.query"
+    const val OBJECTS_SUBSCRIBE = "printer.objects.subscribe"
+    const val ONESHOT_TOKEN = "access.oneshot_token"
+
+    // Notifications (server → client, no id)
+    const val NOTIFY_STATUS_UPDATE = "notify_status_update"
+    const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"
+    const val NOTIFY_KLIPPY_READY = "notify_klippy_ready"
+    const val NOTIFY_KLIPPY_SHUTDOWN = "notify_klippy_shutdown"
+    const val NOTIFY_KLIPPY_DISCONNECTED = "notify_klippy_disconnected"
+
+    /** JSON-RPC error code Moonraker returns from `identify` when credentials are missing/invalid. */
+    const val CODE_INVALID_PARAMS = -32602
+}
