@@ -1,4 +1,13 @@
-# Phase 3: Service, Shell & State-Driven Navigation - Research
+# Phase 4: Service, Shell, Settings & Print-Status Home - Research
+
+> ⚠ **RETARGETED 2026-05-31.** Phase renumbered **3 → 4**. The technical research below — **FGS-owns-spine,
+> pure `derive()` klippy routing, the render/throttle seam, Moonraker action RPCs, mDNS, `specialUse`
+> FGS** — is **still valid** for Phase 4. BUT the UI/shell sections (nav-rail/edge-swipe drawer, top-bar
+> E-stop, the dashboard-as-menu, code skeletons drawing those) are **superseded by `docs/ui_design/`**
+> (LAW): swipe-up App Drawer, Settings screen, Print Status home, Stop→Confirm. The render/throttle and
+> the reusable primitives now live in the new **Phase 3 (Design System & Theming Foundation)**; this
+> phase *consumes* them. Treat the architecture diagram + skeletons as the connection/service/routing
+> reference only, not the UI. Re-run `/gsd-plan-phase 4 --research` to refresh against the new scope.
 
 **Researched:** 2026-05-30
 **Domain:** Android foreground service (connection ownership), Compose Material 3 shell + state-driven routing, hybrid Compose/Views render primitive, command-dispatch + confirm primitives, NsdManager mDNS

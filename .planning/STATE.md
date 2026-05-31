@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-05-30T21:41:47.811Z"
-last_activity: 2026-05-30
+last_updated: "2026-05-31T12:00:00.000Z"
+last_activity: 2026-05-31
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 2
   total_plans: 8
   completed_plans: 8
-  percent: 25
+  percent: 22
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 3 — service, shell & state driven navigation
+**Current focus:** Phase 3 — Design System & Theming Foundation (NEW, per the 2026-05-31 restructure)
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-05-30
+Phase: 3 (Design System & Theming Foundation)
+Plan: Not started — needs `/gsd-discuss-phase 3` (governed by `docs/ui_design/`)
+Status: Ready to discuss/plan
+Last activity: 2026-05-31
 
-Progress: [██████████] 100%
+Progress (Phase 3): [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -72,7 +72,8 @@ Recent decisions affecting current work:
 - [Roadmap revision]: Cross-AI review (Codex) applied in full. Old Phase 1 split into Platform Gate (1) + Connection & State Foundation (2); old Phase 4 split into Files/Print (5) + Job Status (6). Now 8 phases.
 - [Phase 1]: UI-toolkit choice (Compose-everywhere vs. hybrid-Views) is its own gate — an on-device Nexus 7 benchmark against a SYNTHETIC 2–4 Hz source (no full connection layer needed). It gates all panel architecture. Pin to Compose 1.11 / AGP 8.7.x line regardless.
 - [Phase 2]: Foundation connects via a STATIC/dev config; the user-facing connection config screen (CONN-01) moved to the Shell phase (3) where UI + DataStore live.
-- [Phase 3]: Added shared command-dispatch primitive (PRIM-05: timeouts + in-flight/busy + debounce). Shell thermal dashboard proves the SHARED render/throttle primitive; the Temperature panel (4) EXTENDS it into the full graph.
+- [Phase 3]: Added shared command-dispatch primitive (PRIM-05: timeouts + in-flight/busy + debounce). Shell thermal dashboard proves the SHARED render/throttle primitive; the Temperature panel EXTENDS it into the full graph.
+- [SCOPE RESTRUCTURE 2026-05-31]: Matthew delivered a full app-wide design system at `docs/ui_design/` (now the canonical UI LAW — see repo-root CLAUDE.md). Scope broadened: phones→tablets, **portrait + landscape**, **full theming** (dark+light+custom + S/M/L text size); **Nexus 7 / Adreno 320 retained as the perf FLOOR, not the only target**. Connection entry + theme + feature toggles move to a conventional **Settings screen** (keyboard allowed); printer controls stay keyboard-free (single-setting scrubber pages); nav = **swipe-up App Drawer**; Stop → full-screen **Confirm guard**. Roadmap **8 → 9 phases**: new **Phase 3 = Design System & Theming Foundation** (token theming, Focus/Field/Gutter responsive grammar, control language, Confirm/single-setting/toast/render primitives); old shell phase became **Phase 4 (Service, Shell, Settings & Print-Status Home)**; phases 4-8 shifted +1. REQUIREMENTS +5 (THEME-01/02, UI-01/02, SET-01 → 55 v1). The generated `04-UI-SPEC.md` is reduced to a pointer; `04-CONTEXT/RESEARCH/VALIDATION` carry SUPERSEDED banners (service/routing valid, UI superseded) — regenerate Phase 4 via discuss/plan before executing.
 - [Roadmap]: v1 = functional core only (Connect + Temp/Move/Extrude/Files/JobStatus/Macros/Console). Fine-tune + Camera are v2.
 - [Phase ?]: [Phase 1/01-01]: verifyMinSdk delivered as a precompiled build-logic script plugin (not apply(from=)) so it uses AGP SingleArtifact.MERGED_MANIFEST; PKG-02 floor proven adversarially.
 - [Phase ?]: [Phase 1/01-01]: Release APK ships armeabi-v7a only via splits.abi; Compose UI resolves to 1.11.1; cleartext posture owned by the shared manifest/NSC (single-owner for Wave-2).
@@ -105,6 +106,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-30T21:41:47.780Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-service-shell-state-driven-navigation/03-CONTEXT.md
+Last session: 2026-05-31T12:00:00.000Z
+Stopped at: Scope restructure complete — adopted docs/ui_design as canonical UI; roadmap re-split to 9 phases (new Phase 3 = Design System & Theming Foundation). Next: /gsd-discuss-phase 3.
+Resume file: docs/ui_design/README.md

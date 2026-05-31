@@ -9,7 +9,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Connection
 
-- [ ] **CONN-01**: User can enter and save a Moonraker connection (host/IP, port), persisted locally across app restarts
+- [ ] **CONN-01**: User can enter and save a Moonraker connection (host/IP, port, optional API key) **via the Settings screen** (see SET-01), persisted locally across app restarts
 - [x] **CONN-02**: User can supply optional Moonraker auth (API key / trusted-client) used on the websocket and REST calls
 - [x] **CONN-03**: App maintains a long-lived Moonraker websocket and auto-reconnects with backoff after drops, without user intervention
 - [x] **CONN-04**: On every (re)connect the app performs a full resync handshake (identify → objects.query snapshot → objects.subscribe) so displayed state is never stale after a disconnect
@@ -24,20 +24,30 @@ Requirements for the initial release: the functional print-control core, testabl
 - [x] **STATE-04**: Klippy lifecycle state (ready / printing / startup / error / shutdown) drives the app's primary route (ready→main, printing→job status, startup/error→splash)
 - [x] **STATE-05**: App correlates JSON-RPC responses to requests by `id` and never assumes in-order arrival relative to interleaved `notify_*` events
 
+### Design System & Theming
+
+> Governed by `docs/ui_design/` (LAW) — the reusable visual/interaction substrate every later panel inherits.
+
+- [ ] **THEME-01**: Semantic-token theme system — dark + light + user-custom themes; every component references role tokens (`--bg/--surface/--text/--accent/--heat/--go/--stop`…), never a raw color, so a theme is a token remap
+- [ ] **THEME-02**: User text-size setting (S / M / L via the `--fs` multiplier; M is the larger default), persisted
+- [ ] **UI-01**: Focus / Field / Gutter responsive layout grammar on one shared tabular grid — portrait (stacked) and landscape (Focus|Field 50/50 + full-width gutter on the same column lines); sacred aspect ratios; ratio-only sizing (no hardcoded px)
+- [ ] **UI-02**: Outline-led, touch-first control language (2px outline + glow, ≥64px targets) with button-intent colors (red=stop/cancel/back · green=accept · amber=proceed-at-peril · accent=physical command · white=setting)
+
 ### App Shell
 
-- [ ] **SHELL-01**: Minimal-chrome shell — navigation via an edge-swipe full-screen app drawer (thin edge handle for discoverability); maximum content canvas with no persistent title/status bar; connection/printer status surfaced in the drawer and contextually
-- [ ] **SHELL-02**: Emergency Stop is present on the Home/Dashboard (primary print-monitoring) surface and triggers `printer.emergency_stop`; fast-but-deliberate (hold-to-confirm). Additional surfaces gain it as later control panels are built
+- [ ] **SHELL-01**: Minimal-chrome shell — navigation via a **swipe-up full-screen App Drawer** (square destination tiles incl. Settings + a red Power tile); maximum content canvas, no persistent title/status bar; status shown as color on existing elements / contextually, never as global chrome
+- [ ] **SHELL-02**: An emergency/stop control on the Print Status (print-monitoring home) surface routes through a full-screen **Confirm guard** (PRIM-03) and triggers the appropriate Moonraker call (`printer.emergency_stop` for the firmware E-stop / cancel for the print); additional control surfaces gain stop affordances as later panels are built
 - [ ] **SHELL-03**: A foreground service owns the connection so monitoring survives Activity recreation and screen-off
-- [ ] **SHELL-04**: Home/Dashboard is the landing surface and a compact thermal dashboard (heater rows + temperature graph); function navigation is via the edge-swipe app drawer (not a persistent menu/rail)
+- [ ] **SHELL-04**: Print Status is the home/landing surface — a compact live dashboard (progress ring + stat grid; heater stats) — and proves the SHARED render/throttle primitive the Temperature graph later extends; function navigation is via the swipe-up App Drawer (not a persistent menu/rail)
 - [ ] **SHELL-05**: Splash/initializing surface shows startup/connection status with contextual recovery actions (retry, restart Klipper/firmware where exposed)
+- [ ] **SET-01**: Settings screen (conventional Android, keyboard allowed) for baseline app config — Moonraker connection (host/port/key, see CONN-01), theme selection (dark/light/custom), text size (S/M/L), and feature toggles
 
 ### UI Primitives
 
-- [ ] **PRIM-01**: Reusable numeric keypad for value entry (targets, distances, weights)
-- [ ] **PRIM-02**: Reusable on-screen keyboard for text entry (console, search, config)
-- [ ] **PRIM-03**: Single mandatory confirm-action dialog used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing
-- [ ] **PRIM-04**: Message/toast popup primitive with severity styling for transient feedback and errors
+- [ ] **PRIM-01**: Reusable **single-setting page** (full-height fill-bar scrubber + increment/stepper row) for numeric value entry (targets, distances, weights) — replaces an alphanumeric keypad; numeric entry never uses the OS keyboard
+- [ ] **PRIM-02**: Text entry uses the **system keyboard, confined to the Settings screen** (host/IP, API key); printer-control surfaces needing alphanumeric input (console, macro params, file search) are triaged per-control toward a keyboard-free pattern (scroll+tap / numeric) where feasible
+- [ ] **PRIM-03**: Single mandatory **full-screen Confirm guard** used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing (destructive=red, positive=green, safe dismiss=neutral)
+- [ ] **PRIM-04**: Severity-styled message/toast primitive (info/success/warning/error — color + icon + text, never color alone) for transient feedback and errors
 - [ ] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
 
 ### Move
@@ -117,7 +127,7 @@ Deferred to future release. Tracked but not in the current roadmap.
 ### Multi-Printer & Platform
 
 - **MULTI-01**: Configure and switch between multiple Moonraker printers
-- **PORT-01**: Portrait-optimized layout
+- ~~**PORT-01**: Portrait-optimized layout~~ — **promoted to v1** (2026-05-31) as UI-01 (portrait + landscape responsive grammar)
 - **UPD-01**: Moonraker-backed update manager view (where API exposes it)
 - **SYS-01**: System telemetry view from Moonraker `machine/system_info`
 
@@ -153,61 +163,67 @@ Which phases cover which requirements. Populated during roadmap creation.
 | STATE-03 | Phase 2 | Complete |
 | STATE-04 | Phase 2 | Complete |
 | STATE-05 | Phase 2 | Complete |
-| CONN-01 | Phase 3 | Pending |
-| SHELL-01 | Phase 3 | Pending |
-| SHELL-02 | Phase 3 | Pending |
-| SHELL-03 | Phase 3 | Pending |
-| SHELL-04 | Phase 3 | Pending |
-| SHELL-05 | Phase 3 | Pending |
+| THEME-01 | Phase 3 | Pending |
+| THEME-02 | Phase 3 | Pending |
+| UI-01 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Pending |
 | PRIM-01 | Phase 3 | Pending |
-| PRIM-02 | Phase 3 | Pending |
 | PRIM-03 | Phase 3 | Pending |
 | PRIM-04 | Phase 3 | Pending |
-| PRIM-05 | Phase 3 | Pending |
-| TEMP-01 | Phase 4 | Pending |
-| TEMP-02 | Phase 4 | Pending |
-| TEMP-03 | Phase 4 | Pending |
-| TEMP-04 | Phase 4 | Pending |
-| MOVE-01 | Phase 4 | Pending |
-| MOVE-02 | Phase 4 | Pending |
-| MOVE-03 | Phase 4 | Pending |
-| MOVE-04 | Phase 4 | Pending |
-| EXTR-01 | Phase 4 | Pending |
-| EXTR-02 | Phase 4 | Pending |
-| EXTR-03 | Phase 4 | Pending |
-| EXTR-04 | Phase 4 | Pending |
-| FILE-01 | Phase 5 | Pending |
-| FILE-02 | Phase 5 | Pending |
-| FILE-03 | Phase 5 | Pending |
-| FILE-04 | Phase 5 | Pending |
-| JOB-01 | Phase 6 | Pending |
-| JOB-02 | Phase 6 | Pending |
-| JOB-03 | Phase 6 | Pending |
-| JOB-04 | Phase 6 | Pending |
-| JOB-05 | Phase 6 | Pending |
-| MACRO-01 | Phase 7 | Pending |
-| MACRO-02 | Phase 7 | Pending |
-| MACRO-03 | Phase 7 | Pending |
-| CONS-01 | Phase 7 | Pending |
-| CONS-02 | Phase 7 | Pending |
-| PKG-01 | Phase 8 | Pending |
-| PKG-03 | Phase 8 | Pending |
+| CONN-01 | Phase 4 | Pending |
+| SET-01 | Phase 4 | Pending |
+| SHELL-01 | Phase 4 | Pending |
+| SHELL-02 | Phase 4 | Pending |
+| SHELL-03 | Phase 4 | Pending |
+| SHELL-04 | Phase 4 | Pending |
+| SHELL-05 | Phase 4 | Pending |
+| PRIM-02 | Phase 4 | Pending |
+| PRIM-05 | Phase 4 | Pending |
+| TEMP-01 | Phase 5 | Pending |
+| TEMP-02 | Phase 5 | Pending |
+| TEMP-03 | Phase 5 | Pending |
+| TEMP-04 | Phase 5 | Pending |
+| MOVE-01 | Phase 5 | Pending |
+| MOVE-02 | Phase 5 | Pending |
+| MOVE-03 | Phase 5 | Pending |
+| MOVE-04 | Phase 5 | Pending |
+| EXTR-01 | Phase 5 | Pending |
+| EXTR-02 | Phase 5 | Pending |
+| EXTR-03 | Phase 5 | Pending |
+| EXTR-04 | Phase 5 | Pending |
+| FILE-01 | Phase 6 | Pending |
+| FILE-02 | Phase 6 | Pending |
+| FILE-03 | Phase 6 | Pending |
+| FILE-04 | Phase 6 | Pending |
+| JOB-01 | Phase 7 | Pending |
+| JOB-02 | Phase 7 | Pending |
+| JOB-03 | Phase 7 | Pending |
+| JOB-04 | Phase 7 | Pending |
+| JOB-05 | Phase 7 | Pending |
+| MACRO-01 | Phase 8 | Pending |
+| MACRO-02 | Phase 8 | Pending |
+| MACRO-03 | Phase 8 | Pending |
+| CONS-01 | Phase 8 | Pending |
+| CONS-02 | Phase 8 | Pending |
+| PKG-01 | Phase 9 | Pending |
+| PKG-03 | Phase 9 | Pending |
 
 **Coverage:**
-- v1 requirements: 50 total
-- Mapped to phases: 50 ✓
+- v1 requirements: 55 total
+- Mapped to phases: 55 ✓
 - Unmapped: 0 ✓
 
-**Per-phase counts:**
+**Per-phase counts (9-phase roadmap, restructured 2026-05-31):**
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
 - Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
-- Phase 3 (Service, Shell & Navigation): 11 — CONN-01, SHELL-01..05, PRIM-01..05
-- Phase 4 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
-- Phase 5 (Files / Print): 4 — FILE-01..04
-- Phase 6 (Job Status): 5 — JOB-01..05
-- Phase 7 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
-- Phase 8 (Hardening/Release): 2 — PKG-01, PKG-03
+- Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
+- Phase 4 (Service, Shell, Settings & Print-Status Home): 9 — CONN-01, SET-01, SHELL-01..05, PRIM-02, PRIM-05
+- Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
+- Phase 6 (Files / Print): 4 — FILE-01..04
+- Phase 7 (Job Status): 5 — JOB-01..05
+- Phase 8 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
+- Phase 9 (Hardening/Release): 2 — PKG-01, PKG-03
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-30 after cross-AI review (Codex): structural splits (8 phases), added STATE-05/PRIM-05/PKG-03, expanded PRIM-03 confirm set, remapped CONN-01 to Shell phase*
+*Last updated: 2026-05-31 — scope broadened per `docs/ui_design/`: added THEME-01/02, UI-01/02, SET-01 (5 new → 55 v1 reqs); revised CONN-01/SHELL-01..05/PRIM-01..04; restructured to 9 phases (new Phase 3 = Design System & Theming Foundation, shell → Phase 4). Prior: 2026-05-30 Codex cross-AI review (8-phase splits, STATE-05/PRIM-05/PKG-03).*

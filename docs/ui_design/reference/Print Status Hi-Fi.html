@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Print Status — Hi-Fi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hifi.css">
+<style>
+  html,body{margin:0;background:#15130f;}
+  /* spec sheet uses the same tokens */
+  .spec{ width:100%; height:100%; background:var(--bg); color:var(--text);
+    font-family:var(--ui); padding:26px 26px 24px; overflow:hidden;
+    border-radius:var(--r-screen); display:flex; flex-direction:column; gap:20px; letter-spacing:-0.01em;}
+  .spec h1{ font-size:23px; font-weight:600; margin:0; letter-spacing:-0.02em;}
+  .spec .sub{ color:var(--text-2); font-size:14px; margin-top:4px; line-height:1.45;}
+  .spec .blk{ }
+  .spec .h{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); margin-bottom:11px; font-weight:600;}
+  .swrow{ display:flex; gap:9px; flex-wrap:wrap;}
+  .sw{ display:flex; flex-direction:column; gap:6px; align-items:flex-start;}
+  .sw .chip-c{ width:48px; height:40px; border-radius:11px; border:1px solid var(--hair);}
+  .sw small{ font-size:11px; color:var(--text-3); font-family:var(--mono);}
+  .typ .big{ font-size:34px; font-weight:600; letter-spacing:-0.03em; line-height:1;}
+  .typ .mid{ font-size:18px; font-weight:500; margin-top:7px;}
+  .typ .mn{ font-family:var(--mono); font-size:15px; color:var(--text-2); margin-top:7px;}
+  .ctlrow{ display:flex; gap:10px; flex-wrap:wrap;}
+  .principle{ border:1px dashed var(--outline); border-radius:14px; padding:13px 14px; color:var(--text-2);
+    font-size:13.5px; line-height:1.5;}
+  .principle b{ color:var(--text);}
+
+  /* S/M/L text-size setting (demonstrates an in-app user preference) */
+  .fsbar{ position:fixed; top:14px; right:16px; z-index:100; display:flex; align-items:center; gap:9px;
+    background:#1b1f27; border:1px solid rgba(255,255,255,.1); border-radius:999px; padding:6px 8px 6px 15px;
+    font-family:'Geist',system-ui,sans-serif; box-shadow:0 8px 24px -10px rgba(0,0,0,.7);}
+  .fsbar .fsl{ font-size:11px; color:#9aa3b2; letter-spacing:.07em; text-transform:uppercase; font-weight:600;}
+  .fsbar button{ font-family:inherit; border:1.5px solid rgba(255,255,255,.16); background:transparent; color:#e8ecf2;
+    width:36px; height:36px; border-radius:999px; cursor:pointer; font-size:15px; font-weight:600; transition:.12s;}
+  .fsbar button:hover{ border-color:rgba(255,255,255,.3);}
+  .fsbar button.on{ border-color:var(--accent); color:var(--accent-2); background:var(--accent-soft);}
+</style>
+</head>
+<body>
+
+<div class="fsbar" role="group" aria-label="Text size">
+  <span class="fsl">Text</span>
+  <button data-fs="1">S</button>
+  <button data-fs="1.15" class="on">M</button>
+  <button data-fs="1.32">L</button>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="image-slot.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+/* ---------- icons (line glyphs only) ---------- */
+const IPause = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/></svg>);
+const IStop = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="6" y="6" width="12" height="12" rx="3"/></svg>);
+const ITune = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.4" fill="var(--bg)"/><circle cx="16" cy="16" r="2.4" fill="var(--bg)"/></svg>);
+const IWifi = () => (<svg className="wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>);
+const ICW = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3.5V8h-4.5"/></svg>);
+const ICCW = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 3.5V8h4.5"/></svg>);
+const ICheckS = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
+const IDotS = () => (<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3.6"/></svg>);
+const IPlay = () => (<svg className="gl" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>);
+const IRefresh = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>);
+const ICheckB = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
+const IX = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>);
+const IFolder = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:'22px',height:'22px'}}><path d="M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>);
+const IImage = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 16-5-5L5 21"/></svg>);
+const IUp = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>);
+const IDown = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>);
+const ILeft = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>);
+const IRight = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>);
+const IHome = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>);
+const IPower = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></svg>);
+const IBack = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>);
+const IChevUp = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 15l7-7 7 7"/></svg>);
+const IChevDown = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7"/></svg>);
+const IUnlock = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7-2.6"/></svg>);
+const ISail = () => (<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M24 6 L24 30 L10 30 Z" fill="currentColor" stroke="none"/><path d="M24 30v3"/><path d="M7 33c6 6.5 28 6.5 34 0"/></svg>);
+const INozzle = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 4h10l-1.4 9H8.4z"/><path d="M8.6 13L12 20l3.4-7"/></svg>);
+const IFan = () => (<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2.1"/><path d="M12 10c.5-3.2 0-6.4-2.2-7.4 3.1-.2 5.4 1.9 5.4 5 0 1.4-1.4 2.4-3.2 2.4zM14 12c3.2-.5 6.4 0 7.4-2.2.2 3.1-1.9 5.4-5 5.4-1.4 0-2.4-1.4-2.4-3.2zM12 14c-.5 3.2 0 6.4 2.2 7.4-3.1.2-5.4-1.9-5.4-5 0-1.4 1.4-2.4 3.2-2.4zM10 12c-3.2.5-6.4 0-7.4 2.2-.2-3.1 1.9-5.4 5-5.4 1.4 0 2.4 1.4 2.4 3.2z"/></svg>);
+const IGauge = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19a8 8 0 1 1 16 0"/><path d="M12 19l4.5-5.5"/></svg>);
+const IMove = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M3 12h18"/><path d="M12 3l-2.4 2.4M12 3l2.4 2.4M12 21l-2.4-2.4M12 21l2.4-2.4M3 12l2.4-2.4M3 12l2.4 2.4M21 12l-2.4-2.4M21 12l-2.4 2.4"/></svg>);
+const ITherm = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg>);
+const IWrench = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 6a3.5 3.5 0 0 0 4.6 4.3l-9 9a2.1 2.1 0 0 1-3-3l9-9A3.5 3.5 0 0 0 14.5 6z"/></svg>);
+const IZap = () => (<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>);
+const IPlug = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>);
+const IGear = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>);
+const IFiles = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>);
+const IAlert = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9.5v5M12 17.6v.4"/></svg>);
+const ICheckCircle = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>);
+const ISnow = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M4 7l16 10M20 7 4 17"/></svg>);
+const IList = () => (<svg className="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>);
+
+/* ---------- shared bits ---------- */
+const Printer = () => (
+  <div className="ppill"><span className="av">V2</span>Voron 2.4<span className="car">▾</span></div>
+);
+const Conn = () => (<span className="conn"><IWifi/>online</span>);
+const Status = () => (<span className="status"><span className="dot"></span>Printing</span>);
+
+const Header = () => (<div className="hdr"><Printer/><Conn/></div>);
+
+function Ring({pct=68, size=226, sw=12, children}){
+  const r = (size/2) - sw/2 - 1;
+  const circ = 2*Math.PI*r;
+  const arc = circ*pct/100;
+  return (
+    <svg className="prog" viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+      <circle className="trk" cx={size/2} cy={size/2} r={r} fill="none" strokeWidth={sw}/>
+      <circle className="arc" cx={size/2} cy={size/2} r={r} fill="none" strokeWidth={sw}
+        strokeDasharray={`${arc} ${circ}`} strokeDashoffset="0" style={{['--circ']:circ}}/>
+    </svg>
+  );
+}
+
+const Preview = ({id, shape="rounded", radius=14, style}) => (
+  <image-slot id={id} shape={shape} radius={String(radius)} fit="cover"
+    placeholder="Drop print preview" style={{display:'block', ...style}}></image-slot>
+);
+
+/* ============================================================
+   LAYOUT GRAMMAR instance — Print Status
+   Focus = ring · Field = info grid · Gutter = actions
+   ============================================================ */
+function FocusBlock({pid}){
+  return (
+    <div className="focus">
+      <div className="ringblock">
+        <div className="ringwrap">
+          <Ring pct={68} size={178} sw={11}/>
+          <Preview id={pid} shape="circle" style={{position:'absolute', inset:'12.5%', width:'75%', height:'75%'}}/>
+          <div className="badge">68%</div>
+        </div>
+        <div className="timeblock">
+          <div className="lbl" style={{marginBottom:'1px'}}>Time remaining</div>
+          <div className="hero">1:15</div>
+          <div className="fmeta">
+            <span className="fname">Benchy.gcode</span>
+            <Status/>
+          </div>
+          <button className="printer-min">Voron 2.4 · online <span className="car">▾</span></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function FieldBlock(){
+  return (
+    <div className="field">
+      <div className="statgrid">
+        <div className="s"><span className="lbl">Layer</span><span className="v mono">142 / 209</span></div>
+        <div className="s"><span className="lbl">Filament</span><span className="v mono">4.2 m</span></div>
+        <div className="s"><span className="lbl">Nozzle</span><span className="v"><span style={{color:'var(--heat)'}}>210°</span> <span className="faint" style={{fontSize:'0.62em'}}>/ 210</span></span></div>
+        <div className="s"><span className="lbl">Bed</span><span className="v"><span style={{color:'var(--heat)'}}>60°</span> <span className="faint" style={{fontSize:'0.62em'}}>/ 60</span></span></div>
+        <div className="s"><span className="lbl">Elapsed</span><span className="v mono">2:30</span></div>
+        <div className="s"><span className="lbl">Finish by</span><span className="v mono">18:42</span></div>
+      </div>
+    </div>
+  );
+}
+function Gutter(){
+  return (
+    <div className="gutter">
+      <button className="ctl"><ITune/>Tune</button>
+      <button className="ctl accent"><IPause/>Pause</button>
+      <button className="ctl danger grow"><IStop/>Stop</button>
+    </div>
+  );
+}
+function PrintStatus({land, light}){
+  return (
+    <div className={"screen " + (land ? "land" : "port") + (light ? " light" : "")}>
+      <div className="stage">
+        <FocusBlock pid={land ? "ps-pre-l" : "ps-pre-p"}/>
+        <FieldBlock/>
+      </div>
+      <Gutter/>
+    </div>
+  );
+}
+
+/* ============================================================
+   SCREW-TILT calibration — Focus = live bed diagram · Field = actions
+   (no Gutter on this tool page)
+   ============================================================ */
+function Bed(){
+  return (
+    <div className="bed">
+      <div className="bed-center">
+        <span className="bc-state">2 of 4 in tolerance</span>
+        <span className="bc-hint">adjust the highlighted screw, then re-probe</span>
+      </div>
+      <div className="screw tl base"><div className="knob"><IDotS/></div><span className="turn">base</span></div>
+      <div className="screw tr adjust active"><div className="knob"><ICW/></div><span className="turn">CW 0:25</span></div>
+      <div className="screw bl adjust"><div className="knob"><ICCW/></div><span className="turn">CCW 0:10</span></div>
+      <div className="screw br ok"><div className="knob"><ICheckS/></div><span className="turn">in tol.</span></div>
+    </div>
+  );
+}
+function ScrewTilt({land}){
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="focus">
+          <Bed/>
+        </div>
+        <div className="field">
+          <div className="btngrid">
+            <button className="ctl accent"><IPlay/>Initiate</button>
+            <button className="ctl"><IRefresh/>Adjust</button>
+            <button className="ctl go"><ICheckB/>Accept</button>
+            <button className="ctl danger"><IX/>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   A — STACKED CALM
+   ============================================================ */
+function PS_A(){
+  return (
+    <div className="scr v-a">
+      <Header/>
+
+      <div className="body">
+      <div className="card col gap13">
+        <div className="row gap13">
+          <Preview id="ps-a-preview" radius={13} style={{width:'86px',height:'86px',flex:'0 0 auto'}}/>
+          <div className="col grow1 between" style={{minWidth:0}}>
+            <div className="row between center"><span className="fname">Benchy.gcode</span><Status/></div>
+            <div className="col gap6">
+              <div className="row between" style={{alignItems:'baseline'}}>
+                <span className="pct">68<span style={{fontSize:'16px',color:'var(--text-2)'}}>%</span></span>
+                <span className="mono faint" style={{fontSize:'13px'}}>142 / 209 layers</span>
+              </div>
+              <div className="bar"><i style={{['--p']:'68%'}}></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card row between center">
+        <div className="col gap6"><span className="lbl">Time remaining</span><span className="hero">1:15</span></div>
+        <div className="col gap6" style={{alignItems:'flex-end'}}><span className="lbl">Finish by</span><span className="mono" style={{fontSize:'19px',fontWeight:600}}>18:42</span></div>
+      </div>
+
+      <div className="card">
+        <div className="lbl" style={{marginBottom:'12px'}}>Temperatures</div>
+        <div className="temps">
+          <div className="temp">
+            <div className="top"><span className="ic"></span><span className="now">210°</span><span className="tgt">/ 210</span><span className="faint" style={{fontSize:'12px',marginLeft:'auto'}}>Nozzle</span></div>
+            <div className="tmeter"><i style={{width:'100%'}}></i></div>
+          </div>
+          <div className="temp">
+            <div className="top"><span className="ic"></span><span className="now">60°</span><span className="tgt">/ 60</span><span className="faint" style={{fontSize:'12px',marginLeft:'auto'}}>Bed</span></div>
+            <div className="tmeter"><i style={{width:'100%'}}></i></div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div className="col gap10">
+        <button className="ctl row accent"><span style={{display:'inline-flex',alignItems:'center',gap:'9px'}}><ITune/>Tune mid-print</span><span className="chev">›</span></button>
+        <div className="row gap10">
+          <button className="ctl warn"><IPause/>Pause</button>
+          <button className="ctl danger grow"><IStop/>Emergency stop</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   B — FOCUS RING
+   ============================================================ */
+function PS_B(){
+  return (
+    <div className="scr v-b">
+      <Header/>
+
+      <div className="body">
+        <div className="hero-ring">
+          <div className="ringwrap">
+            <Ring pct={68} size={178} sw={11}/>
+            <Preview id="ps-b-preview" shape="circle" style={{position:'absolute', top:'22px', left:'22px', width:'134px', height:'134px'}}/>
+            <div className="badge">68%</div>
+          </div>
+          <div className="timeblock">
+            <div className="lbl" style={{marginBottom:'3px'}}>Time remaining</div>
+            <div className="hero">1:15</div>
+          </div>
+        </div>
+
+        <div className="info">
+          <div className="row between center" style={{padding:'0 2px'}}>
+            <span className="fname">Benchy.gcode</span><Status/>
+          </div>
+
+          <div className="statgrid">
+            <div className="s"><span className="lbl">Layer</span><span className="v mono">142 / 209</span></div>
+            <div className="s"><span className="lbl">Filament</span><span className="v mono">4.2 m</span></div>
+            <div className="s"><span className="lbl">Nozzle</span><span className="v"><span style={{color:'var(--heat)'}}>210°</span> <span className="faint" style={{fontSize:'0.62em'}}>/ 210</span></span></div>
+            <div className="s"><span className="lbl">Bed</span><span className="v"><span style={{color:'var(--heat)'}}>60°</span> <span className="faint" style={{fontSize:'0.62em'}}>/ 60</span></span></div>
+            <div className="s"><span className="lbl">Elapsed</span><span className="v mono">2:30</span></div>
+            <div className="s"><span className="lbl">Finish by</span><span className="v mono">18:42</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="col gap10">
+        <button className="ctl row accent"><span style={{display:'inline-flex',alignItems:'center',gap:'9px'}}><ITune/>Tune mid-print</span><span className="chev">›</span></button>
+        <div className="row gap10">
+          <button className="ctl warn"><IPause/>Pause</button>
+          <button className="ctl danger grow"><IStop/>Emergency stop</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   C — AMBIENT GLASS
+   ============================================================ */
+function PS_C(){
+  return (
+    <div className="scr v-c">
+      <Header/>
+
+      <div className="body">
+      <div className="card col gap13">
+        <div className="row between center">
+          <Status/>
+          <span className="faint mono" style={{fontSize:'13px'}}>finish 18:42</span>
+        </div>
+        <div className="row gap13 center">
+          <Preview id="ps-c-preview" radius={16} style={{width:'94px',height:'94px',flex:'0 0 auto'}}/>
+          <div className="col grow1" style={{gap:'2px',minWidth:0}}>
+            <span className="fname" style={{marginBottom:'4px'}}>Benchy.gcode</span>
+            <span className="hero">1:15</span>
+            <span className="lbl" style={{marginTop:'5px'}}>remaining · 68%</span>
+          </div>
+        </div>
+        <div className="bar"><i style={{['--p']:'68%'}}></i></div>
+      </div>
+
+      <div className="statgrid">
+        <div className="s"><span className="lbl">Layer</span><span className="v mono">142/209</span></div>
+        <div className="s"><span className="lbl">Filament</span><span className="v mono">4.2 m</span></div>
+        <div className="s"><span className="lbl">Nozzle</span><span className="v"><span style={{color:'var(--heat)'}}>210°</span> <span className="faint" style={{fontSize:'13px'}}>/210</span></span></div>
+        <div className="s"><span className="lbl">Bed</span><span className="v"><span style={{color:'var(--heat)'}}>60°</span> <span className="faint" style={{fontSize:'13px'}}>/60</span></span></div>
+      </div>
+      </div>
+
+      <div className="col gap10">
+        <button className="ctl row accent"><span style={{display:'inline-flex',alignItems:'center',gap:'9px'}}><ITune/>Tune mid-print</span><span className="chev">›</span></button>
+        <div className="row gap10">
+          <button className="ctl warn"><IPause/>Pause</button>
+          <button className="ctl danger grow"><IStop/>Emergency stop</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   FILE / JOB PICKER — Gutter = Cancel/Print · Focus per orientation
+   ============================================================ */
+function Frow({name, meta, sel, dir}){
+  return (
+    <div className={"frow2" + (sel ? " sel" : "") + (dir ? " dir" : "")}>
+      <div className="fthumb">{dir ? <IFolder/> : null}</div>
+      <div className="finfo"><div className="fname2">{name}</div><div className="fmeta2">{meta}</div></div>
+      {sel ? <ICheckB/> : <span className="chev2">›</span>}
+    </div>
+  );
+}
+function FileList({selected}){
+  return (
+    <div className="field">
+      <div className="filelist">
+        <div className="filebar">
+          <span className="lbl path">gcodes /</span>
+          <span className="chip2">Date ▾</span>
+          <span className="chip2">≣</span>
+        </div>
+        <div className="fl-scroll">
+          <Frow dir name="calibration" meta="12 files"/>
+          <Frow name="Benchy.gcode" meta="1h 50m · 4.2 m · PLA" sel={selected}/>
+          <Frow name="voron_cube_v3.gcode" meta="42m · 1.8 m · PLA"/>
+          <Frow name="bracket_left.gcode" meta="3h 10m · 9.0 m · PETG"/>
+          <Frow name="gridfinity_2x3.gcode" meta="2h 05m · 6.1 m · PLA"/>
+          <Frow name="mount_v2.gcode" meta="55m · 2.3 m · ABS"/>
+          <Frow name="phone_stand.gcode" meta="4h 20m · 12.4 m · PLA"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+function PreviewFocus(){
+  return (
+    <div className="focus">
+      <div className="preview-focus">
+        <image-slot id="fp-preview" shape="rounded" radius="18" placeholder="" style={{display:'block'}}></image-slot>
+        <div className="info-overlay">
+          <div className="io-name">Benchy.gcode</div>
+          <div className="io-meta"><span>1h 50m</span><span>209 layers</span><span>0.2 mm</span><span>PLA · 4.2 m</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function FocusPlaceholder(){
+  return (<div className="focus"><div className="focus-ph"><IImage/><span>Select a file to preview</span></div></div>);
+}
+function FilePicker({land, selected}){
+  const showFocus = land || selected;
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        {showFocus ? (selected ? <PreviewFocus/> : <FocusPlaceholder/>) : null}
+        <FileList selected={selected}/>
+      </div>
+      <div className="gutter">
+        <button className="ctl danger"><IX/>Cancel</button>
+        <button className={"ctl go" + (selected ? "" : " is-disabled")}><IPlay/>Print</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   MOVE / JOG — Focus = XY pad · Field = Z + increments · Gutter
+   ============================================================ */
+function JogPad(){
+  return (
+    <div className="jogpad">
+      <div className="jval homed"><span className="ax">Y</span><span className="num">117.5</span></div>
+      <button className="jbtn"><IUp/></button>
+      <button className="jbtn ovr"><IUnlock/></button>
+      <button className="jbtn"><ILeft/></button>
+      <button className="jbtn home"><span className="jlabel">XY</span></button>
+      <button className="jbtn"><IRight/></button>
+      <div className="jval nothomed"><span className="ax">Z</span><span className="num">—</span></div>
+      <button className="jbtn"><IDown/></button>
+      <div className="jval homed"><span className="ax">X</span><span className="num">117.5</span></div>
+    </div>
+  );
+}
+function Move({land}){
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="focus"><JogPad/></div>
+        <div className="field">
+          <div className="zrow">
+            <button className="ctl accent"><IChevUp/></button>
+            <button className="ctl accent"><span className="biglabel">Z</span></button>
+            <button className="ctl accent"><IChevDown/></button>
+          </div>
+          <div className="steprow">
+            <button className="step">0.1</button>
+            <button className="step">1</button>
+            <button className="step on">10</button>
+            <button className="step">25</button>
+            <button className="step">50</button>
+            <button className="step">100</button>
+          </div>
+        </div>
+      </div>
+      <div className="gutter">
+        <button className="ctl accent"><IHome/>Home</button>
+        <button className="ctl warn"><IPower/>Disable</button>
+        <button className="ctl danger"><IBack/>Back</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   SPLASH / CONNECT
+   ============================================================ */
+function Splash(){
+  return (
+    <div className="screen splash">
+      <div className="splashwrap">
+        <div className="logo"><ISail/></div>
+        <div className="wordmark">Dinghy Display</div>
+        <div className="conn-state"><span className="dots"><i></i><i></i><i></i></span> Connecting to Voron 2.4</div>
+        <div className="endpoint">ws://voron.local:7125</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   POP-UP VALUE ADJUSTERS
+   ============================================================ */
+function TempSet({land, light}){
+  return (
+    <div className={"screen " + (land ? "land" : "port") + (light ? " light" : "")}>
+      <div className="stage">
+        <div className="focus">
+          <div className="setval">
+            <div className="glyph" style={{color:'var(--heat)'}}><INozzle/></div>
+            <div className="pop-val dual"><span style={{color:'var(--text-2)'}}>200</span><span className="sep">/</span><span style={{color:'var(--heat)'}}>210<span className="u">°C</span></span></div>
+            <div className="setlbl">Nozzle</div>
+          </div>
+        </div>
+        <div className="field setfield">
+          <div className="incsel">
+            <div className="chip3">1°</div>
+            <div className="chip3 on">5°</div>
+            <div className="chip3">10°</div>
+          </div>
+          <div className="adjrow">
+            <button className="ctl">−</button>
+            <div className="fillbar heat"><div className="fb-fill" style={{width:'70%'}}></div><div className="fb-grip" style={{left:'70%'}}></div></div>
+            <button className="ctl">+</button>
+          </div>
+        </div>
+      </div>
+      <div className="gutter">
+        <button className="ctl danger"><IX/>Cancel</button>
+        <button className="ctl go"><ICheckB/>Apply</button>
+      </div>
+    </div>
+  );
+}
+function FanSet({land}){
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="focus">
+          <div className="setval">
+            <div className="glyph" style={{color:'var(--accent)'}}><IFan/></div>
+            <div className="pop-val" style={{color:'var(--accent-2)'}}>80<span className="u">%</span></div>
+            <div className="setlbl">Part fan</div>
+          </div>
+        </div>
+        <div className="field setfield">
+          <div className="onoff">
+            <button className="ctl">Off</button>
+            <button className="ctl accent">On</button>
+          </div>
+          <div className="fillbar acc"><div className="fb-fill" style={{width:'80%'}}></div><div className="fb-grip" style={{left:'80%'}}></div></div>
+        </div>
+      </div>
+      <div className="gutter">
+        <button className="ctl warn"><IBack/>Back</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   APP DRAWER — Focus omitted; Field = grid of destination tiles
+   ============================================================ */
+function AppDrawer({land}){
+  const tiles=[
+    {n:'Status', i:<IGauge/>, cls:'cur'},
+    {n:'Move', i:<IMove/>},
+    {n:'Temp', i:<ITherm/>},
+    {n:'Files', i:<IFiles/>},
+    {n:'Tools', i:<IWrench/>},
+    {n:'Macros', i:<IZap/>},
+    {n:'Devices', i:<IPlug/>},
+    {n:'Settings', i:<IGear/>},
+    {n:'Power', i:<IPower/>, cls:'power'},
+  ];
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="field">
+          <div className="drawer">
+            {tiles.map((t,k)=>(<button key={k} className={"tile " + (t.cls||"")}>{t.i}<span className="tl">{t.n}</span></button>))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CONFIRM / DESTRUCTIVE — Focus = icon+message, Field = Confirm/Cancel
+   ============================================================ */
+function Confirm({land, kind}){
+  const warn = kind === 'warn';
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="focus">
+          <div className={"alert " + (warn ? "warn" : "ok")}>
+            <div className="aicon">{warn ? <IAlert/> : <ICheckCircle/>}</div>
+            <div className="amsg">{warn ? "Cancel this print?" : "Save configuration?"}</div>
+            <div className="asub">{warn ? "68% done · this can't be undone" : "Writes printer.cfg & restarts Klipper"}</div>
+          </div>
+        </div>
+        <div className="field">
+          <div className="confirm-acts">
+            {warn ? (<>
+              <button className="ctl">Keep printing</button>
+              <button className="ctl danger">Cancel print</button>
+            </>) : (<>
+              <button className="ctl">Not now</button>
+              <button className="ctl go">Save</button>
+            </>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   GRAPH — time-series temperatures (single or overlaid)
+   ============================================================ */
+function areaPath(pts){
+  return "M " + pts[0][0] + " 100 " + pts.map(p=>"L " + p[0] + " " + p[1]).join(" ") + " L " + pts[pts.length-1][0] + " 100 Z";
+}
+function LineGraph({traces, setpoint, setpointColor, ylabels, legend}){
+  return (
+    <div className="graph">
+      <div className="g-ylabels">{ylabels.map((l,i)=>(<span key={i}>{l}</span>))}</div>
+      {legend && (<div className="g-legend">{legend.map((l,i)=>(<span className="lg" key={i}><span className="sw" style={{background:l.color}}></span>{l.name}</span>))}</div>)}
+      <div className="plot">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          {[20,40,60,80].map(y=>(<line key={y} className="grid" x1="0" y1={y} x2="100" y2={y}/>))}
+          {setpoint!=null && (<line className="setpoint" x1="0" y1={setpoint} x2="100" y2={setpoint} style={{stroke:setpointColor}}/>)}
+          {traces.map((t,i)=>(<path key={"a"+i} className="g-area" d={areaPath(t.points)} style={{fill:t.color}}/>))}
+          {traces.map((t,i)=>(<polyline key={"l"+i} className="g-line" points={t.points.map(p=>p.join(",")).join(" ")} style={{stroke:t.color}}/>))}
+        </svg>
+        {traces.map((t,i)=>{const p=t.points[t.points.length-1];return (<span key={"d"+i} className="g-dot" style={{left:p[0]+"%",top:p[1]+"%",background:t.color,color:t.color}}></span>);})}
+      </div>
+      <div className="g-xaxis"><span>-10m</span><span>-5m</span><span>now</span></div>
+    </div>
+  );
+}
+const NOZZLE = {color:'var(--heat)', points:[[0,90],[8,79],[16,61],[24,41],[32,29],[40,24],[50,25],[60,24],[70,24],[80,24],[90,24],[100,24]]};
+const BED = {color:'var(--accent)', points:[[0,90],[10,86],[20,82],[30,79],[40,78],[50,78],[60,78],[70,78],[80,78],[90,78],[100,78]]};
+const CHAMBER = {color:'oklch(0.7 0.13 300)', points:[[0,91],[20,89],[40,88],[60,87],[80,86],[100,85]]};
+function TempGraph({land, multi}){
+  const traces = multi ? [CHAMBER, BED, NOZZLE] : [NOZZLE];
+  const ylabels = ['250°','200°','150°','100°','50°'];
+  return (
+    <div className={"screen " + (land ? "land" : "port")}>
+      <div className="stage">
+        <div className="focus">
+          <div className="setval">
+            {multi ? (
+              <div className="tlist">
+                <div className="tr"><span className="sw" style={{background:'var(--heat)'}}></span><span className="tn">Nozzle</span><span className="tv" style={{color:'var(--heat)'}}>200<span className="sm">/210</span></span></div>
+                <div className="tr"><span className="sw" style={{background:'var(--accent)'}}></span><span className="tn">Bed</span><span className="tv" style={{color:'var(--accent-2)'}}>60<span className="sm">/60</span></span></div>
+                <div className="tr"><span className="sw" style={{background:'oklch(0.7 0.13 300)'}}></span><span className="tn">Chamber</span><span className="tv">38<span className="sm">°C</span></span></div>
+              </div>
+            ) : (<>
+              <div className="glyph" style={{color:'var(--heat)'}}><INozzle/></div>
+              <div className="pop-val dual"><span style={{color:'var(--text-2)'}}>200</span><span className="sep">/</span><span style={{color:'var(--heat)'}}>210<span className="u">°C</span></span></div>
+              <div className="setlbl">Nozzle</div>
+            </>)}
+          </div>
+        </div>
+        <div className="field">
+          <LineGraph traces={traces} setpoint={multi?null:24} setpointColor="var(--heat)" ylabels={ylabels}
+            legend={multi ? [{name:'Nozzle',color:'var(--heat)'},{name:'Bed',color:'var(--accent)'},{name:'Chamber',color:'oklch(0.7 0.13 300)'}] : null}/>
+        </div>
+      </div>
+      <div className="gutter">
+        <button className="ctl danger"><IBack/>Back</button>
+        <button className="ctl"><IList/>Presets</button>
+        <button className="ctl warn"><ISnow/>Cooldown</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   SPEC SHEET
+   ============================================================ */
+function Spec(){
+  return (
+    <div className="spec">
+      <div>
+        <h1>Dinghy Display — visual language</h1>
+        <div className="sub">Dark-first · calm &amp; approachable · operated at arm's length. Controls are bounded by an outline that marks the touch target without competing with content.</div>
+      </div>
+
+      <div className="principle">
+        <b>Control principle:</b> interactive elements = a 2px outline + soft glow on a transparent fill.
+        Pressed / primary states tint faintly with the accent. Targets are big — ≥64px tall, built for gloved, greasy, fat-fingered taps at arm's length.
+      </div>
+
+      <div className="principle" style={{borderColor:'var(--accent-line)'}}>
+        <b>Fill the space:</b> this is control-surface software that doubles as an at-a-glance display. Every screen fills its usable area with useful, structured info — empty space is only ever a deliberate focus choice.
+      </div>
+
+      <div className="blk typ">
+        <div className="h">Type — Geist / Geist Mono</div>
+        <div className="big">1:15 remaining</div>
+        <div className="mid">Benchy.gcode · balanced labels</div>
+        <div className="mn">142 / 209 · 210° · tabular numerals</div>
+      </div>
+
+      <div className="blk">
+        <div className="h">Color roles (dark)</div>
+        <div className="swrow">
+          <div className="sw"><div className="chip-c" style={{background:'var(--bg)'}}></div><small>bg</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--surface)'}}></div><small>surface</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--surface-2)'}}></div><small>raised</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--accent)'}}></div><small>accent</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--heat)'}}></div><small>heat</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--go)'}}></div><small>go</small></div>
+          <div className="sw"><div className="chip-c" style={{background:'var(--stop)'}}></div><small>stop</small></div>
+        </div>
+      </div>
+
+      <div className="blk">
+        <div className="h">Controls — outline-led</div>
+        <div className="ctlrow">
+          <button className="ctl sm" style={{flex:'none',padding:'0 16px'}}>Default</button>
+          <button className="ctl sm accent" style={{flex:'none',padding:'0 16px'}}>Primary</button>
+          <button className="ctl sm warn" style={{flex:'none',padding:'0 16px'}}><IPause/>Pause</button>
+          <button className="ctl sm danger" style={{flex:'none',padding:'0 16px'}}><IStop/>Stop</button>
+        </div>
+      </div>
+
+      <div className="blk">
+        <div className="h">Shape — soft, generous rounding</div>
+        <div className="row gap10">
+          <div style={{flex:1,height:'40px',borderRadius:'22px',border:'1px solid var(--hair)',background:'var(--surface)',display:'grid',placeItems:'center',color:'var(--text-3)',fontSize:'12px'}}>card 22</div>
+          <div style={{flex:1,height:'40px',borderRadius:'16px',border:'2px solid var(--outline)',display:'grid',placeItems:'center',color:'var(--text-3)',fontSize:'12px'}}>control 16</div>
+          <div style={{flex:1,height:'40px',borderRadius:'999px',border:'2px solid var(--outline)',display:'grid',placeItems:'center',color:'var(--text-3)',fontSize:'12px'}}>pill ∞</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CANVAS
+   ============================================================ */
+const AB = { borderRadius: 30, background: 'transparent', boxShadow: '0 18px 50px -18px rgba(0,0,0,.6)' };
+const PH = 800;
+
+function App(){
+  return (
+    <DesignCanvas>
+      <DCSection id="light" title="Light theme — sanity check" subtitle="Same components, only the token palette swapped (.light). Print Status + a single-setting page to confirm the system reskins cleanly.">
+        <DCArtboard id="lt-print" label="Print Status · light" width={400} height={800} style={AB}><PrintStatus light={true}/></DCArtboard>
+        <DCArtboard id="lt-temp" label="Extruder temp · light" width={400} height={800} style={AB}><TempSet light={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="setpages" title="Single-setting pages" subtitle="Adjusting one value is a full page like any other — Focus = the thing (icon + value-on-glyph), Field = the controls, Gutter = Cancel / Apply. Not a modal.">
+        <DCArtboard id="temp-port" label="Extruder temp · portrait" width={400} height={800} style={AB}><TempSet/></DCArtboard>
+        <DCArtboard id="temp-land" label="Extruder temp · landscape" width={880} height={480} style={AB}><TempSet land={true}/></DCArtboard>
+        <DCArtboard id="fan-port" label="Fan speed · portrait" width={400} height={800} style={AB}><FanSet/></DCArtboard>
+        <DCArtboard id="fan-land" label="Fan speed · landscape" width={880} height={480} style={AB}><FanSet land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="connect" title="Splash / connect" subtitle="The entry moment — a focus-only brand state that doubles as the live connection status (logo pulses, dots animate). Resolves into Print Status once Moonraker is up.">
+        <DCArtboard id="sp-port" label="Splash · portrait" width={400} height={800} style={AB}><Splash/></DCArtboard>
+        <DCArtboard id="sp-land" label="Splash · landscape" width={880} height={480} style={AB}><Splash/></DCArtboard>
+      </DCSection>
+      <DCSection id="grammar" title="Layout grammar — Focus / Field / Gutter" subtitle="Focus = one primary (square) item · Field = a divisible info grid · Gutter = full-width actions. Portrait stacks (Gutter may grow to two rows, split equally); landscape splits Focus | Field into equal halves with a single Gutter row. Either region can take all the space. Text size: S / M / L (top-right).">
+        <DCArtboard id="port" label="Print Status · portrait" width={400} height={800} style={AB}><PrintStatus/></DCArtboard>
+        <DCArtboard id="land" label="Print Status · landscape" width={880} height={480} style={AB}><PrintStatus land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="drawer" title="App drawer — navigation" subtitle="Swipe-up launcher. Focus omitted; Field becomes a grid of destination tiles (max 3 across portrait / 3 tall landscape, scrolls beyond). No gutter — tiles are the navigation, including Settings and Power.">
+        <DCArtboard id="dw-port" label="App drawer · portrait" width={400} height={800} style={AB}><AppDrawer/></DCArtboard>
+        <DCArtboard id="dw-land" label="App drawer · landscape" width={880} height={480} style={AB}><AppDrawer land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="confirm" title="Confirm / destructive" subtitle="A guard page on the grammar — Focus = alert (destructive) or approved (positive) icon + message, Field = the two choices. No gutter; the Field buttons are all the navigation. Destructive confirm is red, positive is green, the safe dismiss stays neutral.">
+        <DCArtboard id="cf-warn-p" label="Destructive · portrait" width={400} height={800} style={AB}><Confirm kind="warn"/></DCArtboard>
+        <DCArtboard id="cf-warn-l" label="Destructive · landscape" width={880} height={480} style={AB}><Confirm kind="warn" land={true}/></DCArtboard>
+        <DCArtboard id="cf-ok-p" label="Positive · portrait" width={400} height={800} style={AB}><Confirm kind="ok"/></DCArtboard>
+      </DCSection>
+      <DCSection id="graph" title="Temperatures — graph" subtitle="A monitor screen: Focus carries the live current/setpoint value(s), Field holds the time-series graph. Single trace with a dashed setpoint, or multiple sensors overlaid on one axis with a legend. Gutter = Presets / Cooldown.">
+        <DCArtboard id="tg-1p" label="Single · portrait" width={400} height={800} style={AB}><TempGraph/></DCArtboard>
+        <DCArtboard id="tg-1l" label="Single · landscape" width={880} height={480} style={AB}><TempGraph land={true}/></DCArtboard>
+        <DCArtboard id="tg-mp" label="Overlaid · portrait" width={400} height={800} style={AB}><TempGraph multi={true}/></DCArtboard>
+        <DCArtboard id="tg-ml" label="Overlaid · landscape" width={880} height={480} style={AB}><TempGraph multi={true} land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="screwtilt" title="Screws tilt — calibration tool" subtitle="A tool page: Focus = live bed diagram (each screw's required turn from Moonraker, highlighted screw pulses, instruction centered as an overlay) · Field = the four procedure actions. No Gutter.">
+        <DCArtboard id="st-port" label="Screws tilt · portrait" width={400} height={800} style={AB}><ScrewTilt/></DCArtboard>
+        <DCArtboard id="st-land" label="Screws tilt · landscape" width={880} height={480} style={AB}><ScrewTilt land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="files" title="File / job picker — one screen" subtitle="Gutter = Cancel / Print. Portrait: no Focus while browsing (list fills); picking a file reveals the Focus (preview + centered info overlay). Landscape: Focus + Field stay visible — Focus is a placeholder until a file is picked (widening a list buys nothing; a preview does). A per-orientation flag drives whether the Focus renders.">
+        <DCArtboard id="f-pb" label="Portrait · browsing" width={400} height={800} style={AB}><FilePicker/></DCArtboard>
+        <DCArtboard id="f-ps" label="Portrait · selected" width={400} height={800} style={AB}><FilePicker selected={true}/></DCArtboard>
+        <DCArtboard id="f-lb" label="Landscape · browsing" width={880} height={480} style={AB}><FilePicker land={true}/></DCArtboard>
+        <DCArtboard id="f-ls" label="Landscape · selected" width={880} height={480} style={AB}><FilePicker land={true} selected={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="move" title="Move — jog & home" subtitle="Focus = the XY jog pad as a 3×3 (corner cells show live Y / Z / X, arrows on the edges, Home in the center). Field = Z up/home/down + the increment selector. Gutter = Home / Disable / Back.">
+        <DCArtboard id="mv-port" label="Move · portrait" width={400} height={800} style={AB}><Move/></DCArtboard>
+        <DCArtboard id="mv-land" label="Move · landscape" width={880} height={480} style={AB}><Move land={true}/></DCArtboard>
+      </DCSection>
+      <DCSection id="foundations" title="Design language" subtitle="The system every screen inherits — type, color roles, the outline-led control principle.">
+        <DCArtboard id="spec" label="Foundations" width={460} height={800} style={{borderRadius:24, background:'var(--bg)'}}><Spec/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+ReactDOM.createRoot(document.body.appendChild(document.createElement('div'))).render(<App/>);
+</script>
+
+<script>
+/* S/M/L text-size preference — sets the --fs scale every screen reads */
+document.querySelectorAll('.fsbar button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.documentElement.style.setProperty('--fs', b.dataset.fs);
+    document.querySelectorAll('.fsbar button').forEach(function(x){ x.classList.toggle('on', x===b); });
+  });
+});
+</script>
+</body>
+</html>

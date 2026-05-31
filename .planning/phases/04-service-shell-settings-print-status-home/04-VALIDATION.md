@@ -1,16 +1,26 @@
 ---
-phase: 3
-slug: service-shell-state-driven-navigation
-status: draft
+phase: 4
+slug: service-shell-settings-print-status-home
+status: superseded
 nyquist_compliant: false
 wave_0_complete: false
 created: 2026-05-30
+superseded_on: 2026-05-31
 ---
 
-# Phase 3 — Validation Strategy
+# Phase 4 — Validation Strategy
 
+> ⚠ **SUPERSEDED / REFRESH REQUIRED (2026-05-31).** This was written for the pre-restructure
+> Phase 3 (old "Service, Shell & State-Driven Navigation"). The phase renumbered to **4**, the
+> design-system primitives (confirm/keypad/toast/render) moved to the new **Phase 3 (Design System
+> & Theming Foundation)**, and the UI/shell model changed to the `docs/ui_design/` system
+> (swipe-up App Drawer, Settings screen, Print Status home, Stop→Confirm, portrait+landscape,
+> full theming). The **service / connection / klippy-routing test rows below are still valid**;
+> the SHELL-04 dashboard / E-stop / nav rows are stale. **Regenerate this file** via
+> `/gsd-plan-phase 4 --research` (Nyquist) against the new scope before executing Phase 4.
+>
 > Per-phase validation contract for feedback sampling during execution.
-> Derived from `03-RESEARCH.md` § Validation Architecture.
+> Derived from `04-RESEARCH.md` § Validation Architecture.
 
 ---
 

@@ -18,10 +18,12 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 ### Constraints
 
-- **Compatibility**: minSdk 23 (Android 6.0, Nexus 7 2013 floor) — Why: target is cheap old hardware; this is the whole point of the project.
-- **Performance**: Must stay responsive on an Adreno 320 (Snapdragon S4 Pro, 32-bit ARMv7) pushing a 1920×1200 panel with only 2GB RAM — Why: the device class is weak and the high-res panel makes fill rate the real bottleneck; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research). NOTE: the *2013* Nexus 7 is Snapdragon/Adreno 320 at 1920×1200 — NOT the *2012* model's Tegra 3 / 1280×800.
-- **Tech stack**: Native Android (to be confirmed in research) — Why: needs direct hardware/OS access, offline operation, and broad-device compatibility; rules out a web-wrapper approach that defeats the "lean on old hardware" goal.
-- **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; the printer and tablet share a LAN.
+- **Compatibility**: minSdk 23 (Android 6.0). The Nexus 7 2013 is the **support FLOOR** (the must-run worst case), not the only target — v1 targets phones through tablets. Why: the "runs on cheap old hardware" promise is the project's soul; it stays as the floor even though scope broadened.
+- **Performance**: The Adreno 320 (Snapdragon S4 Pro, 32-bit ARMv7, 1920×1200, 2GB) is the **worst-case perf budget** everything is measured against — fill rate is the bottleneck; a janky printer screen is worse than none. Richer effects are fine on capable hardware but must not break the floor. (The *2013* Nexus 7 is Adreno 320 / 1920×1200 — NOT the *2012* Tegra 3 / 1280×800.)
+- **Orientation**: **Portrait AND landscape** (was landscape-only). Every screen is responsive via the Focus/Field/Gutter grammar — see UI Design System below.
+- **Theming**: **Full semantic-token theme system — dark + light + user custom — plus an S/M/L text-size setting.** All UI routes through role tokens, never raw colors (see `docs/ui_design/THEMING.md`).
+- **Tech stack**: Native Android, Kotlin, Jetpack Compose + classic Views hybrid (ADR 0001). Why: direct hardware/OS access, offline operation, broad-device compatibility.
+- **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; printer and tablet share a LAN.
 - **Distribution**: Sideloaded signed APK via GitHub Releases — Why: no current Play Services on the target hardware.
 <!-- GSD:project-end -->
 
@@ -186,6 +188,28 @@ newer ART). See `docs/adr/0001-ui-toolkit-decision.md` and the Phase-1 SUMMARYs.
 (measured ~2× lower p95 frame time on the real device). Host Views in Compose via `AndroidView`/`ComposeView`;
 keep view-models toolkit-agnostic (StateFlow to both). See `docs/adr/0001-ui-toolkit-decision.md`.
 <!-- GSD:conventions-end -->
+
+## UI Design System (LAW — read `docs/ui_design/` before building any screen)
+
+The complete visual + interaction contract for the WHOLE app lives in **`docs/ui_design/`** (authored by
+Matthew in a dedicated design session, 2026-05-31). It **supersedes** any earlier per-phase UI-SPEC.
+Fidelity is HIGH — `reference/hifi.css` is the canonical token/component source; reproduce its values in
+the Compose/Views stack (it is a reference, not code to copy verbatim).
+
+**Read in this order (they are the law):**
+- `docs/ui_design/CLAUDE.md` — design philosophy + non-negotiables.
+- `docs/ui_design/LAYOUT.md` — the **Focus / Field / Gutter** grammar (regions, orientation rules, the ⚠ non-negotiables: one shared tabular grid, sacred aspect ratios, ratio-only sizing — no hardcoded px).
+- `docs/ui_design/THEMING.md` — the semantic token system, dark/light values, button-intent colors, `--fs`.
+- `docs/ui_design/images/*.png` — hi-fi mockups of all 10 core screens (portrait + landscape).
+
+**Load-bearing rules (and the decisions that reconcile them with this project's constraints):**
+- **Focus / Field / Gutter** on one shared grid; portrait stacks, landscape is Focus|Field 50/50 + full-width gutter. No persistent status bar — status is **color on an existing element** (homed axis green / unhomed amber).
+- **Outline-led, touch-first controls** (2px outline + glow, ≥64px targets). **Button intent = color**: red = stop/cancel/back, green = accept, amber = proceed-at-peril, accent(blue) = physical command, white = setting.
+- **Navigation = swipe-up full-screen App Drawer** (tiles incl. Settings + red Power). **Stop → full-screen Confirm guard** (not a hold gesture, not a dialog). **Single-setting scrubber/stepper page** for every numeric value.
+- **No alphanumeric keyboard in printer controls.** The **Settings screen** (conventional Android, keyboard allowed) owns connection (host/port/key), theme, and feature toggles. Controls needing alphanumeric input (console, macro params, file search) are triaged per-control in their own phases.
+- **Type:** Geist + Geist Mono (tabular numerals for live data). **Theming:** dark + light + user custom via role tokens; **S/M/L** text-size (`--fs`).
+- **Motion:** static glow YES; **no continuous "breathing"/looping animation** (Adreno-320 budget — match the aesthetic without a CPU-cycle burner). One-shot transitions OK if cheap.
+- **Target/floor:** v1 = phones→tablets, portrait + landscape; the **Nexus 7 2013 (Adreno 320) is the perf floor**, not the only target.
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture

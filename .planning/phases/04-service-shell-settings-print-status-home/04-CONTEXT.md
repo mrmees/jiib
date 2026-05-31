@@ -1,4 +1,16 @@
-# Phase 3: Service, Shell & State-Driven Navigation - Implementation Context
+# Phase 4: Service, Shell, Settings & Print-Status Home - Implementation Context
+
+> ⚠ **PARTIALLY SUPERSEDED — REFRESH BEFORE PLANNING (2026-05-31).** Roadmap restructured: this phase
+> renumbered **3 → 4**. The **service / FGS / connection / klippy-routing / config-recreate-session
+> decisions below are STILL VALID** and carry forward. But the **shell / UI / E-stop / navigation
+> decisions are SUPERSEDED** by the canonical `docs/ui_design/` system (LAW — see repo-root CLAUDE.md):
+> swipe-up full-screen **App Drawer** (not edge-swipe rail/handle), a conventional **Settings screen**
+> owns connection + theme + feature toggles (CONN-01 moved here), **Print Status** is the home (not a
+> "thermal dashboard menu"), **Stop → full-screen Confirm guard** (not hold-to-confirm chrome), and the
+> app is **portrait + landscape** with **full theming**. The reusable primitives (Confirm guard,
+> single-setting page, toast, render primitives) are built in the new **Phase 3 (Design System &
+> Theming Foundation)** and merely *consumed* here. **Regenerate this CONTEXT** via
+> `/gsd-discuss-phase 4` against `docs/ui_design/` + the updated REQUIREMENTS/ROADMAP before planning.
 
 <domain>
 Turn the headless connection/state spine (Phase 2) into a living app: a foreground service that

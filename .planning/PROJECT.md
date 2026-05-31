@@ -2,14 +2,18 @@
 
 ## What This Is
 
-A native Android app that turns cheap, old Android hardware (Nexus 7 2013 class) into a
-touchscreen control surface for a Klipper 3D printer, talking directly to the Moonraker API
-(websocket + REST). It replaces the convoluted KlipperScreen-on-Linux + VNC/XSDL/X11 stack
-people use today to get a printer touchscreen, giving the same printer-control capability as
-a self-contained `.apk` with no Linux host, no remote-desktop layer, and no display-server glue.
+A native Android app that turns an Android phone or tablet into a touchscreen control surface
+for a Klipper 3D printer, talking directly to the Moonraker API (websocket + REST). It replaces
+the convoluted KlipperScreen-on-Linux + VNC/XSDL/X11 stack people use today to get a printer
+touchscreen, giving the same printer-control capability as a self-contained `.apk` with no Linux
+host, no remote-desktop layer, and no display-server glue.
 
-The target user is a Klipper owner who has an old tablet or Android device lying around and
-wants a dedicated, always-on printer screen without fighting VNC or re-flashing a Raspberry Pi.
+The target user is a Klipper owner who wants a dedicated printer screen — whether that's a phone
+in hand or an old tablet mounted by the machine — without fighting VNC or re-flashing a Raspberry
+Pi. **Scope note (2026-05-31):** v1 now targets phones through tablets in **portrait and
+landscape**, with a **full themable UI** (dark/light/custom + text-size). The cheap-old-hardware
+**Nexus 7 2013 (Adreno 320) remains the support FLOOR** — the must-run worst case everything is
+budgeted against — not the only target.
 
 ## Core Value
 
@@ -29,11 +33,13 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 <!-- v1 = functional core: the daily-driver print-control loop, testable on a real printer early. -->
 
-**Connection & shell**
-- [ ] Configure a Moonraker connection (host:port, optional API key / trusted-client auth), persisted locally
-- [ ] Establish and maintain a resilient Moonraker websocket with auto-reconnect and clear connecting/disconnected/error states (splash/initializing surface)
-- [ ] Persistent app shell: title bar, back/home navigation, live status, and an always-reachable Emergency Stop
-- [ ] Main menu that doubles as a launcher and a compact thermal dashboard (heater rows + temperature graph)
+**Design system & shell** (per `docs/ui_design/`)
+- [ ] Semantic-token theme system: dark + light + user custom, plus an S/M/L text-size setting
+- [ ] Focus / Field / Gutter responsive layout grammar (portrait + landscape) + the outline-led control language (intent colors)
+- [ ] Reusable component substrate: confirm-guard screen, single-setting scrubber/stepper page, severity toast, progress ring + line-graph render primitives
+- [ ] Settings screen (conventional Android, keyboard allowed): Moonraker connection (host:port, optional API key) persisted locally, theme selection, feature toggles
+- [ ] Resilient Moonraker websocket with auto-reconnect and clear connecting/disconnected/error states (splash/initializing surface)
+- [ ] Minimal-chrome shell: swipe-up full-screen App Drawer navigation; klippy-state-driven routing; Print Status home (compact thermal dashboard) with a Stop→confirm emergency/cancel control
 
 **Print-control core**
 - [ ] Move panel: X/Y/Z jog with distance presets, home axes, disable motors, live position
@@ -45,7 +51,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - [ ] Console: send G-code, view command/response history with severity coloring
 
 **Supporting primitives**
-- [ ] Reusable UI primitives the panels depend on: numeric keypad, on-screen keyboard, confirm-action dialog, message/toast popups
+- [ ] Reusable UI primitives the panels depend on (per design system): single-setting scrubber/stepper page (replaces a numeric keypad), full-screen confirm-guard, severity toasts; text entry confined to the Settings screen (system keyboard), with alphanumeric printer controls triaged per-control
 - [ ] Capability gating: only show panels/controls the connected printer actually supports (heaters, extruders, macros, etc.)
 
 ### Out of Scope
@@ -57,8 +63,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - **Camera in the v1 core** — high value on a tablet but not part of the print-control loop; it's the first post-core expansion (native MJPEG/WebRTC, not `mpv`).
 - **Multi-printer switching in v1** — single printer connection for v1; connection layer designed to allow multiple later (KlipperScreen multi-printer = v2).
 - **Google Play Store distribution** — Nexus 7-class hardware lacks current Play Services; ship signed APKs via GitHub Releases / sideload.
-- **Portrait-optimized layout in v1** — landscape-first (how these tablets get mounted); portrait adapt comes later.
 - **Coupling to the gtk4_klipperscreen fork** — that fork is a scope/reference source only; this app is independent with no shared code or release coupling.
+
+<!-- Removed from Out of Scope 2026-05-31 (now IN scope per the docs/ui_design system):
+  portrait-optimized layout (was landscape-only) and dark single-theme (now dark + light + user custom). -->
+- **WebRTC camera / advanced expansion panels** — still post-v1 (see the design system's screen set for what v1 covers).
 
 ## Context
 
@@ -82,9 +91,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 ## Constraints
 
-- **Compatibility**: minSdk 23 (Android 6.0, Nexus 7 2013 floor) — Why: target is cheap old hardware; this is the whole point of the project.
-- **Performance**: Must stay responsive on an Adreno 320 (Snapdragon S4 Pro) pushing a 1920×1200 panel with only 2GB RAM — Why: the device class is weak and the high-res panel makes fill rate the bottleneck; a janky printer screen is worse than none. Influences toolkit choice (classic Views vs Compose is a real tradeoff to settle in research).
-- **Tech stack**: Native Android (to be confirmed in research) — Why: needs direct hardware/OS access, offline operation, and broad-device compatibility; rules out a web-wrapper approach that defeats the "lean on old hardware" goal.
+- **Compatibility**: minSdk 23 (Android 6.0). Nexus 7 2013 is the **support FLOOR**, not the only target — v1 spans phones through tablets. Why: the cheap-old-hardware promise stays as the floor even as scope broadened.
+- **Performance**: The Adreno 320 (Snapdragon S4 Pro, 1920×1200, 2GB) is the **worst-case perf budget** — fill rate is the bottleneck; effects may be richer on capable hardware but must not break the floor.
+- **Orientation**: portrait AND landscape (responsive Focus/Field/Gutter grammar).
+- **UI / theming**: Governed by `docs/ui_design/` (LAW). Full semantic-token theming — dark + light + user custom — plus S/M/L text size. Geist/Geist Mono. No alphanumeric keyboard in printer controls (Settings screen owns text entry).
+- **Tech stack**: Native Android, Kotlin, Jetpack Compose + classic Views hybrid (ADR 0001) — Why: direct hardware/OS access, offline operation, broad-device compatibility.
 - **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; the printer and tablet share a LAN.
 - **Distribution**: Sideloaded signed APK via GitHub Releases — Why: no current Play Services on the target hardware.
 
@@ -100,7 +111,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | Independent app; catalog is reference only | No code/release coupling to the GTK4 fork keeps the Android app free to make platform-native choices | — Pending |
 | Single printer in v1, connection layer multi-ready | Avoids v1 scope creep while not painting us into a corner | — Pending |
 | Sideloaded APK distribution, no Play Store | Target hardware lacks current Play Services | — Pending |
-| Landscape-first layout | These tablets get wall/printer-mounted in landscape | — Pending |
+| **Portrait + landscape, both in v1** (revised 2026-05-31; was landscape-only) | Target broadened to phones→tablets; Focus/Field/Gutter grammar is responsive | — Pending |
+| **Full theming in v1 — dark + light + user custom + S/M/L text size** (2026-05-31) | Per the docs/ui_design system; user customization is a first-class feature | — Pending |
+| **Nexus 7 2013 = support FLOOR, not the only target** (2026-05-31) | Keeps the cheap-old-hardware soul as the worst-case perf budget while serving modern devices | — Pending |
+| **`docs/ui_design/` is the canonical UI law** (2026-05-31) | A full hi-fi design system authored by Matthew; supersedes per-phase UI specs | — Pending |
+| **App nav = swipe-up App Drawer; Settings screen owns text entry; no keyboard in printer controls** (2026-05-31) | Per design system; numeric via single-setting pages, text triaged per-control | — Pending |
 
 ## Evolution
 
@@ -120,4 +135,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after initialization*
+*Last updated: 2026-05-31 — scope broadened (phones→tablets, portrait+landscape, full theming) and UI governed by `docs/ui_design/`; Nexus 7 retained as perf floor. See ROADMAP restructure (9 phases).*
