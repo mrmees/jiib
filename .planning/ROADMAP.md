@@ -128,7 +128,7 @@ Plans:
 - [x] 03-05-PLAN.md — Render primitives: ProgressRing (Compose Canvas) + GraphView (Views Canvas) + AndroidView host (D-11/D-06/D-13)
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 03-06-PLAN.md — In-APK component gallery + debug-only launcher + live-spine wire (D-07/D-08/D-14)
+- [x] 03-06-PLAN.md — In-APK component gallery + debug-only launcher + live-spine wire (D-07/D-08/D-14)
 
 **Wave 5** *(blocked on Wave 4)*
 - [ ] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
@@ -242,7 +242,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
-| 3. Design System & Theming Foundation | 5/7 | In Progress|  |
+| 3. Design System & Theming Foundation | 6/7 | In Progress|  |
 | 4. Service, Shell, Settings & Print-Status Home | 0/TBD | Not started | - |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |
