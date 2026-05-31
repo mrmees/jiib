@@ -1,9 +1,11 @@
 package works.mees.dinghy.render
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -39,27 +41,41 @@ fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     // Sanitize: NaN → 0f, then clamp to the legal sweep range. No malformed arc can escape.
     val safe = if (progress.isNaN()) 0f else progress.coerceIn(0f, 1f)
-    Canvas(modifier.aspectRatio(1f)) {
-        // Ratio-only stroke: a fraction of the smaller dimension, never a hardcoded px.
-        val strokeWidth = size.minDimension * STROKE_FRACTION
-        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-        // Track: full 360° in surface2 (the well the arc rides on).
-        drawArc(
-            color = t.surface2,
-            startAngle = START_ANGLE,
-            sweepAngle = 360f,
-            useCenter = false,
-            style = stroke,
-        )
-        // Progress arc: accent, from 12-o'clock sweeping clockwise by the completed fraction.
-        drawArc(
-            color = t.accent,
-            startAngle = START_ANGLE,
-            sweepAngle = 360f * safe,
-            useCenter = false,
-            style = stroke,
-        )
-    }
+    // Token colors captured so drawWithCache re-runs its cache block when the theme swaps.
+    val trackColor = t.surface2
+    val arcColor = t.accent
+    // Allocation-free draw (BUG-01): the Stroke (and ratio-only width) is built ONCE in the cache
+    // block — it rebuilds only when the cell SIZE or the captured colors change, never on every
+    // progress update. The per-draw `onDrawBehind` reuses that cached stroke and only re-reads the
+    // sweep, so a value change still redraws but allocates nothing.
+    Spacer(
+        modifier
+            .aspectRatio(1f)
+            .fillMaxSize()
+            .drawWithCache {
+                // Ratio-only stroke: a fraction of the smaller dimension, never a hardcoded px.
+                val strokeWidth = size.minDimension * STROKE_FRACTION
+                val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                onDrawBehind {
+                    // Track: full 360° in surface2 (the well the arc rides on).
+                    drawArc(
+                        color = trackColor,
+                        startAngle = START_ANGLE,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = stroke,
+                    )
+                    // Progress arc: accent, from 12-o'clock sweeping clockwise by the completed fraction.
+                    drawArc(
+                        color = arcColor,
+                        startAngle = START_ANGLE,
+                        sweepAngle = 360f * safe,
+                        useCenter = false,
+                        style = stroke,
+                    )
+                }
+            },
+    )
 }
 
 /** 12-o'clock origin so progress fills clockwise from the top. */
