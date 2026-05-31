@@ -44,10 +44,10 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### UI Primitives
 
-- [ ] **PRIM-01**: Reusable **single-setting page** (full-height fill-bar scrubber + increment/stepper row) for numeric value entry (targets, distances, weights) — replaces an alphanumeric keypad; numeric entry never uses the OS keyboard
+- [x] **PRIM-01**: Reusable **single-setting page** (full-height fill-bar scrubber + increment/stepper row) for numeric value entry (targets, distances, weights) — replaces an alphanumeric keypad; numeric entry never uses the OS keyboard
 - [ ] **PRIM-02**: Text entry uses the **system keyboard, confined to the Settings screen** (host/IP, API key); printer-control surfaces needing alphanumeric input (console, macro params, file search) are triaged per-control toward a keyboard-free pattern (scroll+tap / numeric) where feasible
-- [ ] **PRIM-03**: Single mandatory **full-screen Confirm guard** used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing (destructive=red, positive=green, safe dismiss=neutral)
-- [ ] **PRIM-04**: Severity-styled message/toast primitive (info/success/warning/error — color + icon + text, never color alone) for transient feedback and errors
+- [x] **PRIM-03**: Single mandatory **full-screen Confirm guard** used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing (destructive=red, positive=green, safe dismiss=neutral)
+- [x] **PRIM-04**: Severity-styled message/toast primitive (info/success/warning/error — color + icon + text, never color alone) for transient feedback and errors
 - [ ] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
 
 ### Move
@@ -167,9 +167,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | THEME-02 | Phase 3 | Complete |
 | UI-01 | Phase 3 | Complete |
 | UI-02 | Phase 3 | Complete |
-| PRIM-01 | Phase 3 | Pending |
-| PRIM-03 | Phase 3 | Pending |
-| PRIM-04 | Phase 3 | Pending |
+| PRIM-01 | Phase 3 | Complete |
+| PRIM-03 | Phase 3 | Complete |
+| PRIM-04 | Phase 3 | Complete |
 | CONN-01 | Phase 4 | Pending |
 | SET-01 | Phase 4 | Pending |
 | SHELL-01 | Phase 4 | Pending |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T18:46:04.312Z"
+last_updated: "2026-05-31T18:52:31.746Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 15
-  completed_plans: 11
+  completed_plans: 12
   percent: 22
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 03 (design-system-theming-foundation) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-05-31
 
@@ -63,6 +63,7 @@ Progress (Phase 3): [█░░░░░░░░░] 14%
 | Phase 03 P01 | 18 | 2 tasks | 12 files |
 | Phase 03 P02 | 9 | 2 tasks | 9 files |
 | Phase 03 P03 | 6 | 2 tasks | 4 files |
+| Phase 03 P04 | 3 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 3/03-01]: Headless theme core landed — oklch baked to sRGB once (clamp-chroma, traceable Python script + drift-guard test) so no oklch reaches the renderer (API-23 Pitfall 1); ThemeResolver exposes the single StateFlow<ThemeTokens>; TokenDelta is sparse override-on-base normalized to unsigned-32-bit ARGB; ThemePrefs is the first DataStore with a PURE host-testable fail-safe read path that never throws (D-02). DataStore 1.1.7, verifyMinSdk floor held at 23.
 - [Phase ?]: [Phase 3/03-02]: Type substrate + render data substrate landed. Six Geist/Geist Mono STATIC TTFs bundled (OFL 1.1, Fontsource Latin subsets ~175KB) as res/font assets; theme/Geist.kt exposes Geist+GeistMono FontFamily over R.font.geist_* — no variable fonts (API-23 floor, Pitfall 2), no fontFeatureSettings (monospace = tabular by construction). Plain-Kotlin bounded RingBuffer (D-12, cap 120, O(1) push + defensive-copy snapshot, @Synchronized) is the toolkit-agnostic rolling window both render primitives draw; TDD RED->GREEN, concurrent-stress tested.
 - [Phase ?]: [Phase 3/03-03]: Compose token seam landed — LocalTokens is a staticCompositionLocalOf<ThemeTokens> (Pitfall 3: theme swap recomposes the subtree, cheaper untracked reads); DinghyTheme collects ThemeResolver.tokens via collectAsStateWithLifecycle() and pins LocalDensity(fontScale=1f) at the ONE boundary so --fs is the sole text authority (D-04, no double-apply). ScreenScaffold is the slot-based Focus/Field/Gutter primitive (BoxWithConstraints; landscape 50/50 stage + full-width gutter, portrait stack; weight/fillMax only, no px regions; caller wraps sacred squares in aspectRatio(1f) inside the region). OutlinedControl maps Intent{Neutral/Accent/Warn/Danger/Go}->outline/accentLine/heat/stop/go via LocalTokens, 2px border + heightIn(min=64.dp), static glow (D-13, no looping animation). Token-purity grep over designsystem/ = zero raw Color literals.
+- [Phase ?]: [Phase 3/03-04]: Three panel-consumable primitives landed on the Wave-2 boundary — ConfirmGuard (PRIM-03, full-screen, gutter omitted, confirm=Danger/Go + cancel=Neutral, dispatches nothing/T-03-04); ScrubberPage (PRIM-01, keyboard-free fill-bar+stepper, no TextField, GeistMono live value, FIXED cancel contract: Neutral by default, Danger opt-in via destructiveDismiss); SeverityToast (PRIM-04, color+icon+text never color-alone). ThemeableView { applyTokens } = Views push-tokens seam (D-06) the 03-05 GraphView implements. Token-purity grep = zero raw color literals.
 
 ### Pending Todos
 
@@ -112,6 +114,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-31T18:45:45.557Z
+Last session: 2026-05-31T18:52:05.845Z
 Stopped at: Phase 3 context gathered
 Resume file: None
