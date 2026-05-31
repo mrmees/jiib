@@ -7,11 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import works.mees.dinghy.render.RingBuffer
+import works.mees.dinghy.theme.ThemeResolver
+import works.mees.dinghy.theme.compose.DinghyTheme
 
 /**
  * Benchmark harness entry point — EXPORTED (registered by plan 01-01's manifest, which
@@ -27,6 +32,14 @@ import kotlinx.coroutines.launch
  * Launch contract (consumed by the macrobenchmark UiAutomator script):
  *   adb shell am start -n works.mees.dinghy/.bench.BenchActivity --es scene compose
  *   adb shell am start -n works.mees.dinghy/.bench.BenchActivity --es scene views
+ *   adb shell am start -n works.mees.dinghy/.bench.BenchActivity --es scene render
+ *
+ * The `render` scene (added in plan 03-07) is the D-10 perf scene: it mounts ONLY the two shared
+ * render primitives (Compose [works.mees.dinghy.render.ProgressRing] + classic-Views
+ * [works.mees.dinghy.render.GraphView] via [works.mees.dinghy.render.GraphViewHost]) driven by the
+ * SAME [SyntheticFeed] filling a [RingBuffer], so the on-device gfxinfo framestats capture measures
+ * the ring+graph draw cost on the Adreno-320 floor (criterion #5). It is an intent-extra route — the
+ * exported activity registration in the shared manifest is unchanged.
  *
  * SCOPE GUARD: no Moonraker, no connection layer, no state machine — measurement only.
  */
@@ -49,7 +62,45 @@ class BenchActivity : ComponentActivity() {
         val scene = intent?.getStringExtra(EXTRA_SCENE) ?: SCENE_COMPOSE
         when (scene) {
             SCENE_VIEWS -> mountViewsScene()
+            SCENE_RENDER -> mountRenderScene()
             else -> mountComposeScene()
+        }
+    }
+
+    /**
+     * SCENE RENDER (D-10, plan 03-07): the ring + line-graph perf scene. Drives the SAME
+     * [SyntheticFeed] verbatim — each feed event's progress drives the Compose [ProgressRing] and the
+     * graph-sample fills a bounded [RingBuffer] (GRAPH_MAX window) whose snapshot drives the Views
+     * [GraphView] through [GraphViewHost]. Both primitives recolor from one [ThemeResolver]'s tokens
+     * (Compose via LocalTokens at the [DinghyTheme] boundary, the Views graph via push-tokens, D-06).
+     * Repaint is value-driven at the ~3 Hz cadence — no per-frame animation (D-13).
+     */
+    private fun mountRenderScene() {
+        val feed = SyntheticFeed()
+        val resolver = ThemeResolver()
+        val state = MutableStateFlow(RenderSceneState())
+
+        setContent {
+            DinghyTheme(resolver = resolver) {
+                val tokens by resolver.tokens.collectAsStateWithLifecycle()
+                RenderBenchScene(
+                    state = state,
+                    tokens = tokens,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+
+        feedJob = lifecycleScope.launch {
+            val ring = RingBuffer(GRAPH_MAX)
+            feed.events().collect { event ->
+                // Fill the bounded ring buffer from the deterministic feed (extruder series).
+                ring.push(event.graphSample.extruder.toFloat())
+                state.value = RenderSceneState(
+                    progress = event.progress.toFloat(),
+                    snapshot = ring.snapshot(),
+                )
+            }
         }
     }
 
@@ -123,6 +174,9 @@ class BenchActivity : ComponentActivity() {
 
         /** Render the hybrid-Views worst-case scene. */
         const val SCENE_VIEWS = "views"
+
+        /** Render the ring+graph perf scene (D-10 — the shared render primitives only). */
+        const val SCENE_RENDER = "render"
 
         /** Rolling temperature-graph window (samples kept on screen). */
         private const val GRAPH_MAX = 120

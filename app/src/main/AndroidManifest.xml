@@ -39,7 +39,10 @@
         <!--
           Benchmark harness entry point — exported so :macrobenchmark / UiAutomator
           can launch it with a scene-select intent extra. The scenes + synthetic
-          feed are implemented in plan 01-03; this is a registered stub for now.
+          feed are implemented in plan 01-03 (compose/views) and plan 03-07 (render
+          (the ring+graph perf scene for the D-10 gfxinfo capture). The registration
+          itself is unchanged; scene selection is an intent extra (es scene render),
+          not a new activity.
         -->
         <activity
             android:name=".bench.BenchActivity"
