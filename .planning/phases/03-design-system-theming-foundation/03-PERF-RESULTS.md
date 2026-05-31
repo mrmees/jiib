@@ -43,7 +43,10 @@ Two independent captures (warmup-excluded, flags!=0 frames excluded, frozen thre
 Histogram (Run 1) clusters heavily at 40–57 ms (peak: 44 ms=24, 53 ms=13), tailing to ~85 ms; nothing
 beyond 110 ms.
 
-## Verdict — FAIL against the stated p50/p95 budget; PASS on frozen-frames + cadence
+## Round-1 read — FAIL against the (later-invalidated) p50/p95 budget; PASS on frozen-frames + cadence
+> NOTE: this Round-1 "verdict" is superseded. The `p50 ≪ 16.6 ms` / `~42 ms` thresholds it fails against
+> were re-scoped as INVALID-when-generalized — see **FINAL VERDICT (2026-05-31)** at the bottom of this
+> file. Criterion #5 ultimately PASSED under the A-variant two-part gate.
 
 - ✅ **Zero frozen frames** (0 frames > 700 ms across both runs) — no catastrophic stalls.
 - ✅ **No animation loop** — ~3.2 Hz value-driven redraw (D-13).
@@ -168,3 +171,78 @@ not a 60 fps scroller:
 This is offered as a *defensible* budget, deliberately NOT "wherever the number landed." But because it
 (a) abandons the literal ADR-0001 `p50 ≪ 16.6 ms` wording and (b) makes a forward claim about a
 not-yet-built Phase-6 full screen, it is a human call per the checkpoint mandate. See the checkpoint.
+
+---
+
+# FINAL VERDICT (2026-05-31) — Matthew decided. Criterion #5 = **PASS** under the A-variant two-part gate.
+
+After reviewing the Round-2 numbers AND a Codex second opinion, Matthew **closed criterion #5 on the
+A-variant** — a two-part gate stated honestly, NOT the old single `p50 ≪ 16.6 ms` threshold. This section
+is the system of record for the verdict; the round-1/round-2/no-fill tables above stand as the evidence.
+
+## Why the original `p50 ≪ 16.6 ms` target was INVALID when generalized
+
+The original criterion-#5 acceptance leaned on the Phase-1 toolkit-benchmark floor of `p50 ≪ 16.6 ms`
+(ADR-0001 "Measured Results"). **That number came from a tiny `dp(260)`-tall graph spike** — a small
+surface where the per-frame cost is dominated by CPU draw-record, not window composition. Generalizing it
+to a **full-screen value-driven redraw on this device was a category error.** As the Round-2 per-stage
+decomposition proves, even a line-only (no-fill) frame spends **~24 ms in the GPU/composite stage** simply
+compositing the native **1200×1920** window through the Adreno-320 ROPs. **Missing one 16.6 ms vsync is
+structurally unavoidable for full-window composition on this GPU** — it is physics, not a code defect.
+
+Accordingly we **stop calling 16.6 ms a "frame budget."** That phrase smuggles in a 60 Hz, every-
+Choreographer-frame mental model that does not apply to a ~3 Hz value-driven appliance surface. The
+correct concept here is a **SPARSE-REDRAW latency budget on the floor device**: how long a single,
+infrequent, value-driven redraw takes — and whether that reads as instant — not a continuous 60 fps target.
+
+## The two gates (A-variant) — both MET today
+
+### 1. LIVENESS GATE (hard floor — the project soul) → **MET cleanly**
+The render primitives must be:
+- **allocation-free** in the draw path (Pitfall 4) — confirmed: one reusable `Path`/area-`Path`, pre-
+  allocated stroke + fill `Paint`, `rewind()` per draw, never `Path()`/`Paint()` in `onDraw`;
+- contain **NO animation loop** — confirmed: redraw count tracks the ~3 Hz feed (≈3.0–3.2 Hz measured),
+  not Choreographer; static glow only (D-13);
+- produce **ZERO frozen frames** (no frame > 700 ms) — confirmed: **0/0** across every capture (round 1,
+  round 2 filled, round 2 no-fill).
+
+### 2. SPARSE-REDRAW LATENCY GATE → **MET at 50.1 ms p95, ~16 ms margin**
+For **value-driven, full-screen redraws** (the real ~3 Hz cadence, **NOT** continuous animation):
+> **p95 ≤ ~66 ms** (≈ 2 display refreshes; sub-perceptible at a 3 Hz value change, ~13 % duty cycle).
+
+This bound is **DERIVED, not reverse-fit:** it is the measured ~24 ms hardware composite floor + realistic
+CPU-draw/per-trace headroom, rounded to ~2 vsyncs. It is deliberately *not* set to "wherever the number
+landed" (50 ms). The design-true filled ring+graph today is **50.1 ms p95** — inside the bound with
+**~16 ms of margin**.
+
+## Optimization finding (the win that made this defensible)
+The Round-1 → Round-2 A-B established that **SIZE, not the aesthetic, was the Round-1 culprit.** Correcting
+the over-sized `weight(1f)` half-screen graph to the canonical **Focus/Field/Gutter ≈ 40/40/20** Field-panel
+footprint dropped p95 **61 → 50 ms** and collapsed the tail (max **110 → 54 ms**) with the design intact.
+Dropping the `.16`-opacity area-fill entirely shaved only **~5.6 ms** more — so **the canonical
+`hifi.css .g-area` fill stays ON in the product** (`GraphView.drawArea = true`); the `--ez nofill` route is
+a bench-only A-B isolation lever, never a product appearance change.
+
+## MANDATORY FOLLOW-UP — Phase 6 MUST re-measure against this same two-part gate
+Phase 6 (Temperature panel) **extends this exact graph primitive with multiple heater traces** and adds the
+Field stat grid + gutter chrome — i.e. it composites **materially more** than this isolated ring+graph test
+path. **Phase 6 MUST re-run the full real Temperature screen against this same two-part gate** (liveness +
+sparse-redraw ≤ ~66 ms p95) on flox. The isolated ring+graph margin (~16 ms) is *not* a blank check for the
+full screen.
+
+### Three conditions that INVALIDATE this verdict and FORCE a re-open
+1. **The ~24 ms composite floor turns out not to be stable** (e.g. it scales with draw content or varies
+   run-to-run on flox) — the derived 66 ms bound loses its physical anchor.
+2. **The real Temperature screen composites materially heavier** than this test path (multi-trace + stat
+   grid + gutter pushing GPU-stage cost well above ~24 ms), such that p95 breaches ~66 ms.
+3. **The ~3 Hz cadence assumption is wrong in production** — if the surface bursts into sustained redraws
+   (faster than the conflated 2–4 Hz state cadence), the "sparse, sub-perceptible" premise collapses and a
+   continuous-frame budget would apply instead.
+
+If any of the three holds in Phase 6, criterion #5 re-opens and the budget must be re-derived against the
+real measured floor — not grandfathered from this isolated result.
+
+## Verdict line
+**Criterion #5: PASS** (A-variant two-part gate). Liveness gate MET cleanly (allocation-free, no loop,
+0 frozen). Sparse-redraw latency gate MET at 50.1 ms p95 vs the derived ~66 ms bound (~16 ms margin), design-
+true (filled, real Field-panel size). Phase-6 re-validation mandated above.

@@ -105,3 +105,30 @@ Compose interop (`AndroidView` / `ComposeView`) hosts the Views surfaces inside 
   `tools/gfxinfo-parser/parse_framestats.py`
 - Decisions: D-02 (fairness), D-03 (release/real-device), D-04 (thresholds), D-05 (Compose vs hybrid),
   D-07 (gfxinfo system of record)
+
+---
+
+## Addendum (2026-05-31) — the `p50 ≪ 16.6 ms` / `~42 ms` floors were re-scoped for criterion #5
+
+The "Measured Results" floors recorded above (`p50 ≪ 16.6 ms`, Views-graph `p95 ≈ 41.9 ms`) were measured
+on the **Phase-1 toolkit benchmark**, whose graph was a tiny **`dp(260)`-tall** surface. Those numbers
+remain a faithful record of *that* benchmark and are NOT edited here.
+
+However, Phase 3 plan 03-07 reused this number as criterion #5's acceptance for a **full-screen, value-
+driven graph redraw on flox** — and that generalization was **invalid**. The Round-2 on-device per-stage
+decomposition (`.planning/phases/03-design-system-theming-foundation/03-PERF-RESULTS.md`) showed that even a
+line-only frame spends **~24 ms in the GPU/composite stage** just compositing the native **1200×1920**
+window through the Adreno-320 ROPs. **Missing one 16.6 ms vsync is structurally unavoidable for full-window
+composition on this GPU** — physics, not a code defect. The 16.6 ms figure is therefore a *frame budget* for
+small surfaces, NOT a sparse-full-screen-redraw budget.
+
+**Re-scope (decided by Matthew, with a Codex second opinion, 2026-05-31):** criterion #5 closes on a
+two-part gate, NOT the literal `p50 ≪ 16.6 ms` wording:
+1. **Liveness gate (hard floor):** allocation-free draw, no animation loop, ZERO frozen frames (>700 ms).
+2. **Sparse-redraw latency gate:** value-driven full-screen redraw **p95 ≤ ~66 ms** (~2 vsyncs; sub-
+   perceptible at ~3 Hz), derived from the measured ~24 ms composite floor + headroom — not reverse-fit.
+
+This addendum does NOT overturn the *toolkit* decision (hybrid Views-for-high-churn stands; Views is still
+~2× lower tail than Compose). It only reconciles how the Phase-1 floor was (mis)applied as criterion #5's
+acceptance. Full rationale + the mandatory Phase-6 re-validation + the three re-open conditions: see
+`03-PERF-RESULTS.md` § FINAL VERDICT (2026-05-31).
