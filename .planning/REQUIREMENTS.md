@@ -30,8 +30,8 @@ Requirements for the initial release: the functional print-control core, testabl
 
 - [x] **THEME-01**: Semantic-token theme system — dark + light + user-custom themes; every component references role tokens (`--bg/--surface/--text/--accent/--heat/--go/--stop`…), never a raw color, so a theme is a token remap
 - [x] **THEME-02**: User text-size setting (S / M / L via the `--fs` multiplier; M is the larger default), persisted
-- [ ] **UI-01**: Focus / Field / Gutter responsive layout grammar on one shared tabular grid — portrait (stacked) and landscape (Focus|Field 50/50 + full-width gutter on the same column lines); sacred aspect ratios; ratio-only sizing (no hardcoded px)
-- [ ] **UI-02**: Outline-led, touch-first control language (2px outline + glow, ≥64px targets) with button-intent colors (red=stop/cancel/back · green=accept · amber=proceed-at-peril · accent=physical command · white=setting)
+- [x] **UI-01**: Focus / Field / Gutter responsive layout grammar on one shared tabular grid — portrait (stacked) and landscape (Focus|Field 50/50 + full-width gutter on the same column lines); sacred aspect ratios; ratio-only sizing (no hardcoded px)
+- [x] **UI-02**: Outline-led, touch-first control language (2px outline + glow, ≥64px targets) with button-intent colors (red=stop/cancel/back · green=accept · amber=proceed-at-peril · accent=physical command · white=setting)
 
 ### App Shell
 
@@ -165,8 +165,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | STATE-05 | Phase 2 | Complete |
 | THEME-01 | Phase 3 | Complete |
 | THEME-02 | Phase 3 | Complete |
-| UI-01 | Phase 3 | Pending |
-| UI-02 | Phase 3 | Pending |
+| UI-01 | Phase 3 | Complete |
+| UI-02 | Phase 3 | Complete |
 | PRIM-01 | Phase 3 | Pending |
 | PRIM-03 | Phase 3 | Pending |
 | PRIM-04 | Phase 3 | Pending |
