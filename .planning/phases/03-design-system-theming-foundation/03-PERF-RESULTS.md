@@ -78,3 +78,93 @@ budget as written. This needs a human verdict (blocking-human gate):
 
 Recommendation: option 1 (accept + re-baseline) for the Phase-3 gate, with a noted follow-up to profile
 the area-fill cost in Phase 4 when the graph lands at its real panel size — but Matthew owns this call.
+
+---
+
+# ROUND 2 — Matthew chose OPTIMIZE-THEN-RE-MEASURE. Variables isolated, re-captured on flox.
+
+Per the checkpoint decision, the area-fill was made toggleable (`GraphView.drawArea`, default `true` =
+the canonical `hifi.css .g-area opacity:.16`) and the bench scene was corrected to the **real** Print
+Status portrait layout — `LAYOUT.md` rhythm **Focus / Field / Gutter ≈ 40 / 40 / 20**, graph as a
+**Field panel** (centered, inset), NOT the naked `weight(1f)` half-screen the Round-1 scene used. Two
+variables, each measured: graph **size** (corrected) and **fill** (on vs off). Same harness, same flox,
+same parser, `--warmup 20`. Commits: `8b65ad9` (drawArea lever), `768b488` (scene layout + nofill route).
+
+## Round-2 captured results (corrected size)
+
+| Metric | FILLED (size-fixed, fill ON = design-true) | NOFILL (size-fixed, fill OFF) | Round-1 (over-sized, fill ON) |
+|--------|--------------------------------------------|-------------------------------|-------------------------------|
+| frames measured | 98 | 99 | 106 |
+| **p50 (ms)** | **40.81** | 36.87 | 44.35 |
+| p90 (ms) | 48.11 | 41.89 | 58.55 |
+| **p95 (ms)** | **50.11** | 44.51 | 61.27 |
+| max (ms) | 53.92 | 57.87 | 109.61 |
+| **frames > 700 ms (frozen)** | **0** | **0** | **0** |
+
+## Variable attribution (the point of the A-B)
+
+- **SIZE was the prime culprit (confirmed).** Correcting the over-sized region (half-screen → 40% Field
+  panel) drops p95 from **~61 → ~50 ms** (filled) and tames the tail (max 109 → 54 ms). The Round-1
+  hypothesis — "fill-rate driven by primitive SIZE" — is empirically correct: the dominant lever was
+  *how many pixels we composite*, not the fill style.
+- **FILL is secondary.** Dropping the translucent area-fill entirely shaves only **~5.6 ms p95**
+  (50.1 → 44.5) at the corrected size. The fill is real but NOT the wall. So we keep the canonical
+  `.g-area` aesthetic (`drawArea = true` in product) — the visual contract is preserved; the win came
+  from fixing the scene's layout fidelity, not from degrading the design.
+
+## Per-stage decomposition (where the ~40 ms goes) — it's the GPU/composite floor, not our code
+
+Median per-frame stage split (filled / nofill), from the framestats stage timestamps:
+
+| Stage | filled | nofill | what it is |
+|-------|--------|--------|------------|
+| PerformTraversals → DrawStart | 0.2 ms | 0.2 ms | measure/layout (negligible — no per-sample relayout) |
+| DrawStart → IssueDrawCommands | 3.7 ms | 3.2 ms | CPU draw-record (cheap; allocation-free, Pitfall 4 holds) |
+| **IssueDrawCommands → FrameCompleted** | **25.9 ms** | **23.7 ms** | **issue + GPU + swap — the fill-rate stage** |
+
+The cost is overwhelmingly the **GPU/composite stage (~24–26 ms)**, with trivial layout and small CPU
+record. Crucially, even the line-only NOFILL frame is **~24 ms GPU** — i.e. the floor is the cost of
+compositing the **full-screen window at native 1200×1920 through the Adreno-320 ROPs**, regardless of
+what the graph draws. This is the device's hard fill-rate ceiling (T-03-08 made concrete), not a code
+defect. The area-fill is ~2 ms of that stage; the rest is physics.
+
+## Cadence re-confirmed (D-13) — PASS
+
+Clean ~6 s window on the corrected build: **18 total frames ≈ 3 Hz**. A 60 fps loop would be ~360.
+`dumpsys` labels 16/18 frames "janky" and "Slow UI thread: 13" — i.e. **every one of the ~3 per-second
+value-driven redraws exceeds the 16.6 ms vsync deadline** — but there are only ~3/s and **zero frozen
+(>700 ms)**. The 60 fps "janky-frame %" yardstick is the wrong ruler for a ~3 Hz value-driven appliance
+surface; the right rulers are *frozen frames* and *does-an-update-read-instant*.
+
+## Round-2 verdict — honest read
+
+- ✅ **Zero frozen frames** (0/0, both variants) — the project-soul non-negotiable holds.
+- ✅ **No animation loop** — ~3 Hz value-driven redraw (D-13).
+- ✅ **Prime culprit found and fixed** — over-sizing, not the aesthetic. p95 61 → 50 ms with the design
+  intact; tail collapsed (max 110 → 54 ms).
+- ⚠️ **Per-redraw still misses 16.6 ms vsync.** p50 ~41 / p95 ~50 ms (filled). The remaining cost is the
+  device's native-res window-composite floor (~24 ms GPU), which is physics — not removable in software
+  short of dropping resolution or shrinking the rendered surface.
+- ⚠️ **Headroom for Phase 6 is the open question.** The ~24 ms composite floor does NOT multiply with
+  more traces (it's per-window, not per-line), and CPU record is cheap, so multi-trace likely lands
+  ~55–60 ms p95 — still imperceptible at 3 Hz and frozen-free. But the *full* Phase-6 Temperature screen
+  composites MORE than ring+graph (Field stat grid, gutter), so the realistic full-screen p95 will be
+  higher than this isolated ring+graph number. I cannot honestly claim "clean pass WITH headroom"
+  against a budget I'd be defining post-hoc to fit the result.
+
+## Proposed honest budget for criterion #5 (for Matthew's sign-off)
+
+A **two-part bound** that matches what the surface actually is — a ~2–4 Hz value-driven appliance screen,
+not a 60 fps scroller:
+
+1. **HARD floor (non-negotiable, project soul):** zero frozen frames (0 frames > 700 ms) AND no
+   continuous-animation loop (redraw count tracks the ~3 Hz feed, not Choreographer). → **MET, cleanly.**
+2. **Per-redraw bound:** each value-driven redraw ≤ ~**66 ms p95** (≈ 2 display refreshes; an update at
+   3 Hz with ~13 % duty cycle reads as instant well below this). Rationale: it's tied to the *physical*
+   native-res composite floor (~24 ms) plus realistic per-trace headroom, NOT reverse-fit to 50 ms. The
+   ring+graph today is **50 ms p95** — comfortably inside, with ~16 ms of margin for Phase-6 traces on
+   this isolated surface.
+
+This is offered as a *defensible* budget, deliberately NOT "wherever the number landed." But because it
+(a) abandons the literal ADR-0001 `p50 ≪ 16.6 ms` wording and (b) makes a forward claim about a
+not-yet-built Phase-6 full screen, it is a human call per the checkpoint mandate. See the checkpoint.
