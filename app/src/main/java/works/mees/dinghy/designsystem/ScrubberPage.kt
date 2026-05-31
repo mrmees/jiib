@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -124,11 +123,15 @@ fun ScrubberPage(
                         .background(t.surface2)
                         .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
                         .onSizeChanged { barWidthPx = it.width.toFloat() }
+                        // Single coordinated gesture detector (WR-01): a tap is a zero-length drag.
+                        // onDragStart sets the value from the down position; onDrag tracks it. Both
+                        // resolve through the SAME offset→value mapping (setFromX), so a tap at x and
+                        // a drag to x produce an identical value, and there is no second detector to
+                        // race the pointer stream against.
                         .pointerInput(range, step) {
-                            detectTapGestures { offset -> setFromX(offset.x) }
-                        }
-                        .pointerInput(range, step) {
-                            detectDragGestures { change, _ -> setFromX(change.position.x) }
+                            detectDragGestures(
+                                onDragStart = { offset -> setFromX(offset.x) },
+                            ) { change, _ -> setFromX(change.position.x) }
                         },
                 ) {
                     // The accent-tinted fill tracks the value (left-anchored).

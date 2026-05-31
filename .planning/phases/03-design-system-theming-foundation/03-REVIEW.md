@@ -87,6 +87,11 @@ one keyboard-free numeric-entry primitive every later setpoint screen inherits.
 
 ### WR-01: ScrubberPage races a tap detector against a drag detector on the same element
 
+**Status:** RESOLVED — collapsed into a single `pointerInput`/`detectDragGestures` with
+`onDragStart` handling the tap (zero-length-drag) case, sharing the same `setFromX` offset→value
+mapping so tap and drag produce identical values and there is no second detector to race.
+Verified by clean `:app:assembleDebug :app:testDebugUnitTest`.
+
 **File:** `app/src/main/java/works/mees/dinghy/designsystem/ScrubberPage.kt:127-132`
 **Issue:** The scrubber bar attaches TWO separate `pointerInput` blocks to the same `Box` — one running
 `detectTapGestures` and one running `detectDragGestures`:
