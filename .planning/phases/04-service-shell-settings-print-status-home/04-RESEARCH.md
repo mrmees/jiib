@@ -418,19 +418,23 @@ Note: `disable motors` (confirm set) is a G-code (`M84` / `SET_STEPPER_ENABLE`) 
 | A4 | `disable motors` / `restart print` map to gcode / `print.start` (actions land in Phase 4/6, confirm gate here) | Code Examples | Low — confirm gate is the Phase-3 deliverable; action wiring is later-phase. |
 | A5 | Holding a `MulticastLock` is needed for reliable mDNS scan on Wi-Fi | Pattern 5 / Pitfall 3 | Low — well-established Android behavior; scan is best-effort regardless. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Persistent notification content + tap target**
+   - **RESOLVED:** notification copy is executor discretion in **04-03** (low-importance channel, ConnectionState/KlippyState-driven text, no apiKey) — settled at plan, not deferred to a UI phase.
+   - **(also RESOLVED separately)** the `MulticastLock`/mDNS scan question is settled in **04-01** (best-effort scan; manual host/port entry is the floor).
    - What we know: needs a low-importance channel; should show connection/printer status and tap back into the app (CONTEXT open question).
    - What's unclear: exact status string (Klippy state? temps? connection?) and whether it updates live (battery cost on always-on).
    - Recommendation: static-ish "Connected to <host>" + Klippy state, updated on `ConnectionState`/`KlippyState` transitions only (not on every temp tick — that'd churn the notification). Settle copy in `/gsd-ui-phase 3`.
 
 2. **`AppContainer` ownership: Application-held vs service-held-published-to-Application**
+   - **RESOLVED:** **service constructs the spine, publishes into `AppContainer`** — see **04-PATTERNS.md** (verified constructors + `publishSpine`) and **04-03**; `AppContainer` is the typed holder the UI reads, the FGS owns the lifecycle.
    - What we know: no service binding needed for state; Phase-2 SUMMARY says "service owns a single session."
    - What's unclear: whether `PrinterStateStore` is constructed by the `Application` (and handed to the service) or by the service (and published into `AppContainer`).
    - Recommendation: **service constructs, publishes into `AppContainer`** — keeps the spine's lifecycle tied to the service that owns it; `AppContainer` is just the typed holder the UI reads. Settle in planning.
 
 3. **Emergency Stop gesture exact form (hold vs double-tap) + placement**
+   - **RESOLVED:** the E-stop is the full-screen **`ConfirmGuard`** path (PRIM-03), NOT a hold gesture — **CONTEXT D-10** supersedes the hold/double-tap question; routed through `CommandDispatcher` → `printer.emergency_stop`, wired in **04-06**.
    - What we know: fast-but-deliberate, every screen, not a slow modal (CONTEXT).
    - What's unclear: hold-duration vs double-tap, top-bar vs FAB.
    - Recommendation: defer the *interaction* tuning to `/gsd-ui-phase 3`; the plan must establish that it (a) lives in shell chrome, (b) goes through `CommandDispatcher`, (c) is reachable on every route including Splash.
