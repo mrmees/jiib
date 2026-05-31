@@ -1,6 +1,7 @@
 package works.mees.dinghy.bench
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.StateFlow
@@ -34,38 +36,77 @@ import works.mees.dinghy.theme.compose.LocalTokens
  * pushes the same [ThemeTokens] to the Views Canvas (D-06). Motion is static glow only — neither
  * primitive animates per Choreographer frame (D-13); the redraw is value-driven at the feed cadence.
  *
- * @param state the latest (progress, ring-buffer snapshot) pushed by [BenchActivity]'s feed loop.
+ * LAYOUT FIDELITY (criterion #5 must measure the REAL graph, not an over-sized one): the first
+ * capture laid out the ring and graph each at `weight(1f)` of a full portrait column, so the
+ * `GraphView` covered ≈ half the screen (~1200×900 px) and the translucent area-fill bled across
+ * it — over-sizing the fill region vs the canonical Print Status mockup. Per `LAYOUT.md` the portrait
+ * rhythm is **Focus / Field / Gutter ≈ 40 / 40 / 20**, and the graph is a **Field panel** (a `.graph`
+ * card with y-labels / x-axis / legend chrome *around* the `.plot`), NOT half the screen. This scene
+ * now reproduces that rhythm: ring in the Focus band, the graph centered in the Field band as a panel
+ * (not edge-to-edge), and a Gutter spacer — so the gfxinfo capture measures the graph at its real size.
+ *
+ * @param state    the latest (progress, ring-buffer snapshot) pushed by [BenchActivity]'s feed loop.
+ * @param drawArea paint the canonical translucent area-fill (default `true`). The fill-rate ISOLATION
+ *                 lever (T-03-08): the on-device A-B capture launches the scene with it off to attribute
+ *                 the fill cost, then on for the design-true number. Product surfaces always pass `true`.
  */
 @Composable
 fun RenderBenchScene(
     state: StateFlow<RenderSceneState>,
     tokens: ThemeTokens,
     modifier: Modifier = Modifier,
+    drawArea: Boolean = true,
 ) {
     val s by state.collectAsState()
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Compose half: the progress ring (sacred square wraps itself via aspectRatio(1f)).
-        ProgressRing(
-            progress = s.progress,
+        // FOCUS band (~40%): the progress ring (sacred square wraps itself via aspectRatio(1f)).
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-        )
-        // Views half: the live line graph hosted in Compose, recolored from the same tokens (D-06).
-        GraphViewHost(
-            tokens = tokens,
-            snapshot = s.snapshot,
+                .weight(FOCUS_WEIGHT),
+            contentAlignment = Alignment.Center,
+        ) {
+            ProgressRing(progress = s.progress, modifier = Modifier.fillMaxWidth())
+        }
+        // FIELD band (~40%): the live line graph as a centered PANEL (not edge-to-edge). The graph
+        // card in the mockup carries chrome around the plot, so the real fill region is a band inside
+        // the Field — we approximate that by insetting the hosted GraphView, recolored from the same
+        // tokens (D-06). `drawArea` toggles the fill-rate isolation A-B (T-03-08).
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(FIELD_WEIGHT)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            GraphViewHost(
+                tokens = tokens,
+                snapshot = s.snapshot,
+                modifier = Modifier.fillMaxSize(),
+                drawArea = drawArea,
+            )
+        }
+        // GUTTER band (~20%): in the real screen this holds the Back/action buttons; here it is a
+        // spacer so the Focus/Field bands sit at their true portrait proportion (40/40/20) — the
+        // graph is NOT given the gutter's height, which is what over-sized it in the first capture.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(GUTTER_WEIGHT),
         )
     }
 }
+
+// Portrait Focus/Field/Gutter rhythm from LAYOUT.md (≈ 40/40/20). The graph (Field) therefore gets
+// ~40% of the column height, not the ~50% the first naive weight(1f)/weight(1f) split handed it.
+private const val FOCUS_WEIGHT = 40f
+private const val FIELD_WEIGHT = 40f
+private const val GUTTER_WEIGHT = 20f
 
 /**
  * Immutable per-tick snapshot the render scene draws. [BenchActivity] rebuilds this from the SAME

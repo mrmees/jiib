@@ -80,6 +80,11 @@ class BenchActivity : ComponentActivity() {
         val resolver = ThemeResolver()
         val state = MutableStateFlow(RenderSceneState())
 
+        // Fill-rate isolation lever (T-03-08 / criterion-#5 gate): default true = the canonical
+        // hifi.css translucent area-fill. The on-device A-B capture launches with `--ez nofill true`
+        // to drop the fill and attribute its cost on the Adreno-320. Product surfaces never set this.
+        val drawArea = !(intent?.getBooleanExtra(EXTRA_NOFILL, false) ?: false)
+
         setContent {
             DinghyTheme(resolver = resolver) {
                 val tokens by resolver.tokens.collectAsStateWithLifecycle()
@@ -87,6 +92,7 @@ class BenchActivity : ComponentActivity() {
                     state = state,
                     tokens = tokens,
                     modifier = Modifier.fillMaxSize(),
+                    drawArea = drawArea,
                 )
             }
         }
@@ -177,6 +183,13 @@ class BenchActivity : ComponentActivity() {
 
         /** Render the ring+graph perf scene (D-10 — the shared render primitives only). */
         const val SCENE_RENDER = "render"
+
+        /**
+         * Boolean intent extra (`--ez nofill true`) for the render scene's fill-rate A-B (T-03-08):
+         * when true, the graph drops its translucent area-fill so the gfxinfo capture attributes the
+         * fill cost. Absent/false = the canonical filled aesthetic. Measurement-only; never set in product.
+         */
+        const val EXTRA_NOFILL = "nofill"
 
         /** Rolling temperature-graph window (samples kept on screen). */
         private const val GRAPH_MAX = 120
