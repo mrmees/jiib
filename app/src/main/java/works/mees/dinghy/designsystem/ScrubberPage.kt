@@ -81,8 +81,11 @@ fun ScrubberPage(
     destructiveDismiss: Boolean = false,
 ) {
     val t = LocalTokens.current
-    // Local working value seeded from [value]; the caller commits on Apply.
-    var working by remember { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    // Local working value seeded from [value]; the caller commits on Apply. Keyed to [value]/[range]
+    // (BUG-05) so that if the caller's value or allowed range changes while this page is shown, the
+    // working state re-initializes from the new input rather than going stale and applying a wrong
+    // number on Apply.
+    var working by remember(value, range) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
     var barWidthPx by remember { mutableFloatStateOf(0f) }
 
     fun set(next: Float) {
