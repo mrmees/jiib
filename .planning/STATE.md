@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to discuss/plan
-last_updated: "2026-05-31T17:09:32.399Z"
+status: executing
+last_updated: "2026-05-31T18:34:52.386Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 9
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 15
+  completed_plans: 9
   percent: 22
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 3 — Design System & Theming Foundation (NEW, per the 2026-05-31 restructure)
+**Current focus:** Phase 03 — design-system-theming-foundation
 
 ## Current Position
 
-Phase: 3 (Design System & Theming Foundation)
-Plan: Not started — needs `/gsd-discuss-phase 3` (governed by `docs/ui_design/`)
-Status: Ready to discuss/plan
-Last activity: 2026-05-31
+Phase: 03 (design-system-theming-foundation) — EXECUTING
+Plan: 2 of 7
+Status: Executing Phase 03 — plan 03-01 complete (headless theme core)
+Last activity: 2026-05-31 -- 03-01 complete (oklch→sRGB bake, ThemeResolver StateFlow, fail-safe DataStore ThemePrefs)
 
-Progress (Phase 3): [░░░░░░░░░░] 0%
+Progress (Phase 3): [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress (Phase 3): [░░░░░░░░░░] 0%
 | Phase 02 P02 | 6 | 2 tasks | 5 files |
 | Phase 02 P03 | 14 | 2 tasks | 6 files |
 | Phase 02 P04 | 110 | 3 tasks | 11 files |
+| Phase 03 P01 | 18 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 02]: [Phase 2/02-03]: JsonRpcClient correlates by id under interleaved notify_* (STATE-05), per-request withTimeout + close(cause) fails+clears all pending (review HIGH #1, no deadlock), routes notifications by method with a SEPARATE bounded gcode flow; RpcConnectionException is a plain Exception so completeExceptionally fails (not cancels) deferreds.
 - [Phase ?]: [Phase 2/02-04]: Session spine integrated and GATE-PROVEN on the real Ender 5 Plus. Critical finding AT the on-device gate: server.connection.identify REQUIRES a non-empty 'url' arg — the spine omitted it, so the live connection never reached Connected, yet the ENTIRE JVM suite was green because the FakeWebSocket mock was more lenient than the real server. Fix sends url + tightened the harness to enforce the required-field contract (regression guard). Lesson: a mock looser than the server hides protocol bugs; the real-hardware gate is the backstop.
 - [Phase ?]: [Phase 2/02-04]: Reconnect supervisor lands D-01 overflow-safe uncapped backoff+jitter (no give-up ceiling) + D-02 requestReconnectNow; ordered identify->objects.list->deriveCapabilities->query->subscribe once per reconnect overwriting stale state (D-04, STATE-02); Connected gated behind Syncing (CONN-06 review HIGH #3); gentle AuthRequired quiescence (no token-fetch storm); split-plane conflation samples only high-rate numeric fields while control-plane+gcode stay immediate (STATE-03).
+- [Phase ?]: [Phase 3/03-01]: Headless theme core landed — oklch baked to sRGB once (clamp-chroma, traceable Python script + drift-guard test) so no oklch reaches the renderer (API-23 Pitfall 1); ThemeResolver exposes the single StateFlow<ThemeTokens>; TokenDelta is sparse override-on-base normalized to unsigned-32-bit ARGB; ThemePrefs is the first DataStore with a PURE host-testable fail-safe read path that never throws (D-02). DataStore 1.1.7, verifyMinSdk floor held at 23.
 
 ### Pending Todos
 
@@ -106,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-31T17:09:32.356Z
+Last session: 2026-05-31T18:34:33.530Z
 Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-design-system-theming-foundation/03-CONTEXT.md
+Resume file: None
