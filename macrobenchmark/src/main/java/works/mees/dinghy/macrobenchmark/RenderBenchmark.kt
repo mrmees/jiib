@@ -1,6 +1,7 @@
 package works.mees.dinghy.macrobenchmark
 
 import android.content.Intent
+import android.os.SystemClock
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
@@ -60,7 +61,13 @@ class RenderBenchmark {
     ) {
         // The ring/graph are not scrolled — just hold while the throttled feed pushes samples so the
         // measured window captures steady-state ring+graph draws (the fill-rate cost we gate on).
-        device.waitForIdle(DWELL_MS)
+        //
+        // BUG-03: `waitForIdle(DWELL_MS)` RETURNS as soon as the UI goes idle, and this scene goes
+        // idle between its ~3 Hz redraws — so it would end the measure window far earlier than the
+        // intended dwell, under-sampling frames. Let startup settle once, then hold for the FULL
+        // fixed window with an explicit timed sleep so the steady state is observed end-to-end.
+        device.waitForIdle()
+        SystemClock.sleep(DWELL_MS)
     }
 
     companion object {
