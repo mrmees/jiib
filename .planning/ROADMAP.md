@@ -242,7 +242,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
-| 3. Design System & Theming Foundation | 7/7 | Complete   | 2026-05-31 |
+| 3. Design System & Theming Foundation | 7/7 | Complete    | 2026-05-31 |
 | 4. Service, Shell, Settings & Print-Status Home | 0/TBD | Not started | - |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |
