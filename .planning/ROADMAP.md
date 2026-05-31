@@ -118,7 +118,7 @@ Plans:
 
 **Wave 1**
 - [x] 03-01-PLAN.md — Token core: baked oklch→sRGB table + ThemeTokens + ThemeResolver StateFlow + DataStore ThemePrefs + Wave-0 unit tests (THEME-01/02)
-- [ ] 03-02-PLAN.md — Geist/Geist Mono static fonts + the toolkit-agnostic bounded RingBuffer holder (THEME-02/D-12)
+- [x] 03-02-PLAN.md — Geist/Geist Mono static fonts + the toolkit-agnostic bounded RingBuffer holder (THEME-02/D-12)
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 03-03-PLAN.md — Compose token boundary (LocalTokens/DinghyTheme, fontScale=1f) + ScreenScaffold (Focus/Field/Gutter) + OutlinedControl (UI-01/UI-02)
@@ -242,7 +242,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
-| 3. Design System & Theming Foundation | 1/7 | In Progress|  |
+| 3. Design System & Theming Foundation | 2/7 | In Progress|  |
 | 4. Service, Shell, Settings & Print-Status Home | 0/TBD | Not started | - |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |
