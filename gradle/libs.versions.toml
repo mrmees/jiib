@@ -43,6 +43,12 @@ coroutines = "1.9.0"
 # --- Imaging (Coil 3, minSdk 23 exactly, fixed large-PNG OOM on API ≤23) ---
 coil = "3.1.0"
 
+# --- Persistence (THEME-02/D-02) ---
+# DataStore Preferences — coroutine/Flow-native settings store for the S/M/L --fs choice,
+# theme base, and custom token deltas. AndroidX 1.1.x line is minSdk-23-safe (June-2025 floor);
+# the MERGED-manifest floor is PROVEN by verifyMinSdk after adding it (RESEARCH Pitfall 6).
+datastore = "1.1.7"
+
 # --- Measurement tooling (:macrobenchmark) ---
 benchmarkMacro = "1.3.3"
 uiautomator = "2.3.0"
@@ -85,6 +91,9 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 # --- Coil 3 ---
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# --- Persistence (THEME-02/D-02) ---
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # --- Measurement (:macrobenchmark) ---
 benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }

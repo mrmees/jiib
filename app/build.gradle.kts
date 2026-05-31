@@ -125,6 +125,9 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // --- Persistence (THEME-02/D-02): S/M/L --fs + theme base + custom token deltas ---
+    implementation(libs.androidx.datastore.preferences)
+
     // --- Profile installer: NO-OP on the API-23 target (D-03); present for API 24+ devices ---
     implementation(libs.androidx.profileinstaller)
 
