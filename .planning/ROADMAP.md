@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold** - The Compose-vs-Views on-device go/no-go benchmark (synthetic 2–4 Hz source), a cleartext `ws://`/`http://` smoke test on a real API-23 device, the pinned `libs.versions.toml` catalog, and the build scaffold — the gate that must close before panel architecture begins (completed 2026-05-30)
 - [x] **Phase 2: Connection & State Foundation** - Resilient Moonraker websocket, diff-merged single-source-of-truth `PrinterState`, capability detection, reconnect-with-resync handshake, optional auth, and JSON-RPC id correlation — proven against a mock socket and a real Ender 5 Plus via a static dev config, still no panels (completed 2026-05-30)
-- [ ] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits
+- [x] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits (completed 2026-05-31)
 - [ ] **Phase 4: Service, Shell, Settings & Print-Status Home** - Foreground service owning the spine, the Settings screen (connection config + theme + text size + feature toggles), klippy-state-driven splash/home/job routing, swipe-up App Drawer navigation, the Print Status home (render/throttle in anger) with a Stop→Confirm-guard control, and the shared command-dispatch primitive
 - [ ] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware
 - [ ] **Phase 6: Files / Print** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, and delete files — the lead-in to the core print loop
@@ -131,7 +131,7 @@ Plans:
 - [x] 03-06-PLAN.md — In-APK component gallery + debug-only launcher + live-spine wire (D-07/D-08/D-14)
 
 **Wave 5** *(blocked on Wave 4)*
-- [ ] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
+- [x] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
 **UI hint**: yes — governed by `docs/ui_design/` (LAW); this phase IS the design-system build, so the UI contract is that bundle, not a generated UI-SPEC
 **Research note**: STANDARD — Compose theming/tokens, responsive layout, custom-`Canvas` drawing, and DataStore-backed settings are well-documented; the design contract (`docs/ui_design/hifi.css` + LAYOUT/THEMING) is the spec. A light pass on a clean Compose↔Views shared-token approach (ADR 0001 hybrid) may help.
 
@@ -242,7 +242,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
-| 3. Design System & Theming Foundation | 6/7 | In Progress|  |
+| 3. Design System & Theming Foundation | 7/7 | Complete   | 2026-05-31 |
 | 4. Service, Shell, Settings & Print-Status Home | 0/TBD | Not started | - |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |

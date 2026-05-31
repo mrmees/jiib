@@ -145,4 +145,6 @@ None. The `drawArea` flag is a documented bench-only isolation lever, not a stub
 *Phase: 03-design-system-theming-foundation*
 *Completed: 2026-05-31*
 
-## Self-Check: PENDING
+## Self-Check: PASSED
+
+All claimed files exist on disk (03-PERF-RESULTS.md, 03-07-SUMMARY.md, RenderBenchScene.kt, RenderBenchmark.kt, ADR-0001). All claimed commits present in git log (9b77484, 8b81d41, 8b65ad9, 768b488, 818e468, d23805e, 3884140).
