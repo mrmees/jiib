@@ -1,201 +1,255 @@
-# Phase 4: Service, Shell, Settings & Print-Status Home - Implementation Context
+# Phase 4: Service, Shell, Settings & Print-Status Home - Context
 
-> ⚠ **PARTIALLY SUPERSEDED — REFRESH BEFORE PLANNING (2026-05-31).** Roadmap restructured: this phase
-> renumbered **3 → 4**. The **service / FGS / connection / klippy-routing / config-recreate-session
-> decisions below are STILL VALID** and carry forward. But the **shell / UI / E-stop / navigation
-> decisions are SUPERSEDED** by the canonical `docs/ui_design/` system (LAW — see repo-root CLAUDE.md):
-> swipe-up full-screen **App Drawer** (not edge-swipe rail/handle), a conventional **Settings screen**
-> owns connection + theme + feature toggles (CONN-01 moved here), **Print Status** is the home (not a
-> "thermal dashboard menu"), **Stop → full-screen Confirm guard** (not hold-to-confirm chrome), and the
-> app is **portrait + landscape** with **full theming**. The reusable primitives (Confirm guard,
-> single-setting page, toast, render primitives) are built in the new **Phase 3 (Design System &
-> Theming Foundation)** and merely *consumed* here. **Regenerate this CONTEXT** via
-> `/gsd-discuss-phase 4` against `docs/ui_design/` + the updated REQUIREMENTS/ROADMAP before planning.
+**Gathered:** 2026-05-31 (regenerated against `docs/ui_design/` — supersedes the prior partially-superseded draft)
+**Status:** Ready for planning
 
 <domain>
-Turn the headless connection/state spine (Phase 2) into a living app: a foreground service that
-owns the Moonraker connection across Activity recreation and screen-off, a user-facing connection
-config (host/port/optional key) persisted to DataStore that replaces the static `DevConfig`,
-`klippy_state`-driven top-level routing (splash/main/job), a persistent modern shell with an
-always-reachable Emergency Stop, and the reusable UI primitives + command-dispatch policy every
-later panel inherits.
+## Phase Boundary
+
+Turn the headless, gate-proven Moonraker spine (Phase 2) into a **living app** on the Phase-3
+design substrate. This phase delivers:
+
+- A **foreground service** that owns the connection across Activity recreation (rotation) and
+  screen-off, replacing the static `DevConfig`.
+- A conventional **Settings screen** (keyboard allowed) that persists the connection
+  (host/port/optional key) plus theme + text size, and becomes the live config source.
+- **`klippy_state`-driven top-level routing**: splash during startup/error, **Print Status home**
+  on ready, with content that adapts to whether a print is active.
+- A **swipe-up full-screen App Drawer** for navigation (maximum canvas, no persistent status bar).
+- The **Print Status home** — the monitor/landing surface — proving the Phase-3 render/throttle
+  primitives in anger, with a **Stop → full-screen Confirm guard** control.
+- The shared **command-dispatch primitive** (PRIM-05: timeouts + in-flight/busy + debounce) that
+  wraps every Moonraker action call.
+
+**Not in this phase:** print-cancel/pause/resume/tune (Phases 5 & 7), a separate Job Status panel
+(Phase 7 deepens Print Status into it), real Power-device / host-power control, full custom-theme
+token editor, always-on/Doze survival/boot-autostart (Phase 8).
 </domain>
 
-<canonical_refs>
-**Source docs the executor MUST read before building.** Paths relative to repo root
-(`/mnt/e/claude/personal/github/dinghy-display`).
-
-- `docs/adr/0001-ui-toolkit-decision.md` — **Hybrid toolkit is LAW.** Compose for the shell and most
-  panels; **classic Views (custom `Canvas`/RecyclerView) for the high-churn surfaces** — the temperature
-  graph, Files list, Console scrollback. The Phase-3 dashboard "shared render/throttle primitive" is the
-  **Views-based** graph surface, because that's the one the Temperature panel extends in Phase 4.
-- `.planning/ROADMAP.md` (Phase 3 section, lines ~95–110) — the five locked success criteria (CONN-01,
-  SHELL-01..05, PRIM-01..05). These are the WHAT; this doc is the HOW.
-- `.planning/PROJECT.md` — scope, **Out of Scope** (single-printer v1, landscape-first, no Play Services,
-  camera deferred), and the constraint set (minSdk 23 / Adreno 320 / 2GB / armeabi-v7a).
-- `../gtk4_klipperscreen/docs/Screen_Catalog.md` — **panel INVENTORY reference ONLY.** Use it to know
-  *what panels exist and what each needs*, NOT as a UI to clone. See the **Shell** decision: this app is
-  modern Material 3, not a KlipperScreen port.
-- `.planning/phases/02-connection-state-foundation/02-04-SUMMARY.md` — how the spine (`MoonrakerSession`)
-  is wired and the **mock-looser-than-server** lesson (the live `identify` `url` bug that green tests hid).
-  Phase 3 wires this spine into a service for the first time, so re-read the integration shape.
-</canonical_refs>
-
 <decisions>
+## Implementation Decisions
 
-**FGS type — `specialUse`:** The connection-holding foreground service declares
-`foregroundServiceType="specialUse"` (with `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_SPECIAL_USE`
-permissions and the manifest `<property>` subtype tag).
-- Rationale: honest fit for "maintain a persistent LAN session to a 3D printer," **no background
-  timeout** (unlike Android 15's 6h `dataSync` cap), and the Play-Store justification that `specialUse`
-  normally demands is moot — we sideload. Future-proof if the APK ever runs on a newer device.
-- Constraints: on the API-30 test device the type-permission isn't enforced, but declare it anyway for
-  `targetSdk 35` and newer hardware. Rules out `dataSync` and `connectedDevice`.
+### Service, connection & lifecycle (CARRIED FORWARD from prior CONTEXT — still valid)
+- **D-01 FGS type `specialUse`:** the connection-holding foreground service declares
+  `foregroundServiceType="specialUse"` (with `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_SPECIAL_USE`
+  perms + manifest `<property>` subtype). No background timeout (vs Android 15's `dataSync` 6h cap);
+  Play-Store justification is moot (sideload). Not enforced on the API-30 test device but declare it
+  for `targetSdk 35` / newer hardware. Rules out `dataSync` / `connectedDevice`.
+- **D-02 Service ownership:** a **started** FGS (`startForegroundService` + `START_STICKY`) owns a
+  `serviceScope` that constructs and runs the spine
+  (`OkHttpClient → MoonrakerSocket → JsonRpcClient → PrinterStateStore(serviceScope) → MoonrakerSession`,
+  then `session.run()`). StateFlows are held in a **process-scoped service-locator / `Application`-held
+  singleton — NO Hilt for v1**. The Activity just collects the flows; **no service binding** needed for
+  state observation. A persistent low-importance notification shows connection/printer status + taps back in.
+- **D-03 Config change → recreate the session:** saving a new connection tears down the current
+  `MoonrakerSession` run (cancel its job) and rebuilds it with the new config, then relaunches `run()`
+  (host/key are construction-time inputs; `requestReconnectNow()` alone can't swap them). Must not leak
+  the old socket/scope — the rebuild is the clean seam.
+- **D-04 Persistence + connection model:** **DataStore (Preferences)**. Connection = host/IP, port
+  (default `7125`), optional API key. **mDNS** via Android `NsdManager` is an *additive* scan
+  (`_moonraker._tcp`) offered in Settings; **manual entry is the floor and is always present** (NSD on
+  old Android is flaky / printer may be on another subnet — discovery never blocks connecting). API-key
+  auth stays minimal (reuse the Phase-2 `MoonrakerAuth` path); no trusted-client UI beyond the key field.
 
-**Connection UX — manual entry PLUS mDNS auto-discovery:** First run with no saved config routes to a
-connection screen offering (a) a scan for `_moonraker._tcp` services via Android `NsdManager` with a
-pick-list, and (b) always-available manual host/IP + port (default `7125`) + optional API key.
-- Rationale: nicer modern first-run, but discovery is best-effort.
-- Constraints: **manual entry is the floor and is always present** — NSD on old Android is flaky and the
-  printer may be on a different subnet, so discovery never blocks connecting. Persist via **DataStore
-  (Preferences)**; this replaces `config/DevConfig` as the live config source. API-key auth stays minimal
-  (the Phase-2 `MoonrakerAuth` path already exists); no trusted-client UI beyond the key field.
+### Top-level routing
+- **D-05 Driven by `klippy_state` / `printState`, never socket `ConnectionState`.** Mechanism = a
+  top-level `when(klippyState)` gate + a simple route/state holder for the active drawer destination.
+  **Do NOT add Navigation-Compose** for v1 (handful of destinations; lean graph on 2GB). Design it so
+  adding a Phase-5+ panel is a one-line destination addition.
+- **D-06 Route map:** klippy non-ready (Startup/Error/Shutdown/Disconnected) → **hard override to
+  splash** (no drawer escape while down). klippy Ready + **idle** → Print Status home (idle view).
+  Ready + **printing** → Print Status home (printing view). **Print Status is the single home surface
+  whose content adapts to `printState`** — there is NO separate Job Status screen in Phase 4 (Phase 7
+  deepens this surface into the core print-loop gate).
 
-**Shell — minimal chrome, maximum canvas, edge-swipe full-screen app drawer (REVISED in `/gsd-ui-phase 3` — supersedes the earlier persistent-nav-rail decision):** NO persistent navigation rail and NO persistent top app-bar. The content surface is full-bleed (maximum open canvas). Navigation is an **edge-swipe-opened, full-screen app drawer** of big function tiles (Home/Dashboard + Job Status enabled; Temperature/Move/Files/Console rendered greyed "coming soon"); a **thin persistent edge handle** at the screen edge provides discoverability. Tapping a tile collapses the drawer to that panel.
-- Rationale: Matthew's explicit steer, revising the original rail call — *"remove the sidebar in favor of an expandable, full-screen app drawer… goal is usable space and clean interface."* On a 7″ panel, maximum content canvas + on-demand navigation beats always-visible chrome. Still modern Material 3, NOT a KlipperScreen port. This consciously trades the rail's one-tap panel switching for a cleaner canvas — accepted, and we iterate designs from a minimal baseline.
-- Constraints: landscape-first (locked in PROJECT.md). **No information is persistent on the content canvas** for now — connection/printer status is surfaced inside the app drawer and contextually, NOT in an always-on bar (Matthew: "start with maximum open canvas… we iterate designs"). Accent color is **cyan `#5BC8FF`** (chosen to stay clear of the amber=heating / green=at-temp / red=stop status semantics). The single bit of persistent chrome is the thin edge handle.
+### Print Status home (SHELL-04)
+- **D-07 Gutter = Stop + greyed Tune & Pause placeholders.** Show all three tiles as in mockup `03`,
+  but Tune (Phase 5) and Pause (Phase 7) are disabled "coming soon"; only **Stop** is wired.
+- **D-08 Idle Focus repurposes to a live temp/status "Ready" readout** (a 0%/idle progress ring carries
+  no info — fill the space usefully per the design philosophy). Printing Focus = the `ProgressRing`.
+  The Focus is **state-adaptive** (printing → ring; idle → temp/status readout).
+- **D-09 Home composition = Focus (ring | temp readout) + 2×3 numeric stat grid + a compact heater
+  sparkline (`GraphView`).** Adding the sparkline proves the **Views render primitive in anger** in
+  Phase 4 (not just the ring). ⚠ **PERF WATCH:** ring + sparkline + live numeric grid on one screen is
+  new render surface for the Adreno 320 — measure against the Phase-3 two-part gate; the re-open
+  conditions in `03-PERF-RESULTS.md` apply. The mockup `03` shows NO graph — this is a deliberate add.
 
-**Navigation mechanism — state-holder routing, NO Navigation-Compose dep (v1):** A top-level
-`when(klippyState)` gate selects splash vs. in-app shell; inside the shell a simple route/state holder
-selects the active app-drawer destination. Do **not** add `androidx.navigation:navigation-compose` for v1.
-- Rationale: the top-level route is *reactive to `klippy_state`*, which fits a `when` wrapper far better
-  than a back-stack model; v1 has a handful of destinations; keeps the dependency graph lean on 2GB
-  hardware. (Matches the CLAUDE.md guidance: adopt Nav-Compose only when the panel count grows.)
-- Constraints: this is the project's first navigation structure — design it so adding Phase-4+ panels is
-  a one-line destination addition.
+### Stop control (SHELL-02)
+- **D-10 Stop = ALWAYS `printer.emergency_stop`**, present and active whether idle or printing — the
+  firmware panic halt. Routes through the full-screen `ConfirmGuard` (PRIM-03, already built) with
+  **terse** copy (e.g. "Emergency stop?" / "This halts the printer."). Graceful **print-cancel is
+  deferred to Phase 7**. Firing it drives `klippy_state → shutdown`, which routes to the splash recovery
+  surface (D-12) — the user recovers via Firmware Restart there.
 
-**Top-level routing semantics:**
-- `klippy_state` non-ready (Startup/Error/Shutdown/Disconnected) → **hard override to splash**, which
-  surfaces the shutdown/error reason text + recovery actions (retry, firmware/Klipper restart where
-  exposed). The user cannot escape splash into panels while Klippy is down.
-- `klippy_state` Ready + **print active** → app **lands** on Job Status but the user can **freely
-  navigate** to Temperature/Move/etc. to tune or jog mid-print. Returning "home" shows Job Status.
-  NOT a hard lock — don't trap the user mid-print.
-- Routing is driven by `PrinterState.klippyState` / `PrinterState.printState` (already first-class fields),
-  never by socket `ConnectionState`.
+### Splash & first-run (SHELL-05, CONN-01)
+> The splash is a **hard override with no reachable App Drawer**, so every escape hatch MUST live on the
+> splash itself or the user is trapped.
+- **D-11 First run / no saved config:** splash shows a friendly **"Set up your printer" connect prompt**
+  → opens the Settings connection section; after save, the app connects.
+- **D-12 Klippy shutdown/error (Moonraker reachable):** splash surfaces the `klippy_state` reason text +
+  recovery actions **Retry + `printer.firmware_restart` + `printer.restart`** (restart the Klipper host).
+- **D-13 Saved connection failing (printer off / wrong host):** splash offers **Retry + "Edit
+  connection"** (→ Settings) — no dead end (retrying a typo'd host forever helps nobody).
 
-**Service ownership & lifecycle:** A **started** foreground service (`startForegroundService` +
-`START_STICKY`) owns a `serviceScope` that constructs the spine (`OkHttpClient → MoonrakerSocket →
-JsonRpcClient → PrinterStateStore(serviceScope) → MoonrakerSession`) and launches `session.run()`.
-The Activity observes the StateFlows through a process-held container (manual service-locator /
-`Application`-held singletons — **no Hilt** for v1); no service binding is required for state observation.
-- Rationale: the connection must survive Activity recreation (rotation) and screen-off; a started FGS is
-  the right tool; the spine's StateFlows are process-scoped so the UI just collects them.
-- Constraints: **boot-autostart and full Doze/always-on survival are Phase 8**, not here — Phase 3 starts
-  the service on app launch. A persistent low-importance notification shows connection/printer status and
-  taps back into the app.
+### Shell / App Drawer (SHELL-01)
+- **D-14 Navigation = swipe-up full-screen App Drawer** of square destination tiles; maximum content
+  canvas, **no persistent title/status bar** (status = color on existing elements + surfaced inside the
+  drawer). **Live tiles in Phase 4: Status (Print Status home) + Settings.** All other tiles
+  (Move/Temp/Files/Tools/Macros/Devices) **AND the red Power tile** are greyed **"coming soon"** in
+  Phase 4. Tapping a tile collapses the drawer to that destination.
 
-**Config-change handling — recreate the session:** Saving a new connection (host/port/key) tears down
-the current `MoonrakerSession` run (cancel its job) and rebuilds it with the new config, then relaunches
-`run()`. (Host/key are construction-time inputs to the session/auth; `requestReconnectNow()` alone can't
-swap them.)
-- Constraints: must not leak the old socket/scope; the rebuild is the clean seam.
+### Settings screen (SET-01, PRIM-02)
+- **D-15 Settings = conventional Android scrollable list** (NOT the Focus/Field/Gutter grammar — the one
+  screen exempt by design), **token-themed**, **system keyboard allowed** (PRIM-02 confines all
+  alphanumeric entry to Settings). Owns: connection (host/port/key + an mDNS **scan** button), theme,
+  text size.
+- **D-16 Theming in Phase 4 = dark/light toggle + S/M/L text size + a single accent-color picker**
+  (writes a `TokenDelta` accent override via the existing `ThemePrefs`). The full multi-role-token
+  custom editor is **deferred** (substrate already supports it; the editor UI is a later polish increment).
+- **D-17 No feature-toggles section in Phase 4** — almost nothing exists to gate yet (panels, camera,
+  always-on are later). Add the section when there are real toggles.
 
-**Shared render/throttle primitive — Views graph at the state cadence:** The state-layer conflation
-(~4 Hz, `PrinterStateStore.DEFAULT_SAMPLE_MS = 250`) already exists. Phase 3 establishes the **view-side**
-render primitive as a **classic-Views custom-`Canvas` graph** (per ADR 0001), shown on the dashboard as a
-compact heater sparkline/value, hosted in Compose via `AndroidView`. Phase 4's Temperature panel EXTENDS
-this exact primitive into the full history graph.
-- Constraints: graph architecture is settled HERE, not discovered late (SHELL-03). Keep view-models
-  toolkit-agnostic (StateFlow in, both Compose and the Views graph consume it).
+### Command-dispatch primitive (PRIM-05)
+- **D-18 A single shared command-dispatch wrapper** enforces an explicit network timeout (no infinite
+  hang on a dropped packet), an in-flight disabled/**busy** state, and **tap debounce** for **all**
+  Moonraker action calls (Stop, the splash recovery actions, every future control). **NOT yet built —
+  this is a Phase-4 deliverable.** Failures surface via `SeverityToast` (PRIM-04, already built).
 
-**Command-dispatch primitive (PRIM-05) + confirm policy (PRIM-03):** A single shared command-dispatch
-wrapper enforces an explicit network timeout (no infinite hang on a dropped packet), an in-flight
-disabled/busy state, and tap debounce for **all** Moonraker action calls. A single confirm-dialog
-primitive is the mandatory gate for the destructive set: **emergency stop, cancel print, disable motors,
-restart print, cooldown-while-printing**. E-stop is fast-but-deliberate (**hold-to-confirm**, not a slow
-modal) and — per the revised minimal-chrome shell — lives **only on the Home/Dashboard surface for now**
-(NOT global chrome on every screen); additional surfaces gain it as later control panels are built. Text
-entry uses the **system IME**; numeric entry uses the **custom big-key keypad** (PRIM-01). Keypad /
-on-screen-keyboard / severity-styled toast primitives are built here as panel-consumable components.
-
+### Claude's Discretion (research/planner territory — sensible defaults expected)
+- Command-dispatch timeout value, busy-state visual (disable + spinner), and debounce window.
+- Persistent low-importance notification content / channel / tap target.
+- Exact sparkline placement within the Field grid and the idle temp-readout composition.
+- Splash reason-text formatting derived from `klippy_state`.
+- Confirm-guard exact wording (terse) for the E-stop.
 </decisions>
 
-<deferred>
-- **mDNS being the *primary* connection path / multi-printer pick-list** — discovery is additive in v1;
-  multi-printer switching is explicitly v2 (PROJECT.md Out of Scope).
-- **Boot-autostart + full Doze/battery-optimization-exemption + `FLAG_KEEP_SCREEN_ON` + burn-in
-  screensaver** — all Phase 8 (Hardening & Release).
-- **Navigation-Compose adoption** — revisit when the destination count outgrows the v1 state-holder.
-- **Trusted-client / richer auth UI** — beyond the optional API-key field, deferred.
-</deferred>
+<canonical_refs>
+## Canonical References
 
-<specifics>
-- Modern feel is a stated requirement, not a nice-to-have (Matthew). Material 3, navigation rail,
-  dark high-contrast surface (theme is already `Theme.AppCompat.DayNight.NoActionBar` to support the
-  Views hybrid).
-- Moonraker conventions: default port `7125`; REST `http://host:port`; WS `ws://host:port/websocket`
-  (shapes already in `DevConfig`). E-stop = `printer.emergency_stop`.
-- `server.connection.identify` REQUIRES a non-empty `url` arg (live-verified; the spine already sends
-  `https://mees.works/dinghy-display`).
-</specifics>
+**Downstream agents MUST read these before planning or implementing.**
 
-<open_questions>
-- **NSD/mDNS on API 23+:** reliability and whether a multicast lock (`CHANGE_WIFI_MULTICAST_STATE`) is
-  needed; resolve during planning. Manual entry is the guaranteed fallback regardless.
-- **`specialUse` manifest plumbing:** confirm the exact `<property>` subtype tag + permission set for
-  `targetSdk 35` (no-op enforcement on the API-30 device, but must be declared correctly).
-- **DataStore dependency:** add `androidx.datastore:datastore-preferences` (minSdk-23-safe) to
-  `gradle/libs.versions.toml` — it is NOT currently in the catalog.
-- Persistent-notification content/channel specifics (status text, tap target) — settle in planning.
-</open_questions>
+### UI design system (LAW — supersedes any generated UI-SPEC)
+- `docs/ui_design/CLAUDE.md` — design philosophy + non-negotiables (outline-led controls, button
+  intent = color, fill usable space, icons-never-twice).
+- `docs/ui_design/LAYOUT.md` — the **Focus / Field / Gutter** grammar, one shared grid, sacred aspect
+  ratios, ratio-only sizing, orientation rules. Drives Print Status, splash, confirm, drawer layout.
+- `docs/ui_design/THEMING.md` — semantic role tokens, dark/light values, **button-intent colors**,
+  `--fs` text-size step. Governs the accent picker (D-16) and all coloring.
+- `docs/ui_design/reference/hifi.css` — canonical token + component source of truth (reproduce values
+  in the Compose/Views stack; it is reference, not copy-verbatim code).
+- `docs/ui_design/images/01-splash.png`, `02-app-drawer.png`, `03-print-status.png`,
+  `08-confirm.png` — the Phase-4 hi-fi mockups (portrait + landscape). NOTE: `03` shows the **printing**
+  state only; Phase 4 must also render the **idle** state (D-08) and a **sparkline** (D-09), neither of
+  which appears in the mockup.
+- `.planning/phases/04-service-shell-settings-print-status-home/04-UI-SPEC.md` — **DEAD pointer** to
+  `docs/ui_design/`. Do not use as a spec; do not re-run `/gsd-ui-phase`.
+
+### Toolkit & architecture
+- `docs/adr/0001-ui-toolkit-decision.md` — **Hybrid toolkit is LAW.** Compose for shell + most panels;
+  **classic Views (custom `Canvas`) for high-churn surfaces** — the heater sparkline / temp graph
+  uses `GraphView` (Views), hosted in Compose via `AndroidView`.
+- `.planning/phases/02-connection-state-foundation/02-04-SUMMARY.md` — how the spine
+  (`MoonrakerSession`) is wired, and the **mock-looser-than-server** lesson (the live `identify` `url`
+  bug green tests hid). Phase 4 wires this spine into a service for the first time.
+
+### Requirements & scope (the WHAT)
+- `.planning/ROADMAP.md` — Phase 4 section: goal + 5 success criteria.
+- `.planning/REQUIREMENTS.md` — CONN-01, SET-01, SHELL-01..05, PRIM-02, PRIM-05.
+- `.planning/PROJECT.md` — scope, Out of Scope (single-printer v1, no Play Services, camera deferred),
+  constraint set (minSdk 23 / Adreno 320 / 2GB / armeabi-v7a).
+
+### Reference only (NOT a UI to clone)
+- `../gtk4_klipperscreen/docs/Screen_Catalog.md` — panel **inventory** reference (what panels exist /
+  what each needs). This app is modern token-themed UI per `docs/ui_design/`, NOT a KlipperScreen port.
+</canonical_refs>
 
 <code_context>
-- **Reusable:** `MoonrakerSession` at `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt` —
-  the reconnect supervisor; service launches `run()` in its scope, exposes `connectionState`, and calls
-  `requestReconnectNow()`. Constructed with `(store, rpc, socketEvents: (token: String?) -> Flow<SocketEvent>,
-  auth, baseWsUrl, …)`. The `socketEvents` lambda builds a `MoonrakerSocket` per attempt and returns its
-  `.events()` flow; for the keyed path it folds the oneshot token into the URL via
-  `auth.buildAuthedWsUrl(baseWsUrl, token)`.
-- **Reusable:** `PrinterStateStore` at `.../state/PrinterStateStore.kt` — `printerState` / `capabilities`
-  / `gcodeResponses` StateFlows; constructed with a `CoroutineScope`. The ~4 Hz high-rate conflation +
-  immediate control-plane split is ALREADY built (the throttle half of the "shared render/throttle"
-  primitive lives here; Phase 3 adds the render half).
-- **Reusable:** `PrinterState` at `.../state/PrinterState.kt` — `klippyState` (Disconnected/Startup/
-  Ready/Error/Shutdown) and `printState` (Standby/Printing/Paused/Complete/Error/Cancelled) are the
-  routing inputs; `ConnectionState` is the 5-state socket lifecycle (Connecting/Syncing/Connected/
-  Disconnected/Error) for the status chrome.
-- **Reusable:** `MoonrakerSocket` at `.../net/MoonrakerSocket.kt` — `events(): Flow<SocketEvent>` (Open/
-  Frame/Closed), built via the `MoonrakerSocket.real(client, wsUrl)` companion (URL baked into the
-  `Request` at construction) over a shared `OkHttpClient` (`readTimeout(0)`). Its `wsUrl` defaults to
-  `DevConfig.wsUrl` today — Phase 3 supplies the DataStore-sourced URL instead.
-- **Reusable:** `MoonrakerAuth` at `.../auth/MoonrakerAuth.kt` — oneshot-token + `X-Api-Key` when keyed;
-  engages only when an API key is configured.
-- **Replace:** `config/DevConfig` (static, BuildConfig-backed) — Phase 3 swaps the config SOURCE to
-  DataStore; keep the URL-shape helpers as a model.
-- **Pattern:** cleartext posture (ws://+http://) is owned by the shared `AndroidManifest.xml` +
-  `res/xml/network_security_config.xml` (Phase 1). Do NOT duplicate it; add only new permissions
-  (FGS + multicast if needed).
-- **Integration:** there is NO Application class, DI container, or service yet, and `MainActivity` is the
-  scaffold placeholder. Phase 3 introduces all the app wiring for the first time.
-- **Constraint:** armeabi-v7a-only release; Compose UI resolves to 1.11.1; minSdk-23 floor enforced by
-  the `verifyMinSdk` task — every new dep must hold the floor.
+## Existing Code Insights
+
+### Reusable Assets — the spine (Phase 2, gate-proven on real Ender 5 Plus)
+- `net/MoonrakerSession.kt` — reconnect supervisor; service launches `run()` in `serviceScope`, exposes
+  `connectionState`, calls `requestReconnectNow()`. Constructed with
+  `(store, rpc, socketEvents: (token?) -> Flow<SocketEvent>, auth, baseWsUrl, …)`.
+- `state/PrinterStateStore.kt` — `printerState` / `capabilities` / `gcodeResponses` StateFlows;
+  constructed with a `CoroutineScope`. The ~4 Hz high-rate conflation (the **throttle** half of the
+  render/throttle primitive) is already built; `DEFAULT_SAMPLE_MS = 250`.
+- `state/PrinterState.kt` — `klippyState` (Disconnected/Startup/Ready/Error/Shutdown) + `printState`
+  (Standby/Printing/Paused/Complete/Error/Cancelled) are the **routing inputs** (D-05/D-06).
+- `net/MoonrakerSocket.kt`, `auth/MoonrakerAuth.kt` — socket events flow + oneshot-token/`X-Api-Key` auth.
+- `config/DevConfig.kt` — **to be replaced** as the config SOURCE by DataStore (D-04); keep the
+  URL-shape helpers (`ws://host:port/websocket`, `http://host:port`) as a model.
+
+### Reusable Assets — Phase-3 design substrate (the render half + primitives, all BUILT)
+- `render/ProgressRing.kt` (Compose Canvas) — Print Status Focus (printing state, D-08).
+- `render/GraphView.kt` + `render/GraphViewHost.kt` (Views + `AndroidView`) — the **heater sparkline**
+  (D-09); implements `ThemeableView` so a theme flip recolors it.
+- `render/RingBuffer.kt` — bounded rolling window (cap 120) feeding the sparkline.
+- `designsystem/ConfirmGuard.kt` (PRIM-03) — full-screen confirm; the **Stop** control's mandatory gate.
+- `designsystem/SeverityToast.kt` (PRIM-04) — command-dispatch failure feedback (D-18).
+- `designsystem/control/OutlinedControl.kt` — Intent{Neutral/Accent/Warn/Danger/Go} 2px-outline controls
+  (gutter buttons, drawer tiles, recovery actions).
+- `designsystem/layout/ScreenScaffold.kt` — slot-based Focus/Field/Gutter primitive (Print Status,
+  splash). NOTE: Settings is exempt (D-15) — conventional Android list, not this scaffold.
+- `designsystem/ScrubberPage.kt` (PRIM-01) — keyboard-free numeric page (not central to Phase 4; later panels).
+- `theme/*` — `DinghyTheme` (pins `LocalDensity(fontScale=1f)`, the single `--fs` authority),
+  `LocalTokens`, `ThemeResolver` (single `StateFlow<ThemeTokens>`), `ThemePrefs` (DataStore;
+  `TokenDelta` sparse override — the **accent picker** writes here, D-16), `BakedTokens`, `Geist`.
+
+### Integration Points (first-time wiring — none of this exists yet)
+- **No `Application` class, no service-locator/DI container, no foreground service, no Settings screen.**
+  `MainActivity` is the scaffold placeholder. Phase 4 introduces ALL the app wiring for the first time.
+- **PRIM-05 command-dispatch wrapper does not exist** — Phase 4 builds it (D-18).
+- Cleartext posture (ws://+http://) is owned by the shared `AndroidManifest.xml` +
+  `res/xml/network_security_config.xml` (Phase 1) — do NOT duplicate; add only new permissions
+  (FGS + `FOREGROUND_SERVICE_SPECIAL_USE` + multicast lock if NSD needs it).
+
+### Constraints
+- armeabi-v7a-only release; Compose UI resolves to 1.11.1; **minSdk-23 floor enforced** by the
+  `verifyMinSdk` task — every new dep must hold the floor. DataStore 1.1.x is already in the catalog
+  (added Phase 3 for ThemePrefs); confirm whether connection prefs share that store or get their own.
 </code_context>
 
-<success_criteria>
-1. User can enter/discover and save a Moonraker connection that persists across restarts (DataStore) and
-   the app connects with it; the foreground service keeps the connection alive across rotation and
-   screen-off (replacing `DevConfig`).
-2. Splash during Klippy startup; routes to the main shell on Klippy ready; lands on Job Status when a
-   print is active (but navigation stays open); splash shows shutdown/error reason + recovery actions —
-   all driven by `klippy_state`, never socket state.
-3. Home/Dashboard is a compact thermal dashboard proving the Views-based render/throttle graph primitive,
-   smooth at ~2–4 Hz on the Nexus 7; navigation to other functions is via an edge-swipe full-screen app
-   drawer (thin edge handle for discoverability), not a persistent rail — maximum content canvas.
-4. Emergency Stop (`printer.emergency_stop`) is present on the Home/Dashboard surface, hold-to-confirm;
-   the app has minimal/no persistent chrome — connection/printer status is surfaced in the app drawer and
-   contextually, not an always-visible status bar.
-5. The shared confirm dialog gates the destructive set; the shared command-dispatch primitive enforces
-   timeout + in-flight/busy + debounce for all action calls; keypad, keyboard, and severity toast
-   primitives exist and are panel-consumable.
-</success_criteria>
+<specifics>
+## Specific Ideas
+
+- **Moonraker conventions:** default port `7125`; REST `http://host:port`; WS `ws://host:port/websocket`.
+  E-stop = `printer.emergency_stop`; firmware restart = `printer.firmware_restart`; host restart =
+  `printer.restart` (confirm exact JSON-RPC method names/paths against the live spine during planning).
+- `server.connection.identify` REQUIRES a non-empty `url` arg (live-verified; the spine already sends
+  `https://mees.works/dinghy-display`). Do not regress this.
+- **Accent** = cool signature blue (`--accent`); **heat** = amber; **go/stop** = green/red — per
+  THEMING.md button-intent semantics. The accent picker (D-16) overrides `--accent` only.
+- Mockup fidelity is HIGH for splash/drawer/print-status/confirm — but Phase 4 deliberately adds the
+  idle state (D-08) and the heater sparkline (D-09) that the mockups don't show.
+</specifics>
+
+<deferred>
+## Deferred Ideas
+
+- **Print-cancel / pause / resume / restart-print / Tune** — Phases 5 (Temperature/Move/Extrude) & 7
+  (Job Status). The Phase-4 gutter shows Tune/Pause as greyed placeholders only.
+- **Full multi-role-token custom-theme editor** — later polish; Phase 4 ships the accent picker only.
+- **Red Power tile real behavior** (host power menu via `machine.shutdown`/`machine.reboot`, and/or
+  Moonraker power-device control) — greyed "coming soon" in Phase 4; a future phase wires it.
+- **"Devices" power-device panel** — future panel.
+- **Full multi-trace temperature history graph** — Phase 5 Temperature extends `GraphView`; the Phase-4
+  home sparkline is the lighter in-anger proof.
+- **mDNS as the *primary* connection path / multi-printer pick-list** — additive in v1; multi-printer is
+  v2 (PROJECT.md Out of Scope).
+- **Boot-autostart + full Doze/battery-exemption + `FLAG_KEEP_SCREEN_ON` + burn-in screensaver** —
+  Phase 8 (Hardening & Release). Phase 4 starts the service on app launch only.
+- **Navigation-Compose adoption** — revisit when the destination count outgrows the v1 state-holder.
+- **Trusted-client / richer auth UI** — beyond the optional API-key field.
+
+### Open questions for research/planning
+- NSD/mDNS reliability on the target + whether a multicast lock (`CHANGE_WIFI_MULTICAST_STATE`) is needed.
+- `specialUse` manifest `<property>` subtype tag + exact permission set for `targetSdk 35` (no-op
+  enforcement on the API-30 device, but must be declared correctly).
+- Connection prefs: share the existing DataStore (ThemePrefs) or a separate prefs surface.
+- Exact Moonraker JSON-RPC methods for `emergency_stop` / `firmware_restart` / `restart` — confirm live.
+</deferred>
+
+---
+
+*Phase: 4-service-shell-settings-print-status-home*
+*Context gathered: 2026-05-31*

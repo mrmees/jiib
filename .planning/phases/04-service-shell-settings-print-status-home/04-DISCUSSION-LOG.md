@@ -1,66 +1,137 @@
-# Phase 3: Service, Shell & State-Driven Navigation - Discussion Log
+# Phase 4: Service, Shell, Settings & Print-Status Home - Discussion Log
 
-> Human-readable record of the discussion. Not consumed by downstream agents.
+> **Audit trail only.** Do not use as input to planning, research, or execution agents.
+> Decisions are captured in CONTEXT.md — this log preserves the alternatives considered.
 
-**Date:** 2026-05-30
-**Mode:** discuss (direct-decision batch — roadmap success criteria already locked most of the WHAT)
+**Date:** 2026-05-31
+**Phase:** 4-service-shell-settings-print-status-home
+**Areas discussed:** Print Status home, The Stop control, Splash & first-run, Shell surfaces
+**Note:** CONTEXT regenerated against `docs/ui_design/` (LAW). Service/FGS/connection/routing
+decisions from the prior CONTEXT carried forward as-is; the UI/shell half was regenerated here.
 
-## Areas Discussed
+---
 
-### Connection / first-run UX
+## Print Status home
 
-**Question:** With no saved config, how does the user get connected?
-**Options presented:** Manual entry only (recommended) / Manual + mDNS auto-discovery.
-**Decision:** **Manual + mDNS auto-discovery.**
-**Notes:** Adds `NsdManager` `_moonraker._tcp` discovery with a pick-list, but manual host/port entry
-remains the always-available floor (NSD is flaky on old Android; printer may be on another subnet).
-Persisted via DataStore, replacing `DevConfig`.
+### Gutter scope
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Stop only | Just the Stop control; Tune/Pause added in their phases | |
+| Stop + greyed Tune/Pause | All three tiles, Tune/Pause disabled "coming soon" | ✓ |
+| You decide | Claude picks per design philosophy | |
 
-### Shell chrome model
+### Idle Focus (Klippy ready, no print)
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Live temp/status readout | Repurpose Focus to nozzle/bed temps + "Ready" | ✓ |
+| Keep ring, idle 0% | Ring drawn at 0% with "Ready" label | |
+| You decide | Claude composes the idle Focus | |
 
-**Question:** KlipperScreen-style top bar + menu hub, or a persistent navigation rail?
-**Options presented:** KlipperScreen-style top bar + menu hub (recommended) / Persistent navigation rail.
-**Decision:** **Persistent navigation rail (modern Material 3).**
-**Notes:** Key steer from Matthew — *"we're just using the KlipperScreen information as an idea of what
-type of panels we need to flesh out, it's not a port of KlipperScreen to Android. This is modern and we
-want it to feel that way."* So the catalog is a panel **inventory**, and modern feel is a first-class
-requirement, not a KlipperScreen clone.
+### Render primitive on home
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ring + numbers only | Match mockup 03; defer GraphView to Phase 5 | |
+| Add heater sparkline | Add GraphView sparkline — prove both render primitives now | ✓ |
+| You decide | Claude decides | |
 
-### Print-active routing
+**Notes:** Adding the sparkline means ring + sparkline + live grid render on one screen —
+flagged as an Adreno-320 perf watch (Phase-3 two-part gate re-open conditions apply).
 
-**Question:** When a print is active, is Job Status a hard override or a default landing?
-**Options presented:** Default landing, freely navigable (recommended) / Hard override.
-**Decision:** **Default landing, freely navigable.**
-**Notes:** App lands on Job Status when printing but the user can navigate to Temp/Move/etc. to tune or
-jog mid-print. (klippy non-ready → splash remains a hard override.)
+---
 
-### Foreground-service type
+## The Stop control
 
-**Question:** FGS type for the connection-holding service (targetSdk 35 forces a declared type)?
-**Options presented:** specialUse (recommended) / connectedDevice / dataSync.
-**Decision:** **specialUse.**
-**Notes:** No background timeout; honest fit; Play-Store justification moot since we sideload. Declared
-for targetSdk 35 / newer devices even though the API-30 test device doesn't enforce it.
+### What Stop fires
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Always firmware E-stop | Stop = printer.emergency_stop always, idle or printing | ✓ |
+| Context-aware | printing → cancel, idle → emergency_stop | |
+| Cancel + separate E-stop | Gutter Stop = cancel; E-stop is a distinct affordance | |
 
-## Deferred Ideas
+### E-stop confirm copy
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Warn about recovery | Spell out "firmware restart required to recover" | |
+| Terse | Minimal copy ("Emergency stop?" / "This halts the printer.") | ✓ |
+| You decide | Claude writes the copy | |
 
-- mDNS as the primary path / multi-printer pick-list — discovery is additive in v1; multi-printer is v2.
-- Boot-autostart, full Doze/always-on survival, `FLAG_KEEP_SCREEN_ON`, burn-in screensaver — Phase 8.
-- Navigation-Compose adoption — revisit when destination count grows past the v1 state-holder.
-- Trusted-client / richer auth UI beyond the optional API-key field.
+**Notes:** Consequence — firing E-stop drives klippy → shutdown, so the splash recovery set
+must include firmware_restart (covered in Splash area). Print-cancel deferred to Phase 7.
+
+---
+
+## Splash & first-run
+
+### Klippy-down recovery actions
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Retry + FW Restart + Restart | Retry, firmware_restart, host restart | ✓ |
+| Retry + FW Restart only | Minimal viable recovery | |
+| You decide | Claude picks the set | |
+
+### First run / no saved config
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Auto-open Settings | Route straight into Settings connection section | |
+| Splash connect prompt | "Set up your printer" CTA → Settings | ✓ |
+| You decide | Claude designs first-run entry | |
+
+### Bad connection (saved config failing)
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Retry + Edit connection | Retry plus an Edit-connection path into Settings | ✓ |
+| Retry only | Retry only (risks trapping the user) | |
+| You decide | Claude ensures no dead end | |
+
+---
+
+## Shell surfaces (App Drawer + Settings)
+
+### Future panel tiles
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Greyed "coming soon" | Show all roadmap tiles; future ones greyed | ✓ |
+| Hidden until built | Only show working tiles | |
+| You decide | Claude decides | |
+
+### Red Power tile behavior
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Host power menu | Confirm-guarded machine.shutdown / machine.reboot | |
+| Greyed coming-soon | Placeholder, inert in Phase 4 | ✓ |
+| Global E-stop shortcut | Drawer-reachable emergency_stop | |
+
+### Theming depth
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Dark/Light + S/M/L + accent picker | Toggle + text size + single accent-color picker | ✓ |
+| Full role-token editor | Editors for all role tokens | |
+| Dark/Light + S/M/L only | No custom color editing | |
+
+### Feature toggles
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Defer — none yet | No toggles section in Phase 4 | ✓ |
+| Scaffold a couple | mDNS auto-scan / show-sparkline toggles | |
+| You decide | Claude adds only real toggles | |
+
+**Notes:** Settings structure (conventional Android list, token-themed, keyboard allowed) was
+already locked by `docs/ui_design/` and not re-asked.
+
+---
 
 ## Claude's Discretion
 
-- **Navigation mechanism:** state-holder `when` routing (top-level `when(klippyState)` gate + in-shell
-  route state), NO Navigation-Compose dep for v1 — the reactive klippy gate doesn't fit a back-stack and
-  deps stay lean on 2GB hardware.
-- **Service architecture:** started FGS (`START_STICKY`) owning a `serviceScope` that builds the spine and
-  runs `session.run()`; Activity observes process-held StateFlows (no binding). Manual service-locator DI,
-  no Hilt.
-- **Config-change handling:** recreate the `MoonrakerSession` on save (host/key are construction-time
-  inputs) rather than relying on `requestReconnectNow()` alone.
-- **Shared render/throttle primitive:** the view-side render is a classic-Views custom-`Canvas` graph
-  (ADR 0001), established on the dashboard and extended by Phase 4 — the state-layer throttle already
-  exists in `PrinterStateStore`.
-- **DataStore:** add `androidx.datastore:datastore-preferences` to the version catalog (not currently
-  present); must hold the minSdk-23 floor.
+- Command-dispatch (PRIM-05) timeout value, busy-state visual, debounce window.
+- Persistent notification content / channel / tap target.
+- Exact sparkline placement and idle temp-readout composition.
+- Splash reason-text formatting from `klippy_state`; terse E-stop confirm wording.
+
+## Deferred Ideas
+
+- Print-cancel / pause / resume / Tune (Phases 5 & 7).
+- Full multi-role-token custom-theme editor (later polish).
+- Red Power tile real behavior + "Devices" power-device panel (future).
+- Full multi-trace temperature history graph (Phase 5).
+- mDNS-primary / multi-printer (v2); boot-autostart + Doze/always-on + screensaver (Phase 8).
+- Navigation-Compose adoption; richer trusted-client auth UI.
