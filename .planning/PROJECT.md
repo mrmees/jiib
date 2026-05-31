@@ -27,16 +27,16 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — greenfield, ship to validate)
+**Design system substrate** — Validated in Phase 3 (code-verified 5/5; on-device gallery sign-off pending — see `03-HUMAN-UAT.md`)
+- [x] Semantic-token theme system: dark + light + user custom, plus an S/M/L text-size setting (oklch→sRGB baked tokens, toolkit-agnostic resolver, DataStore fail-safe persistence)
+- [x] Focus / Field / Gutter responsive layout grammar (portrait + landscape) + the outline-led control language (intent colors, ≥64dp targets)
+- [x] Reusable component substrate: confirm-guard screen, single-setting scrubber/stepper page, severity toast, progress ring + line-graph render primitives — proven on flox at the Adreno-320 perf floor (sparse-redraw budget, two-part gate; Phase-6 re-validation mandated)
 
 ### Active
 
 <!-- v1 = functional core: the daily-driver print-control loop, testable on a real printer early. -->
 
-**Design system & shell** (per `docs/ui_design/`)
-- [ ] Semantic-token theme system: dark + light + user custom, plus an S/M/L text-size setting
-- [ ] Focus / Field / Gutter responsive layout grammar (portrait + landscape) + the outline-led control language (intent colors)
-- [ ] Reusable component substrate: confirm-guard screen, single-setting scrubber/stepper page, severity toast, progress ring + line-graph render primitives
+**Shell & settings** (per `docs/ui_design/`, builds on the Phase-3 substrate)
 - [ ] Settings screen (conventional Android, keyboard allowed): Moonraker connection (host:port, optional API key) persisted locally, theme selection, feature toggles
 - [ ] Resilient Moonraker websocket with auto-reconnect and clear connecting/disconnected/error states (splash/initializing surface)
 - [ ] Minimal-chrome shell: swipe-up full-screen App Drawer navigation; klippy-state-driven routing; Print Status home (compact thermal dashboard) with a Stop→confirm emergency/cancel control
@@ -135,4 +135,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-31 — scope broadened (phones→tablets, portrait+landscape, full theming) and UI governed by `docs/ui_design/`; Nexus 7 retained as perf floor. See ROADMAP restructure (9 phases).*
+*Last updated: 2026-05-31 — Phase 3 (Design System & Theming Foundation) complete: the reusable theming + layout + control + render substrate every later screen inherits is built and code-verified (5/5), proven on flox at the Adreno-320 perf floor; on-device gallery sign-off (6 items) tracked in 03-HUMAN-UAT.md. Next: Phase 4 (Service, Shell, Settings & Print-Status Home). Scope (set 2026-05-31): phones→tablets, portrait+landscape, full theming, UI governed by `docs/ui_design/`; Nexus 7 retained as perf floor. 9-phase roadmap.*
