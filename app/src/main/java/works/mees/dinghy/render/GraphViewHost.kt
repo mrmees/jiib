@@ -20,6 +20,8 @@ import works.mees.dinghy.theme.ThemeTokens
  *
  * @param tokens   the active resolved tokens (the caller collects the flow; THEME-01 — never raw).
  * @param snapshot the bounded [RingBuffer.snapshot] in oldest→newest order (D-12).
+ * @param drawArea paint the translucent `.g-area` fill (default `true` = design contract). Exposed
+ *                 ONLY for the criterion-#5 fill-rate A-B capture (T-03-08); leave `true` in product.
  * @param modifier caller layout for the hosted View.
  */
 @Composable
@@ -27,11 +29,13 @@ fun GraphViewHost(
     tokens: ThemeTokens,
     snapshot: FloatArray,
     modifier: Modifier = Modifier,
+    drawArea: Boolean = true,
 ) {
     AndroidView(
         factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->
             view.applyTokens(tokens) // D-06 push-tokens + invalidate (recolor, no recreation)
+            view.drawArea = drawArea // fill-rate isolation lever (default true = design aesthetic)
             view.setData(snapshot)   // new throttled sample → sanitize/cap + invalidate (D-13)
         },
         modifier = modifier,

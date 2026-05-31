@@ -63,6 +63,22 @@ class GraphView(context: Context) : View(context), ThemeableView {
     private var data: FloatArray = FloatArray(0)
 
     /**
+     * Whether to paint the translucent `.g-area` fill under the line (canonical aesthetic:
+     * `hifi.css .plot .g-area{ opacity:.16 }` ≈ [FILL_ALPHA]/255). Defaults `true` — the design
+     * contract. This is the ISOLATION LEVER for the criterion-#5 fill-rate gate (T-03-08): a
+     * near-full-region translucent fill is the Adreno-320 fill-rate suspect, so the perf scene can
+     * flip it off to ATTRIBUTE the cost (fill-on vs fill-off) on the real device. Production code
+     * leaves it `true`; only the bench scene/A-B capture toggles it. Setting it `invalidate()`s.
+     */
+    var drawArea: Boolean = true
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
+
+    /**
      * Push the active tokens (D-06): recolor the pre-allocated paints from role tokens and repaint.
      * No raw color literal — line is `accent`, fill is the same hue at low alpha (the `.g-area` tint).
      */
@@ -118,19 +134,24 @@ class GraphView(context: Context) : View(context), ThemeableView {
 
         // Reuse the single paths — rewind, never allocate (Pitfall 4).
         linePath.rewind()
-        areaPath.rewind()
-        areaPath.moveTo(0f, h) // start the fill at the bottom-left
+        val area = drawArea
+        if (area) {
+            areaPath.rewind()
+            areaPath.moveTo(0f, h) // start the fill at the bottom-left
+        }
 
         for (i in 0 until n) {
             val x = dx * i
             val y = yOf(pts[i])
             if (i == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
-            areaPath.lineTo(x, y)
+            if (area) areaPath.lineTo(x, y)
         }
-        areaPath.lineTo((n - 1) * dx, h) // close the fill down to the bottom-right
-        areaPath.close()
 
-        canvas.drawPath(areaPath, fillPaint) // single cheap filled area (Pitfall 4)
+        if (area) {
+            areaPath.lineTo((n - 1) * dx, h) // close the fill down to the bottom-right
+            areaPath.close()
+            canvas.drawPath(areaPath, fillPaint) // single filled area — the fill-rate cost we gate (T-03-08)
+        }
         canvas.drawPath(linePath, linePaint)
     }
 
