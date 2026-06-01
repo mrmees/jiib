@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T01:07:14.338Z"
+last_updated: "2026-06-01T01:15:59.362Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 23
-  completed_plans: 16
+  completed_plans: 17
   percent: 33
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-06-01
 
@@ -69,6 +69,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 03 P06 | 7 | 2 tasks | 4 files |
 | Phase 03 P07 | 1440 | 2 tasks | 7 files |
 | Phase 04 P01 | 30 | 2 tasks | 4 files |
+| Phase 04 P02 | 18 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Recent decisions affecting current work:
 - [Phase 4]: [04-01]: ConnectionStore takes an INJECTED DataStore (no delegate); DinghyApp (04-03) owns a SEPARATE connection.preferences_pb from theme.preferences_pb for a cleaner API-key redaction boundary (T-04-01-I).
 - [Phase 4]: [04-01]: MoonrakerDiscovery is FULLY LAZY (ctor takes provider lambdas, touches neither NsdManager nor MulticastLock; machinery acquired on collect, released on awaitClose, review #5); best-effort, never auto-connects/blocks/throws.
 - [Phase 4]: [04-01]: DataStore round-trip is not reliably host-testable on the Windows build host (back-to-back writes/second instance fail the atomic rename); clear→null proven with clear() as the single write plus round-trip proving save persists. Product clear() correct on Android.
+- [Phase ?]: [Phase 4][04-02]: CommandDispatcher (PRIM-05/D-18) wraps JsonRpcClient.request() adding ONLY debounce + in-flight/busy Set + a UI withTimeout; typed catches surface a REDACTED DispatchEvent.Failure (never the cause message, T-04-02-I). Host-testable via substitutable request lambda + injectable timeSource on runTest virtual clock.
+- [Phase ?]: [Phase 4][04-02]: TopRoute.derive() is the SINGLE pure routing authority (review HIGH #2) — !cfg→Connect, klippy!=Ready→Splash, else Shell(Dest.PrintStatus). Routes off klippyState ONLY; NEVER reads s.connection (D-05, proven by socketStateDoesNotRoute + clean grep); printing/idle share one PrintStatus surface (no Dest.Job, D-06).
 
 ### Pending Todos
 
@@ -126,6 +129,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T01:07:14.284Z
+Last session: 2026-06-01T01:15:38.090Z
 Stopped at: Completed 04-01-PLAN.md
 Resume file: None

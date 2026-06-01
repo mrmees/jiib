@@ -48,7 +48,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **PRIM-02**: Text entry uses the **system keyboard, confined to the Settings screen** (host/IP, API key); printer-control surfaces needing alphanumeric input (console, macro params, file search) are triaged per-control toward a keyboard-free pattern (scroll+tap / numeric) where feasible
 - [x] **PRIM-03**: Single mandatory **full-screen Confirm guard** used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing (destructive=red, positive=green, safe dismiss=neutral)
 - [x] **PRIM-04**: Severity-styled message/toast primitive (info/success/warning/error — color + icon + text, never color alone) for transient feedback and errors
-- [ ] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
+- [x] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
 
 ### Move
 
@@ -178,7 +178,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SHELL-04 | Phase 4 | Pending |
 | SHELL-05 | Phase 4 | Pending |
 | PRIM-02 | Phase 4 | Pending |
-| PRIM-05 | Phase 4 | Pending |
+| PRIM-05 | Phase 4 | Complete |
 | TEMP-01 | Phase 5 | Pending |
 | TEMP-02 | Phase 5 | Pending |
 | TEMP-03 | Phase 5 | Pending |
