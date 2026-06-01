@@ -138,6 +138,9 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.junit)
+    // UiAutomator drives device rotation for the 04-03 service-survival gate (ServiceSurvivesRotationTest).
+    // ApplicationProvider (for resolving the process DinghyApp/AppContainer) comes transitively via ext.junit's androidx.test:core.
+    androidTestImplementation(libs.androidx.test.uiautomator)
 
     // --- JVM unit-test source set (Wave 0): the off-hardware proving ground for the spine ---
     // kotlinx-coroutines-test gives virtual time (runTest) to Wave 2/3 reducer/correlation/reconnect
