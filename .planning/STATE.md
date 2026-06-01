@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
 Plan: 3 of 8
-Status: Ready to execute
+Status: PAUSED at 04-03 Task 5 (blocking human-verify checkpoint) — Tasks 1–4 complete + committed
 Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
@@ -118,6 +118,7 @@ None yet.
 
 - [Phase 1] Compose-vs-Views perf on the Nexus 7 is unresolved by design — only the on-device spike (synthetic 2–4 Hz feed) answers it. Hybrid (Views for high-churn: Files list, temp graph, Console scrollback) is the named fallback.
 - [Phase 2] Auth handshake edge cases (oneshot-token websocket, `X-Api-Key`, `401`) need exercising during implementation; flagged for deeper Phase 2 research. JSON-RPC `id` correlation under interleaving notifications (STATE-05) must be covered by mock-socket tests.
+- [Phase 4 / 04-03] PAUSED at Task 5 — `checkpoint:human-verify` (gate="blocking"). Tasks 1–4 complete + committed; the FGS owns the spine, the instrumented `ServiceSurvivesRotationTest` PASSED on flox (sessionInstanceId continuity). AWAITING human on-device sign-off: manual rotation + screen-off with the Ender 5 Plus reachable, persistent key-free notification visual check, and `adb logcat -s DinghySpine` id-sequence capture. Resume with "approved" or report the observed id sequence / what dropped. Plan NOT advanced past the unmet checkpoint.
 
 ## Deferred Items
 
@@ -129,6 +130,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T01:15:38.090Z
-Stopped at: Completed 04-01-PLAN.md
-Resume file: None
+Last session: 2026-06-01
+Stopped at: 04-03-PLAN.md Task 5 — blocking human-verify checkpoint (Tasks 1–4 done + committed)
+Resume file: .planning/phases/04-service-shell-settings-print-status-home/04-03-PLAN.md (Task 5 checkpoint)
