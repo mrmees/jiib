@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionStore
+import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterState
@@ -44,6 +45,14 @@ import works.mees.dinghy.theme.ThemeResolver
 class AppContainer(
     themeDataStore: DataStore<Preferences>,
     connectionDataStore: DataStore<Preferences>,
+    /**
+     * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
+     * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
+     * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
+     * (rather than built here) because constructing it needs an Android Context, which the container
+     * deliberately does not hold — [works.mees.dinghy.DinghyApp] supplies the Context-bound instance.
+     */
+    val discovery: MoonrakerDiscovery,
 ) {
     /** Theme persistence (THEME-02/D-02) — the theme.preferences_pb-backed store. */
     val themePrefs: ThemePrefs = ThemePrefs(themeDataStore)

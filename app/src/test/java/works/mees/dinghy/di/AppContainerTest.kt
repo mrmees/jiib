@@ -36,7 +36,14 @@ class AppContainerTest {
         ): Preferences = emptyPreferences()
     }
 
-    private fun newContainer() = AppContainer(FakeDataStore(), FakeDataStore())
+    // A discovery whose providers throw if touched — these tests never collect discover(), proving the
+    // container holds it lazily (review #5: merely constructing/holding it pins nothing).
+    private fun lazyDiscovery() = works.mees.dinghy.config.MoonrakerDiscovery(
+        nsdProvider = { error("nsd must not be acquired in host tests (laziness, review #5)") },
+        multicastLockProvider = { error("multicast lock must not be acquired in host tests") },
+    )
+
+    private fun newContainer() = AppContainer(FakeDataStore(), FakeDataStore(), lazyDiscovery())
 
     private fun handle(id: Long): SpineHandle = SpineHandle(
         printerState = MutableStateFlow(PrinterState()),
