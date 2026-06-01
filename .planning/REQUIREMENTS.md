@@ -55,7 +55,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **MOVE-01**: User can jog X/Y/Z by a selected distance preset
 - [ ] **MOVE-02**: User can home all axes or individual axes
 - [ ] **MOVE-03**: User can disable steppers (with confirmation)
-- [ ] **MOVE-04**: User sees live toolhead position
+- [x] **MOVE-04**: User sees live toolhead position
 
 ### Temperature
 
@@ -67,9 +67,9 @@ Requirements for the initial release: the functional print-control core, testabl
 ### Extrude
 
 - [ ] **EXTR-01**: User can extrude/retract a selected distance at a selected speed
-- [ ] **EXTR-02**: User can run load/unload filament macros when present
+- [x] **EXTR-02**: User can run load/unload filament macros when present
 - [ ] **EXTR-03**: User can select the active extruder/tool on multi-extruder printers
-- [ ] **EXTR-04**: Extrude/retract controls respect the minimum extrusion temperature
+- [x] **EXTR-04**: Extrude/retract controls respect the minimum extrusion temperature
 
 ### Files / Print
 
@@ -186,11 +186,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MOVE-01 | Phase 5 | Pending |
 | MOVE-02 | Phase 5 | Pending |
 | MOVE-03 | Phase 5 | Pending |
-| MOVE-04 | Phase 5 | Pending |
+| MOVE-04 | Phase 5 | Complete |
 | EXTR-01 | Phase 5 | Pending |
-| EXTR-02 | Phase 5 | Pending |
+| EXTR-02 | Phase 5 | Complete |
 | EXTR-03 | Phase 5 | Pending |
-| EXTR-04 | Phase 5 | Pending |
+| EXTR-04 | Phase 5 | Complete |
 | FILE-01 | Phase 6 | Pending |
 | FILE-02 | Phase 6 | Pending |
 | FILE-03 | Phase 6 | Pending |

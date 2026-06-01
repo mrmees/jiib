@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T04:45:37.283Z"
-last_activity: 2026-06-01 -- Phase 05 planning complete
+last_updated: "2026-06-01T05:18:40.098Z"
+last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 32
-  completed_plans: 24
+  completed_plans: 25
   percent: 44
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 04 — service-shell-settings-print-status-home
+**Current focus:** Phase 05 — core-print-control-panels-temperature-move-extrude
 
 ## Current Position
 
-Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
-Plan: 7 (04-07) CODE COMPLETE — end-of-phase human-verify checkpoint OPEN
+Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
   → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
   → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
-Last activity: 2026-06-01 -- Phase 05 planning complete
+Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -77,6 +77,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 04 P06 | 5 | 2 tasks | 3 files |
 | Phase 04 P07 | 95 | 3 tasks tasks | 10 files files |
 | Phase 03 P08 | 18 | 3 tasks | 5 files |
+| Phase 05 P01 | 5 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 4][04-04]: Settings screen (SET-01) landed — TokenTextField bridges Material OutlinedTextField chrome to LocalTokens (review #7); conventional verticalScroll list exempt from Focus/Field/Gutter (D-15); Save validates host/port parity then persists ConnectionConfig to ConnectionStore (triggers service rebuild, D-03); key-saved indicator + Clear-key + no-clobber blank-save (review #10/#12); lazy mDNS Scan with bounded settle window (review #5/D-04); Dark/Light+S/M/L+accent picker dual-write live ThemeResolver + persisted ThemePrefs, accent-only delta (D-16); MoonrakerDiscovery injected into AppContainer/DinghyApp (Rule 3).
 - [Phase ?]: [Phase 4][04-07]: App wired end-to-end — MainActivity starts the FGS, hosts ONE DinghyTheme boundary, delegates ALL routing to a single RootController (SOLE consumer of derive() + the one open-Settings escape, review #2/#11). Swipe-up full-screen AppDrawer (Status+Settings live; Move/Temp/Files/Tools/Macros/Devices+red Power greyed/INERT — no click action, T-04-07-E); AppShell renders the active Dest full-bleed (lean route holder, NOT Navigation-Compose, D-05) + BackHandler collapse; Settings is an in-shell Dest (no dangling onOpenSettings). ShellPresenceTest PASSES on flox. Wiring fix: SpineHandle gained a per-session PrinterStateStore so the shell builds PrintStatusHolder from the LIVE store. UNBLOCKS 04-06b's combined-render perf gate.
 - [Phase 03]: [03-08 gap-closure]: G-3 ScrubberPage tap-to-set fixed by ONE awaitEachGesture (re-arming) block — awaitFirstDown sets value immediately (registers the zero-movement tap detectDragGestures swallowed), pressed-move loop tracks drag; both funnel through internal fun fractionFromX (now host-tested by ScrubberMappingTest, the coverage gap that hid WR-01). One pointerInput, one consumer — no dual-detector race. G-2 shared bar/button 16.dp inset (no fixed px). G-4 ConfirmGuard opaque t.bg layered UNDER alpha stop/go tint. G-1 token-bg roots replace bare Material3 Surface() (colorScheme never populated). Tasks 1-3 committed; Task 4 on-device re-check OPEN.
+- [Phase 05]: [05-01]: Phase-5 state contract settled FIRST — gcodePosition (offsets-stripped Move source, NOT toolheadPosition/Pitfall 1); HeaterState.canExtrude (defaults false fail-safe cold-extrude gate, EXTR-04); hasMacroIgnoreCase (Moonraker lowercases macro names, Pitfall 2/EXTR-02); GCODE_SCRIPT + TEMPERATURE_STORE methods. Null-safe booleanOrNull; merge retains can_extrude on temp-only diff (STATE-01). TDD RED->GREEN, full state suite green.
 
 ### Pending Todos
 
@@ -144,6 +146,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T04:13:39.736Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-core-print-control-panels-temperature-move-extrude/05-CONTEXT.md
+Last session: 2026-06-01T05:18:40.035Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
