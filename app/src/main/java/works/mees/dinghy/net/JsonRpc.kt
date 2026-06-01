@@ -105,6 +105,12 @@ object JsonRpcMethods {
     const val FIRMWARE_RESTART = "printer.firmware_restart"
     const val RESTART = "printer.restart"
 
+    // Runs ALL action gcodes (Move jog, temp set, extrude, macros) — Phase-5 action surface (RESEARCH §5).
+    const val GCODE_SCRIPT = "printer.gcode.script"
+
+    // One-shot temperature-history backfill for the temp graph (RESEARCH §1).
+    const val TEMPERATURE_STORE = "server.temperature_store"
+
     // Notifications (server → client, no id)
     const val NOTIFY_STATUS_UPDATE = "notify_status_update"
     const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"
