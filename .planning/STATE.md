@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-last_updated: "2026-06-01T15:32:18.196Z"
+last_updated: "2026-06-01T15:38:23.041Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 34
-  completed_plans: 33
-  percent: 44
+  completed_plans: 34
+  percent: 56
 ---
 
 # Project State
@@ -86,6 +86,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P05 | 5min | 2 tasks | 3 files |
 | Phase 05 P07 | 9 | 2 tasks | 3 files |
 | Phase 05 P09 | 9 | 2 tasks | 2 files |
+| Phase 05 P10 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Temperature panel: 3-trace cap (nozzle/bed/chamber) enforced in holder; extra heaters truncated
 - [Phase ?]: [Phase 5][05-07]: Extrude panel landed — ExtrudeHolder gates Extrude/Retract on the LIVE per-tool can_extrude (fail-safe false), COMBINING printerState with the 05-03 one-shot minExtrudeTemp/maxExtrudeDistance StateFlows so the real-temp hint + distance ceiling are deterministic on connect. ExtrudeScreen mirrors MoveScreen (D-08): extrude(±dist,speed) via GCODE_SCRIPT; distance steps above max_extrude_only_distance disabled (fall back to largest enabled); Load/Unload always shown (present=dispatch, absent=Severity.Info popup, D-10/hasMacroIgnoreCase); T0/T1… selector only when extruderCount>1 (D-09), setActiveTool re-points the gate. Token-pure. Cold->hot gate + missing-macro popup = 05-08 UAT.
 - [Phase ?]: [Phase 5][05-09 gap-closure]: G1 BLOCKER closed — CommandDispatcher.dispatch() now catches RpcError (peer of Exception, distinct from RpcConnectionException) alongside transport/timeout and emits a non-fatal DispatchEvent.Failure carrying the printer's rejection text (e.g. 'Move out of range'). Previously RpcError re-threw uncaught in the unsupervised scope.launch → FATAL EXCEPTION + FGS auto-restart (confirmed live on flox). TDD RED→GREEN; regression feeds the EXACT RpcError JsonRpcClient produces for a rejected gcode.script (mock-vs-reality gap closed). No catch widened to Throwable. G2/G3 (klippy_ready re-handshake + stale one-shot reads) remain OPEN, out of scope.
+- [Phase ?]: [Phase 5][05-10 gap-closure]: G2 HIGH + G3 MED closed — notify_klippy_ready on the still-open socket now re-runs the FULL runHandshake() (re-objects/subscribe + re-run BOTH 05-03 one-shot reads), so the FGS-held session self-heals after a Klipper FIRMWARE_RESTART without a force-stop (G2) and edited configfile values refresh on a printer.cfg reload (G3). Gated by per-attempt handshakeComplete (no duplicate of the initial connect handshake), serialized by rehandshakeMutex, launched on the attempt scope off the frame collector, best-effort runCatching. MoonrakerService unchanged (verified against code). TDD RED->GREEN; faithful test injects a real no-id klippy_ready frame.
 
 ### Pending Todos
 
@@ -161,6 +163,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T15:32:18.159Z
+Last session: 2026-06-01T15:38:04.262Z
 Stopped at: Completed 05-09-PLAN.md (G1 crash fix)
 Resume file: None

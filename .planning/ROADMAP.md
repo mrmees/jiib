@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Connection & State Foundation** - Resilient Moonraker websocket, diff-merged single-source-of-truth `PrinterState`, capability detection, reconnect-with-resync handshake, optional auth, and JSON-RPC id correlation — proven against a mock socket and a real Ender 5 Plus via a static dev config, still no panels (completed 2026-05-30)
 - [x] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits (completed 2026-05-31)
 - [x] **Phase 4: Service, Shell, Settings & Print-Status Home** - Foreground service owning the spine, the Settings screen (connection config + theme + text size + feature toggles), klippy-state-driven splash/home/job routing, swipe-up App Drawer navigation, the Print Status home (render/throttle in anger) with a Stop→Confirm-guard control, and the shared command-dispatch primitive (completed 2026-06-01)
-- [ ] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware
+- [x] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware (completed 2026-06-01)
 - [ ] **Phase 6: Files / Print** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, and delete files — the lead-in to the core print loop
 - [ ] **Phase 7: Job Status — Core Print-Loop Gate** - Live progress/temps/speed/Z, state-adaptive pause/resume/cancel/restart, reconnect print-state resync, and process-death recovery — deepening the Print Status home into the core print-loop gate: drive a real print start-to-finish without the browser
 - [ ] **Phase 8: Macros & Console — v1 Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history — the escape hatches that close the v1 functional-core-complete gate
@@ -208,7 +208,7 @@ Plans:
 
 **Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
 - [x] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
-- [ ] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
+- [x] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
@@ -287,7 +287,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 9/10 | In Progress|  |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 10/10 | Complete   | 2026-06-01 |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |
