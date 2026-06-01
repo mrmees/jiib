@@ -14,10 +14,25 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The only permission this phase needs: cleartext ws:// + http:// to LAN Moonraker. -->
+    <!-- The only permission Phase 1 needed: cleartext ws:// + http:// to LAN Moonraker. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      Phase 4 (04-03) — foreground-service stack (ADD ONLY, Phase-1 posture above untouched):
+        * FOREGROUND_SERVICE + *_SPECIAL_USE: the started FGS that owns the Moonraker spine and keeps
+          the LAN websocket alive across Activity recreation + screen-off (D-01, SHELL-03). specialUse
+          avoids Android-15's dataSync 6h cap; Play justification moot (sideload). Enforcement is a
+          no-op on the API-30 test device but MUST be declared for targetSdk 35 / newer hardware.
+        * POST_NOTIFICATIONS: the persistent low-importance status notification (API 33+ runtime grant).
+        * CHANGE_WIFI_MULTICAST_STATE: the 04-01 best-effort mDNS _moonraker._tcp scan MulticastLock.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
     <application
+        android:name=".DinghyApp"
         android:allowBackup="true"
         android:label="Dinghy Display"
         android:supportsRtl="true"
@@ -47,6 +62,20 @@
         <activity
             android:name=".bench.BenchActivity"
             android:exported="true" />
+
+        <!--
+          The started foreground service that owns the Moonraker spine (04-03). NOT exported and NOT
+          bound — state is process-held in AppContainer; the Activity collects StateFlow<SpineHandle?>.
+          specialUse subtype is a free-text justification (no Play review; sideloaded APK).
+        -->
+        <service
+            android:name=".service.MoonrakerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Maintains a persistent LAN websocket session to a Klipper/Moonraker 3D printer for live status and control" />
+        </service>
 
     </application>
 
