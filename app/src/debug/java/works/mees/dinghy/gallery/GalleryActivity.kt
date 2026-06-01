@@ -4,8 +4,9 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.compose.DinghyTheme
+import works.mees.dinghy.theme.compose.LocalTokens
 
 /**
  * The DEBUG-ONLY gallery launcher Activity (D-08) — registered by `app/src/debug/AndroidManifest.xml`
@@ -59,7 +61,12 @@ class GalleryActivity : ComponentActivity() {
 
         setContent {
             DinghyTheme(resolver) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // G-1: paint the gallery root with the token bg (mirroring the production
+                // AppShell/SplashScreen/AppDrawer .background(t.bg) pattern). A bare Material3
+                // Surface() defaulted to MaterialTheme.colorScheme.surface — never populated in this
+                // app (color flows through LocalTokens, not Material colorScheme) — so the gallery
+                // page background ignored dark/light and dark-theme text sat on a stuck-light field.
+                Box(Modifier.fillMaxSize().background(LocalTokens.current.bg)) {
                     // Feed-source selection is hoisted to the host (the sole assembler).
                     var feedSource by remember { mutableStateOf(FeedSource.SYNTHETIC) }
                     GalleryScreen(

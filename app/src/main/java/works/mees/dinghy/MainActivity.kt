@@ -4,11 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import works.mees.dinghy.service.MoonrakerService
 import works.mees.dinghy.theme.compose.DinghyTheme
+import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.ui.shell.RootController
 
 /**
@@ -38,7 +40,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             // The ONE theme boundary (D-05) — every screen composes inside it and reads LocalTokens.
             DinghyTheme(container.themeResolver) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // G-1 hardening: explicit token bg instead of a bare Material3 Surface() (which
+                // defaults to the never-populated colorScheme.surface). Production screens each
+                // paint t.bg, but this removes the bare-Surface footgun at the root.
+                Box(Modifier.fillMaxSize().background(LocalTokens.current.bg)) {
                     // ALL routing is delegated to the single root authority (review #2).
                     RootController(container)
                 }

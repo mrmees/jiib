@@ -64,7 +64,11 @@ fun ConfirmGuard(
     val tint = if (destructive) t.stopSoft else t.goSoft
     val confirmIntent = if (destructive) Intent.Danger else Intent.Go
 
-    Box(modifier.fillMaxSize().background(tint)) {
+    // G-4: the stop-soft / go-soft tints are ALPHA-BEARING (…/ .15, …/ .16) — content behind bled
+    // through, weakening the emergency-stop safety gate. Lay the OPAQUE token bg under the tint
+    // (chained .background paints in order: opaque bg first, translucent intent tint on top) so the
+    // backdrop firmly obscures while keeping the stop-soft/go-soft gravity. All color via tokens.
+    Box(modifier.fillMaxSize().background(t.bg).background(tint)) {
         // Gutter omitted (LAYOUT.md): the Field's CONFIRM/CANCEL buttons are the navigation.
         ScreenScaffold(
             field = {
