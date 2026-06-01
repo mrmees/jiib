@@ -1,11 +1,12 @@
 ---
 phase: 05-core-print-control-panels-temperature-move-extrude
 verified: 2026-06-01T00:00:00Z
-status: gaps_found
-score: 10/12
+status: passed
+score: 12/12
+resolution: All gaps closed (05-09 G1, 05-10 G2/G3, 05-11 G4) and re-verified on-device (flox + live Ender 5 Plus) 2026-06-01. A 4th gap (G4) surfaced during re-UAT and was also closed. See "## Gap Resolution" below.
 gaps:
   - truth: "Any printer-rejected gcode crashes the whole app (+ FGS auto-restart)"
-    status: failed
+    status: resolved
     reason: |
       CommandDispatcher.dispatch() launches a coroutine on scope and catches only
       RpcConnectionException and TimeoutCancellationException. RpcError — the exception
@@ -28,7 +29,7 @@ gaps:
       - "Unit-test regression: harden FakeWebSocket (or the fake request() implementation) to return a JSON-RPC error response for printer.gcode.script so the mock-vs-reality gap that concealed this bug is closed."
 
   - truth: "After a Klipper FIRMWARE_RESTART / printer.cfg reload the status feed recovers without app force-stop"
-    status: failed
+    status: resolved
     reason: |
       MoonrakerSession and MoonrakerService contain no handler for notify_klippy_ready.
       Grep across the full source confirms the constant NOTIFY_KLIPPY_READY is defined in
@@ -52,7 +53,7 @@ gaps:
       - "In MoonrakerService or the session's supervising reconnect loop, ensure a klippy_ready event re-runs the same path as an initial connect so the FGS recovers without a force-stop."
 
   - truth: "One-shot reads (min_extrude_temp, max_extrude_only_distance, objects/capabilities) remain accurate after a printer.cfg reload"
-    status: failed
+    status: resolved
     reason: |
       The 05-03 one-shot reads (temperature_store backfill, min_extrude_temp,
       max_extrude_only_distance) are performed once at handshake-time via runHandshake().
@@ -75,8 +76,8 @@ gaps:
 
 **Phase Goal:** The core print-control panels — Temperature (TEMP-01..04), Move (MOVE-01..04), Extrude (EXTR-01..04) — built per the UI design LAW and proven on the Adreno-320 floor.
 **Verified:** 2026-06-01
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Status:** passed (re-verified after gap closure)
+**Re-verification:** Yes — initial verification found 3 gaps; all closed + a 4th (G4) found during re-UAT and closed. See "## Gap Resolution".
 
 ---
 
@@ -200,3 +201,22 @@ Three confirmed gaps were observed on real hardware (flox, adb 0a64b42e, Lineage
 
 _Verified: 2026-06-01_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## Gap Resolution
+
+All gaps closed and **re-verified on real hardware** (flox / Nexus 7 2013, Adreno 320, adb `0a64b42e`) against a live Ender 5 Plus on 2026-06-01, on a fresh signed release build containing all four fixes.
+
+| Gap | Severity | Fixing plan | Code fix | On-device re-UAT |
+|-----|----------|-------------|----------|------------------|
+| G1 | BLOCKER | 05-09 | `CommandDispatcher.dispatch()` catches `RpcError` → `DispatchEvent.Failure` (printer's rejection text via SeverityToast); test fake hardened to emit JSON-RPC errors for `gcode.script` | PASS — out-of-range jog now toasts, no crash |
+| G2 | HIGH | 05-10 | `MoonrakerSession` re-runs full `runHandshake()` on `notify_klippy_ready` (gated by `handshakeComplete`, serialized by `rehandshakeMutex`) | PASS — feed self-heals after FIRMWARE_RESTART, no force-stop |
+| G3 | MED | 05-10 | Subsumed by G2 — the re-handshake re-runs all one-shot reads (min_extrude_temp / max_extrude_only_distance / temperature backfill) | PASS — edited min_extrude_temp refreshes |
+| G4 | MED | 05-11 | `gcode.script` gets `GCODE_TIMEOUT_MS = 120_000L` (instant calls keep 10s); inner request-await timeout retyped to `ConnectionError.Timeout` so a slow command reads "taking longer than expected — still running" instead of "command could not be sent" | PASS — Z-home clean, no false error |
+
+G4 was discovered during the G1/G2/G3 re-UAT (a Z-home longer than the flat 10s dispatch deadline surfaced as a false "command could not be sent"); it was planned (05-11) and fixed in the same session.
+
+**Perf gate:** PASS — live multi-trace Temperature p95 **48.64 ms** vs ~66 ms bound, 0 frozen frames (supersedes the Phase-3 isolated 50.1 ms). See `05-PERF-RESULTS.md`.
+
+All 12 phase requirements (TEMP-01..04, MOVE-01..04, EXTR-01..04) verified. **Phase goal achieved.**
