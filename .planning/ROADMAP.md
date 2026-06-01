@@ -113,7 +113,7 @@ Plans:
   4. The reusable primitives exist and are panel-consumable: the full-screen Confirm guard (PRIM-03; destructive=red / positive=green / safe-dismiss=neutral), the single-setting scrubber/stepper page (PRIM-01; keyboard-free numeric entry), and the severity toast (PRIM-04; color+icon+text)
   5. The progress-ring + line-graph render primitives draw a bounded ring buffer at the throttled ~2–4 Hz cadence WITHOUT jank on the Nexus 7 (static glow only, no continuous animation) — the SHARED surface the Print Status home (Phase 4) uses and the Temperature graph (Phase 5) extends; graph architecture is settled here
 
-**Plans**: 7 plans
+**Plans**: 8 plans
 Plans:
 
 **Wave 1**
@@ -161,7 +161,8 @@ Plans:
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 - [ ] 04-04-PLAN.md — Settings screen: connection (host/port/key + mDNS scan) + theme/text-size + accent picker (SET-01/PRIM-02/CONN-01/D-15..D-17)
 - [ ] 04-05-PLAN.md — Splash/recovery hard override: reason text + self-contained recovery actions for first-run/shutdown/unreachable (SHELL-05/D-11..D-13)
-- [ ] 04-06-PLAN.md — Print Status home: state-adaptive Focus + 2×3 grid + heater sparkline + Stop→ConfirmGuard→emergency_stop (SHELL-04/SHELL-02/D-07..D-10; on-device perf gate)
+- [ ] 04-06-PLAN.md — Print Status home (part 1): state-adaptive Focus + 2×3 grid (strict capability fallback) + Stop→ConfirmGuard→emergency_stop, with a reserved sparkline slot (SHELL-04/SHELL-02/D-07..D-10)
+- [ ] 04-06b-PLAN.md — Print Status home (part 2): heater sparkline (GraphView) into the reserved slot + on-device combined-render perf gate, split from 04-06 per review #4 (SHELL-04/D-09; on-device perf gate)
 
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 04-07-PLAN.md — Shell integration: swipe-up App Drawer + AppShell full-bleed host + MainActivity routing/FGS-start (SHELL-01/D-14; on-device shell gate)
@@ -259,7 +260,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 7/7 | Complete    | 2026-05-31 |
-| 4. Service, Shell, Settings & Print-Status Home | 0/7 | Not started | - |
+| 4. Service, Shell, Settings & Print-Status Home | 0/8 | Not started | - |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
