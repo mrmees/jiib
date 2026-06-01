@@ -37,7 +37,7 @@ regenerated: 2026-05-31
 
 - **After every task commit:** Run `:app:testDebugUnitTest` (pure logic: `derive()`, `CommandDispatcher`, `ConnectionStore`, `PrintStatusHolder`, `MoonrakerService` config-rebuild seam).
 - **After every plan wave:** Add the wave's instrumented tests via `:app:connectedDebugAndroidTest` on `flox` (rotation survival in Wave 2; shell presence in Wave 4).
-- **Before `/gsd-verify-work`:** Full suite green **plus the on-device human gates** — (1) rotation/screen-off connection survival (04-03), (2) gfxinfo Print-Status-cadence-without-jank during a live heat (04-06), (3) shell drawer/routing/splash-no-drawer (04-07).
+- **Before `/gsd-verify-work`:** Full suite green **plus the on-device human gates** — (1) rotation/screen-off connection survival (04-03), (2) gfxinfo combined-render (ring+sparkline+grid) cadence-without-jank during a live heat (04-06b), (3) shell drawer/routing/splash-no-drawer (04-07).
 - **Max feedback latency:** ~60s for the JVM tier; on-device tiers are wave/phase gates, not per-task.
 
 ---
@@ -50,12 +50,12 @@ regenerated: 2026-05-31
 | PRIM-05 | 04-02 | 1 | CommandDispatcher: debounce + in-flight + timeout | unit (virtual time) | JVM `CommandDispatcherTest` under `runTest`: double-tap → 1 dispatch; in-flight blocks re-entry; dropped packet → timeout re-enables | ❌ W0 | ⬜ pending |
 | SHELL-02 (route) | 04-02 | 1 | Routing keyed off `klippy_state`, socket-state never routes | unit (pure `derive()`) | JVM `TopRouteTest`: `derive(cfg, Startup)==Splash`; `Ready+Printing==Shell(...)`; `Ready==Shell(PrintStatus)`; socket-state does NOT change route (D-05) | ❌ W0 | ⬜ pending |
 | CONN-01 / SHELL-03 | 04-03 | 2 | Config-rebuild seam: null config idle; config change cancels prior session before relaunch (D-03) | unit (virtual time) | JVM `MoonrakerServiceTest`: null → no session job; change → `cancelAndJoin` before new launch; one active job | ❌ W0 | ⬜ pending |
-| SHELL-03 | 04-03 | 2 | Service survives rotation (FGS owns spine) | instrumented (UiAutomator) | `ServiceSurvivesRotationTest`: `UiDevice.setOrientationLeft/Natural` → `AppContainer.connectionState` does NOT churn Connecting/Syncing | ❌ W0 | ⬜ pending |
+| SHELL-03 | 04-03 | 2 | Service survives rotation (FGS owns spine) | instrumented (UiAutomator) | `ServiceSurvivesRotationTest`: `UiDevice.setOrientationLeft/Natural` → published `AppContainer.spine.value.sessionInstanceId` is UNCHANGED across rotation (concrete continuity signal, review #3) | ❌ W0 | ⬜ pending |
 | SHELL-03 | 04-03 | 2 | Service survives screen-off | on-device manual gate | `flox`: screen off 60s → on → still `Connected`, temps live not stale | manual | ⬜ pending |
 | SET-01 / PRIM-02 / CONN-01 | 04-04 | 3 | Settings screen edits + persists connection (host/port/key) | instrumented (Compose UI) + reuses `ConnectionStoreTest` | enter host/port → Save → `ConnectionStore.config` updated; on-device confirm via 04-07 first-run flow | ⚠ via W0 + 04-07 | ⬜ pending |
 | SHELL-05 / CONN-01 | 04-05 | 3 | Splash hard-override shows reason + recovery actions | instrumented (Compose UI) | shutdown/error state → Retry + firmware_restart + restart + Edit-connection actions visible (D-12); confirmed in 04-07 splash gate | ⚠ via 04-07 | ⬜ pending |
 | SHELL-04 | 04-06 | 3 | PrintStatusHolder: PrinterState → bounded ring series + grid values | unit | JVM `PrintStatusHolderTest`: latest temp reflected; ring bounded ≤120; grid tracks state; no second throttle | ❌ W0 | ⬜ pending |
-| SHELL-04 | 04-06 | 3 | Print Status renders at throttled cadence without jank | on-device gfxinfo gate | live heat → `dumpsys gfxinfo works.mees.dinghy reset` → 30s dwell → framestats: two-part Phase-3 gate (p95 ≲ ~66ms sparse-redraw, 0 frozen frames; cadence ≈ 2–4 Hz) | manual (reuse Phase-1 parser) | ⬜ pending |
+| SHELL-04 | 04-06b | 4 | Combined Print Status (ring+sparkline+grid) renders at throttled cadence without jank | on-device gfxinfo gate | live heat → `dumpsys gfxinfo works.mees.dinghy reset` → 30s dwell → framestats: two-part Phase-3 gate (p95 ≲ ~66ms sparse-redraw, 0 frozen frames; cadence ≈ 2–4 Hz) | manual (reuse Phase-1 parser) | ⬜ pending |
 | SHELL-02 | 04-06 | 3 | Stop → ConfirmGuard → `printer.emergency_stop` (D-10, NOT a hold gesture) | unit (holder/dispatch) + on-device round-trip | JVM: Stop requires ConfirmGuard `onConfirm` before dispatch; on-device: E-stop → Klippy `shutdown` → routes to splash recovery | ⚠ via 04-06 gate | ⬜ pending |
 | SHELL-01 | 04-07 | 4 | Shell present + navigable; greyed tiles inert; no drawer on splash | instrumented (Compose UI) | `ShellPresenceTest`: swipe-up → Status+Settings live + tappable; greyed (incl. Power) do not navigate; drawer absent under Splash route (D-06) | ❌ W0 | ⬜ pending |
 
@@ -67,14 +67,16 @@ regenerated: 2026-05-31
 
 > Each Wave-0 test file is bound to the plan/task that introduces the unit under test.
 
-- [ ] `ConnectionStoreTest.kt` (JVM) — DataStore round-trip (CONN-01) — **04-01**
+- [ ] `ConnectionStoreTest.kt` (JVM) — DataStore round-trip + empty-store→null + **clear()→null** (CONN-01; review #12 config-cleared-while-running) — **04-01**
 - [ ] `CommandDispatcherTest.kt` (JVM, virtual time) — debounce/in-flight/timeout (PRIM-05) — **04-02**
 - [ ] `TopRouteTest.kt` (JVM) — pure `derive()` cases incl. socket-state-does-not-route (SHELL-02 routing) — **04-02**
-- [ ] `MoonrakerServiceTest.kt` (JVM, virtual time) — config-rebuild seam: null-idle + cancel-before-relaunch (SHELL-03/D-03) — **04-03**
-- [ ] `PrintStatusHolderTest.kt` (JVM) — bounded ring accumulation + grid model off `PrinterState` (SHELL-04 data half) — **04-06**
-- [ ] `ServiceSurvivesRotationTest.kt` (androidTest, UiAutomator) — rotation continuity (SHELL-03) — **04-03**
-- [ ] `ShellPresenceTest.kt` (androidTest, Compose UI) — drawer presence/tappability, greyed-tile inertness, splash-no-drawer (SHELL-01/D-06/D-14) — **04-07**
-- [ ] Reuse Phase-1 `gfxinfo` framestats parser for the Print-Status cadence gate (no new tool) — **04-06**
+- [ ] `AppContainerTest.kt` (JVM) — null-initial `spine` + **atomic SpineHandle swap** (no mixed A/B field reads) + SessionControl exposes no raw `MoonrakerSession` (review #1/#6) — **04-03**
+- [ ] `MoonrakerServiceTest.kt` (JVM, virtual time) — config-rebuild seam: null/cleared-config idle (`publishSpine(null)`) + cancel-before-relaunch + **monotonic sessionInstanceId atomic publish** (SHELL-03/D-03; review #6/#12) — **04-03**
+- [ ] `PrintStatusHolderTest.kt` (JVM) — bounded ring accumulation + grid model off `PrinterState` + **explicit capability fallback** (no-bed / chamber-only / nonstandard name / under-6-stats placeholder, review #9) (SHELL-04 data half) — **04-06**
+- [ ] `PrinterStateReducerTest.kt` (JVM, extend) — **klippyStateMessage** populated from `webhooks.state_message`, cleared on ready, merge-not-wiped on absence (SHELL-05; review #8) — **04-05**
+- [ ] `ServiceSurvivesRotationTest.kt` (androidTest, UiAutomator) — rotation continuity via **sessionInstanceId unchanged** across rotation (SHELL-03; review #3) — **04-03**
+- [ ] `ShellPresenceTest.kt` (androidTest, Compose UI) — drawer presence/tappability, greyed-tile inertness, splash-no-drawer + **notification-permission-denied non-crash** smoke (SHELL-01/D-06/D-14; review #12) — **04-07**
+- [ ] Reuse Phase-1 `gfxinfo` framestats parser for the COMBINED Print-Status (ring+sparkline+grid) cadence gate (no new tool) — **04-06b**
 
 > Design-system primitives (ConfirmGuard/keypad/keyboard/toast — PRIM-01/02/03/04) are **built and
 > tested in Phase 3** and only CONSUMED here; they are NOT Phase-4 Wave-0 obligations.
@@ -96,9 +98,9 @@ regenerated: 2026-05-31
 
 - [x] All tasks have `<automated>` verify or Wave 0 dependencies
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify (04-03's three compile-only tasks now bracketed by `MoonrakerServiceTest` JVM signal)
-- [x] Wave 0 covers all MISSING references (ConnectionStore, CommandDispatcher, TopRoute, MoonrakerService, PrintStatusHolder, ServiceSurvivesRotation, ShellPresence)
+- [x] Wave 0 covers all MISSING references (ConnectionStore, CommandDispatcher, TopRoute, AppContainer, MoonrakerService, PrinterStateReducer[klippyStateMessage], PrintStatusHolder, ServiceSurvivesRotation, ShellPresence)
 - [x] No watch-mode flags
 - [x] Feedback latency < 60s (JVM tier)
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** active (matches plans 04-01..04-07 as written, 2026-05-31)
+**Approval:** active (matches plans 04-01..04-07 + 04-06b after the cross-AI --reviews replan, 2026-05-31). Review-driven deltas preserved here: rotation gate → sessionInstanceId continuity (#3); perf gate moved to 04-06b combined surface (#4); AppContainer atomic-swap + SessionControl tests (#1/#6); PrinterStateReducer klippyStateMessage (#8); PrintStatusHolder capability fallback (#9); ConnectionStore clear()→null + ShellPresence notif-denied (#12). Nyquist Dimension-8 coverage preserved.
