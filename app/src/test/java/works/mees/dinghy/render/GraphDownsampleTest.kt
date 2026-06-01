@@ -91,4 +91,37 @@ class GraphDownsampleTest {
             assertTrue(it.isFinite())
         }
     }
+
+    /**
+     * Multi-trace (05-04 / D-05): each trace sanitizes INDEPENDENTLY — different lengths and a stray
+     * NaN in one series do not contaminate another. The View calls [GraphView.sanitize] once per
+     * series, so per-series independence is the contract the multi-trace draw inherits.
+     */
+    @Test
+    fun perSeries_sanitizeIsIndependent() {
+        val nozzle = floatArrayOf(200f, Float.NaN, 205f, 210f)        // one NaN → 3 finite
+        val bed = FloatArray(1000) { it.toFloat() }                   // long → capped to 100
+        val chamber = floatArrayOf(40f)                               // single point → intact
+
+        val nozzleOut = GraphView.sanitize(nozzle, pixelWidth = 100)
+        val bedOut = GraphView.sanitize(bed, pixelWidth = 100)
+        val chamberOut = GraphView.sanitize(chamber, pixelWidth = 100)
+
+        assertEquals("NaN dropped, only finite nozzle samples survive", 3, nozzleOut.size)
+        assertEquals(floatArrayOf(200f, 205f, 210f).toList(), nozzleOut.toList())
+        assertEquals("long bed series capped to the pixel budget", 100, bedOut.size)
+        assertEquals(0f, bedOut.first(), 0f)
+        assertEquals(999f, bedOut.last(), 0f)
+        assertEquals("single-point chamber survives intact", 1, chamberOut.size)
+        assertEquals(40f, chamberOut[0], 0f)
+    }
+
+    /** An empty series among non-empty ones still sanitizes to empty (→ that trace draws nothing). */
+    @Test
+    fun emptySeriesAmongTraces_stillEmpty() {
+        val present = floatArrayOf(100f, 110f, 120f)
+        val absent = FloatArray(0)
+        assertEquals(3, GraphView.sanitize(present, pixelWidth = 100).size)
+        assertEquals(0, GraphView.sanitize(absent, pixelWidth = 100).size)
+    }
 }
