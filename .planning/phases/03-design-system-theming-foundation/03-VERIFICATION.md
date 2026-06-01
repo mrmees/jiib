@@ -1,7 +1,8 @@
 ---
 phase: 03-design-system-theming-foundation
 verified: 2026-05-31T00:00:00Z
-status: human_needed
+status: passed
+uat_closed: 2026-05-31 — on-device UAT (03-HUMAN-UAT.md) run on real flox; 4/6 passed, 2 issues → all 4 gaps (G-1..G-4) fixed in plan 03-08 and re-verified on flox. WR-01 ScrubberPage tap-to-set now genuinely resolved (single awaitEachGesture). Sole remaining design-system carry: none blocking.
 score: 5/5 must-haves verified
 overrides_applied: 0
 human_verification:
