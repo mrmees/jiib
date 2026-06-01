@@ -21,6 +21,15 @@ data class PrinterState(
     /** Klipper host lifecycle (STATE-04) — first-class because it drives routing in Phase 3. */
     val klippyState: KlippyState = KlippyState.Disconnected,
 
+    /**
+     * Human-readable Klippy/Moonraker reason for the current non-ready state, from
+     * `webhooks.state_message` (e.g. "Klipper reports: SHUTDOWN — MCU error"). Null when none is
+     * known (or after recovery to Ready). The Splash (SHELL-05/04-05) surfaces this verbatim so the
+     * trapped user sees the REAL reason, not just an enum-derived label (review #8). Server-provided
+     * text rendered as plain text only — never interpreted (T-04-05-I).
+     */
+    val klippyStateMessage: String? = null,
+
     /** Print-job lifecycle (`print_stats.state`) — distinct axis from [klippyState] (STATE-04). */
     val printState: PrintState = PrintState.Standby,
 

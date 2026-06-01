@@ -64,7 +64,20 @@ fun applyKlippyMethod(current: PrinterState, method: String): PrinterState {
 private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState {
     var s = current
 
-    status.objectOrNull("webhooks")?.stringOrNull("state")?.let { s = s.copy(klippyState = klippyFromWebhook(it)) }
+    status.objectOrNull("webhooks")?.let { wh ->
+        wh.stringOrNull("state")?.let { s = s.copy(klippyState = klippyFromWebhook(it)) }
+        // klippyStateMessage (review #8): prefer a freshly-provided reason; clear stale reason on
+        // recovery to Ready; otherwise RETAIN (a webhooks block without a state_message must not wipe
+        // it — STATE-01 merge). A webhooks-ABSENT diff retains by construction (this block is skipped).
+        val newMessage = wh.stringOrNull("state_message")
+        s = s.copy(
+            klippyStateMessage = when {
+                newMessage != null -> newMessage
+                s.klippyState == KlippyState.Ready -> null
+                else -> s.klippyStateMessage
+            },
+        )
+    }
 
     status.objectOrNull("print_stats")?.let { ps ->
         ps.stringOrNull("state")?.let { s = s.copy(printState = printStateFrom(it)) }
