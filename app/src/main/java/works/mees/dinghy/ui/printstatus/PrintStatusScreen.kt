@@ -36,6 +36,7 @@ import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.net.JsonRpcMethods
+import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -83,6 +84,8 @@ fun PrintStatusScreen(
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val grid by holder.grid.collectAsStateWithLifecycle()
+    val sparkline by holder.sparkline.collectAsStateWithLifecycle()
+    val tokens = LocalTokens.current
 
     var showEstopGuard by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
@@ -108,10 +111,15 @@ fun PrintStatusScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     StatGrid(grid = grid, modifier = Modifier.fillMaxWidth().weight(1f))
-                    // RESERVED sparkline slot (review #4): sized + positioned now so the 04-06b
-                    // 04-06b sparkline fill is additive, NOT a relayout. No Views graph host here.
-                    Box(
-                        Modifier
+                    // Heater sparkline filling the slot 04-06 reserved (review #4): the Phase-3
+                    // classic-Views GraphView hosted via GraphViewHost/AndroidView (ADR 0001, D-09 —
+                    // the in-anger Views render proof). Fed by the holder's primary-heater RingBuffer
+                    // snapshot at the store's throttled cadence (no second sampling layer). Passing the
+                    // live LocalTokens means a theme flip recolors the Canvas (push-tokens seam, D-06).
+                    GraphViewHost(
+                        tokens = tokens,
+                        snapshot = sparkline,
+                        modifier = Modifier
                             .fillMaxWidth()
                             .weight(0.6f),
                     )
