@@ -132,6 +132,9 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 - [x] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
+
+**Gap closure** *(UAT G-1..G-4)*
+- [ ] 03-08-PLAN.md — Fix 4 Phase-3 UAT gaps: G-3 ScrubberPage tap-to-set, G-4 ConfirmGuard opaque scrim, G-2 scrubber width, G-1 gallery token-bg root (gap_closure)
 **UI hint**: yes — governed by `docs/ui_design/` (LAW); this phase IS the design-system build, so the UI contract is that bundle, not a generated UI-SPEC
 **Research note**: STANDARD — Compose theming/tokens, responsive layout, custom-`Canvas` drawing, and DataStore-backed settings are well-documented; the design contract (`docs/ui_design/hifi.css` + LAYOUT/THEMING) is the spec. A light pass on a clean Compose↔Views shared-token approach (ADR 0001 hybrid) may help.
 
