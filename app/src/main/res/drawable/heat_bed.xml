@@ -1,0 +1,65 @@
+<!--
+  Heated-bed glyph (bed bar + feet + rising heat waves). Converted from img/heat_bed.svg
+  (viewBox 0 0 96 96): the SVG <line>/<polyline> elements are rewritten as M…L path data
+  (Android VectorDrawable has no line/polyline primitive); the seven hatch lines are merged
+  into one multi-subpath path. Strokes drawn white, recolored at runtime via Compose
+  Icon(tint = trace color) to honor the semantic token system (THEME-01).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:pathData="M90,77.2c0-2.3-1.9-4.2-4.2-4.2H10.2C7.9,73,6,74.9,6,77.2v1.6c0,2.3,1.9,4.2,4.2,4.2h75.6c2.3,0,4.2-1.9,4.2-4.2V77.2z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M15,83L20,73M25,83L30,73M35,83L40,73M45,83L50,73M55,83L60,73M65,83L70,73M75,83L80,73"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M14,86L14,92L22,92L22,86"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M74,86L74,92L82,92L82,86"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M16,66c0,0,4-12.2,4-16.7c0-4.8-8-11.7-8-16.7c0-4.5,4-16.7,4-16.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M32,66c0,0,4-12.2,4-16.7c0-4.8-8-11.7-8-16.7c0-4.5,4-16.7,4-16.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M48,66c0,0,4-12.2,4-16.7c0-4.8-8-11.7-8-16.7c0-4.5,4-16.7,4-16.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M64,66c0,0,4-12.2,4-16.7c0-4.8-8-11.7-8-16.7c0-4.5,4-16.7,4-16.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M80,66c0,0,4-12.2,4-16.7c0-4.8-8-11.7-8-16.7c0-4.5,4-16.7,4-16.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

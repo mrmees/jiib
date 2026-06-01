@@ -8,10 +8,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,12 +28,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import works.mees.dinghy.R
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.designsystem.ScrubberPage
@@ -96,6 +105,7 @@ fun TemperatureScreen(
     val series by holder.series.collectAsStateWithLifecycle()
     val setpoints by holder.setpoints.collectAsStateWithLifecycle()
     val legend by holder.legend.collectAsStateWithLifecycle()
+    val graphRange by holder.yRange.collectAsStateWithLifecycle()
     val t = LocalTokens.current
 
     // The sensor whose ScrubberPage is open (null = none); and whether the Presets selector is showing.
@@ -144,7 +154,8 @@ fun TemperatureScreen(
                         tokens = t,
                         series = series,
                         setpoints = setpoints,
-                        yRange = Y_RANGE,
+                        yRange = graphRange,
+                        showAxisLabels = true,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                     failureText?.let { msg ->
@@ -280,7 +291,14 @@ private fun TemperatureLegend(
     }
 }
 
-/** One compact legend row: a trace-colored label + tappable current/target value. */
+/**
+ * One sensor card, split into halves (icons-over-text philosophy): the LEFT half is the heater's
+ * tinted glyph (nozzle/bed icon, recolored to the trace color), the RIGHT half is the live current
+ * temperature in a hero font. When a setpoint is active the target shows on a smaller, trace-colored
+ * line beneath the current reading; with no setpoint that line is omitted (no "off" clutter). Tapping
+ * the card opens the scrubber (TEMP-02). Falls back to the text label when a sensor has no icon asset
+ * (e.g. a chamber/generic heater).
+ */
 @Composable
 private fun LegendRow(
     readout: SensorReadout,
@@ -290,30 +308,81 @@ private fun LegendRow(
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
+    val icon = iconFor(readout.name)
     Row(
         modifier
             .clip(shape)
             .border(BorderStroke(2.dp, color), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = readout.label,
-            color = color,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(16f, t.fs).sp,
-        )
-        Text(
-            text = readout.target?.let { "${fmt(readout.current)} / ${fmt(it)}°" } ?: "${fmt(readout.current)}°",
-            color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(22f, t.fs).sp,
-        )
+        // Left half — the heater glyph tinted to the trace color (or the label when no icon exists).
+        Box(
+            Modifier.weight(1f).fillMaxHeight().padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (icon != null) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = readout.label,
+                    tint = color,
+                    modifier = Modifier.fillMaxHeight(0.62f).aspectRatio(1f),
+                )
+            } else {
+                Text(
+                    text = readout.label,
+                    color = color,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(22f, t.fs).sp,
+                )
+            }
+        }
+        // Right half — hero current reading, CENTERED in the info half, with the trace-colored setpoint
+        // centered directly beneath it when a target is active. The current reading is auto-sized to fit
+        // its width (maxLines=1) so a 3-digit value at the L text size never clips the degree glyph.
+        Column(
+            Modifier.weight(1f).padding(horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            BasicText(
+                text = "${fmt(readout.current)}°",
+                modifier = Modifier.fillMaxWidth(),
+                style = TextStyle(
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+                softWrap = false,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = fsSp(18f, t.fs).sp,
+                    maxFontSize = fsSp(48f, t.fs).sp,
+                    stepSize = 1.sp,
+                ),
+            )
+            readout.target?.let { tgt ->
+                Text(
+                    text = "${fmt(tgt)}°",
+                    color = color,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(24f, t.fs).sp,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+        }
     }
+}
+
+/** Heater glyph for a Moonraker object name, or null when no icon asset exists (→ text-label fallback). */
+private fun iconFor(name: String): Int? = when {
+    name == "heater_bed" -> R.drawable.heat_bed
+    name.startsWith("extruder") -> R.drawable.nozzle
+    else -> null
 }
 
 /**

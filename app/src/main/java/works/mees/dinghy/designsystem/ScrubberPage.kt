@@ -127,7 +127,11 @@ fun ScrubberPage(
     }
 
     ScreenScaffold(
-        modifier = modifier,
+        // Opaque scrim: the scrubber is a full-screen single-setting page shown OVER another screen,
+        // so its root must paint t.bg or the page behind bleeds through (mirrors the ConfirmGuard 03-08
+        // opaque-scrim fix). ScreenScaffold itself is transparent by contract (it's the base layer on
+        // normal routes); overlay callers own the fill.
+        modifier = modifier.fillMaxSize().background(t.bg),
         field = {
             // Full-height fill-bar scrubber (hifi.css .fillbar): drag/tap anywhere to set.
             Box(
