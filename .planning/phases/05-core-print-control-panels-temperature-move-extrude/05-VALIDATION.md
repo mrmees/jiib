@@ -1,9 +1,9 @@
 ---
 phase: 5
 slug: core-print-control-panels-temperature-move-extrude
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: ready
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-31
 ---
 
@@ -38,7 +38,23 @@ created: 2026-05-31
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| {N}-01-01 | 01 | 1 | REQ-{XX} | T-{N}-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 05-01-01 | 01 | 1 | MOVE-04, EXTR-04 | T-05-01-T / T-05-01-Safety | gcode_position + can_extrude captured null-safely; canExtrude fail-safe false | unit | `gw.bat :app:testReleaseUnitTest --tests *PrinterStateReducerTest` | ✅ extend | ⬜ pending |
+| 05-01-02 | 01 | 1 | EXTR-02 | — | case-insensitive macro presence (Pitfall 2) | unit | `gw.bat :app:testReleaseUnitTest --tests *DeriveCapabilitiesTest` | ✅ extend | ⬜ pending |
+| 05-02-01 | 02 | 1 | TEMP-02/03, MOVE-01/02/03, EXTR-01 | T-05-02-T / T-05-02-Safety | bounded gcode builders; SAVE/RESTORE wrap; numeric clamp | unit | `gw.bat :app:testReleaseUnitTest --tests *PrinterCommandsTest` | ❌ W0 | ⬜ pending |
+| 05-02-02 | 02 | 1 | TEMP-04 | — | third trace token baked, no raw hex (THEME-01) | compile | `gw.bat :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-03-01 | 03 | 2 | TEMP-04 | T-05-03-T | pure temperature_store→series mapper (order/selection/absence) | unit | `gw.bat :app:testReleaseUnitTest --tests *TemperatureStoreBackfillTest` | ❌ W0 | ⬜ pending |
+| 05-03-02 | 03 | 2 | TEMP-04, EXTR-04 | T-05-03-D / T-05-03-Safety | one-shot best-effort reads; min_extrude_temp off hot path | compile+unit | `gw.bat :app:testReleaseUnitTest :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-04-01 | 04 | 2 | TEMP-04 | T-05-04-D | N traces allocation-free, fixed Y-range (G-1 fix) | unit | `gw.bat :app:testReleaseUnitTest --tests *GraphDownsampleTest` | ✅ extend | ⬜ pending |
+| 05-04-02 | 04 | 2 | TEMP-04 | T-05-04-D | multi-snapshot host, single-trace back-compat | compile | `gw.bat :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-05-01 | 05 | 3 | TEMP-01/04 | — | per-sensor legend + backfilled rings, no second throttle | unit | `gw.bat :app:testReleaseUnitTest --tests *TemperatureHolderTest` | ❌ W0 | ⬜ pending |
+| 05-05-02 | 05 | 3 | TEMP-01/02/03/04 | T-05-05-T/T2/D/I | dispatch via GCODE_SCRIPT; token-pure; scrubber/presets/cooldown | compile | `gw.bat :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-06-01 | 06 | 3 | MOVE-04 | — | gcode_position + per-axis homed gating | unit | `gw.bat :app:testReleaseUnitTest --tests *MoveHolderTest` | ❌ W0 | ⬜ pending |
+| 05-06-02 | 06 | 3 | MOVE-01/02/03/04 | T-05-06-T/Safety/T2/D | jog/home via dispatcher; disable behind ConfirmGuard; token-pure | compile | `gw.bat :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-07-01 | 07 | 3 | EXTR-02/03/04 | T-05-07-Safety | live can_extrude gate (fail-safe); tools/macro presence/min-temp | unit | `gw.bat :app:testReleaseUnitTest --tests *ExtrudeHolderTest` | ❌ W0 | ⬜ pending |
+| 05-07-02 | 07 | 3 | EXTR-01/02/03/04 | T-05-07-Safety/T/T2/D | cold-extrude gate + missing-macro popup + gated tool selector | compile | `gw.bat :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-08-01 | 08 | 4 | TEMP-04, MOVE-01/02/03, EXTR-01/02/04 | — | three panels reachable + full-bleed routing | compile+unit | `gw.bat :app:testReleaseUnitTest :app:compileReleaseKotlin` | ✅ | ⬜ pending |
+| 05-08-02 | 08 | 4 | TEMP-04 | T-05-08-Perf | D-06 two-part Adreno-320 perf gate re-measured on flox | on-device | manual gfxinfo capture + parse_framestats.py | n/a | ⬜ pending (checkpoint) |
+| 05-08-03 | 08 | 4 | MOVE-01/02/03, EXTR-01/02/04, TEMP-02/03/04 | T-05-08-Safety/D | SC-5 preheat→wait→extrude→jog end-to-end on live Ender 5 Plus | on-device | manual UAT on flox + live printer | n/a | ⬜ pending (checkpoint) |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 *Per-task rows are populated by the planner from PLAN.md tasks.*
@@ -76,4 +92,4 @@ created: 2026-05-31
 - [ ] Feedback latency < 180s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** populated by planner — Wave 0 test files (PrinterCommandsTest, TemperatureStoreBackfillTest, TemperatureHolderTest, MoveHolderTest, ExtrudeHolderTest) created within their owning plans; PerfResults + SC-5 are blocking on-device checkpoints in 05-08.
