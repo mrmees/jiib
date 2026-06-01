@@ -112,10 +112,23 @@ All live in `reference/Print Status Hi-Fi.html` as labeled artboards on a pan/zo
 
 ### 9. Temperatures — graph (monitor)
 - **Purpose:** watch temperature history.
-- **Layout:** Focus = live current/setpoint value(s); single-sensor shows one value-on-glyph,
-  multi-sensor shows a small legend list. Field = time-series line graph: single trace with a
-  dashed setpoint line, or **multiple sensors overlaid on one axis** with a legend (nozzle=heat,
-  bed=accent, chamber=violet). Gutter = **Back** (red) · **Presets** (neutral) · **Cooldown** (amber).
+- **Layout:** Focus = per-sensor cards; Field = time-series line graph; Gutter = **Back** (red) ·
+  **Presets** (neutral) · **Cooldown** (amber).
+- **Sensor card (UPDATED 2026-06-01, supersedes the `09-temperature-graph.png` card style — icons-over-text):**
+  each card splits in half — LEFT = the heater glyph (`nozzle` / `heat_bed` vector in `res/drawable/`,
+  sourced from `img/*.svg`), tinted to the trace color (nozzle=heat, bed=accent, chamber=violet); RIGHT =
+  the hero current temperature, **auto-sized to fit width** (never wraps/clips at any `--fs`), centered,
+  with the **setpoint value centered directly beneath it** (smaller, trace-colored, no arrow) only when a
+  target is active. Tapping a card opens the scrubber. Cards with no icon asset fall back to the text label.
+- **Graph (UPDATED 2026-06-01 — dynamic range, supersedes the fixed `0..350`):** multiple sensors overlaid
+  on one axis. **Dynamic Y-range** fits all visible history + active setpoints with ±5° absolute padding,
+  bounds rounded outward to 5°, clamped to 0..350, **no hard floor** (the absolute pad keeps a steady
+  reading from noise-zooming — the old G-1 trap). **Min/max Y labels** drawn right-aligned, muted, sized to
+  the button text. Each trace shades to the baseline in its own translucent color, drawn **highest-value
+  first so the coolest trace sits on top** (its fill/line wins the shared lower band). Per-trace dashed
+  current-setpoint lines. (Perf: this is the Adreno-320 fill-rate surface — see the ADR-0001 perf-gate
+  reframing; the graph is network-paced/sparse-redraw, gated on no-frozen-frames + responsiveness, not a
+  per-frame ms budget.)
 
 ### 10. Foundations (design-language spec)
 - A reference card showing type, color roles, the outline-control states, and shape — the

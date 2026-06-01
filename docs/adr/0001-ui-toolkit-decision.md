@@ -132,3 +132,28 @@ This addendum does NOT overturn the *toolkit* decision (hybrid Views-for-high-ch
 ~2× lower tail than Compose). It only reconciles how the Phase-1 floor was (mis)applied as criterion #5's
 acceptance. Full rationale + the mandatory Phase-6 re-validation + the three re-open conditions: see
 `03-PERF-RESULTS.md` § FINAL VERDICT (2026-05-31).
+
+## Addendum 2 (2026-06-01) — the `p95 ≤ ~66 ms` latency gate relaxed to network-paced sparse-redraw
+
+**Decided by Matthew during the Phase-5 Temperature UI pass.** The `p95 ≤ ~66 ms` sparse-redraw number
+in Addendum 1 was still borrowed from interactive/animated-UI thinking. This app is **not animated** — the
+graph (and every live surface) repaints **only when a new Moonraker status sample arrives**, which is
+**network-paced**: ~250 ms today (the `PrinterStateStore` conflation) and arguably fine at ~1 Hz (sub-second
+polling of printer temps is overkill). With ≥250 ms between repaints, a 60–90 ms graph frame is invisible and
+never queues behind the data.
+
+**Reframed gate for the value-driven render surfaces (graph, sparkline):**
+1. **Liveness (hard floor, unchanged):** allocation-free `onDraw`, no animation loop, **ZERO frozen frames
+   (>700 ms)**.
+2. **Headroom (replaces the literal 66 ms):** a single repaint must complete **comfortably under the sample
+   interval** so renders never back up, AND **interaction (taps/nav/scrubber) stays responsive**. The exact
+   p95 ms is no longer a hard acceptance number — it is a sanity check, not a target to chase.
+
+**Consequence for the Temperature graph (2026-06-01):** per-trace translucent fills (each trace shaded,
+layered coolest-on-top) were added even though they add fill-rate overdraw vs the old single-trace fill —
+acceptable under the reframed gate. We verify no-frozen-frames + responsiveness on flox rather than defending
+a millisecond threshold. If a future surface ever *does* animate, the tighter Addendum-1 budget reapplies to
+*it*.
+
+Open lever (not yet pulled): slowing the `PrinterStateStore` conflation from 250 ms toward ~1 Hz would cut
+GPU/CPU/battery on the Adreno-320 floor for free — a one-line change when desired.
