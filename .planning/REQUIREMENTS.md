@@ -52,21 +52,21 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Move
 
-- [ ] **MOVE-01**: User can jog X/Y/Z by a selected distance preset
-- [ ] **MOVE-02**: User can home all axes or individual axes
-- [ ] **MOVE-03**: User can disable steppers (with confirmation)
+- [x] **MOVE-01**: User can jog X/Y/Z by a selected distance preset
+- [x] **MOVE-02**: User can home all axes or individual axes
+- [x] **MOVE-03**: User can disable steppers (with confirmation)
 - [x] **MOVE-04**: User sees live toolhead position
 
 ### Temperature
 
 - [ ] **TEMP-01**: User sees each heater/sensor's current and target temperature
-- [ ] **TEMP-02**: User can set a heater target via presets and via exact keypad entry
-- [ ] **TEMP-03**: User can apply preheat presets and cooldown (all heaters off)
+- [x] **TEMP-02**: User can set a heater target via presets and via exact keypad entry
+- [x] **TEMP-03**: User can apply preheat presets and cooldown (all heaters off)
 - [ ] **TEMP-04**: User sees a temperature history graph (backfilled from `server.temperature_store`)
 
 ### Extrude
 
-- [ ] **EXTR-01**: User can extrude/retract a selected distance at a selected speed
+- [x] **EXTR-01**: User can extrude/retract a selected distance at a selected speed
 - [x] **EXTR-02**: User can run load/unload filament macros when present
 - [ ] **EXTR-03**: User can select the active extruder/tool on multi-extruder printers
 - [x] **EXTR-04**: Extrude/retract controls respect the minimum extrusion temperature
@@ -180,14 +180,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PRIM-02 | Phase 4 | Complete |
 | PRIM-05 | Phase 4 | Complete |
 | TEMP-01 | Phase 5 | Pending |
-| TEMP-02 | Phase 5 | Pending |
-| TEMP-03 | Phase 5 | Pending |
+| TEMP-02 | Phase 5 | Complete |
+| TEMP-03 | Phase 5 | Complete |
 | TEMP-04 | Phase 5 | Pending |
-| MOVE-01 | Phase 5 | Pending |
-| MOVE-02 | Phase 5 | Pending |
-| MOVE-03 | Phase 5 | Pending |
+| MOVE-01 | Phase 5 | Complete |
+| MOVE-02 | Phase 5 | Complete |
+| MOVE-03 | Phase 5 | Complete |
 | MOVE-04 | Phase 5 | Complete |
-| EXTR-01 | Phase 5 | Pending |
+| EXTR-01 | Phase 5 | Complete |
 | EXTR-02 | Phase 5 | Complete |
 | EXTR-03 | Phase 5 | Pending |
 | EXTR-04 | Phase 5 | Complete |

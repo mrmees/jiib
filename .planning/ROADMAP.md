@@ -192,7 +192,7 @@ Plans:
 
 **Wave 1**
 - [x] 05-01-PLAN.md — Pure state additions: gcode_position + can_extrude reducer reads, hasMacroIgnoreCase helper, GCODE_SCRIPT/TEMPERATURE_STORE methods (MOVE-04/EXTR-02/EXTR-04)
-- [ ] 05-02-PLAN.md — PrinterCommands pure gcode builders (bounded/clamped) + scriptParams + the third sensor-trace token (violet) baked dark+light (TEMP-02/03, MOVE-01..03, EXTR-01)
+- [x] 05-02-PLAN.md — PrinterCommands pure gcode builders (bounded/clamped) + scriptParams + the third sensor-trace token (violet) baked dark+light (TEMP-02/03, MOVE-01..03, EXTR-01)
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 05-03-PLAN.md — Spine plumbing: one-shot temperature_store backfill + min_extrude_temp at handshake, pure backfill mapper, exposed on the SpineHandle/store (TEMP-04/EXTR-04)
@@ -283,7 +283,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 1/8 | In Progress|  |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 2/8 | In Progress|  |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |

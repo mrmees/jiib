@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T05:18:40.098Z"
+last_updated: "2026-06-01T05:24:08.476Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 32
-  completed_plans: 25
+  completed_plans: 26
   percent: 44
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
   → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
   → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
@@ -78,6 +78,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 04 P07 | 95 | 3 tasks tasks | 10 files files |
 | Phase 03 P08 | 18 | 3 tasks | 5 files |
 | Phase 05 P01 | 5 | 2 tasks | 6 files |
+| Phase 05 P02 | 9 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 4][04-07]: App wired end-to-end — MainActivity starts the FGS, hosts ONE DinghyTheme boundary, delegates ALL routing to a single RootController (SOLE consumer of derive() + the one open-Settings escape, review #2/#11). Swipe-up full-screen AppDrawer (Status+Settings live; Move/Temp/Files/Tools/Macros/Devices+red Power greyed/INERT — no click action, T-04-07-E); AppShell renders the active Dest full-bleed (lean route holder, NOT Navigation-Compose, D-05) + BackHandler collapse; Settings is an in-shell Dest (no dangling onOpenSettings). ShellPresenceTest PASSES on flox. Wiring fix: SpineHandle gained a per-session PrinterStateStore so the shell builds PrintStatusHolder from the LIVE store. UNBLOCKS 04-06b's combined-render perf gate.
 - [Phase 03]: [03-08 gap-closure]: G-3 ScrubberPage tap-to-set fixed by ONE awaitEachGesture (re-arming) block — awaitFirstDown sets value immediately (registers the zero-movement tap detectDragGestures swallowed), pressed-move loop tracks drag; both funnel through internal fun fractionFromX (now host-tested by ScrubberMappingTest, the coverage gap that hid WR-01). One pointerInput, one consumer — no dual-detector race. G-2 shared bar/button 16.dp inset (no fixed px). G-4 ConfirmGuard opaque t.bg layered UNDER alpha stop/go tint. G-1 token-bg roots replace bare Material3 Surface() (colorScheme never populated). Tasks 1-3 committed; Task 4 on-device re-check OPEN.
 - [Phase 05]: [05-01]: Phase-5 state contract settled FIRST — gcodePosition (offsets-stripped Move source, NOT toolheadPosition/Pitfall 1); HeaterState.canExtrude (defaults false fail-safe cold-extrude gate, EXTR-04); hasMacroIgnoreCase (Moonraker lowercases macro names, Pitfall 2/EXTR-02); GCODE_SCRIPT + TEMPERATURE_STORE methods. Null-safe booleanOrNull; merge retains can_extrude on temp-only diff (STATE-01). TDD RED->GREEN, full state suite green.
+- [Phase ?]: [Phase 5][05-02]: PrinterCommands is the settled action-string contract — clamp-before-format (ASVS V5, named bounds), fixed axis/heater identifiers (no free-text), jog/extrude/overrideJog wrapped in SAVE/RESTORE_GCODE_STATE; scriptParams wraps into {script:gcode}. applyPreset = primary extruder+heater_bed only (multi-tool deferred). violet 3rd trace token baked dark 0xFFAE84F2/light 0xFF7B47BF via bake_tokens.py (in-gamut, THEME-01).
 
 ### Pending Todos
 
@@ -146,6 +148,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T05:18:40.035Z
+Last session: 2026-06-01T05:23:54.438Z
 Stopped at: Completed 05-01-PLAN.md
 Resume file: None
