@@ -61,6 +61,12 @@ data class ThemeTokens(
     val heatSoft: Color,
     /** `--heat-glow` heat glow (alpha-bearing). */
     val heatGlow: Color,
+    /**
+     * `--violet` third sensor trace (chamber/generic) — RESEARCH Open Q2; nozzle=heat, bed=accent,
+     * chamber=violet per README §9. The multi-trace GraphView (05-04) reads this via the token,
+     * never a raw hex (THEME-01). Not user-overridable (inherits the base, D-01).
+     */
+    val violet: Color,
     /** `--go` success/confirm green (USER-OVERRIDABLE, D-01). */
     val go: Color,
     /** `--go-soft` go tint (alpha-bearing). */

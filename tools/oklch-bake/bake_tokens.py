@@ -123,6 +123,7 @@ TOKENS = [
     ("heat",       "nozzle/bed (amber)",             (0.79, 0.13, 66, None),    (0.62, 0.16, 52, None)),
     ("heatSoft",   "heat tint",                      (0.79, 0.13, 66, 0.16),    (0.62, 0.16, 52, 0.14)),
     ("heatGlow",   "heat glow",                      (0.79, 0.13, 66, 0.38),    (0.62, 0.16, 52, 0.22)),
+    ("violet",     "third sensor trace (chamber)",   (0.70, 0.16, 300, None),   (0.52, 0.18, 300, None)),
     ("go",         "success/confirm (green)",        (0.74, 0.15, 150, None),   (0.56, 0.16, 150, None)),
     ("goSoft",     "go tint",                        (0.74, 0.15, 150, 0.16),   (0.56, 0.16, 150, 0.14)),
     ("goGlow",     "go glow",                        (0.74, 0.15, 150, 0.4),    (0.56, 0.16, 150, 0.22)),
