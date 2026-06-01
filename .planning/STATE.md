@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-01T01:59:46.253Z"
+status: completed
+last_updated: "2026-06-01T02:07:08.672Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
   percent: 33
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
 Plan: 6 of 8
-Status: 04-06 complete — next 04-06b (heater sparkline + combined-render perf gate)
-Last activity: 2026-06-01
+Status: 04-06b PAUSED at Task 2 (checkpoint:human-verify, blocking) — Task 1 sparkline complete + committed (6deb8d5); combined-render perf gate blocked: MainActivity still scaffold, no harness composes the real combined surface. Plan NOT advanced.
+Last activity: 2026-05-31
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -125,6 +125,7 @@ None yet.
 - [Phase 1] Compose-vs-Views perf on the Nexus 7 is unresolved by design — only the on-device spike (synthetic 2–4 Hz feed) answers it. Hybrid (Views for high-churn: Files list, temp graph, Console scrollback) is the named fallback.
 - [Phase 2] Auth handshake edge cases (oneshot-token websocket, `X-Api-Key`, `401`) need exercising during implementation; flagged for deeper Phase 2 research. JSON-RPC `id` correlation under interleaving notifications (STATE-05) must be covered by mock-socket tests.
 - [Phase 4 / 04-03] PAUSED at Task 5 — `checkpoint:human-verify` (gate="blocking"). Tasks 1–4 complete + committed; the FGS owns the spine, the instrumented `ServiceSurvivesRotationTest` PASSED on flox (sessionInstanceId continuity). AWAITING human on-device sign-off: manual rotation + screen-off with the Ender 5 Plus reachable, persistent key-free notification visual check, and `adb logcat -s DinghySpine` id-sequence capture. Resume with "approved" or report the observed id sequence / what dropped. Plan NOT advanced past the unmet checkpoint.
+- [Phase 4 / 04-06b] BLOCKED at Task 2 — checkpoint:human-verify (gate=blocking). Task 1 (heater sparkline via GraphViewHost wired into the reserved Print Status Field slot, recolors on theme flip) COMPLETE + committed (6deb8d5). Combined-render perf gate NOT measured: production MainActivity is still the Phase-1 scaffold placeholder (no routing/PrintStatusScreen) and NO harness composes the real combined surface (ring+sparkline+grid+gutter). Release built/signed/installed on flox (0a64b42e) but launches to the scaffold stub. Perf numbers NOT fabricated. Plan counter NOT advanced; ROADMAP NOT updated. Unblock: wire MainActivity->TopRoute->PrintStatusScreen (or a combined-surface harness) + live Ender 5 Plus, then run the gfxinfo two-part gate.
 
 ## Deferred Items
 
@@ -136,6 +137,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T01:59:46.216Z
+Last session: 2026-06-01T02:07:08.638Z
 Stopped at: Completed 04-04-PLAN.md
 Resume file: None
