@@ -156,10 +156,10 @@ Plans:
 - [x] 04-02-PLAN.md — Pure primitives: CommandDispatcher (timeout+in-flight+debounce, PRIM-05/D-18) + TopRoute derive() (klippy-state routing, D-05/D-06)
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 04-03-PLAN.md — App wiring foundation: manifest FGS perms + specialUse service + DinghyApp/AppContainer service-locator + MoonrakerService owning the spine (SHELL-03/CONN-01/D-01..D-03; on-device rotation gate)
+- [x] 04-03-PLAN.md — App wiring foundation: manifest FGS perms + specialUse service + DinghyApp/AppContainer service-locator + MoonrakerService owning the spine (SHELL-03/CONN-01/D-01..D-03; on-device rotation gate)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
-- [ ] 04-04-PLAN.md — Settings screen: connection (host/port/key + mDNS scan) + theme/text-size + accent picker (SET-01/PRIM-02/CONN-01/D-15..D-17)
+- [x] 04-04-PLAN.md — Settings screen: connection (host/port/key + mDNS scan) + theme/text-size + accent picker (SET-01/PRIM-02/CONN-01/D-15..D-17)
 - [ ] 04-05-PLAN.md — Splash/recovery hard override: reason text + self-contained recovery actions for first-run/shutdown/unreachable (SHELL-05/D-11..D-13)
 - [ ] 04-06-PLAN.md — Print Status home (part 1): state-adaptive Focus + 2×3 grid (strict capability fallback) + Stop→ConfirmGuard→emergency_stop, with a reserved sparkline slot (SHELL-04/SHELL-02/D-07..D-10)
 
@@ -262,7 +262,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 7/7 | Complete    | 2026-05-31 |
-| 4. Service, Shell, Settings & Print-Status Home | 2/8 | In Progress|  |
+| 4. Service, Shell, Settings & Print-Status Home | 4/8 | In Progress|  |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |

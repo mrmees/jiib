@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T01:15:59.362Z"
+last_updated: "2026-06-01T01:42:05.007Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 23
-  completed_plans: 17
+  completed_plans: 19
   percent: 33
 ---
 
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
-Plan: 3 of 8
-Status: PAUSED at 04-03 Task 5 (blocking human-verify checkpoint) — Tasks 1–4 complete + committed
+Plan: 4 of 8
+Status: Ready to execute
 Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
@@ -70,6 +70,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 03 P07 | 1440 | 2 tasks | 7 files |
 | Phase 04 P01 | 30 | 2 tasks | 4 files |
 | Phase 04 P02 | 18 | 2 tasks | 5 files |
+| Phase 04 P04 | 14 | 2 tasks tasks | 5 files files |
 
 ## Accumulated Context
 
@@ -109,6 +110,7 @@ Recent decisions affecting current work:
 - [Phase 4]: [04-01]: DataStore round-trip is not reliably host-testable on the Windows build host (back-to-back writes/second instance fail the atomic rename); clear→null proven with clear() as the single write plus round-trip proving save persists. Product clear() correct on Android.
 - [Phase ?]: [Phase 4][04-02]: CommandDispatcher (PRIM-05/D-18) wraps JsonRpcClient.request() adding ONLY debounce + in-flight/busy Set + a UI withTimeout; typed catches surface a REDACTED DispatchEvent.Failure (never the cause message, T-04-02-I). Host-testable via substitutable request lambda + injectable timeSource on runTest virtual clock.
 - [Phase ?]: [Phase 4][04-02]: TopRoute.derive() is the SINGLE pure routing authority (review HIGH #2) — !cfg→Connect, klippy!=Ready→Splash, else Shell(Dest.PrintStatus). Routes off klippyState ONLY; NEVER reads s.connection (D-05, proven by socketStateDoesNotRoute + clean grep); printing/idle share one PrintStatus surface (no Dest.Job, D-06).
+- [Phase ?]: [Phase 4][04-04]: Settings screen (SET-01) landed — TokenTextField bridges Material OutlinedTextField chrome to LocalTokens (review #7); conventional verticalScroll list exempt from Focus/Field/Gutter (D-15); Save validates host/port parity then persists ConnectionConfig to ConnectionStore (triggers service rebuild, D-03); key-saved indicator + Clear-key + no-clobber blank-save (review #10/#12); lazy mDNS Scan with bounded settle window (review #5/D-04); Dark/Light+S/M/L+accent picker dual-write live ThemeResolver + persisted ThemePrefs, accent-only delta (D-16); MoonrakerDiscovery injected into AppContainer/DinghyApp (Rule 3).
 
 ### Pending Todos
 
@@ -130,6 +132,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01
-Stopped at: 04-03-PLAN.md Task 5 — blocking human-verify checkpoint (Tasks 1–4 done + committed)
-Resume file: .planning/phases/04-service-shell-settings-print-status-home/04-03-PLAN.md (Task 5 checkpoint)
+Last session: 2026-06-01T01:42:04.972Z
+Stopped at: Completed 04-04-PLAN.md
+Resume file: None

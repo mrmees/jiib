@@ -40,12 +40,12 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **SHELL-03**: A foreground service owns the connection so monitoring survives Activity recreation and screen-off
 - [ ] **SHELL-04**: Print Status is the home/landing surface — a compact live dashboard (progress ring + stat grid; heater stats) — and proves the SHARED render/throttle primitive the Temperature graph later extends; function navigation is via the swipe-up App Drawer (not a persistent menu/rail)
 - [ ] **SHELL-05**: Splash/initializing surface shows startup/connection status with contextual recovery actions (retry, restart Klipper/firmware where exposed)
-- [ ] **SET-01**: Settings screen (conventional Android, keyboard allowed) for baseline app config — Moonraker connection (host/port/key, see CONN-01), theme selection (dark/light/custom), text size (S/M/L), and feature toggles
+- [x] **SET-01**: Settings screen (conventional Android, keyboard allowed) for baseline app config — Moonraker connection (host/port/key, see CONN-01), theme selection (dark/light/custom), text size (S/M/L), and feature toggles
 
 ### UI Primitives
 
 - [x] **PRIM-01**: Reusable **single-setting page** (full-height fill-bar scrubber + increment/stepper row) for numeric value entry (targets, distances, weights) — replaces an alphanumeric keypad; numeric entry never uses the OS keyboard
-- [ ] **PRIM-02**: Text entry uses the **system keyboard, confined to the Settings screen** (host/IP, API key); printer-control surfaces needing alphanumeric input (console, macro params, file search) are triaged per-control toward a keyboard-free pattern (scroll+tap / numeric) where feasible
+- [x] **PRIM-02**: Text entry uses the **system keyboard, confined to the Settings screen** (host/IP, API key); printer-control surfaces needing alphanumeric input (console, macro params, file search) are triaged per-control toward a keyboard-free pattern (scroll+tap / numeric) where feasible
 - [x] **PRIM-03**: Single mandatory **full-screen Confirm guard** used consistently for the destructive/high-impact set: emergency stop, cancel print, disable motors, restart print, and cooldown while actively printing (destructive=red, positive=green, safe dismiss=neutral)
 - [x] **PRIM-04**: Severity-styled message/toast primitive (info/success/warning/error — color + icon + text, never color alone) for transient feedback and errors
 - [x] **PRIM-05**: Shared command-dispatch primitive enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls
@@ -171,13 +171,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PRIM-03 | Phase 3 | Complete |
 | PRIM-04 | Phase 3 | Complete |
 | CONN-01 | Phase 4 | Complete |
-| SET-01 | Phase 4 | Pending |
+| SET-01 | Phase 4 | Complete |
 | SHELL-01 | Phase 4 | Pending |
 | SHELL-02 | Phase 4 | Pending |
 | SHELL-03 | Phase 4 | Pending |
 | SHELL-04 | Phase 4 | Pending |
 | SHELL-05 | Phase 4 | Pending |
-| PRIM-02 | Phase 4 | Pending |
+| PRIM-02 | Phase 4 | Complete |
 | PRIM-05 | Phase 4 | Complete |
 | TEMP-01 | Phase 5 | Pending |
 | TEMP-02 | Phase 5 | Pending |
