@@ -142,6 +142,13 @@ dependencies {
     // ApplicationProvider (for resolving the process DinghyApp/AppContainer) comes transitively via ext.junit's androidx.test:core.
     androidTestImplementation(libs.androidx.test.uiautomator)
 
+    // --- Compose UI test (04-07 ShellPresenceTest) — BOM-governed; the test composes RootController
+    //     under createComposeRule and drives the drawer/routing/splash assertions. ui-test-manifest
+    //     supplies the empty test Activity createComposeRule launches into (debug source set). ---
+    androidTestImplementation(composeBom)
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
+
     // --- JVM unit-test source set (Wave 0): the off-hardware proving ground for the spine ---
     // kotlinx-coroutines-test gives virtual time (runTest) to Wave 2/3 reducer/correlation/reconnect
     // tests; kotlinx-serialization-json lets unit tests + fixtures parse golden Moonraker frames.
