@@ -82,4 +82,18 @@ class DeriveCapabilitiesTest {
         assertEquals(deriveCapabilities(objs), deriveCapabilities(objs))
         assertEquals(deriveSubscribeSet(objs), deriveSubscribeSet(objs))
     }
+
+    // --- Phase-5: case-insensitive macro presence (EXTR-02 / D-10 / Pitfall 2) ---
+
+    @Test
+    fun hasMacroIgnoreCaseMatchesLowercasedMoonrakerName() {
+        // Moonraker reports macro object names LOWERCASE; a case-sensitive == would miss this.
+        val caps = deriveCapabilities(listOf("gcode_macro load_filament"))
+        assertTrue("LOAD_FILAMENT matches load_filament", caps.hasMacroIgnoreCase("LOAD_FILAMENT"))
+    }
+
+    @Test
+    fun hasMacroIgnoreCaseFalseWhenAbsent() {
+        assertFalse("no macros -> no match", deriveCapabilities(emptyList()).hasMacroIgnoreCase("LOAD_FILAMENT"))
+    }
 }
