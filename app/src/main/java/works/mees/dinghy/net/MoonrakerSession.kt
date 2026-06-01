@@ -15,6 +15,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -80,6 +82,17 @@ class MoonrakerSession(
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
     private val reconnectNow = Channel<Unit>(Channel.CONFLATED)
+
+    // G2/G3 (05-10): after the initial handshake completes, an incoming notify_klippy_ready (Klipper
+    // FIRMWARE_RESTART / printer.cfg reload on the SAME still-open socket) drives a FULL re-handshake.
+    // [handshakeComplete] gates it so the FIRST klippy_ready arriving as part of the initial connect
+    // sequence does NOT duplicate the initial runHandshake(); [rehandshakeMutex] serializes re-runs so a
+    // second klippy_ready arriving mid-re-handshake never starts an overlapping handshake. Both are
+    // per-attempt: connectAndServe resets handshakeComplete=false at the top of each attempt (a fresh
+    // socket re-runs the initial handshake, which re-arms the flag).
+    @Volatile
+    private var handshakeComplete: Boolean = false
+    private val rehandshakeMutex = Mutex()
 
     /** D-02: cancel the pending backoff delay (or auth quiescence) and fire an immediate attempt. */
     fun requestReconnectNow() {
@@ -149,6 +162,11 @@ class MoonrakerSession(
      * subscribe → emit Connected → serve frames until the socket closes. Returns when the socket dies.
      */
     private suspend fun connectAndServe(onConnected: () -> Unit = {}): ConnectAttempt = coroutineScope {
+        // Per-attempt re-handshake gate: a fresh socket has not yet run its initial handshake, so an
+        // early klippy_ready in the connect sequence must NOT trigger a re-handshake (it would duplicate
+        // the initial runHandshake()). Re-armed to true once the initial handshake below completes.
+        handshakeComplete = false
+        val attemptScope = this
         // Auth: fetch a oneshot token immediately before connect when keyed (5 s TTL / single-use).
         val token: String? = if (auth?.isKeyed == true) {
             try {
@@ -173,12 +191,39 @@ class MoonrakerSession(
         // onSubscription, so no early notify_* — notably the one-shot notify_klippy_ready — can be
         // dropped in the socket-open → subscribers-attached window. (Collapsed the former redundant
         // launch{ …launchIn } double-wrap to a single collect each — WR-03.)
+        //
+        // G2/G3 (05-10): notify_klippy_ready now drives a FULL re-handshake (re-objects/subscribe +
+        // re-run BOTH one-shot reads), not merely a KlippyState routing note. After a Klipper
+        // FIRMWARE_RESTART / printer.cfg reload on this still-open socket Klipper emits klippy_ready;
+        // without re-running runHandshake() the objects/subscribe registration is lost (temps/positions
+        // freeze) and the one-shot config reads (min_extrude_temp, …) go stale. The re-handshake is
+        // launched on [attemptScope] (NOT this klippy collector's continuation, and NOT the frame
+        // collector) so its blocking rpc.request() calls cannot stall klippy/frame dispatch; it is
+        // serialized by [rehandshakeMutex] (no overlapping re-runs) and gated by [handshakeComplete] (no
+        // duplicate of the initial handshake on the connect-sequence klippy_ready). A re-handshake
+        // failure is best-effort (runCatching) — the prior state stays put; the next klippy_ready or a
+        // socket close → full reconnect gets another chance. shutdown/disconnected are UNCHANGED.
         val statusReady = CompletableDeferred<Unit>()
         val klippyReady = CompletableDeferred<Unit>()
         val gcodeReady = CompletableDeferred<Unit>()
         val routing: Job = launch {
             launch { rpc.statusUpdates.onSubscription { statusReady.complete(Unit) }.collect { store.onStatusDiff(it) } }
-            launch { rpc.klippyEvents.onSubscription { klippyReady.complete(Unit) }.collect { store.onKlippyMethod(it) } }
+            launch {
+                rpc.klippyEvents.onSubscription { klippyReady.complete(Unit) }.collect { method ->
+                    // Always fold into KlippyState (control-plane), as before.
+                    store.onKlippyMethod(method)
+                    // Only notify_klippy_ready, and only AFTER the initial handshake, re-handshakes.
+                    if (method == JsonRpcMethods.NOTIFY_KLIPPY_READY && handshakeComplete) {
+                        attemptScope.launch {
+                            // Serialize re-runs (a second klippy_ready mid-re-handshake waits, then
+                            // re-runs against the freshest config) and keep it non-fatal.
+                            rehandshakeMutex.withLock {
+                                runCatching { runHandshake() }
+                            }
+                        }
+                    }
+                }
+            }
             launch { rpc.gcodeResponses.onSubscription { gcodeReady.complete(Unit) }.collect { store.onGcodeLine(it) } }
         }
         // Do NOT dispatch any inbound frame until all three notification subscribers are attached.
@@ -236,6 +281,10 @@ class MoonrakerSession(
         // Resync complete + subscribed → ONLY NOW Connected (review HIGH #3). Reaching Connected is
         // the ONLY event that resets the supervisor's backoff counter (WR-01) — a durable connection,
         // not a served-then-died flap.
+        // Arm the re-handshake gate (G2/G3): a notify_klippy_ready from HERE ON is a real klippy
+        // restart on the live socket and MUST re-run the full handshake. Set BEFORE emit(Connected) so
+        // a klippy_ready racing the Connected transition is not dropped from the re-handshake path.
+        handshakeComplete = true
         onConnected()
         emit(ConnectionState.Connected)
 
