@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -91,12 +92,22 @@ fun PrintStatusScreen(
     var failureText by remember { mutableStateOf<String?>(null) }
 
     // Surface a dispatch failure (redacted message) as an error toast (PRIM-04).
+    // Reset stale failure from a previous session when the dispatcher key changes.
     LaunchedEffect(dispatcher) {
+        failureText = null
         val d = dispatcher ?: return@LaunchedEffect
         d.events.collect { event ->
             when (event) {
                 is DispatchEvent.Failure -> failureText = event.message
             }
+        }
+    }
+
+    // Auto-dismiss the error toast after 4 s so the stat grid is not permanently obscured.
+    LaunchedEffect(failureText) {
+        if (failureText != null) {
+            delay(4_000)
+            failureText = null
         }
     }
 
