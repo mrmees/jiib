@@ -35,10 +35,13 @@ class CommandDispatcherTest {
      */
     private class FakeRpc {
         val calls = mutableListOf<String>()
+        /** Per-call `timeoutMs` the dispatcher passed to `request`, parallel-indexed with [calls]. */
+        val timeouts = mutableListOf<Long>()
         private val deferreds = mutableListOf<CompletableDeferred<JsonElement>>()
 
         suspend fun request(method: String, params: JsonElement?, timeoutMs: Long): JsonElement {
             calls += method
+            timeouts += timeoutMs
             val d = CompletableDeferred<JsonElement>()
             deferreds += d
             return d.await()
@@ -189,6 +192,86 @@ class CommandDispatcherTest {
             failure!!.message.contains("Move out of range"),
         )
         collectJob.cancel()
+    }
+
+    /**
+     * G4 (MED): a long-running but VALID gcode must NOT show a false error.
+     *
+     * `printer.gcode.script` only returns its JSON-RPC reply when the gcode COMPLETES, so a Z-home
+     * (move-to-center + probe) routinely runs well past the old flat `DEFAULT_TIMEOUT_MS = 10_000L`.
+     * Before this fix the dispatcher applied that 10s deadline to EVERY command, so the outer
+     * `withTimeout` fired at 10s and emitted a Failure toast while the printer was still homing
+     * successfully. Here we advance past the OLD 10s default with the underlying call still pending
+     * (the printer is still homing), THEN complete it — and assert NO Failure was emitted.
+     */
+    @Test
+    fun slowButSuccessfulGcode_emitsNoFailureEvent() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch("home_z", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        assertTrue("key in flight while the gcode runs", "home_z" in dispatcher.inFlight.value)
+
+        // Past the OLD 10s default — the printer is STILL homing (call not yet completed).
+        advanceTimeBy(11_000L)
+        runCurrent()
+        assertTrue("a still-homing gcode is not timed out at the old 10s default", "home_z" in dispatcher.inFlight.value)
+
+        // The home eventually succeeds.
+        rpc.complete(0)
+        runCurrent()
+
+        assertFalse("key removed after the slow gcode finishes", "home_z" in dispatcher.inFlight.value)
+        assertFalse(
+            "a slow-but-successful gcode must emit NO Failure event",
+            events.any { it is DispatchEvent.Failure },
+        )
+        collectJob.cancel()
+    }
+
+    /**
+     * G4: `gcode.script` is dispatched with the long [CommandDispatcher.GCODE_TIMEOUT_MS], while
+     * instant calls (emergency_stop, queries) keep the short default. Captures the `timeoutMs` each
+     * `request` call received via [FakeRpc.timeouts].
+     */
+    @Test
+    fun gcodeScript_usesLongTimeout_notTheDefault() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeoutMs = CommandDispatcher.DEFAULT_TIMEOUT_MS,
+            timeSource = { testScheduler.currentTime },
+        )
+
+        dispatcher.dispatch("home_z", JsonRpcMethods.GCODE_SCRIPT)
+        dispatcher.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP)
+        runCurrent()
+
+        assertEquals("both calls were dispatched", 2, rpc.calls.size)
+        val gcodeIdx = rpc.calls.indexOf(JsonRpcMethods.GCODE_SCRIPT)
+        val estopIdx = rpc.calls.indexOf(JsonRpcMethods.EMERGENCY_STOP)
+        assertEquals(
+            "gcode.script uses the long gcode timeout",
+            CommandDispatcher.GCODE_TIMEOUT_MS,
+            rpc.timeouts[gcodeIdx],
+        )
+        assertEquals(
+            "an instant call keeps the short default timeout",
+            CommandDispatcher.DEFAULT_TIMEOUT_MS,
+            rpc.timeouts[estopIdx],
+        )
+
+        rpc.complete(0)
+        rpc.complete(1)
+        runCurrent()
     }
 
     @Test
