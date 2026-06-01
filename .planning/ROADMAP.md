@@ -162,10 +162,12 @@ Plans:
 - [ ] 04-04-PLAN.md — Settings screen: connection (host/port/key + mDNS scan) + theme/text-size + accent picker (SET-01/PRIM-02/CONN-01/D-15..D-17)
 - [ ] 04-05-PLAN.md — Splash/recovery hard override: reason text + self-contained recovery actions for first-run/shutdown/unreachable (SHELL-05/D-11..D-13)
 - [ ] 04-06-PLAN.md — Print Status home (part 1): state-adaptive Focus + 2×3 grid (strict capability fallback) + Stop→ConfirmGuard→emergency_stop, with a reserved sparkline slot (SHELL-04/SHELL-02/D-07..D-10)
-- [ ] 04-06b-PLAN.md — Print Status home (part 2): heater sparkline (GraphView) into the reserved slot + on-device combined-render perf gate, split from 04-06 per review #4 (SHELL-04/D-09; on-device perf gate)
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 04-07-PLAN.md — Shell integration: swipe-up App Drawer + AppShell full-bleed host + MainActivity routing/FGS-start (SHELL-01/D-14; on-device shell gate)
+- [ ] 04-06b-PLAN.md — Print Status home (part 2): heater sparkline (GraphView) into the reserved slot + on-device combined-render perf gate, split from 04-06 per review #4 (SHELL-04/D-09; on-device perf gate)
+
+**Wave 5** *(blocked on Wave 4)*
+- [ ] 04-07-PLAN.md — Shell integration: swipe-up App Drawer + AppShell full-bleed host + single RootController routing/FGS-start (SHELL-01/D-14; on-device shell gate)
 **UI hint**: yes — per `docs/ui_design/` (Splash, App Drawer, Print Status, Settings screens)
 **Research note**: STANDARD — foreground Service + Doze-aware lifecycle + DataStore + state-driven nav are well-documented Android patterns. (Prior Phase-3 research retargeted to this phase in the `04-*` phase dir — FGS-owns-spine, pure `derive()` routing, render/throttle seam — still applies.)
 
