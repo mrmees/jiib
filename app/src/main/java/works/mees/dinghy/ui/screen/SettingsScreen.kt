@@ -1,5 +1,8 @@
 package works.mees.dinghy.ui.screen
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,8 +40,11 @@ import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.ThemeBase
+import works.mees.dinghy.theme.TokenDelta
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -89,6 +96,22 @@ fun SettingsScreen(
     var scanning by remember { mutableStateOf(false) }
     var scanned by remember { mutableStateOf(false) } // true once a scan has completed at least once.
     var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
+
+    // ---- Appearance (theme) control mirror state ---------------------------------------------
+    // Mirrors the persisted pick so the toggles can show the current selection; the live resolver
+    // and the persisted prefs are BOTH the authority — these vars only drive the checkmarks.
+    var base by remember { mutableStateOf(ThemeBase.Dark) }
+    var fsChoice by remember { mutableStateOf(FontScale.M) }
+    var accentArgb by remember { mutableStateOf<Int?>(null) } // null = base accent (no override).
+
+    // Seed the Appearance mirror once from the persisted theme prefs so the screen opens reflecting
+    // the user's saved base / text-size / accent override.
+    LaunchedEffect(Unit) {
+        val resolved = container.themePrefs.flow.firstOrNull() ?: return@LaunchedEffect
+        base = resolved.base
+        fsChoice = FontScale.entries.firstOrNull { it.multiplier == resolved.fs } ?: FontScale.M
+        accentArgb = resolved.deltas.overrides[TokenDelta.Role.Accent]?.toInt()
+    }
 
     // Pre-fill host/port (NOT the key, review #10) from the current saved config, and remember
     // whether a key is already stored so the non-secret "Key saved" indicator can show.
@@ -269,8 +292,147 @@ fun SettingsScreen(
             intent = Intent.Go,
         )
 
+        // ============================ APPEARANCE ============================================
+        // Each control drives BOTH the live ThemeResolver (immediate re-theme) AND ThemePrefs
+        // (persist) so the choice survives a restart (D-16). The accent picker overrides ONLY the
+        // --accent role; the full multi-role custom editor is deferred (the substrate supports it).
+        SectionLabel("Appearance")
+
+        // Dark / Light base.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedControl(
+                label = "Dark",
+                onClick = {
+                    base = ThemeBase.Dark
+                    container.themeResolver.setBase(ThemeBase.Dark)            // live
+                    scope.launch { container.themePrefs.setBase(ThemeBase.Dark) } // persist
+                },
+                modifier = Modifier.weight(1f),
+                intent = if (base == ThemeBase.Dark) Intent.Accent else Intent.Neutral,
+            )
+            OutlinedControl(
+                label = "Light",
+                onClick = {
+                    base = ThemeBase.Light
+                    container.themeResolver.setBase(ThemeBase.Light)            // live
+                    scope.launch { container.themePrefs.setBase(ThemeBase.Light) } // persist
+                },
+                modifier = Modifier.weight(1f),
+                intent = if (base == ThemeBase.Light) Intent.Accent else Intent.Neutral,
+            )
+        }
+
+        // S / M / L text size (the --fs authority).
+        SectionLabel("Text size")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            for (choice in FontScale.entries) {
+                OutlinedControl(
+                    label = choice.name,
+                    onClick = {
+                        fsChoice = choice
+                        container.themeResolver.setFs(choice.multiplier)       // live
+                        scope.launch { container.themePrefs.setFs(choice) }    // persist
+                    },
+                    modifier = Modifier.weight(1f),
+                    intent = if (fsChoice == choice) Intent.Accent else Intent.Neutral,
+                )
+            }
+        }
+
+        // Accent-color picker (D-16) — overrides the --accent role ONLY. Tapping writes a single-role
+        // TokenDelta both live and persisted. "Default" clears the override (inherit the base accent).
+        SectionLabel("Accent color")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // "Default" swatch — clears the accent override.
+            AccentSwatch(
+                fillArgb = null,
+                selected = accentArgb == null,
+                onClick = {
+                    accentArgb = null
+                    container.themeResolver.setDeltas(TokenDelta.EMPTY)             // live
+                    scope.launch { container.themePrefs.setDeltas(TokenDelta.EMPTY) } // persist
+                },
+            )
+            for (argb in ACCENT_PALETTE) {
+                AccentSwatch(
+                    fillArgb = argb,
+                    selected = accentArgb == argb,
+                    onClick = {
+                        accentArgb = argb
+                        val delta = TokenDelta.of(TokenDelta.Role.Accent to argb)
+                        container.themeResolver.setDeltas(delta)             // live
+                        scope.launch { container.themePrefs.setDeltas(delta) } // persist
+                    },
+                )
+            }
+        }
+
         // Bottom breathing room so the last control clears the scroll edge.
         Box(Modifier.height(24.dp))
+    }
+}
+
+/**
+ * The accent-picker palette (D-16) — a small fixed set of role-appropriate accents. These are theme
+ * DATA (ARGB ints handed to [TokenDelta.of]), NOT rendered-chrome color literals: the swatch fill is
+ * the candidate accent the user is choosing, so it is intrinsically a value, not a token. The default
+ * (cool signature blue) is the base accent and is offered via the separate "Default" swatch (no override).
+ */
+private val ACCENT_PALETTE: List<Int> = listOf(
+    0xFF4DA3FF.toInt(), // brighter blue
+    0xFF22C3A6.toInt(), // teal
+    0xFF8B5CF6.toInt(), // violet
+    0xFFFF8A3D.toInt(), // warm orange
+    0xFFFF5DA2.toInt(), // pink
+)
+
+/**
+ * A tappable accent swatch. The outline + selection ring derive from [LocalTokens] (THEME-01); only
+ * the swatch FILL carries the candidate accent value (theme data). [fillArgb] null = the "Default"
+ * swatch, which shows the surface role (a neutral chip) since "default" means "inherit base accent".
+ */
+@Composable
+private fun AccentSwatch(
+    fillArgb: Int?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    // The ONLY non-token Color in this file: the swatch FILL materializes the candidate accent the
+    // user is choosing (palette DATA, D-16) — it is the value being picked, not rendered chrome. Every
+    // other color (outline, ring, text, the "Default" chip) routes through LocalTokens (THEME-01).
+    val fill = if (fillArgb != null) androidx.compose.ui.graphics.Color(fillArgb) else t.surface2
+    Box(
+        Modifier
+            .size(64.dp) // ≥64dp touch floor (UI-02) — a sanctioned fixed value.
+            .clip(shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(if (selected) 6.dp else 0.dp)
+                .clip(shape)
+                .background(fill),
+        )
+        // Selection ring uses the accent-line token (no raw color), set ON TOP of the fill.
+        if (selected) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .border(BorderStroke(3.dp, t.accentLine), shape),
+            )
+        }
+        if (fillArgb == null) {
+            Text(
+                text = "Def",
+                color = t.text2,
+                fontFamily = GeistMono,
+                fontSize = fsSp(12f, t.fs).sp,
+            )
+        }
     }
 }
 
