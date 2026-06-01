@@ -13,7 +13,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.net.ConnectionError
+import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.net.RpcConnectionException
+import works.mees.dinghy.net.RpcError
 
 /**
  * Virtual-time proof of the UI-affordance layer [CommandDispatcher] adds over
@@ -140,6 +142,52 @@ class CommandDispatcherTest {
 
         assertFalse("no in-flight leak on transport failure", "estop" in dispatcher.inFlight.value)
         assertTrue("transport failure surfaces a Failure event", events.any { it is DispatchEvent.Failure })
+        collectJob.cancel()
+    }
+
+    /**
+     * Regression guard for G1 (BLOCKER): a printer-rejected gcode must NOT crash the app.
+     *
+     * When Moonraker returns a JSON-RPC error envelope for `printer.gcode.script` (an out-of-range
+     * move, a failing macro, a heater fault) `JsonRpcClient.request()` completes the pending deferred
+     * exceptionally with an [RpcError] — a peer of `Exception`, distinct from `RpcConnectionException`.
+     * Before the Task-1 fix, the dispatch() launch block caught only `RpcConnectionException` and
+     * `TimeoutCancellationException`, so the `RpcError` re-threw UNCAUGHT in the unsupervised
+     * `scope.launch` lambda and killed the process (confirmed FATAL EXCEPTION on flox).
+     *
+     * This test feeds the EXACT cause the real client produces (mirroring JsonRpcClient line 155 — the
+     * mock-vs-reality gap that let G1 ship behind green tests) and asserts: (a) no exception escapes the
+     * launch scope (runTest completing without an unhandled exception proves it), (b) a
+     * [DispatchEvent.Failure] is surfaced carrying the printer's rejection text, and (c) the key is
+     * re-enabled (removed from inFlight) exactly as on a transport failure or timeout.
+     */
+    @Test
+    fun gcodeScriptRpcError_emitsFailureEvent_andDoesNotCrash() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch("move_x", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        assertTrue("key in flight while the gcode runs", "move_x" in dispatcher.inFlight.value)
+
+        // Mirror JsonRpcClient.dispatch() completing the deferred with an RpcError on a server error
+        // envelope — the printer rejecting an out-of-range jog move.
+        rpc.fail(0, RpcError(code = -32000, message = "Move out of range: 418.000 -9.000 32.000 [20.000]"))
+        runCurrent()
+
+        assertFalse("no in-flight leak after a printer-rejected gcode", "move_x" in dispatcher.inFlight.value)
+        val failure = events.filterIsInstance<DispatchEvent.Failure>().firstOrNull()
+        assertTrue("a printer rejection surfaces a Failure event (not a crash)", failure != null)
+        assertTrue(
+            "the surfaced message carries the printer's rejection text",
+            failure!!.message.contains("Move out of range"),
+        )
         collectJob.cancel()
     }
 
