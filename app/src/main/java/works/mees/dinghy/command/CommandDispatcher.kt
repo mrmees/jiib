@@ -78,8 +78,12 @@ class CommandDispatcher(
     /** Failure events for the host to toast. Collect with `collectAsStateWithLifecycle`-driven scope. */
     val events: SharedFlow<DispatchEvent> = _events.asSharedFlow()
 
-    /** Last-accepted-dispatch timestamp per key, for the debounce window. */
-    private val lastAccepted = mutableMapOf<String, Long>()
+    /**
+     * Last-accepted-dispatch timestamp per key, for the debounce window. Uses
+     * [java.util.concurrent.ConcurrentHashMap] so reads/writes are safe if [dispatch] is ever
+     * called from a non-main thread (e.g. future interface expansions in SessionControl).
+     */
+    private val lastAccepted = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     /**
      * Issue an action [method] under [key]. No-op if [key] is in-flight (busy) or within the
