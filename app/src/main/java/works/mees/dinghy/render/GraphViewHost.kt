@@ -41,3 +41,40 @@ fun GraphViewHost(
         modifier = modifier,
     )
 }
+
+/**
+ * Multi-trace host overload (05-04 / D-05) — hosts the SAME classic-Views [GraphView] for the N-sensor
+ * Temperature history graph (nozzle/bed/chamber). `factory` runs once; the `update` block PUSHES the
+ * tokens, the fixed [yRange], the N per-sensor [series], and the per-sensor [setpoints] into that one
+ * instance, so a dark→light/custom flip recolors all traces with NO recreation (D-06, no jank).
+ *
+ * The single-snapshot overload above is retained unchanged for the Phase-4 Print Status sparkline.
+ *
+ * @param tokens    the active resolved tokens (THEME-01 — the View derives each trace color from them).
+ * @param series    one bounded [RingBuffer.snapshot] per trace, index 0 = primary (oldest→newest, D-12).
+ * @param setpoints per-trace current target for the dashed setpoint line (D-04); `null`/absent = none.
+ * @param yRange    the FIXED shared Y-range (default 0..350 °C — covers the setHeater ceiling; G-1 fix).
+ * @param drawArea  paint the translucent `.g-area` fill under the PRIMARY trace (default `true`).
+ * @param modifier  caller layout for the hosted View.
+ */
+@Composable
+fun GraphViewHost(
+    tokens: ThemeTokens,
+    series: List<FloatArray>,
+    modifier: Modifier = Modifier,
+    setpoints: List<Float?> = emptyList(),
+    yRange: ClosedFloatingPointRange<Float> = GraphView.DEFAULT_Y_MIN..GraphView.DEFAULT_Y_MAX,
+    drawArea: Boolean = true,
+) {
+    AndroidView(
+        factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
+        update = { view ->
+            view.applyTokens(tokens)   // D-06 push-tokens + invalidate (recolor all traces, no recreation)
+            view.drawArea = drawArea   // fill-rate isolation lever (primary-trace fill only)
+            view.yRange = yRange       // FIXED shared Y-range (G-1 fix)
+            view.setData(series)       // N throttled samples → per-series sanitize/cap + invalidate (D-13)
+            view.setSetpoints(setpoints) // per-trace dashed current-setpoint line (D-04)
+        },
+        modifier = modifier,
+    )
+}
