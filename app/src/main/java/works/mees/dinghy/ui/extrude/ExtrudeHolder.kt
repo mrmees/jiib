@@ -88,8 +88,9 @@ class ExtrudeHolder(
         minTemp: Float?,
         maxDist: Float?,
     ): ExtrudeVm {
-        // PER-TOOL live safety gate — fail-safe false when the active extruder is absent/unreported.
-        val canExtrude = state.heaters[activeTool]?.canExtrude ?: false
+        // The active extruder's live readings (per-tool). Absent extruder → fail-safe defaults.
+        val heater = state.heaters[activeTool]
+        val canExtrude = heater?.canExtrude ?: false
 
         // Tool list / selector visibility from the derived extruder count (D-09).
         val tools = (0 until caps.extruderCount).map { "T$it" }
@@ -104,6 +105,10 @@ class ExtrudeHolder(
             // Case-insensitive macro presence — Moonraker lowercases macro names (Pitfall 2 / D-10).
             hasLoadMacro = caps.hasMacroIgnoreCase("LOAD_FILAMENT"),
             hasUnloadMacro = caps.hasMacroIgnoreCase("UNLOAD_FILAMENT"),
+            // Live nozzle temp/target for the in-field temp button; the active heater the temp set targets.
+            nozzleTemp = heater?.temperature ?: 0.0,
+            nozzleTarget = heater?.target ?: 0.0,
+            activeHeater = activeTool,
         )
     }
 }
@@ -125,4 +130,10 @@ data class ExtrudeVm(
     val showToolSelector: Boolean = false,
     val hasLoadMacro: Boolean = false,
     val hasUnloadMacro: Boolean = false,
+    /** Live current temperature of the [activeHeater] (°C) — the in-field nozzle-temp button readout. */
+    val nozzleTemp: Double = 0.0,
+    /** Live target temperature of the [activeHeater] (°C) — seeds the temp numpad's initial value. */
+    val nozzleTarget: Double = 0.0,
+    /** The active extruder's heater object name (`extruder`, `extruder1`, …) the temp set targets. */
+    val activeHeater: String = "extruder",
 )

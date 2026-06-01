@@ -3,7 +3,9 @@ package works.mees.dinghy.designsystem.control
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -14,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -63,6 +66,7 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  * @param label   the control's text (Geist, `--fs`-scaled).
  * @param onClick invoked on tap.
  * @param intent  the semantic color role (default [Intent.Neutral]).
+ * @param symbol  optional leading Material-Symbol ligature (design spec: gutter buttons keep icon+label).
  */
 @Composable
 fun OutlinedControl(
@@ -70,6 +74,7 @@ fun OutlinedControl(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     intent: Intent = Intent.Neutral,
+    symbol: String? = null,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
@@ -81,12 +86,28 @@ fun OutlinedControl(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-        )
+        if (symbol != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MaterialSymbol(name = symbol, tint = t.text, sizeSp = fsSp(22f, t.fs))
+                Text(
+                    text = label,
+                    color = t.text,
+                    fontFamily = Geist,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(18f, t.fs).sp,
+                )
+            }
+        } else {
+            Text(
+                text = label,
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(18f, t.fs).sp,
+            )
+        }
     }
 }

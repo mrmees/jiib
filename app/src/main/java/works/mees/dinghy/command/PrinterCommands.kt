@@ -40,6 +40,9 @@ object PrinterCommands {
     const val MAX_EXTRUDE_MM = 100.0
     const val MAX_EXTRUDE_FEED_MM_MIN = 6_000
 
+    /** Force-move velocity ceiling (mm/s) — kept conservative; force moves skip all limit checks. */
+    const val MAX_FORCE_VEL_MM_S = 50
+
     // --- Constant action gcodes -------------------------------------------------------------------
     /** Turn off every heater (Temp-panel Cooldown). */
     const val COOLDOWN = "TURN_OFF_HEATERS"
@@ -97,6 +100,21 @@ object PrinterCommands {
      */
     fun overrideJog(axis: String, mm: Double, feedMmMin: Int): String =
         "SET_KINEMATIC_POSITION X=0 Y=0 Z=0\n" + jog(axis, mm, feedMmMin)
+
+    /**
+     * Force-move a SINGLE stepper without homing — the deliberate proceed-at-peril escape behind the
+     * red "unlocked" override toggle (MOVE / D-03 redesign 2026-06-01). Requires `enable_force_move:
+     * True` in the printer config; Klipper rejects it otherwise (surfaced as an error toast). NO limit
+     * checks happen — the caller gates this behind the explicit unlock. [axis] X/Y/Z maps to
+     * `stepper_x/_y/_z`; [mm] magnitude clamped to [MAX_JOG_MM] (sign preserved); [velocityMmS] clamped
+     * to a sane 1..[MAX_FORCE_VEL_MM_S] mm/s.
+     */
+    fun forceMove(axis: String, mm: Double, velocityMmS: Int): String {
+        val a = requireAxis(axis)
+        val d = clampMagnitude(mm, MAX_JOG_MM)
+        val v = velocityMmS.coerceIn(1, MAX_FORCE_VEL_MM_S)
+        return "FORCE_MOVE STEPPER=stepper_${a.lowercase()} DISTANCE=$d VELOCITY=$v"
+    }
 
     /** Home all axes. */
     fun homeAll(): String = "G28"

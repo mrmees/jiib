@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +53,13 @@ fun ScreenScaffold(
     gutter: (@Composable () -> Unit)? = null,
     focusGrow: Float = 1f,
     fieldGrow: Float = 1f,
+    // PORTRAIT aspect-lock (NON-NEGOTIABLE 2 helper): when set, the stacked PORTRAIT focus region is
+    // sized to `fillMaxWidth().aspectRatio(portraitFocusAspect)` and the FIELD flexes to absorb the
+    // remaining height. This lets a screen whose focus is a sacred square (Move's jog pad) fill the
+    // full width — the square's own ratio drives the focus/field split, instead of a fixed 40/40 that
+    // would shrink the square to half-height with fat side margins. Null = the normal weighted split.
+    // (Landscape is unaffected — there focus/field split the WIDTH as 50/50 columns.)
+    portraitFocusAspect: Float? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
@@ -86,22 +94,27 @@ fun ScreenScaffold(
             }
         } else {
             // Portrait stack: focus / field / full-width gutter, weighted ~40/40/(content) rhythm.
+            // When [portraitFocusAspect] is set, the focus is instead aspect-locked (full-width square
+            // for Move's jog pad) and the field absorbs the remaining height — the square's ratio, not
+            // a fixed rhythm, drives the split (sacred-square fill, no side margins).
             Column(Modifier.fillMaxSize()) {
                 if (focus != null) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(focusGrow),
-                        content = focus,
-                    )
+                    val focusMod = if (portraitFocusAspect != null) {
+                        Modifier.fillMaxWidth().aspectRatio(portraitFocusAspect)
+                    } else {
+                        Modifier.fillMaxWidth().weight(focusGrow)
+                    }
+                    Column(focusMod, content = focus)
                 }
                 if (field != null) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(fieldGrow),
-                        content = field,
-                    )
+                    // Aspect-locked focus → field takes ALL the leftover height (weight 1); otherwise
+                    // the normal weighted share.
+                    val fieldMod = if (portraitFocusAspect != null) {
+                        Modifier.fillMaxWidth().weight(1f)
+                    } else {
+                        Modifier.fillMaxWidth().weight(fieldGrow)
+                    }
+                    Column(fieldMod, content = field)
                 }
                 if (gutter != null) {
                     Box(Modifier.fillMaxWidth()) { gutter() }

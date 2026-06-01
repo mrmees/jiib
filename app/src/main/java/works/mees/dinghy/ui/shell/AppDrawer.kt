@@ -109,17 +109,16 @@ private data class DrawerTileSpec(
 
 /**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
- * Tools (→ Extrude) are LIVE; Files, Macros, Devices remain greyed "coming soon"; Power is the red,
- * greyed, deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The
- * "Tools" tile routes to the Extrude panel (Phase-5 tile→panel mapping: Move→Move, Temp→Temperature,
- * Tools→Extrude); its label is kept per the LAW mockup rather than renamed.
+ * Extrude are LIVE; Files, Macros, Devices remain greyed "coming soon"; Power is the red, greyed,
+ * deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The Extrude tile
+ * (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its function.
  */
 private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     DrawerTileSpec(label = "Status", symbol = "monitoring", dest = Dest.PrintStatus),
     DrawerTileSpec(label = "Move", symbol = "open_with", dest = Dest.Move),
     DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
     DrawerTileSpec(label = "Files", symbol = "folder", dest = null),
-    DrawerTileSpec(label = "Tools", symbol = "build", dest = Dest.Extrude),
+    DrawerTileSpec(label = "Extrude", symbol = "output_circle", dest = Dest.Extrude),
     DrawerTileSpec(label = "Macros", symbol = "code", dest = null),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
