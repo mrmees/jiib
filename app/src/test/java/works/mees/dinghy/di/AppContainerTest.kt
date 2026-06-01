@@ -45,19 +45,25 @@ class AppContainerTest {
 
     private fun newContainer() = AppContainer(FakeDataStore(), FakeDataStore(), lazyDiscovery())
 
-    private fun handle(id: Long): SpineHandle = SpineHandle(
-        printerState = MutableStateFlow(PrinterState()),
-        connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected),
-        capabilities = MutableStateFlow(Capabilities()),
-        dispatcher = CommandDispatcher(
-            request = { _, _, _ -> kotlinx.serialization.json.JsonNull },
+    private fun handle(id: Long): SpineHandle {
+        val store = works.mees.dinghy.state.PrinterStateStore(
             scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
-        ),
-        store = works.mees.dinghy.state.PrinterStateStore(
-            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
-        ),
-        sessionInstanceId = id,
-    )
+        )
+        return SpineHandle(
+            printerState = MutableStateFlow(PrinterState()),
+            connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected),
+            capabilities = MutableStateFlow(Capabilities()),
+            dispatcher = CommandDispatcher(
+                request = { _, _, _ -> kotlinx.serialization.json.JsonNull },
+                scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
+            ),
+            store = store,
+            minExtrudeTemp = store.minExtrudeTemp,
+            maxExtrudeDistance = store.maxExtrudeDistance,
+            temperatureBackfill = store.temperatureBackfill,
+            sessionInstanceId = id,
+        )
+    }
 
     @Test
     fun spineIsNullBeforeAnyPublish() {

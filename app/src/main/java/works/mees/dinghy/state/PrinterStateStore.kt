@@ -58,6 +58,26 @@ class PrinterStateStore(
     /** The SEPARATE, un-throttled gcode-response line stream (no conflation; bounded buffer). */
     val gcodeResponses: SharedFlow<String> = _gcodeResponses.asSharedFlow()
 
+    // ---- One-shot handshake reads (05-03) -------------------------------------------------------
+    // These three are STATIC/capability-like reads landed ONCE per handshake (temperature_store +
+    // configfile), NOT the throttled hot path. They are StateFlows (not @Volatile var) so holders
+    // OBSERVE them and react the instant the one-shot read lands — "graph full immediately on connect"
+    // and the real min-temp hint are driven by the data arriving, not by a later notify_status_update
+    // diff (review: don't make connect-time fullness depend on a status diff). Each is written exactly
+    // once at handshake and is best-effort (left at its null/empty default if the read fails).
+
+    private val _minExtrudeTemp = MutableStateFlow<Float?>(null)
+    /** `configfile.settings.extruder.min_extrude_temp` (EXTR-04 hint text); null if unreadable. */
+    val minExtrudeTemp: StateFlow<Float?> = _minExtrudeTemp.asStateFlow()
+
+    private val _maxExtrudeDistance = MutableStateFlow<Float?>(null)
+    /** `configfile.settings.extruder.max_extrude_only_distance` (Extrude ceiling); null if unreadable. */
+    val maxExtrudeDistance: StateFlow<Float?> = _maxExtrudeDistance.asStateFlow()
+
+    private val _temperatureBackfill = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
+    /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
+    val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
+
     init {
         // Sampled flush: every sampleMillis, publish the accumulator IF a high-rate update is pending.
         scope.launch {
@@ -129,6 +149,21 @@ class PrinterStateStore(
     /** Publish freshly-derived capabilities (re-run on every reconnect, STATE-02). */
     fun setCapabilities(capabilities: Capabilities) {
         _capabilities.value = capabilities
+    }
+
+    /** One-shot at handshake: the min-extrude-temp hint (05-03). NOT the throttled hot path. */
+    fun setMinExtrudeTemp(value: Float?) {
+        _minExtrudeTemp.value = value
+    }
+
+    /** One-shot at handshake: the max-extrude-only-distance ceiling (05-03). NOT the throttled hot path. */
+    fun setMaxExtrudeDistance(value: Float?) {
+        _maxExtrudeDistance.value = value
+    }
+
+    /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */
+    fun setTemperatureBackfill(backfill: Map<String, FloatArray>) {
+        _temperatureBackfill.value = backfill
     }
 
     // ---- internals ------------------------------------------------------------------------------

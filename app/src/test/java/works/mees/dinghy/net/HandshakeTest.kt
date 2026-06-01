@@ -51,12 +51,15 @@ class HandshakeTest {
         val handshakeMethods = methodsOf(fake.sentFrames.toList())
 
         assertEquals(
-            "handshake must run identify → list → query → subscribe in order, once each",
+            "handshake must run identify → list → query → subscribe, THEN the two one-shot 05-03 reads " +
+                "(temperature_store backfill + configfile one-shot query), in order, once each",
             listOf(
                 JsonRpcMethods.IDENTIFY,
                 JsonRpcMethods.OBJECTS_LIST,
                 JsonRpcMethods.OBJECTS_QUERY,
                 JsonRpcMethods.OBJECTS_SUBSCRIBE,
+                JsonRpcMethods.TEMPERATURE_STORE,
+                JsonRpcMethods.OBJECTS_QUERY, // one-shot configfile read
             ),
             handshakeMethods,
         )
@@ -81,6 +84,16 @@ class HandshakeTest {
 
         // State seeded from the query snapshot (golden snapshot has heater_bed ~23.8).
         assertEquals(23.8, store.printerState.value.heaters["heater_bed"]?.temperature)
+
+        // 05-03: the two one-shot reads land on capability-like StateFlows (NOT the throttled hot path).
+        // temperature_store backfill maps ONLY the drawn heater sensors (extruder/heater_bed), oldest-first,
+        // and ignores the pure `temperature_sensor mcu` entry the store also returns.
+        val backfill = store.temperatureBackfill.value
+        assertEquals(setOf("extruder", "heater_bed"), backfill.keys.toSet())
+        assertEquals(23.0f, backfill["extruder"]?.last())
+        // configfile one-shot read populated the min/max extrude hints from the PRIMARY extruder.
+        assertEquals(170.0f, store.minExtrudeTemp.value)
+        assertEquals(50.0f, store.maxExtrudeDistance.value)
 
         run.cancelAndJoin()
     }

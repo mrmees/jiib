@@ -38,6 +38,31 @@ class SessionTestHarness {
     @Volatile
     var subscribeSnapshotJson: String? = null
 
+    /**
+     * The `server.temperature_store` reply RESULT object (05-03 backfill). Defaults to a realistic
+     * heater-keyed shape (index 0 = oldest) — faithful to the live contract so the one-shot read exercises
+     * [works.mees.dinghy.state.parseTemperatureStore] the way flox will. The store also returns pure
+     * `temperature_sensor X` entries the graph must ignore, so include one.
+     */
+    @Volatile
+    var temperatureStoreResultJson: String = """
+        {"extruder":{"temperatures":[21.0,22.0,23.0],"targets":[0,0,0],"powers":[0,0,0]},
+         "heater_bed":{"temperatures":[60.0,61.0,62.0],"targets":[0,0,0],"powers":[0,0,0]},
+         "temperature_sensor mcu":{"temperatures":[40.0,40.1,40.2]}}
+    """.trimIndent()
+
+    /**
+     * The `configfile` one-shot query RESULT object (05-03 EXTR-04). Defaults to the real shape:
+     * `status.configfile.settings.extruder.{min_extrude_temp,max_extrude_only_distance}` — static
+     * parsed-config numbers Moonraker always exposes. configfile is a real always-defined Moonraker
+     * object, so the subset validator accepts it even though it is not in the objects.list fixture.
+     */
+    @Volatile
+    var configfileResultJson: String = """
+        {"eventtime":100002.0,"status":{"configfile":{"settings":{"extruder":{
+          "min_extrude_temp":170.0,"max_extrude_only_distance":50.0}}}}}
+    """.trimIndent()
+
     /** If non-null, the identify reply is this raw error frame (drives the auth/protocol-error path). */
     @Volatile
     var identifyErrorFrame: String? = null
@@ -79,10 +104,18 @@ class SessionTestHarness {
                     }
                     ?: """{"jsonrpc":"2.0","result":{"connection_id":1730367696},"id":$id}"""
             JsonRpcMethods.OBJECTS_LIST -> reIdResult(objectsListJson, id)
+            // The one-shot configfile query (05-03) is an OBJECTS_QUERY of just {configfile:null};
+            // answer it with the static parsed-config shape (real Moonraker always defines configfile).
             JsonRpcMethods.OBJECTS_QUERY ->
-                invalidObjectsSubset(obj)?.let {
+                if (queriesOnlyConfigfile(obj)) {
+                    """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(configfileResultJson)},"id":$id}"""
+                }
+                else invalidObjectsSubset(obj)?.let {
                     """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
                 } ?: reIdResult(snapshotJson, id)
+            // One-shot temperature_store backfill (05-03) — NOT subscribed; faithful heater-keyed reply.
+            JsonRpcMethods.TEMPERATURE_STORE ->
+                """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(temperatureStoreResultJson)},"id":$id}"""
             JsonRpcMethods.OBJECTS_SUBSCRIBE ->
                 invalidObjectsSubset(obj)?.let {
                     """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
@@ -114,6 +147,15 @@ class SessionTestHarness {
      * real server — a regression that subscribed to nothing, or to a wrong/absent object, now fails a
      * test instead of silently passing (WR-02).
      */
+    /** True when the query's `params.objects` is exactly `{configfile}` — the 05-03 one-shot config read. */
+    private fun queriesOnlyConfigfile(requestObj: JsonObject): Boolean {
+        val keys = requestObj["params"]?.jsonObject
+            ?.get("objects")?.jsonObject
+            ?.keys
+            ?: return false
+        return keys == setOf("configfile")
+    }
+
     private fun invalidObjectsSubset(requestObj: JsonObject): String? {
         val requested = requestObj["params"]?.jsonObject
             ?.get("objects")?.jsonObject

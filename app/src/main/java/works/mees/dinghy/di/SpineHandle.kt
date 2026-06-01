@@ -39,6 +39,20 @@ data class SpineHandle(
      * socket or owns the connection lifecycle.
      */
     val store: PrinterStateStore,
+    /**
+     * One-shot handshake reads (05-03) forwarded straight off the store's StateFlows. They are written
+     * exactly ONCE per handshake (temperature_store + configfile, NOT the throttled hot path); a holder
+     * collecting them reacts the instant the one-shot read lands — so 05-05 (Temperature) gets a full
+     * graph immediately on connect and 05-07 (Extrude) gets the real min-temp hint, both deterministically
+     * (not contingent on a later notify_status_update diff). The handle is published BEFORE the handshake
+     * fills these, but a StateFlow carries its value forward to late collectors — no re-publish needed.
+     */
+    /** `configfile.settings.extruder.min_extrude_temp` (EXTR-04 hint); null until/unless read. */
+    val minExtrudeTemp: StateFlow<Float?>,
+    /** `configfile.settings.extruder.max_extrude_only_distance` (Extrude ceiling); null until/unless read. */
+    val maxExtrudeDistance: StateFlow<Float?>,
+    /** Per-sensor temperature_store backfill (oldest→newest), seeds the graph on connect (G-1). */
+    val temperatureBackfill: StateFlow<Map<String, FloatArray>>,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
 )

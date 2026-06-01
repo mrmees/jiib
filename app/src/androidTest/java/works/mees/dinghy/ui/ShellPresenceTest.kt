@@ -86,6 +86,9 @@ class ShellPresenceTest {
             capabilities = MutableStateFlow(Capabilities()),
             dispatcher = CommandDispatcher(request = { _, _, _ -> JsonNull }, scope = testScope),
             store = store,
+            minExtrudeTemp = store.minExtrudeTemp,
+            maxExtrudeDistance = store.maxExtrudeDistance,
+            temperatureBackfill = store.temperatureBackfill,
             sessionInstanceId = 1L,
         )
         container.publishSpine(handle)

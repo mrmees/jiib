@@ -136,6 +136,11 @@ class MoonrakerService : Service() {
             capabilities = store.capabilities,
             dispatcher = dispatcher,
             store = store, // the UI builds the per-session PrintStatusHolder from this (04-07).
+            // One-shot handshake reads (05-03) — forwarded as the store's StateFlows so 05-05/05-07
+            // collect them off the live handle (values carry forward to late collectors).
+            minExtrudeTemp = store.minExtrudeTemp,
+            maxExtrudeDistance = store.maxExtrudeDistance,
+            temperatureBackfill = store.temperatureBackfill,
             sessionInstanceId = id,
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.

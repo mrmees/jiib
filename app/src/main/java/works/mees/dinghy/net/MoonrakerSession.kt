@@ -20,8 +20,10 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import works.mees.dinghy.auth.AuthException
@@ -31,6 +33,7 @@ import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.state.deriveCapabilities
 import works.mees.dinghy.state.deriveSubscribeSet
+import works.mees.dinghy.state.parseTemperatureStore
 import works.mees.dinghy.state.reduceSnapshot
 import kotlin.random.Random
 import kotlin.time.Duration
@@ -254,7 +257,8 @@ class MoonrakerSession(
         val objects = parseObjectsList(listResult)
 
         // 3. derive capabilities + subscribe set (STATE-02, A3) — re-derived EVERY reconnect.
-        store.setCapabilities(deriveCapabilities(objects))
+        val capabilities = deriveCapabilities(objects)
+        store.setCapabilities(capabilities)
         val subset = deriveSubscribeSet(objects)
 
         // 4. objects.query(subset) — full snapshot; SEED overwrites stale state (D-04).
@@ -268,6 +272,33 @@ class MoonrakerSession(
         //    would otherwise be missed until a later diff touched the same field (CR-02/WR-04, D-04).
         val subResult = rpc.request(JsonRpcMethods.OBJECTS_SUBSCRIBE, objectsParam(subset))
         parseStatus(subResult)?.let { store.seed(reduceSnapshot(it)) }
+
+        // 6. One-shot history/config reads (05-03, TEMP-04/EXTR-04) — the ONLY new networking in the
+        //    phase. Both NOT subscribed (config is static; the store is a backfill seed — live points
+        //    keep arriving on the existing notify_status_update stream). Each is BEST-EFFORT in its own
+        //    runCatching so a printer lacking the endpoint/field never breaks the handshake (it already
+        //    reached subscribe above): a failed read leaves the store's StateFlow at its null/empty
+        //    default and the panels degrade gracefully (T-05-03-D). Results land on capability-like
+        //    StateFlows holders OBSERVE (deterministic on-connect fullness, NOT the throttled hot path).
+        runCatching {
+            // temperature_store: backfill ONLY the heater sensors the graph draws (capability heaters),
+            // by exact object name — ignore pure `temperature_sensor X` entries (RESEARCH §1 alignment).
+            val storeResult = rpc.request(JsonRpcMethods.TEMPERATURE_STORE)
+            val backfill = parseTemperatureStore(storeResult.jsonObject, capabilities.heaters.toSet())
+            store.setTemperatureBackfill(backfill)
+        }
+        runCatching {
+            // configfile (one-shot query, NOT live subscribe): static parsed-config numbers from the
+            // PRIMARY `extruder` — single-extruder-accurate (the per-tool safety gate stays the live
+            // can_extrude boolean, not these numbers).
+            val cfgResult = rpc.request(JsonRpcMethods.OBJECTS_QUERY, objectsParam(setOf("configfile")))
+            val extruderCfg = parseStatus(cfgResult)
+                ?.objectOrNull("configfile")
+                ?.objectOrNull("settings")
+                ?.objectOrNull("extruder")
+            store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
+            store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
+        }
     }
 
     private fun identifyParams() = buildJsonObject {
@@ -301,6 +332,13 @@ class MoonrakerSession(
 
     private fun parseStatus(result: kotlinx.serialization.json.JsonElement): JsonObject? =
         runCatching { result.jsonObject["status"]?.jsonObject }.getOrNull()
+
+    // --- null-safe config walkers (05-03): a missing/garbage field yields null, never `!!` on wire data ---
+
+    private fun JsonObject.objectOrNull(key: String): JsonObject? = this[key] as? JsonObject
+
+    private fun JsonObject.floatOrNullAt(key: String): Float? =
+        runCatching { this[key]?.jsonPrimitive?.doubleOrNull?.toFloat() }.getOrNull()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun waitBackoffOrTrigger(attempt: Int) {
