@@ -187,7 +187,7 @@ Plans:
   4. **Shared command-dispatch (PRIM-05) is verified in anger:** every action button shows an immediate in-flight/disabled state, enforces an explicit timeout (no infinite hang on a dropped packet), and debounces so a second tap can't re-fire — and every panel hides controls the connected printer doesn't support (capability-gated, not disabled-and-confusing)
   5. Provable on the real Ender 5 Plus: preheat → wait for temp → extrude → jog all work end-to-end without the browser open
 
-**Plans**: 10 plans (8 + 2 gap-closure)
+**Plans**: 11 plans (8 + 3 gap-closure)
 Plans:
 
 **Wave 1**
@@ -209,6 +209,7 @@ Plans:
 **Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
 - [x] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
 - [x] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
+- [ ] 05-11-PLAN.md — G4: give printer.gcode.script a 120s timeout (was flat 10s) + typed ConnectionError.Timeout so a long-running-but-successful gcode (Z-home/macros) no longer shows a false "command could not be sent" — G1 rejection-surfacing + true connection-failure messaging preserved
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
