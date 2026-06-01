@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: "04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6."
-last_updated: "2026-06-01T02:27:22.559Z"
+last_updated: "2026-06-01T03:52:53.117Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
   percent: 44
 ---
 
@@ -76,6 +76,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 04 P05 | 9 | 2 tasks | 4 files |
 | Phase 04 P06 | 5 | 2 tasks | 3 files |
 | Phase 04 P07 | 95 | 3 tasks tasks | 10 files files |
+| Phase 03 P08 | 18 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,7 @@ Recent decisions affecting current work:
 - [Phase 4]: [04-06]: Print Status home (SHELL-04 part 1) landed — PrintStatusHolder turns the already-throttled printerState into a bounded primary-heater RingBuffer snapshot + a flattened 6-slot PrintStatusGrid with EXPLICIT review-#9 capability fallback (extruder-prefix primary; heater_bed-or-promote-chamber secondary by object name; null placeholders never fabricated; heater target 0 → null setpoint). PrintStatusScreen is state-adaptive (D-08): ProgressRing while Printing/Paused, a live "Ready"+nozzle/bed readout idle (never a 0% ring); 2×3 GeistMono grid (StatCell renders "—" for null); a RESERVED sparkline slot (GraphView + combined-render perf gate DEFERRED to 04-06b, review #4); Stop → full-screen ConfirmGuard → dispatcher.dispatch("estop", EMERGENCY_STOP) via the per-session CommandDispatcher (review #1), never a raw transport request; firing routes klippy→shutdown→Splash automatically (D-10). Token-pure, no second throttle (consumes store's 250ms conflation). Holder host-tested across all fallback cases.
 - [Phase ?]: [Phase 4][04-04]: Settings screen (SET-01) landed — TokenTextField bridges Material OutlinedTextField chrome to LocalTokens (review #7); conventional verticalScroll list exempt from Focus/Field/Gutter (D-15); Save validates host/port parity then persists ConnectionConfig to ConnectionStore (triggers service rebuild, D-03); key-saved indicator + Clear-key + no-clobber blank-save (review #10/#12); lazy mDNS Scan with bounded settle window (review #5/D-04); Dark/Light+S/M/L+accent picker dual-write live ThemeResolver + persisted ThemePrefs, accent-only delta (D-16); MoonrakerDiscovery injected into AppContainer/DinghyApp (Rule 3).
 - [Phase ?]: [Phase 4][04-07]: App wired end-to-end — MainActivity starts the FGS, hosts ONE DinghyTheme boundary, delegates ALL routing to a single RootController (SOLE consumer of derive() + the one open-Settings escape, review #2/#11). Swipe-up full-screen AppDrawer (Status+Settings live; Move/Temp/Files/Tools/Macros/Devices+red Power greyed/INERT — no click action, T-04-07-E); AppShell renders the active Dest full-bleed (lean route holder, NOT Navigation-Compose, D-05) + BackHandler collapse; Settings is an in-shell Dest (no dangling onOpenSettings). ShellPresenceTest PASSES on flox. Wiring fix: SpineHandle gained a per-session PrinterStateStore so the shell builds PrintStatusHolder from the LIVE store. UNBLOCKS 04-06b's combined-render perf gate.
+- [Phase 03]: [03-08 gap-closure]: G-3 ScrubberPage tap-to-set fixed by ONE awaitEachGesture (re-arming) block — awaitFirstDown sets value immediately (registers the zero-movement tap detectDragGestures swallowed), pressed-move loop tracks drag; both funnel through internal fun fractionFromX (now host-tested by ScrubberMappingTest, the coverage gap that hid WR-01). One pointerInput, one consumer — no dual-detector race. G-2 shared bar/button 16.dp inset (no fixed px). G-4 ConfirmGuard opaque t.bg layered UNDER alpha stop/go tint. G-1 token-bg roots replace bare Material3 Surface() (colorScheme never populated). Tasks 1-3 committed; Task 4 on-device re-check OPEN.
 
 ### Pending Todos
 
@@ -130,6 +132,7 @@ None yet.
 - [Phase 2] Auth handshake edge cases (oneshot-token websocket, `X-Api-Key`, `401`) need exercising during implementation; flagged for deeper Phase 2 research. JSON-RPC `id` correlation under interleaving notifications (STATE-05) must be covered by mock-socket tests.
 - [Phase 4 / 04-03] PAUSED at Task 5 — `checkpoint:human-verify` (gate="blocking"). Tasks 1–4 complete + committed; the FGS owns the spine, the instrumented `ServiceSurvivesRotationTest` PASSED on flox (sessionInstanceId continuity). AWAITING human on-device sign-off: manual rotation + screen-off with the Ender 5 Plus reachable, persistent key-free notification visual check, and `adb logcat -s DinghySpine` id-sequence capture. Resume with "approved" or report the observed id sequence / what dropped. Plan NOT advanced past the unmet checkpoint.
 - [Phase 4 / 04-06b] BLOCKED at Task 2 — checkpoint:human-verify (gate=blocking). Task 1 (heater sparkline via GraphViewHost wired into the reserved Print Status Field slot, recolors on theme flip) COMPLETE + committed (6deb8d5). Combined-render perf gate NOT measured: production MainActivity is still the Phase-1 scaffold placeholder (no routing/PrintStatusScreen) and NO harness composes the real combined surface (ring+sparkline+grid+gutter). Release built/signed/installed on flox (0a64b42e) but launches to the scaffold stub. Perf numbers NOT fabricated. Plan counter NOT advanced; ROADMAP NOT updated. Unblock: wire MainActivity->TopRoute->PrintStatusScreen (or a combined-surface harness) + live Ender 5 Plus, then run the gfxinfo two-part gate.
+- [Phase 3 / 03-08 gap-closure] OPEN at Task 4 — checkpoint:human-verify (gate=blocking). Tasks 1-3 complete + committed (32a613a/022e8e6/0b34a84): full unit suite green, debug APK (app-armeabi-v7a-debug.apk) reinstalled on flox (0a64b42e) + gallery launched. AWAITING on-device re-check of all four gaps: G-3 tap-to-set on the ScrubberPage fill bar, G-2 shared bar/button width, G-4 ConfirmGuard scrim opacity, G-1 gallery dark/light/custom page bg. Resume with 'approved' or describe which gap(s) still read wrong. Plan NOT advanced past the unmet checkpoint.
 
 ## Deferred Items
 
@@ -141,6 +144,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T02:27:05.274Z
-Stopped at: Completed 04-04-PLAN.md
-Resume file: None
+Last session: 2026-06-01T03:52:53.081Z
+Stopped at: 03-08 gap-closure Tasks 1-3 done; Task 4 on-device re-check (G-1..G-4) OPEN on flox
+Resume file: .planning/phases/03-design-system-theming-foundation/03-08-PLAN.md
