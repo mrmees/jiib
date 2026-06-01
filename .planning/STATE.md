@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T05:36:51.306Z"
+last_updated: "2026-06-01T05:42:11.719Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 32
-  completed_plans: 27
+  completed_plans: 28
   percent: 44
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
   → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
   → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
@@ -80,6 +80,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P01 | 5 | 2 tasks | 6 files |
 | Phase 05 P02 | 9 | 2 tasks | 5 files |
 | Phase 05 P03 | 12 | 2 tasks | 10 files |
+| Phase 05 P04 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,7 @@ Recent decisions affecting current work:
 - [Phase 05]: [05-01]: Phase-5 state contract settled FIRST — gcodePosition (offsets-stripped Move source, NOT toolheadPosition/Pitfall 1); HeaterState.canExtrude (defaults false fail-safe cold-extrude gate, EXTR-04); hasMacroIgnoreCase (Moonraker lowercases macro names, Pitfall 2/EXTR-02); GCODE_SCRIPT + TEMPERATURE_STORE methods. Null-safe booleanOrNull; merge retains can_extrude on temp-only diff (STATE-01). TDD RED->GREEN, full state suite green.
 - [Phase ?]: [Phase 5][05-02]: PrinterCommands is the settled action-string contract — clamp-before-format (ASVS V5, named bounds), fixed axis/heater identifiers (no free-text), jog/extrude/overrideJog wrapped in SAVE/RESTORE_GCODE_STATE; scriptParams wraps into {script:gcode}. applyPreset = primary extruder+heater_bed only (multi-tool deferred). violet 3rd trace token baked dark 0xFFAE84F2/light 0xFF7B47BF via bake_tokens.py (in-gamut, THEME-01).
 - [Phase ?]: [Phase 5][05-03]: Two one-shot handshake reads (server.temperature_store backfill + configfile min_extrude_temp/max_extrude_only_distance) land on capability-like StateFlows holders OBSERVE -> connect-time graph fullness (G-1 fix) + Extrude min-temp hint driven by data arriving, not a later notify_status_update diff. Best-effort (per-read runCatching, after subscribe) -> printer lacking endpoint/field degrades, never breaks Connected. min/max from PRIMARY extruder (static); per-tool safety gate stays the LIVE can_extrude boolean. SessionTestHarness hardened to faithful Moonraker shapes.
+- [Phase ?]: [Phase 5][05-04]: GraphView EXTENDED in place to N (<=3) traces (Array<Path>/Array<Paint>, nozzle=heat/bed=accent/chamber=violet) on one shared X window + a FIXED shared Y-range default 0..350 C — replaces the per-frame window min/max auto-range (Phase-4 gap G-1 fix); 0..350 (not 0..300) covers the setHeater clamp so a legal target never clips (Codex). Per-trace dashed CURRENT-setpoint line (D-04, DashPathEffect pre-allocated once in init). Area fill bounded to the primary trace only (drawArea = the 05-08 Adreno-320 fill-rate isolation lever). GraphViewHost gained a series:List<FloatArray> overload; single-snapshot Print Status sparkline path retained back-compat. onDraw allocation-free (T-05-04-D mitigated); D-06 perf re-measured on the full Temperature screen in 05-08, NOT grandfathered from 50.1ms.
 
 ### Pending Todos
 
@@ -150,6 +152,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T05:36:31.997Z
+Last session: 2026-06-01T05:41:50.810Z
 Stopped at: Completed 05-01-PLAN.md
 Resume file: None
