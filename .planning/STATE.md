@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: "04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6."
-last_updated: "2026-06-01T03:52:53.117Z"
+last_updated: "2026-06-01T04:13:39.772Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
@@ -144,6 +144,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T03:52:53.081Z
-Stopped at: 03-08 gap-closure Tasks 1-3 done; Task 4 on-device re-check (G-1..G-4) OPEN on flox
-Resume file: .planning/phases/03-design-system-theming-foundation/03-08-PLAN.md
+Last session: 2026-06-01T04:13:39.736Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-core-print-control-panels-temperature-move-extrude/05-CONTEXT.md
