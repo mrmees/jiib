@@ -15,7 +15,7 @@ must_haves:
     - "The combined ring + sparkline + live grid surface holds the Phase-3 two-part perf gate on flox"
   artifacts:
     - path: "app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusScreen.kt"
-      provides: "Heater sparkline (GraphViewHost) wired into the reserved Field slot + dispatcher-failure toast"
+      provides: "Heater sparkline (GraphViewHost) wired into the reserved Field slot (dispatcher-failure toast is delivered in 04-06)"
       contains: "GraphViewHost"
   key_links:
     - from: "ui/printstatus/PrintStatusScreen.kt"
