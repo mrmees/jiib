@@ -134,7 +134,7 @@ Plans:
 - [x] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
 
 **Gap closure** *(UAT G-1..G-4)*
-- [ ] 03-08-PLAN.md — Fix 4 Phase-3 UAT gaps: G-3 ScrubberPage tap-to-set, G-4 ConfirmGuard opaque scrim, G-2 scrubber width, G-1 gallery token-bg root (gap_closure)
+- [x] 03-08-PLAN.md — Fix 4 Phase-3 UAT gaps: G-3 ScrubberPage tap-to-set, G-4 ConfirmGuard opaque scrim, G-2 scrubber width, G-1 gallery token-bg root (gap_closure)
 **UI hint**: yes — governed by `docs/ui_design/` (LAW); this phase IS the design-system build, so the UI contract is that bundle, not a generated UI-SPEC
 **Research note**: STANDARD — Compose theming/tokens, responsive layout, custom-`Canvas` drawing, and DataStore-backed settings are well-documented; the design contract (`docs/ui_design/hifi.css` + LAYOUT/THEMING) is the spec. A light pass on a clean Compose↔Views shared-token approach (ADR 0001 hybrid) may help.
 
@@ -264,7 +264,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
-| 3. Design System & Theming Foundation | 7/7 | Complete    | 2026-05-31 |
+| 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 0/TBD | Not started | - |
 | 6. Files / Print | 0/TBD | Not started | - |

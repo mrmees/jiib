@@ -8,7 +8,7 @@ updated: 2026-05-31T00:00:00Z
 
 ## Current Test
 
-[testing complete — 4 passed, 2 issues, 4 gaps (G-1..G-4)]
+[complete — 4 passed, 2 issues; all 4 gaps (G-1..G-4) FIXED in plan 03-08 and re-verified on flox 2026-05-31]
 
 ## Tests
 
@@ -28,17 +28,17 @@ result: pass
 
 ### 4. ScrubberPage keyboard-free + WR-01 tap reliability
 expected: No OS alphanumeric keyboard appears at any point. Drag sets value proportionally to bar width; steppers increment/decrement by step; Apply calls onApply with the working value; Cancel dismisses without changing caller state. WR-01: a short TAP (not a drag) on the fill bar should reliably set the value from the tap position — if taps are swallowed (dual-pointerInput race), this fails.
-result: issue
+result: issue → RESOLVED (03-08)
 reported: "single tap does not get captured, but if i start dragging it immediately picks up the location and starts scrubbing from there"
 severity: major
-note: drag-to-scrub works (picks up location immediately); keyboard-free + steppers presumed OK. WR-01 NOT actually resolved on-device despite the Phase-3 code-review fix — a zero-movement tap is swallowed. Likely needs a detectTapGestures / onPress initial-set alongside detectDragGestures (drag detector alone doesn't fire on a no-move tap). Tracked as G-3.
+note: FIXED in plan 03-08 via a single `awaitEachGesture` (sets value on touch-down, below slop threshold so a tap registers; tap & drag funnel through host-tested `fractionFromX`, one pointerInput, no WR-01 race). Re-verified on flox 2026-05-31: tap-to-set passes, drag still scrubs. Tracked as G-3 (resolved).
 
 ### 5. ConfirmGuard appearance + callbacks (both variants)
 expected: Destructive guard = full-screen stop-soft tint, confirm button red (Danger), cancel neutral. Positive guard = go-soft tint, confirm button green (Go), cancel neutral. Both Confirm and Cancel callbacks fire reliably on tap.
-result: issue
+result: issue → RESOLVED (03-08)
 reported: "Does not show full screen in the gallery, but does do full screen in the actual app (though it needs to apply a much stronger opacity filter to the material behind it). buttons work as expected"
 severity: minor
-note: buttons (Confirm/Cancel) fire correctly; full-screen presentation works in PRODUCTION (verified Phase-4 Stop test). Gallery-not-fullscreen = gallery demos it inline (debug-only, not a defect). Real issue = G-4: production scrim/backdrop opacity too weak, content behind bleeds through.
+note: buttons fire correctly; full-screen works in PRODUCTION. G-4 (weak scrim) FIXED in 03-08: opaque `t.bg` token layered under the stop-soft/go-soft tint so the backdrop firmly obscures content. Re-verified on flox 2026-05-31. Gallery-not-fullscreen was gallery-inline demo (debug-only, not a defect).
 
 ### 6. SeverityToast all four severities
 expected: Info/Success/Warning/Error each show a distinct badge glyph (i / ✓ / ! / ×) in the severity color, a text message, and a colored border. No two severities share a glyph; color reinforces (never substitutes for) the icon.
@@ -57,7 +57,8 @@ blocked: 0
 ## Gaps
 
 - truth: "The debug gallery page background recolors with the active theme"
-  status: failed
+  status: resolved
+  resolved_by: 03-08 (re-verified on flox 2026-05-31)
   reason: "User clarified the 'can't read controls' symptom is specifically the GALLERY PAGE: its root background does NOT switch to dark, so dark-theme controls (light text) sit on a stuck-light backdrop and are unreadable. Root cause: GalleryActivity.kt:62 uses a bare Material3 Surface(modifier=...) with no color → defaults to MaterialTheme.colorScheme.surface, which this app never populates (color is driven by LocalTokens, not Material colorScheme), so the gallery root ignores dark/light. GalleryScreen also never paints its own .background(LocalTokens.current.bg). DEBUG-ONLY (gallery is excluded from the release APK); production screens (AppShell/SplashScreen/AppDrawer) each paint .background(t.bg) and are unaffected. Fix: paint the gallery root with the token bg (one line, mirror the production pattern). Optional same-class hardening: give MainActivity's bare Surface() an explicit token color even though screens cover it."
   severity: minor
   test: 2
@@ -66,7 +67,8 @@ blocked: 0
   missing: ["themed root background on the gallery page"]
 
 - truth: "ScrubberPage internal controls share a consistent width/alignment"
-  status: failed
+  status: resolved
+  resolved_by: 03-08 (re-verified on flox 2026-05-31)
   reason: "User reported: the scrubber bar is not the same width as the −/+/Cancel/Apply button group; both also differ from adjacent gallery sections. Bar-vs-own-button-group is production-relevant; section-to-section is partly the debug-only gallery scaffolding."
   severity: cosmetic
   test: 1
@@ -75,7 +77,8 @@ blocked: 0
   missing: []
 
 - truth: "A short tap on the ScrubberPage fill bar reliably sets the value from the tap position (WR-01)"
-  status: failed
+  status: resolved
+  resolved_by: 03-08 (re-verified on flox 2026-05-31)
   reason: "User reported: 'single tap does not get captured, but if i start dragging it immediately picks up the location and starts scrubbing.' WR-01 (the Phase-3 dual-pointerInput tap-race) is NOT actually resolved on-device — a zero-movement tap is swallowed; only drag-with-movement registers. Likely fix: add detectTapGestures (or an onPress initial-set) alongside detectDragGestures so a no-move tap sets the value."
   severity: major
   test: 4
@@ -84,7 +87,8 @@ blocked: 0
   missing: ["tap-to-set gesture handling on the fill bar"]
 
 - truth: "The full-screen ConfirmGuard scrim firmly obscures the content behind it"
-  status: failed
+  status: resolved
+  resolved_by: 03-08 (re-verified on flox 2026-05-31)
   reason: "User reported the production full-screen ConfirmGuard 'needs to apply a much stronger opacity filter to the material behind it' — the backdrop is too transparent and content bleeds through, weakening the safety-gate clarity for the emergency-stop confirm. Buttons + full-screen presentation otherwise correct. Fix: increase the ConfirmGuard scrim alpha / backdrop opacity."
   severity: minor
   test: 5
