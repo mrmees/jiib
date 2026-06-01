@@ -92,5 +92,64 @@ class PrinterStateReducerTest {
         assertEquals(reduceSnapshot(status), reduceSnapshot(status))
     }
 
+    // --- klippyStateMessage (review #8): the splash needs the real Klippy/Moonraker reason ---
+
+    @Test
+    fun shutdownDiffWithStateMessageSetsKlippyStateMessage() {
+        val msg = "Klipper reports: SHUTDOWN — MCU error"
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "webhooks": { "state": "shutdown", "state_message": ${quote(msg)} } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(KlippyState.Shutdown, state.klippyState)
+        assertEquals(msg, state.klippyStateMessage)
+    }
+
+    @Test
+    fun readyTransitionClearsKlippyStateMessage() {
+        // Stuck in shutdown with a reason, then Klipper comes back ready (no state_message).
+        val shutdown = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "webhooks": { "state": "shutdown", "state_message": "MCU 'mcu' shutdown" } }""",
+            ).jsonObject,
+        )
+        assertEquals("MCU 'mcu' shutdown", shutdown.klippyStateMessage)
+
+        val ready = reduceDiff(
+            shutdown,
+            MoonrakerJson.parseToJsonElement("""{ "webhooks": { "state": "ready" } }""").jsonObject,
+        )
+
+        assertEquals(KlippyState.Ready, ready.klippyState)
+        assertEquals(null, ready.klippyStateMessage)
+    }
+
+    @Test
+    fun webhooksAbsentDiffDoesNotWipeKlippyStateMessage() {
+        val shutdown = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "webhooks": { "state": "shutdown", "state_message": "Lost communication with MCU" } }""",
+            ).jsonObject,
+        )
+
+        // A heater-only diff carries NO webhooks block — the reason must survive (STATE-01 merge).
+        val afterHeaterDiff = reduceDiff(
+            shutdown,
+            MoonrakerJson.parseToJsonElement("""{ "heater_bed": { "temperature": 41.2 } }""").jsonObject,
+        )
+
+        assertEquals(KlippyState.Shutdown, afterHeaterDiff.klippyState)
+        assertEquals("Lost communication with MCU", afterHeaterDiff.klippyStateMessage)
+    }
+
+    /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */
+    private fun quote(s: String): String =
+        "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
     private fun streamName(): String = "notify_status_update_stream.json"
 }
