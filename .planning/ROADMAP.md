@@ -204,10 +204,10 @@ Plans:
 - [x] 05-07-PLAN.md — Extrude panel: Move-style extrude/retract + selectors + load/unload popup + capability-gated tool selector + live cold-extrude gate (EXTR-01..04)
 
 **Wave 4** *(blocked on Wave 3; on-device gates)*
-- [ ] 05-08-PLAN.md — Wire Dest/AppDrawer/AppShell routing for the three panels + D-06 multi-trace perf re-measure on flox + SC-5 end-to-end UAT on the live Ender 5 Plus
+- [x] 05-08-PLAN.md — Wire Dest/AppDrawer/AppShell routing for the three panels + D-06 multi-trace perf re-measure on flox + SC-5 end-to-end UAT on the live Ender 5 Plus
 
 **Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
-- [ ] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
+- [x] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
 - [ ] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
@@ -287,7 +287,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 7/8 | In Progress|  |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 9/10 | In Progress|  |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |

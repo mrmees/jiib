@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-01T06:04:05.901Z"
+status: verifying
+last_updated: "2026-06-01T15:32:18.196Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 32
-  completed_plans: 31
+  total_plans: 34
+  completed_plans: 33
   percent: 44
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
 Plan: 8 of 8
-Status: PAUSED at Task 2 — checkpoint:human-verify (gate=blocking, on-device)
+Status: Phase complete — ready for verification
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
   → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
@@ -85,6 +85,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P06 | 11 | 2 tasks | 3 files |
 | Phase 05 P05 | 5min | 2 tasks | 3 files |
 | Phase 05 P07 | 9 | 2 tasks | 3 files |
+| Phase 05 P09 | 9 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 5][05-06]: Move panel landed — MoveHolder surfaces gcode_position X/Y/Z (nullable, never fabricated) + per-axis homed gating; MoveScreen reproduces 04-move.png (3x3 jog pad value-on-glyph corners green=homed/amber=unhomed, center=homeXY G28 X Y only, amber Override=overrideJog for the unhomed axis, gutter Home/Disable/Back). Every action via dispatcher GCODE_SCRIPT+scriptParams; Disable behind ConfirmGuard(destructive=false)->M84. Distance set follows the LAW mockup 0.1/1/10/25/50/100. Live jog/override on flox = 05-08 UAT.
 - [Phase ?]: Temperature panel: 3-trace cap (nozzle/bed/chamber) enforced in holder; extra heaters truncated
 - [Phase ?]: [Phase 5][05-07]: Extrude panel landed — ExtrudeHolder gates Extrude/Retract on the LIVE per-tool can_extrude (fail-safe false), COMBINING printerState with the 05-03 one-shot minExtrudeTemp/maxExtrudeDistance StateFlows so the real-temp hint + distance ceiling are deterministic on connect. ExtrudeScreen mirrors MoveScreen (D-08): extrude(±dist,speed) via GCODE_SCRIPT; distance steps above max_extrude_only_distance disabled (fall back to largest enabled); Load/Unload always shown (present=dispatch, absent=Severity.Info popup, D-10/hasMacroIgnoreCase); T0/T1… selector only when extruderCount>1 (D-09), setActiveTool re-points the gate. Token-pure. Cold->hot gate + missing-macro popup = 05-08 UAT.
+- [Phase ?]: [Phase 5][05-09 gap-closure]: G1 BLOCKER closed — CommandDispatcher.dispatch() now catches RpcError (peer of Exception, distinct from RpcConnectionException) alongside transport/timeout and emits a non-fatal DispatchEvent.Failure carrying the printer's rejection text (e.g. 'Move out of range'). Previously RpcError re-threw uncaught in the unsupervised scope.launch → FATAL EXCEPTION + FGS auto-restart (confirmed live on flox). TDD RED→GREEN; regression feeds the EXACT RpcError JsonRpcClient produces for a rejected gcode.script (mock-vs-reality gap closed). No catch widened to Throwable. G2/G3 (klippy_ready re-handshake + stale one-shot reads) remain OPEN, out of scope.
 
 ### Pending Todos
 
@@ -159,6 +161,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T06:03:43.977Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-06-01T15:32:18.159Z
+Stopped at: Completed 05-09-PLAN.md (G1 crash fix)
 Resume file: None
