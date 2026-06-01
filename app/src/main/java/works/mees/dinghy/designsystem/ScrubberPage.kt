@@ -3,7 +3,8 @@ package works.mees.dinghy.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +68,22 @@ import kotlin.math.roundToInt
  * @param destructiveDismiss opt-in: when true, Cancel is [Intent.Danger] (destructive-revert);
  *                          default false keeps it [Intent.Neutral].
  */
+/**
+ * The pure offset→fraction mapping at the heart of the fill-bar scrubber (G-3). Maps a horizontal
+ * touch position [x] (px, relative to the bar's left edge) over a measured [barWidthPx] to a
+ * `0f..1f` fraction of the bar. BOTH the zero-movement tap (down) and the drag funnel through this
+ * single function, so a tap at x and a drag to the same x produce an identical value (no second
+ * gesture detector to race the pointer stream — the WR-01 fix). Clamped to `0..1`; an un-measured
+ * (`<= 0`) bar width returns `0f` rather than dividing by zero / yielding NaN.
+ *
+ * `internal` (not a local lambda) so [ScrubberMappingTest] can prove the mapping host-side — the
+ * coverage gap that let the original on-device tap-swallow slip past green tests.
+ */
+internal fun fractionFromX(x: Float, barWidthPx: Float): Float {
+    if (barWidthPx <= 0f) return 0f
+    return (x / barWidthPx).coerceIn(0f, 1f)
+}
+
 @Composable
 fun ScrubberPage(
     label: String,
@@ -103,10 +120,10 @@ fun ScrubberPage(
         ((working * 10f).roundToInt() / 10f).toString()
     }
 
+    // Single value write for the gesture path: route x through the testable pure mapping.
     fun setFromX(x: Float) {
         if (barWidthPx <= 0f) return
-        val frac = (x / barWidthPx).coerceIn(0f, 1f)
-        set(range.start + frac * span)
+        set(range.start + fractionFromX(x, barWidthPx) * span)
     }
 
     ScreenScaffold(
@@ -116,7 +133,10 @@ fun ScrubberPage(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    // G-2: share the gutter button group's horizontal inset (16.dp) so the bar and
+                    // its own −/+/Cancel/Apply group present one width/left-edge. Vertical 24.dp
+                    // keeps the scaffold's breathing room.
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
@@ -126,15 +146,29 @@ fun ScrubberPage(
                         .background(t.surface2)
                         .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
                         .onSizeChanged { barWidthPx = it.width.toFloat() }
-                        // Single coordinated gesture detector (WR-01): a tap is a zero-length drag.
-                        // onDragStart sets the value from the down position; onDrag tracks it. Both
-                        // resolve through the SAME offset→value mapping (setFromX), so a tap at x and
-                        // a drag to x produce an identical value, and there is no second detector to
-                        // race the pointer stream against.
+                        // Single coordinated gesture detector (WR-01 / G-3). ONE pointerInput, ONE
+                        // pointer consumer — no second detector to race the stream against.
+                        // detectDragGestures is wrong here: it needs touch-slop movement before
+                        // onDragStart, so a zero-movement TAP is swallowed (the on-device G-3 bug).
+                        // awaitEachGesture re-arms per gesture: set the value immediately from the
+                        // DOWN position (this is what makes a pure tap register), then track each
+                        // still-pressed move. Both the down-set and the move-set funnel through the
+                        // SAME pure mapping (setFromX → fractionFromX), so tap at x == drag to x.
                         .pointerInput(range, step) {
-                            detectDragGestures(
-                                onDragStart = { offset -> setFromX(offset.x) },
-                            ) { change, _ -> setFromX(change.position.x) }
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                setFromX(down.position.x)
+                                down.consume()
+                                do {
+                                    val event = awaitPointerEvent()
+                                    event.changes.forEach { change ->
+                                        if (change.pressed) {
+                                            setFromX(change.position.x)
+                                            change.consume()
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
+                            }
                         },
                 ) {
                     // The accent-tinted fill tracks the value (left-anchored).
