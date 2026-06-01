@@ -288,7 +288,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete   | 2026-06-01 |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |

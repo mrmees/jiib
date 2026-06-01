@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-01T16:21:12.245Z"
+status: ready_to_plan
+last_updated: 2026-06-01T16:31:52.055Z
 last_activity: 2026-06-01
 progress:
   total_phases: 9
@@ -11,6 +11,7 @@ progress:
   total_plans: 35
   completed_plans: 35
   percent: 56
+stopped_at: Phase 05 complete (11/11) — ready to discuss Phase 6
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 05 — core-print-control-panels-temperature-move-extrude
+**Current focus:** Phase 6 — files / print
 
 ## Current Position
 
-Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
-Plan: 8 of 8
-Status: Phase complete — ready for verification
+Phase: 6
+Plan: Not started
+Status: Ready to plan
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
   → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
@@ -38,7 +39,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 20
+- Total plans completed: 31
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -49,6 +50,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | 01 | 4 | - | - |
 | 02 | 4 | - | - |
 | 03 | 7 | - | - |
+| 05 | 11 | - | - |
 
 **Recent Trend:**
 
