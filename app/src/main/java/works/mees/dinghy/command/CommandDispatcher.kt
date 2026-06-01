@@ -15,13 +15,19 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonElement
 import works.mees.dinghy.net.JsonRpcClient
 import works.mees.dinghy.net.RpcConnectionException
+import works.mees.dinghy.net.RpcError
 
 /**
  * Event surfaced by [CommandDispatcher] for the host to render (PRIM-04 toast). Only a redacted,
  * human-readable failure message ever crosses this seam — NEVER the API key or a `?token=` URL.
  */
 sealed interface DispatchEvent {
-    /** A wrapped action failed (transport error or dispatcher timeout). Toast as `Severity.Error`. */
+    /**
+     * A wrapped action failed. Toast as `Severity.Error`. Covers a transport error
+     * ([RpcConnectionException]), a dispatcher timeout, AND a server-side gcode rejection
+     * ([RpcError]) — e.g. an out-of-range move or a failing macro. For an [RpcError] the message is
+     * the printer's own rejection text so the user sees WHY the command was refused.
+     */
     data class Failure(val key: String, val message: String) : DispatchEvent
 }
 
@@ -107,6 +113,14 @@ class CommandDispatcher(
             } catch (e: RpcConnectionException) {
                 // Typed transport failure (no connection / send failure / transport timeout).
                 _events.tryEmit(DispatchEvent.Failure(key, "$method failed: command could not be sent"))
+            } catch (e: RpcError) {
+                // Server-side gcode rejection (out-of-range move, failing macro, heater fault). The
+                // printer returned a JSON-RPC error envelope; JsonRpcClient completed the deferred
+                // with RpcError. This MUST be a non-fatal toast, never an uncaught crash (G1). Surface
+                // the printer's own rejection text so the user sees WHY it was refused; this message is
+                // gcode-rejection text and never carries a credential, but the key (an action id) and
+                // method name are non-secret, consistent with the transport/timeout branches above.
+                _events.tryEmit(DispatchEvent.Failure(key, e.message ?: method))
             } catch (e: TimeoutCancellationException) {
                 // The dispatcher's own UI deadline fired.
                 _events.tryEmit(DispatchEvent.Failure(key, "$method timed out"))
