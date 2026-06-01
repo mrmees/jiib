@@ -209,7 +209,7 @@ Plans:
 **Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
 - [x] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
 - [x] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
-- [ ] 05-11-PLAN.md — G4: give printer.gcode.script a 120s timeout (was flat 10s) + typed ConnectionError.Timeout so a long-running-but-successful gcode (Z-home/macros) no longer shows a false "command could not be sent" — G1 rejection-surfacing + true connection-failure messaging preserved
+- [x] 05-11-PLAN.md — G4: give printer.gcode.script a 120s timeout (was flat 10s) + typed ConnectionError.Timeout so a long-running-but-successful gcode (Z-home/macros) no longer shows a false "command could not be sent" — G1 rejection-surfacing + true connection-failure messaging preserved
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
@@ -288,7 +288,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 10/10 | Complete   | 2026-06-01 |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete   | 2026-06-01 |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |
