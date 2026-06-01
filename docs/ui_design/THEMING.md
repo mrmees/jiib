@@ -47,13 +47,29 @@ follows — no component edits.
 
 ## Button intent = color (semantic, not decorative)
 
-- **Red** (`--stop`) — stop / cancel / back / host interruption.
-- **Green** (`--go`) — accept / done / commit a positive action.
-- **Amber** (`--heat` family for "warn") — proceed at peril (reset, disable, undo, unexpected live change).
-- **Blue / accent** (`--accent`) — functional command with a direct physical effect (move, heat, fan).
+**Color is determined primarily by the SAFETY of the action** — a spectrum from safe → ordinary →
+caution → dangerous. This especially governs the **gutter** (primary actions). Pick the color by asking
+"how risky is this tap?", not by the kind of widget.
+
+- **Green** (`--go`) — **safe / non-destructive**: accept, done, commit, and plain **Back** navigation
+  (backing out doesn't change printer state, so it is NOT red).
+- **Blue / accent** (`--accent`) — an **ordinary physical command with no special hazard**: home, unload
+  filament, toggle a fan.
+- **Amber** (`--heat` family, "warn") — **proceed at peril / caution**: anything that moves the toolhead
+  or drives heat/filament where a mistake can crash or burn — jog motion, load/heat filament — plus
+  reset / undo / unexpected live change.
+- **Red** (`--stop`) — **destructive or dangerous**: stop / e-stop, disable steppers (loses the homing
+  state), force-move while armed, host interruption.
 - **White / neutral** (`--text` on `--outline`) — basic setting adjustment / secondary follow-up.
 
 These are defaults, overridable per case, but keep them consistent — color *is* the affordance signal.
+
+**Worked examples (the v1 panels):**
+- *Move gutter* — **All** (home, blue) · **Disable** (red, un-homes) · **Back** (green).
+- *Move jog pad* — directional arrows keep the blue accent OUTLINE but the ICON carries state: gray
+  (unavailable) / amber (normal jog — caution) / red (force-move armed). The force-move toggle is a
+  green `lock` when safe, red `lock_open_right` when armed.
+- *Extrude gutter* — **Load** (amber, heats + drives filament) · **Unload** (blue) · **Back** (green).
 
 ## Shape & type tokens
 

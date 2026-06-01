@@ -265,7 +265,7 @@ fun ExtrudeScreen(
                             else infoText = "No LOAD_FILAMENT macro configured"
                         },
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = Intent.Warn, // amber — heats + drives filament.
                     )
                     OutlinedControl(
                         label = "Unload",
@@ -274,13 +274,13 @@ fun ExtrudeScreen(
                             else infoText = "No UNLOAD_FILAMENT macro configured"
                         },
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = Intent.Accent, // blue — physical command.
                     )
                     OutlinedControl(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
+                        intent = Intent.Go, // green — non-destructive nav (matches Move).
                     )
                 }
             },

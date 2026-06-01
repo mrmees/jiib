@@ -79,11 +79,16 @@ All live in `reference/Print Status Hi-Fi.html` as labeled artboards on a pan/zo
 
 ### 4. Move — jog & home
 - **Purpose:** position the toolhead.
-- **Layout:** Focus = **3×3 XY jog pad** (edge arrows; center = **XY** home; corner cells show
-  live **Y / Z / X** values as value-on-glyph, label colored green=homed / amber=unhomed; one
-  cell is an amber **Override** to move while unhomed). Field = a Z row (**∧ / Z / ∨**, glyphs
-  only at 3 cols) + a 6-up increment selector (0.1–100 mm, **square** buttons). Gutter =
-  **Home** (accent) · **Disable** (amber) · **Back** (red).
+- **Layout (2026-06-01 cleanup):** Focus = **3×3 XY jog pad** sized as the largest centered SQUARE
+  that fits (portrait uses `ScreenScaffold.portraitFocusAspect = 1f` so it fills the WIDTH; the field
+  absorbs the rest). Edge cells are Material-Symbol jog arrows (`arrow_*`) — **blue accent outline,
+  icon colored by state: gray unavailable / amber normal / red force-move**. Center = **XY home**;
+  the Y/Z/X corner cells stack the live value under a green=homed / amber=unhomed axis letter (tap to
+  home that axis). Top-right cell = the **force-move toggle** (green `lock` off → normal G1 jog gated
+  on homed; red `lock_open_right` on → jog issues `FORCE_MOVE`, allowed while unhomed). Field = two
+  EQUAL-height rows — a Z row (**expand / Z-home button / compress**) + a 6-up increment selector
+  (0.1–100 mm). Gutter = **All** (home_and_garden, accent/blue) · **Disable** (red — un-homes, with a
+  destructive confirm guard) · **Back** (green — non-destructive nav).
 
 ### 5. Screws Tilt — calibration tool (the tool-page template)
 - **Purpose:** run a guided procedure.

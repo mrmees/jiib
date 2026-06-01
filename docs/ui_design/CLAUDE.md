@@ -25,10 +25,13 @@
   targets are big (≥64px tall) — built for gloved, greasy, fat-fingered taps at arm's length.
 - **Structured blocks over loose pills.** Prefer structured, aligned blocks of information to
   scattered chips.
-- **Button intent = color.** Red = stop / cancel / back / host interruption · Green = accept /
-  done · Amber(yellow) = proceed at peril (reset, disable, undo, unexpected live change) ·
-  Blue/accent = functional command with direct physical effect (move, heat, fan) · White =
-  basic setting adjustment / secondary follow-up. Overridable per case.
+- **Button intent = color, by SAFETY of the action** (esp. the gutter). Green = safe /
+  non-destructive (accept, done, **Back** — backing out changes nothing) · Blue/accent = ordinary
+  physical command, no special hazard (home, unload, fan) · Amber(yellow) = proceed at peril /
+  caution (toolhead jog motion, load/heat filament, reset, undo, unexpected live change) · Red =
+  destructive or dangerous (stop/e-stop, disable steppers [loses homing], force-move armed, host
+  interruption) · White = basic setting adjustment. Overridable per case. See THEMING.md for the
+  full spectrum + worked examples.
 - **Icons: never the same glyph twice on one screen.** If you'd repeat one, use a 1–3 letter
   text label instead (e.g. "XY"/"Z" homes vs. arrows; chevrons for Z vs. arrows for the XY pad).
 - **Square the smallest buttons.** When a Field stacks multiple button rows, the shortest row's
