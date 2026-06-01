@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
@@ -332,5 +333,5 @@ private fun label(objectName: String): String = when {
     else -> objectName.uppercase()
 }
 
-/** Tabular-friendly one-decimal temperature formatting (no locale surprises). */
-private fun fmt(v: Double): String = ((v * 10).toInt() / 10.0).toString()
+/** Tabular-friendly one-decimal temperature formatting, rounded (not truncated). */
+private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
