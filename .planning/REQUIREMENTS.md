@@ -62,7 +62,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [ ] **TEMP-01**: User sees each heater/sensor's current and target temperature
 - [x] **TEMP-02**: User can set a heater target via presets and via exact keypad entry
 - [x] **TEMP-03**: User can apply preheat presets and cooldown (all heaters off)
-- [ ] **TEMP-04**: User sees a temperature history graph (backfilled from `server.temperature_store`)
+- [x] **TEMP-04**: User sees a temperature history graph (backfilled from `server.temperature_store`)
 
 ### Extrude
 
@@ -182,7 +182,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TEMP-01 | Phase 5 | Pending |
 | TEMP-02 | Phase 5 | Complete |
 | TEMP-03 | Phase 5 | Complete |
-| TEMP-04 | Phase 5 | Pending |
+| TEMP-04 | Phase 5 | Complete |
 | MOVE-01 | Phase 5 | Complete |
 | MOVE-02 | Phase 5 | Complete |
 | MOVE-03 | Phase 5 | Complete |
