@@ -187,7 +187,7 @@ Plans:
   4. **Shared command-dispatch (PRIM-05) is verified in anger:** every action button shows an immediate in-flight/disabled state, enforces an explicit timeout (no infinite hang on a dropped packet), and debounces so a second tap can't re-fire — and every panel hides controls the connected printer doesn't support (capability-gated, not disabled-and-confusing)
   5. Provable on the real Ender 5 Plus: preheat → wait for temp → extrude → jog all work end-to-end without the browser open
 
-**Plans**: 8 plans
+**Plans**: 10 plans (8 + 2 gap-closure)
 Plans:
 
 **Wave 1**
@@ -205,6 +205,10 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3; on-device gates)*
 - [ ] 05-08-PLAN.md — Wire Dest/AppDrawer/AppShell routing for the three panels + D-06 multi-trace perf re-measure on flox + SC-5 end-to-end UAT on the live Ender 5 Plus
+
+**Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
+- [ ] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
+- [ ] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
