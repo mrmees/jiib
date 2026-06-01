@@ -148,7 +148,7 @@ Plans:
   4. The Print Status home renders live job/thermal state smoothly at the throttled ~2–4 Hz cadence on the Nexus 7 (consuming the Phase-3 render primitive); a Stop control routes through the full-screen Confirm guard and fires the correct Moonraker call (`printer.emergency_stop` / cancel)
   5. The shared command-dispatch primitive (PRIM-05) enforces explicit network timeouts, an in-flight disabled/busy state, and tap debounce for all Moonraker action calls; text entry (host/key) uses the system keyboard confined to Settings (PRIM-02)
 
-**Plans**: 7 plans
+**Plans**: 8 plans
 Plans:
 
 **Wave 1**
