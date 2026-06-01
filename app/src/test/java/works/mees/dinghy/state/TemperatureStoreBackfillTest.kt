@@ -1,12 +1,12 @@
 package works.mees.dinghy.state
 
 import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 import works.mees.dinghy.net.MoonrakerJson
-import kotlin.test.Test
-import kotlin.test.assertContentEquals
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * Host tests for the PURE [parseTemperatureStore] mapper (TEMP-04, first history-endpoint use).
@@ -28,8 +28,8 @@ class TemperatureStoreBackfillTest {
 
         val series = parseTemperatureStore(result, sensors = setOf("extruder", "heater_bed"))
 
-        assertContentEquals(floatArrayOf(21.0f, 22.0f, 23.0f), series["extruder"])
-        assertContentEquals(floatArrayOf(60.0f, 61.0f), series["heater_bed"])
+        assertArrayEquals(floatArrayOf(21.0f, 22.0f, 23.0f), series["extruder"]!!, 0f)
+        assertArrayEquals(floatArrayOf(60.0f, 61.0f), series["heater_bed"]!!, 0f)
         assertEquals(2, series.size)
     }
 
@@ -40,7 +40,7 @@ class TemperatureStoreBackfillTest {
         val series = parseTemperatureStore(result, sensors = setOf("extruder", "heater_bed"))
 
         assertTrue("extruder" in series)
-        assertFalse("heater_bed" in series, "absent sensor must not be fabricated as an empty array")
+        assertFalse("absent sensor must not be fabricated as an empty array", "heater_bed" in series)
     }
 
     @Test
@@ -52,7 +52,7 @@ class TemperatureStoreBackfillTest {
 
         val series = parseTemperatureStore(result, sensors = setOf("extruder"))
 
-        assertEquals(setOf("extruder"), series.keys)
+        assertEquals(setOf("extruder"), series.keys.toSet())
     }
 
     @Test
@@ -63,7 +63,7 @@ class TemperatureStoreBackfillTest {
 
         val series = parseTemperatureStore(result, sensors = setOf("extruder"))
 
-        assertTrue(series.isEmpty(), "no temperatures array -> omitted, never an empty array")
+        assertTrue("no temperatures array -> omitted, never an empty array", series.isEmpty())
     }
 
     @Test
@@ -74,6 +74,6 @@ class TemperatureStoreBackfillTest {
 
         val series = parseTemperatureStore(result, sensors = setOf("extruder"))
 
-        assertContentEquals(floatArrayOf(21.0f, 23.0f), series["extruder"])
+        assertArrayEquals(floatArrayOf(21.0f, 23.0f), series["extruder"]!!, 0f)
     }
 }
