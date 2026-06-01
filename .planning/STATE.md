@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T05:56:50.993Z"
+last_updated: "2026-06-01T06:04:05.901Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
   percent: 44
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
   → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
   → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
@@ -83,6 +83,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P04 | 3 | 2 tasks | 3 files |
 | Phase 05 P06 | 11 | 2 tasks | 3 files |
 | Phase 05 P05 | 5min | 2 tasks | 3 files |
+| Phase 05 P07 | 9 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 5][05-04]: GraphView EXTENDED in place to N (<=3) traces (Array<Path>/Array<Paint>, nozzle=heat/bed=accent/chamber=violet) on one shared X window + a FIXED shared Y-range default 0..350 C — replaces the per-frame window min/max auto-range (Phase-4 gap G-1 fix); 0..350 (not 0..300) covers the setHeater clamp so a legal target never clips (Codex). Per-trace dashed CURRENT-setpoint line (D-04, DashPathEffect pre-allocated once in init). Area fill bounded to the primary trace only (drawArea = the 05-08 Adreno-320 fill-rate isolation lever). GraphViewHost gained a series:List<FloatArray> overload; single-snapshot Print Status sparkline path retained back-compat. onDraw allocation-free (T-05-04-D mitigated); D-06 perf re-measured on the full Temperature screen in 05-08, NOT grandfathered from 50.1ms.
 - [Phase ?]: [Phase 5][05-06]: Move panel landed — MoveHolder surfaces gcode_position X/Y/Z (nullable, never fabricated) + per-axis homed gating; MoveScreen reproduces 04-move.png (3x3 jog pad value-on-glyph corners green=homed/amber=unhomed, center=homeXY G28 X Y only, amber Override=overrideJog for the unhomed axis, gutter Home/Disable/Back). Every action via dispatcher GCODE_SCRIPT+scriptParams; Disable behind ConfirmGuard(destructive=false)->M84. Distance set follows the LAW mockup 0.1/1/10/25/50/100. Live jog/override on flox = 05-08 UAT.
 - [Phase ?]: Temperature panel: 3-trace cap (nozzle/bed/chamber) enforced in holder; extra heaters truncated
+- [Phase ?]: [Phase 5][05-07]: Extrude panel landed — ExtrudeHolder gates Extrude/Retract on the LIVE per-tool can_extrude (fail-safe false), COMBINING printerState with the 05-03 one-shot minExtrudeTemp/maxExtrudeDistance StateFlows so the real-temp hint + distance ceiling are deterministic on connect. ExtrudeScreen mirrors MoveScreen (D-08): extrude(±dist,speed) via GCODE_SCRIPT; distance steps above max_extrude_only_distance disabled (fall back to largest enabled); Load/Unload always shown (present=dispatch, absent=Severity.Info popup, D-10/hasMacroIgnoreCase); T0/T1… selector only when extruderCount>1 (D-09), setActiveTool re-points the gate. Token-pure. Cold->hot gate + missing-macro popup = 05-08 UAT.
 
 ### Pending Todos
 
@@ -156,6 +158,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T05:56:40.300Z
+Last session: 2026-06-01T06:03:43.977Z
 Stopped at: Completed 05-01-PLAN.md
 Resume file: None

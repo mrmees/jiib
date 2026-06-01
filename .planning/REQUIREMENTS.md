@@ -68,7 +68,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 - [x] **EXTR-01**: User can extrude/retract a selected distance at a selected speed
 - [x] **EXTR-02**: User can run load/unload filament macros when present
-- [ ] **EXTR-03**: User can select the active extruder/tool on multi-extruder printers
+- [x] **EXTR-03**: User can select the active extruder/tool on multi-extruder printers
 - [x] **EXTR-04**: Extrude/retract controls respect the minimum extrusion temperature
 
 ### Files / Print
@@ -189,7 +189,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MOVE-04 | Phase 5 | Complete |
 | EXTR-01 | Phase 5 | Complete |
 | EXTR-02 | Phase 5 | Complete |
-| EXTR-03 | Phase 5 | Pending |
+| EXTR-03 | Phase 5 | Complete |
 | EXTR-04 | Phase 5 | Complete |
 | FILE-01 | Phase 6 | Pending |
 | FILE-02 | Phase 6 | Pending |
