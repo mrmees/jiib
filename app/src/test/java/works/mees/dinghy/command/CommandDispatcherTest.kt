@@ -274,6 +274,77 @@ class CommandDispatcherTest {
         runCurrent()
     }
 
+    /**
+     * G4: a request-await timeout on a slow-but-valid gcode surfaces a CALM "still running" message,
+     * not the alarming "command could not be sent". `JsonRpcClient.request()` now throws
+     * `RpcConnectionException(ConnectionError.Timeout, ...)` for a request-await timeout; the
+     * dispatcher must branch on `e.reason` and emit a non-alarming message.
+     */
+    @Test
+    fun requestTimeout_surfacesNonAlarmingStillRunningMessage() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch("home_z", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        // The exact shape JsonRpcClient now produces on a request-await timeout.
+        rpc.fail(
+            0,
+            RpcConnectionException(
+                ConnectionError.Timeout,
+                "request 'printer.gcode.script' (id=1) timed out after 120000ms",
+            ),
+        )
+        runCurrent()
+
+        val failure = events.filterIsInstance<DispatchEvent.Failure>().firstOrNull()
+        assertTrue("a timeout still surfaces a Failure event for user feedback", failure != null)
+        assertTrue(
+            "a request-await timeout reads as a calm 'still running' / 'taking longer' message",
+            failure!!.message.contains("still running") || failure.message.contains("taking longer"),
+        )
+        assertFalse(
+            "a slow-gcode timeout must NOT read as a send failure",
+            failure.message.contains("could not be sent"),
+        )
+        collectJob.cancel()
+    }
+
+    /**
+     * G4: a genuine no-connection / send failure (typed [ConnectionError.NetworkUnavailable]) STILL
+     * reports the accurate "command could not be sent" — true transport failures are unchanged.
+     */
+    @Test
+    fun genuineConnectionFailure_stillReportsCouldNotBeSent() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP)
+        runCurrent()
+        rpc.fail(0, RpcConnectionException(ConnectionError.NetworkUnavailable, "no active connection"))
+        runCurrent()
+
+        val failure = events.filterIsInstance<DispatchEvent.Failure>().firstOrNull()
+        assertTrue("a true transport failure surfaces a Failure event", failure != null)
+        assertTrue(
+            "a genuine send failure still reads 'could not be sent'",
+            failure!!.message.contains("could not be sent"),
+        )
+        collectJob.cancel()
+    }
+
     @Test
     fun failureMessageNeverEmbedsApiKeyOrToken() = runTest(UnconfinedTestDispatcher()) {
         val rpc = FakeRpc()
