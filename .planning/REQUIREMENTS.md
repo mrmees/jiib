@@ -35,7 +35,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### App Shell
 
-- [ ] **SHELL-01**: Minimal-chrome shell — navigation via a **swipe-up full-screen App Drawer** (square destination tiles incl. Settings + a red Power tile); maximum content canvas, no persistent title/status bar; status shown as color on existing elements / contextually, never as global chrome
+- [x] **SHELL-01**: Minimal-chrome shell — navigation via a **swipe-up full-screen App Drawer** (square destination tiles incl. Settings + a red Power tile); maximum content canvas, no persistent title/status bar; status shown as color on existing elements / contextually, never as global chrome
 - [x] **SHELL-02**: An emergency/stop control on the Print Status (print-monitoring home) surface routes through a full-screen **Confirm guard** (PRIM-03) and triggers the appropriate Moonraker call (`printer.emergency_stop` for the firmware E-stop / cancel for the print); additional control surfaces gain stop affordances as later panels are built
 - [ ] **SHELL-03**: A foreground service owns the connection so monitoring survives Activity recreation and screen-off
 - [x] **SHELL-04**: Print Status is the home/landing surface — a compact live dashboard (progress ring + stat grid; heater stats) — and proves the SHARED render/throttle primitive the Temperature graph later extends; function navigation is via the swipe-up App Drawer (not a persistent menu/rail)
@@ -172,7 +172,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PRIM-04 | Phase 3 | Complete |
 | CONN-01 | Phase 4 | Complete |
 | SET-01 | Phase 4 | Complete |
-| SHELL-01 | Phase 4 | Pending |
+| SHELL-01 | Phase 4 | Complete |
 | SHELL-02 | Phase 4 | Complete |
 | SHELL-03 | Phase 4 | Pending |
 | SHELL-04 | Phase 4 | Complete |

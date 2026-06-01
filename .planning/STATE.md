@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-06-01T02:07:08.672Z"
+status: "04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6."
+last_updated: "2026-06-01T02:27:22.559Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 23
-  completed_plans: 22
-  percent: 33
+  completed_plans: 23
+  percent: 44
 ---
 
 # Project State
@@ -25,9 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
-Plan: 6 of 8
-Status: 04-06b PAUSED at Task 2 (checkpoint:human-verify, blocking) — Task 1 sparkline complete + committed (6deb8d5); combined-render perf gate blocked: MainActivity still scaffold, no harness composes the real combined surface. Plan NOT advanced.
-Last activity: 2026-05-31
+Plan: 7 (04-07) CODE COMPLETE — end-of-phase human-verify checkpoint OPEN
+Status: 04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6.
+  → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
+  → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
+Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -73,6 +75,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 04 P04 | 14 | 2 tasks tasks | 5 files files |
 | Phase 04 P05 | 9 | 2 tasks | 4 files |
 | Phase 04 P06 | 5 | 2 tasks | 3 files |
+| Phase 04 P07 | 95 | 3 tasks tasks | 10 files files |
 
 ## Accumulated Context
 
@@ -115,6 +118,7 @@ Recent decisions affecting current work:
 - [Phase 4]: [04-05]: Splash (SHELL-05) is a gutter-less hard override (D-06) — recovery actions derived from a RecoveryMode (FirstRun→Settings / KlippyDown[shutdown|error AND socket up]→Retry+firmware+host restart / Unreachable[socket down or klippy disconnected]→Retry+Edit, NO firmware when Klippy unreachable / Connecting→no recovery row), ALL dispatched via the narrow SessionControl (review #1, never a raw session). PrinterState gained nullable klippyStateMessage from webhooks.state_message (set when provided / clear on Ready / retain on webhooks-absent diff per STATE-01, review #8); the splash reason text prefers it, falling back to terse never-blank enum labels. Reducer adapted into its existing accumulator (var s + copy), not the plan's prev.copy() shape — identical behavior.
 - [Phase 4]: [04-06]: Print Status home (SHELL-04 part 1) landed — PrintStatusHolder turns the already-throttled printerState into a bounded primary-heater RingBuffer snapshot + a flattened 6-slot PrintStatusGrid with EXPLICIT review-#9 capability fallback (extruder-prefix primary; heater_bed-or-promote-chamber secondary by object name; null placeholders never fabricated; heater target 0 → null setpoint). PrintStatusScreen is state-adaptive (D-08): ProgressRing while Printing/Paused, a live "Ready"+nozzle/bed readout idle (never a 0% ring); 2×3 GeistMono grid (StatCell renders "—" for null); a RESERVED sparkline slot (GraphView + combined-render perf gate DEFERRED to 04-06b, review #4); Stop → full-screen ConfirmGuard → dispatcher.dispatch("estop", EMERGENCY_STOP) via the per-session CommandDispatcher (review #1), never a raw transport request; firing routes klippy→shutdown→Splash automatically (D-10). Token-pure, no second throttle (consumes store's 250ms conflation). Holder host-tested across all fallback cases.
 - [Phase ?]: [Phase 4][04-04]: Settings screen (SET-01) landed — TokenTextField bridges Material OutlinedTextField chrome to LocalTokens (review #7); conventional verticalScroll list exempt from Focus/Field/Gutter (D-15); Save validates host/port parity then persists ConnectionConfig to ConnectionStore (triggers service rebuild, D-03); key-saved indicator + Clear-key + no-clobber blank-save (review #10/#12); lazy mDNS Scan with bounded settle window (review #5/D-04); Dark/Light+S/M/L+accent picker dual-write live ThemeResolver + persisted ThemePrefs, accent-only delta (D-16); MoonrakerDiscovery injected into AppContainer/DinghyApp (Rule 3).
+- [Phase ?]: [Phase 4][04-07]: App wired end-to-end — MainActivity starts the FGS, hosts ONE DinghyTheme boundary, delegates ALL routing to a single RootController (SOLE consumer of derive() + the one open-Settings escape, review #2/#11). Swipe-up full-screen AppDrawer (Status+Settings live; Move/Temp/Files/Tools/Macros/Devices+red Power greyed/INERT — no click action, T-04-07-E); AppShell renders the active Dest full-bleed (lean route holder, NOT Navigation-Compose, D-05) + BackHandler collapse; Settings is an in-shell Dest (no dangling onOpenSettings). ShellPresenceTest PASSES on flox. Wiring fix: SpineHandle gained a per-session PrinterStateStore so the shell builds PrintStatusHolder from the LIVE store. UNBLOCKS 04-06b's combined-render perf gate.
 
 ### Pending Todos
 
@@ -137,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-01T02:07:08.638Z
+Last session: 2026-06-01T02:27:05.274Z
 Stopped at: Completed 04-04-PLAN.md
 Resume file: None
