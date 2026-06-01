@@ -113,6 +113,6 @@ class MoonrakerDiscovery(
     }
 
     private companion object {
-        const val SERVICE_TYPE = "_moonraker._tcp"
+        const val SERVICE_TYPE = "_moonraker._tcp."
     }
 }
