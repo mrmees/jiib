@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -69,7 +71,7 @@ fun AppDrawer(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Fixed(4), // denser grid — ~8 tiles visible in landscape (was 2 huge tiles)
             modifier = modifier
                 .fillMaxSize()
                 .background(t.bg)
@@ -100,6 +102,7 @@ fun AppDrawer(
  */
 private data class DrawerTileSpec(
     val label: String,
+    val symbol: String, // Material Symbols ligature name (see MaterialSymbol)
     val dest: Dest?,
     val danger: Boolean = false,
 )
@@ -112,15 +115,15 @@ private data class DrawerTileSpec(
  * Tools→Extrude); its label is kept per the LAW mockup rather than renamed.
  */
 private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
-    DrawerTileSpec(label = "Status", dest = Dest.PrintStatus),
-    DrawerTileSpec(label = "Move", dest = Dest.Move),
-    DrawerTileSpec(label = "Temp", dest = Dest.Temperature),
-    DrawerTileSpec(label = "Files", dest = null),
-    DrawerTileSpec(label = "Tools", dest = Dest.Extrude),
-    DrawerTileSpec(label = "Macros", dest = null),
-    DrawerTileSpec(label = "Devices", dest = null),
-    DrawerTileSpec(label = "Settings", dest = Dest.Settings),
-    DrawerTileSpec(label = "Power", dest = null, danger = true),
+    DrawerTileSpec(label = "Status", symbol = "monitoring", dest = Dest.PrintStatus),
+    DrawerTileSpec(label = "Move", symbol = "open_with", dest = Dest.Move),
+    DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
+    DrawerTileSpec(label = "Files", symbol = "folder", dest = null),
+    DrawerTileSpec(label = "Tools", symbol = "build", dest = Dest.Extrude),
+    DrawerTileSpec(label = "Macros", symbol = "code", dest = null),
+    DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
+    DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
+    DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
 
 /**
@@ -157,15 +160,31 @@ private fun DrawerTile(
         base.semantics { disabled() }
     }
 
+    val contentColor = when {
+        tile.danger -> t.stop
+        live -> t.text
+        else -> t.text3
+    }
+
     Box(tileModifier, contentAlignment = Alignment.Center) {
-        Text(
-            text = tile.label,
-            color = if (live) t.text else t.text3,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-            textAlign = TextAlign.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(8.dp),
-        )
+        ) {
+            MaterialSymbol(
+                name = tile.symbol,
+                tint = contentColor,
+                sizeSp = fsSp(40f, t.fs),
+            )
+            Text(
+                text = tile.label,
+                color = contentColor,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(16f, t.fs).sp,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

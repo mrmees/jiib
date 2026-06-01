@@ -58,10 +58,17 @@ All live in `reference/Print Status Hi-Fi.html` as labeled artboards on a pan/zo
 
 ### 2. App Drawer (navigation)
 - **Purpose:** the swipe-up launcher; the app's primary navigation.
-- **Layout:** Focus omitted; Field = grid of square destination tiles, **max 2 columns
-  (portrait) / 2 rows (landscape)**, scrolls beyond. **No gutter** — tiles are the navigation,
-  and must include **Settings** and a red **Power** tile (the drawer is the one screen with no
-  other exit). Each tile = big icon + label.
+- **Layout:** Focus omitted; Field = grid of square destination tiles. **Density UPDATED 2026-06-01:
+  4 columns** (was 2 — 2-col made tiles huge, only ~2 visible in landscape; 4-col shows ~8), scrolls
+  beyond. **No gutter** — tiles are the navigation, and must include **Settings** and a red **Power**
+  tile (the drawer is the one screen with no other exit). Each tile = **Material Symbol icon + label**
+  (icons via the Material Symbols Outlined font — see "Icon system" below).
+
+> **Icon system (established 2026-06-01):** app icons come from the **Google Material Symbols** (Outlined)
+> glyph font (`res/font/material_symbols_outlined.ttf`), rendered by ligature name via the `MaterialSymbol`
+> composable — one font, no per-icon assets. Prefer it for any new icon. (The bespoke `nozzle`/`heat_bed`
+> vector drawables remain for the printer-specific glyphs Material Symbols lacks.) The full font ships in
+> dev; subset to referenced names before release (Phase 8).
 
 ### 3. Print Status (home / monitor)
 - **Purpose:** glanceable live job status.
