@@ -1,7 +1,8 @@
 ---
 phase: 04-service-shell-settings-print-status-home
 verified: 2026-06-01T10:00:00Z
-status: human_needed
+status: passed
+uat_closed: 2026-05-31 — on-device UAT run on real flox + live Ender 5 Plus; 5/5 passed (see 04-HUMAN-UAT.md). Perf-gate liveness subjectively passed (no observable jank); the heater-sparkline scaling/timeline/empty-on-steady behavior recorded as gap G-1, deferred to Phase 5 by user decision (the full Temperature graph extends this primitive with fixed ranges + temperature_store backfill). Formal gfxinfo p95 capture optional during a heat ramp, non-blocking.
 score: 5/5
 overrides_applied: 0
 human_verification:
