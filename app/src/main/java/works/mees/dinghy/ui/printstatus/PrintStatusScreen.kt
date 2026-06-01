@@ -325,9 +325,17 @@ private fun DisabledTile(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Short uppercase label for a heater object name (extruder → NOZZLE, heater_bed → BED). */
+/**
+ * Short uppercase label for a heater object name.
+ * - `extruder` → "NOZZLE"
+ * - `extruder1`, `extruder2`, … → "NOZZLE 1", "NOZZLE 2", … (avoids duplicate "NOZZLE" in multi-tool grids)
+ * - `heater_bed` → "BED"
+ * - `heater_generic <name>` → uppercased name (verbatim nonstandard heater)
+ * - anything else → uppercased verbatim
+ */
 private fun label(objectName: String): String = when {
-    objectName == "extruder" || objectName.startsWith("extruder") -> "NOZZLE"
+    objectName == "extruder" -> "NOZZLE"
+    objectName.startsWith("extruder") -> "NOZZLE ${objectName.removePrefix("extruder")}"
     objectName == "heater_bed" -> "BED"
     objectName.startsWith("heater_generic ") -> objectName.removePrefix("heater_generic ").uppercase()
     else -> objectName.uppercase()
