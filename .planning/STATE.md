@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6."
-last_updated: "2026-06-01T04:13:39.772Z"
-last_activity: 2026-06-01
+status: executing
+last_updated: "2026-06-01T04:45:37.283Z"
+last_activity: 2026-06-01 -- Phase 05 planning complete
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 24
+  total_plans: 32
   completed_plans: 24
   percent: 44
 ---
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
 Plan: 7 (04-07) CODE COMPLETE — end-of-phase human-verify checkpoint OPEN
-Status: 04-07 wiring landed + proven on flox. MainActivity stub REPLACED — the app now routes MainActivity → RootController (single routing authority + one open-Settings escape) → Splash/Settings/AppShell(AppDrawer + PrintStatusScreen). ShellPresenceTest PASSES on flox (4/4: drawer live tiles tappable, greyed+Power inert, splash-no-drawer, notif-denied non-crash). SpineHandle gained per-session store so the shell builds PrintStatusHolder from the live store. Commits 8119092 / d265b3c / 3fe90c6.
+Status: Ready to execute
   → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
   → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
-Last activity: 2026-06-01
+Last activity: 2026-06-01 -- Phase 05 planning complete
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
