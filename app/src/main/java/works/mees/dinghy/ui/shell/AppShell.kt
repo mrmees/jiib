@@ -22,10 +22,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.ui.extrude.ExtrudeHolder
+import works.mees.dinghy.ui.extrude.ExtrudeScreen
+import works.mees.dinghy.ui.move.MoveHolder
+import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusHolder
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.screen.SettingsScreen
+import works.mees.dinghy.ui.temperature.TemperatureHolder
+import works.mees.dinghy.ui.temperature.TemperatureScreen
 
 /**
  * The running shell host (SHELL-01) — it renders the active [Dest] FULL-BLEED with NO persistent
@@ -33,10 +39,10 @@ import works.mees.dinghy.ui.screen.SettingsScreen
  * navigation surface: the swipe-up full-screen [AppDrawer] (D-14).
  *
  * ## Lean route holder — NOT Navigation-Compose (D-05)
- * The active destination is a single `var dest by remember { mutableStateOf(Dest.PrintStatus) }`. For
- * Phase 4's two in-shell destinations (Print Status + Settings) a lean `when(dest)` holder is lighter
- * than a nav graph; extra panels are a one-line addition later. There is NO `androidx.navigation`
- * dependency here.
+ * The active destination is a single `var dest by remember { mutableStateOf(Dest.PrintStatus) }`. A
+ * lean `when(dest)` holder is lighter than a nav graph; each panel is a one-line addition (Phase 5
+ * added Temperature / Move / Extrude alongside the original Print Status + Settings). There is NO
+ * `androidx.navigation` dependency here.
  *
  * ## Settings is an IN-SHELL destination (review #2/#11)
  * Settings is reached via the drawer's "Settings" tile (`Dest.Settings`) and rendered here like any
@@ -78,6 +84,11 @@ fun AppShell(
     val idleStore = remember { PrinterStateStore(scope = scope) }
     val store = spine?.store ?: idleStore
     val holder = remember(store) { PrintStatusHolder(scope = scope, store = store) }
+    // The three Phase-5 control panels — each holder built off the SAME live per-session store and
+    // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
+    val temperatureHolder = remember(store) { TemperatureHolder(scope = scope, store = store) }
+    val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
+    val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
 
     // System Back collapses the drawer first (only intercepts while the drawer is open).
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
@@ -96,6 +107,21 @@ fun AppShell(
         // The active destination, full-bleed (no persistent chrome).
         when (dest) {
             Dest.PrintStatus -> PrintStatusScreen(container = container, holder = holder)
+            Dest.Temperature -> TemperatureScreen(
+                container = container,
+                holder = temperatureHolder,
+                onBack = { dest = Dest.PrintStatus },
+            )
+            Dest.Move -> MoveScreen(
+                container = container,
+                holder = moveHolder,
+                onBack = { dest = Dest.PrintStatus },
+            )
+            Dest.Extrude -> ExtrudeScreen(
+                container = container,
+                holder = extrudeHolder,
+                onBack = { dest = Dest.PrintStatus },
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { dest = Dest.PrintStatus },
