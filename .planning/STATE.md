@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T23:15:46.377Z"
-last_activity: 2026-05-31 -- Phase 04 planning complete
+last_updated: "2026-06-01T01:07:14.338Z"
+last_activity: 2026-06-01
 progress:
   total_phases: 9
   completed_phases: 3
-  total_plans: 22
-  completed_plans: 15
+  total_plans: 23
+  completed_plans: 16
   percent: 33
 ---
 
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 04 — service shell settings print status home
+**Current focus:** Phase 04 — service-shell-settings-print-status-home
 
 ## Current Position
 
-Phase: 04
-Plan: Not started
+Phase: 04 (service-shell-settings-print-status-home) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-05-31 -- Phase 04 planning complete
+Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -68,6 +68,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 03 P05 | 2 | 2 tasks tasks | 4 files files |
 | Phase 03 P06 | 7 | 2 tasks | 4 files |
 | Phase 03 P07 | 1440 | 2 tasks | 7 files |
+| Phase 04 P01 | 30 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 3/03-06]: In-APK component gallery (D-07) = pure-DI Compose GalleryScreen (accepts ThemeResolver + nullable PrinterStateStore? + hoisted feed-source selector, constructs none); GalleryActivity (src/debug) is sole assembler. Debug-only LAUNCHER via app/src/debug/AndroidManifest.xml (manifest-merge seam, NOT a BuildConfig.DEBUG runtime guard); automated tools/check-release-no-gallery.sh proves via aapt badging that release APK has only MainActivity (D-08). Ring/graph fed from BOTH SyntheticFeed AND injected connection-less PrinterStateStore.printerState (D-14); GraphViewHost gets current tokens so theme flip recolors the Views Canvas. Manual matrix sign-off #1-#4 hosted here on flox; 03-07 = perf proof.
 - [Phase ?]: [Phase 3 / criterion #5]: Closed PASS on the A-variant two-part gate (liveness: allocation-free/no-loop/zero-frozen + sparse-redraw latency p95<=~66ms, met at 50.1ms on flox), NOT the original p50<<16.6ms — that target was a Phase-1 dp(260) spike, invalid generalized to full-screen composition on Adreno 320 (~24ms native-res window-composite floor is physics).
 - [Phase ?]: [Phase 6 mandate]: Temperature panel (multi-trace extension of this graph) MUST re-measure the full real screen against the same two-part gate; three re-open conditions recorded in 03-PERF-RESULTS.md.
+- [Phase 4]: [04-01]: ConnectionStore takes an INJECTED DataStore (no delegate); DinghyApp (04-03) owns a SEPARATE connection.preferences_pb from theme.preferences_pb for a cleaner API-key redaction boundary (T-04-01-I).
+- [Phase 4]: [04-01]: MoonrakerDiscovery is FULLY LAZY (ctor takes provider lambdas, touches neither NsdManager nor MulticastLock; machinery acquired on collect, released on awaitClose, review #5); best-effort, never auto-connects/blocks/throws.
+- [Phase 4]: [04-01]: DataStore round-trip is not reliably host-testable on the Windows build host (back-to-back writes/second instance fail the atomic rename); clear→null proven with clear() as the single write plus round-trip proving save persists. Product clear() correct on Android.
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-31T22:39:12.950Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-service-shell-settings-print-status-home/04-CONTEXT.md
+Last session: 2026-06-01T01:07:14.284Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

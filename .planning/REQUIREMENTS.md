@@ -9,7 +9,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Connection
 
-- [ ] **CONN-01**: User can enter and save a Moonraker connection (host/IP, port, optional API key) **via the Settings screen** (see SET-01), persisted locally across app restarts
+- [x] **CONN-01**: User can enter and save a Moonraker connection (host/IP, port, optional API key) **via the Settings screen** (see SET-01), persisted locally across app restarts
 - [x] **CONN-02**: User can supply optional Moonraker auth (API key / trusted-client) used on the websocket and REST calls
 - [x] **CONN-03**: App maintains a long-lived Moonraker websocket and auto-reconnects with backoff after drops, without user intervention
 - [x] **CONN-04**: On every (re)connect the app performs a full resync handshake (identify → objects.query snapshot → objects.subscribe) so displayed state is never stale after a disconnect
@@ -170,7 +170,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PRIM-01 | Phase 3 | Complete |
 | PRIM-03 | Phase 3 | Complete |
 | PRIM-04 | Phase 3 | Complete |
-| CONN-01 | Phase 4 | Pending |
+| CONN-01 | Phase 4 | Complete |
 | SET-01 | Phase 4 | Pending |
 | SHELL-01 | Phase 4 | Pending |
 | SHELL-02 | Phase 4 | Pending |

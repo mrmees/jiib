@@ -104,3 +104,7 @@ Task 1 carried `tdd="true"`. Because the failing test references the `Connection
 ## Known Stubs
 
 None — both deliverables are fully wired pure/lazy primitives. `MoonrakerDiscovery` requires the `CHANGE_WIFI_MULTICAST_STATE` manifest permission, which is added in 04-03 (per the plan); the class itself is complete.
+
+## Self-Check: PASSED
+
+All created files present on disk; all task/SUMMARY commits (`5e3b7f6`, `c4647dd`, `b8e9bc1`) confirmed in git history.
