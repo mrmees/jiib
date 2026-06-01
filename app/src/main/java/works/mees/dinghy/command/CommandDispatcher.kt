@@ -29,6 +29,13 @@ sealed interface DispatchEvent {
      * ([RpcConnectionException]), a dispatcher timeout, AND a server-side gcode rejection
      * ([RpcError]) — e.g. an out-of-range move or a failing macro. For an [RpcError] the message is
      * the printer's own rejection text so the user sees WHY the command was refused.
+     *
+     * NOTE (G4): a [RpcConnectionException] carrying [ConnectionError.Timeout] is NOT a transport
+     * failure — a long-running but valid gcode (Z-home/probe, mesh, load/unload macro) simply hasn't
+     * replied yet. That branch yields a BENIGN "taking longer than expected — still running" message,
+     * not the alarming "command could not be sent" reserved for a genuine no-connection/send failure
+     * ([ConnectionError.NetworkUnavailable]). Both messages are composed from the non-secret
+     * `method`/`key` only — never `e.message` (T-05-11-01).
      */
     data class Failure(val key: String, val message: String) : DispatchEvent
 }
@@ -120,8 +127,18 @@ class CommandDispatcher(
             try {
                 withTimeout(perCmdTimeout) { request(method, params, perCmdTimeout) }
             } catch (e: RpcConnectionException) {
-                // Typed transport failure (no connection / send failure / transport timeout).
-                _events.tryEmit(DispatchEvent.Failure(key, "$method failed: command could not be sent"))
+                // Disambiguate a slow-but-valid gcode (request-await Timeout — frame WAS sent and
+                // accepted, reply just hasn't arrived) from a genuine transport failure (no
+                // connection / send failure). Both messages are built ONLY from the non-secret
+                // `method` + a fixed string — NEVER `e.message`, which on a send failure can carry a
+                // `?token=` URL (T-05-11-01, guarded by failureMessageNeverEmbedsApiKeyOrToken).
+                val message = when (e.reason) {
+                    is ConnectionError.Timeout ->
+                        "$method is taking longer than expected — still running"
+                    else ->
+                        "$method failed: command could not be sent"
+                }
+                _events.tryEmit(DispatchEvent.Failure(key, message))
             } catch (e: RpcError) {
                 // Server-side gcode rejection (out-of-range move, failing macro, heater fault). The
                 // printer returned a JSON-RPC error envelope; JsonRpcClient completed the deferred
