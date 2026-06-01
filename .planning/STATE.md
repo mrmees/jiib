@@ -26,9 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 05 (core-print-control-panels-temperature-move-extrude) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
-  → UNBLOCKS 04-06b: the real combined Print Status surface (ring + sparkline + 2×3 grid + gutter) now composes on-device, so the 04-06b gfxinfo perf gate is RUNNABLE (needs live Ender 5 Plus).
-  → OPEN: Task 4 (checkpoint:human-verify, blocking) end-of-phase VISUAL UAT on flox + live Ender 5 Plus NOT signed off (tablet/printer + human eyes required) — clear via /gsd-verify-work 4 alongside the deferred 04-03 rotation/screen-off sign-off and the 04-06b perf gate.
+Status: PAUSED at Task 2 — checkpoint:human-verify (gate=blocking, on-device)
+  → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
+  → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
+  → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
 Last activity: 2026-06-01
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
