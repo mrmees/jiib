@@ -53,6 +53,9 @@ class AppContainerTest {
             request = { _, _, _ -> kotlinx.serialization.json.JsonNull },
             scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
         ),
+        store = works.mees.dinghy.state.PrinterStateStore(
+            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
+        ),
         sessionInstanceId = id,
     )
 

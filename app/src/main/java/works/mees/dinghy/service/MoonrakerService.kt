@@ -135,6 +135,7 @@ class MoonrakerService : Service() {
             connectionState = session.connectionState,
             capabilities = store.capabilities,
             dispatcher = dispatcher,
+            store = store, // the UI builds the per-session PrintStatusHolder from this (04-07).
             sessionInstanceId = id,
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.

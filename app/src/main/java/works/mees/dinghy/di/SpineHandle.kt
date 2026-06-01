@@ -5,6 +5,7 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.state.PrinterStateStore
 
 /**
  * An IMMUTABLE atomic snapshot of one live Moonraker spine (review #6). All references a screen needs
@@ -29,6 +30,15 @@ data class SpineHandle(
     val capabilities: StateFlow<Capabilities>,
     /** The per-session action dispatcher (PRIM-05) — every action tap routes through this. */
     val dispatcher: CommandDispatcher,
+    /**
+     * The current session's [PrinterStateStore] — the SAME store [printerState]/[capabilities] are
+     * exposed from. The Print Status shell (04-07) needs the concrete store (not just its flows) to
+     * construct a per-session [works.mees.dinghy.ui.printstatus.PrintStatusHolder], which owns the
+     * primary-heater RingBuffer and the 2×3 grid model. The service constructs the store; the UI
+     * consumes it (the "service constructs, UI consumes" discipline, D-02) — the UI still never opens a
+     * socket or owns the connection lifecycle.
+     */
+    val store: PrinterStateStore,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
 )
