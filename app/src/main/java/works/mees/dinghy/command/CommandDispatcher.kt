@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonElement
+import works.mees.dinghy.net.ConnectionError
 import works.mees.dinghy.net.JsonRpcClient
+import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.net.RpcConnectionException
 import works.mees.dinghy.net.RpcError
 
@@ -106,10 +108,17 @@ class CommandDispatcher(
         if (prev != null && now - prev < debounceMs) return
         lastAccepted[key] = now
 
+        // Per-command timeout: gcode.script's reply is gated on the gcode COMPLETING (homing/probe,
+        // bed mesh, filament load/unload macros routinely run tens of seconds), so it gets the long
+        // GCODE_TIMEOUT_MS. Every other method (emergency_stop, queries) replies promptly and keeps
+        // the short default. Both the inner request() deadline AND the outer withTimeout use the same
+        // perCmdTimeout so they no longer race at 10s (G4).
+        val perCmdTimeout = if (method == JsonRpcMethods.GCODE_SCRIPT) GCODE_TIMEOUT_MS else timeoutMs
+
         _inFlight.update { it + key }
         scope.launch {
             try {
-                withTimeout(timeoutMs) { request(method, params, timeoutMs) }
+                withTimeout(perCmdTimeout) { request(method, params, perCmdTimeout) }
             } catch (e: RpcConnectionException) {
                 // Typed transport failure (no connection / send failure / transport timeout).
                 _events.tryEmit(DispatchEvent.Failure(key, "$method failed: command could not be sent"))
@@ -136,6 +145,17 @@ class CommandDispatcher(
 
         /** Default UI action deadline (ms) — matches the transport default. */
         const val DEFAULT_TIMEOUT_MS = 10_000L
+
+        /**
+         * Action deadline (ms) for `printer.gcode.script`. Unlike instant calls, gcode.script's
+         * JSON-RPC reply arrives only when the gcode COMPLETES — Klipper homing+probe, bed-mesh
+         * calibration, and filament load/unload macros routinely run tens of seconds, far past the
+         * 10s [DEFAULT_TIMEOUT_MS]. 120s is a generous ceiling that still bounds a truly-wedged call
+         * so the key is always removed in `finally` and a control can never be permanently disabled
+         * (T-05-11-02 / T-04-02-DoS preserved). A slow-but-valid gcode finishing under this ceiling
+         * no longer trips a false "command could not be sent" toast (G4).
+         */
+        const val GCODE_TIMEOUT_MS = 120_000L
 
         private const val EVENT_BUFFER = 16
     }

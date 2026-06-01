@@ -21,6 +21,16 @@ sealed interface ConnectionError {
     /** The transport is unreachable (socket open/connect failed, DNS/host down, Wi-Fi drop). */
     data object NetworkUnavailable : ConnectionError
 
+    /**
+     * A request was sent and accepted by the transport but no reply arrived within the per-request
+     * deadline — distinct from [NetworkUnavailable] (a true send/connection failure). For a
+     * long-running gcode (Z-home/probe, bed mesh, filament load/unload macro) this is EXPECTED, not
+     * an error: the printer is still executing the gcode and will reply when it completes. The
+     * dispatcher uses this reason to surface a calm "still running" message instead of a false
+     * "command could not be sent" (G4).
+     */
+    data object Timeout : ConnectionError
+
     /** A JSON-RPC method/param error that is NOT an auth failure (e.g. a bad request shape). */
     data class ProtocolError(val code: Int, val message: String) : ConnectionError
 

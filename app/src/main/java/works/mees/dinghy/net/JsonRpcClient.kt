@@ -121,8 +121,12 @@ class JsonRpcClient(
         } catch (e: TimeoutCancellationException) {
             // Remove our own entry so a never-answered request can't wedge the map (T-02-10).
             pendingMutex.withLock { pending.remove(id) }
+            // A request-await timeout is NOT a transport failure: the frame was sent and accepted,
+            // we simply have no reply yet. Type it as ConnectionError.Timeout (distinct from the
+            // genuine no-connection / send-failure paths above, which stay NetworkUnavailable) so the
+            // dispatcher can tell a slow-but-valid gcode apart from a real send failure (G4).
             throw RpcConnectionException(
-                ConnectionError.NetworkUnavailable,
+                ConnectionError.Timeout,
                 "request '$method' (id=$id) timed out after ${timeoutMs}ms",
             )
         }
