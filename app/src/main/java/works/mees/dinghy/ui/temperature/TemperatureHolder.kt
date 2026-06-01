@@ -1,0 +1,178 @@
+package works.mees.dinghy.ui.temperature
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import works.mees.dinghy.render.RingBuffer
+import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.HeaterState
+import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.state.PrinterStateStore
+
+/**
+ * Toolkit-agnostic holder for the Temperature panel (TEMP-01/04). It transforms the store's
+ * ALREADY-throttled [PrinterStateStore.printerState] (plus the one-shot
+ * [PrinterStateStore.temperatureBackfill] StateFlow landed at handshake by 05-03) into the three
+ * shapes the Compose `TemperatureScreen` consumes:
+ *
+ *  1. [series] — one bounded [RingBuffer] snapshot per DRAWN sensor (trace order), feeding the 05-04
+ *     multi-trace GraphView. Each ring is seeded oldest→newest from the backfill on its first
+ *     emission, then each `printerState` tick appends that sensor's live current temperature.
+ *  2. [setpoints] — each drawn sensor's live target (or `null` when the target ≤ 0 / off), feeding the
+ *     per-trace dashed setpoint line in 05-04. Mirrors the PrintStatusHolder heaterCell off-rule.
+ *  3. [legend] — a [SensorReadout] per drawn sensor (name/label/current/target) for the Focus region.
+ *
+ * ## Drawn-sensor resolution (deterministic, capability-authoritative, 3-trace cap)
+ * The DRAWN sensors are resolved ONCE from [PrinterStateStore.capabilities] in trace order:
+ *  1. nozzle — the `extruder` heater, else the first `extruder`-prefixed heater (multi-tool naming);
+ *  2. bed — `heater_bed`;
+ *  3. chamber — the first `heater_generic *` entry.
+ * Up to THREE traces are drawn (palette nozzle=heat / bed=accent / chamber=violet, mockup §9). ANY
+ * additional `heater_generic` / `temperature_sensor` entries beyond these three are INTENTIONALLY
+ * omitted in v1 (the 3-trace token palette / fill budget). A richer printer therefore shows its first
+ * chamber-class heater but not a fourth heater — documented truncation, not an accidental gap.
+ *
+ * ## No second throttle (Phase-4 lesson, mirrors PrintStatusHolder / MoveHolder)
+ * The holder consumes the store's conflated flow directly (the store samples the high-rate plane at
+ * `DEFAULT_SAMPLE_MS = 250`). It adds NO `sample`/`debounce`/`delay` of its own.
+ *
+ * Plain Kotlin (no Compose annotations) so it is host-unit-testable; mirrors the [PrinterState] /
+ * [PrinterStateStore] StateFlow discipline (the only new piece is the per-sensor RingBuffers).
+ *
+ * @param scope the lifecycle scope the collectors run on (the UI host supplies it).
+ * @param store the already-assembled Phase-2/3 spine; the holder CONSUMES it, never opens a session.
+ */
+class TemperatureHolder(
+    scope: CoroutineScope,
+    private val store: PrinterStateStore,
+) {
+    /** The drawn-sensor object names in trace order (nozzle → bed → chamber), resolved once on first state. */
+    @Volatile
+    private var drawn: List<String> = emptyList()
+
+    /** One rolling-window ring per drawn sensor (parallel to [drawn]); built lazily when [drawn] resolves. */
+    private var rings: List<RingBuffer> = emptyList()
+
+    /** Guard so the one-shot backfill seeds each ring exactly once even if its StateFlow re-emits. */
+    @Volatile
+    private var seeded = false
+
+    private val _series = MutableStateFlow<List<FloatArray>>(emptyList())
+    /** One bounded snapshot per drawn trace (oldest→newest), in trace order — feeds the multi-trace graph. */
+    val series: StateFlow<List<FloatArray>> = _series.asStateFlow()
+
+    private val _setpoints = MutableStateFlow<List<Float?>>(emptyList())
+    /** Each drawn sensor's live target (null when off / target ≤ 0) — feeds the dashed setpoint line. */
+    val setpoints: StateFlow<List<Float?>> = _setpoints.asStateFlow()
+
+    private val _legend = MutableStateFlow<List<SensorReadout>>(emptyList())
+    /** Per-drawn-sensor current/target readout for the Focus region. */
+    val legend: StateFlow<List<SensorReadout>> = _legend.asStateFlow()
+
+    init {
+        // Backfill collector: seed each ring oldest→newest the instant the one-shot read lands (05-03).
+        // Seeding ONCE (guarded) so a re-emission of the StateFlow does not re-prepend the history; this
+        // makes the graph full deterministically on connect, not contingent on a later status diff.
+        scope.launch {
+            store.temperatureBackfill.collect { backfill ->
+                if (backfill.isEmpty() || seeded) return@collect
+                ensureResolved(store.printerState.value, store.capabilities.value)
+                if (rings.isEmpty()) return@collect // no drawn sensors resolved yet — try again next emit
+                drawn.forEachIndexed { i, name ->
+                    backfill[name]?.forEach { rings[i].push(it) }
+                }
+                seeded = true
+                publishSeries()
+            }
+        }
+
+        // Live collector: consume the store's ALREADY-throttled flow — NO second sample/debounce/delay.
+        scope.launch {
+            store.printerState.collect { state ->
+                ensureResolved(state, store.capabilities.value)
+                if (rings.isNotEmpty()) {
+                    drawn.forEachIndexed { i, name ->
+                        rings[i].push(state.heaters[name]?.temperature?.toFloat() ?: 0f)
+                    }
+                    publishSeries()
+                }
+                _legend.value = drawn.map { name -> readout(state, name) }
+                _setpoints.value = drawn.map { name -> setpointOf(state, name) }
+            }
+        }
+    }
+
+    /** Resolve the drawn sensors + build one ring each, ONCE, as soon as capabilities/state name a heater. */
+    private fun ensureResolved(state: PrinterState, caps: Capabilities) {
+        if (drawn.isNotEmpty()) return
+        val resolved = resolveDrawn(state, caps)
+        if (resolved.isEmpty()) return
+        drawn = resolved
+        rings = resolved.map { RingBuffer() }
+    }
+
+    private fun publishSeries() {
+        _series.value = rings.map { it.snapshot() }
+    }
+
+    /** A target of 0 (or less) means "off, no setpoint" — surface as null (PrintStatusHolder rule). */
+    private fun setpointOf(state: PrinterState, name: String): Float? {
+        val h: HeaterState = state.heaters[name] ?: return null
+        return if (h.target > 0.0) h.target.toFloat() else null
+    }
+
+    private fun readout(state: PrinterState, name: String): SensorReadout {
+        val h: HeaterState = state.heaters[name] ?: HeaterState()
+        val target = if (h.target > 0.0) h.target else null
+        return SensorReadout(name = name, label = label(name), current = h.temperature, target = target)
+    }
+
+    /**
+     * The deterministic drawn-sensor list (≤3, trace order). Capabilities is authoritative for "what
+     * exists"; we fall back to the live state keys when capabilities is empty (test/seed-only paths).
+     */
+    private fun resolveDrawn(state: PrinterState, caps: Capabilities): List<String> {
+        val names = if (caps.heaters.isNotEmpty()) caps.heaters else state.heaters.keys.toList()
+        val out = ArrayList<String>(MAX_TRACES)
+        // 1. nozzle: exact `extruder`, else first `extruder`-prefixed.
+        (names.firstOrNull { it == "extruder" } ?: names.firstOrNull { it.startsWith("extruder") })
+            ?.let { out.add(it) }
+        // 2. bed.
+        names.firstOrNull { it == "heater_bed" }?.let { out.add(it) }
+        // 3. chamber: the FIRST heater_generic (additional generics truncated — 3-trace cap).
+        names.firstOrNull { it.startsWith("heater_generic ") }?.let { out.add(it) }
+        return out.take(MAX_TRACES)
+    }
+
+    private companion object {
+        /** Token palette ceiling (heat/accent/violet) — the multi-trace graph draws at most 3 sensors. */
+        const val MAX_TRACES = 3
+    }
+}
+
+/**
+ * Short uppercase label for a heater object name (mirrors PrintStatusScreen.label):
+ * - `extruder` → "NOZZLE"; `extruder1`/`extruder2` → "NOZZLE 1"/… ; `heater_bed` → "BED";
+ * - `heater_generic <name>` → uppercased name; anything else → uppercased verbatim.
+ */
+private fun label(objectName: String): String = when {
+    objectName == "extruder" -> "NOZZLE"
+    objectName.startsWith("extruder") -> "NOZZLE ${objectName.removePrefix("extruder")}"
+    objectName == "heater_bed" -> "BED"
+    objectName.startsWith("heater_generic ") -> objectName.removePrefix("heater_generic ").uppercase()
+    else -> objectName.uppercase()
+}
+
+/**
+ * A single drawn-sensor readout for the Temperature Focus legend: its Moonraker object [name], a short
+ * uppercase [label], the live [current] temperature, and an optional [target] (null when the heater is
+ * off / has no setpoint).
+ */
+data class SensorReadout(
+    val name: String,
+    val label: String,
+    val current: Double,
+    val target: Double?,
+)
