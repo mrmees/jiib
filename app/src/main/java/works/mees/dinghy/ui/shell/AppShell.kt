@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,11 +39,12 @@ import works.mees.dinghy.ui.temperature.TemperatureScreen
  * title/status bar (status is color on existing elements, never global chrome) and exposes the ONE
  * navigation surface: the swipe-up full-screen [AppDrawer] (D-14).
  *
- * ## Lean route holder — NOT Navigation-Compose (D-05)
- * The active destination is a single `var dest by remember { mutableStateOf(Dest.PrintStatus) }`. A
- * lean `when(dest)` holder is lighter than a nav graph; each panel is a one-line addition (Phase 5
- * added Temperature / Move / Extrude alongside the original Print Status + Settings). There is NO
- * `androidx.navigation` dependency here.
+ * ## Lean route holder + back stack — NOT Navigation-Compose (D-05)
+ * The active destination is a single `var dest` rendered by a lean `when(dest)` (lighter than a nav
+ * graph; each panel is a one-line addition). Navigation keeps a small [backStack] of CALLER dests:
+ * opening a panel pushes the current screen, and Back (system OR gutter) pops to the caller. PrintStatus
+ * is the home root — navigating home clears the stack, and Back at home falls through to the OS so it
+ * closes the app. There is NO `androidx.navigation` dependency here.
  *
  * ## Settings is an IN-SHELL destination (review #2/#11)
  * Settings is reached via the drawer's "Settings" tile (`Dest.Settings`) and rendered here like any
@@ -74,9 +76,22 @@ fun AppShell(
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
 
-    // The lean route holder (D-05) — NOT Navigation-Compose.
+    // The lean route holder (D-05) — NOT Navigation-Compose. [dest] is the visible screen; [backStack]
+    // holds the CALLERS (most-recent last). Navigating to a panel pushes the current screen; Back pops
+    // to the caller. PrintStatus is the home/root — navigating home CLEARS the stack, and Back at home
+    // (empty stack) is left to the OS so it closes the app (per the system-Back contract).
     var dest by remember { mutableStateOf(Dest.PrintStatus) }
+    val backStack = remember { mutableStateListOf<Dest>() }
     var drawerOpen by remember { mutableStateOf(false) }
+
+    fun navigateTo(target: Dest) {
+        if (target == dest) return
+        if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
+        dest = target
+    }
+    fun goBack() {
+        if (backStack.isNotEmpty()) dest = backStack.removeAt(backStack.lastIndex)
+    }
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
@@ -90,8 +105,11 @@ fun AppShell(
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
     val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
 
-    // System Back collapses the drawer first (only intercepts while the drawer is open).
+    // System Back: collapse the drawer if open; otherwise pop the back stack to the calling screen.
+    // When the drawer is closed AND we're at the home root (empty stack), this is DISABLED so the OS
+    // handles Back and closes the app (the desired "only Status closes the app" behavior).
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
+    BackHandler(enabled = !drawerOpen && backStack.isNotEmpty()) { goBack() }
 
     BoxWithConstraints(
         modifier
@@ -110,21 +128,21 @@ fun AppShell(
             Dest.Temperature -> TemperatureScreen(
                 container = container,
                 holder = temperatureHolder,
-                onBack = { dest = Dest.PrintStatus },
+                onBack = { goBack() },
             )
             Dest.Move -> MoveScreen(
                 container = container,
                 holder = moveHolder,
-                onBack = { dest = Dest.PrintStatus },
+                onBack = { goBack() },
             )
             Dest.Extrude -> ExtrudeScreen(
                 container = container,
                 holder = extrudeHolder,
-                onBack = { dest = Dest.PrintStatus },
+                onBack = { goBack() },
             )
             Dest.Settings -> SettingsScreen(
                 container = container,
-                onConnectionSaved = { dest = Dest.PrintStatus },
+                onConnectionSaved = { navigateTo(Dest.PrintStatus) },
             )
         }
 
@@ -139,7 +157,7 @@ fun AppShell(
 
         if (drawerOpen) {
             AppDrawer(
-                onDestination = { dest = it },
+                onDestination = { navigateTo(it) },
                 onDismiss = { drawerOpen = false },
             )
         }

@@ -77,7 +77,7 @@ private const val TEMP_STEP = 5f
  * dashed [TemperatureHolder.setpoints] line.
  *
  * ## Gutter — Back · Presets · Cooldown
- *  - Back ([Intent.Danger], red) → [onBack].
+ *  - Back ([Intent.Go], green — non-destructive nav, safety doctrine) → [onBack].
  *  - Presets ([Intent.Neutral]) → reveals the fixed PLA/PETG/ABS/TPU selector ([PrinterCommands.MATERIAL_PRESETS]);
  *    each dispatches `applyPreset(nozzle,bed)`. Keyboard-free (D-01).
  *  - Cooldown ([Intent.Warn], amber) → dispatches [PrinterCommands.COOLDOWN] (TURN_OFF_HEATERS) (TEMP-03).
@@ -172,7 +172,7 @@ fun TemperatureScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
+                        intent = Intent.Go, // green — non-destructive nav (safety doctrine).
                     )
                     OutlinedControl(
                         label = "Presets",
