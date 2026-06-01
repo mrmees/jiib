@@ -1,6 +1,7 @@
 package works.mees.dinghy.command
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -22,6 +23,7 @@ import works.mees.dinghy.net.RpcConnectionException
  * receives a substitutable `request` lambda so each behavior is exercised deterministically under
  * `runTest`'s virtual clock.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class CommandDispatcherTest {
 
     /**

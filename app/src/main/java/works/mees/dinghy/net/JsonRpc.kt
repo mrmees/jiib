@@ -98,6 +98,13 @@ object JsonRpcMethods {
     const val OBJECTS_SUBSCRIBE = "printer.objects.subscribe"
     const val ONESHOT_TOKEN = "access.oneshot_token"
 
+    // Action requests (client → server) — the destructive/recovery set CommandDispatcher wraps
+    // (D-10/D-12; verified live in 04-RESEARCH). E-stop drives klippy_state → shutdown → Splash;
+    // the two restarts are the Splash recovery actions.
+    const val EMERGENCY_STOP = "printer.emergency_stop"
+    const val FIRMWARE_RESTART = "printer.firmware_restart"
+    const val RESTART = "printer.restart"
+
     // Notifications (server → client, no id)
     const val NOTIFY_STATUS_UPDATE = "notify_status_update"
     const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"
