@@ -1,0 +1,91 @@
+package works.mees.dinghy.di
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Test
+import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.net.MoonrakerSession
+import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.PrinterState
+
+/**
+ * Host-side proof of the [AppContainer] publication contract (the parts provable without an Android
+ * runtime — DataStore reads are not exercised here, only the spine-publication seam and the
+ * [SessionControl] narrowness invariant). Per the plan's `<behavior>`:
+ *  - initial [AppContainer.spine] is null before any session is published;
+ *  - publishing handle B replaces A in ONE assignment (review #6) — every field read off `spine.value`
+ *    after publish is B's, never a mix of A and B;
+ *  - [SessionControl] has NO member returning a [MoonrakerSession] (review #1).
+ */
+class AppContainerTest {
+
+    /** Minimal in-memory DataStore — AppContainer only constructs ThemePrefs/ConnectionStore over it. */
+    private class FakeDataStore : DataStore<Preferences> {
+        override val data: Flow<Preferences> = flowOf(emptyPreferences())
+        override suspend fun updateData(
+            transform: suspend (t: Preferences) -> Preferences,
+        ): Preferences = emptyPreferences()
+    }
+
+    private fun newContainer() = AppContainer(FakeDataStore(), FakeDataStore())
+
+    private fun handle(id: Long): SpineHandle = SpineHandle(
+        printerState = MutableStateFlow(PrinterState()),
+        connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected),
+        capabilities = MutableStateFlow(Capabilities()),
+        dispatcher = CommandDispatcher(
+            request = { _, _, _ -> kotlinx.serialization.json.JsonNull },
+            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()),
+        ),
+        sessionInstanceId = id,
+    )
+
+    @Test
+    fun spineIsNullBeforeAnyPublish() {
+        val container = newContainer()
+        assertNull("spine must start idle (null) before the service publishes", container.spine.value)
+    }
+
+    @Test
+    fun publishingNullIdlesTheSpine() {
+        val container = newContainer()
+        container.publishSpine(handle(1))
+        container.publishSpine(null)
+        assertNull("publishing null returns the spine to idle (review #12)", container.spine.value)
+    }
+
+    @Test
+    fun atomicSwap_everyFieldReadsAsBAfterPublishingB() {
+        val container = newContainer()
+        val a = handle(1)
+        val b = handle(2)
+        container.publishSpine(a)
+        container.publishSpine(b)
+
+        val published = container.spine.value!!
+        // ONE assignment swapped the WHOLE handle — no field is still A's (review #6).
+        assertEquals(2L, published.sessionInstanceId)
+        assertSame(b.printerState, published.printerState)
+        assertSame(b.connectionState, published.connectionState)
+        assertSame(b.capabilities, published.capabilities)
+        assertSame(b.dispatcher, published.dispatcher)
+    }
+
+    @Test
+    fun sessionControl_exposesNoRawMoonrakerSession() {
+        // Review #1: NO SessionControl member may return (or expose) a MoonrakerSession.
+        val leaks = SessionControl::class.java.declaredMethods.any { m ->
+            m.returnType == MoonrakerSession::class.java
+        }
+        assertFalse("SessionControl must not expose a raw MoonrakerSession (review #1)", leaks)
+    }
+}
