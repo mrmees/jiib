@@ -1,5 +1,7 @@
 package works.mees.dinghy.ui.temperature
 
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,6 +73,14 @@ class TemperatureHolder(
     /** Per-drawn-sensor current/target readout for the Focus region. */
     val legend: StateFlow<List<SensorReadout>> = _legend.asStateFlow()
 
+    private val _yRange = MutableStateFlow(DEFAULT_GRAPH_RANGE)
+    /**
+     * The DYNAMIC graph Y-range (05 UI tweak) — fits all drawn sensor history + active setpoints with
+     * absolute padding, bounds rounded outward to a nice step, clamped to the heater envelope. Recomputed
+     * each publish; feeds the GraphView (replaces the old fixed 0..350). See [computeGraphYRange].
+     */
+    val yRange: StateFlow<ClosedFloatingPointRange<Float>> = _yRange.asStateFlow()
+
     init {
         // Backfill collector: seed each ring oldest→newest the instant the one-shot read lands (05-03).
         // Seeding ONCE (guarded) so a re-emission of the StateFlow does not re-prepend the history; this
@@ -92,14 +102,16 @@ class TemperatureHolder(
         scope.launch {
             store.printerState.collect { state ->
                 ensureResolved(state, store.capabilities.value)
+                // Set legend + setpoints BEFORE publishSeries so the dynamic yRange (computed in
+                // publishSeries) sees this tick's active setpoints, not the previous tick's.
+                _legend.value = drawn.map { name -> readout(state, name) }
+                _setpoints.value = drawn.map { name -> setpointOf(state, name) }
                 if (rings.isNotEmpty()) {
                     drawn.forEachIndexed { i, name ->
                         rings[i].push(state.heaters[name]?.temperature?.toFloat() ?: 0f)
                     }
                     publishSeries()
                 }
-                _legend.value = drawn.map { name -> readout(state, name) }
-                _setpoints.value = drawn.map { name -> setpointOf(state, name) }
             }
         }
     }
@@ -114,7 +126,9 @@ class TemperatureHolder(
     }
 
     private fun publishSeries() {
-        _series.value = rings.map { it.snapshot() }
+        val snaps = rings.map { it.snapshot() }
+        _series.value = snaps
+        _yRange.value = computeGraphYRange(snaps, _setpoints.value)
     }
 
     /** A target of 0 (or less) means "off, no setpoint" — surface as null (PrintStatusHolder rule). */
@@ -176,3 +190,47 @@ data class SensorReadout(
     val current: Double,
     val target: Double?,
 )
+
+/** Absolute Y padding (°C) added below the min and above the max before rounding (05 UI tweak). */
+private const val GRAPH_PAD = 5f
+
+/** Bounds are rounded OUTWARD to this step (°C) so the axis + labels don't twitch per sample. */
+private const val GRAPH_STEP = 5f
+
+/** Hard envelope the dynamic range clamps into (the setHeater 0..350 clamp domain). */
+private const val GRAPH_FLOOR = 0f
+private const val GRAPH_CEIL = 350f
+
+/** Range shown before any data lands — a calm low band, not the full 0..350. */
+val DEFAULT_GRAPH_RANGE: ClosedFloatingPointRange<Float> = 0f..40f
+
+/**
+ * Pure, host-testable dynamic Y-range for the Temperature graph (05 UI tweak). Fits ALL finite sensor
+ * history samples plus every ACTIVE setpoint, applies an ABSOLUTE [GRAPH_PAD] above/below (the absolute
+ * pad is the anti-noise mechanism — it guarantees a non-collapsing span even at dead-steady, so we need
+ * no separate min-span floor), rounds the bounds OUTWARD to [GRAPH_STEP] (stops per-sample axis twitch),
+ * and clamps into the [GRAPH_FLOOR]..[GRAPH_CEIL] heater envelope. Empty input → [DEFAULT_GRAPH_RANGE].
+ */
+internal fun computeGraphYRange(
+    series: List<FloatArray>,
+    setpoints: List<Float?>,
+): ClosedFloatingPointRange<Float> {
+    var min = Float.POSITIVE_INFINITY
+    var max = Float.NEGATIVE_INFINITY
+    for (s in series) for (v in s) if (v.isFinite()) {
+        if (v < min) min = v
+        if (v > max) max = v
+    }
+    for (sp in setpoints) if (sp != null && sp.isFinite()) {
+        if (sp < min) min = sp
+        if (sp > max) max = sp
+    }
+    if (min == Float.POSITIVE_INFINITY) return DEFAULT_GRAPH_RANGE // no finite data yet
+
+    var lo = floor((min - GRAPH_PAD) / GRAPH_STEP) * GRAPH_STEP
+    var hi = ceil((max + GRAPH_PAD) / GRAPH_STEP) * GRAPH_STEP
+    lo = lo.coerceAtLeast(GRAPH_FLOOR)
+    hi = hi.coerceAtMost(GRAPH_CEIL)
+    if (hi - lo < GRAPH_STEP) hi = (lo + GRAPH_STEP).coerceAtMost(GRAPH_CEIL) // never degenerate
+    return lo..hi
+}

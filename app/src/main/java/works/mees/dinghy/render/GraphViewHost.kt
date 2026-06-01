@@ -53,8 +53,12 @@ fun GraphViewHost(
  * @param tokens    the active resolved tokens (THEME-01 — the View derives each trace color from them).
  * @param series    one bounded [RingBuffer.snapshot] per trace, index 0 = primary (oldest→newest, D-12).
  * @param setpoints per-trace current target for the dashed setpoint line (D-04); `null`/absent = none.
- * @param yRange    the FIXED shared Y-range (default 0..350 °C — covers the setHeater ceiling; G-1 fix).
+ * @param yRange    the shared Y-range. Default 0..350 (the setHeater ceiling); the Temperature panel
+ *                  passes a DYNAMIC range computed by [works.mees.dinghy.ui.temperature.TemperatureHolder]
+ *                  (fits live data + active setpoints, padded + rounded — 05 UI tweak).
  * @param drawArea  paint the translucent `.g-area` fill under the PRIMARY trace (default `true`).
+ * @param showAxisLabels draw the min/max Y-value labels at the right edge (default `false` — the Temperature
+ *                  panel turns it on; the small Print Status sparkline leaves it off).
  * @param modifier  caller layout for the hosted View.
  */
 @Composable
@@ -65,13 +69,15 @@ fun GraphViewHost(
     setpoints: List<Float?> = emptyList(),
     yRange: ClosedFloatingPointRange<Float> = GraphView.DEFAULT_Y_MIN..GraphView.DEFAULT_Y_MAX,
     drawArea: Boolean = true,
+    showAxisLabels: Boolean = false,
 ) {
     AndroidView(
         factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->
             view.applyTokens(tokens)   // D-06 push-tokens + invalidate (recolor all traces, no recreation)
             view.drawArea = drawArea   // fill-rate isolation lever (primary-trace fill only)
-            view.yRange = yRange       // FIXED shared Y-range (G-1 fix)
+            view.showAxisLabels = showAxisLabels // min/max Y labels (Temperature on, sparkline off)
+            view.yRange = yRange       // shared Y-range (dynamic for Temperature; G-1 fix)
             view.setData(series)       // N throttled samples → per-series sanitize/cap + invalidate (D-13)
             view.setSetpoints(setpoints) // per-trace dashed current-setpoint line (D-04)
         },

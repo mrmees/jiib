@@ -5,9 +5,14 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Typeface
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.content.res.ResourcesCompat
+import kotlin.math.roundToInt
+import works.mees.dinghy.R
 import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.views.ThemeableView
 
 /**
@@ -91,12 +96,34 @@ class GraphView(context: Context) : View(context), ThemeableView {
     /** A reusable path for the horizontal setpoint line (rewound per line; never reallocated). */
     private val setpointPath = Path()
 
+    /** Display density, cached once (avoids re-reading metrics per draw). */
+    private val density = resources.displayMetrics.density
+
+    /**
+     * Pre-allocated paint for the optional min/max Y-axis value labels ([showAxisLabels]). GeistMono
+     * (tabular numerals), RIGHT-aligned so the labels hug the graph's right edge and stay clear of the
+     * Focus|Field center seam. Color is pushed from the muted [ThemeTokens.text3] in [applyTokens].
+     */
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = LABEL_BASE_SP * density // default; re-set --fs-scaled in applyTokens
+        textAlign = Paint.Align.RIGHT
+        typeface = runCatching { ResourcesCompat.getFont(context, R.font.geist_mono_medium) }
+            .getOrNull() ?: Typeface.MONOSPACE
+    }
+
     /**
      * The sanitized, downsample-capped, finite working copies `onDraw` reads — one per trace.
      * Produced ONCE per throttled sample in [setData] so the UI-thread copies stay bounded and
      * `onDraw` allocation-free. Index 0 is the primary trace (the one that gets the area fill).
      */
     private var series: List<FloatArray> = emptyList()
+
+    /**
+     * Trace draw order (indices into [series]), highest current value FIRST so the LOWEST trace draws
+     * LAST (on top) — its fill + line win the shared lower band (05 UI tweak: bed-over-nozzle when the
+     * bed is cooler, and vice-versa). Computed ONCE per sample in [setData] (never in `onDraw`).
+     */
+    private var drawOrder: IntArray = IntArray(0)
 
     /**
      * Per-trace current setpoint (target) value; `null` = no setpoint line for that trace (D-04).
@@ -135,6 +162,19 @@ class GraphView(context: Context) : View(context), ThemeableView {
         }
 
     /**
+     * Whether to draw the min/max Y-axis value labels (the current [yRange] bounds) at the right edge —
+     * max top-right, min bottom-right. Default `false` so the small Print Status sparkline stays
+     * label-free; the full Temperature graph turns it on. Setting it `invalidate()`s.
+     */
+    var showAxisLabels: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
+
+    /**
      * Push the active tokens (D-06): recolor each pre-allocated trace paint from its role token and
      * repaint. No raw color literal — trace 0 (nozzle) = `heat`, trace 1 (bed) = `accent`,
      * trace 2 (chamber) = `violet` (added 05-02). The fill takes the PRIMARY trace's color at low alpha.
@@ -147,6 +187,8 @@ class GraphView(context: Context) : View(context), ThemeableView {
         // Translucent fill under the primary trace — its hue at a low alpha (cheap single fill, Pitfall 4).
         fillPaint.color = nozzle
         fillPaint.alpha = FILL_ALPHA
+        labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
+        labelPaint.textSize = fsSp(LABEL_BASE_SP, t.fs) * density // match the --fs-scaled button text size
         invalidate()
     }
 
@@ -173,7 +215,32 @@ class GraphView(context: Context) : View(context), ThemeableView {
             bounded.add(sanitize(series[i], cap))
         }
         this.series = bounded
+        this.drawOrder = orderByLastValueDesc(bounded)
         invalidate()
+    }
+
+    /**
+     * Order trace indices by their latest (rightmost) finite value, DESCENDING — highest first. Drawing
+     * in this order means the lowest-value trace is painted last (on top). Small insertion sort (≤3
+     * traces); allocates one [IntArray] per sample in [setData] — never touched in `onDraw` (Pitfall 4).
+     */
+    private fun orderByLastValueDesc(series: List<FloatArray>): IntArray {
+        val idx = IntArray(series.size) { it }
+        fun key(i: Int): Float {
+            val p = series[i]
+            return if (p.isEmpty()) Float.NEGATIVE_INFINITY else p[p.size - 1]
+        }
+        for (a in 1 until idx.size) {
+            val cur = idx[a]
+            val k = key(cur)
+            var b = a - 1
+            while (b >= 0 && key(idx[b]) < k) {
+                idx[b + 1] = idx[b]
+                b--
+            }
+            idx[b + 1] = cur
+        }
+        return idx
     }
 
     /**
@@ -188,7 +255,6 @@ class GraphView(context: Context) : View(context), ThemeableView {
 
     override fun onDraw(canvas: Canvas) {
         val all = series
-        if (all.isEmpty()) return
 
         val w = width.toFloat()
         val h = height.toFloat()
@@ -201,8 +267,14 @@ class GraphView(context: Context) : View(context), ThemeableView {
         fun yOf(v: Float): Float =
             if (range <= 0f) h * 0.5f else (h - ((v - minV) / range) * h).coerceIn(0f, h)
 
-        for (t in all.indices) {
-            if (t >= MAX_TRACES) break
+        // Draw highest-value trace FIRST so the lowest sits on top (D-?: 05 UI tweak). Each trace fills
+        // to the baseline in its OWN translucent color, then strokes its line — so the cooler trace's
+        // fill/line wins the shared lower band. (Per-trace fill is extra Adreno-320 fill-rate vs the old
+        // single-trace fill — re-gated on flox; `drawArea` still toggles the whole fill set off.)
+        val order = drawOrder
+        for (oi in order.indices) {
+            val t = order[oi]
+            if (t >= MAX_TRACES) continue
             val pts = all[t]
             val n = pts.size
             if (n == 0) continue // empty trace → draw nothing for it (input-edge contract)
@@ -221,9 +293,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
             val linePath = linePaths[t]
             linePath.rewind()
 
-            // Area fill ONLY for the primary trace (index 0) when enabled — bound the fill-rate cost.
-            val area = drawArea && t == 0
-            if (area) {
+            if (drawArea) {
                 areaPath.rewind()
                 areaPath.moveTo(0f, h) // start the fill at the bottom-left
             }
@@ -232,13 +302,15 @@ class GraphView(context: Context) : View(context), ThemeableView {
                 val x = dx * i
                 val y = yOf(pts[i])
                 if (i == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
-                if (area) areaPath.lineTo(x, y)
+                if (drawArea) areaPath.lineTo(x, y)
             }
 
-            if (area) {
+            if (drawArea) {
                 areaPath.lineTo((n - 1) * dx, h) // close the fill down to the bottom-right
                 areaPath.close()
-                canvas.drawPath(areaPath, fillPaint) // single filled area — the fill-rate cost we gate
+                fillPaint.color = linePaint.color // this trace's hue...
+                fillPaint.alpha = FILL_ALPHA      // ...at the canonical low alpha
+                canvas.drawPath(areaPath, fillPaint)
             }
             canvas.drawPath(linePath, linePaint)
         }
@@ -254,6 +326,15 @@ class GraphView(context: Context) : View(context), ThemeableView {
             setpointPath.moveTo(0f, y)
             setpointPath.lineTo(w, y)
             canvas.drawPath(setpointPath, setpointPaint)
+        }
+
+        // Optional Y-axis value labels (05 UI tweak): the current [yRange] bounds, RIGHT-aligned to hug
+        // the graph's right edge (clear of the Focus|Field center seam). Max top, min bottom. Two cheap
+        // drawText calls — the dynamic range is computed upstream (TemperatureHolder), the View just paints.
+        if (showAxisLabels) {
+            val pad = LABEL_PAD * density
+            canvas.drawText("${maxV.roundToInt()}°", w - pad, labelPaint.textSize + pad, labelPaint)
+            canvas.drawText("${minV.roundToInt()}°", w - pad, h - pad, labelPaint)
         }
     }
 
@@ -276,6 +357,12 @@ class GraphView(context: Context) : View(context), ThemeableView {
         /** Dash on/off lengths for the setpoint line (px). */
         private const val SETPOINT_DASH_ON = 8f
         private const val SETPOINT_DASH_OFF = 6f
+
+        /** Y-axis label base size (sp) — ~1.5× the OutlinedControl button label; `--fs`-scaled in applyTokens. */
+        private const val LABEL_BASE_SP = 27f
+
+        /** Y-axis label inset from the graph edge (dp-equivalent; scaled by density). */
+        private const val LABEL_PAD = 6f
 
         /** Fallback horizontal cap before the View has been laid out (`width == 0`). */
         private const val DEFAULT_PIXEL_CAP = 256
