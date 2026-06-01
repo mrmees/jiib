@@ -147,6 +147,63 @@ class PrinterStateReducerTest {
         assertEquals("Lost communication with MCU", afterHeaterDiff.klippyStateMessage)
     }
 
+    // --- Phase-5 additions: gcode_position (MOVE-04) + can_extrude (EXTR-04) ---
+
+    @Test
+    fun gcodeMoveDiffCapturesGcodePosition() {
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "gcode_move": { "gcode_position": [10.0, 20.0, 5.0, 0.0] } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(listOf(10.0, 20.0, 5.0, 0.0), state.gcodePosition)
+    }
+
+    @Test
+    fun extruderDiffCapturesCanExtrudeTrue() {
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "extruder": { "can_extrude": true } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(true, state.heaters["extruder"]!!.canExtrude)
+    }
+
+    @Test
+    fun extruderDiffCapturesCanExtrudeFalse() {
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "extruder": { "can_extrude": false } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(false, state.heaters["extruder"]!!.canExtrude)
+    }
+
+    @Test
+    fun tempOnlyExtruderDiffRetainsCanExtrude() {
+        // EXTR-04 / STATE-01: a temp-only extruder diff (no can_extrude key) keeps the prior flag.
+        val canExtrude = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "extruder": { "can_extrude": true } }""").jsonObject,
+        )
+        assertEquals(true, canExtrude.heaters["extruder"]!!.canExtrude)
+
+        val afterTempOnly = reduceDiff(
+            canExtrude,
+            MoonrakerJson.parseToJsonElement("""{ "extruder": { "temperature": 205.0 } }""").jsonObject,
+        )
+
+        assertEquals(205.0, afterTempOnly.heaters["extruder"]!!.temperature, 0.0001)
+        // can_extrude was NOT wiped to its default false.
+        assertEquals(true, afterTempOnly.heaters["extruder"]!!.canExtrude)
+    }
+
     /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */
     private fun quote(s: String): String =
         "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
