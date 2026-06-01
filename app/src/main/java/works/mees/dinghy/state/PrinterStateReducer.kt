@@ -2,6 +2,7 @@ package works.mees.dinghy.state
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -92,6 +93,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     status.objectOrNull("gcode_move")?.let { gm ->
         gm.doubleOrNullAt("speed_factor")?.let { s = s.copy(speedFactor = it) }
         gm.doubleOrNullAt("extrude_factor")?.let { s = s.copy(extrudeFactor = it) }
+        // MOVE-04 / Pitfall 1: gcode_position is the offsets-stripped user-facing X/Y/Z source — NOT toolhead.position.
+        gm.doubleListOrNull("gcode_position")?.let { s = s.copy(gcodePosition = it) }
     }
 
     // Progress can arrive on either virtual_sdcard or display_status; last writer wins per frame.
@@ -108,6 +111,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
             temperature = obj.doubleOrNullAt("temperature") ?: prev.temperature,
             target = obj.doubleOrNullAt("target") ?: prev.target,
             power = obj.doubleOrNullAt("power") ?: prev.power,
+            // EXTR-04: extruder objects carry can_extrude; a temp-only diff lacks it and RETAINS the prior flag.
+            canExtrude = obj.booleanOrNull("can_extrude") ?: prev.canExtrude,
         )
     }
     if (heaterUpdates.isNotEmpty()) {
@@ -150,6 +155,9 @@ private fun JsonObject.stringOrNull(key: String): String? =
 
 private fun JsonObject.doubleOrNullAt(key: String): Double? =
     runCatching { this[key]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+
+private fun JsonObject.booleanOrNull(key: String): Boolean? =
+    runCatching { this[key]?.jsonPrimitive?.booleanOrNull }.getOrNull()
 
 private fun JsonObject.doubleListOrNull(key: String): List<Double>? =
     runCatching { (this[key] as? JsonArray)?.map { it.jsonPrimitive.double } }.getOrNull()

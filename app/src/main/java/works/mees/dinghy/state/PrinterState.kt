@@ -39,6 +39,13 @@ data class PrinterState(
     /** Toolhead position `[x, y, z, e]` (mm); null until first snapshot. */
     val toolheadPosition: List<Double>? = null,
 
+    /**
+     * `gcode_move.gcode_position` `[X, Y, Z, E]` (mm) — the offsets-stripped, USER-FACING coordinates
+     * the Move panel displays/jogs against (MOVE-04 / RESEARCH Pitfall 1). NOT [toolheadPosition]
+     * (which is raw kinematic position including offsets). Null until first snapshot.
+     */
+    val gcodePosition: List<Double>? = null,
+
     /** Homed axes string from `toolhead.homed_axes` (e.g. "xyz", "" when none). */
     val homedAxes: String = "",
 
@@ -69,6 +76,14 @@ data class HeaterState(
     val temperature: Double = 0.0,
     val target: Double = 0.0,
     val power: Double = 0.0,
+
+    /**
+     * `extruder.can_extrude` — extruder objects only; true when the current temp ≥ `min_extrude_temp`
+     * (EXTR-04 cold-extrude gate / D-07). Non-extruder heaters leave the default `false`. Defaults
+     * false as a FAIL-SAFE: a printer that never reports `can_extrude` reads as "cannot extrude",
+     * disabling the extrude control rather than risking a cold extrude (T-05-01-Safety).
+     */
+    val canExtrude: Boolean = false,
 )
 
 /**
