@@ -199,7 +199,7 @@ Plans:
 - [x] 05-04-PLAN.md — Extend GraphView to N pre-allocated traces + fixed shared Y-range (closes Phase-4 G-1) + multi-snapshot GraphViewHost (TEMP-04)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
-- [ ] 05-05-PLAN.md — Temperature panel: legend + scrubber-set + presets/cooldown + multi-trace backfilled graph (TEMP-01..04)
+- [x] 05-05-PLAN.md — Temperature panel: legend + scrubber-set + presets/cooldown + multi-trace backfilled graph (TEMP-01..04)
 - [x] 05-06-PLAN.md — Move panel: 3×3 jog pad + Z row + distance selector + Home/Disable(ConfirmGuard)/Back, live gcode_position w/ per-axis homed gating (MOVE-01..04)
 - [ ] 05-07-PLAN.md — Extrude panel: Move-style extrude/retract + selectors + load/unload popup + capability-gated tool selector + live cold-extrude gate (EXTR-01..04)
 
@@ -283,7 +283,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Connection & State Foundation | 4/4 | Complete    | 2026-05-30 |
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
-| 5. Core Print-Control Panels — Temperature, Move, Extrude | 5/8 | In Progress|  |
+| 5. Core Print-Control Panels — Temperature, Move, Extrude | 6/8 | In Progress|  |
 | 6. Files / Print | 0/TBD | Not started | - |
 | 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |

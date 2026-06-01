@@ -59,7 +59,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Temperature
 
-- [ ] **TEMP-01**: User sees each heater/sensor's current and target temperature
+- [x] **TEMP-01**: User sees each heater/sensor's current and target temperature
 - [x] **TEMP-02**: User can set a heater target via presets and via exact keypad entry
 - [x] **TEMP-03**: User can apply preheat presets and cooldown (all heaters off)
 - [x] **TEMP-04**: User sees a temperature history graph (backfilled from `server.temperature_store`)
@@ -179,7 +179,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SHELL-05 | Phase 4 | Complete |
 | PRIM-02 | Phase 4 | Complete |
 | PRIM-05 | Phase 4 | Complete |
-| TEMP-01 | Phase 5 | Pending |
+| TEMP-01 | Phase 5 | Complete |
 | TEMP-02 | Phase 5 | Complete |
 | TEMP-03 | Phase 5 | Complete |
 | TEMP-04 | Phase 5 | Complete |
