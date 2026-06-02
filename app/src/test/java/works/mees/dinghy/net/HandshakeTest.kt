@@ -52,8 +52,8 @@ class HandshakeTest {
 
         assertEquals(
             "D-05/D-12: registry request wrappers must preserve identify → server.info → list → query → subscribe, " +
-                "THEN the two one-shot 05-03 reads " +
-                "(temperature_store backfill + configfile one-shot query), in order, once each",
+                "THEN the one-shot reads (05-03 temperature_store backfill + 08-04 gcode_store backfill + " +
+                "configfile one-shot query), in order, once each",
             listOf(
                 JsonRpcMethods.IDENTIFY,
                 "server.info",
@@ -61,6 +61,7 @@ class HandshakeTest {
                 JsonRpcMethods.OBJECTS_QUERY,
                 JsonRpcMethods.OBJECTS_SUBSCRIBE,
                 JsonRpcMethods.TEMPERATURE_STORE,
+                JsonRpcMethods.GCODE_STORE, // 08-04 console backfill (best-effort, in-handshake)
                 JsonRpcMethods.OBJECTS_QUERY, // one-shot configfile read
             ),
             handshakeMethods,
@@ -118,6 +119,34 @@ class HandshakeTest {
         // configfile one-shot read populated the min/max extrude hints from the PRIMARY extruder.
         assertEquals(170.0f, store.minExtrudeTemp.value)
         assertEquals(50.0f, store.maxExtrudeDistance.value)
+
+        // 08-04: the gcode_store one-shot read REPLACES the console backfill (CONS-02 / D-02). The faithful
+        // harness reply carries a "// " response (→ WARNING) and a plain command (→ NORMAL).
+        val consoleBackfill = store.consoleBackfill.value
+        assertEquals(
+            listOf("// External Power OFF", "TURN_OFF_HEATERS"),
+            consoleBackfill.map { it.rawMessage },
+        )
+        assertEquals(
+            works.mees.dinghy.ui.console.ConsoleSeverity.WARNING,
+            consoleBackfill.first { it.rawMessage == "// External Power OFF" }.severity,
+        )
+
+        // 08-04: the SAME single configfile query also populated the macro bodies (MACRO-02), keyed by the
+        // lowercased macro name with the `.gcode` body string — NO second configfile query was issued.
+        val macroBodies = store.macroBodies.value
+        assertEquals(setOf("start_print", "load_filament"), macroBodies.keys)
+        assertTrue(macroBodies["start_print"]?.contains("params.EXTRUDER") == true)
+
+        // Pitfall 3: exactly ONE query is scoped to {configfile} — the macro bodies are extracted from
+        // that same result, NOT a duplicate configfile query.
+        val configfileQueries = fake.sentFrames.toList()
+            .map { MoonrakerJson.parseToJsonElement(it).jsonObject }
+            .filter { it["method"]?.jsonPrimitive?.content == JsonRpcMethods.OBJECTS_QUERY }
+            .count {
+                it["params"]?.jsonObject?.get("objects")?.jsonObject?.keys == setOf("configfile")
+            }
+        assertEquals("Pitfall 3: exactly one {configfile} query feeds both extruder config AND macro bodies", 1, configfileQueries)
 
         run.cancelAndJoin()
     }

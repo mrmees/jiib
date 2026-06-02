@@ -58,15 +58,31 @@ class SessionTestHarness {
     """.trimIndent()
 
     /**
-     * The `configfile` one-shot query RESULT object (05-03 EXTR-04). Defaults to the real shape:
-     * `status.configfile.settings.extruder.{min_extrude_temp,max_extrude_only_distance}` — static
-     * parsed-config numbers Moonraker always exposes. configfile is a real always-defined Moonraker
-     * object, so the subset validator accepts it even though it is not in the objects.list fixture.
+     * The `configfile` one-shot query RESULT object (05-03 EXTR-04 + 08-04 MACRO-02). Defaults to the
+     * real shape: `status.configfile.settings.extruder.{min_extrude_temp,max_extrude_only_distance}`
+     * plus two lowercased `gcode_macro <name>` sections carrying a `gcode` body string (Moonraker
+     * lowercases settings keys) — faithful to the live shape the macro-body extract walks. configfile is
+     * a real always-defined Moonraker object, so the subset validator accepts it even though it is not in
+     * the objects.list fixture.
      */
     @Volatile
     var configfileResultJson: String = """
-        {"eventtime":100002.0,"status":{"configfile":{"settings":{"extruder":{
-          "min_extrude_temp":170.0,"max_extrude_only_distance":50.0}}}}}
+        {"eventtime":100002.0,"status":{"configfile":{"settings":{
+          "extruder":{"min_extrude_temp":170.0,"max_extrude_only_distance":50.0},
+          "gcode_macro start_print":{"gcode":"M104 S{params.EXTRUDER|default(200)}\nG28"},
+          "gcode_macro load_filament":{"gcode":"M83\nG1 E50 F300"}}}}}
+    """.trimIndent()
+
+    /**
+     * The `server.gcode_store` one-shot backfill RESULT object (08-04 CONS-02). Defaults to a faithful
+     * `{gcode_store:[{message,time,type}]}` shape carrying both a `// ` response (→ WARNING) and a plain
+     * command (→ NORMAL) so the backfill-REPLACE wiring exercises [parseGcodeStore] end-to-end.
+     */
+    @Volatile
+    var gcodeStoreResultJson: String = """
+        {"gcode_store":[
+          {"message":"// External Power OFF","time":1780184150.5,"type":"response"},
+          {"message":"TURN_OFF_HEATERS","time":1780336705.0,"type":"command"}]}
     """.trimIndent()
 
     /** If non-null, the identify reply is this raw error frame (drives the auth/protocol-error path). */
@@ -124,6 +140,9 @@ class SessionTestHarness {
             // One-shot temperature_store backfill (05-03) — NOT subscribed; faithful heater-keyed reply.
             JsonRpcMethods.TEMPERATURE_STORE ->
                 """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(temperatureStoreResultJson)},"id":$id}"""
+            // One-shot gcode_store console backfill (08-04) — NOT subscribed; faithful entry-list reply.
+            JsonRpcMethods.GCODE_STORE ->
+                """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(gcodeStoreResultJson)},"id":$id}"""
             JsonRpcMethods.OBJECTS_SUBSCRIBE ->
                 invalidObjectsSubset(obj)?.let {
                     """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""

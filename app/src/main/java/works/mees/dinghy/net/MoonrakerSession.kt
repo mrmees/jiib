@@ -20,6 +20,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import works.mees.dinghy.auth.AuthException
 import works.mees.dinghy.auth.MoonrakerAuth
 import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.GcodeStoreArgs
 import works.mees.dinghy.command.IdentifyArgs
 import works.mees.dinghy.command.ObjectSubsetArgs
 import works.mees.dinghy.command.request
@@ -37,6 +39,7 @@ import works.mees.dinghy.state.deriveCapabilities
 import works.mees.dinghy.state.deriveSubscribeSet
 import works.mees.dinghy.state.parseTemperatureStore
 import works.mees.dinghy.state.reduceSnapshot
+import works.mees.dinghy.ui.console.parseGcodeStore
 import kotlin.random.Random
 import kotlin.time.Duration
 
@@ -349,16 +352,43 @@ class MoonrakerSession(
             store.setTemperatureBackfill(backfill)
         }
         runCatching {
-            // configfile (one-shot query, NOT live subscribe): static parsed-config numbers from the
-            // PRIMARY `extruder` — single-extruder-accurate (the per-tool safety gate stays the live
-            // can_extrude boolean, not these numbers).
+            // gcode_store: console-history backfill (08-04, CONS-02 / D-02). REPLACE semantics — each
+            // (re)connect/klippy_ready fetches the entire still-growing server-side buffer (default 1000)
+            // and supersedes the prior snapshot, recovering disconnect-window lines without dedup logic
+            // (Mainsail-parity Option A). Placed inside runHandshake so it inherits the reconnect AND
+            // notify_klippy_ready reruns (Pitfall 4). Best-effort: a printer lacking gcode_store leaves
+            // the seam at its empty default and never breaks Connected.
+            val storeResult = rpc.request(CommandRegistry.gcodeStore, GcodeStoreArgs(count = 1000))
+            store.setGcodeBackfill(parseGcodeStore(storeResult.jsonObject))
+        }
+        runCatching {
+            // configfile (ONE one-shot query, NOT live subscribe; Pitfall 3 — no duplicate configfile
+            // query): TWO consumers off the SAME result.status.configfile.settings —
+            //   (a) static parsed-config numbers from the PRIMARY `extruder` (single-extruder-accurate;
+            //       the per-tool safety gate stays the live can_extrude boolean, not these numbers), and
+            //   (b) every `gcode_macro <name>` section's `.gcode` body (08-04, MACRO-02), keyed by the
+            //       LOWERCASED macro name (Moonraker lowercases settings keys). `.gcode` is normally a
+            //       single newline-joined string; if a printer returns an array, join with \n here.
             val cfgResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(setOf("configfile")))
-            val extruderCfg = parseStatus(cfgResult)
+            val settings = parseStatus(cfgResult)
                 ?.objectOrNull("configfile")
                 ?.objectOrNull("settings")
-                ?.objectOrNull("extruder")
+
+            val extruderCfg = settings?.objectOrNull("extruder")
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
             store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
+
+            val macroBodies: Map<String, String> = settings
+                ?.entries
+                ?.mapNotNull { (key, value) ->
+                    if (!key.startsWith("gcode_macro ")) return@mapNotNull null
+                    val name = key.removePrefix("gcode_macro ").lowercase()
+                    val body = (value as? JsonObject)?.gcodeBodyOrNull() ?: return@mapNotNull null
+                    name to body
+                }
+                ?.toMap()
+                ?: emptyMap()
+            store.setMacroBodies(macroBodies)
         }
     }
 
@@ -390,6 +420,19 @@ class MoonrakerSession(
 
     private fun JsonObject.floatOrNullAt(key: String): Float? =
         runCatching { this[key]?.jsonPrimitive?.doubleOrNull?.toFloat() }.getOrNull()
+
+    /**
+     * Extract a macro section's `gcode` body (08-04, MACRO-02). Normally a single newline-joined string;
+     * tolerates an array-of-strings shape by joining with `\n`. A missing/garbage field yields null
+     * (skip the macro), never `!!` on wire data.
+     */
+    private fun JsonObject.gcodeBodyOrNull(): String? = runCatching {
+        when (val g = this["gcode"]) {
+            is JsonArray -> g.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.joinToString("\n")
+            is JsonPrimitive -> g.contentOrNull
+            else -> null
+        }
+    }.getOrNull()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun waitBackoffOrTrigger(attempt: Int) {

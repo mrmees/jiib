@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import works.mees.dinghy.ui.console.ConsoleLine
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -77,6 +78,24 @@ class PrinterStateStore(
     private val _temperatureBackfill = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
     /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
+
+    private val _consoleBackfill = MutableStateFlow<List<ConsoleLine>>(emptyList())
+    /**
+     * `server.gcode_store` console-history snapshot (CONS-02 / D-02). Written on EVERY (re)connect and on
+     * the `notify_klippy_ready` re-handshake; each write REPLACES the prior snapshot (Mainsail-parity
+     * Option A) so disconnect-window lines in the server's still-growing buffer are recovered without any
+     * append/dedup logic. A StateFlow (not SharedFlow) so the ConsoleHolder observes deterministic
+     * on-connect fullness — the snapshot is the authoritative truth, not a transient event.
+     */
+    val consoleBackfill: StateFlow<List<ConsoleLine>> = _consoleBackfill.asStateFlow()
+
+    private val _macroBodies = MutableStateFlow<Map<String, String>>(emptyMap())
+    /**
+     * Macro-name (LOWERCASED, Moonraker's convention) → gcode body string, extracted from the SAME
+     * one-shot `configfile` query that reads the extruder config (Pitfall 3 — no duplicate query).
+     * Feeds the MACRO-02 parameter parser; null/empty when unreadable (degrades gracefully).
+     */
+    val macroBodies: StateFlow<Map<String, String>> = _macroBodies.asStateFlow()
 
     init {
         // Sampled flush: every sampleMillis, publish the accumulator IF a high-rate update is pending.
@@ -164,6 +183,23 @@ class PrinterStateStore(
     /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */
     fun setTemperatureBackfill(backfill: Map<String, FloatArray>) {
         _temperatureBackfill.value = backfill
+    }
+
+    /**
+     * One-shot at (re)handshake: REPLACE the console-history backfill snapshot from `server.gcode_store`
+     * (08-04, CONS-02 / D-02). A fresh snapshot supersedes prior contents — this is the Mainsail-parity
+     * disconnect-window recovery. NOT the throttled hot path.
+     */
+    fun setGcodeBackfill(lines: List<ConsoleLine>) {
+        _consoleBackfill.value = lines
+    }
+
+    /**
+     * One-shot at (re)handshake: macro-name (lowercased) → gcode body map, from the single `configfile`
+     * query (08-04, MACRO-02). NOT the throttled hot path.
+     */
+    fun setMacroBodies(bodies: Map<String, String>) {
+        _macroBodies.value = bodies
     }
 
     // ---- internals ------------------------------------------------------------------------------

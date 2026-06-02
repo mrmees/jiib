@@ -1470,6 +1470,29 @@
       ]
     },
     {
+      "catalog_id": "MR-server.gcode_store",
+      "name": "server.gcode_store",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "server.gcode_store probed 2026-06-02; returned {gcode_store:[{message,time,type}]} (fixture gcode_store_e5.json)."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Moonraker core endpoint since 2021; available on every Moonraker host (availability: always)."
+        }
+      ]
+    },
+    {
       "catalog_id": "MR-server.files.metadata",
       "name": "server.files.metadata",
       "source_api": "moonraker",

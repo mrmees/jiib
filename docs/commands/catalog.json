@@ -7975,9 +7975,9 @@
         "type": "always"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered in Phase 08-04: one-shot console-history backfill (CONS-02 / D-02) on every (re)connect and notify_klippy_ready re-handshake."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
