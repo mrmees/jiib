@@ -135,4 +135,72 @@ class PrintMetadataParseTest {
             url,
         )
     }
+
+    @Test
+    fun selectedFilePreviewParsesRichMetadata() {
+        val preview = parseFilePreviewMetadata("folder/cube.gcode", MoonrakerJson.parseToJsonElement(e5Metadata).jsonObject)
+
+        assertEquals("folder/cube.gcode", preview.filename)
+        assertEquals(1234567L, preview.sizeBytes)
+        assertEquals(1700000000.0, preview.modifiedEpochSeconds!!, 0.0001)
+        assertEquals(2191.0, preview.estimatedTime!!, 0.0001)
+        assertEquals(5749.86, preview.filamentTotal!!, 0.0001)
+        assertEquals(17.15, preview.filamentWeightTotal!!, 0.0001)
+        assertEquals(50, preview.layerCount)
+        assertNull(preview.objectHeight)
+        assertEquals(".thumbs/benchy-300x300.png", preview.largestThumbRelPath)
+        assertEquals(
+            "http://printer:7125/server/files/gcodes/folder/.thumbs/benchy-300x300.png",
+            preview.thumbnailUrl("http://printer:7125"),
+        )
+    }
+
+    @Test
+    fun selectedFilePreviewDegradesForMissingThumbnailsAndBadNumbers() {
+        val preview = parseFilePreviewMetadata(
+            "bad data.gcode",
+            MoonrakerJson.parseToJsonElement(
+                """{
+                  "estimated_time": "bad",
+                  "filament_total": "bad",
+                  "filament_weight_total": "bad",
+                  "layer_count": "bad",
+                  "object_height": "bad",
+                  "size": "bad",
+                  "modified": "bad",
+                  "thumbnails": []
+                }""",
+            ).jsonObject,
+        )
+
+        assertEquals("bad data.gcode", preview.filename)
+        assertNull(preview.sizeBytes)
+        assertNull(preview.modifiedEpochSeconds)
+        assertNull(preview.estimatedTime)
+        assertNull(preview.filamentTotal)
+        assertNull(preview.filamentWeightTotal)
+        assertNull(preview.layerCount)
+        assertNull(preview.objectHeight)
+        assertNull(preview.largestThumbRelPath)
+        assertNull(preview.thumbnailUrl("http://printer:7125"))
+    }
+
+    @Test
+    fun selectedFilePreviewThumbnailUrlHandlesSpaces() {
+        val preview = parseFilePreviewMetadata(
+            "my prints/cool benchy.gcode",
+            MoonrakerJson.parseToJsonElement(
+                """{
+                  "thumbnails": [
+                    { "width": 300, "relative_path": ".thumbs/cool benchy-300x300.png" }
+                  ]
+                }""",
+            ).jsonObject,
+        )
+
+        assertEquals(
+            "http://printer:7125/server/files/gcodes/my%20prints/.thumbs/cool%20benchy-300x300.png",
+            preview.thumbnailUrl("http://printer:7125"),
+        )
+    }
 }

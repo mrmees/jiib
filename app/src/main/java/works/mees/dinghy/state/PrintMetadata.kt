@@ -33,6 +33,21 @@ data class PrintMetadata(
     val largestThumbRelPath: String?,
 )
 
+data class FilePreviewMetadata(
+    val filename: String,
+    val sizeBytes: Long?,
+    val modifiedEpochSeconds: Double?,
+    val estimatedTime: Double?,
+    val filamentTotal: Double?,
+    val filamentWeightTotal: Double?,
+    val layerCount: Int?,
+    val objectHeight: Double?,
+    val largestThumbRelPath: String?,
+) {
+    fun thumbnailUrl(httpBase: String): String? =
+        largestThumbRelPath?.let { thumbnailUrl(httpBase, filename, it) }
+}
+
 /**
  * Map a `server.files.metadata` [result] object to a [PrintMetadata]. Every walk is null-safe
  * (`as?`/`orNull`, NEVER `!!`); an entirely empty object yields all-null fields. The thumbnail pick
@@ -50,6 +65,21 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
         objectHeight = objectHeight,
         estimatedTime = estimatedTime,
         largestThumbRelPath = largestThumbRelPath(result),
+    )
+}
+
+fun parseFilePreviewMetadata(filename: String, result: JsonObject): FilePreviewMetadata {
+    val printMetadata = parsePrintMetadata(result)
+    return FilePreviewMetadata(
+        filename = filename,
+        sizeBytes = runCatching { result["size"]?.jsonPrimitive?.content?.toLongOrNull() }.getOrNull(),
+        modifiedEpochSeconds = runCatching { result["modified"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
+        estimatedTime = printMetadata.estimatedTime,
+        filamentTotal = runCatching { result["filament_total"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
+        filamentWeightTotal = runCatching { result["filament_weight_total"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
+        layerCount = printMetadata.layerCount,
+        objectHeight = printMetadata.objectHeight,
+        largestThumbRelPath = printMetadata.largestThumbRelPath,
     )
 }
 
