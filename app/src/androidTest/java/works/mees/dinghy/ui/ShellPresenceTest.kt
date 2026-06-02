@@ -32,6 +32,7 @@ import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.compose.DinghyTheme
+import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.shell.RootController
 
 /**
@@ -92,6 +93,7 @@ class ShellPresenceTest {
             httpBase = "http://test:7125",
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
+            fileBrowser = object : FileBrowserClient {},
             sessionInstanceId = 1L,
         )
         container.publishSpine(handle)
@@ -123,8 +125,9 @@ class ShellPresenceTest {
         composeRule.onRoot().performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
-        // Status is the first tile (always on-screen): displayed + click-actionable.
+        // Status and Files are upper live tiles (always on-screen): displayed + click-actionable.
         composeRule.onNodeWithText("Status").assertIsDisplayed().assertHasClickAction()
+        composeRule.onNodeWithText("Files").assertIsDisplayed().assertHasClickAction()
         // Settings is a lower tile in the lazy grid — scroll the grid to it, then assert + tap.
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Settings"))
         composeRule.waitForIdle()
@@ -148,9 +151,9 @@ class ShellPresenceTest {
         composeRule.onRoot().performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
-        // Files is an upper greyed tile (on-screen): present but NOT click-actionable (inert).
-        // (Move/Temp/Tools went LIVE in Phase 5 (05-08); Files/Macros/Devices remain greyed.)
-        composeRule.onNodeWithText("Files").assertIsDisplayed().assertHasNoClickAction()
+        // Macros remains a greyed tile (on-screen): present but NOT click-actionable (inert).
+        // (Move/Temp/Extrude went LIVE in Phase 5; Files goes LIVE in Phase 7.)
+        composeRule.onNodeWithText("Macros").assertIsDisplayed().assertHasNoClickAction()
 
         // Power is the last (red, greyed) tile — scroll the grid to it; it is inert (T-04-07-E).
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Power"))

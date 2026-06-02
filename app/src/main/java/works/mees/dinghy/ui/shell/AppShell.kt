@@ -20,11 +20,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
+import works.mees.dinghy.ui.files.FileBrowserClient
+import works.mees.dinghy.ui.files.FileBrowserHolder
+import works.mees.dinghy.ui.files.FilesScreen
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
@@ -94,14 +100,24 @@ fun AppShell(
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
+    val capabilities by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
     // An empty fallback store keeps the home surface composable while idle (no live session yet).
     val idleStore = remember { PrinterStateStore(scope = scope) }
+    val idlePrinterState = remember { MutableStateFlow(PrinterState()) }
+    val idleFileBrowser = remember { object : FileBrowserClient {} }
     val store = spine?.store ?: idleStore
+    val printerStateFlow = spine?.printerState ?: idlePrinterState
+    val fileBrowser = spine?.fileBrowser ?: idleFileBrowser
     // The three Phase-5 control panels — each holder built off the SAME live per-session store and
     // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
     val temperatureHolder = remember(store) { TemperatureHolder(scope = scope, store = store) }
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
     val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
+    val filesHolder = remember(fileBrowser, printerStateFlow) {
+        FileBrowserHolder(scope = scope, client = fileBrowser, printerState = printerStateFlow)
+    }
+    val printerState by printerStateFlow.collectAsStateWithLifecycle()
 
     // System Back: collapse the drawer if open; otherwise pop the back stack to the calling screen.
     // When the drawer is closed AND we're at the home root (empty stack), this is DISABLED so the OS
@@ -136,6 +152,13 @@ fun AppShell(
             Dest.Extrude -> ExtrudeScreen(
                 container = container,
                 holder = extrudeHolder,
+                onBack = { goBack() },
+            )
+            Dest.Files -> FilesScreen(
+                holder = filesHolder,
+                printerState = printerState,
+                httpBase = httpBase,
+                canStartPrint = capabilities.hasObject("virtual_sdcard"),
                 onBack = { goBack() },
             )
             Dest.Settings -> SettingsScreen(

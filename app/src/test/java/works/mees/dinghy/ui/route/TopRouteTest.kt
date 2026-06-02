@@ -70,6 +70,11 @@ class TopRouteTest {
     }
 
     @Test
+    fun filesIsAShellDestination() {
+        assertEquals(Dest.Files, Dest.valueOf("Files"))
+    }
+
+    @Test
     fun socketStateDoesNotRoute_changingOnlyConnectionKeepsRouteIdentical() {
         val base = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Standby)
         val connected = base.copy(connection = ConnectionState.Connected)

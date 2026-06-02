@@ -48,6 +48,7 @@ import works.mees.dinghy.theme.fsSp
  * @param confirmLabel label for the confirm action ("Stop", "Cancel print", "Restart").
  * @param onConfirm   invoked when the user commits the action.
  * @param onCancel    invoked when the user backs out (safe dismiss).
+ * @param cancelLabel label for the safe-dismiss action; defaults to the existing "Cancel".
  * @param destructive when true (default) confirm is red ([Intent.Danger]); when false it is green.
  */
 @Composable
@@ -58,6 +59,7 @@ fun ConfirmGuard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    cancelLabel: String = "Cancel",
     destructive: Boolean = true,
 ) {
     val t = LocalTokens.current
@@ -101,7 +103,7 @@ fun ConfirmGuard(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         OutlinedControl(
-                            label = "Cancel",
+                            label = cancelLabel,
                             onClick = onCancel,
                             modifier = Modifier.weight(1f),
                             intent = Intent.Neutral,

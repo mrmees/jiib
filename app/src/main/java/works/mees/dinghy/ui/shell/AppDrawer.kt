@@ -35,9 +35,8 @@ import works.mees.dinghy.ui.route.Dest
 
 /**
  * The swipe-up full-screen **App Drawer** (D-14, SHELL-01) — the app's ONE navigation surface. It is a
- * full-bleed grid of SQUARE outline tiles (docs/ui_design/images/02-app-drawer.png): the two LIVE
- * destinations — **Status** ([Dest.PrintStatus]) and **Settings** ([Dest.Settings]) — plus the greyed
- * "coming soon" tiles (Move / Temp / Files / Tools / Macros / Devices) and the red **Power** tile, all
+ * full-bleed grid of SQUARE outline tiles (docs/ui_design/images/02-app-drawer.png): live shell
+ * destinations plus the greyed "coming soon" tiles (Macros / Devices) and the red **Power** tile, all
  * disabled/no-op until later phases wire them.
  *
  * ## Why greyed tiles are inert (T-04-07-E)
@@ -109,15 +108,16 @@ private data class DrawerTileSpec(
 
 /**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
- * Extrude are LIVE; Files, Macros, Devices remain greyed "coming soon"; Power is the red, greyed,
- * deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The Extrude tile
- * (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its function.
+ * Files + Extrude are LIVE; Macros and Devices remain greyed "coming soon"; Power is the red,
+ * greyed, deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The
+ * Extrude tile (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its
+ * function.
  */
 private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     DrawerTileSpec(label = "Status", symbol = "monitoring", dest = Dest.PrintStatus),
     DrawerTileSpec(label = "Move", symbol = "open_with", dest = Dest.Move),
     DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
-    DrawerTileSpec(label = "Files", symbol = "folder", dest = null),
+    DrawerTileSpec(label = "Files", symbol = "folder", dest = Dest.Files),
     DrawerTileSpec(label = "Extrude", symbol = "output_circle", dest = Dest.Extrude),
     DrawerTileSpec(label = "Macros", symbol = "code", dest = null),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
