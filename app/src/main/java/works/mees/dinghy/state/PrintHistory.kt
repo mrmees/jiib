@@ -32,12 +32,24 @@ data class LastJob(
     val filamentUsed: Double,
     /** `exists` — false when the source gcode was deleted (thumbnail may 404 → omit it). */
     val exists: Boolean,
+    /** `end_time` (epoch s) — when the job ended; null when absent. Drives the "Finished …" line. */
+    val endTime: Double?,
     /** `metadata.estimated_time` (s) — slicer estimate; null when metadata absent/partial. */
     val estimatedTime: Double?,
     /** `metadata.filament_weight_total` (g); null when metadata absent/partial. */
     val filamentWeightTotal: Double?,
     /** `relative_path` of the largest `metadata.thumbnails[]` by width; null when none. */
     val largestThumbRelPath: String?,
+    /** `metadata.slicer` (e.g. "OrcaSlicer"); null when absent. */
+    val slicer: String?,
+    /** `metadata.slicer_version` (e.g. "2.3.1"); null when absent. */
+    val slicerVersion: String?,
+    /** `metadata.filament_type` (e.g. "PLA"); null when absent. */
+    val filamentType: String?,
+    /** `metadata.filament_name` (e.g. "Sunlu PLA 2.0 @ Ender3"); null when absent. */
+    val filamentName: String?,
+    /** First entry of `metadata.filament_colors[]` (hex e.g. "#FFFFFF"); null when absent. */
+    val filamentColor: String?,
 )
 
 /**
@@ -65,8 +77,16 @@ fun parseLastJob(result: JsonObject): LastJob? {
         totalDuration = runCatching { job["total_duration"]?.jsonPrimitive?.doubleOrNull }.getOrNull() ?: 0.0,
         filamentUsed = runCatching { job["filament_used"]?.jsonPrimitive?.doubleOrNull }.getOrNull() ?: 0.0,
         exists = runCatching { job["exists"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() }.getOrNull() ?: false,
+        endTime = runCatching { job["end_time"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
         estimatedTime = runCatching { metadata?.get("estimated_time")?.jsonPrimitive?.doubleOrNull }.getOrNull(),
         filamentWeightTotal = runCatching { metadata?.get("filament_weight_total")?.jsonPrimitive?.doubleOrNull }.getOrNull(),
         largestThumbRelPath = largestThumbRelPath(metadata),
+        slicer = runCatching { metadata?.get("slicer")?.jsonPrimitive?.content }.getOrNull(),
+        slicerVersion = runCatching { metadata?.get("slicer_version")?.jsonPrimitive?.content }.getOrNull(),
+        filamentType = runCatching { metadata?.get("filament_type")?.jsonPrimitive?.content }.getOrNull(),
+        filamentName = runCatching { metadata?.get("filament_name")?.jsonPrimitive?.content }.getOrNull(),
+        filamentColor = runCatching {
+            (metadata?.get("filament_colors") as? JsonArray)?.firstOrNull()?.jsonPrimitive?.content
+        }.getOrNull(),
     )
 }

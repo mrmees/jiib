@@ -43,6 +43,11 @@ class PrintHistoryParseTest {
                 "filament_weight_total": 17.15,
                 "layer_count": 50,
                 "object_height": 22.4,
+                "slicer": "OrcaSlicer",
+                "slicer_version": "2.3.1",
+                "filament_type": "PLA",
+                "filament_name": "Sunlu PLA 2.0 @ Ender3",
+                "filament_colors": ["#FFFFFF"],
                 "thumbnails": [
                   { "width": 32,  "height": 32,  "size": 1024,  "relative_path": ".thumbs/b-32x32.png" },
                   { "width": 48,  "height": 48,  "size": 2048,  "relative_path": ".thumbs/b-48x48.png" },
@@ -66,6 +71,13 @@ class PrintHistoryParseTest {
         assertEquals(7000.0, job.estimatedTime!!, 0.0)
         assertEquals(17.15, job.filamentWeightTotal!!, 0.0)
         assertTrue(job.largestThumbRelPath!!.endsWith("-300x300.png"))
+        // Inc 3 follow-up fields (conditional, present here):
+        assertEquals(1717207191.0, job.endTime!!, 0.0)
+        assertEquals("OrcaSlicer", job.slicer)
+        assertEquals("2.3.1", job.slicerVersion)
+        assertEquals("PLA", job.filamentType)
+        assertEquals("Sunlu PLA 2.0 @ Ender3", job.filamentName)
+        assertEquals("#FFFFFF", job.filamentColor)
     }
 
     @Test
@@ -107,6 +119,13 @@ class PrintHistoryParseTest {
         assertNull(job.estimatedTime)
         assertNull(job.filamentWeightTotal)
         assertNull(job.largestThumbRelPath)
+        // Inc 3 follow-up fields also degrade to null when absent.
+        assertNull(job.endTime)
+        assertNull(job.slicer)
+        assertNull(job.slicerVersion)
+        assertNull(job.filamentType)
+        assertNull(job.filamentName)
+        assertNull(job.filamentColor)
     }
 
     @Test
