@@ -111,6 +111,10 @@ object JsonRpcMethods {
     // One-shot temperature-history backfill for the temp graph (RESEARCH §1).
     const val TEMPERATURE_STORE = "server.temperature_store"
 
+    // One-shot console-history backfill (CONS-02 / D-02 — Mainsail-parity replace-on-(re)connect).
+    // Returns `{gcode_store:[{message,time,type}]}`; params `{count}` (server default cache 1000).
+    const val GCODE_STORE = "server.gcode_store"
+
     // One-shot per-file gcode metadata (260601-sip Inc 2) — thumbnails, layer_count, object_height,
     // estimated_time; fetched ONCE per active print filename for the Status home derived cells.
     const val FILES_METADATA = "server.files.metadata"

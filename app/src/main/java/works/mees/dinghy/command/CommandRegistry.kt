@@ -29,6 +29,7 @@ data class FileNameArgs(val filename: String)
 data class FileDeleteArgs(val path: String)
 data class PrintStartArgs(val filename: String)
 data class HistoryListArgs(val limit: Int = 1, val order: String = "desc")
+data class GcodeStoreArgs(val count: Int = 1000)
 data class ObjectSubsetArgs(val objects: Set<String>)
 class ServerInfoArgs private constructor()
 
@@ -113,6 +114,13 @@ object CommandRegistry {
         key = { "temperature_store" },
         params = { null },
         availability = AvailabilityPredicate.ComponentPresent("history"),
+    )
+
+    val gcodeStore: CommandSpec<GcodeStoreArgs> = jsonRpc(
+        catalogId = "MR-server.gcode_store",
+        method = JsonRpcMethods.GCODE_STORE,
+        key = { "gcode_store" },
+        params = { args -> buildJsonObject { put("count", args.count) } },
     )
 
     val filesMetadata: CommandSpec<MetadataArgs> = jsonRpc(
@@ -331,6 +339,7 @@ object CommandRegistry {
         objectsQuery,
         objectsSubscribe,
         temperatureStore,
+        gcodeStore,
         filesMetadata,
         filesGetDirectory,
         filesThumbnails,
