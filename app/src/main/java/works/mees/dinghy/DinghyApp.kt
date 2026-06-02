@@ -17,9 +17,10 @@ import works.mees.dinghy.di.AppContainer
  * The process [Application] — the ONE owner of the [AppContainer] service-locator and the real
  * DataStore files (D-02, NO Hilt). Registered as `android:name=".DinghyApp"` (04-03 manifest).
  *
- * Two SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb` and `theme.preferences_pb`.
- * Keeping the API-key-bearing connection store in its own file gives a cleaner redaction boundary
- * (T-04-01-I) and lets the two settle on independent lifecycles. Each file is created ONCE here via
+ * THREE SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
+ * and `macros.preferences_pb`. Keeping the API-key-bearing connection store in its own file gives a
+ * cleaner redaction boundary (T-04-01-I); the macro-prefs file is independent so bookmarks/revealHidden
+ * settle on their own connection-independent lifecycle (08-07 B1). Each file is created ONCE here via
  * [PreferenceDataStoreFactory.create] (one instance per process — the single-writer invariant DataStore
  * needs) on its own IO-backed scope.
  */
@@ -44,10 +45,19 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("connection.preferences_pb") },
         )
+        // A THIRD, INDEPENDENT file: macros.preferences_pb (08-07 B1). It carries no secrets, but it is
+        // kept on its own lifecycle (separate from connection/theme) per the established separate-file
+        // discipline — it backs the process-scoped, connection-independent macro bookmarks/revealHidden
+        // store (MacroPrefs). One instance per process (the single-writer invariant DataStore needs).
+        val macroDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("macros.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
             connectionDataStore = connectionDataStore,
+            macroDataStore = macroDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

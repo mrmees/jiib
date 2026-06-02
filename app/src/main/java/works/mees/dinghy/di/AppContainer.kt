@@ -23,6 +23,7 @@ import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
+import works.mees.dinghy.ui.macros.MacroPrefs
 
 /**
  * The process-scoped service-locator (no DI framework — D-02). It is the promotion of GalleryActivity's
@@ -48,6 +49,7 @@ import works.mees.dinghy.ui.files.FileBrowserClient
 class AppContainer(
     themeDataStore: DataStore<Preferences>,
     connectionDataStore: DataStore<Preferences>,
+    macroDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -62,6 +64,16 @@ class AppContainer(
 
     /** Connection persistence (CONN-01) — the SEPARATE connection.preferences_pb-backed store. */
     val connectionStore: ConnectionStore = ConnectionStore(connectionDataStore)
+
+    /**
+     * Macro visibility persistence (MACRO-03 / 08-07 B1) — the SEPARATE macros.preferences_pb-backed
+     * store holding the user's macro bookmarks ([Set]<String>) + the revealHidden toggle. It is
+     * PROCESS-SCOPED and CONNECTION-INDEPENDENT (like [themePrefs]/[connectionStore], NOT a field on
+     * [SpineHandle]): bookmarks survive reconnects and printer swaps. The 08-07 shell wiring hands this
+     * instance's flows + suspend mutators to the per-session [works.mees.dinghy.ui.macros.MacroHolder]
+     * and the System/Bookmarked screens.
+     */
+    val macroPrefs: MacroPrefs = MacroPrefs(macroDataStore)
 
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */
     val themeResolver: ThemeResolver = ThemeResolver()
