@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-06-02T04:33:22.691Z"
-last_activity: "2026-06-01 - Completed quick task 260601-th9: Status Inc 3 idle field (last-job card + file_copy_off empty state via server.history.list)"
+status: executing
+last_updated: "2026-06-02T05:18:56.909Z"
+last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 5
-  total_plans: 35
-  completed_plans: 35
+  total_plans: 40
+  completed_plans: 36
   percent: 33
 ---
 
@@ -20,17 +20,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 6 — Command Reference & Capability Matrix (moved to top 2026-06-01; gates everything after — matrix being knocked out now)
+**Current focus:** Phase 06 — command-reference-capability-matrix
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
-Status: Ready to plan
+Phase: 06 (command-reference-capability-matrix) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
   → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
-Last activity: 2026-06-01 - Completed quick task 260601-th9: Status Inc 3 idle field (last-job card + file_copy_off empty state via server.history.list)
+Last activity: 2026-06-02
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -89,6 +89,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P09 | 9 | 2 tasks | 2 files |
 | Phase 05 P10 | 4 | 2 tasks | 2 files |
 | Phase 05 P11 | 4 | 2 tasks | 4 files |
+| Phase 06 P01 | 7 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 5][05-07]: Extrude panel landed — ExtrudeHolder gates Extrude/Retract on the LIVE per-tool can_extrude (fail-safe false), COMBINING printerState with the 05-03 one-shot minExtrudeTemp/maxExtrudeDistance StateFlows so the real-temp hint + distance ceiling are deterministic on connect. ExtrudeScreen mirrors MoveScreen (D-08): extrude(±dist,speed) via GCODE_SCRIPT; distance steps above max_extrude_only_distance disabled (fall back to largest enabled); Load/Unload always shown (present=dispatch, absent=Severity.Info popup, D-10/hasMacroIgnoreCase); T0/T1… selector only when extruderCount>1 (D-09), setActiveTool re-points the gate. Token-pure. Cold->hot gate + missing-macro popup = 05-08 UAT.
 - [Phase ?]: [Phase 5][05-09 gap-closure]: G1 BLOCKER closed — CommandDispatcher.dispatch() now catches RpcError (peer of Exception, distinct from RpcConnectionException) alongside transport/timeout and emits a non-fatal DispatchEvent.Failure carrying the printer's rejection text (e.g. 'Move out of range'). Previously RpcError re-threw uncaught in the unsupervised scope.launch → FATAL EXCEPTION + FGS auto-restart (confirmed live on flox). TDD RED→GREEN; regression feeds the EXACT RpcError JsonRpcClient produces for a rejected gcode.script (mock-vs-reality gap closed). No catch widened to Throwable. G2/G3 (klippy_ready re-handshake + stale one-shot reads) remain OPEN, out of scope.
 - [Phase ?]: [Phase 5][05-10 gap-closure]: G2 HIGH + G3 MED closed — notify_klippy_ready on the still-open socket now re-runs the FULL runHandshake() (re-objects/subscribe + re-run BOTH 05-03 one-shot reads), so the FGS-held session self-heals after a Klipper FIRMWARE_RESTART without a force-stop (G2) and edited configfile values refresh on a printer.cfg reload (G3). Gated by per-attempt handshakeComplete (no duplicate of the initial connect handshake), serialized by rehandshakeMutex, launched on the attempt scope off the frame collector, best-effort runCatching. MoonrakerService unchanged (verified against code). TDD RED->GREEN; faithful test injects a real no-id klippy_ready frame.
+- [Phase 06]: Plan 06-01 is a RED-only guard wave; production CommandRegistry and Capabilities.objects/hasObject are deferred to Plan 02. — The Phase 6 plan intentionally establishes drift, gcode, capability, dispatcher, and handshake guards before implementation.
+- [Phase 06]: docs/commands JSON sidecars are the enforcement source for command catalog and printer matrix guards. — Markdown command documentation remains human-facing and is not parsed by tests.
 
 ### Pending Todos
 
