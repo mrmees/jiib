@@ -303,7 +303,8 @@ Expected refactor surface:
 Runtime gating must stay live and generic:
 
 - Add `Capabilities.objects: Set<String>` and `hasObject(name)`.
-- Add `components: Set<String>` if the registry needs Moonraker component predicates at runtime.
+- Add `Capabilities.components: Set<String>` and `hasComponent(name)` so Moonraker
+  `ComponentPresent` predicates are live-queryable at runtime.
 - Keep typed convenience fields (`hasBed`, `extruderCount`, `heaters`, `fans`, `macros`) for hot UI
   paths.
 - Keep `hasMacroIgnoreCase()`.
@@ -408,14 +409,14 @@ No new feature UAT is needed, but the old behavior must remain identical on the 
 
 ## Suggested Plan Breakdown
 
-### Wave 0: Capture and Test Scaffolding
+### Wave 1: Capture and Test Scaffolding
 
 - Add machine-readable `docs/commands/catalog.json` and `docs/commands/printer-matrix.json` skeletons.
 - Add failing drift tests for registry catalog IDs and predicate references.
 - Add failing byte-identical gcode tests for registry wrappers.
 - Add or refresh live E5/E3 capture/extraction task so object/component/macro data is structured.
 
-### Wave 1: Registry Foundation
+### Wave 2: Registry Foundation
 
 - Add `CommandSpec`, `CommandTransport`, `CommandSemantics`, `AvailabilityPredicate`, and
   `CommandRegistry`.
@@ -423,39 +424,39 @@ No new feature UAT is needed, but the old behavior must remain identical on the 
 - Add `Capabilities.objects` and `hasObject()`.
 - Preserve `PrinterCommands` builders byte-identically.
 
-### Wave 2: Full Call-Site Refactor
+### Wave 3: Full Call-Site Refactor
 
 - Refactor `MoonrakerSession` and `MoonrakerService` direct request calls to registry request helpers.
 - Refactor Print Status, Temperature, Move, and Extrude action dispatch to registry entries.
 - Preserve dispatcher timeout/error/redaction semantics.
 - Keep notifications outside outbound registry unless a clean split emerges.
 
-### Wave 3: Catalog and Matrix Artifacts
+### Wave 4: Catalog and Matrix Artifacts
 
 - Write `docs/commands/klipper-gcode.md`, `moonraker-api.md`, and `spoolman-api.md`.
 - Fill `catalog.json` with stable IDs, source URLs, semantics tier, and predicates.
 - Fill `printer-matrix.json` with E5/E3 object, macro, component, and `not_on_printers` evidence.
 - Write `docs/commands/printer-availability-matrix.md` as the human-facing view.
 
-### Wave 4: Verification and Flox Regression
+### Wave 5: Verification and Flox Regression
 
 - Run release unit tests and `compileReleaseKotlin`.
 - Build/sign/install release APK on flox if current project practice requires it.
 - Run focused on-device regression against the live Ender 5 Plus.
 - Record verification results and any manual capture caveats.
 
-## Open Questions / Blockers
+## Open Questions (RESOLVED)
 
-- Should the Moonraker catalog include all admin/system/database/extension APIs, or "full Web API
-  minus clearly unsafe backend-admin operations"? The roadmap says full Moonraker API, so default to
-  cataloging all official operations but mark unsafe/admin operations as reference-only light entries.
-- Deprecated Moonraker update endpoints should be catalog-only compatibility notes unless the app will
-  send them.
-- Phase 11 should decide whether Dinghy connects to Spoolman directly, via Moonraker proxy, or both.
-  Phase 6 can catalog both surfaces but should not pick Phase 11 transport policy beyond recording
-  predicates.
-- The exact live E5/E3 `gcode.commands` / `printer.gcode.help` output needs refresh during
-  implementation. Existing captures are enough for planning but not enough for strict drift tests.
+- **RESOLVED: Moonraker catalog breadth.** Catalog all official Moonraker API operations, but mark
+  unsafe/admin/deprecated operations as light `reference_only` entries unless Dinghy sends them in v1.
+- **RESOLVED: Deprecated update endpoints.** Keep deprecated Moonraker update endpoints as catalog-only
+  compatibility notes unless a later phase explicitly sends them.
+- **RESOLVED: Spoolman transport policy.** Catalog both direct Spoolman REST and Moonraker Spoolman
+  integration surfaces; Phase 11 will choose the runtime preference order. Phase 6 only records
+  predicates and semantics.
+- **RESOLVED: E5/E3 help output.** Existing captures are sufficient for planning, but implementation
+  must refresh live `gcode.commands` / `printer.gcode.help` evidence before strict matrix predicate
+  tests pass.
 
 ## Research Complete
 
