@@ -19,6 +19,14 @@ import java.io.File
 class CommandCatalogDriftTest {
 
     @Test
+    fun registryCatalogIdsAreUnique() {
+        val ids = CommandRegistry.all.map { it.catalogId }
+        val duplicates = ids.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+
+        assertTrue("CommandRegistry catalog IDs must be unique: $duplicates", duplicates.isEmpty())
+    }
+
+    @Test
     fun registryCatalogIdsExistInCatalogJson() {
         val catalogIds = catalogCommands()
             .map { it.string("catalog_id") }
@@ -133,7 +141,8 @@ class CommandCatalogDriftTest {
     }
 
     private fun docsFile(path: String): File {
-        var dir: File? = File(System.getProperty("user.dir")).canonicalFile
+        val userDir = requireNotNull(System.getProperty("user.dir")) { "user.dir system property missing" }
+        var dir: File? = File(userDir).canonicalFile
         while (dir != null) {
             val candidate = File(dir, path)
             if (candidate.isFile) return candidate
