@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-02T22:41:55.366Z"
+status: ready_to_plan
+last_updated: 2026-06-02T23:12:54.547Z
 last_activity: 2026-06-02
 progress:
   total_phases: 15
@@ -11,6 +11,7 @@ progress:
   total_plans: 53
   completed_plans: 52
   percent: 47
+stopped_at: Phase 08 complete (7/7) — ready to discuss Phase 9
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 08 — macros-console-functional-core-complete
+**Current focus:** Phase 9 — calibration & maintenance
 
 ## Current Position
 
-Phase: 08 (macros-console-functional-core-complete) — EXECUTING
-Plan: 7 of 7
-Status: Phase complete — ready for verification
+Phase: 9
+Plan: Not started
+Status: Ready to plan
   → Wave 0-1 landed: real probed fixtures + RED scaffolds (08-01); console pure layer (08-02); pure macro layer + V5 gcode-injection gate (08-03).
   → Plan 08-04 (Wave 2) COMPLETE: the two backend one-shot reads (consoleBackfill + macroBodies store seams ride runHandshake step 7).
   → Plan 08-05 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits cf6b210 + f66073c + ec8b9b6): the read-only Console screen (CONS-02 / D-01..D-05). ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04) — turns ConsoleHolderTest GREEN (4/4). ConsoleListView/ConsoleRowsAdapter = 3rd Views-in-Compose scroll surface, copied FileListView verbatim (clipToBounds + MATCH_PARENT + itemAnimator=null), split update strategy: incremental notifyItemInserted live-append hot path (S2) vs submitRows replace; wasAtBottom from OLD count BEFORE update (S3); severity palette stop/heat/text/go/text3 in Geist Mono. ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF, D-03) + green Back; ConsoleFilters at render only (D-04); no keyboard (D-01); empty/backfill-failed copy verbatim. One deviation (Rule 1): ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes cleanly + closes the replay=0 subscribe race. :app:assembleRelease SUCCESSFUL; MacroHolderTest set aside for the test run then restored clean.
@@ -41,7 +42,7 @@ Progress (Phase 8): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 31
+- Total plans completed: 38
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -53,6 +54,7 @@ Progress (Phase 8): [██████████] 100% — 7/7 plans complete
 | 02 | 4 | - | - |
 | 03 | 7 | - | - |
 | 05 | 11 | - | - |
+| 08 | 7 | - | - |
 
 **Recent Trend:**
 

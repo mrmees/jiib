@@ -437,7 +437,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
-| 8. Macros & Console — Functional-Core Complete | 7/7 | Complete   | 2026-06-02 |
+| 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
