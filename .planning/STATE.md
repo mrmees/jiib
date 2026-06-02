@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T20:27:46.954Z"
-last_activity: 2026-06-02 -- Phase 8 planning complete
+last_updated: "2026-06-02T21:08:53.852Z"
+last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 6
   total_plans: 53
-  completed_plans: 45
+  completed_plans: 46
   percent: 40
 ---
 
@@ -20,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 07 — files-print-control-core-print-loop-gate
+**Current focus:** Phase 08 — macros-console-functional-core-complete
 
 ## Current Position
 
-Phase: 07 (files-print-control-core-print-loop-gate) — EXECUTING (plan 06, task 3 deferred)
-Plan: 6 of 6 — task 3 of 3 remaining (deferred)
+Phase: 08 (macros-console-functional-core-complete) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
   → Plans 07-01..07-05 executed + committed (registry/sidecars, file models, session holder, Files UI, Print Status controls).
   → Plan 07-06: task 1 automated release verification PASS (2c52731); task 2 large-library Files perf/OOM gate PASS (083709f) — steady-scroll p95 15.48ms, 0 frozen frames, no OOM, run against the real Ender 3 420-file library on flox (signed release build).
   → Unplanned detour this session: on-device Files UI polish (e2ff21c) + design-law doc sync (6ae4ff5); 3 deferred defects logged.
   → Task 3 (live core print-loop UAT) DEFERRED until an official UAT round (Matthew, 2026-06-02). 07-UAT.md stays PENDING; do not mark passed without a real recorded run.
   → Next action: when ready, run the official live print-loop UAT, record into 07-UAT.md, write 07-06-SUMMARY.md, close the phase. See .planning/HANDOFF.json / 07-.../.continue-here.md.
-Last activity: 2026-06-02 -- Phase 8 planning complete
+Last activity: 2026-06-02
 
 Progress (Phase 7): [█████████░] ~92% — 5/6 plans complete; plan 06 perf+automated gates PASS, live UAT deferred
 
@@ -101,6 +101,7 @@ Progress (Phase 7): [█████████░] ~92% — 5/6 plans complete
 | Phase 07 P03 | 6 | 2 tasks | 7 files |
 | Phase 07 P04 | 50 | 3 tasks | 12 files |
 | Phase 07 P05 | 8 | 2 tasks | 4 files |
+| Phase 08 P01 | 12 | 2 tasks tasks | 11 files files |
 
 ## Accumulated Context
 
@@ -205,6 +206,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T19:30:38.176Z
+Last session: 2026-06-02T21:08:42.960Z
 Stopped at: Phase 8 UI-SPEC approved
-Resume file: .planning/phases/08-macros-console-functional-core-complete/08-UI-SPEC.md
+Resume file: None
