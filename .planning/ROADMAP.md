@@ -313,7 +313,7 @@ Plans:
 - [x] 08-01-PLAN.md — Live read-only probe of `server.gcode_store` + `configfile` macro-body shape recorded into docs (mock-vs-reality gate) + RED test scaffolds with real probed fixtures (CONS-02/MACRO-02; live checkpoint)
 
 **Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
-- [ ] 08-02-PLAN.md — Console pure core: ConsoleLine + ConsoleSeverity classifier + ConsoleFilters (verbatim Mainsail regexes, view-layer only) + object-typed ConsoleScrollback ring (CONS-02/D-02..D-05)
+- [x] 08-02-PLAN.md — Console pure core: ConsoleLine + ConsoleSeverity classifier + ConsoleFilters (verbatim Mainsail regexes, view-layer only) + object-typed ConsoleScrollback ring (CONS-02/D-02..D-05)
 - [ ] 08-03-PLAN.md — Macro pure core: MacroParamParser (verbatim Mainsail regex) + [BLOCKING] MacroInvocation string-param sanitizer w/ injection-rejection test + MacroPrefs DataStore (MACRO-02/03/D-09/D-10)
 
 **Wave 2** *(blocked on Wave 1)*
@@ -437,7 +437,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
-| 8. Macros & Console — Functional-Core Complete | 1/7 | In Progress|  |
+| 8. Macros & Console — Functional-Core Complete | 2/7 | In Progress|  |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |

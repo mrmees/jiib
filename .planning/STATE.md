@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T21:08:53.852Z"
+last_updated: "2026-06-02T21:20:27.053Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 6
   total_plans: 53
-  completed_plans: 46
+  completed_plans: 47
   percent: 40
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 08 (macros-console-functional-core-complete) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
   → Plans 07-01..07-05 executed + committed (registry/sidecars, file models, session holder, Files UI, Print Status controls).
   → Plan 07-06: task 1 automated release verification PASS (2c52731); task 2 large-library Files perf/OOM gate PASS (083709f) — steady-scroll p95 15.48ms, 0 frozen frames, no OOM, run against the real Ender 3 420-file library on flox (signed release build).
@@ -102,6 +102,7 @@ Progress (Phase 7): [█████████░] ~92% — 5/6 plans complete
 | Phase 07 P04 | 50 | 3 tasks | 12 files |
 | Phase 07 P05 | 8 | 2 tasks | 4 files |
 | Phase 08 P01 | 12 | 2 tasks tasks | 11 files files |
+| Phase 08 P02 | 18min | 2 tasks tasks | 5 files files |
 
 ## Accumulated Context
 
@@ -176,6 +177,7 @@ Recent decisions affecting current work:
 - [Phase 07]: Print Status gutter state is derived by a pure model before Compose wiring. — Keeps D-13 through D-16 state mapping host-testable and independent of UI rendering.
 - [Phase 07]: Pause/resume/cancel/restart pending labels clear from PrinterState transitions, not command acknowledgement. — Matches Moonraker command semantics and prevents ack-as-success spoofing.
 - [Phase 07]: Graceful cancel is separate from emergency Stop and is available by long press plus accessibility custom action. — Preserves D-14/D-15 intent separation while avoiding a long-press-only accessibility trap.
+- [Phase ?]: [Phase 08/08-02]: Console pure layer landed GREEN — ConsoleLine raw model, ConsoleSeverity.classify total prefix->tier (never throws), ConsoleFilters 3 verbatim Mainsail regexes + pure VIEW-layer apply that never mutates input (D-04), ConsoleScrollback object-typed @Synchronized capped ArrayDeque cap 1000 NOT FloatArray RingBuffer (Pitfall 1). GREEN via real Gradle w/ sibling RED files set aside: Severity 6/6, Filters 5/5, Scrollback 5/5.
 
 ### Pending Todos
 
@@ -206,6 +208,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T21:08:42.960Z
+Last session: 2026-06-02T21:20:08.028Z
 Stopped at: Phase 8 UI-SPEC approved
 Resume file: None
