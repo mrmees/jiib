@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T05:18:56.909Z"
+last_updated: "2026-06-02T05:32:25.588Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 5
   total_plans: 40
-  completed_plans: 36
+  completed_plans: 37
   percent: 33
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 06 (command-reference-capability-matrix) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
@@ -90,6 +90,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P10 | 4 | 2 tasks | 2 files |
 | Phase 05 P11 | 4 | 2 tasks | 4 files |
 | Phase 06 P01 | 7 | 3 tasks | 8 files |
+| Phase 06 P02 | 10min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 5][05-10 gap-closure]: G2 HIGH + G3 MED closed — notify_klippy_ready on the still-open socket now re-runs the FULL runHandshake() (re-objects/subscribe + re-run BOTH 05-03 one-shot reads), so the FGS-held session self-heals after a Klipper FIRMWARE_RESTART without a force-stop (G2) and edited configfile values refresh on a printer.cfg reload (G3). Gated by per-attempt handshakeComplete (no duplicate of the initial connect handshake), serialized by rehandshakeMutex, launched on the attempt scope off the frame collector, best-effort runCatching. MoonrakerService unchanged (verified against code). TDD RED->GREEN; faithful test injects a real no-id klippy_ready frame.
 - [Phase 06]: Plan 06-01 is a RED-only guard wave; production CommandRegistry and Capabilities.objects/hasObject are deferred to Plan 02. — The Phase 6 plan intentionally establishes drift, gcode, capability, dispatcher, and handshake guards before implementation.
 - [Phase 06]: docs/commands JSON sidecars are the enforcement source for command catalog and printer matrix guards. — Markdown command documentation remains human-facing and is not parsed by tests.
+- [Phase 06]: Registry entries use unique operation-level catalog IDs while retaining generic upstream catalog rows.
+- [Phase 06]: JsonRpcClient registry helper rejects non-JsonRpc specs; gcode specs continue through CommandDispatcher.
 
 ### Pending Todos
 
@@ -178,6 +181,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T04:33:22.652Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-command-reference-capability-matrix/06-CONTEXT.md
+Last session: 2026-06-02T05:32:25.078Z
+Stopped at: Completed 06-02-PLAN.md
+Resume file: None
