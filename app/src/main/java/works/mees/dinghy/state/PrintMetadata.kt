@@ -45,27 +45,35 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
     val objectHeight = runCatching { result["object_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
     val estimatedTime = runCatching { result["estimated_time"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
 
-    val largestThumbRelPath = run {
-        val thumbs = result["thumbnails"] as? JsonArray ?: return@run null
-        var best: JsonObject? = null
-        var bestWidth = Int.MIN_VALUE
-        for (element in thumbs) {
-            val obj = element as? JsonObject ?: continue
-            val width = runCatching { obj["width"]?.jsonPrimitive?.intOrNull }.getOrNull() ?: continue
-            if (width > bestWidth) {
-                bestWidth = width
-                best = obj
-            }
-        }
-        runCatching { best?.get("relative_path")?.jsonPrimitive?.content }.getOrNull()
-    }
-
     return PrintMetadata(
         layerCount = layerCount,
         objectHeight = objectHeight,
         estimatedTime = estimatedTime,
-        largestThumbRelPath = largestThumbRelPath,
+        largestThumbRelPath = largestThumbRelPath(result),
     )
+}
+
+/**
+ * The SHARED "largest thumbnail by width" pick (260601-th9 Inc 3 factored this out of
+ * [parsePrintMetadata] so [parseLastJob] reuses it byte-identically). Walks [metadata]`["thumbnails"]`,
+ * chooses the entry with the greatest `width`, and returns its `relative_path`. Fully null-safe:
+ * a null/absent/empty/garbage array → null; never `!!`. Callers pass the object whose `thumbnails[]`
+ * they want — the gcode-file metadata object (`server.files.metadata` result, or a history job's
+ * `metadata`), which may itself be null for a deleted file.
+ */
+internal fun largestThumbRelPath(metadata: JsonObject?): String? {
+    val thumbs = metadata?.get("thumbnails") as? JsonArray ?: return null
+    var best: JsonObject? = null
+    var bestWidth = Int.MIN_VALUE
+    for (element in thumbs) {
+        val obj = element as? JsonObject ?: continue
+        val width = runCatching { obj["width"]?.jsonPrimitive?.intOrNull }.getOrNull() ?: continue
+        if (width > bestWidth) {
+            bestWidth = width
+            best = obj
+        }
+    }
+    return runCatching { best?.get("relative_path")?.jsonPrimitive?.content }.getOrNull()
 }
 
 /**

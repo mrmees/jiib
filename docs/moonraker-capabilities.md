@@ -84,6 +84,58 @@ Coil 3 (`coil-compose` + `coil-network-okhttp`) is already in the stack and prov
   `H:MM`. "Finish by" = now + remaining (device clock). No actual-pace blend in v1.
 - **No direct ETA** from Moonraker — always computed.
 
+### Print history — `server.history.list` / `server.history.totals` (CONFIRMED shape)
+
+LIVE-captured Ender-5 reply to `server.history.list?limit=1&order=desc` (the most-recent completed job;
+`order=desc` = newest first, `limit=1` = just the last job). This is the data source for the idle Status
+"last completed job" card (260601-th9 Inc 3 — fetched ONCE per not-printing transition, never polled):
+```
+{
+  "count": 137,                         ← total jobs in history; count==0 → NO history → empty-state
+  "jobs": [
+    {
+      "job_id": "000089",
+      "user": "No User",
+      "filename": "miata/airbox-bracket.gcode",   ← gcode path (dir/ + file), thumbnail-URL key
+      "status": "completed",            ← see status enum below
+      "start_time": 1717200000.0,
+      "end_time":   1717207191.0,
+      "print_duration": 7012.4,         ← (s) actual extruding time  (ELAPSED)
+      "total_duration": 7191.0,         ← (s) wall time incl. heat/pauses (TOTAL)
+      "filament_used": 5749.86,         ← (mm) filament extruded this job
+      "exists": true,                   ← FALSE = source gcode file was DELETED → thumbnail may 404
+      "auxiliary_data": [ ... ],        ← spoolman/extra; NOT consumed
+      "metadata": {                     ← SAME shape as server.files.metadata (see § "File metadata")
+        "estimated_time": 7000,         ← (s) slicer estimate
+        "filament_weight_total": 17.15, ← (g)
+        "layer_count": 50,
+        "object_height": 22.4,
+        "thumbnails": [ {width,height,size,relative_path}, … 32/48/300 ]
+      }
+    }
+  ]
+}
+```
+**`status` enum (confirmed Moonraker values):** `completed` · `cancelled` · `error` · `klippy_shutdown`
+· `interrupted` · `server_exit` · `in_progress`. Rendered verbatim (no interpretation).
+
+**Degrade rules (260601-th9):**
+- `count == 0` (or `jobs` absent/empty) → there is NO last job → the idle Status field shows the
+  centered `file_copy_off` empty state, NOT a card.
+- `exists: false` OR `metadata` absent/partial (deleted file, no slicer metadata) → render the TEXT
+  stats (filename/status/durations/filament from the top-level job fields) with NO thumbnail; the
+  metadata-derived fields (estimated_time / filament_weight_total / largest thumbnail) read null and
+  the card never crashes — same null-safety discipline as Inc 2's `PrintMetadata`.
+- `metadata` is the SAME shape already modeled in `state/PrintMetadata.kt`; the "largest thumbnail by
+  width" pick is the SHARED `largestThumbRelPath(metadata)` helper, and the thumbnail URL uses the same
+  `thumbnailUrl(httpBase, filename, relPath)` construction (it may 404 when `exists:false`).
+
+**`server.history.totals` → `result.job_totals`** (captured for FUTURE use; NOT consumed this increment):
+```
+{ "job_totals": { "total_jobs": 137, "total_time": 982341.0, "total_print_time": 940120.0,
+                  "total_filament_used": 812345.6, "longest_job": 7191.0, "longest_print": 7012.4 } }
+```
+
 ---
 
 ## Ender 3 Pro (`ender3`, 192.168.1.121:7125) — captured 2026-06-01
