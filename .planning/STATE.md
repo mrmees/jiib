@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T21:40:11.038Z"
+last_updated: "2026-06-02T22:30:00.000Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 6
   total_plans: 53
-  completed_plans: 49
-  percent: 40
+  completed_plans: 51
+  percent: 41
 ---
 
 # Project State
@@ -25,15 +25,16 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 08 (macros-console-functional-core-complete) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
   → Wave 0-1 landed: real probed fixtures + RED scaffolds (08-01); console pure layer (08-02); pure macro layer + V5 gcode-injection gate (08-03).
-  → Plan 08-04 (Wave 2) EXECUTED + COMPLETE 2026-06-02 (2 tasks, commits 17423b0 + 5f2d568): the two backend one-shot reads. parseGcodeStore (pure, null-safe, GcodeStoreParseTest GREEN) + CommandRegistry.gcodeStore + JsonRpcMethods.GCODE_STORE; gcode_store console backfill REPLACE (D-02 Mainsail-parity, recovers disconnect-window lines) + macro gcode bodies extracted from the SINGLE existing configfile query (Pitfall 3) both ride runHandshake() step 7 (auto-rerun on reconnect + notify_klippy_ready, Pitfall 4). New StateFlow store seams consoleBackfill + macroBodies. Registering MR-server.gcode_store tripped the Phase-6 catalog/matrix drift guard → added the printer-matrix command_availability row + flipped catalog runtime_registry to registered. Full :app:testReleaseUnitTest BUILD SUCCESSFUL (sibling-RED ConsoleHolderTest/MacroHolderTest set aside for the run, restored clean). CONS-02 backend complete; MACRO-02 backend done.
-  → Still-RED siblings (next wave's GREEN targets): ConsoleHolder (08-05) collects consoleBackfill + gcodeResponses; MacroHolder (08-06) reads macroBodies + the 08-03 param parser. Both now have their store seams.
-  → Next action: execute 08-05 (ConsoleHolder + Console screen). The full test source set will not fully compile until all sibling RED symbols exist (post-08-06).
+  → Plan 08-04 (Wave 2) COMPLETE: the two backend one-shot reads (consoleBackfill + macroBodies store seams ride runHandshake step 7).
+  → Plan 08-05 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits cf6b210 + f66073c + ec8b9b6): the read-only Console screen (CONS-02 / D-01..D-05). ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04) — turns ConsoleHolderTest GREEN (4/4). ConsoleListView/ConsoleRowsAdapter = 3rd Views-in-Compose scroll surface, copied FileListView verbatim (clipToBounds + MATCH_PARENT + itemAnimator=null), split update strategy: incremental notifyItemInserted live-append hot path (S2) vs submitRows replace; wasAtBottom from OLD count BEFORE update (S3); severity palette stop/heat/text/go/text3 in Geist Mono. ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF, D-03) + green Back; ConsoleFilters at render only (D-04); no keyboard (D-01); empty/backfill-failed copy verbatim. One deviation (Rule 1): ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes cleanly + closes the replay=0 subscribe race. :app:assembleRelease SUCCESSFUL; MacroHolderTest set aside for the test run then restored clean.
+  → Still-RED sibling (08-06's GREEN target): MacroHolder reads macroBodies + the 08-03 param parser.
+  → Next action: execute 08-06 (MacroHolder + macro screens), then 08-07 wires Dest.Console/Dest.Macros into AppShell (suppress drawer swipe on Console) + drawer tiles. The full test source set will not fully compile until 08-06's MacroHolder symbol exists.
 Last activity: 2026-06-02
 
-Progress (Phase 8): [█████░░░░░] ~57% — 4/7 plans complete (08-01..08-04); 08-05/08-06 holders next, 08-07 wiring last
+Progress (Phase 8): [███████░░░] ~71% — 5/7 plans complete (08-01..08-05); 08-06 MacroHolder next, 08-07 wiring last
 
 ## Performance Metrics
 
@@ -211,6 +212,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T21:40:10.851Z
+Last session: 2026-06-02T21:58:18.010Z
 Stopped at: Completed 08-04-PLAN.md
 Resume file: None

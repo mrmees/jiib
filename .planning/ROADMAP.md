@@ -320,7 +320,7 @@ Plans:
 - [x] 08-04-PLAN.md — Spine plumbing: `server.gcode_store` registry+method+parser, handshake backfill REPLACE read + extend the single `configfile` query for macro bodies, store seams (CONS-02/MACRO-02/D-02/D-04)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
-- [ ] 08-05-PLAN.md — Console screen: ConsoleHolder (raw, D-04) + RecyclerView-in-AndroidView scrollback (D-05) + Field-only ScreenScaffold w/ opt-in filter toggles, read-only no-keyboard (CONS-02/D-01..D-05)
+- [x] 08-05-PLAN.md — Console screen: ConsoleHolder (raw, D-04) + RecyclerView-in-AndroidView scrollback (D-05) + Field-only ScreenScaffold w/ opt-in filter toggles, read-only no-keyboard (CONS-02/D-01..D-05)
 - [ ] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
@@ -437,7 +437,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
-| 8. Macros & Console — Functional-Core Complete | 4/7 | In Progress|  |
+| 8. Macros & Console — Functional-Core Complete | 5/7 | In Progress|  |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
