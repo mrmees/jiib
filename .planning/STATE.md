@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T15:12:33.131Z"
+last_updated: "2026-06-02T15:20:30.735Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 6
   total_plans: 46
-  completed_plans: 44
+  completed_plans: 45
   percent: 40
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 07 (files-print-control-core-print-loop-gate) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
   → Phase 7 research refreshed, UI-SPEC consumed, validation strategy approved, and 6 execution plans written.
   → Claude review captured in 07-REVIEWS.md and incorporated into Wave 1 state confirmation, Files thumbnail/perf gates, Print Status restart/cancel accessibility, and final flox verification.
@@ -99,6 +99,7 @@ Progress (Phase 7): [----------] 0% — 0/6 plans complete, planned
 | Phase 07 P02 | 5 | 2 tasks | 4 files |
 | Phase 07 P03 | 6 | 2 tasks | 7 files |
 | Phase 07 P04 | 50 | 3 tasks | 12 files |
+| Phase 07 P05 | 8 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,9 @@ Recent decisions affecting current work:
 - [Phase 07]: Files composes through AppShell using the session FileBrowserHolder and idle-safe fallback client. — Keeps the route live while preserving safe idle composition before a Moonraker session exists.
 - [Phase 07]: Rows remain compact in a RecyclerView/ListAdapter; rich slicer metadata stays in Focus. — Matches FILE-02 and avoids per-row metadata overfetch on large libraries.
 - [Phase 07]: Row thumbnails use an explicit 96px request size and a 2 MiB Files-specific Coil memory cache. — Closes the Phase 7 review concern before large-library UAT on flox-class hardware.
+- [Phase 07]: Print Status gutter state is derived by a pure model before Compose wiring. — Keeps D-13 through D-16 state mapping host-testable and independent of UI rendering.
+- [Phase 07]: Pause/resume/cancel/restart pending labels clear from PrinterState transitions, not command acknowledgement. — Matches Moonraker command semantics and prevents ack-as-success spoofing.
+- [Phase 07]: Graceful cancel is separate from emergency Stop and is available by long press plus accessibility custom action. — Preserves D-14/D-15 intent separation while avoiding a long-press-only accessibility trap.
 
 ### Pending Todos
 
@@ -200,6 +204,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T15:12:20.880Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-06-02T15:20:30.693Z
+Stopped at: Completed 07-05-PLAN.md
 Resume file: None
