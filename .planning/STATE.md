@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-last_updated: 2026-06-02T23:12:54.547Z
+status: planning
+last_updated: "2026-06-02T23:56:08.839Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
@@ -11,7 +11,6 @@ progress:
   total_plans: 53
   completed_plans: 52
   percent: 47
-stopped_at: Phase 08 complete (7/7) — ready to discuss Phase 9
 ---
 
 # Project State
@@ -220,6 +219,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T22:41:55.303Z
-Stopped at: Completed 08-07-PLAN.md (nav wiring + on-device UAT 7/7 PASS). Phase 8 ready_for_verification — orchestrator owns phase-complete.
-Resume file: None
+Last session: 2026-06-02T23:56:08.787Z
+Stopped at: Phase 9 context gathered
+Resume file: .planning/phases/09-calibration-maintenance/09-CONTEXT.md
