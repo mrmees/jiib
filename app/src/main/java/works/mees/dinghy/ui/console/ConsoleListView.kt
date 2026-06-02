@@ -81,7 +81,13 @@ fun ConsoleListView(
             val isSingleAppend = lines.size == oldCount + 1 &&
                 adapter.matches(lines.subList(0, oldCount))
 
-            if (isSingleAppend) {
+            // STEADY-STATE append (WR-02): once the ring AND adapter are both at cap, a new live line is
+            // an append+evict (lines.size == oldCount, contents shifted left by one). Without this it
+            // would fall to the full-reset branch on EVERY line — the Adreno-320 worst case. appendLine
+            // already does the incremental notifyItemInserted + notifyItemRangeRemoved.
+            val isAppendEvict = !isSingleAppend && adapter.isAppendEvict(lines)
+
+            if (isSingleAppend || isAppendEvict) {
                 val pos = adapter.appendLine(lines.last())
                 if (wasAtBottom) recycler.scrollToPosition(pos)
             } else if (!adapter.matches(lines)) {

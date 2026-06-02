@@ -94,7 +94,29 @@ class ConsoleRowsAdapter(
     /** True when the adapter's backing list is exactly [other]'s items in order (identity-cheap check). */
     fun matches(other: List<ConsoleLine>): Boolean = items == other
 
-    /** The current row at [index], or null. Used by the View to detect a pure single-line append. */
+    /**
+     * STEADY-STATE incremental detection (WR-02): true when [incoming] is this adapter's contents shifted
+     * left by exactly one element with a new trailing line appended — i.e. the holder evicted its oldest
+     * line (the ring is full) and appended one new line. Once both the ring and the adapter sit at
+     * [scrollbackCap], `incoming.size == itemCount` forever, so the size==old+1 single-append test never
+     * fires and a busy console would otherwise full-reset on EVERY line — the worst case for the
+     * Adreno-320 floor. Detecting this case lets the View drive [appendLine] (incremental
+     * notifyItemInserted + notifyItemRangeRemoved) instead of [submitRows]'s notifyDataSetChanged.
+     *
+     * Cheap: only valid when both lists are full ([incoming].size == [itemCount] == [scrollbackCap]); the
+     * comparison walks the overlapping window once (`incoming[0..n-2] == items[1..n-1]`).
+     */
+    fun isAppendEvict(incoming: List<ConsoleLine>): Boolean {
+        val n = items.size
+        if (n < scrollbackCap || incoming.size != n) return false
+        // items[1..n-1] must equal incoming[0..n-2] — i.e. everything but the evicted head/new tail.
+        for (i in 1 until n) {
+            if (items[i] != incoming[i - 1]) return false
+        }
+        return true
+    }
+
+    /** The current last row, or null. Used by the View to detect a pure single-line append. */
     fun lastOrNull(): ConsoleLine? = items.lastOrNull()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder =
