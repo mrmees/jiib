@@ -306,7 +306,25 @@ Plans:
   2. User sees a READ-ONLY command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`, with bounded scrollback and opt-in noise filters (hide temperatures / timelapse / prompt commands)
   3. **Functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
   
-**Plans**: TBD
+**Plans**: 7 plans
+Plans:
+
+**Wave 0**
+- [ ] 08-01-PLAN.md — Live read-only probe of `server.gcode_store` + `configfile` macro-body shape recorded into docs (mock-vs-reality gate) + RED test scaffolds with real probed fixtures (CONS-02/MACRO-02; live checkpoint)
+
+**Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
+- [ ] 08-02-PLAN.md — Console pure core: ConsoleLine + ConsoleSeverity classifier + ConsoleFilters (verbatim Mainsail regexes, view-layer only) + object-typed ConsoleScrollback ring (CONS-02/D-02..D-05)
+- [ ] 08-03-PLAN.md — Macro pure core: MacroParamParser (verbatim Mainsail regex) + [BLOCKING] MacroInvocation string-param sanitizer w/ injection-rejection test + MacroPrefs DataStore (MACRO-02/03/D-09/D-10)
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 08-04-PLAN.md — Spine plumbing: `server.gcode_store` registry+method+parser, handshake backfill REPLACE read + extend the single `configfile` query for macro bodies, store seams (CONS-02/MACRO-02/D-02/D-04)
+
+**Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
+- [ ] 08-05-PLAN.md — Console screen: ConsoleHolder (raw, D-04) + RecyclerView-in-AndroidView scrollback (D-05) + Field-only ScreenScaffold w/ opt-in filter toggles, read-only no-keyboard (CONS-02/D-01..D-05)
+- [ ] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
+
+**Wave 4** *(blocked on Wave 3; on-device gate)*
+- [ ] 08-07-PLAN.md — Nav wiring (Dest+drawer tiles+AppShell branches, drawer-swipe suppress on scroll-Fields) + on-device UAT + console-scroll perf gate on flox + live Ender 5 Plus (functional-core gate)
 **UI hint**: yes
 **Research note**: STANDARD — straightforward application of the existing notify event bus and command path.
 
