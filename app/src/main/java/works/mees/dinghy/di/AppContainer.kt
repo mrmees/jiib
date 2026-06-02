@@ -17,6 +17,7 @@ import works.mees.dinghy.config.ConnectionStore
 import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
@@ -91,6 +92,13 @@ class AppContainer(
 
     /** The current session's dispatcher, or null when idle. */
     val dispatcher: Flow<CommandDispatcher?> = spine.map { it?.dispatcher }
+
+    /** Live one-shot-per-filename gcode metadata; null when idle / unavailable (260601-sip Inc 2). */
+    val printMetadata: Flow<PrintMetadata?> =
+        spine.flatMapLatest { it?.metadata ?: flowOf(null) }
+
+    /** The current session's REST base for thumbnail URLs; "" when idle (260601-sip Inc 2). */
+    val httpBase: Flow<String> = spine.map { it?.httpBase ?: "" }
 
     /** True once a usable persisted connection exists (drives routing off the Connect prompt, D-11). */
     val hasConfig: Flow<Boolean> = connectionStore.config.map { it != null }

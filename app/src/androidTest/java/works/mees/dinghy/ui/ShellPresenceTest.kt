@@ -89,6 +89,8 @@ class ShellPresenceTest {
             minExtrudeTemp = store.minExtrudeTemp,
             maxExtrudeDistance = store.maxExtrudeDistance,
             temperatureBackfill = store.temperatureBackfill,
+            httpBase = "http://test:7125",
+            metadata = MutableStateFlow(null),
             sessionInstanceId = 1L,
         )
         container.publishSpine(handle)

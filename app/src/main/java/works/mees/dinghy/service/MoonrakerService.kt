@@ -35,6 +35,9 @@ import works.mees.dinghy.net.MoonrakerSocket
 import works.mees.dinghy.net.SocketEvent
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -129,6 +132,16 @@ class MoonrakerService : Service() {
         )
         val dispatcher = CommandDispatcher(rpc, serviceScope)
 
+        // One-shot-per-filename gcode metadata (260601-sip Inc 2). The fetch seam fires a single
+        // server.files.metadata read per active filename; rpc.request returns the `result` element
+        // (the metadata object directly, NOT wrapped in `status`). Best-effort — a rejected/absent
+        // read leaves metadata null and the Status cells degrade.
+        val metadataHolder = PrintMetadataHolder(serviceScope, store.printerState) { filename ->
+            runCatching {
+                rpc.request(JsonRpcMethods.FILES_METADATA, buildJsonObject { put("filename", filename) })
+            }.getOrNull()
+        }
+
         val id = idCounter.incrementAndGet()
         val handle = SpineHandle(
             printerState = store.printerState,
@@ -141,6 +154,8 @@ class MoonrakerService : Service() {
             minExtrudeTemp = store.minExtrudeTemp,
             maxExtrudeDistance = store.maxExtrudeDistance,
             temperatureBackfill = store.temperatureBackfill,
+            httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
+            metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             sessionInstanceId = id,
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.

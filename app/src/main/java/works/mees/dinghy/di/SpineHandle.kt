@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 
@@ -53,6 +54,19 @@ data class SpineHandle(
     val maxExtrudeDistance: StateFlow<Float?>,
     /** Per-sensor temperature_store backfill (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>>,
+    /**
+     * The `http://host:port` REST base (from `cfg.httpBase`) — the UI joins this with a metadata
+     * `relative_path` to build the gcode thumbnail URL (260601-sip Inc 2). Carried on the handle so
+     * the screen never reaches for the connection config directly.
+     */
+    val httpBase: String,
+    /**
+     * One-shot-per-filename gcode metadata (260601-sip Inc 2). Written ONCE per active print filename
+     * (server.files.metadata, NOT the throttled hot path); null when idle / unavailable. A collector
+     * reacts the instant the read lands — so the Status home lights up the ring thumbnail + Layer/Z/
+     * Remaining cells as soon as a print's metadata is fetched.
+     */
+    val metadata: StateFlow<PrintMetadata?>,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
 )
