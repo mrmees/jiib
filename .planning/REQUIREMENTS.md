@@ -195,16 +195,16 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FILE-02 | Phase 6 | Pending |
 | FILE-03 | Phase 6 | Pending |
 | FILE-04 | Phase 6 | Pending |
-| JOB-01 | Phase 7 | Pending |
-| JOB-02 | Phase 7 | Pending |
-| JOB-03 | Phase 7 | Pending |
-| JOB-04 | Phase 7 | Pending |
-| JOB-05 | Phase 7 | Pending |
-| MACRO-01 | Phase 8 | Pending |
-| MACRO-02 | Phase 8 | Pending |
-| MACRO-03 | Phase 8 | Pending |
-| CONS-01 | Phase 8 | Pending |
-| CONS-02 | Phase 8 | Pending |
+| JOB-01 | Phase 6 | Pending |
+| JOB-02 | Phase 6 | Pending |
+| JOB-03 | Phase 6 | Pending |
+| JOB-04 | Phase 6 | Pending |
+| JOB-05 | Phase 6 | Pending |
+| MACRO-01 | Phase 7 | Pending |
+| MACRO-02 | Phase 7 | Pending |
+| MACRO-03 | Phase 7 | Pending |
+| CONS-01 | Phase 7 | Pending |
+| CONS-02 | Phase 7 | Pending |
 | PKG-01 | Phase 9 | Pending |
 | PKG-03 | Phase 9 | Pending |
 
@@ -213,17 +213,17 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Mapped to phases: 55 ✓
 - Unmapped: 0 ✓
 
-**Per-phase counts (9-phase roadmap, restructured 2026-05-31):**
+**Per-phase counts (9-phase roadmap, restructured 2026-06-01 — see note below):**
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
 - Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
 - Phase 4 (Service, Shell, Settings & Print-Status Home): 9 — CONN-01, SET-01, SHELL-01..05, PRIM-02, PRIM-05
 - Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
-- Phase 6 (Files / Print): 4 — FILE-01..04
-- Phase 7 (Job Status): 5 — JOB-01..05
-- Phase 8 (Macros/Console): 5 — MACRO-01..03, CONS-01..02
-- Phase 9 (Hardening/Release): 2 — PKG-01, PKG-03
+- Phase 6 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
+- Phase 7 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
+- Phase 8 (Backend Consolidation): 0 functional reqs — quality/refactor phase (canonical command references, Klipper command/error/acceptance catalog, request-cadence tightening; non-functional)
+- Phase 9 (Release Hardening & Ship): 2 — PKG-01, PKG-03 (also re-exercises CONN-04 reconnect-resync against a live print, deferred from the dissolved Job-Status phase)
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-31 — scope broadened per `docs/ui_design/`: added THEME-01/02, UI-01/02, SET-01 (5 new → 55 v1 reqs); revised CONN-01/SHELL-01..05/PRIM-01..04; restructured to 9 phases (new Phase 3 = Design System & Theming Foundation, shell → Phase 4). Prior: 2026-05-30 Codex cross-AI review (8-phase splits, STATE-05/PRIM-05/PKG-03).*
+*Last updated: 2026-06-01 — remaining-phase restructure (6–9): old "Job Status" phase dissolved (live-monitoring half pre-delivered by the Status home; controls JOB-03/04/05 + JOB-01/02 → Phase 6 "Files & Print Control"; reconnect-resync/process-death robustness → Phase 9). Macros/Console → Phase 7. NEW Phase 8 "Backend Consolidation" (canonical command refs + Klipper error/acceptance catalog + request-cadence tightening; quality/refactor, no new functional reqs). Phase 9 → "Release Hardening & Ship". Req count unchanged at 55 (no reqs added/removed, only re-mapped). Prior: 2026-05-31 scope broadened per `docs/ui_design/` (added THEME-01/02, UI-01/02, SET-01 → 55; new Phase 3 design system, shell → Phase 4); 2026-05-30 Codex cross-AI review (8-phase splits, STATE-05/PRIM-05/PKG-03).*

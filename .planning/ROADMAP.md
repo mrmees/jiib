@@ -22,11 +22,16 @@ Settings screen (connection config + theme + feature toggles), klippy-state-driv
 App Drawer, the Print Status home, and the shared command-dispatch primitive. (Scope note, 2026-05-31:
 v1 broadened to phones→tablets, portrait + landscape, full theming; the Nexus 7 / Adreno 320 is retained
 as the perf FLOOR, not the only target.) Then panels ship in daily-driver order: manual control
-(Temperature/Move/Extrude),
-then **Files / Print**, then **Job Status** — the *core print-loop gate* of "drive a real print
-start-to-finish without the browser." Macros/Console close out the *v1 functional-core complete*
-gate, and the journey ends with appliance hardening: Doze survival, burn-in protection,
-process-death recovery, and a signed sideloadable release APK.
+(Temperature/Move/Extrude), then **Files & Print Control** — the *core print-loop gate* of "drive a real
+print start-to-finish without the browser" (the old "Job Status" phase dissolved here: its live-monitoring
+half was already delivered by the Status home, its print controls fold in, and its deep robustness defers
+to release hardening). **Macros/Console** then close out the *v1 functional-core complete* gate. Only once
+every primary screen exists does **Backend Consolidation** do the driven pass — canonical command
+references, a Klipper command/error/acceptance catalog, and a request-cadence tightening so the app stops
+spamming the LAN — work that would have been speculative before the screens defined what's actually needed.
+The journey ends with **Release Hardening & Ship**: the deferred print-loop robustness (reconnect resync,
+process-death recovery) plus Doze survival, burn-in protection, and a signed sideloadable release APK.
+(Roadmap restructured 2026-06-01 — see the dated note below.)
 
 ## Phases
 
@@ -42,10 +47,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits (completed 2026-05-31)
 - [x] **Phase 4: Service, Shell, Settings & Print-Status Home** - Foreground service owning the spine, the Settings screen (connection config + theme + text size + feature toggles), klippy-state-driven splash/home/job routing, swipe-up App Drawer navigation, the Print Status home (render/throttle in anger) with a Stop→Confirm-guard control, and the shared command-dispatch primitive (completed 2026-06-01)
 - [x] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware (completed 2026-06-01)
-- [ ] **Phase 6: Files / Print** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, and delete files — the lead-in to the core print loop
-- [ ] **Phase 7: Job Status — Core Print-Loop Gate** - Live progress/temps/speed/Z, state-adaptive pause/resume/cancel/restart, reconnect print-state resync, and process-death recovery — deepening the Print Status home into the core print-loop gate: drive a real print start-to-finish without the browser
-- [ ] **Phase 8: Macros & Console — v1 Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history — the escape hatches that close the v1 functional-core-complete gate
-- [ ] **Phase 9: Hardening & Release — Always-On, Lifecycle & Signed APK** - Full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7
+- [ ] **Phase 6: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (restructured 2026-06-01; absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
+- [ ] **Phase 7: Macros & Console — v1 Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the v1 functional-core-complete gate
+- [ ] **Phase 8: Backend Consolidation — Canonical References & Request Tightening** - With every primary screen built and the displayed key-values + sent commands now known, do the driven backend pass: canonical single-source-of-truth references for the Moonraker/Klipper commands the app uses, a Klipper command/error/acceptance reference catalog, and a request-cadence audit so the app stops spamming the wireless LAN for data that doesn't need it (one-shot vs subscribe, coalesce/throttle, all via the central single-subscribe handshake — no per-screen polling). A refactor/quality phase, not a new-screen phase (added 2026-06-01)
+- [ ] **Phase 9: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7
 
 ## Phase Details
 
@@ -213,69 +218,70 @@ Plans:
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
-### Phase 6: Files / Print
+### Phase 6: Files & Print Control — Core Print-Loop Gate
 
-**Goal**: The lead-in to the core print loop. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files — without ever opening a browser. It is built before Job Status because Job Status reuses its thumbnail/metadata fetching. This is the core-print-loop gate lead-in, not the gate itself.
+**Goal**: The **core print-loop gate** — drive a real print start-to-finish without the browser. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files; the same phase wires the **state-adaptive print-control actions (pause / resume / cancel / restart)** onto the existing Print Status home (the currently-stubbed gutter Pause/Resume + Tune buttons), so starting AND controlling a print is one complete user capability. The live-monitoring half of the old "Job Status" phase (progress/temps/Z) was already delivered by the Phase-4 Print Status home + the Status quick-task enrichment (Inc 1–3), so this phase verifies it end-to-end against a real print rather than rebuilding it. Reuses the already-built `PrintMetadataHolder` / `thumbnailUrl()` / Coil wiring / `LastJobHolder` primitives. The deep robustness (reconnect print-state resync, process-death recovery) is deferred to Phase 9.
 **Depends on**: Phase 5
-**Requirements**: FILE-01, FILE-02, FILE-03, FILE-04
+**Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, JOB-01, JOB-02, JOB-03, JOB-04, JOB-05
 **Success Criteria** (what must be TRUE):
 
   1. User can browse Moonraker gcode files and folders with name/date/size metadata, lazy-fetched as rows scroll into view
   2. User sees thumbnails decoded and downsampled off the UI thread (`inSampleSize`, bounded cache) — no OOM or hang on a large library that includes some thumbnail-less files (graceful fallback)
   3. User can start a print from a confirm dialog showing the thumbnail/details, and the start is confirmed via the resulting `print_stats` state flip rather than assumed from the command ack
   4. User can delete a gcode file through the shared confirm dialog
+  5. **Print controls are wired and state-adaptive (JOB-03/04/05):** the Print Status gutter adapts to print state — printing: pause/cancel; paused: resume/cancel; complete/error: restart/files — with cancel and restart routed through the mandatory confirm guard (PRIM-03 destructive set); each control reflects the resulting `print_stats` flip, not a bare command ack
+  6. **Core print-loop gate, proven on the Ender 5 Plus:** connect → browse files → start a print → watch live progress/temps/Z on the Status home (JOB-01/02) → pause, resume, and cancel — all without the browser open
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — Moonraker file API, thumbnail URL resolution (resolve `relative_path` against server root, small/large variants), and metadata structure verified against official docs.
+**Research note**: STANDARD — Moonraker file API + thumbnail URL resolution (already proven by the Status quick-tasks) and the `print_stats`-driven pause/resume/cancel/restart command set verified against official docs.
 
-### Phase 7: Job Status — Core Print-Loop Gate
+### Phase 7: Macros & Console — v1 Functional-Core Complete
 
-**Goal**: The primary product value and the **core print-loop gate**. The Job Status panel lets a user monitor a print to completion and control it — pause, resume, cancel, restart — without ever opening a browser. It also completes the print-state resync-after-reconnect path and adds a thin process-death-recovery check (full Doze/always-on hardening is deferred to Phase 9). It deepens the Print Status home surface introduced in Phase 4 (state-adaptive controls, reconnect resync, process-death recovery), reusing the Files thumbnail/metadata fetch.
+**Goal**: The escape hatches that prevent the user from ever needing SSH or a browser for anything unusual. Architecturally simple — they consume the event bus and command path already built — and they close the **v1 functional-core-complete gate**. Built on the current pragmatic backend (raw response display + basic severity coloring); the exhaustive Klipper command/error/acceptance catalog is deliberately deferred to Phase 8. Nothing more; this phase holds the v1 line.
 **Depends on**: Phase 6
-**Requirements**: JOB-01, JOB-02, JOB-03, JOB-04, JOB-05
-**Success Criteria** (what must be TRUE):
-
-  1. User sees live print progress (filename, percent, thumbnail, elapsed/remaining) plus live temps, speed/flow, and Z while printing, all rendered smoothly at the throttled cadence
-  2. The Job Status button set adapts to print state — printing: pause/cancel; paused: resume/cancel; complete/error: restart/files — and both cancel and **restart print** route through the mandatory confirm dialog (PRIM-03 destructive set)
-  3. Yank Wi-Fi mid-print, restore it, and Job Status restores correct (non-stale) print state from a fresh `objects.query` rather than lying about a finished or paused print
-  4. **Thin lifecycle check:** relaunching the app mid-print restores the correct Job Status from a fresh `objects.query` (process-death recovery) — the full Doze/always-on hardening is verified later in Phase 8
-  5. **Core print-loop gate, proven on the Ender 5 Plus:** connect → browse files → start a print → watch Job Status for the full duration → pause, resume, and cancel — all without the browser open
-
-**Plans**: TBD
-**UI hint**: yes
-**Research note**: STANDARD — Moonraker `print_stats`/`virtual_sdcard`/`display_status`/`gcode_move` objects and the reconnect-resync path verified against official docs.
-
-### Phase 8: Macros & Console — v1 Functional-Core Complete
-
-**Goal**: The escape hatches that prevent the user from ever needing SSH or a browser for anything unusual. Architecturally simple — they consume the event bus and command path already built — and they close the **v1 functional-core-complete gate**. Nothing more; this phase holds the v1 line.
-**Depends on**: Phase 7
 **Requirements**: MACRO-01, MACRO-02, MACRO-03, CONS-01, CONS-02
 **Success Criteria** (what must be TRUE):
 
   1. User can list and run `gcode_macro` entries discovered from `printer.objects.list`, with generated parameter entry for macros that declare params, and can hide/show which macros appear (underscore-prefixed hidden by default)
   2. User can type and send an arbitrary G-code command from the console using the on-screen keyboard primitive
   3. User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`, with bounded scrollback
-  4. **v1 functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full v1 functional core (Connect + Temp/Move/Extrude/Files/JobStatus/Macros/Console) is in place
+  4. **v1 functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full v1 functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
 
 **Plans**: TBD
 **UI hint**: yes
 **Research note**: STANDARD — straightforward application of the existing notify event bus and command path.
 
-### Phase 9: Hardening & Release — Always-On, Lifecycle & Signed APK
+### Phase 8: Backend Consolidation — Canonical References & Request Tightening
 
-**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours." Harden the always-on appliance behavior (full Doze survival, burn-in protection, process-death recovery), run the full "looks done but isn't" checklist against the complete app, and ship a signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. This is explicitly a verification-and-release phase.
+**Goal**: With every primary screen built, the app now KNOWS exactly which key-values it displays and which commands it sends — so this is the point to do the driven backend pass that would have been speculative earlier. Three threads: (1) establish **canonical single-source-of-truth references** for the Moonraker/Klipper commands the app uses (one authoritative place per command, replacing the ad-hoc method constants scattered across phases); (2) build a **Klipper command/error/acceptance reference catalog** — how a stock Klipper install actually handles command submission, errors (`!!`/`//`), and acceptance, and what the app should track in reference to each displayed key-value (so error/staleness handling is principled, not per-screen guesswork); (3) a **request-cadence audit** — stop spamming the wireless LAN multiple times a second for data that doesn't need it: one-shot vs subscribe per object, coalesce/throttle to display cadence, everything routed through the central `PrinterStateStore` / single `objects.subscribe` handshake with NO per-screen ad-hoc polling. This is a refactor / quality / reference phase, not a new-screen phase; it pays down the deliberately-pragmatic "loosey-goosey" backend the screens were built on.
+**Depends on**: Phase 7
+**Requirements**: *(quality/refactor phase — no new v1 functional REQ-IDs; introduces non-functional canonical-reference + request-efficiency goals. Catalogs only what the built screens actually use — no speculative method/database cataloging.)*
+**Success Criteria** (what must be TRUE):
+
+  1. Every Moonraker/Klipper command the app sends has ONE canonical definition (a single source-of-truth command reference), and the scattered per-phase method constants are consolidated to reference it — no duplicated/divergent command strings remain
+  2. A Klipper command/error/acceptance reference catalog exists (committed under `docs/`) covering, for each displayed key-value, where it comes from, how stock Klipper signals success/error/acceptance for the relevant command, and what the app tracks/handles in response — driven by the actual built UI, not a speculative full-API dump
+  3. A request-cadence audit is complete and applied: every subscribed object is justified (one-shot vs subscribe), high-rate data is coalesced/throttled to display cadence, and no screen opens its own polling outside the central single-subscribe handshake — measurably reducing per-second LAN request volume vs the pre-consolidation baseline
+  4. The consolidation is behavior-preserving for the user (every screen still shows correct live data) and provable on the real Ender 5 Plus (and Ender 3) with the existing on-device gates green
+
+**Plans**: TBD
+**Research note**: DEEPER — this phase IS substantially a research/reference effort: pin down stock-Klipper command submission/error/acceptance semantics from official Klipper + Moonraker docs and source, mapped to the app's actual displayed key-values. Builds on the live captures already in `docs/moonraker-capabilities.md`.
+
+### Phase 9: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
+
+**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours." This phase absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified now, against a real in-progress print, rather than mid-build) — and pairs it with the always-on appliance hardening (full Doze survival, burn-in protection), the full "looks done but isn't" checklist against the complete app, and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. This is explicitly a verification-and-release phase.
 **Depends on**: Phase 8
 **Requirements**: PKG-01, PKG-03
 **Success Criteria** (what must be TRUE):
 
-  1. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake, and the app recovers from process death (relaunch mid-print restores correct state from a fresh query)
-  2. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
-  3. The full PITFALLS "looks done but isn't" checklist passes (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail edge cases, process-death recovery)
-  4. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
+  1. **Print-loop robustness (deferred from Job Status):** yank Wi-Fi mid-print and restore it, and the print surface restores correct (non-stale) state from a fresh `objects.query` rather than lying about a finished/paused print (reconnect resync, re-exercising CONN-04 against a live print); relaunching the app mid-print restores the correct state from a fresh query (process-death recovery, PKG-03)
+  2. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), and `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake
+  3. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
+  4. The full PITFALLS "looks done but isn't" checklist passes (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail edge cases, process-death recovery)
+  5. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
 
 **Plans**: TBD
-**Research note**: STANDARD — Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented.
+**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented.
 
 ## Progress
 
@@ -289,7 +295,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
-| 6. Files / Print | 0/TBD | Not started | - |
-| 7. Job Status — Core Print-Loop Gate | 0/TBD | Not started | - |
-| 8. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |
-| 9. Hardening & Release — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
+| 6. Files & Print Control — Core Print-Loop Gate | 0/TBD | Not started | - |
+| 7. Macros & Console — v1 Functional-Core Complete | 0/TBD | Not started | - |
+| 8. Backend Consolidation — Canonical References & Request Tightening | 0/TBD | Not started | - |
+| 9. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
