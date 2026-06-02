@@ -81,5 +81,5 @@ fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
 /** 12-o'clock origin so progress fills clockwise from the top. */
 private const val START_ANGLE = -90f
 
-/** Ring stroke as a fraction of the cell's smaller dimension (mirrors hifi.css `.ring` proportion). */
-private const val STROKE_FRACTION = 0.06f
+/** Ring stroke as a fraction of the cell's smaller dimension (~2× the original 0.06 — Matthew, 2026-06-01). */
+private const val STROKE_FRACTION = 0.12f

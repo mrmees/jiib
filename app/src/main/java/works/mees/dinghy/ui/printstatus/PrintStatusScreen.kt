@@ -1,9 +1,12 @@
 package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -11,7 +14,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,10 +42,9 @@ import kotlinx.coroutines.delay
 import works.mees.dinghy.R
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.net.JsonRpcMethods
@@ -121,11 +126,10 @@ fun PrintStatusScreen(
                     // Tune/Pause are placeholders until Inc 3 / Phase 7; Stop is wired.
                     DisabledTile(label = "Tune", modifier = Modifier.weight(1f))
                     DisabledTile(label = "Pause", modifier = Modifier.weight(1f))
-                    OutlinedControl(
-                        label = "Stop",
-                        onClick = { showEstopGuard = true },
+                    StopButton(
+                        onTap = { showEstopGuard = true },
+                        onHold = { dispatcher?.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP) },
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
                     )
                 }
             },
@@ -148,31 +152,54 @@ fun PrintStatusScreen(
 }
 
 /**
- * State-adaptive Focus (D-08): while printing/paused, the [ProgressRing] with the % centered + filename
- * and a Z-height / layer line beneath; otherwise a live "Ready" temp readout (never a bare 0% ring).
+ * Focus: the [ProgressRing] is ALWAYS drawn (gray track when idle — progress 0 shows only the
+ * surface2 well; accent arc fills while printing). The ring CENTER is the "preview" slot — the live
+ * % while printing, the Benchy no-job image when idle. Beneath: filename + Z/layer while printing,
+ * else "Ready". Temps are NOT repeated here — they live in the field grid (Matthew, 2026-06-01).
  */
 @Composable
 private fun PrintStatusFocus(state: PrinterState) {
     val t = LocalTokens.current
     val printing = state.printState == PrintState.Printing || state.printState == PrintState.Paused
-    Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-        if (printing) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(Modifier.fillMaxWidth(0.62f).aspectRatio(1f)) {
-                    ProgressRing(progress = state.progress.toFloat(), modifier = Modifier.fillMaxSize())
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "${(state.progress * 100).roundToInt()}%",
-                            color = t.text,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = fsSp(34f, t.fs).sp,
+    BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+        // The ring is ~90% of the focus's SMALLER dimension (largest circle that fits, both orientations).
+        val ringSize = minOf(maxWidth, maxHeight) * 0.9f
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Box(Modifier.size(ringSize)) {
+                ProgressRing(
+                    progress = if (printing) state.progress.toFloat() else 0f,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // Preview slot: ~90% of the ring, circle-clipped (corners drop — preview isn't edge-to-edge).
+                // Idle → the Benchy no-job image (theme-accent tinted); Inc 2 puts the gcode thumbnail here.
+                Box(
+                    Modifier.fillMaxSize(0.9f).align(Alignment.Center).clip(CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!printing) {
+                        Icon(
+                            painter = painterResource(R.drawable.benchy),
+                            contentDescription = null,
+                            tint = t.accent2,
+                            modifier = Modifier.fillMaxWidth().aspectRatio(1600f / 900f),
                         )
                     }
                 }
+                // Status text CENTERED ON the bottom of the circle (its center at box-center + R, R =
+                // ringSize/2 = the 6-o'clock point of the drawn ring): "Ready" idle → "NN%" printing.
+                Text(
+                    text = if (printing) "${(state.progress * 100).roundToInt()}%" else "READY",
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                    modifier = Modifier.align(Alignment.Center).offset(y = ringSize / 2),
+                )
+            }
+            if (printing) {
                 state.printFilename.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
@@ -184,47 +211,22 @@ private fun PrintStatusFocus(state: PrinterState) {
                     )
                 }
                 Text(
-                    text = "Z ${fmtZ(state)} · Layer ${fmtLayer(state.currentLayer, state.totalLayer)}",
+                    text = "Z ${fmtZ(state)} · Layer ${state.currentLayer ?: "—"}/${state.totalLayer ?: "—"}",
                     color = t.text2,
                     fontFamily = GeistMono,
                     fontSize = fsSp(16f, t.fs).sp,
                 )
-            }
-        } else {
-            val primary = primaryHeater(state)
-            val bed = state.heaters["heater_bed"]
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                // Benchy line art is the idle/no-job hero image (Matthew, 2026-06-01).
-                Icon(
-                    painter = painterResource(R.drawable.benchy),
-                    contentDescription = null,
-                    tint = t.text2,
-                    modifier = Modifier.fillMaxWidth(0.7f).aspectRatio(1600f / 900f),
-                )
-                Text(
-                    text = "Ready",
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(34f, t.fs).sp,
-                )
-                primary?.let {
-                    Text("Nozzle ${fmt(it.temperature)}°", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(18f, t.fs).sp)
-                }
-                bed?.let {
-                    Text("Bed ${fmt(it.temperature)}°", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(18f, t.fs).sp)
-                }
             }
         }
     }
 }
 
 /**
- * The 3×2 print-stat grid (mockup 03-print-status.png). Reads only catalog-confirmed fields; a missing
- * source shows "—" (never fabricated). Totals (filament/layers) and the ETA arrive in Inc 2.
+ * The 3×2 icon-led stat grid (mockup 03-print-status.png) — glanceable from across the room. Reads only
+ * catalog-confirmed fields; a missing source shows "—" (never fabricated). Two cell shapes:
+ *  - [IconTwoRowCell] (icon | active-over-inactive): Z height (altitude), Layer (layers), Nozzle/Bed temp.
+ *  - [IconValueCell] (icon | single value): Elapsed (timer_arrow_up), Remaining (timer_arrow_down).
+ * The "final height" (Z) and Remaining (ETA) need file metadata → "—" until Inc 2.
  */
 @Composable
 private fun StatGrid(state: PrinterState, modifier: Modifier = Modifier) {
@@ -233,29 +235,125 @@ private fun StatGrid(state: PrinterState, modifier: Modifier = Modifier) {
     val bed = state.heaters["heater_bed"]
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("LAYER", fmtLayer(state.currentLayer, state.totalLayer), t.text, Modifier.weight(1f).fillMaxHeight())
-            StatCell("FILAMENT", fmtFilament(state.filamentUsed), t.text, Modifier.weight(1f).fillMaxHeight())
+            IconTwoRowCell(
+                icon = { sp -> MaterialSymbol("altitude", tint = t.text2, sizeSp = sp) },
+                active = fmtZ(state), inactive = "—", activeColor = t.text,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            IconTwoRowCell(
+                icon = { sp -> MaterialSymbol("layers", tint = t.text2, sizeSp = sp) },
+                active = state.currentLayer?.toString() ?: "—",
+                inactive = state.totalLayer?.toString() ?: "—",
+                activeColor = t.text,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("NOZZLE", fmtHeater(nozzle), t.heat, Modifier.weight(1f).fillMaxHeight())
-            StatCell("BED", fmtHeater(bed), t.heat, Modifier.weight(1f).fillMaxHeight())
+            IconTwoRowCell(
+                icon = { sp -> DrawableIcon(R.drawable.nozzle, t.heat, sp) },
+                active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = t.heat,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            IconTwoRowCell(
+                icon = { sp -> DrawableIcon(R.drawable.heat_bed, t.heat, sp) },
+                active = tempActive(bed), inactive = tempInactive(bed), activeColor = t.heat,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("ELAPSED", fmtDuration(state.printDuration), t.text, Modifier.weight(1f).fillMaxHeight())
-            StatCell("REMAINING", "—", t.text3, Modifier.weight(1f).fillMaxHeight())
+            IconValueCell(
+                icon = { sp -> MaterialSymbol("timer_arrow_up", tint = t.text2, sizeSp = sp) },
+                value = fmtDuration(state.printDuration), valueColor = t.text,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            IconValueCell(
+                icon = { sp -> MaterialSymbol("timer_arrow_down", tint = t.text2, sizeSp = sp) },
+                value = "—", valueColor = t.text3,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
         }
     }
 }
 
-/** One stat cell: a small uppercase label over a GeistMono value (borderless, per mockup). */
+/** A bespoke vector glyph (nozzle / heat_bed) tinted to a token, sized to the cell (dp ≈ the icon sp). */
 @Composable
-private fun StatCell(label: String, value: String, valueColor: Color, modifier: Modifier = Modifier) {
+private fun DrawableIcon(resId: Int, tint: Color, sizeSp: Float) {
+    Icon(painter = painterResource(resId), contentDescription = null, tint = tint, modifier = Modifier.size(sizeSp.dp))
+}
+
+/** Icon font size as a fraction of the cell height — kept SMALL so the icon is a quiet indicator and
+ * the reading is the hero (Matthew: big icons distract from the values). */
+private const val CELL_ICON_FRACTION = 0.45f
+
+/**
+ * Icon (LEFT, scaled to the cell height) | active-over-inactive value (RIGHT-aligned). Active =
+ * bold/bright, inactive = dim/smaller. SpaceBetween pins the icon left and the values right.
+ */
+@Composable
+private fun IconTwoRowCell(
+    icon: @Composable (sizeSp: Float) -> Unit,
+    active: String,
+    inactive: String,
+    activeColor: Color,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, color = t.text3, fontFamily = GeistMono, fontSize = fsSp(13f, t.fs).sp)
-            Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(22f, t.fs).sp)
+    BoxWithConstraints(modifier) {
+        val iconSp = maxHeight.value * CELL_ICON_FRACTION
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            icon(iconSp)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(active, color = activeColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+                Text(inactive, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
+            }
         }
+    }
+}
+
+/** Icon (LEFT, scaled to the cell height) | single value (RIGHT-aligned) — the time cells. */
+@Composable
+private fun IconValueCell(
+    icon: @Composable (sizeSp: Float) -> Unit,
+    value: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    BoxWithConstraints(modifier) {
+        val iconSp = maxHeight.value * CELL_ICON_FRACTION
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            icon(iconSp)
+            Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+        }
+    }
+}
+
+/**
+ * The gutter Stop: a red `crisis_alert` glyph (no label). TAP opens the e-stop [ConfirmGuard]; HOLD
+ * (>~½ s, the system long-press) fires the e-stop IMMEDIATELY (the panic path, with haptic) — Matthew.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.stop), shape)
+            .combinedClickable(onClick = onTap, onLongClick = onHold),
+        contentAlignment = Alignment.Center,
+    ) {
+        MaterialSymbol("crisis_alert", tint = t.stop, sizeSp = fsSp(32f, t.fs))
     }
 }
 
@@ -280,21 +378,12 @@ private fun DisabledTile(label: String, modifier: Modifier = Modifier) {
 private fun primaryHeater(state: PrinterState): HeaterState? =
     state.heaters["extruder"] ?: state.heaters.entries.firstOrNull { it.key.startsWith("extruder") }?.value
 
-/** "cur/target" when a target is set (>0), else just "cur"; "—" when the heater is absent. */
-private fun fmtHeater(h: HeaterState?): String {
-    if (h == null) return "—"
-    return if (h.target > 0.0) "${fmt(h.temperature)}/${fmt(h.target)}" else fmt(h.temperature)
-}
+/** Active (current) temp; "—" when the heater is absent. No degree symbol (saves space — Matthew). */
+private fun tempActive(h: HeaterState?): String = h?.let { fmt(it.temperature) } ?: "—"
 
-/** "cur/total" layers; "—" when total is unknown (idle / slicer didn't report — catalog fallback). */
-private fun fmtLayer(current: Int?, total: Int?): String {
-    if (total == null) return "—"
-    return "${current ?: "–"}/$total"
-}
-
-/** Filament used in metres (1 decimal); "—" when nothing extruded yet. */
-private fun fmtFilament(mm: Double): String =
-    if (mm <= 0.0) "—" else "${((mm / 1000.0) * 10).roundToInt() / 10.0} m"
+/** Inactive (target) temp; "—" when off (target 0) or absent. */
+private fun tempInactive(h: HeaterState?): String =
+    h?.takeIf { it.target > 0.0 }?.let { fmt(it.target) } ?: "—"
 
 /** Live Z height (mm, 1 decimal) from gcode_position[2]; "—" until a position is known. */
 private fun fmtZ(state: PrinterState): String =
