@@ -55,6 +55,31 @@ class CommandRegistryGcodeTest {
         assertRegistryScript(CommandRegistry.disableSteppers, Unit, PrinterCommands.DISABLE_STEPPERS)
     }
 
+    @Test
+    fun registryDispatchKeysMatchExistingUiBusyKeys() {
+        assertEquals("set_extruder", CommandRegistry.setHeater.dispatchKey(SetHeaterArgs("extruder", 215)))
+        assertEquals("set_temp", CommandRegistry.setHeater.dispatchKey(SetHeaterArgs("extruder", 215, key = "set_temp")))
+        assertEquals(
+            "preset_PLA",
+            CommandRegistry.applyPreset.dispatchKey(ApplyPresetArgs(nozzle = 200, bed = 60, key = "preset_PLA")),
+        )
+        assertEquals("cooldown", CommandRegistry.cooldown.dispatchKey(Unit))
+
+        assertEquals("jog_X", CommandRegistry.jog.dispatchKey(JogArgs("X", 10.0, 3000)))
+        assertEquals("jog_X", CommandRegistry.forceMove.dispatchKey(ForceMoveArgs("X", 10.0, 50)))
+        assertEquals("home_xy", CommandRegistry.homeXY.dispatchKey(Unit))
+        assertEquals("home_Z", CommandRegistry.homeAxis.dispatchKey(HomeAxisArgs("Z")))
+        assertEquals("home_all", CommandRegistry.homeAll.dispatchKey(Unit))
+        assertEquals("disable_steppers", CommandRegistry.disableSteppers.dispatchKey(Unit))
+
+        assertEquals("extrude", CommandRegistry.extrude.dispatchKey(ExtrudeArgs(5.0, 300)))
+        assertEquals("retract", CommandRegistry.extrude.dispatchKey(ExtrudeArgs(-5.0, 300)))
+        assertEquals("tool_1", CommandRegistry.selectTool.dispatchKey(SelectToolArgs(1)))
+        assertEquals("load", CommandRegistry.loadFilament.dispatchKey(Unit))
+        assertEquals("unload", CommandRegistry.unloadFilament.dispatchKey(Unit))
+        assertEquals("estop", CommandRegistry.emergencyStop.dispatchKey(Unit))
+    }
+
     private fun <P> assertRegistryScript(
         spec: CommandSpec<P>,
         args: P,
