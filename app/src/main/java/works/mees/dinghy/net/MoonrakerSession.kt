@@ -18,18 +18,18 @@ import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
 import works.mees.dinghy.auth.AuthException
 import works.mees.dinghy.auth.MoonrakerAuth
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.IdentifyArgs
+import works.mees.dinghy.command.ObjectSubsetArgs
+import works.mees.dinghy.command.request
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
@@ -51,9 +51,10 @@ import kotlin.time.Duration
  * churn token-fetches against a bad key — and resumes only on [requestReconnectNow] / config change.
  *
  * Per (re)connect, the handshake runs EXACTLY ONCE each, IN ORDER (review HIGH #2):
- *   `server.connection.identify` (type "display") → `printer.objects.list` →
- *   `deriveCapabilities`/`deriveSubscribeSet` → `printer.objects.query(subset)` (seeds + overwrites stale
- *   state, D-04) → `printer.objects.subscribe(subset)`.
+ *   `server.connection.identify` (type "display") → `server.info` (components) →
+ *   `printer.objects.list` → `deriveCapabilities`/`deriveSubscribeSet` →
+ *   `printer.objects.query(subset)` (seeds + overwrites stale state, D-04) →
+ *   `printer.objects.subscribe(subset)`.
  * Only AFTER the subscribe seed lands is [ConnectionState.Connected] emitted (review HIGH #3); the
  * socket-open-but-not-yet-resynced window is [ConnectionState.Syncing]. Capabilities are re-derived and
  * exposed each reconnect (STATE-02).
@@ -296,34 +297,45 @@ class MoonrakerSession(
         ConnectAttempt.Served
     }
 
-    /** identify → objects.list → derive → objects.query(subset) → objects.subscribe(subset). */
+    /** identify → server.info → objects.list → derive → objects.query(subset) → objects.subscribe(subset). */
     private suspend fun runHandshake() {
         // 1. identify (once, first).
-        rpc.request(JsonRpcMethods.IDENTIFY, identifyParams())
+        rpc.request(
+            CommandRegistry.identify,
+            IdentifyArgs(
+                clientName = clientName,
+                version = clientVersion,
+                url = clientUrl,
+                apiKey = auth?.xApiKeyHeader(),
+            ),
+        )
 
-        // 2. objects.list → the capability source.
-        val listResult = rpc.request(JsonRpcMethods.OBJECTS_LIST)
+        // 2. server.info → live Moonraker component names for ComponentPresent predicates (D-05).
+        val components = parseComponents(rpc.request(CommandRegistry.serverInfo, Unit))
+
+        // 3. objects.list → the object-name capability source.
+        val listResult = rpc.request(CommandRegistry.objectsList, Unit)
         val objects = parseObjectsList(listResult)
 
-        // 3. derive capabilities + subscribe set (STATE-02, A3) — re-derived EVERY reconnect.
-        val capabilities = deriveCapabilities(objects)
+        // 4. derive capabilities + subscribe set (STATE-02, A3) — re-derived EVERY reconnect.
+        val capabilities = deriveCapabilities(objects, components)
         store.setCapabilities(capabilities)
         val subset = deriveSubscribeSet(objects)
 
-        // 4. objects.query(subset) — full snapshot; SEED overwrites stale state (D-04).
-        val queryResult = rpc.request(JsonRpcMethods.OBJECTS_QUERY, objectsParam(subset))
+        // 5. objects.query(subset) — full snapshot; SEED overwrites stale state (D-04).
+        val queryResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(subset))
         val status = parseStatus(queryResult)
         if (status != null) store.seed(reduceSnapshot(status))
 
-        // 5. objects.subscribe(subset) — register for diffs. Its reply IS the at-subscription
+        // 6. objects.subscribe(subset) — register for diffs. Its reply IS the at-subscription
         //    snapshot (same {eventtime,status} shape as query, verified live), so SEED FROM IT: it is
         //    the authoritative post-subscribe truth, closing the query→subscribe gap where a change
         //    would otherwise be missed until a later diff touched the same field (CR-02/WR-04, D-04).
-        val subResult = rpc.request(JsonRpcMethods.OBJECTS_SUBSCRIBE, objectsParam(subset))
+        val subResult = rpc.request(CommandRegistry.objectsSubscribe, ObjectSubsetArgs(subset))
         parseStatus(subResult)?.let { store.seed(reduceSnapshot(it)) }
 
-        // 6. One-shot history/config reads (05-03, TEMP-04/EXTR-04) — the ONLY new networking in the
-        //    phase. Both NOT subscribed (config is static; the store is a backfill seed — live points
+        // 7. One-shot history/config reads (05-03, TEMP-04/EXTR-04). Both NOT subscribed
+        //    (config is static; the store is a backfill seed — live points
         //    keep arriving on the existing notify_status_update stream). Each is BEST-EFFORT in its own
         //    runCatching so a printer lacking the endpoint/field never breaks the handshake (it already
         //    reached subscribe above): a failed read leaves the store's StateFlow at its null/empty
@@ -332,7 +344,7 @@ class MoonrakerSession(
         runCatching {
             // temperature_store: backfill ONLY the heater sensors the graph draws (capability heaters),
             // by exact object name — ignore pure `temperature_sensor X` entries (RESEARCH §1 alignment).
-            val storeResult = rpc.request(JsonRpcMethods.TEMPERATURE_STORE)
+            val storeResult = rpc.request(CommandRegistry.temperatureStore, Unit)
             val backfill = parseTemperatureStore(storeResult.jsonObject, capabilities.heaters.toSet())
             store.setTemperatureBackfill(backfill)
         }
@@ -340,31 +352,13 @@ class MoonrakerSession(
             // configfile (one-shot query, NOT live subscribe): static parsed-config numbers from the
             // PRIMARY `extruder` — single-extruder-accurate (the per-tool safety gate stays the live
             // can_extrude boolean, not these numbers).
-            val cfgResult = rpc.request(JsonRpcMethods.OBJECTS_QUERY, objectsParam(setOf("configfile")))
+            val cfgResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(setOf("configfile")))
             val extruderCfg = parseStatus(cfgResult)
                 ?.objectOrNull("configfile")
                 ?.objectOrNull("settings")
                 ?.objectOrNull("extruder")
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
             store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
-        }
-    }
-
-    private fun identifyParams() = buildJsonObject {
-        put("client_name", clientName)
-        put("version", clientVersion)
-        put("type", "display")
-        // REQUIRED by Moonraker — a missing/blank url fails identify with code 400 and the whole
-        // resync handshake never completes (connection loops on backoff forever). See [clientUrl].
-        put("url", clientUrl)
-        // api_key passed to identify only when keyed; null on the open path (D-06).
-        auth?.xApiKeyHeader()?.let { put("api_key", it) }
-    }
-
-    /** `{ "objects": { "<name>": null, ... } }` — null = all fields of the object. */
-    private fun objectsParam(subset: Set<String>) = buildJsonObject {
-        putJsonObject("objects") {
-            for (name in subset) put(name, JsonNull)
         }
     }
 
@@ -378,6 +372,14 @@ class MoonrakerSession(
                 ?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
                 ?: emptyList()
         }.getOrDefault(emptyList())
+
+    private fun parseComponents(result: kotlinx.serialization.json.JsonElement): Set<String> =
+        runCatching {
+            (result.jsonObject["components"] as? JsonArray)
+                ?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+                ?.toSet()
+                ?: emptySet()
+        }.getOrDefault(emptySet())
 
     private fun parseStatus(result: kotlinx.serialization.json.JsonElement): JsonObject? =
         runCatching { result.jsonObject["status"]?.jsonObject }.getOrNull()

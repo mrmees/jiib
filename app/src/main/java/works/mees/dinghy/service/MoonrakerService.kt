@@ -24,12 +24,16 @@ import works.mees.dinghy.DinghyApp
 import works.mees.dinghy.MainActivity
 import works.mees.dinghy.auth.MoonrakerAuth
 import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.HistoryListArgs
+import works.mees.dinghy.command.MetadataArgs
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.command.request
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.di.SessionControl
 import works.mees.dinghy.di.SpineHandle
 import works.mees.dinghy.net.JsonRpcClient
-import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.net.MoonrakerSession
 import works.mees.dinghy.net.MoonrakerSocket
 import works.mees.dinghy.net.SocketEvent
@@ -37,8 +41,6 @@ import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -139,7 +141,7 @@ class MoonrakerService : Service() {
         // read leaves metadata null and the Status cells degrade.
         val metadataHolder = PrintMetadataHolder(serviceScope, store.printerState) { filename ->
             runCatching {
-                rpc.request(JsonRpcMethods.FILES_METADATA, buildJsonObject { put("filename", filename) })
+                rpc.request(CommandRegistry.filesMetadata, MetadataArgs(filename))
             }.getOrNull()
         }
 
@@ -149,10 +151,7 @@ class MoonrakerService : Service() {
         // absent read leaves the card at its prior value; count==0 → null empty-state.
         val lastJobHolder = LastJobHolder(serviceScope, store.printerState) {
             runCatching {
-                rpc.request(
-                    JsonRpcMethods.HISTORY_LIST,
-                    buildJsonObject { put("limit", 1); put("order", "desc") },
-                )
+                rpc.request(CommandRegistry.historyList, HistoryListArgs(limit = 1, order = "desc"))
             }.getOrNull()
         }
 
@@ -178,8 +177,8 @@ class MoonrakerService : Service() {
         // Narrow reconnect/restart surface (review #1) — forwards to THIS session/dispatcher.
         container.bindSessionControl(object : SessionControl {
             override fun requestReconnectNow() = session.requestReconnectNow()
-            override fun restartFirmware() = dispatcher.dispatch("fw_restart", JsonRpcMethods.FIRMWARE_RESTART)
-            override fun restartHost() = dispatcher.dispatch("host_restart", JsonRpcMethods.RESTART)
+            override fun restartFirmware() = dispatcher.dispatch(CommandRegistry.firmwareRestart, Unit)
+            override fun restartHost() = dispatcher.dispatch(CommandRegistry.restart, Unit)
         })
 
         // Logged ONCE for the rotation gate (review #3) — id only, never the key/URL.
