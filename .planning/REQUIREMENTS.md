@@ -73,18 +73,18 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Files / Print
 
-- [ ] **FILE-01**: User can browse Moonraker gcode files and folders with name/date/size metadata
-- [ ] **FILE-02**: User sees gcode thumbnails, decoded/downsampled off the UI thread to stay smooth on 2GB hardware
-- [ ] **FILE-03**: User can start a print from a selected file (with a confirmation showing thumbnail/details)
-- [ ] **FILE-04**: User can delete a gcode file (with confirmation)
+- [x] **FILE-01**: User can browse Moonraker gcode files and folders with name/date/size metadata
+- [x] **FILE-02**: User sees gcode thumbnails, decoded/downsampled off the UI thread to stay smooth on 2GB hardware
+- [x] **FILE-03**: User can start a print from a selected file (with a confirmation showing thumbnail/details)
+- [x] **FILE-04**: User can delete a gcode file (with confirmation)
 
 ### Job Status
 
 - [ ] **JOB-01**: User sees live print progress (filename, percent, thumbnail, elapsed/remaining time)
 - [ ] **JOB-02**: User sees live temperatures, speed/flow, and Z while printing
-- [ ] **JOB-03**: User can pause and resume the active print
-- [ ] **JOB-04**: User can cancel the active print (with confirmation)
-- [ ] **JOB-05**: Job Status button set adapts to print state (printing / paused / complete / error)
+- [x] **JOB-03**: User can pause and resume the active print
+- [x] **JOB-04**: User can cancel the active print (with confirmation)
+- [x] **JOB-05**: Job Status button set adapts to print state (printing / paused / complete / error)
 
 ### Macros
 
@@ -196,15 +196,15 @@ Which phases cover which requirements. Populated during roadmap creation.
 | EXTR-02 | Phase 5 | Complete |
 | EXTR-03 | Phase 5 | Complete |
 | EXTR-04 | Phase 5 | Complete |
-| FILE-01 | Phase 7 | Pending |
-| FILE-02 | Phase 7 | Pending |
-| FILE-03 | Phase 7 | Pending |
-| FILE-04 | Phase 7 | Pending |
+| FILE-01 | Phase 7 | Complete |
+| FILE-02 | Phase 7 | Complete |
+| FILE-03 | Phase 7 | Complete |
+| FILE-04 | Phase 7 | Complete |
 | JOB-01 | Phase 7 | Pending |
 | JOB-02 | Phase 7 | Pending |
-| JOB-03 | Phase 7 | Pending |
-| JOB-04 | Phase 7 | Pending |
-| JOB-05 | Phase 7 | Pending |
+| JOB-03 | Phase 7 | Complete |
+| JOB-04 | Phase 7 | Complete |
+| JOB-05 | Phase 7 | Complete |
 | MACRO-01 | Phase 8 | Pending |
 | MACRO-02 | Phase 8 | Pending |
 | MACRO-03 | Phase 8 | Pending |
