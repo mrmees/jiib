@@ -1,0 +1,104 @@
+{
+  "gcode_store": [
+    {
+      "message": "// Attach_Probe going to attach probe",
+      "time": 1780184146.8138964,
+      "type": "response"
+    },
+    {
+      "message": "// Attach_Probe moving near the dock with G0 X-2 Y25 F12000",
+      "time": 1780184146.8217738,
+      "type": "response"
+    },
+    {
+      "message": "// Attach_Probe moving to the dock with G0 X-2 Y-5 F3000",
+      "time": 1780184148.5368104,
+      "type": "response"
+    },
+    {
+      "message": "// Attach_Probe moving to the dock with G0 X-2 Y-5.5 F3000",
+      "time": 1780184148.5390959,
+      "type": "response"
+    },
+    {
+      "message": "// Attach_Probe moving from the dock to G0 X-2 Y25 F3000",
+      "time": 1780184148.541341,
+      "type": "response"
+    },
+    {
+      "message": "// probe: open",
+      "time": 1780184150.5270185,
+      "type": "response"
+    },
+    {
+      "message": "// Resetting EXCLUDE OBJECTS mesh size",
+      "time": 1780184150.5467565,
+      "type": "response"
+    },
+    {
+      "message": "// That's All Folks HA_12",
+      "time": 1780184150.547995,
+      "type": "response"
+    },
+    {
+      "message": "// External Power OFF",
+      "time": 1780184150.5481145,
+      "type": "response"
+    },
+    {
+      "message": "Done printing file",
+      "time": 1780184150.609289,
+      "type": "response"
+    },
+    {
+      "message": "SET_FAN_SPEED FAN=FILTER_fan SPEED=0",
+      "time": 1780216310.7940757,
+      "type": "command"
+    },
+    {
+      "message": "M104 S160",
+      "time": 1780333773.7797165,
+      "type": "command"
+    },
+    {
+      "message": "M104 S0",
+      "time": 1780333842.896636,
+      "type": "command"
+    },
+    {
+      "message": "M104 S200",
+      "time": 1780334058.4543452,
+      "type": "command"
+    },
+    {
+      "message": "M104 S0",
+      "time": 1780334271.5406032,
+      "type": "command"
+    },
+    {
+      "message": "TURN_OFF_HEATERS",
+      "time": 1780336705.0429635,
+      "type": "command"
+    },
+    {
+      "message": "M104 T0 S195.0",
+      "time": 1780358551.2493756,
+      "type": "command"
+    },
+    {
+      "message": "M140 S60.0",
+      "time": 1780358551.2499788,
+      "type": "command"
+    },
+    {
+      "message": "// External Power ON - lets go!",
+      "time": 1780358556.0222483,
+      "type": "response"
+    },
+    {
+      "message": "// External Power OFF",
+      "time": 1780362161.6289072,
+      "type": "response"
+    }
+  ]
+}

@@ -201,3 +201,70 @@ thumbnails[] 32/48/300, ".thumbs/<name>-WxH.png"
   MCU, fewer sensors. Print **volume** differs — always read `toolhead.axis_minimum/maximum`, never
   hardcode bed size.
 - **`object_height`** present in metadata (E3 sample) — usable as total print height if wanted.
+
+---
+
+## Phase 8 — gcode_store + macro-body shapes (probed 2026-06-02)
+
+Read-only live probe of the Ender 5 Plus (`192.168.1.120:7125`, Klipper `v0.13.0-662`, Moonraker
+`v0.10.0` / API `1.5.0`, state `ready`) to settle RESEARCH Assumptions A1/A4 + Pitfall 6 BEFORE
+writing any console/macro parsing code. This kills the mock-vs-reality bug class that bit Phases 2
+and 5. The raw probed JSON is committed verbatim as the unit-test fixtures:
+`app/src/test/resources/fixtures/gcode_store_e5.json` and `.../macro_bodies_e5.json`.
+
+### `server.gcode_store` — console history backfill (CONS-02 / D-02) — CONFIRMED
+
+Probe: `curl -s "http://192.168.1.120:7125/server/gcode_store?count=20"`
+
+The REST mirror returns `{"result": {"gcode_store": [ {message,time,type}, … ]}}`. The JSON-RPC
+`server.gcode_store` call returns the **same `result` object** (`{gcode_store:[…]}`), which is what
+`parseGcodeStore` walks. **Entry shape CONFIRMED** = exactly `{message, time, type}`:
+
+```json
+{
+  "gcode_store": [
+    { "message": "// External Power ON - lets go!", "time": 1780358556.0222483, "type": "response" },
+    { "message": "M104 T0 S195.0",                   "time": 1780358551.2493756, "type": "command"  }
+  ]
+}
+```
+
+- `message` (string) — raw line **including its severity prefix** (`// …`, plain commands, would carry
+  `!! …` on an error). Observed live: `// `-prefixed responses (`// External Power OFF`,
+  `// probe: open`, `// Attach_Probe …`), plain `response` lines (`Done printing file`), and plain
+  `command` lines (`M104 S160`, `TURN_OFF_HEATERS`, `SET_FAN_SPEED FAN=FILTER_fan SPEED=0`).
+- `time` (float) — Unix epoch seconds.
+- **`type` enum OBSERVED values: exactly `"command"` and `"response"`** — matches the Moonraker docs
+  enum verbatim. No other `type` value appeared in the live buffer. (Mainsail reclassifies a
+  `response` whose message starts with `// action:`/`// debug:` at RENDER time — the wire `type`
+  itself is only command/response.)
+
+### `configfile.settings["gcode_macro <name>"].gcode` — macro-body nesting (MACRO-02 / D-09) — CONFIRMED
+
+Probe: `curl -s "http://192.168.1.120:7125/printer/objects/query?configfile"` →
+`result.status.configfile.settings`. **96 `gcode_macro <name>` sections** present.
+
+- **VERDICT: macro `.gcode` is a single newline-joined STRING** (Python `type()` == `str` for every
+  section probed) — **CONFIRMS RESEARCH Assumption A1; does NOT contradict it.** The 08-03 parser may
+  run the Mainsail `paramRegex` directly on the string with NO array-join step.
+- **Macro section keys are LOWERCASED** in `settings` (e.g. `"gcode_macro start_print"`,
+  `"gcode_macro _pause_on_switch"`) — `Capabilities.hasMacroIgnoreCase` is the right lookup.
+
+Real param-declaring bodies captured into `macro_bodies_e5.json` (verbatim) and the param the
+Mainsail regex ACTUALLY extracts from each (this is the ground-truth the RED parser test asserts —
+note the heuristic's real behavior, not the idealized one):
+
+| Macro (lowercased key) | Declares | Parser extracts (name / type / default) |
+|------------------------|----------|------------------------------------------|
+| `gcode_macro start_print` | `params.BED_TEMP\|default(60)\|float`, `params.EXTRUDER_TEMP\|default(210)\|float` | `BED_TEMP`/null/`60`, `EXTRUDER_TEMP`/null/`210` — ⚠ the trailing `\|float` is NOT captured as a type by the Mainsail regex (the `default` group consumes `60`, `float` falls into `.*?`); type stays `null`. Real heuristic behavior. |
+| `gcode_macro set_pause_at_layer` | `params.ENABLE is defined`, `params.LAYER\|default(...)\|int`, `params.MACRO\|default(...)` | `LAYER`/`int`/`pause_at_layer.layer`, `MACRO`/null/`pause_at_layer.call, True` |
+| `gcode_macro set_pause_next_layer` | `params.ENABLE\|default(1)\|int`, `params.MACRO\|default(...)` | `ENABLE`/`int`/`1`, `MACRO`/null/`pause_next_layer.call, True` |
+| `gcode_macro _client_extrude` | `params.LENGTH\|default(client.unretract)`, `params.SPEED\|default(...)` | `LENGTH`/null/`client.unretract`, `SPEED`/null/`client.speed_unretract` |
+| `gcode_macro _pause_on_switch` | (none) | empty list (no-param case) |
+
+**`'NAME' in params` guard form (RESEARCH `PARAM_IN_REGEX`): NOT present on this printer.** No macro
+body on the E5 uses the single-quoted `'X' in params` membership-guard idiom (the in-params usages
+that exist are `for key, value in params_filtered.items()` / `for p in params` loop forms the
+guard regex deliberately does NOT match). The `PARAM_IN_REGEX` path is therefore exercised in the
+RED test with a SYNTHETIC inline body (clearly labelled), since no real fixture exercises it — this
+is the only place an invented string is used, and only for a form the live printer doesn't carry.

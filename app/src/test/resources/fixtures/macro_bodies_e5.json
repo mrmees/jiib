@@ -1,0 +1,17 @@
+{
+  "gcode_macro start_print": {
+    "gcode": "\n_PRE_SCAN_TOOL_CHANGES\n{% set BED_TEMP = params.BED_TEMP|default(60)|float %}\n{% set EXTRUDER_TEMP = params.EXTRUDER_TEMP|default(210)|float %}\n{% set EXTRUDER_STANDBY_TEMP = EXTRUDER_TEMP - 30 %}\nRUN_SHELL_COMMAND CMD=text_to_speech PARAMS=\"Ender 5 Print Initiated\"\n_BED_SAFETY_ARM\n\nM140 S{BED_TEMP}\nM104 S{EXTRUDER_STANDBY_TEMP}\nG92 E0\nSET_KINEMATIC_POSITION X=0 Y=0 Z=0\nG90\nM117 Homing\nG28 x=1 y=1\nAttach_Probe_Lock\nG28 z=1\nM117 Adjust Bed Tilt\nZ_TILT_ADJUST\nM117 Waiting for Bed Temperature\nM190 S{BED_TEMP}\nM117 Generating mesh...\nBED_MESH_CLEAR\nBED_MESH_CALIBRATE ADAPTIVE=1\nDock_Probe_Unlock\nDock_Probe\nM117 Waiting for Nozzle Tempearature HA_10\nM104 S{EXTRUDER_STANDBY_TEMP}\nTEMPERATURE_WAIT SENSOR=extruder MINIMUM={EXTRUDER_STANDBY_TEMP}\nM104 S{EXTRUDER_TEMP}\nM117 Kombing Nozzle\nKOMB\nTEMPERATURE_WAIT SENSOR=extruder MINIMUM={EXTRUDER_TEMP}\nM117 Applying Corrections\nSKEW_PROFILE LOAD=calilantern_skew_profile\n\nRUN_SHELL_COMMAND CMD=text_to_speech PARAMS=\"Ender 5 Print Beginning\"\nM117 Purging extruder...\nLINE_PURGE\n_PAUSE_ON_SWITCH\nM117 Printing..... HA_11"
+  },
+  "gcode_macro set_pause_at_layer": {
+    "gcode": "\n{% set pause_at_layer = printer['gcode_macro SET_PRINT_STATS_INFO'].pause_at_layer %}\n{% set ENABLE = params.ENABLE|int != 0 if params.ENABLE is defined\nelse params.LAYER is defined %}\n{% set LAYER = params.LAYER|default(pause_at_layer.layer)|int %}\n{% set MACRO = params.MACRO|default(pause_at_layer.call, True) %}\nSET_GCODE_VARIABLE MACRO=SET_PRINT_STATS_INFO VARIABLE=pause_at_layer VALUE=\"{{ 'enable': ENABLE, 'layer': LAYER, 'call': MACRO }}\""
+  },
+  "gcode_macro set_pause_next_layer": {
+    "gcode": "\n{% set pause_next_layer = printer['gcode_macro SET_PRINT_STATS_INFO'].pause_next_layer %}\n{% set ENABLE = params.ENABLE|default(1)|int != 0 %}\n{% set MACRO = params.MACRO|default(pause_next_layer.call, True) %}\nSET_GCODE_VARIABLE MACRO=SET_PRINT_STATS_INFO VARIABLE=pause_next_layer VALUE=\"{{ 'enable': ENABLE, 'call': MACRO }}\""
+  },
+  "gcode_macro _client_extrude": {
+    "gcode": "\n\n{% set client = printer['gcode_macro _CLIENT_VARIABLE']|default({}) %}\n{% set use_fw_retract = (client.use_fw_retract|default(false)|lower == 'true') and (printer.firmware_retraction is defined) %}\n{% set length = params.LENGTH|default(client.unretract)|default(1.0)|float %}\n{% set speed = params.SPEED|default(client.speed_unretract)|default(35) %}\n{% set absolute_extrude = printer.gcode_move.absolute_extrude %}\n\n{% if printer.toolhead.extruder != '' %}\n{% if printer[printer.toolhead.extruder].can_extrude %}\n{% if use_fw_retract %}\n{% if length < 0 %}\nG10\n{% else %}\nG11\n{% endif %}\n{% else %}\nM83\nG1 E{length} F{(speed|float|abs) * 60}\n{% if absolute_extrude %}\nM82\n{% endif %}\n{% endif %}\n{% else %}\nRESPOND TYPE=echo MSG='{\"\\\"%s\\\" not hot enough\" % printer.toolhead.extruder}'\n{% endif %}\n{% endif %}"
+  },
+  "gcode_macro _pause_on_switch": {
+    "gcode": "\nDYNAMIC_MACRO MACRO=_PAUSE_ON_SWITCH {rawparams}"
+  }
+}
