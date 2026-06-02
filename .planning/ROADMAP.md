@@ -321,7 +321,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
 - [x] 08-05-PLAN.md — Console screen: ConsoleHolder (raw, D-04) + RecyclerView-in-AndroidView scrollback (D-05) + Field-only ScreenScaffold w/ opt-in filter toggles, read-only no-keyboard (CONS-02/D-01..D-05)
-- [ ] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
+- [x] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 - [ ] 08-07-PLAN.md — Nav wiring (Dest+drawer tiles+AppShell branches, drawer-swipe suppress on scroll-Fields) + on-device UAT + console-scroll perf gate on flox + live Ender 5 Plus (functional-core gate)
@@ -437,7 +437,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
-| 8. Macros & Console — Functional-Core Complete | 5/7 | In Progress|  |
+| 8. Macros & Console — Functional-Core Complete | 6/7 | In Progress|  |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |

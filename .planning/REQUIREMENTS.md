@@ -88,7 +88,7 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Macros
 
-- [ ] **MACRO-01**: User can list and run printer `gcode_macros`
+- [x] **MACRO-01**: User can list and run printer `gcode_macros`
 - [x] **MACRO-02**: User can enter parameters for macros that declare them before running
 - [x] **MACRO-03**: User can hide/show which macros appear
 
@@ -205,7 +205,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | JOB-03 | Phase 7 | Complete |
 | JOB-04 | Phase 7 | Complete |
 | JOB-05 | Phase 7 | Complete |
-| MACRO-01 | Phase 8 | Pending |
+| MACRO-01 | Phase 8 | Complete |
 | MACRO-02 | Phase 8 | Complete |
 | MACRO-03 | Phase 8 | Complete |
 | CONS-01 | Deferred | Pulled from Phase 8 (2026-06-02) — console read-only, text-send unscheduled |
