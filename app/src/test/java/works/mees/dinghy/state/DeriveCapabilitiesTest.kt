@@ -96,4 +96,18 @@ class DeriveCapabilitiesTest {
     fun hasMacroIgnoreCaseFalseWhenAbsent() {
         assertFalse("no macros -> no match", deriveCapabilities(emptyList()).hasMacroIgnoreCase("LOAD_FILAMENT"))
     }
+
+    // --- Phase-6: generic predicate surface for the command registry (D-09) ---
+
+    @Test
+    fun rawObjectNamesAreRetainedAndHasObjectWorks() {
+        val raw = listOf("webhooks", "quad_gantry_level", "gcode_macro LOAD_FILAMENT")
+        val caps = deriveCapabilities(raw)
+
+        assertEquals("Capabilities must retain the exact raw objects.list names", raw.toSet(), caps.objects)
+        assertTrue("hasObject gates object-present predicates", caps.hasObject("quad_gantry_level"))
+        assertTrue("raw macro object name is retained with its prefix", caps.hasObject("gcode_macro LOAD_FILAMENT"))
+        assertFalse("hasObject is exact and does not case-fold object names", caps.hasObject("QUAD_GANTRY_LEVEL"))
+        assertTrue("existing macro convenience helper stays available", caps.hasMacroIgnoreCase("LOAD_FILAMENT"))
+    }
 }

@@ -389,4 +389,84 @@ class CommandDispatcherTest {
         rpc.complete(1)
         runCurrent()
     }
+
+    // --- Phase-6: planned registry dispatch overload must preserve this class's guarantees. ---
+
+    @Test
+    fun registryDispatchOverload_preservesGcodeAndDefaultTimeouts() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeoutMs = CommandDispatcher.DEFAULT_TIMEOUT_MS,
+            timeSource = { testScheduler.currentTime },
+        )
+
+        dispatcher.dispatch(CommandRegistry.homeAll, Unit)
+        dispatcher.dispatch(CommandRegistry.emergencyStop, Unit)
+        runCurrent()
+
+        assertEquals("both registry commands were dispatched", 2, rpc.calls.size)
+        val gcodeIdx = rpc.calls.indexOf(JsonRpcMethods.GCODE_SCRIPT)
+        val estopIdx = rpc.calls.indexOf(JsonRpcMethods.EMERGENCY_STOP)
+        assertEquals(
+            "registry gcode commands preserve the long gcode timeout",
+            CommandDispatcher.GCODE_TIMEOUT_MS,
+            rpc.timeouts[gcodeIdx],
+        )
+        assertEquals(
+            "registry non-gcode commands preserve the short default timeout",
+            CommandDispatcher.DEFAULT_TIMEOUT_MS,
+            rpc.timeouts[estopIdx],
+        )
+
+        rpc.complete(0)
+        rpc.complete(1)
+        runCurrent()
+    }
+
+    @Test
+    fun registryDispatchOverload_preservesRpcErrorFailureBehavior() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch(CommandRegistry.jog, JogArgs(axis = "X", mm = 10.0, feedMmMin = 3000))
+        runCurrent()
+        rpc.fail(0, RpcError(code = -32000, message = "Move out of range"))
+        runCurrent()
+
+        val failure = events.filterIsInstance<DispatchEvent.Failure>().firstOrNull()
+        assertTrue("registry gcode RpcError still emits Failure instead of crashing", failure != null)
+        assertTrue("registry failure carries printer rejection text", failure!!.message.contains("Move out of range"))
+        assertFalse("registry gcode key is re-enabled after RpcError", CommandRegistry.jog.dispatchKey(JogArgs("X", 10.0, 3000)) in dispatcher.inFlight.value)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun registryDispatchOverload_preservesFailureRedaction() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val events = mutableListOf<DispatchEvent>()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val collectJob = launch { dispatcher.events.collect { events += it } }
+
+        dispatcher.dispatch(CommandRegistry.emergencyStop, Unit)
+        runCurrent()
+        rpc.fail(0, RpcConnectionException(ConnectionError.NetworkUnavailable, "send failed: ?token=SECRETKEY"))
+        runCurrent()
+
+        val failure = events.filterIsInstance<DispatchEvent.Failure>().first()
+        assertFalse("registry failure message must never embed API key material", failure.message.contains("SECRETKEY"))
+        assertFalse("registry failure message must never embed token query params", failure.message.contains("token="))
+        collectJob.cancel()
+    }
 }

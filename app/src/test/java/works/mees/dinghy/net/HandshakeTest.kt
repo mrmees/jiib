@@ -51,7 +51,8 @@ class HandshakeTest {
         val handshakeMethods = methodsOf(fake.sentFrames.toList())
 
         assertEquals(
-            "handshake must run identify → list → query → subscribe, THEN the two one-shot 05-03 reads " +
+            "D-05/D-12: registry request wrappers must preserve identify → list → query → subscribe, " +
+                "THEN the two one-shot 05-03 reads " +
                 "(temperature_store backfill + configfile one-shot query), in order, once each",
             listOf(
                 JsonRpcMethods.IDENTIFY,
@@ -62,6 +63,23 @@ class HandshakeTest {
                 JsonRpcMethods.OBJECTS_QUERY, // one-shot configfile read
             ),
             handshakeMethods,
+        )
+        assertEquals(
+            "D-12: the configfile one-shot remains a second OBJECTS_QUERY after TEMPERATURE_STORE",
+            2,
+            handshakeMethods.count { it == JsonRpcMethods.OBJECTS_QUERY },
+        )
+        assertTrue(
+            "D-05: request-helper refactors must not remove any live-proven handshake method",
+            handshakeMethods.containsAll(
+                listOf(
+                    JsonRpcMethods.IDENTIFY,
+                    JsonRpcMethods.OBJECTS_LIST,
+                    JsonRpcMethods.OBJECTS_QUERY,
+                    JsonRpcMethods.OBJECTS_SUBSCRIBE,
+                    JsonRpcMethods.TEMPERATURE_STORE,
+                ),
+            ),
         )
 
         // identify MUST carry all four args Moonraker requires (client_name/version/type/url).
