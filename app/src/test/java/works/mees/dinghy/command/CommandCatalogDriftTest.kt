@@ -128,6 +128,19 @@ class CommandCatalogDriftTest {
         )
     }
 
+    @Test
+    fun registryCommandsHaveMatrixAvailabilityRows() {
+        val matrix = printerMatrix()
+        val matrixIds = matrix.commandAvailability.map { it.catalogId }.toSet()
+        val registryIds = CommandRegistry.all.map { it.catalogId }
+
+        val missing = registryIds.filterNot { it in matrixIds }
+        assertTrue(
+            "Every runtime registry command must have printer-matrix command_availability evidence: $missing",
+            missing.isEmpty(),
+        )
+    }
+
     private fun catalogCommands(): List<JsonObject> =
         docsJson("docs/commands/catalog.json")
             .jsonObject["commands"]!!
@@ -143,6 +156,7 @@ class CommandCatalogDriftTest {
                 objects = obj.stringSet("objects"),
                 macros = obj.stringSet("macros"),
                 components = obj.stringSet("components"),
+                gcodeHelp = obj.stringSet("gcode_help_positive"),
             )
         }
         val notOn = root["not_on_printers"]?.jsonArray.orEmpty().flatMap { entry ->
@@ -150,7 +164,11 @@ class CommandCatalogDriftTest {
             val key = obj["predicate"]!!.jsonObject.matrixKey()
             obj["printer_ids"]!!.jsonArray.map { MatrixExclusion(key, it.jsonPrimitive.content) }
         }.toSet()
-        return Matrix(printers, notOn)
+        val commandAvailability = root["command_availability"]?.jsonArray.orEmpty().map { entry ->
+            val obj = entry.jsonObject
+            MatrixCommandAvailability(catalogId = obj.string("catalog_id"))
+        }
+        return Matrix(printers, notOn, commandAvailability)
     }
 
     private fun AvailabilityPredicate.leafPredicates(): List<AvailabilityPredicate> = when (this) {
@@ -178,7 +196,7 @@ class CommandCatalogDriftTest {
         is AvailabilityPredicate.ObjectPresent -> predicate.name in objects
         is AvailabilityPredicate.MacroPresent -> macros.any { it.equals(predicate.name, ignoreCase = true) }
         is AvailabilityPredicate.ComponentPresent -> predicate.name in components
-        is AvailabilityPredicate.GcodeCommandPresent -> macros.any { it.equals(predicate.name, ignoreCase = true) }
+        is AvailabilityPredicate.GcodeCommandPresent -> gcodeHelp.any { it.equals(predicate.name, ignoreCase = true) }
         is AvailabilityPredicate.NotOnOurPrinters -> true
         is AvailabilityPredicate.AnyOf -> predicate.predicates.any { hasEvidenceFor(it) }
     }
@@ -219,14 +237,20 @@ class CommandCatalogDriftTest {
             ?.toSet()
             ?: emptySet()
 
-    private data class Matrix(val printers: List<MatrixPrinter>, val notOnPrinters: Set<MatrixExclusion>)
+    private data class Matrix(
+        val printers: List<MatrixPrinter>,
+        val notOnPrinters: Set<MatrixExclusion>,
+        val commandAvailability: List<MatrixCommandAvailability>,
+    )
     private data class MatrixPrinter(
         val id: String,
         val objects: Set<String>,
         val macros: Set<String>,
         val components: Set<String>,
+        val gcodeHelp: Set<String>,
     )
     private data class MatrixExclusion(val predicateKey: String, val printerId: String)
+    private data class MatrixCommandAvailability(val catalogId: String)
 
     private fun Set<MatrixExclusion>.contains(predicateKey: String, printerId: String): Boolean =
         contains(MatrixExclusion(predicateKey, printerId))
