@@ -36,7 +36,7 @@ import works.mees.dinghy.ui.route.Dest
 /**
  * The swipe-up full-screen **App Drawer** (D-14, SHELL-01) — the app's ONE navigation surface. It is a
  * full-bleed grid of SQUARE outline tiles (docs/ui_design/images/02-app-drawer.png): live shell
- * destinations plus the greyed "coming soon" tiles (Macros / Devices) and the red **Power** tile, all
+ * destinations plus the greyed "coming soon" Devices tile and the red **Power** tile, all
  * disabled/no-op until later phases wire them.
  *
  * ## Why greyed tiles are inert (T-04-07-E)
@@ -108,7 +108,7 @@ private data class DrawerTileSpec(
 
 /**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
- * Files + Extrude are LIVE; Macros and Devices remain greyed "coming soon"; Power is the red,
+ * Files + Extrude + Macros + Console are LIVE; Devices remains greyed "coming soon"; Power is the red,
  * greyed, deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The
  * Extrude tile (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its
  * function.
@@ -119,7 +119,10 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
     DrawerTileSpec(label = "Files", symbol = "folder", dest = Dest.Files),
     DrawerTileSpec(label = "Extrude", symbol = "output_circle", dest = Dest.Extrude),
-    DrawerTileSpec(label = "Macros", symbol = "code", dest = null),
+    DrawerTileSpec(label = "Macros", symbol = "code", dest = Dest.Macros),
+    // `terminal` is unused elsewhere in DRAWER_TILES (icon-no-repeat law, RESEARCH Open-Q1) and distinct
+    // from the Console screen's own gutter glyphs (thermostat/videocam/chat_bubble/arrow_back).
+    DrawerTileSpec(label = "Console", symbol = "terminal", dest = Dest.Console),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),

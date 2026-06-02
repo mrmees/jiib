@@ -151,9 +151,11 @@ class ShellPresenceTest {
         composeRule.onRoot().performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
-        // Macros remains a greyed tile (on-screen): present but NOT click-actionable (inert).
-        // (Move/Temp/Extrude went LIVE in Phase 5; Files goes LIVE in Phase 7.)
-        composeRule.onNodeWithText("Macros").assertIsDisplayed().assertHasNoClickAction()
+        // Devices remains a greyed tile (on-screen): present but NOT click-actionable (inert).
+        // (Move/Temp/Extrude went LIVE in Phase 5; Files in Phase 7; Macros/Console in Phase 8.)
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Devices"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Devices").assertIsDisplayed().assertHasNoClickAction()
 
         // Power is the last (red, greyed) tile — scroll the grid to it; it is inert (T-04-07-E).
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Power"))

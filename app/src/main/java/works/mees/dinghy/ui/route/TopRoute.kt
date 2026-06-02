@@ -27,7 +27,7 @@ sealed interface TopRoute {
  * on `printState` inside the screen, D-06); Settings is reachable from the App Drawer. Extra panels
  * are a one-line addition later (D-05).
  */
-enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Settings }
+enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Console, Settings }
 
 /**
  * PURE top-level route derivation (mirrors the `derive*` idiom in `state/DeriveCapabilities.kt`):

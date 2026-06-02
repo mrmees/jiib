@@ -21,16 +21,26 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.ui.console.ConsoleHolder
+import works.mees.dinghy.ui.console.ConsoleScreen
 import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
+import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
+import works.mees.dinghy.ui.macros.MacroExecutionPopup
+import works.mees.dinghy.ui.macros.MacroHolder
+import works.mees.dinghy.ui.macros.MacroVm
+import works.mees.dinghy.ui.macros.SystemMacrosScreen
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
@@ -89,9 +99,20 @@ fun AppShell(
     val backStack = remember { mutableStateListOf<Dest>() }
     var drawerOpen by remember { mutableStateOf(false) }
 
+    // Macro sub-navigation (within Dest.Macros — NOT separate top-level Dests, mirroring how the popup
+    // lives inside the macro surface). The drawer "Macros" tile opens the Bookmarked launcher;
+    // `Manage macros` reveals the System list; tapping a macro opens its Execution popup as an overlay.
+    var macroShowSystem by remember { mutableStateOf(false) }
+    var macroPopupFor by remember { mutableStateOf<MacroVm?>(null) }
+
     fun navigateTo(target: Dest) {
         if (target == dest) return
         if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
+        // Entering the Macros surface always starts on the Bookmarked launcher with no popup open.
+        if (target == Dest.Macros) {
+            macroShowSystem = false
+            macroPopupFor = null
+        }
         dest = target
     }
     fun goBack() {
@@ -119,22 +140,75 @@ fun AppShell(
     }
     val printerState by printerStateFlow.collectAsStateWithLifecycle()
 
+    // ---- Console + Macro holders (08-07) -----------------------------------------------------------
+    // Both are SESSION-owned: built off the same per-session store and re-keyed when the spine rebuilds
+    // (reconnect), exactly like the Phase-5 control holders above. While idle the empty fallback store
+    // backs them so the screens still compose (an idle Console is "quiet", an idle Macros surface is
+    // capability-unavailable).
+    val consoleHolder = remember(store) {
+        ConsoleHolder(
+            scope = scope,
+            gcodeResponses = store.gcodeResponses,
+            consoleBackfill = store.consoleBackfill,
+        )
+    }
+
+    // Macro bookmarks/revealHidden are PROCESS-scoped (container.macroPrefs from Task 1 B1) — they
+    // survive reconnects, so they are stateIn'd ONCE on the shell scope (not re-keyed on the store).
+    val bookmarksFlow = remember {
+        container.macroPrefs.bookmarks.stateIn(scope, SharingStarted.Eagerly, emptySet())
+    }
+    val revealHiddenFlow = remember {
+        container.macroPrefs.revealHidden.stateIn(scope, SharingStarted.Eagerly, false)
+    }
+    // Capabilities StateFlow for the holder: the live session's (carries macro NAMEs) or an empty
+    // fallback while idle. Re-keyed when the spine rebuilds so a reconnect re-points the macro universe.
+    val idleCapabilities = remember { MutableStateFlow(Capabilities()) }
+    val capabilitiesFlow = spine?.capabilities ?: idleCapabilities
+    val macroHolder = remember(store, capabilitiesFlow) {
+        MacroHolder(
+            scope = scope,
+            capabilities = capabilitiesFlow,
+            bookmarks = bookmarksFlow,
+            revealHidden = revealHiddenFlow,
+        )
+    }
+    // Feed the parsed macro bodies seam (handshake/reconnect) into the holder so each macro's params
+    // populate. Re-collected when the store rebuilds (a new session's macroBodies).
+    androidx.compose.runtime.LaunchedEffect(macroHolder, store) {
+        store.macroBodies.collect { macroHolder.setMacroBodies(it) }
+    }
+    // The current session dispatcher (the macro Execution popup routes through it); null while idle.
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    // Console backfill-failed flag: the server.gcode_store read failed on (re)connect. Best-effort —
+    // surfaced as the non-blanking notice. (No dedicated store flag yet; default false.)
+    val consoleBackfillFailed = false
+
     // System Back: collapse the drawer if open; otherwise pop the back stack to the calling screen.
     // When the drawer is closed AND we're at the home root (empty stack), this is DISABLED so the OS
     // handles Back and closes the app (the desired "only Status closes the app" behavior).
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
     BackHandler(enabled = !drawerOpen && backStack.isNotEmpty()) { goBack() }
+    // Macro sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
+    // higher priority): an open popup closes first, then the System list returns to the launcher.
+    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor != null) {
+        macroPopupFor = null
+    }
+    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor == null && macroShowSystem) {
+        macroShowSystem = false
+    }
 
     BoxWithConstraints(
         modifier
             .fillMaxSize()
             .background(t.bg)
             // Swipe UP from anywhere on the canvas reveals the drawer (the one nav affordance).
-            // EXCEPT on Files: that screen is a scrolling RecyclerView picker, and a full-canvas
-            // vertical-drag detector fights the list scroll ("the stroke gets confusing"). Files
-            // has its own "Cancel picker" exit, so the drawer swipe is suppressed there.
+            // EXCEPT on the finger-scrollable picker/scrollback screens — Files (RecyclerView picker),
+            // Console (RecyclerView scrollback) and Macros (the System manage-visibility LazyColumn):
+            // a full-canvas vertical-drag detector fights the list scroll ("the stroke gets confusing").
+            // Each of those screens keeps an explicit green Back in its gutter as the exit (D-05).
             .pointerInput(dest) {
-                if (dest != Dest.Files) {
+                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros)) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
@@ -169,9 +243,48 @@ fun AppShell(
                 canStartPrint = capabilities.hasObject("virtual_sdcard"),
                 onBack = { goBack() },
             )
+            Dest.Macros -> {
+                // The macro surface: Bookmarked launcher OR the System manage-visibility list. Tapping a
+                // macro opens its Execution popup as a full-screen overlay (rendered below, outside the
+                // when so it floats over either sub-screen). Back from the launcher leaves the surface;
+                // Back from the System list returns to the launcher.
+                if (macroShowSystem) {
+                    SystemMacrosScreen(
+                        holder = macroHolder,
+                        onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
+                        onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
+                        onBack = { macroShowSystem = false },
+                    )
+                } else {
+                    BookmarkedMacrosScreen(
+                        holder = macroHolder,
+                        onRunMacro = { macro -> macroPopupFor = macro },
+                        onManage = { macroShowSystem = true },
+                        onBack = { goBack() },
+                    )
+                }
+            }
+            Dest.Console -> ConsoleScreen(
+                holder = consoleHolder,
+                onBack = { goBack() },
+                backfillFailed = consoleBackfillFailed,
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },
+            )
+        }
+
+        // Macro Execution popup overlay (D-08) — a full-screen action gate floating over the macro
+        // surface. Shown only on Dest.Macros with a tapped macro AND a live session dispatcher (a macro
+        // can only be dispatched while connected). Dismiss (Cancel or successful dispatch) clears it.
+        val popupMacro = macroPopupFor
+        val liveDispatcher = dispatcher
+        if (dest == Dest.Macros && popupMacro != null && liveDispatcher != null) {
+            MacroExecutionPopup(
+                macro = popupMacro,
+                dispatcher = liveDispatcher,
+                onDismiss = { macroPopupFor = null },
             )
         }
 
