@@ -501,17 +501,19 @@ fun parseGcodeStore(result: JsonObject): List<ConsoleLine> = runCatching {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Console as its own `Dest` tile vs. shared structure**
    - What we know: UI-SPEC leans "likely a new Console tile" with a Material Symbol not already on the drawer (icon-no-repeat law). Existing symbols used: monitoring, open_with, thermostat, folder, output_circle, code, cable, settings, power_settings_new.
    - What's unclear: exact glyph for Console (candidates: `terminal`, `chat`, `notes`, `article` — `terminal` reads best and is unused).
    - Recommendation: add `Dest.Console` + a `terminal`-glyph tile; wire `Dest.Macros` to the Macros `code` tile (Bookmarked launcher).
+   - **RESOLVED:** Console gets its own `Dest.Console` with the `terminal` glyph (unused on the drawer — icon-no-repeat law); `Dest.Macros` keeps the `code` tile and opens the Bookmarked launcher (D-07) — both wired in **08-07 Task 1** (TopRoute.kt Dest enum += Macros/Console, AppDrawer.kt tiles, AppShell.kt when-branches).
 
 2. **Strip vs. keep the `!!`/`// ` prefix in the displayed line**
    - What we know: Mainsail strips and colors instead. UI-SPEC says "color + the line text, never color alone."
    - What's unclear: whether keeping the prefix aids a printer-side glance (it's redundant with color).
    - Recommendation: strip for display, derive severity from the original prefix first; keep the raw (prefixed) form in the holder for Phase-12 + filters.
+   - **RESOLVED:** Strip the `!! `/`// ` prefix for display and color the line instead; severity is derived from the ORIGINAL prefix BEFORE stripping (via the `ConsoleSeverity.classify` classifier built in **08-02 Task 1**) and the raw prefixed form is kept intact in the holder model for Phase-12 + filters. Display stripping + severity-from-original-prefix is applied in the row adapter — **08-05 Task 2** (ConsoleRowsAdapter).
 
 ---
 
