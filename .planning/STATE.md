@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-02T22:15:32.945Z"
+status: verifying
+last_updated: "2026-06-02T22:41:55.366Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 53
   completed_plans: 52
-  percent: 42
+  percent: 47
 ---
 
 # Project State
@@ -26,15 +26,16 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 08 (macros-console-functional-core-complete) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
   → Wave 0-1 landed: real probed fixtures + RED scaffolds (08-01); console pure layer (08-02); pure macro layer + V5 gcode-injection gate (08-03).
   → Plan 08-04 (Wave 2) COMPLETE: the two backend one-shot reads (consoleBackfill + macroBodies store seams ride runHandshake step 7).
   → Plan 08-05 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits cf6b210 + f66073c + ec8b9b6): the read-only Console screen (CONS-02 / D-01..D-05). ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04) — turns ConsoleHolderTest GREEN (4/4). ConsoleListView/ConsoleRowsAdapter = 3rd Views-in-Compose scroll surface, copied FileListView verbatim (clipToBounds + MATCH_PARENT + itemAnimator=null), split update strategy: incremental notifyItemInserted live-append hot path (S2) vs submitRows replace; wasAtBottom from OLD count BEFORE update (S3); severity palette stop/heat/text/go/text3 in Geist Mono. ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF, D-03) + green Back; ConsoleFilters at render only (D-04); no keyboard (D-01); empty/backfill-failed copy verbatim. One deviation (Rule 1): ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes cleanly + closes the replay=0 subscribe race. :app:assembleRelease SUCCESSFUL; MacroHolderTest set aside for the test run then restored clean.
   → Plan 08-06 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits 50e04d1 + 7487fef + 255e7e9): the three Macro screens (MACRO-01/02/03 / D-06..D-10). MacroHolder combines Capabilities.macros + bookmarks + revealHidden + parsed bodies into MacroScreensState (visibleMacros underscore-default-hide, bookmarkedMacros case-insensitive, unavailable capability gate) — turns MacroHolderTest GREEN (5/5). MacroExecutionPopup IS the action gate (no ConfirmGuard, D-08): numeric->NumpadPage (sole clamp owner S4), string->TokenTextField (the ONE alpha-keyboard site D-10), Execute->MacroInvocation.buildTyped (V5 sanitizer, T-08-06-T1)->scriptParams->dispatch(macro_<name>, PRIM-05 busy key); !! rejection->SeverityToast (redacted). Bookmarked launcher + System manager take reveal/bookmark MUTATION + nav as CALLBACKS (08-07 wires to MacroPrefs + store.macroBodies). Rule-1 fix: combine collector in detached SupervisorJob+UNDISPATCHED scope (08-05 pattern). LAST RED scaffold closed — full :app:testReleaseUnitTest GREEN (615 tests / 0 failures); :app:assembleRelease SUCCESSFUL.
-  → Next action: execute 08-07 — wire Dest.Macros/Dest.Console into AppShell (suppress drawer swipe on Console AND the finger-scrollable System list), flip the greyed Macros drawer tile + add a Console tile, wire MacroPrefs onToggleBookmark/onSetRevealHidden + holder.setMacroBodies(store.macroBodies), and the popup nav back-stack. Phase 8's last plan.
+  → Plan 08-07 (Wave 4) EXECUTED + COMPLETE 2026-06-02 (2 auto tasks + on-device UAT checkpoint; commits 8cd685b + c6b14c3 + 376b8ad docs): nav wiring + the functional-core gate. B1 CLOSED — macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle; bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder + wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven on-device), injection-reject (newline/;/M112 rejected, NO estop, B2). Console-scroll gfxinfo (system-of-record API 30): p95 9ms / 0 frozen frames / 991 frames — beats Files 07-06 (~15ms). Numbers in docs/moonraker-capabilities.md.
+  → Next action: ORCHESTRATOR owns phase-level verification + the phase-complete mark. All 7 plans executed; functional core proven on real hardware.
 Last activity: 2026-06-02
 
-Progress (Phase 8): [█████████░] ~86% — 6/7 plans complete (08-01..08-06); 08-07 nav wiring last
+Progress (Phase 8): [██████████] 100% — 7/7 plans complete (08-01..08-07); functional core proven on-device (flox + live Ender 5)
 
 ## Performance Metrics
 
@@ -106,6 +107,7 @@ Progress (Phase 8): [█████████░] ~86% — 6/7 plans complete
 | Phase 08 P03 | 14 | 3 tasks | 4 files |
 | Phase 08 P04 | 16min | 2 tasks tasks | 9 files files |
 | Phase 08 P06 | 25min | 3 tasks tasks | 5 files files |
+| Phase 08 P08-07 | 40min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -184,6 +186,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 08/08-03]: Pure macro layer + V5 gate GREEN — MacroParamParser is the VERBATIM Mainsail two-pass regex (D-09), proven against the real Ender 5 fixture incl. the trailing-|float-after-default=>type=null quirk; MacroInvocation.build is the block_on:high gcode-injection gate that REJECTS (typed MacroParamRejected), never escapes, any \r \n ; \t embedded-quote or ASCII control 0x00-0x1F/0x7F (Klipper quote-parsing unconfirmed => reject is safe default); does NOT clamp numerics (NumpadPage owns that, 08-06). MacroPrefs = own macros.preferences_pb (injected DataStore, fail-safe read) holding bookmarks Set<String> + revealHidden default-false (underscore-default-hide, MACRO-03). API surface matched the RED tests (build takes Map, addBookmark/setRevealHidden). Proven via real Gradle with sibling-RED files set aside then restored — tree clean.
 - [Phase ?]: [Phase 08/08-04]: Backend one-shot reads landed — gcode_store console backfill (parseGcodeStore, REPLACE-on-reconnect per D-02 Mainsail-parity) + macro gcode bodies from the SINGLE existing configfile query (Pitfall 3). Both ride runHandshake() step 7 (auto-rerun on reconnect + notify_klippy_ready, Pitfall 4). New StateFlow seams consoleBackfill/macroBodies unblock 08-05/08-06. Registering MR-server.gcode_store tripped the Phase-6 drift guard -> added the printer-matrix command_availability row + flipped catalog to registered. GcodeStoreParseTest GREEN + full release suite green.
 - [Phase 08]: [Phase 08/08-06]: Three macro screens complete (MACRO-01/02/03) — MacroHolder combines Capabilities.macros + bookmarks + revealHidden + parsed bodies into visibleMacros/bookmarkedMacros/unavailable (underscore-default-hide MACRO-03, case-insensitive bookmark match); MacroExecutionPopup IS the action gate (no ConfirmGuard, D-08) routing numeric->NumpadPage (sole clamp owner S4) and string->TokenTextField (the ONE alpha-keyboard site D-10) through MacroInvocation.buildTyped (V5 sanitizer, T-08-06-T1) before scriptParams/dispatch; Bookmarked launcher + System manager screens take reveal/bookmark MUTATION + nav as CALLBACKS (08-07 wires to MacroPrefs + store.macroBodies). Holder kept the 4-arg test contract (StateFlow caps/bookmarks/revealHidden + setMacroBody/setMacroBodies seam), NOT a MacroPrefs object. Rule-1 fix: combine collector in a detached SupervisorJob+UNDISPATCHED scope (08-05 ConsoleHolder pattern) so the TestScope-rooted MacroHolderTest finishes clean. LAST RED scaffold closed: full :app:testReleaseUnitTest GREEN (615 tests / 0 failures). Next: 08-07 nav wiring.
+- [Phase 08/08-05]: Read-only Console screen complete (CONS-02 / D-01..D-05) — ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04); ConsoleListView/ConsoleRowsAdapter is the 3rd Views-in-Compose scroll surface (copied FileListView verbatim: clipToBounds + MATCH_PARENT + itemAnimator=null, incremental notifyItemInserted hot path S2 vs submitRows replace, wasAtBottom from OLD count S3); ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF D-03) + green Back, no keyboard (D-01); ConsoleFilters at render only so raw survives (D-04). Rule-1 fix: ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes clean + closes the replay=0 subscribe race. ConsoleHolderTest GREEN (4/4); :app:assembleRelease SUCCESSFUL.
+- [Phase 08/08-07]: Nav wiring + functional-core on-device gate complete (MACRO-01/02/03, CONS-02). B1 CLOSED: macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle — bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder, wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven), injection-reject (newline/;/M112 rejected, NO estop, B2/T-08-07-T). Console-scroll gfxinfo (system-of-record API 30): p95 9ms, 0 frozen frames, 991 frames — beats Files 07-06 (~15ms). Third mock-vs-reality backstop held clean.
 
 ### Pending Todos
 
@@ -214,6 +218,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T22:15:27.067Z
-Stopped at: Completed 08-04-PLAN.md
+Last session: 2026-06-02T22:41:55.303Z
+Stopped at: Completed 08-07-PLAN.md (nav wiring + on-device UAT 7/7 PASS). Phase 8 ready_for_verification — orchestrator owns phase-complete.
 Resume file: None

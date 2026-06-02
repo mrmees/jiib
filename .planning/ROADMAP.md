@@ -55,7 +55,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware (completed 2026-06-01)
 - [ ] **Phase 6: Command Reference & Capability Matrix** - Done FIRST of the remaining work (moved to top 2026-06-01) because it gates everything after it. Three layers: a **command/function catalog read from the authoritative Klipper G-Code/config, Moonraker API (JSON-RPC + REST), and Spoolman docs** (the universe + what each does + error/acceptance semantics); a canonical single-source-of-truth **in-code command registry** for the commands the app actually sends; and a committed per-printer (Ender 5 Plus / Ender 3) **availability matrix** cross-referencing the catalog against live introspection — so later pages can capability-gate. Matrix knocked out early
 - [ ] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
-- [ ] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate
+- [x] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate (completed 2026-06-02)
 - [ ] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser
 - [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
 - [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
@@ -324,7 +324,7 @@ Plans:
 - [x] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
-- [ ] 08-07-PLAN.md — Nav wiring (Dest+drawer tiles+AppShell branches, drawer-swipe suppress on scroll-Fields) + on-device UAT + console-scroll perf gate on flox + live Ender 5 Plus (functional-core gate)
+- [x] 08-07-PLAN.md — Nav wiring (Dest+drawer tiles+AppShell branches, drawer-swipe suppress on scroll-Fields) + on-device UAT + console-scroll perf gate on flox + live Ender 5 Plus (functional-core gate)
 **UI hint**: yes
 **Research note**: STANDARD — straightforward application of the existing notify event bus and command path.
 
@@ -437,7 +437,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
-| 8. Macros & Console — Functional-Core Complete | 6/7 | In Progress|  |
+| 8. Macros & Console — Functional-Core Complete | 7/7 | Complete   | 2026-06-02 |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
