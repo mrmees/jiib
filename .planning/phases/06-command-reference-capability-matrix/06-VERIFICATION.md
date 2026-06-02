@@ -3,7 +3,8 @@
 **Plan:** 06-05 - Final host verification and flox regression checkpoint
 **Started:** 2026-06-02T12:06:58Z
 **Automated gates completed:** 2026-06-02T12:07:52Z
-**Status:** Automated gates green; flox regression awaiting human approval.
+**Manual flox regression completed:** 2026-06-02T12:40:16Z
+**Status:** PASS - automated gates green and flox + live Ender 5 Plus regression approved.
 
 ## Automated Gates
 
@@ -24,7 +25,7 @@
 
 ## flox Regression
 
-**Status:** PENDING - release APK built/installed/launched on flox; blocking human regression approval still required.
+**Status:** PASS - release APK built/installed/launched on flox; human regression passed.
 
 ### Build/Install Evidence
 
@@ -35,7 +36,20 @@ Recorded 2026-06-02T12:11:59Z:
 - `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\Sdk\platform-tools\adb.exe -s 0a64b42e install -r app\build\outputs\apk\release\app-armeabi-v7a-release-debugsigned.apk" | tr -d '\r'` - PASS, `Success`.
 - `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\Sdk\platform-tools\adb.exe -s 0a64b42e shell monkey -p works.mees.dinghy -c android.intent.category.LAUNCHER 1" | tr -d '\r'` - PASS, `Events injected: 1`.
 
-Run only after the automated gates above are green:
+### Manual Result
+
+Human UAT completed on flox (`0a64b42e`) against the live Ender 5 Plus on 2026-06-02:
+
+| Step | Result | Notes |
+| --- | --- | --- |
+| App / connection | PASS | Dinghy opened to the real app shell, connected, and showed the usable connected state. |
+| Move | PASS | X/Y/Z jog, home, and disable steppers through ConfirmGuard behaved as expected. |
+| Temperature | PASS | Heater target, preset, and cooldown dispatched normally. |
+| Extrude | PASS | Extrude, retract, and filament macro behavior matched Phase 5 expectations. |
+| Print Status Stop | PASS | Stop opened ConfirmGuard; confirm sent `printer.emergency_stop`; shutdown routed to Splash. |
+| Recovery actions | PASS | Firmware restart / host restart recovery actions dispatched successfully. |
+
+### Checklist
 
 1. Build/install the current release APK using the established Windows-side flow. If release signing is still debug-sign helper based, use `E:\Android\sign-release.bat`.
 2. On flox connected to the Ender 5 Plus, verify Move: jog X/Y/Z, home all or axis, disable steppers through ConfirmGuard.
@@ -44,13 +58,9 @@ Run only after the automated gates above are green:
 5. Verify Print Status stop: Stop opens ConfirmGuard, confirm sends `printer.emergency_stop`, and klippy shutdown routes to Splash.
 6. If reachable after stop, verify recovery actions still dispatch firmware restart / host restart through the narrow `SessionControl`.
 
-### Required Human Result
-
-Awaiting explicit response: type `approved` if the flox regression passes, or describe the exact failed action and observed behavior.
-
 ### Blocking Criteria
 
-- No action regresses relative to Phase 5 observed behavior.
-- Long gcode actions do not show the old false 10s `could not be sent` failure.
-- E-stop is immediate through `printer.emergency_stop`; no queued `M112` path is observed or present.
-- This file must be updated with manual pass/fail notes and printer-specific caveats before Task 3 can run.
+- No action regresses relative to Phase 5 observed behavior: PASS.
+- Long gcode actions do not show the old false 10s `could not be sent` failure: PASS.
+- E-stop is immediate through `printer.emergency_stop`; no queued `M112` path is observed or present: PASS.
+- This file is updated with manual pass/fail notes and printer-specific caveats before Task 3 can run: PASS.
