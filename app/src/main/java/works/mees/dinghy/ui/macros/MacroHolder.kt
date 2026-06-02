@@ -141,4 +141,15 @@ class MacroHolder(
     /** Case-insensitive body lookup (Moonraker lowercases macro names — see [Capabilities]). */
     private fun bodyFor(bodies: Map<String, String>, name: String): String? =
         bodies[name] ?: bodies.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+
+    /**
+     * Cancel the detached combine collector NOW (WR-01). The host calls this when `remember(store, …)`
+     * swaps this holder for a new one on a spine rebuild (reconnect): without it, this discarded holder's
+     * combine collector keeps folding the dead session's flows until the whole shell leaves composition,
+     * orphaning one collector per reconnect. Cancelling [collectorJob] here is idempotent and coexists
+     * with the [scope]-cancellation path ([invokeOnCompletion]) that handles shell teardown.
+     */
+    fun cancel() {
+        collectorJob.cancel()
+    }
 }

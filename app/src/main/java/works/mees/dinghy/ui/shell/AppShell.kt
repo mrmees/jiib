@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -152,6 +153,10 @@ fun AppShell(
             consoleBackfill = store.consoleBackfill,
         )
     }
+    // Cancel this holder's detached collectors when `remember(store)` swaps it on a spine rebuild
+    // (reconnect) — otherwise the discarded holder leaks its collector pair until the shell leaves
+    // composition, compounding per reconnect (WR-01). onDispose fires when [consoleHolder] re-keys.
+    DisposableEffect(consoleHolder) { onDispose { consoleHolder.cancel() } }
 
     // Macro bookmarks/revealHidden are PROCESS-scoped (container.macroPrefs from Task 1 B1) — they
     // survive reconnects, so they are stateIn'd ONCE on the shell scope (not re-keyed on the store).
@@ -173,6 +178,11 @@ fun AppShell(
             revealHidden = revealHiddenFlow,
         )
     }
+    // Cancel this holder's detached combine collector when `remember(store, capabilitiesFlow)` swaps it
+    // on a spine rebuild (reconnect) — otherwise the discarded holder leaks its collector until the
+    // shell leaves composition, compounding per reconnect (WR-01). onDispose fires when [macroHolder]
+    // re-keys.
+    DisposableEffect(macroHolder) { onDispose { macroHolder.cancel() } }
     // Feed the parsed macro bodies seam (handshake/reconnect) into the holder so each macro's params
     // populate. Re-collected when the store rebuilds (a new session's macroBodies).
     androidx.compose.runtime.LaunchedEffect(macroHolder, store) {
