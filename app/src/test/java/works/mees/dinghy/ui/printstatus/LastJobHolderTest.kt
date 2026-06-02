@@ -115,6 +115,30 @@ class LastJobHolderTest {
     }
 
     @Test
+    fun firstFetchFailsBeforeConnect_retriesOnNextIdleEmission() = runTest(UnconfinedTestDispatcher()) {
+        // Reproduces the on-device connect race: the holder collects the SEED PrinterState (Standby/idle)
+        // before the socket is bound, so the very first fetch throws (no connection) → null. A LATER idle
+        // emission (the connection is now up) MUST retry and populate — the holder must not latch on a
+        // failed fetch. (The seed-idle bug shipped an empty state forever against a printer WITH history.)
+        var calls = 0
+        val flow = MutableStateFlow(idle())
+        val holder = LastJobHolder(backgroundScope, flow) {
+            calls++
+            if (calls == 1) null else historyJson // 1st attempt (pre-connect) fails; later succeeds
+        }
+        runCurrent()
+        assertNull("first fetch failed (socket not bound) → still empty", holder.lastJob.value)
+
+        // A distinct not-printing emission arrives once connected (real status delta) → retry & populate.
+        flow.value = PrinterState(printState = PrintState.Complete); runCurrent()
+        assertEquals(
+            "retries on the next idle emission once connected",
+            "miata/airbox-bracket.gcode",
+            holder.lastJob.value!!.filename,
+        )
+    }
+
+    @Test
     fun nullFetch_priorValueRetained_noCrash() = runTest(UnconfinedTestDispatcher()) {
         var first = true
         // Start printing so the first idle transition is a real edge; first idle fetch returns the job,
