@@ -241,7 +241,23 @@ Plans:
   3. A canonical **in-code command registry** exists (one definition per command the app sends); the existing phase-1–5 scattered method constants are migrated to reference it, and later phases register their commands there rather than inventing new ad-hoc constants
   4. Later phases can capability-gate off the matrix/registry (e.g. Calibration only shows `QUAD_GANTRY_LEVEL` where the printer has it) — the gating data is present and queryable
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+
+**Wave 0**
+- [ ] 06-01-PLAN.md — Guard tests and machine-readable sidecar skeletons for registry/catalog drift, byte-identical gcode, capability predicates, dispatcher semantics, and handshake order
+
+**Wave 1** *(blocked on Wave 0)*
+- [ ] 06-02-PLAN.md — Headless command registry foundation, registry dispatch/request helpers, and live `Capabilities.objects` / `hasObject()` predicate surface
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 06-03-PLAN.md — Full Phase 1-5 outbound call-site refactor through the registry while preserving handshake, dispatcher timeout, e-stop, and builder semantics
+
+**Wave 3** *(blocked on Wave 2; includes live capture checkpoint)*
+- [ ] 06-04-PLAN.md — Comprehensive Klipper/Moonraker/Spoolman catalog plus E5/E3 availability matrix backed by `catalog.json` and `printer-matrix.json`
+
+**Wave 4** *(blocked on Wave 3; final manual regression checkpoint)*
+- [ ] 06-05-PLAN.md — Final host verification, blocking flox + live Ender 5 Plus regression, and phase verification record
 **Research note**: DEEPER — this phase is substantially a documentation-reading + reference effort: pin down and READ the authoritative Klipper G-Code/Config references, Moonraker API docs (JSON-RPC + REST), and Spoolman API, then reconcile the catalog with live `printer.objects.list` / gcode-help introspection from the real printers. (The availability matrix is being knocked out up front as a reference artifact.)
 
 ### Phase 7: Files & Print Control — Core Print-Loop Gate
