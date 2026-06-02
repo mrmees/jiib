@@ -51,11 +51,12 @@ class HandshakeTest {
         val handshakeMethods = methodsOf(fake.sentFrames.toList())
 
         assertEquals(
-            "D-05/D-12: registry request wrappers must preserve identify → list → query → subscribe, " +
+            "D-05/D-12: registry request wrappers must preserve identify → server.info → list → query → subscribe, " +
                 "THEN the two one-shot 05-03 reads " +
                 "(temperature_store backfill + configfile one-shot query), in order, once each",
             listOf(
                 JsonRpcMethods.IDENTIFY,
+                "server.info",
                 JsonRpcMethods.OBJECTS_LIST,
                 JsonRpcMethods.OBJECTS_QUERY,
                 JsonRpcMethods.OBJECTS_SUBSCRIBE,
@@ -99,6 +100,11 @@ class HandshakeTest {
         // Capabilities re-derived from objects.list (the golden printer has a bed + macros).
         assertTrue(store.capabilities.value.hasBed)
         assertTrue(store.capabilities.value.macros.isNotEmpty())
+        assertEquals(
+            "server.info.components must feed live Capabilities.components",
+            setOf("history", "file_manager", "spoolman", "webcam"),
+            store.capabilities.value.components,
+        )
 
         // State seeded from the query snapshot (golden snapshot has heater_bed ~23.8).
         assertEquals(23.8, store.printerState.value.heaters["heater_bed"]?.temperature)

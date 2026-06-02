@@ -30,6 +30,12 @@ class SessionTestHarness {
     var objectsListJson: String = GoldenFixtures.raw("objects_list.json")
     var snapshotJson: String = GoldenFixtures.raw("objects_query_snapshot.json")
 
+    /** The `server.info` reply RESULT object. Components feed Capabilities.components (06-03). */
+    @Volatile
+    var serverInfoResultJson: String = """
+        {"klippy_state":"ready","components":["history","file_manager","spoolman","webcam"]}
+    """.trimIndent()
+
     /**
      * The snapshot returned by the `objects.subscribe` reply. Defaults to [snapshotJson] (same shape,
      * as real Moonraker), but is overridable so a test can prove the spine seeds from the AUTHORITATIVE
@@ -103,6 +109,8 @@ class SessionTestHarness {
                         """{"jsonrpc":"2.0","error":{"code":400,"message":"No data for argument: $it"},"id":$id}"""
                     }
                     ?: """{"jsonrpc":"2.0","result":{"connection_id":1730367696},"id":$id}"""
+            "server.info" ->
+                """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(serverInfoResultJson)},"id":$id}"""
             JsonRpcMethods.OBJECTS_LIST -> reIdResult(objectsListJson, id)
             // The one-shot configfile query (05-03) is an OBJECTS_QUERY of just {configfile:null};
             // answer it with the static parsed-config shape (real Moonraker always defines configfile).
