@@ -168,7 +168,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| Status gutter | **Pre-v1:** wire + verify the Pause/Resume gutter button actually pauses/resumes the print (`pause_resume` is present on the E5). Currently a disabled placeholder whose LABEL flips Pause↔Resume on `print_stats.state == paused`, but it dispatches nothing. Tune button still a placeholder too. Verify both fire real Moonraker calls before v1 release. | Open — verify pre-v1 | 2026-06-01 (quick 260601-sip follow-up) |
 
 ## Session Continuity
 

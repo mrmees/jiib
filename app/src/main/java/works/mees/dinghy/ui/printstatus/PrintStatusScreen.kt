@@ -2,6 +2,7 @@ package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -136,8 +136,12 @@ fun PrintStatusScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Tune/Pause are placeholders until Inc 3 / Phase 7; Stop is wired.
+                    // Pause flips to Resume while the print is paused (Matthew, 2026-06-01).
                     DisabledTile(label = "Tune", modifier = Modifier.weight(1f))
-                    DisabledTile(label = "Pause", modifier = Modifier.weight(1f))
+                    DisabledTile(
+                        label = if (state.printState == PrintState.Paused) "Resume" else "Pause",
+                        modifier = Modifier.weight(1f),
+                    )
                     StopButton(
                         onTap = { showEstopGuard = true },
                         onHold = { dispatcher?.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP) },
@@ -218,6 +222,19 @@ private fun PrintStatusFocus(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
+                    } else if (filename.isNotBlank()) {
+                        // No preview thumbnail available → the filename itself lives in the ring center,
+                        // marquee-scrolling if it's too long to fit on one line (Matthew, 2026-06-01).
+                        Text(
+                            text = filename,
+                            color = t.text,
+                            fontFamily = GeistMono,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(18f, t.fs).sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 10.dp).basicMarquee(),
+                        )
                     }
                 }
                 // Status text CENTERED ON the bottom of the circle (its center at box-center + R, R =
@@ -231,24 +248,9 @@ private fun PrintStatusFocus(
                     modifier = Modifier.align(Alignment.Center).offset(y = ringSize / 2),
                 )
             }
-            if (printing) {
-                state.printFilename.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        color = t.text,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(18f, t.fs).sp,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Text(
-                    text = "Z ${fmtZ(state)} · Layer ${state.currentLayer ?: "—"}/${totalLayers(state, metadata)}",
-                    color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(16f, t.fs).sp,
-                )
-            }
+            // Nothing below the ring — the ONLY focus readout is the %/READY on the ring itself.
+            // Z height + layer live in the field grid (Matthew, 2026-06-01: extra lines pushed the
+            // ring off the top edge; filename-when-no-thumbnail lives in the ring center).
         }
     }
 }
@@ -322,9 +324,13 @@ private fun DrawableIcon(resId: Int, tint: Color, sizeSp: Float) {
  * the reading is the hero (Matthew: big icons distract from the values). */
 private const val CELL_ICON_FRACTION = 0.45f
 
+/** Icon span = 25% of the cell width; the reading gets the remaining 75% (Matthew, 2026-06-01). */
+private const val CELL_ICON_WEIGHT = 0.25f
+
 /**
- * Icon (LEFT, scaled to the cell height) | active-over-inactive value (RIGHT-aligned). Active =
- * bold/bright, inactive = dim/smaller. SpaceBetween pins the icon left and the values right.
+ * Icon (LEFT, scaled to the cell height) | active-over-inactive value CENTERED in the cell. Active =
+ * bold/bright, inactive = dim/smaller. The icon is pinned to the start edge while the reading sits in
+ * the cell's center (Matthew, 2026-06-01 — icons left-justified, measurements centered).
  */
 @Composable
 private fun IconTwoRowCell(
@@ -339,11 +345,17 @@ private fun IconTwoRowCell(
         val iconSp = maxHeight.value * CELL_ICON_FRACTION
         Row(
             Modifier.fillMaxSize().padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            icon(iconSp)
-            Column(horizontalAlignment = Alignment.End) {
+            // Icon span = 25% of the cell width, glyph centered within it.
+            Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                icon(iconSp)
+            }
+            // Value span = the remaining 75%, reading centered within it.
+            Column(
+                Modifier.weight(1f - CELL_ICON_WEIGHT),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(active, color = activeColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
                 Text(inactive, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
             }
@@ -351,7 +363,7 @@ private fun IconTwoRowCell(
     }
 }
 
-/** Icon (LEFT, scaled to the cell height) | single value (RIGHT-aligned) — the time cells. */
+/** Icon (LEFT, pinned to the start edge) | single value CENTERED in the cell — the time cells. */
 @Composable
 private fun IconValueCell(
     icon: @Composable (sizeSp: Float) -> Unit,
@@ -364,11 +376,14 @@ private fun IconValueCell(
         val iconSp = maxHeight.value * CELL_ICON_FRACTION
         Row(
             Modifier.fillMaxSize().padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            icon(iconSp)
-            Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+            Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                icon(iconSp)
+            }
+            Box(Modifier.weight(1f - CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+            }
         }
     }
 }
