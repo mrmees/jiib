@@ -274,7 +274,23 @@ Plans:
   5. **Print controls are wired and state-adaptive (JOB-03/04/05):** the Print Status gutter adapts to print state — printing: pause/cancel; paused: resume/cancel; complete/error: restart/files — with cancel and restart routed through the mandatory confirm guard (PRIM-03 destructive set); each control reflects the resulting `print_stats` flip, not a bare command ack
   6. **Core print-loop gate, proven on the Ender 5 Plus:** connect → browse files → start a print → watch live progress/temps/Z on the Status home (JOB-01/02) → pause, resume, and cancel — all without the browser open
 
-**Plans**: TBD
+**Plans**: 6
+
+**Wave 1**
+- [ ] 07-01-PLAN.md - Runtime registry and command sidecar promotion for Files and print-control operations
+- [ ] 07-02-PLAN.md - Pure file-browser models, path discipline, sorting, and selected-file preview parsing
+
+**Wave 2**
+- [ ] 07-03-PLAN.md - Session-owned file browser client, Files holder, and state-confirmed start/delete behavior
+
+**Wave 3**
+- [ ] 07-04-PLAN.md - Live Files route, ConfirmGuard safe-dismiss labels, and hybrid RecyclerView Files screen
+
+**Wave 4**
+- [ ] 07-05-PLAN.md - State-adaptive Print Status pause/resume/cancel/restart/Files gutter controls
+
+**Wave 5**
+- [ ] 07-06-PLAN.md - Automated release verification and Ender 5 Plus core print-loop UAT
 **UI hint**: yes
 **Research note**: STANDARD — Moonraker file API + thumbnail URL resolution (already proven by the Status quick-tasks) and the `print_stats`-driven pause/resume/cancel/restart command set verified against official docs.
 
