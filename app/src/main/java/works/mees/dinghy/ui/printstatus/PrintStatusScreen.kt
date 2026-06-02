@@ -346,11 +346,11 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
 
 /**
  * The idle "last completed job" card (Inc 3, mockup-grammar Field surface) — a clickable token surface
- * filling the field: LEFT the gcode thumbnail (Coil 3 [AsyncImage], shown only when the source file
- * still exists AND a thumbnail relative-path is known; else a quiet `image` glyph placeholder), RIGHT a
- * GeistMono stat list. Every value reads from the [job] catalog fields; an absent metadata field shows
- * "—" (never fabricated). The whole surface is the ONE nav seam — [onClick] is a one-liner to wire later
- * (TODO(nav): past-print detail). All color via [LocalTokens].
+ * filling the field: the gcode thumbnail is the BACKGROUND (Coil 3 [AsyncImage], dimmed to 60% so text
+ * reads; shown only when the source file still exists AND a thumbnail relative-path is known), with a
+ * LEFT-ALIGNED paragraph of GeistMono stats overlaid on top. Every value reads from the [job] catalog
+ * fields; an absent metadata field shows "—" (never fabricated). The whole surface is the ONE nav seam —
+ * [onClick] is a one-liner to wire later (TODO(nav): past-print detail). All color via [LocalTokens].
  */
 @Composable
 private fun LastJobCard(
@@ -367,63 +367,50 @@ private fun LastJobCard(
         modifier
             .clip(shape)
             .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick)
-            .padding(10.dp),
+            .clickable(onClick = onClick),
     ) {
-        Row(
-            Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        // BACKGROUND — the gcode thumbnail fills the whole card, dimmed to 60% so the overlaid text reads.
+        if (showThumb) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(thumbnailUrl(httpBase, job.filename, job.largestThumbRelPath!!))
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = 0.6f,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+        // FOREGROUND — left-aligned paragraph of stats laid over the thumbnail.
+        Column(
+            Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            // LEFT — thumbnail (sacred square), clipped to the card radius; quiet placeholder otherwise.
-            Box(
-                Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(t.rCtrl)),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (showThumb) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(thumbnailUrl(httpBase, job.filename, job.largestThumbRelPath!!))
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    MaterialSymbol("image", tint = t.text3, sizeSp = fsSp(40f, t.fs))
-                }
-            }
-            // RIGHT — the stat list.
-            Column(
-                Modifier.weight(1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                // Filename — marquee if it overflows one line (like the ring center).
-                Text(
-                    text = job.filename.substringAfterLast('/').ifBlank { "—" },
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = fsSp(18f, t.fs).sp,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.fillMaxWidth().basicMarquee(),
-                )
-                LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
-                LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
-                LastJobStatRow(
-                    "hourglass_empty",
-                    "Est / actual",
-                    job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
-                )
-                LastJobStatRow(
-                    "straighten",
-                    "Filament",
-                    "${job.filamentUsed.roundToInt()} mm" +
-                        (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
-                )
-                LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
-            }
+            // Filename — marquee if it overflows one line (like the ring center).
+            Text(
+                text = job.filename.substringAfterLast('/').ifBlank { "—" },
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(18f, t.fs).sp,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.fillMaxWidth().basicMarquee(),
+            )
+            LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
+            LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
+            LastJobStatRow(
+                "hourglass_empty",
+                "Est / actual",
+                job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
+            )
+            LastJobStatRow(
+                "straighten",
+                "Filament",
+                "${job.filamentUsed.roundToInt()} mm" +
+                    (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
+            )
+            LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
         }
     }
 }
