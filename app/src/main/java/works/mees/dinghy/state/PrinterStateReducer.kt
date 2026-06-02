@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import works.mees.dinghy.net.JsonRpcMethods
 
@@ -83,6 +84,18 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     status.objectOrNull("print_stats")?.let { ps ->
         ps.stringOrNull("state")?.let { s = s.copy(printState = printStateFrom(it)) }
         ps.stringOrNull("filename")?.let { s = s.copy(printFilename = it) }
+        ps.doubleOrNullAt("print_duration")?.let { s = s.copy(printDuration = it) }
+        ps.doubleOrNullAt("total_duration")?.let { s = s.copy(totalDuration = it) }
+        ps.doubleOrNullAt("filament_used")?.let { s = s.copy(filamentUsed = it) }
+        // info.{current,total}_layer are present-but-NULLABLE (null when idle / slicer didn't set them —
+        // catalog). When the `info` block is present we SET both (a JSON null → null, resetting on idle);
+        // an absent `info` block retains the prior values (merge semantics).
+        ps.objectOrNull("info")?.let { info ->
+            s = s.copy(
+                currentLayer = info.intOrNullAt("current_layer"),
+                totalLayer = info.intOrNullAt("total_layer"),
+            )
+        }
     }
 
     status.objectOrNull("toolhead")?.let { th ->
@@ -155,6 +168,9 @@ private fun JsonObject.stringOrNull(key: String): String? =
 
 private fun JsonObject.doubleOrNullAt(key: String): Double? =
     runCatching { this[key]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+
+private fun JsonObject.intOrNullAt(key: String): Int? =
+    runCatching { this[key]?.jsonPrimitive?.intOrNull }.getOrNull()
 
 private fun JsonObject.booleanOrNull(key: String): Boolean? =
     runCatching { this[key]?.jsonPrimitive?.booleanOrNull }.getOrNull()

@@ -27,7 +27,6 @@ import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
-import works.mees.dinghy.ui.printstatus.PrintStatusHolder
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.screen.SettingsScreen
@@ -98,7 +97,6 @@ fun AppShell(
     // An empty fallback store keeps the home surface composable while idle (no live session yet).
     val idleStore = remember { PrinterStateStore(scope = scope) }
     val store = spine?.store ?: idleStore
-    val holder = remember(store) { PrintStatusHolder(scope = scope, store = store) }
     // The three Phase-5 control panels — each holder built off the SAME live per-session store and
     // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
     val temperatureHolder = remember(store) { TemperatureHolder(scope = scope, store = store) }
@@ -124,7 +122,7 @@ fun AppShell(
     ) {
         // The active destination, full-bleed (no persistent chrome).
         when (dest) {
-            Dest.PrintStatus -> PrintStatusScreen(container = container, holder = holder)
+            Dest.PrintStatus -> PrintStatusScreen(container = container)
             Dest.Temperature -> TemperatureScreen(
                 container = container,
                 holder = temperatureHolder,

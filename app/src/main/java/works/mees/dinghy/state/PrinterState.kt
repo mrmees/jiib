@@ -58,6 +58,25 @@ data class PrinterState(
     /** Currently printing filename from `print_stats.filename` (empty when idle). */
     val printFilename: String = "",
 
+    /** `print_stats.print_duration` (s) — actual extruding time; the ELAPSED readout (catalog). */
+    val printDuration: Double = 0.0,
+
+    /** `print_stats.total_duration` (s) — wall time incl. heating/pauses (catalog). */
+    val totalDuration: Double = 0.0,
+
+    /** `print_stats.filament_used` (mm) — filament extruded this job so far (catalog). */
+    val filamentUsed: Double = 0.0,
+
+    /**
+     * `print_stats.info.current_layer` — NULLABLE: null when idle/standby or when the slicer never
+     * called `SET_PRINT_STATS_INFO` (confirmed both ways in docs/moonraker-capabilities.md). The UI
+     * falls back to `floor((Z − first_layer_height)/layer_height)+1` or shows "—"; never fabricates 0.
+     */
+    val currentLayer: Int? = null,
+
+    /** `print_stats.info.total_layer` — NULLABLE (same caveat as [currentLayer]); else metadata layer_count. */
+    val totalLayer: Int? = null,
+
     /** Print progress 0.0..1.0 from `virtual_sdcard.progress` / `display_status.progress`. */
     val progress: Double = 0.0,
 
