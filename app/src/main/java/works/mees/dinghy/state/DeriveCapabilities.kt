@@ -13,11 +13,11 @@ private fun isExtruder(name: String): Boolean = name == "extruder" || name.match
 
 /**
  * Turn `printer.objects.list` into an immutable [Capabilities] (STATE-02). Filters the object-name
- * strings into the v1 gating surface; does NOT over-build a generic mirror of everything `objects.list`
- * returns (02-CONTEXT STATE-02 discretion). [Capabilities.powerDevices] is ALWAYS EMPTY here (A4 — power
- * devices come from `machine.device_power.devices`, a different Moonraker API, NOT objects.list).
+ * strings into the v1 gating surface and also retains the exact raw object/component sets for generic
+ * command predicates. [Capabilities.powerDevices] is ALWAYS EMPTY here (A4 — power devices come from
+ * `machine.device_power.devices`, a different Moonraker API, NOT objects.list).
  */
-fun deriveCapabilities(objects: List<String>): Capabilities {
+fun deriveCapabilities(objects: List<String>, components: Set<String> = emptySet()): Capabilities {
     val ext = objects.filter(::isExtruder)
     val macros = objects.filter { it.startsWith("gcode_macro ") }.map { it.removePrefix("gcode_macro ") }
     val fans = objects.filter {
@@ -30,6 +30,8 @@ fun deriveCapabilities(objects: List<String>): Capabilities {
         it == "heater_bed" || isExtruder(it) || it.startsWith("heater_generic ")
     }
     return Capabilities(
+        objects = objects.toSet(),
+        components = components,
         hasBed = "heater_bed" in objects,
         extruderCount = ext.size,
         fans = fans,

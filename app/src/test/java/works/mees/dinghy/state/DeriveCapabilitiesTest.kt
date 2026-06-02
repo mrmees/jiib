@@ -110,4 +110,21 @@ class DeriveCapabilitiesTest {
         assertFalse("hasObject is exact and does not case-fold object names", caps.hasObject("QUAD_GANTRY_LEVEL"))
         assertTrue("existing macro convenience helper stays available", caps.hasMacroIgnoreCase("LOAD_FILAMENT"))
     }
+
+    @Test
+    fun liveComponentsAreRetainedAndHasComponentWorks() {
+        val caps = deriveCapabilities(
+            objects = listOf("webhooks", "toolhead"),
+            components = setOf("webcam", "spoolman", "history", "job_queue", "update_manager"),
+        )
+
+        assertEquals(
+            "Capabilities must retain server.info.components exactly",
+            setOf("webcam", "spoolman", "history", "job_queue", "update_manager"),
+            caps.components,
+        )
+        assertTrue("hasComponent gates component-present predicates", caps.hasComponent("spoolman"))
+        assertTrue("history component is queryable", caps.hasComponent("history"))
+        assertFalse("hasComponent is exact and does not fabricate missing components", caps.hasComponent("power"))
+    }
 }

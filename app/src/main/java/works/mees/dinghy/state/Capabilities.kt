@@ -5,9 +5,16 @@ package works.mees.dinghy.state
  * (pure function, Wave 2) from `printer.objects.list`. Like [PrinterState] this is a PLAIN data
  * class with NO Compose annotations: it is part of the headless spine consumed by both Compose and
  * classic Views (ADR 0001). It is re-derived on every reconnect; do not over-build a generic mirror
- * of everything `objects.list` returns — model only what v1 panels actually gate on.
+ * of everything `objects.list` returns — except for [objects], which is retained as the exact live
+ * predicate source for later command availability checks.
  */
 data class Capabilities(
+    /** Exact raw object names returned by `printer.objects.list`. */
+    val objects: Set<String> = emptySet(),
+
+    /** Exact live Moonraker component names returned by `server.info.components`. */
+    val components: Set<String> = emptySet(),
+
     /** Whether a `heater_bed` exists. */
     val hasBed: Boolean = false,
 
@@ -40,4 +47,10 @@ data class Capabilities(
      * Extrude panel's load/unload buttons) must use this, not a raw [macros] membership check.
      */
     fun hasMacroIgnoreCase(name: String): Boolean = macros.any { it.equals(name, ignoreCase = true) }
+
+    /** Exact object-name presence for generic command availability predicates. */
+    fun hasObject(name: String): Boolean = name in objects
+
+    /** Exact Moonraker component presence for generic command availability predicates. */
+    fun hasComponent(name: String): Boolean = name in components
 }
