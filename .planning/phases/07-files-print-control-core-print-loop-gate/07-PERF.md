@@ -2,27 +2,35 @@
 
 ## Status
 
-PENDING - connected flox route/perf evidence has not been collected.
+PARTIAL - connected flox route-render evidence is PASS; large-library perf/OOM evidence remains PENDING.
 
-## Blocker
+## ADB Resolution
 
-- **Timestamp:** 2026-06-02T10:22:09-05:00
-- **Observed locally:** `adb` is not available in WSL or the Windows command environment.
-- **WSL check:** `adb devices` -> `/bin/bash: line 1: adb: command not found`
-- **Windows cmd check:** `/mnt/c/Windows/System32/cmd.exe /c "adb devices" | tr -d '\r'` -> `'adb' is not recognized as an internal or external command`
+- **Timestamp:** 2026-06-02T10:37:46-05:00
+- **Resolved path:** `C:\Android\Sdk\platform-tools\adb.exe`
+- **Device check:** `/mnt/c/Android/Sdk/platform-tools/adb.exe devices | tr -d '\r'`
+- **Device result:** `0a64b42e	device`
+- **Device identity:** Nexus 7, Android 11
 
 ## Required Route-Render Gate
 
 Run on flox:
 
 ```bash
-/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=works.mees.dinghy.ui.ShellPresenceTest --no-daemon" | tr -d '\r'
+/mnt/c/Windows/System32/cmd.exe /c "set PATH=C:\Android\Sdk\platform-tools;%PATH%&& E:\Android\gw.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=works.mees.dinghy.ui.ShellPresenceTest --no-daemon" | tr -d '\r'
 ```
 
 Required result:
 
 - `ShellPresenceTest` passes on a real connected flox device.
 - Record the Gradle result and XML/result path here.
+
+Route-render result:
+
+- **Result:** PASS
+- **Observed:** `Starting 4 tests on Nexus 7 - 11`; `Tests 4/4 completed. (0 skipped) (0 failed)`; `BUILD SUCCESSFUL in 1m 25s`.
+- **XML result:** `app/build/outputs/androidTest-results/connected/debug/TEST-Nexus 7 - 11-_app-.xml`
+- **HTML report:** `app/build/reports/androidTests/connected/debug/works.mees.dinghy.ui.ShellPresenceTest.html`
 
 ## Required Large-Library Fixture
 
@@ -35,11 +43,11 @@ Before the perf run, prepare or select a Files library with:
 
 Record fixture details:
 
-- **Printer:** PENDING
-- **Host/library source:** PENDING
+- **Printer:** Ender 5 Plus candidate fixture host reachable at `192.168.1.120:7125`
+- **Host/library source:** PENDING - existing `gcodes` library is insufficient for the gate
 - **Folder count:** PENDING
-- **Total browseable gcode files:** PENDING
-- **Thumbnail-present rows:** PENDING
+- **Total browseable gcode files:** PENDING; initial `/server/files/list?root=gcodes` check returned 25 files, below the required 200
+- **Thumbnail-present rows:** PENDING; sampled `ballast middle_PLA_7h26m.gcode` has 32/48/300 thumbnail metadata
 - **Thumbnail-less rows:** PENDING
 
 ## Required Perf Threshold
@@ -83,4 +91,4 @@ Record parsed results:
 
 ## Gate Result
 
-PENDING - do not mark FILE-02 passed until route-render and large-library perf/OOM evidence are recorded.
+PENDING - route-render is passed, but do not mark FILE-02 passed until large-library perf/OOM evidence is recorded.
