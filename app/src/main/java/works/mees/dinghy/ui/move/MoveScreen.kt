@@ -32,8 +32,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
-import works.mees.dinghy.command.PrinterCommands
+import works.mees.dinghy.command.ForceMoveArgs
+import works.mees.dinghy.command.HomeAxisArgs
+import works.mees.dinghy.command.JogArgs
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
@@ -42,7 +47,6 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -87,10 +91,10 @@ private val DISTANCES = listOf(0.1, 1.0, 10.0, 25.0, 50.0, 100.0)
  *    amber proceed-at-peril); confirming dispatches `DISABLE_STEPPERS` (M84).
  *  - Back ([Intent.Danger], red) → [onBack].
  *
- * Every action dispatches via the per-session [works.mees.dinghy.command.CommandDispatcher] as a
- * `printer.gcode.script` ([JsonRpcMethods.GCODE_SCRIPT]) carrying `scriptParams(PrinterCommands.*)` —
- * never a raw rpc request. A control whose dispatch key is in-flight is disabled (T-05-06-T). A
- * dispatcher [DispatchEvent.Failure] (e.g. a gcode error from an Override) surfaces a [SeverityToast].
+ * Every action dispatches a registry gcode entry via the per-session
+ * [works.mees.dinghy.command.CommandDispatcher], never a raw rpc request. A control whose dispatch key
+ * is in-flight is disabled (T-05-06-T). A dispatcher [DispatchEvent.Failure] (e.g. a gcode error from an
+ * Override) surfaces a [SeverityToast].
  *
  * @param container the service-locator (provides the live `printerState` + the session dispatcher).
  * @param holder    the toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating).
@@ -134,10 +138,10 @@ fun MoveScreen(
         }
     }
 
-    // One dispatch helper — every action funnels through GCODE_SCRIPT + scriptParams (no raw rpc).
-    fun script(key: String, gcode: String) {
-        if (key in inFlight) return
-        dispatcher?.dispatch(key, JsonRpcMethods.GCODE_SCRIPT, PrinterCommands.scriptParams(gcode))
+    // One dispatch helper — every action funnels through the registry (no raw rpc).
+    fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
+        if (command.dispatchKey(args) in inFlight) return
+        dispatcher?.dispatch(command, args)
     }
 
     Box(modifier.fillMaxSize()) {
@@ -152,11 +156,14 @@ fun MoveScreen(
                     inFlight = inFlight,
                     forceMove = forceMove,
                     onJog = { axis, mm, feed ->
-                        if (forceMove) script("jog_$axis", PrinterCommands.forceMove(axis, mm, feed / 60))
-                        else script("jog_$axis", PrinterCommands.jog(axis, mm, feed))
+                        if (forceMove) {
+                            dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs(axis, mm, feed / 60))
+                        } else {
+                            dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, feed))
+                        }
                     },
-                    onHomeXY = { script("home_xy", PrinterCommands.homeXY()) },
-                    onHomeAxis = { axis -> script("home_$axis", PrinterCommands.homeAxis(axis)) },
+                    onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
+                    onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
                     onToggleForceMove = { forceMove = !forceMove },
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
@@ -171,10 +178,13 @@ fun MoveScreen(
                         inFlight = inFlight,
                         forceMove = forceMove,
                         onJogZ = { mm ->
-                            if (forceMove) script("jog_Z", PrinterCommands.forceMove("Z", mm, FEED_Z / 60))
-                            else script("jog_Z", PrinterCommands.jog("Z", mm, FEED_Z))
+                            if (forceMove) {
+                                dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs("Z", mm, FEED_Z / 60))
+                            } else {
+                                dispatchCommand(CommandRegistry.jog, JogArgs("Z", mm, FEED_Z))
+                            }
                         },
-                        onHomeZ = { script("home_Z", PrinterCommands.homeAxis("Z")) },
+                        onHomeZ = { dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs("Z")) },
                         distance = distance,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
@@ -195,7 +205,7 @@ fun MoveScreen(
                 ) {
                     OutlinedControl(
                         label = "All",
-                        onClick = { script("home_all", PrinterCommands.homeAll()) },
+                        onClick = { dispatchCommand(CommandRegistry.homeAll, Unit) },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent,
                         symbol = "home_and_garden",
@@ -224,11 +234,7 @@ fun MoveScreen(
                 message = "Motors release; the toolhead can be moved by hand and axes become un-homed.",
                 confirmLabel = "DISABLE",
                 onConfirm = {
-                    dispatcher?.dispatch(
-                        "disable_steppers",
-                        JsonRpcMethods.GCODE_SCRIPT,
-                        PrinterCommands.scriptParams(PrinterCommands.DISABLE_STEPPERS),
-                    )
+                    dispatchCommand(CommandRegistry.disableSteppers, Unit)
                     showDisableGuard = false
                 },
                 onCancel = { showDisableGuard = false },

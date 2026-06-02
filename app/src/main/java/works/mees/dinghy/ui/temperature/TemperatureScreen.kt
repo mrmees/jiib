@@ -38,8 +38,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
+import works.mees.dinghy.command.ApplyPresetArgs
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
+import works.mees.dinghy.command.SetHeaterArgs
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ScrubberPage
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -47,7 +52,6 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
@@ -82,10 +86,10 @@ private const val TEMP_STEP = 5f
  *    each dispatches `applyPreset(nozzle,bed)`. Keyboard-free (D-01).
  *  - Cooldown ([Intent.Warn], amber) → dispatches [PrinterCommands.COOLDOWN] (TURN_OFF_HEATERS) (TEMP-03).
  *
- * Every action dispatches via the per-session [works.mees.dinghy.command.CommandDispatcher] as a
- * `printer.gcode.script` ([JsonRpcMethods.GCODE_SCRIPT]) carrying `scriptParams(PrinterCommands.*)` —
- * never a raw rpc request. A control whose dispatch key is in-flight is disabled (PRIM-05 / T-05-05-T).
- * A dispatcher [DispatchEvent.Failure] surfaces a [SeverityToast].
+ * Every action dispatches a registry gcode entry via the per-session
+ * [works.mees.dinghy.command.CommandDispatcher], never a raw rpc request. A control whose dispatch key
+ * is in-flight is disabled (PRIM-05 / T-05-05-T). A dispatcher [DispatchEvent.Failure] surfaces a
+ * [SeverityToast].
  *
  * @param container the service-locator (provides the live `printerState` + the session dispatcher).
  * @param holder    the toolkit-agnostic [TemperatureHolder] (legend + per-sensor series/setpoints).
@@ -130,10 +134,10 @@ fun TemperatureScreen(
         }
     }
 
-    // One dispatch helper — every action funnels through GCODE_SCRIPT + scriptParams (no raw rpc).
-    fun script(key: String, gcode: String) {
-        if (key in inFlight) return
-        dispatcher?.dispatch(key, JsonRpcMethods.GCODE_SCRIPT, PrinterCommands.scriptParams(gcode))
+    // One dispatch helper — every action funnels through the registry (no raw rpc).
+    fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
+        if (command.dispatchKey(args) in inFlight) return
+        dispatcher?.dispatch(command, args)
     }
 
     Box(modifier.fillMaxSize()) {
@@ -182,7 +186,7 @@ fun TemperatureScreen(
                     )
                     OutlinedControl(
                         label = "Cooldown",
-                        onClick = { script("cooldown", PrinterCommands.COOLDOWN) },
+                        onClick = { dispatchCommand(CommandRegistry.cooldown, Unit) },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Warn,
                     )
@@ -202,7 +206,7 @@ fun TemperatureScreen(
                 onValueChange = { /* live preview only; the printer is set on Apply */ },
                 onCancel = { scrubberTarget = null },
                 onApply = { v ->
-                    script("set_${sensor.name}", PrinterCommands.setHeater(sensor.name, v.roundToInt()))
+                    dispatchCommand(CommandRegistry.setHeater, SetHeaterArgs(sensor.name, v.roundToInt()))
                     scrubberTarget = null
                 },
             )
@@ -213,7 +217,10 @@ fun TemperatureScreen(
             PresetSelector(
                 inFlight = inFlight,
                 onPreset = { p ->
-                    script("preset_${p.name}", PrinterCommands.applyPreset(p.nozzle, p.bed))
+                    dispatchCommand(
+                        CommandRegistry.applyPreset,
+                        ApplyPresetArgs(nozzle = p.nozzle, bed = p.bed, key = "preset_${p.name}"),
+                    )
                     showPresets = false
                 },
                 onDismiss = { showPresets = false },

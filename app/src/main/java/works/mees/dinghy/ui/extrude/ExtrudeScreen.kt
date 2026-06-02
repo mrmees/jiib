@@ -35,8 +35,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.ExtrudeArgs
 import works.mees.dinghy.command.PrinterCommands
+import works.mees.dinghy.command.SelectToolArgs
+import works.mees.dinghy.command.SetHeaterArgs
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.NumpadPage
 import works.mees.dinghy.designsystem.Severity
@@ -45,7 +51,6 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -100,10 +105,9 @@ private enum class NumpadTarget { Distance, Speed, Temp }
  * Load and Unload are ALWAYS shown. Present-macro tap dispatches `loadFilament()` / `unloadFilament()`;
  * ABSENT shows an informational [SeverityToast] (never a failed dispatch). Back ([Intent.Danger]) returns.
  *
- * Every action dispatches via the per-session [works.mees.dinghy.command.CommandDispatcher] as a
- * `printer.gcode.script` ([JsonRpcMethods.GCODE_SCRIPT]) carrying `scriptParams(PrinterCommands.*)`. A
- * control whose dispatch key is in-flight is disabled (T-05-07-T). A dispatcher [DispatchEvent.Failure]
- * surfaces an error [SeverityToast].
+ * Every action dispatches a registry gcode entry via the per-session
+ * [works.mees.dinghy.command.CommandDispatcher]. A control whose dispatch key is in-flight is disabled
+ * (T-05-07-T). A dispatcher [DispatchEvent.Failure] surfaces an error [SeverityToast].
  *
  * @param container the service-locator (provides the session dispatcher).
  * @param holder    the toolkit-agnostic [ExtrudeHolder] (live gate + tools + temp + macro presence).
@@ -160,10 +164,10 @@ fun ExtrudeScreen(
         }
     }
 
-    // One dispatch helper — every action funnels through GCODE_SCRIPT + scriptParams (no raw rpc).
-    fun script(key: String, gcode: String) {
-        if (key in inFlight) return
-        dispatcher?.dispatch(key, JsonRpcMethods.GCODE_SCRIPT, PrinterCommands.scriptParams(gcode))
+    // One dispatch helper — every action funnels through the registry (no raw rpc).
+    fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
+        if (command.dispatchKey(args) in inFlight) return
+        dispatcher?.dispatch(command, args)
     }
 
     Box(modifier.fillMaxSize()) {
@@ -174,8 +178,8 @@ fun ExtrudeScreen(
                     inFlight = inFlight,
                     distance = distance,
                     speed = speed,
-                    onExtrude = { script("extrude", PrinterCommands.extrude(distance, speed * 60)) },
-                    onRetract = { script("retract", PrinterCommands.extrude(-distance, speed * 60)) },
+                    onExtrude = { dispatchCommand(CommandRegistry.extrude, ExtrudeArgs(distance, speed * 60)) },
+                    onRetract = { dispatchCommand(CommandRegistry.extrude, ExtrudeArgs(-distance, speed * 60)) },
                     onEditDistance = { numpad = NumpadTarget.Distance },
                     onEditSpeed = { numpad = NumpadTarget.Speed },
                     modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -206,7 +210,7 @@ fun ExtrudeScreen(
                             tools = vm.tools,
                             inFlight = inFlight,
                             onSelect = { i ->
-                                script("tool_$i", PrinterCommands.selectTool(i))
+                                dispatchCommand(CommandRegistry.selectTool, SelectToolArgs(i))
                                 holder.setActiveTool(if (i == 0) "extruder" else "extruder$i")
                             },
                             modifier = Modifier.fillMaxWidth().weight(1f),
@@ -261,7 +265,7 @@ fun ExtrudeScreen(
                     OutlinedControl(
                         label = "Load",
                         onClick = {
-                            if (vm.hasLoadMacro) script("load", PrinterCommands.loadFilament())
+                            if (vm.hasLoadMacro) dispatchCommand(CommandRegistry.loadFilament, Unit)
                             else infoText = "No LOAD_FILAMENT macro configured"
                         },
                         modifier = Modifier.weight(1f),
@@ -270,7 +274,7 @@ fun ExtrudeScreen(
                     OutlinedControl(
                         label = "Unload",
                         onClick = {
-                            if (vm.hasUnloadMacro) script("unload", PrinterCommands.unloadFilament())
+                            if (vm.hasUnloadMacro) dispatchCommand(CommandRegistry.unloadFilament, Unit)
                             else infoText = "No UNLOAD_FILAMENT macro configured"
                         },
                         modifier = Modifier.weight(1f),
@@ -318,7 +322,10 @@ fun ExtrudeScreen(
                 allowDecimal = false,
                 onCancel = { numpad = null },
                 onSet = {
-                    script("set_temp", PrinterCommands.setHeater(vm.activeHeater, it.roundToInt()))
+                    dispatchCommand(
+                        CommandRegistry.setHeater,
+                        SetHeaterArgs(vm.activeHeater, it.roundToInt(), key = "set_temp"),
+                    )
                     numpad = null
                 },
             )

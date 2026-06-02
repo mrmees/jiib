@@ -15,8 +15,8 @@ data class IdentifyArgs(
     val apiKey: String? = null,
 )
 
-data class SetHeaterArgs(val heater: String, val target: Int)
-data class ApplyPresetArgs(val nozzle: Int, val bed: Int)
+data class SetHeaterArgs(val heater: String, val target: Int, val key: String? = null)
+data class ApplyPresetArgs(val nozzle: Int, val bed: Int, val key: String = "apply_preset")
 typealias PresetArgs = ApplyPresetArgs
 data class JogArgs(val axis: String, val mm: Double, val feedMmMin: Int)
 data class ForceMoveArgs(val axis: String, val mm: Double, val velocityMmS: Int)
@@ -143,14 +143,14 @@ object CommandRegistry {
 
     val setHeater: CommandSpec<SetHeaterArgs> = gcode(
         catalogId = "KGC-SET_HEATER_TEMPERATURE",
-        key = { args -> "set_heater_${args.heater}" },
+        key = { args -> args.key ?: "set_${args.heater}" },
         gcode = { args -> PrinterCommands.setHeater(args.heater, args.target) },
         availability = AvailabilityPredicate.ObjectPresent("extruder"),
     )
 
     val applyPreset: CommandSpec<ApplyPresetArgs> = gcode(
         catalogId = "KGC-SET_HEATER_TEMPERATURE_PRESET",
-        key = { "apply_preset" },
+        key = { args -> args.key },
         gcode = { args -> PrinterCommands.applyPreset(args.nozzle, args.bed) },
         availability = AvailabilityPredicate.ObjectPresent("heater_bed"),
     )
@@ -171,7 +171,7 @@ object CommandRegistry {
 
     val forceMove: CommandSpec<ForceMoveArgs> = gcode(
         catalogId = "KGC-FORCE_MOVE",
-        key = { args -> "force_move_${args.axis}" },
+        key = { args -> "jog_${args.axis}" },
         gcode = { args -> PrinterCommands.forceMove(args.axis, args.mm, args.velocityMmS) },
         availability = AvailabilityPredicate.ObjectPresent("force_move"),
     )
@@ -206,7 +206,7 @@ object CommandRegistry {
 
     val selectTool: CommandSpec<SelectToolArgs> = gcode(
         catalogId = "KGC-T_SELECT_TOOL",
-        key = { args -> "select_tool_${args.index}" },
+        key = { args -> "tool_${args.index}" },
         gcode = { args -> PrinterCommands.selectTool(args.index) },
         availability = AvailabilityPredicate.ObjectPresent("extruder"),
     )

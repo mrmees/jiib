@@ -51,14 +51,15 @@ import coil3.request.ImageRequest
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.LastJob
@@ -180,7 +181,7 @@ fun PrintStatusScreen(
                     )
                     StopButton(
                         onTap = { showEstopGuard = true },
-                        onHold = { dispatcher?.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP) },
+                        onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -193,7 +194,7 @@ fun PrintStatusScreen(
                 message = "This halts the printer.",
                 confirmLabel = "STOP",
                 onConfirm = {
-                    dispatcher?.dispatch("estop", JsonRpcMethods.EMERGENCY_STOP)
+                    dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
                     showEstopGuard = false
                 },
                 onCancel = { showEstopGuard = false },
