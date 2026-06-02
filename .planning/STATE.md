@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T05:32:25.588Z"
+last_updated: "2026-06-02T05:45:39.589Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
   completed_phases: 5
   total_plans: 40
-  completed_plans: 37
+  completed_plans: 38
   percent: 33
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 06 (command-reference-capability-matrix) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
@@ -91,6 +91,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 05 P11 | 4 | 2 tasks | 4 files |
 | Phase 06 P01 | 7 | 3 tasks | 8 files |
 | Phase 06 P02 | 10min | 3 tasks | 8 files |
+| Phase 06 P03 | 8min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,9 @@ Recent decisions affecting current work:
 - [Phase 06]: docs/commands JSON sidecars are the enforcement source for command catalog and printer matrix guards. — Markdown command documentation remains human-facing and is not parsed by tests.
 - [Phase 06]: Registry entries use unique operation-level catalog IDs while retaining generic upstream catalog rows.
 - [Phase 06]: JsonRpcClient registry helper rejects non-JsonRpc specs; gcode specs continue through CommandDispatcher.
+- [Phase 06]: [Phase 06/06-03]: Existing Phase 1-5 outbound sends now route through CommandRegistry helpers; inbound notify_* constants remain in JsonRpcMethods.
+- [Phase 06]: [Phase 06/06-03]: server.info.components feeds live Capabilities.components during the handshake.
+- [Phase 06]: [Phase 06/06-03]: UI registry dispatch preserves existing busy keys via command.dispatchKey(args), including heater/preset overrides where needed.
 
 ### Pending Todos
 
@@ -181,6 +185,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T05:32:25.078Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-06-02T05:45:39.551Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None

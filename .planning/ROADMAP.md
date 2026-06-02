@@ -251,7 +251,7 @@ Plans:
 - [x] 06-02-PLAN.md — Headless command registry foundation, registry dispatch/request helpers, and live `Capabilities.objects` / `hasObject()` predicate surface
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 06-03-PLAN.md — Full Phase 1-5 outbound call-site refactor through the registry while preserving handshake, dispatcher timeout, e-stop, and builder semantics
+- [x] 06-03-PLAN.md — Full Phase 1-5 outbound call-site refactor through the registry while preserving handshake, dispatcher timeout, e-stop, and builder semantics
 
 **Wave 3** *(blocked on Wave 2; includes live capture checkpoint)*
 - [ ] 06-04-PLAN.md — Comprehensive Klipper/Moonraker/Spoolman catalog plus E5/E3 availability matrix backed by `catalog.json` and `printer-matrix.json`
@@ -401,7 +401,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
-| 6. Command Reference & Capability Matrix | 2/5 | In Progress|  |
+| 6. Command Reference & Capability Matrix | 3/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 0/TBD | Not started | - |
 | 8. Macros & Console — Functional-Core Complete | 0/TBD | Not started | - |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
