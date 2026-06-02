@@ -21,7 +21,17 @@ data class MacroParam(
     val name: String,
     val type: String?,
     val default: String?,
-)
+) {
+    /**
+     * Whether this param routes to the keyboard-free [works.mees.dinghy.designsystem.NumpadPage]
+     * (D-10). Only an EXPLICITLY-declared `int`/`double` filter is treated as numeric; `string` and an
+     * un-declared/unclassified `null` type fall to the string keyboard field — the heuristic must NOT
+     * block Execute on a param it couldn't classify, and the safe default for an unknown type is the
+     * (sanitized) string path.
+     */
+    val isNumeric: Boolean
+        get() = type == "int" || type == "double"
+}
 
 /**
  * View-model for a single discovered macro the launcher/system screens render.
