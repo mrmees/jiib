@@ -54,8 +54,8 @@ The main implementation gap is not transport; it is shaping a narrow session-own
 
 | Concern | Owner | Evidence | Phase 7 Direction |
 |---|---|---|---|
-| JSON-RPC method names and typed args | `JsonRpcMethods`, `CommandRegistry` | `JsonRpc.kt`, `CommandRegistry.kt` [VERIFIED] | Add directory, roots, thumbnails, delete, start, pause, resume, and cancel specs before UI consumes them. |
-| Catalog and printer matrix drift | `docs/commands/catalog.json`, `docs/commands/printer-matrix.json`, `CommandCatalogDriftTest` | `CommandCatalogDriftTest.kt` [VERIFIED] | Promote Phase 7 planned commands into registry plus sidecars in the same plan wave. |
+| JSON-RPC method names and typed args | `JsonRpcMethods`, `CommandRegistry` | `JsonRpc.kt`, `CommandRegistry.kt` [VERIFIED] | Register only runtime-dispatched Phase 7 methods: directory, thumbnails, delete, start, pause, resume, and cancel. Keep roots/list reference-only unless execution adds real dispatch call sites. |
+| Catalog and printer matrix drift | `docs/commands/catalog.json`, `docs/commands/printer-matrix.json`, `CommandCatalogDriftTest` | `CommandCatalogDriftTest.kt` [VERIFIED] | Promote runtime Phase 7 commands into registry plus sidecars in the same plan wave; do not add catalog-only rows to `CommandRegistry.all`. |
 | Session-owned RPC access | `MoonrakerService` publishes `SpineHandle`; `AppContainer` exposes stable handles | `MoonrakerService.kt`, `SpineHandle.kt`, `AppContainer.kt` [VERIFIED] | Add a narrow `FileBrowserClient`/holder seam instead of exposing `JsonRpcClient` to UI code. |
 | Pure metadata parsing | `PrintMetadata.kt` | `PrintMetadataParseTest.kt` [VERIFIED] | Extend or reuse parser for selected-file preview fields and thumbnail URL reuse. |
 | High-churn file list | Classic Views inside Compose shell | `ViewsBenchScene.kt`, ADR 0001 [VERIFIED] | Production Files Field should use RecyclerView/ListAdapter/DiffUtil, not Compose lazy list for this screen. |
@@ -84,8 +84,8 @@ The main implementation gap is not transport; it is shaping a narrow session-own
 
 - Treat command acks as "command accepted", not "operation visibly complete". [CITED: https://moonraker.readthedocs.io/en/latest/external_api/printer/]
 - Start is complete only when state reports the selected filename as active and print state transitions into the printing lifecycle. [CITED: https://moonraker.readthedocs.io/en/latest/printer_objects/]
-- Pause/resume/cancel/restart controls should hold a pending state until `print_stats.state` / pause state transitions match the requested operation. [CITED: https://moonraker.readthedocs.io/en/latest/printer_objects/]
-- If existing `PrinterState` cannot observe `pause_resume.is_paused` independently enough for the UI contract, add the smallest field or reducer seam needed; do not infer pause solely from a button tap. [VERIFIED: app/src/main/java/works/mees/dinghy/state]
+- Pause/resume/cancel/restart controls should hold a pending state until `print_stats.state` / `pause_resume.is_paused` transitions match the requested operation. [CITED: https://moonraker.readthedocs.io/en/latest/printer_objects/]
+- Wave 1 must make `pause_resume` a reducer/subscription contract, with golden-frame tests for pause -> paused -> resume -> printing -> cancel; later UI work consumes that seam instead of adding conditional state late. [VERIFIED: app/src/main/java/works/mees/dinghy/state]
 
 ### Path Discipline
 
@@ -107,7 +107,7 @@ The main implementation gap is not transport; it is shaping a narrow session-own
 
 - Do not parse JSON with string slicing; use the existing `org.json` / Kotlin model style used by `PrintMetadata`. [VERIFIED: app/src/main/java/works/mees/dinghy/state/PrintMetadata.kt]
 - Do not expose `JsonRpcClient` directly to Compose screens; add a narrow file-browser/action facade through service/container seams. [VERIFIED: AppContainer.kt]
-- Do not build a new image cache or bitmap loader; use Coil and existing thumbnail URL helpers unless the selected-file preview requires a small pure helper. [VERIFIED: PrintMetadata.kt]
+- Do not build an unbounded image cache or ad hoc bitmap pipeline; use Coil and existing thumbnail URL helpers with explicit request sizing/downsample behavior, adding only a small Files-specific helper where tests need to assert cache and decode bounds. [VERIFIED: PrintMetadata.kt]
 - Do not use a Compose `LazyColumn` for the production Files list. The ADR and design direction reserve classic Views for high-churn lists. [VERIFIED: docs/adr/0001-ui-toolkit-decision.md]
 - Do not use per-row delete or row long-press destructive behavior. [VERIFIED: 07-CONTEXT.md]
 - Do not treat `printer.print.*` `"ok"` responses as success. [CITED: https://moonraker.readthedocs.io/en/latest/external_api/printer/]
@@ -164,7 +164,7 @@ The phase has enough pure seams to keep automated feedback dense before live-pri
 | Registry and command sidecars | `CommandCatalogDriftTest`, command registry unit tests | None needed beyond live command evidence already in matrix. |
 | File models and path mapping | Pure JVM parser/path tests for directory, metadata, thumbnails-empty, root-prefixed delete paths, malformed JSON, and sort order | None. |
 | Files holder/session seam | JVM coroutine tests with fake file client and fake printer state for browse, select, preview failure, delete clear-state, and state-confirmed start | Live browse/start confirms real Moonraker behavior. |
-| Files UI routing and list | Host-side model tests where possible plus `compileReleaseKotlin`; instrumented shell presence test for live Files route | Manual flox scroll and portrait/landscape layout check. |
+| Files UI routing and list | Host-side model tests where possible plus `compileReleaseKotlin`; instrumented shell presence test for live Files route | Required flox ShellPresence route proof plus large mixed-library scroll check. |
 | Print Status gutter | JVM tests for control model across printing, paused, complete, error, and cancelled states | Live pause/resume/cancel against Ender 5 Plus. |
 | Core print loop | Full unit suite and release Kotlin compile | Required Ender 5 Plus UAT: connect -> browse -> start -> monitor -> pause -> resume -> cancel. |
 
@@ -191,7 +191,7 @@ Every implementation plan must include a `<threat_model>` section referencing th
 
 All phase-planning questions are resolved enough for implementation:
 
-- Use `server.files.get_directory` as the primary browsing API; keep `server.files.list` registered only if needed by command coverage or future diagnostics. [RESOLVED]
+- Use `server.files.get_directory` as the primary browsing API; keep `server.files.roots` and `server.files.list` reference-only unless implementation adds real runtime dispatch call sites. [RESOLVED]
 - Keep metadata enrichment selected-file only. [RESOLVED]
 - Use RecyclerView for production Files list. [RESOLVED]
 - Route Print Status terminal `Files` action to the new `Dest.Files` screen. [RESOLVED]

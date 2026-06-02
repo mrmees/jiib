@@ -19,7 +19,7 @@ Phase 7 should extend existing seams rather than introduce a new app architectur
 
 | Pattern | Primary Files | Apply In Phase 7 |
 |---|---|---|
-| Typed command registry specs | `app/src/main/java/works/mees/dinghy/command/CommandRegistry.kt`, `app/src/main/java/works/mees/dinghy/net/JsonRpc.kt` | Add Phase 7 method constants, arg DTOs, `CommandSpec`s, keys, params, and availability predicates before UI uses them. |
+| Typed command registry specs | `app/src/main/java/works/mees/dinghy/command/CommandRegistry.kt`, `app/src/main/java/works/mees/dinghy/net/JsonRpc.kt` | Add Phase 7 method constants and register only commands the app dispatches at runtime, with typed args, keys, params, and availability predicates before UI uses them. |
 | Registry sidecar drift | `app/src/test/java/works/mees/dinghy/command/CommandCatalogDriftTest.kt`, `docs/commands/catalog.json`, `docs/commands/printer-matrix.json` | Every new `CommandRegistry.all` entry must exist in both command docs sidecars in the same plan wave. |
 | Dispatcher action path | `app/src/main/java/works/mees/dinghy/command/CommandDispatcher.kt`, `CommandDispatchExtensions.kt` | Start/delete/pause/resume/cancel/restart should use dispatcher semantics or a facade built over the dispatcher; do not dispatch raw strings in UI. |
 | Session spine publication | `app/src/main/java/works/mees/dinghy/service/MoonrakerService.kt`, `di/SpineHandle.kt`, `di/AppContainer.kt` | Add a narrow `FileBrowserClient` / holder to the session handle. Do not expose raw `JsonRpcClient` to screens. |
@@ -35,14 +35,17 @@ Phase 7 should extend existing seams rather than introduce a new app architectur
 ### Registry And Commands
 
 - Add Phase 7 Moonraker methods as constants in `JsonRpcMethods`.
+- Add `CommandRegistry.all` entries only for Phase 7 commands with real runtime dispatch call sites. Keep `server.files.roots` and `server.files.list` catalog/reference-only unless execution proves the app dispatches them.
 - Add typed arg classes in `CommandRegistry.kt`:
   - directory args with optional path and `extended`.
   - filename args for metadata/thumbnails/start.
   - delete args with root-prefixed path.
   - unit args for pause/resume/cancel.
 - Use `AvailabilityPredicate.ComponentPresent("file_manager")` for file manager calls.
-- Use object/component predicates backed by current capability semantics for print-control calls:
-  - `virtual_sdcard` / `print_stats` / `pause_resume` should be represented in matrix evidence and tests.
+- Use explicit object predicates for print-control calls:
+  - `printer.print.start` uses `AvailabilityPredicate.ObjectPresent("virtual_sdcard")`.
+  - `printer.print.pause`, `printer.print.resume`, and `printer.print.cancel` use `AvailabilityPredicate.ObjectPresent("pause_resume")`.
+  - `print_stats` and `pause_resume` should be represented in matrix evidence, subscription/reducer tests, and print-status control tests.
 - Update `CommandRegistry.all`, `catalog.json`, and `printer-matrix.json` together.
 
 ### File Path Model
@@ -55,6 +58,13 @@ Keep file path forms distinct in code and tests:
 - `displayPath`: breadcrumb/path chip for UI only.
 
 The parser/model layer should own these conversions so UI code does not concatenate command paths.
+
+### Review-Incorporated Constraints
+
+- Pause/resume/cancel state confirmation is a Wave 1 reducer/subscription contract, not a late UI conditional. Tests must prove pause -> paused -> resume -> printing -> cancel from observed state.
+- Files thumbnail loading must use explicit request sizing, downsample behavior, and bounded cache semantics before large-library UAT.
+- Long-press graceful cancel needs both the existing long-press affordance and an accessibility custom action named `Cancel print`.
+- Final Phase 7 verification must execute `ShellPresenceTest` on flox hardware and capture `dumpsys gfxinfo ... framestats` for a large mixed thumbnail/no-thumbnail Files library.
 
 ### Session Surface
 

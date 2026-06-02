@@ -182,24 +182,25 @@ every visible row; deep reconnect/process-death print-loop robustness (Phase 14)
 - **Best-effort one-shots:** metadata/history-style reads degrade to null/placeholders and never crash or
   block core actions.
 - **State-confirmed actions:** print start, pause/resume/cancel/restart must reflect resulting
-  `print_stats` state rather than trusting command ack alone.
+  `print_stats` / `pause_resume` state rather than trusting command ack alone.
 - **Live capability gating:** file operations gate on `file_manager`; print start on `virtual_sdcard`;
   pause/resume/cancel on `pause_resume`; delete on `file_manager` plus idle print state.
 - **Hybrid toolkit:** because Files list is a high-churn thumbnail surface, planner should consider the
   ADR's RecyclerView + Coil path rather than assuming Compose LazyColumn is always acceptable.
 
 ### Integration Points
-- Add Phase 7 registry entries for `server.files.get_directory`, `server.files.list`/roots if needed,
-  `server.files.delete_file`, `printer.print.start`, `printer.print.pause`, `printer.print.resume`,
-  `printer.print.cancel`, and restart semantics for the last/current filename.
+- Add Phase 7 registry entries only for runtime-dispatched commands: `server.files.get_directory`,
+  `server.files.thumbnails`, `server.files.delete_file`, `printer.print.start`,
+  `printer.print.pause`, `printer.print.resume`, and `printer.print.cancel`. Keep
+  `server.files.roots` / `server.files.list` reference-only unless real call sites dispatch them.
 - Extend `Dest`, `AppDrawer`, and `AppShell` so the Files tile becomes live and returns through the
   existing shell back-stack.
 - Build a file-browser holder/repository that requests directory contents, sorts recent-first with
   grouped folders, exposes selection/preview state, and keeps metadata fetches bounded.
 - Modify `PrintStatusScreen` gutter behavior for printing, paused, and terminal states without adding
   a separate Job Status route.
-- Verification must include the Ender 5 Plus core loop and file-list thumbnail performance on the weak
-  hardware floor.
+- Verification must include the Ender 5 Plus core loop, flox `ShellPresenceTest` route proof, and
+  file-list thumbnail `gfxinfo` performance on the weak hardware floor.
 
 </code_context>
 
