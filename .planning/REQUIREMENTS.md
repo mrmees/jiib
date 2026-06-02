@@ -110,10 +110,11 @@ Deferred to future release. Tracked but not in the current roadmap.
 ### Post-Core Panels
 
 - **FINE-01**: Fine-tune panel — babystep Z, speed factor, extrusion factor (high value-per-effort; candidate to pull into late v1)
-- **CAM-01**: Camera — native MJPEG/WebRTC stream view (first post-core expansion)
-- **BEDM-01**: Bed mesh view/calibrate/profiles
-- **BEDL-01**: Bed level / screws tilt adjust
-- **ZCAL-01**: Z calibrate workflow
+- ~~**CAM-01**: Camera — native MJPEG/WebRTC stream view~~ — **promoted to active roadmap (2026-06-01) → Phase 10 (Webcam Streaming, MJPEG-only; WebRTC still deferred)**
+- ~~**BEDM-01**: Bed mesh view/calibrate/profiles~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance)**
+- ~~**BEDL-01**: Bed level / screws tilt adjust~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance; `SCREWS_TILT_CALCULATE`/`Z_TILT_ADJUST`)**
+- ~~**ZCAL-01**: Z calibrate workflow~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance)**
+- **PROMPT-01** *(new, active)*: Render interactive macro dialogs from `// action:prompt_*` lines (klipper-macro-prompt-protocol) → **Phase 12 (Macro Prompt Protocol)**
 - **SHAPER-01**: Input shaper auto/manual calibration
 - **FAN-01**: Fan control panel
 - **LED-01**: LED control panel
@@ -121,8 +122,12 @@ Deferred to future release. Tracked but not in the current roadmap.
 - **PINS-01**: Output pin / PWM control
 - **LIMIT-01**: Runtime limits (accel/velocity/SCV)
 - **PA-01**: Pressure advance / retraction tuning
-- **SPOOL-01**: Spoolman spool list + active spool + weight editor
+- ~~**SPOOL-01**: Spoolman spool list + active spool + weight editor~~ — **promoted (2026-06-01) → Phase 11 (Spool Management; + the headline tablet-camera QR-scan-to-assign flow)**
 - **EXCL-01**: Exclude-object during print
+
+### v2 Milestone — Beyond the Functional Core (seeded 2026-06-01)
+
+- **HAINT-01** *(first v2 phase — Home Assistant Integration)*: Bring Home Assistant onto the wall tablet — surface/control printer-adjacent HA entities (power/smart-plug, enclosure/room sensors, lights, fans) and/or expose Dinghy/printer state to HA. Transport TBD (Moonraker `mqtt` ↔ HA, or HA REST/WebSocket API). Scope/auth/discovery decided at v2 kickoff via `/gsd-new-milestone`.
 
 ### Multi-Printer & Platform
 
@@ -205,15 +210,21 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MACRO-03 | Phase 7 | Pending |
 | CONS-01 | Phase 7 | Pending |
 | CONS-02 | Phase 7 | Pending |
-| PKG-01 | Phase 9 | Pending |
-| PKG-03 | Phase 9 | Pending |
+| BEDM-01 | Phase 9 | Pending |
+| BEDL-01 | Phase 9 | Pending |
+| ZCAL-01 | Phase 9 | Pending |
+| CAM-01 | Phase 10 | Pending |
+| SPOOL-01 | Phase 11 | Pending |
+| PROMPT-01 | Phase 12 | Pending |
+| PKG-01 | Phase 14 | Pending |
+| PKG-03 | Phase 14 | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 55 ✓
-- Unmapped: 0 ✓
+- Functional requirements mapped: 61 (55 prior + 6 promoted/added for the expanded roadmap: BEDM-01, BEDL-01, ZCAL-01, CAM-01, SPOOL-01 promoted from v2; PROMPT-01 new)
+- Phases 8 & 13 are quality/reference phases with no functional REQ-IDs
+- Finer per-phase req families (CALIB-*, CAM-*, SPOOL-*, PROMPT-*) to be defined at each feature phase's `/gsd-discuss-phase`; the single promoted REQ-IDs above are the coarse umbrella until then
 
-**Per-phase counts (9-phase roadmap, restructured 2026-06-01 — see note below):**
+**Per-phase counts (14-phase single-milestone roadmap, expanded 2026-06-01 — see note below):**
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
 - Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
@@ -221,9 +232,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
 - Phase 6 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
 - Phase 7 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
-- Phase 8 (Backend Consolidation): 0 functional reqs — quality/refactor phase (canonical command references, Klipper command/error/acceptance catalog, request-cadence tightening; non-functional)
-- Phase 9 (Release Hardening & Ship): 2 — PKG-01, PKG-03 (also re-exercises CONN-04 reconnect-resync against a live print, deferred from the dissolved Job-Status phase)
+- Phase 8 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase (canonical command registry + per-printer capability matrix)
+- Phase 9 (Calibration & Maintenance): BEDM-01, BEDL-01, ZCAL-01 (promoted from v2; finer CALIB-* TBD at discuss)
+- Phase 10 (Webcam Streaming): CAM-01 (promoted; MJPEG-only, WebRTC deferred)
+- Phase 11 (Spool Management): SPOOL-01 (promoted; + the camera-QR-scan flow, finer SPOOL-* TBD at discuss)
+- Phase 12 (Macro Prompt Protocol): PROMPT-01 (new; finer PROMPT-* TBD at discuss)
+- Phase 13 (Optimization, Network Efficiency & Reliability): 0 functional reqs — quality/refactor phase (request-cadence audit + reliability; non-functional)
+- Phase 14 (Release Hardening & Ship): 2 — PKG-01, PKG-03 (also re-exercises CONN-04 reconnect-resync against a live print, deferred from the dissolved Job-Status phase)
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-06-01 — remaining-phase restructure (6–9): old "Job Status" phase dissolved (live-monitoring half pre-delivered by the Status home; controls JOB-03/04/05 + JOB-01/02 → Phase 6 "Files & Print Control"; reconnect-resync/process-death robustness → Phase 9). Macros/Console → Phase 7. NEW Phase 8 "Backend Consolidation" (canonical command refs + Klipper error/acceptance catalog + request-cadence tightening; quality/refactor, no new functional reqs). Phase 9 → "Release Hardening & Ship". Req count unchanged at 55 (no reqs added/removed, only re-mapped). Prior: 2026-05-31 scope broadened per `docs/ui_design/` (added THEME-01/02, UI-01/02, SET-01 → 55; new Phase 3 design system, shell → Phase 4); 2026-05-30 Codex cross-AI review (8-phase splits, STATE-05/PRIM-05/PKG-03).*
+*Last updated: 2026-06-01 (roadmap expansion to 14 phases, single milestone) — the project is now ONE roadmap shipping once at the end (no v1/v2 split). Five v2 reqs PROMOTED into the active roadmap: BEDM-01/BEDL-01/ZCAL-01 → Phase 9 (Calibration & Maintenance), CAM-01 → Phase 10 (Webcam Streaming), SPOOL-01 → Phase 11 (Spool Management); PROMPT-01 added → Phase 12 (Macro Prompt Protocol). NEW Phase 8 = Command Reference & Capability Matrix (reference/quality, matrix knocked out early). Old "Backend Consolidation" → Phase 13 "Optimization, Network Efficiency & Reliability" (moved after ALL screens). Release → Phase 14 (ships the whole project at once). PKG-01/03 remapped Phase 9 → 14. Finer feature-req families to be defined at each phase's discuss. Prior: 2026-06-01 remaining-phase (6–9) restructure (Job Status dissolved → controls to P6, robustness to release); 2026-05-31 scope broadened per `docs/ui_design/`; 2026-05-30 Codex cross-AI review.*
