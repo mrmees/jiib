@@ -1,93 +1,76 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-02T10:47:29-05:00",
+  "timestamp": "2026-06-02T12:25:00-05:00",
   "phase": "07",
   "phase_name": "files-print-control-core-print-loop-gate",
   "phase_dir": ".planning/phases/07-files-print-control-core-print-loop-gate",
   "plan": 6,
-  "task": 2,
+  "task": 3,
   "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
     {
       "id": 1,
-      "name": "Run automated release verification and record results",
+      "name": "Automated release verification",
       "status": "done",
       "commit": "2c52731"
     },
     {
       "id": 2,
-      "name": "Run flox route-render and large-library Files perf gates",
-      "status": "in_progress",
-      "progress": "ShellPresenceTest route-render gate passed on Nexus 7 / flox and was recorded in 07-PERF.md at commit da9a406. Large-library fixture and gfxinfo perf/OOM capture remain pending."
+      "name": "Files route-render + large-library perf/OOM gate",
+      "status": "done",
+      "result": "PASS",
+      "commit": "083709f",
+      "notes": "Route-render ShellPresenceTest passed on flox (da9a406). Large-library gate run against the REAL Ender 3 library (420 files / 404 thumbnails) on flox, signed release build — no throwaway fixture written to Moonraker. Steady-scroll p95 15.48ms, 0 frozen frames >700ms, no OOM/ANR/death. First-load p95 24.97ms / max 173ms, 0 frozen. See 07-PERF.md."
     },
     {
-      "id": "07-05-fix",
-      "name": "Fix terminal Files action grayed out when live print state returns to standby but last-job exists",
+      "id": "files-ui-polish",
+      "name": "On-device Files UI polish (unplanned detour) + design-law doc sync",
       "status": "done",
-      "commit": "b1f05f0"
+      "commit": "e2ff21c (code), 6ae4ff5 (docs)",
+      "notes": "Fixed Codex-built Files screen on flox: list clip/overflow + pinned height, smallest-thumb-per-row, dotfile-dir hiding, future-print image-backed Focus card, Fit-not-Crop, full-width panel text, drawer-swipe suppressed on Files. Laws synced to docs/ui_design/."
     }
   ],
   "remaining_tasks": [
     {
-      "id": 2,
-      "name": "Complete large mixed-library Files perf/OOM gate",
-      "status": "in_progress",
-      "details": "Prepare/select a library with at least 200 browsable gcode files, at least 50 thumbnail-present rows, at least 50 thumbnail-less rows, long filenames and nested folders; capture and parse gfxinfo framestats."
-    },
-    {
       "id": 3,
-      "name": "Execute Ender 5 Plus core print-loop UAT",
-      "status": "not_started"
+      "name": "Live core print-loop UAT",
+      "status": "deferred",
+      "details": "DEFERRED until an official UAT round (Matthew, 2026-06-02). He informally confirmed most behaviors hands-on, but 07-UAT.md stays PENDING — do not mark rows passed without a real recorded run. Requires a real print on a safe file (start/pause/resume/graceful cancel/restart) + safe throwaway delete. Do NOT autonomously start a print."
     }
   ],
   "blockers": [
     {
-      "description": "Existing Ender 5 Plus gcodes listing has only 25 files, below the required 200-file large-library fixture.",
+      "description": "Live print-loop UAT requires a real print on safe hardware/file/conditions — human-driven, deferred to an official UAT round.",
       "type": "human_action",
-      "workaround": "User can prepare a temporary fixture, or resuming agent can propose a clearly named throwaway fixture before any Moonraker file writes."
-    },
-    {
-      "description": "Live print-loop UAT requires safe printer state, a safe start file, and safe throwaway delete file.",
-      "type": "human_action",
-      "workaround": "User performs on-screen UI testing and reports outcomes for 07-UAT.md."
+      "workaround": "Matthew runs the official UAT and reports outcomes for 07-UAT.md."
     }
   ],
   "human_actions_pending": [
     {
-      "action": "Manually verify the reinstalled debug APK UI after fix b1f05f0.",
-      "context": "User explicitly requested to handle on-screen UI testing. The app was reinstalled via adb but not launched or driven afterward.",
-      "blocking": true
-    },
-    {
-      "action": "Prepare or approve a large mixed gcode library fixture for the FILE-02 perf gate.",
-      "context": "Current live Ender 5 Plus library has 25 files. 07-PERF requires 200/50/50 composition before gfxinfo capture.",
-      "blocking": true
-    },
-    {
-      "action": "Run Ender 5 Plus browser-free core print-loop UAT and provide exact pass/fail notes.",
-      "context": "07-UAT.md checklist remains entirely pending and includes print start, pause, resume, graceful cancel, delete idle-only, Files return, and restart fallback checks.",
+      "action": "Run the official live core print-loop UAT and record results into 07-UAT.md, then write 07-06-SUMMARY.md and close the phase.",
+      "context": "Last remaining item for Phase 7. Deferred by Matthew 2026-06-02 until an official UAT round.",
       "blocking": true
     }
   ],
-  "decisions": [
+  "deferred_defects": [
     {
-      "decision": "Use explicit adb path C:\\Android\\Sdk\\platform-tools\\adb.exe instead of PATH lookup.",
-      "rationale": "Windows cmd PATH did not contain adb, but the SDK platform-tools adb.exe was present and saw device 0a64b42e.",
-      "phase": "07"
+      "id": "files-delete-gating",
+      "where": "07-UAT.md Deferred Defects",
+      "summary": "Files Delete blocks deleting ANY file during any print, not just the actively-printing file. Should key off print_stats.filename. Relaxes UI-SPEC 'Delete idle-only' rule."
     },
     {
-      "decision": "Install the fixed debug APK for device UI testing.",
-      "rationale": "The prior release debugsigned APK filename did not exist after assembleRelease; assembleDebug produced a signed installable APK and adb install -r succeeded.",
-      "phase": "07"
+      "id": "status-progress-ring-dual-source-jump",
+      "where": ".planning/todos/pending/status-progress-ring-dual-source-jump.md (commit 015e1b1)",
+      "summary": "Status progress ring jumps down then up on a short print. Not filament-based: PrinterStateReducer lets virtual_sdcard.progress and display_status.progress fight (last-writer-wins). Phase-4 work."
     },
     {
-      "decision": "Expose Files/Restart/Stop for Print Status standby when a LastJob filename exists.",
-      "rationale": "Live print_stats.state can return to standby while the idle screen shows a last-job card; hiding Files in that state blocked the terminal Files path.",
-      "phase": "07"
+      "id": "status-lastjob-red-slash",
+      "where": "unfiled (noted in .continue-here.md)",
+      "summary": "Possible red-diagonal-slash artifact on the Status cancelled last-job card (screenshot 2026-06-02). Unverified intentional vs glitch. Phase-4 Status code."
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Wait for the user's manual UI test result after the debug APK reinstall. If UI passes, update 07-UAT.md and/or continue with large-library fixture planning before gfxinfo capture. Do not drive on-screen UI unless the user asks.",
-  "context_notes": "Phase 7 plans 01-05 are committed. Plan 06 automated verification is green and connected route-render proof is green. The active checkpoint remains open because large-library perf/OOM and live Ender 5 Plus UAT are not complete. .planning/STATE.md is stale for Phase 7 progress; use 07-* summaries and commits as source of truth."
+  "next_action": "When Matthew is ready for the official UAT: run the live core print-loop UAT on a real print (his hardware/safe-file choice — do NOT autonomously start a print), record into 07-UAT.md, write 07-06-SUMMARY.md, close the phase.",
+  "context_notes": "Phase 7 plan 06: task 1 (automated) and task 2 (perf gate) are DONE+committed; only task 3 (live UAT) remains, DEFERRED to an official UAT round. Installed build on flox is the signed RELEASE APK. .planning/STATE.md Phase-7 progress is stale — trust 07-* summaries/PERF/UAT and commits. See .continue-here.md for full detail."
 }
