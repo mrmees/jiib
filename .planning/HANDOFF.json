@@ -1,0 +1,93 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-02T10:47:29-05:00",
+  "phase": "07",
+  "phase_name": "files-print-control-core-print-loop-gate",
+  "phase_dir": ".planning/phases/07-files-print-control-core-print-loop-gate",
+  "plan": 6,
+  "task": 2,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Run automated release verification and record results",
+      "status": "done",
+      "commit": "2c52731"
+    },
+    {
+      "id": 2,
+      "name": "Run flox route-render and large-library Files perf gates",
+      "status": "in_progress",
+      "progress": "ShellPresenceTest route-render gate passed on Nexus 7 / flox and was recorded in 07-PERF.md at commit da9a406. Large-library fixture and gfxinfo perf/OOM capture remain pending."
+    },
+    {
+      "id": "07-05-fix",
+      "name": "Fix terminal Files action grayed out when live print state returns to standby but last-job exists",
+      "status": "done",
+      "commit": "b1f05f0"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 2,
+      "name": "Complete large mixed-library Files perf/OOM gate",
+      "status": "in_progress",
+      "details": "Prepare/select a library with at least 200 browsable gcode files, at least 50 thumbnail-present rows, at least 50 thumbnail-less rows, long filenames and nested folders; capture and parse gfxinfo framestats."
+    },
+    {
+      "id": 3,
+      "name": "Execute Ender 5 Plus core print-loop UAT",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Existing Ender 5 Plus gcodes listing has only 25 files, below the required 200-file large-library fixture.",
+      "type": "human_action",
+      "workaround": "User can prepare a temporary fixture, or resuming agent can propose a clearly named throwaway fixture before any Moonraker file writes."
+    },
+    {
+      "description": "Live print-loop UAT requires safe printer state, a safe start file, and safe throwaway delete file.",
+      "type": "human_action",
+      "workaround": "User performs on-screen UI testing and reports outcomes for 07-UAT.md."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Manually verify the reinstalled debug APK UI after fix b1f05f0.",
+      "context": "User explicitly requested to handle on-screen UI testing. The app was reinstalled via adb but not launched or driven afterward.",
+      "blocking": true
+    },
+    {
+      "action": "Prepare or approve a large mixed gcode library fixture for the FILE-02 perf gate.",
+      "context": "Current live Ender 5 Plus library has 25 files. 07-PERF requires 200/50/50 composition before gfxinfo capture.",
+      "blocking": true
+    },
+    {
+      "action": "Run Ender 5 Plus browser-free core print-loop UAT and provide exact pass/fail notes.",
+      "context": "07-UAT.md checklist remains entirely pending and includes print start, pause, resume, graceful cancel, delete idle-only, Files return, and restart fallback checks.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Use explicit adb path C:\\Android\\Sdk\\platform-tools\\adb.exe instead of PATH lookup.",
+      "rationale": "Windows cmd PATH did not contain adb, but the SDK platform-tools adb.exe was present and saw device 0a64b42e.",
+      "phase": "07"
+    },
+    {
+      "decision": "Install the fixed debug APK for device UI testing.",
+      "rationale": "The prior release debugsigned APK filename did not exist after assembleRelease; assembleDebug produced a signed installable APK and adb install -r succeeded.",
+      "phase": "07"
+    },
+    {
+      "decision": "Expose Files/Restart/Stop for Print Status standby when a LastJob filename exists.",
+      "rationale": "Live print_stats.state can return to standby while the idle screen shows a last-job card; hiding Files in that state blocked the terminal Files path.",
+      "phase": "07"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Wait for the user's manual UI test result after the debug APK reinstall. If UI passes, update 07-UAT.md and/or continue with large-library fixture planning before gfxinfo capture. Do not drive on-screen UI unless the user asks.",
+  "context_notes": "Phase 7 plans 01-05 are committed. Plan 06 automated verification is green and connected route-render proof is green. The active checkpoint remains open because large-library perf/OOM and live Ender 5 Plus UAT are not complete. .planning/STATE.md is stale for Phase 7 progress; use 07-* summaries and commits as source of truth."
+}
