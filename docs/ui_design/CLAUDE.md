@@ -40,6 +40,26 @@
   icon or ≤3-char value scaled to ~75% of its constraining dimension — no text labels (the Gutter
   is exempt; it keeps icon+label). When a cell must show a value AND its source, overlay the value
   on a large background glyph (e.g. the big axis letter behind the live X/Y/Z value).
+- **Scrollable Fields disable the swipe-up drawer.** The global nav affordance is a swipe-up App
+  Drawer — EXCEPT on any screen whose Field is a finger-scrollable list (Files; console later): a
+  full-canvas vertical-drag detector fights the list's own scroll. Those screens suppress the swipe
+  and MUST keep an explicit exit in the Gutter (e.g. Files' "Cancel picker"). (2026-06-02.)
+- **Content images fit, they don't crop.** A thumbnail/preview shown as content — including as a
+  dimmed card background — uses `Fit` so the WHOLE image is visible, centered/letterboxed on the
+  surface. `Crop` zooms into a center strip in the tall, narrow landscape Focus/Field panes (it
+  violates sacred aspect ratios, LAYOUT §2). The one exception is a deliberately *circular* fill
+  (the Print Status ring center), which is meant to be filled. (2026-06-02.)
+- **Image-backed info card (shared grammar).** A panel pairing a preview with details uses ONE
+  grammar: the dimmed thumbnail as the background with left-aligned, vertically-centered icon-led
+  stat lines overlaid (the "overlay the value on a large background" rule applied to a whole card).
+  Shared by Print Status' last-job card and the Files Focus — they differ only in WHICH fields show
+  (Files Focus = future-print fields only: est time · filament · layers · height · size · modified —
+  never elapsed/finished/status, which are job history). Filenames render in Geist Mono (a filename
+  is a data value). (2026-06-02.)
+- **Panel text fills the box.** A text block in a panel takes the FULL width of its cell, never an
+  arbitrary inner ruler width. Size the text to fit up to the box; only a single line that genuinely
+  overflows the full width may marquee-scroll. (Locking scroll lines to a narrower width reads as
+  "stopping mid-screen.") (2026-06-02.)
 - **Theme-able via tokens.** Dark-first baseline; everything routes through semantic tokens
   (`--bg/--surface/--text/--outline/--accent/--heat/--go/--stop` …). See THEMING.md.
 

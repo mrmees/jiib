@@ -169,3 +169,27 @@ Accent reserved for: selected file row, selected thumbnail/focus outline, active
 - [x] Dimension 6 Registry Safety: PASS
 
 **Approval:** approved 2026-06-02
+
+---
+
+## Post-Build Revisions (on-device polish, 2026-06-02)
+
+The Codex-built first pass missed several basics; fixed live on flox with Matthew. These refine the
+contract above — design-system laws were also synced into `docs/ui_design/CLAUDE.md` + `LAYOUT.md`.
+
+- **Files Focus is the "future-print" image-backed card** (supersedes "square thumbnail then overlay").
+  Dimmed gcode thumbnail BACKGROUND + left-aligned, vertically-centered icon-led stat lines OVERLAID,
+  mirroring the Print Status last-job card. Shows ONLY future-print fields — filename (Geist Mono),
+  est time, filament (mm · g), layers, height, size, modified — never elapsed/finished/status. The
+  Delete action (idle-only) stays in the Focus, as a full-width red button beneath the card.
+- **Content image uses `Fit`, not `Crop`** (Files Focus AND Status last-job card): show the whole
+  preview, letterboxed — `Crop` zoomed into a center strip in the tall landscape panes. Global law.
+- **Thumbnail size by surface:** list rows pull the SMALLEST `thumbnails[]` variant (≈32px — cheap to
+  decode per cell on the Adreno-320 floor); the Focus card pulls the LARGEST. (Codex pulled the
+  300×300 for every row.)
+- **Hidden (dotfile) directories are filtered** from the browser (`.thumbs`, `.git`, …) — Moonraker
+  machinery, and hiding them cuts misclicks/confusion. Folders only; printable gcode never starts with `.`.
+- **Swipe-up App Drawer suppressed on Files** (its Field is a finger-scrollable RecyclerView); exit via
+  the "Cancel picker" gutter button. Global law for any scroll-Field screen.
+- **Panel text fills the full cell width**, marquee-scrolling only on genuine overflow (removed the
+  prior locked-to-stat-block width on the Status card). Global law.

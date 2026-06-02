@@ -84,6 +84,18 @@ a region is centered.
 - **Status via color, not a dedicated cell** (e.g. axis label green = homed / amber = unhomed).
 - **Output-only live values need no Apply** — a single amber Back is enough; only committed
   setpoints (heaters) get Cancel / Apply.
+- **Content images fit, never crop.** A thumbnail/preview shown as content (incl. as a dimmed card
+  background) uses `Fit` — the whole image, centered/letterboxed on the surface. `Crop` zooms into a
+  center strip in the tall/narrow landscape panes (violates NON-NEGOTIABLE 2). Exception: a circular
+  fill (Print Status ring center) is meant to be filled.
+- **Image-backed info card.** A preview-plus-details panel = dimmed thumbnail BACKGROUND + left-
+  aligned, vertically-centered icon-led stat lines OVERLAID (one grammar; Print Status last-job card
+  and Files Focus share it, differing only in which fields show). Filenames are Geist Mono.
+- **Panel text fills the cell width.** A text block takes the FULL cell width, not an arbitrary inner
+  ruler. Size text to fit up to the box; a single line that overflows the full width may marquee —
+  never lock scroll lines to a narrower width (reads as stopping mid-screen).
+- **Scroll Field ⇒ no swipe-up drawer.** A screen whose Field is a finger-scrollable list suppresses
+  the global swipe-up App Drawer (the drag fights the scroll) and keeps an explicit Gutter exit.
 
 ## CSS scaffold (`hifi.css`)
 

@@ -53,6 +53,15 @@ If any item fails:
 - Record reproduction steps.
 - Do not mark the item passed.
 
+## Deferred Defects (fix + verify in a future UAT round)
+
+- **Delete gating is too broad.** `FilesScreen` computes `deleteEnabled = selected != null &&
+  !printingActive`, where `printingActive` is the GLOBAL print state. So while any print runs, Delete
+  is disabled for EVERY file — not just the one being printed. Desired: only block deleting the file
+  that is currently printing (the active `print_stats.filename`); other idle files stay deletable
+  during a print. NOTE: this relaxes the original UI-SPEC "Delete is idle-only" rule — confirm the
+  rule change when fixing. (Found 2026-06-02 on-device; deferred per Matthew.)
+
 ## Gate Result
 
 PENDING - Phase 7 live print-loop UAT is not complete.
