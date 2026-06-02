@@ -24,7 +24,16 @@
 
 ## flox Regression
 
-**Status:** PENDING - blocking human verification checkpoint not approved yet.
+**Status:** PENDING - release APK built/installed/launched on flox; blocking human regression approval still required.
+
+### Build/Install Evidence
+
+Recorded 2026-06-02T12:11:59Z:
+
+- `set -o pipefail; /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleRelease --no-daemon" | tr -d '\r'` - PASS, `BUILD SUCCESSFUL in 56s`.
+- `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\sign-release.bat app\build\outputs\apk\release\app-armeabi-v7a-release-unsigned.apk app\build\outputs\apk\release\app-armeabi-v7a-release-debugsigned.apk" | tr -d '\r'` - PASS, `SIGN_EXIT=0`.
+- `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\Sdk\platform-tools\adb.exe -s 0a64b42e install -r app\build\outputs\apk\release\app-armeabi-v7a-release-debugsigned.apk" | tr -d '\r'` - PASS, `Success`.
+- `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\Sdk\platform-tools\adb.exe -s 0a64b42e shell monkey -p works.mees.dinghy -c android.intent.category.LAUNCHER 1" | tr -d '\r'` - PASS, `Events injected: 1`.
 
 Run only after the automated gates above are green:
 
