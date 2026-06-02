@@ -1348,6 +1348,39 @@
         "ender3"
       ],
       "reason": "Neither server.info capture listed Moonraker power; future power-device UI must query live component/device APIs."
+    },
+    {
+      "predicate": {
+        "type": "object_present",
+        "name": "force_move"
+      },
+      "printer_ids": [
+        "ender5plus",
+        "ender3"
+      ],
+      "reason": "The 2026-06-02 objects.list captures do not expose a force_move status object; FORCE_MOVE appears in gcode-help positives, so predicate reconciliation should use gcode-command evidence rather than object presence."
+    },
+    {
+      "predicate": {
+        "type": "macro_present",
+        "name": "LOAD_FILAMENT"
+      },
+      "printer_ids": [
+        "ender5plus",
+        "ender3"
+      ],
+      "reason": "The 2026-06-02 captures expose private _LOAD_FILAMENT macros but not a public LOAD_FILAMENT macro; Extrude UI must keep live macro gating/fallback behavior."
+    },
+    {
+      "predicate": {
+        "type": "macro_present",
+        "name": "UNLOAD_FILAMENT"
+      },
+      "printer_ids": [
+        "ender5plus",
+        "ender3"
+      ],
+      "reason": "The 2026-06-02 captures expose private _UNLOAD_FILAMENT macros but not a public UNLOAD_FILAMENT macro; Extrude UI must keep live macro gating/fallback behavior."
     }
   ],
   "unknown": []
