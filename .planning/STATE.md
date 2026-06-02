@@ -31,7 +31,7 @@ Status: Ready to plan
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
   → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
-Last activity: 2026-06-01
+Last activity: 2026-06-01 - Completed quick task 260601-sip: Status Inc 2 print metadata (ring thumbnail + layers/height/remaining)
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -155,6 +155,12 @@ None yet.
 - [Phase 4 / 04-03] PAUSED at Task 5 — `checkpoint:human-verify` (gate="blocking"). Tasks 1–4 complete + committed; the FGS owns the spine, the instrumented `ServiceSurvivesRotationTest` PASSED on flox (sessionInstanceId continuity). AWAITING human on-device sign-off: manual rotation + screen-off with the Ender 5 Plus reachable, persistent key-free notification visual check, and `adb logcat -s DinghySpine` id-sequence capture. Resume with "approved" or report the observed id sequence / what dropped. Plan NOT advanced past the unmet checkpoint.
 - [Phase 4 / 04-06b] BLOCKED at Task 2 — checkpoint:human-verify (gate=blocking). Task 1 (heater sparkline via GraphViewHost wired into the reserved Print Status Field slot, recolors on theme flip) COMPLETE + committed (6deb8d5). Combined-render perf gate NOT measured: production MainActivity is still the Phase-1 scaffold placeholder (no routing/PrintStatusScreen) and NO harness composes the real combined surface (ring+sparkline+grid+gutter). Release built/signed/installed on flox (0a64b42e) but launches to the scaffold stub. Perf numbers NOT fabricated. Plan counter NOT advanced; ROADMAP NOT updated. Unblock: wire MainActivity->TopRoute->PrintStatusScreen (or a combined-surface harness) + live Ender 5 Plus, then run the gfxinfo two-part gate.
 - [Phase 3 / 03-08 gap-closure] OPEN at Task 4 — checkpoint:human-verify (gate=blocking). Tasks 1-3 complete + committed (32a613a/022e8e6/0b34a84): full unit suite green, debug APK (app-armeabi-v7a-debug.apk) reinstalled on flox (0a64b42e) + gallery launched. AWAITING on-device re-check of all four gaps: G-3 tap-to-set on the ScrubberPage fill bar, G-2 shared bar/button width, G-4 ConfirmGuard scrim opacity, G-1 gallery dark/light/custom page bg. Resume with 'approved' or describe which gap(s) still read wrong. Plan NOT advanced past the unmet checkpoint.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260601-sip | Status Inc 2 — one-shot `server.files.metadata` (keyed on filename) lights up ring thumbnail (Coil 3) + Layer total (`layer_count`) + Z final-height (`object_height`) + Remaining (`estimated_time × (1−progress)`); strict catalog fidelity, graceful "—" degradation. compile + full release unit suite green. On-device thumbnail/ETA check Matthew-driven. | 2026-06-01 | 5c1302b | [260601-sip-status-print-metadata](./quick/260601-sip-status-print-metadata/) |
 
 ## Deferred Items
 
