@@ -17,6 +17,7 @@ import works.mees.dinghy.config.ConnectionStore
 import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.ThemePrefs
@@ -96,6 +97,10 @@ class AppContainer(
     /** Live one-shot-per-filename gcode metadata; null when idle / unavailable (260601-sip Inc 2). */
     val printMetadata: Flow<PrintMetadata?> =
         spine.flatMapLatest { it?.metadata ?: flowOf(null) }
+
+    /** Live one-shot-on-idle last completed job; null when no history / idle (260601-th9 Inc 3). */
+    val lastJob: Flow<LastJob?> =
+        spine.flatMapLatest { it?.lastJob ?: flowOf(null) }
 
     /** The current session's REST base for thumbnail URLs; "" when idle (260601-sip Inc 2). */
     val httpBase: Flow<String> = spine.map { it?.httpBase ?: "" }

@@ -115,6 +115,10 @@ object JsonRpcMethods {
     // estimated_time; fetched ONCE per active print filename for the Status home derived cells.
     const val FILES_METADATA = "server.files.metadata"
 
+    // One-shot most-recent job history (260601-th9 Inc 3) — server.history.list?limit=1&order=desc;
+    // fetched ONCE per not-printing transition for the idle Status "last completed job" card.
+    const val HISTORY_LIST = "server.history.list"
+
     // Notifications (server → client, no id)
     const val NOTIFY_STATUS_UPDATE = "notify_status_update"
     const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"

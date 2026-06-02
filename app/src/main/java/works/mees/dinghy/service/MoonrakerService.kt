@@ -35,6 +35,7 @@ import works.mees.dinghy.net.MoonrakerSocket
 import works.mees.dinghy.net.SocketEvent
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -142,6 +143,19 @@ class MoonrakerService : Service() {
             }.getOrNull()
         }
 
+        // One-shot-on-idle last completed job (260601-th9 Inc 3). Fires a single
+        // server.history.list?limit=1&order=desc read each time the printer enters a not-printing state
+        // (initial idle connect + every print-complete edge); never polled. Best-effort — a rejected/
+        // absent read leaves the card at its prior value; count==0 → null empty-state.
+        val lastJobHolder = LastJobHolder(serviceScope, store.printerState) {
+            runCatching {
+                rpc.request(
+                    JsonRpcMethods.HISTORY_LIST,
+                    buildJsonObject { put("limit", 1); put("order", "desc") },
+                )
+            }.getOrNull()
+        }
+
         val id = idCounter.incrementAndGet()
         val handle = SpineHandle(
             printerState = store.printerState,
@@ -156,6 +170,7 @@ class MoonrakerService : Service() {
             temperatureBackfill = store.temperatureBackfill,
             httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
+            lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
             sessionInstanceId = id,
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.

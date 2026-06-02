@@ -63,6 +63,7 @@ class AppContainerTest {
             temperatureBackfill = store.temperatureBackfill,
             httpBase = "http://test:7125",
             metadata = MutableStateFlow(null),
+            lastJob = MutableStateFlow(null),
             sessionInstanceId = id,
         )
     }

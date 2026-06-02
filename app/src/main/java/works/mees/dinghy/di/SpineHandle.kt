@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
@@ -67,6 +68,13 @@ data class SpineHandle(
      * Remaining cells as soon as a print's metadata is fetched.
      */
     val metadata: StateFlow<PrintMetadata?>,
+    /**
+     * One-shot-per-not-printing-transition last completed job (260601-th9 Inc 3). Written when the
+     * printer enters a not-printing state (server.history.list, NOT the throttled hot path); null when
+     * no history / unavailable (the empty-state signal). A collector reacts the instant the read lands —
+     * so the idle Status field shows the "last completed job" card as soon as the history is fetched.
+     */
+    val lastJob: StateFlow<LastJob?>,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
 )
