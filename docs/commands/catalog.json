@@ -6987,13 +6987,13 @@
         "name": "pause_resume"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the print-control JSON-RPC request; Dinghy does not treat the acknowledgement alone as user-visible success.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy treats the request acknowledgement as transport success only; user-visible success is confirmed when print_stats.state reports cancelled or leaves the active printing state."
     },
     {
       "id": "MR-printer.print.pause",
@@ -7018,13 +7018,13 @@
         "name": "pause_resume"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the print-control JSON-RPC request; Dinghy does not treat the acknowledgement alone as user-visible success.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy treats the request acknowledgement as transport success only; user-visible success is confirmed when print_stats.state becomes paused and pause_resume.is_paused is true."
     },
     {
       "id": "MR-printer.print.resume",
@@ -7049,13 +7049,13 @@
         "name": "pause_resume"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the print-control JSON-RPC request; Dinghy does not treat the acknowledgement alone as user-visible success.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy treats the request acknowledgement as transport success only; user-visible success is confirmed when print_stats.state returns to printing and pause_resume.is_paused is false."
     },
     {
       "id": "MR-printer.print.start",
@@ -7084,13 +7084,13 @@
         "name": "virtual_sdcard"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the print-control JSON-RPC request; Dinghy does not treat the acknowledgement alone as user-visible success.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy treats the request acknowledgement as transport success only; user-visible success is confirmed from print_stats.filename/state and virtual_sdcard progress after the printer reports the new job."
     },
     {
       "id": "MR-printer.query_endstops.status",
@@ -7653,13 +7653,13 @@
         "name": "file_manager"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the file-manager JSON-RPC request; Dinghy validates user-visible success through holder state.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy confirms delete success from a refreshed directory listing that no longer contains the deleted file."
     },
     {
       "id": "MR-server.files.get_directory",
@@ -7690,13 +7690,13 @@
         "name": "file_manager"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the file-manager JSON-RPC request; Dinghy validates user-visible success through holder state.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy confirms browse success from the returned directory payload rendered by the Files holder; malformed or missing data degrades to empty state."
     },
     {
       "id": "MR-server.files.list",
@@ -7913,13 +7913,13 @@
         "name": "file_manager"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Phase 7 runtime sends."
       },
-      "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
-      "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "success_semantics": "Moonraker acknowledges receipt of the file-manager JSON-RPC request; Dinghy validates user-visible success through holder state.",
+      "error_semantics": "Moonraker JSON-RPC errors are surfaced by JsonRpcClient or CommandDispatcher without fabricating success.",
+      "acceptance_semantics": "Dinghy confirms thumbnail availability from returned thumbnail metadata; absence degrades to a non-blocking fallback image state."
     },
     {
       "id": "MR-server.files.zip",

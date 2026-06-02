@@ -1932,6 +1932,174 @@
           "evidence": "object toolhead listed in /printer/objects/list capture."
         }
       ]
+    },
+    {
+      "catalog_id": "MR-server.files.get_directory",
+      "name": "server.files.get_directory",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "file_manager"
+      },
+      "predicate_key": "component_present:file_manager",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.files.thumbnails",
+      "name": "server.files.thumbnails",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "file_manager"
+      },
+      "predicate_key": "component_present:file_manager",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.files.delete_file",
+      "name": "server.files.delete_file",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "file_manager"
+      },
+      "predicate_key": "component_present:file_manager",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.print.start",
+      "name": "printer.print.start",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "virtual_sdcard"
+      },
+      "predicate_key": "object_present:virtual_sdcard",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object virtual_sdcard listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object virtual_sdcard listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.print.pause",
+      "name": "printer.print.pause",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "pause_resume"
+      },
+      "predicate_key": "object_present:pause_resume",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.print.resume",
+      "name": "printer.print.resume",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "pause_resume"
+      },
+      "predicate_key": "object_present:pause_resume",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.print.cancel",
+      "name": "printer.print.cancel",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "pause_resume"
+      },
+      "predicate_key": "object_present:pause_resume",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object pause_resume listed in /printer/objects/list capture."
+        }
+      ]
     }
   ],
   "not_on_printers": [
