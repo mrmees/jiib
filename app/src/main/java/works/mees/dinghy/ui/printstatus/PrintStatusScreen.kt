@@ -32,11 +32,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
@@ -50,8 +54,10 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.HeaterState
+import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -70,9 +76,13 @@ import works.mees.dinghy.theme.fsSp
  *    (cur/target) · ELAPSED (print_duration) · REMAINING (— until Inc 2 brings the slicer ETA).
  *  - **Gutter**: Stop (wired e-stop + [ConfirmGuard]); Tune/Pause are disabled placeholders.
  *
+ * ## Inc 2 (this pass — ONE cached `server.files.metadata` read, keyed on the active filename)
+ *  - **Ring center**: the gcode thumbnail (Coil 3 [AsyncImage]) while printing; idle → Benchy.
+ *  - **Layer**: total = live `print_stats.info.total_layer`, falling back to metadata `layer_count`.
+ *  - **Z cell**: live Z stays the active value; metadata `object_height` is the inactive (final-height) line.
+ *  - **Remaining**: slicer-file ETA = `estimated_time × (1 − progress)`, formatted H:MM, "—" when unknown.
+ *
  * ## Deferred
- *  - Inc 2: `server.files.metadata` one-shot → thumbnail in the ring + total filament/layers + the
- *    slicer-file-estimate ETA (REMAINING / FINISH BY).
  *  - Inc 3: tap a temp cell → its setting page; wire the mid-print Tune button.
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
@@ -84,6 +94,8 @@ fun PrintStatusScreen(
 ) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
+    val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
 
     var showEstopGuard by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
@@ -106,13 +118,13 @@ fun PrintStatusScreen(
 
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
-            focus = { PrintStatusFocus(state = state) },
+            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
             field = {
                 Column(
                     Modifier.fillMaxSize().padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    StatGrid(state = state, modifier = Modifier.fillMaxWidth().weight(1f))
+                    StatGrid(state = state, metadata = metadata, modifier = Modifier.fillMaxWidth().weight(1f))
                     failureText?.let { msg ->
                         SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                     }
@@ -158,8 +170,13 @@ fun PrintStatusScreen(
  * else "Ready". Temps are NOT repeated here — they live in the field grid (Matthew, 2026-06-01).
  */
 @Composable
-private fun PrintStatusFocus(state: PrinterState) {
+private fun PrintStatusFocus(
+    state: PrinterState,
+    metadata: PrintMetadata? = null,
+    httpBase: String = "",
+) {
     val t = LocalTokens.current
+    val context = LocalContext.current
     val printing = state.printState == PrintState.Printing || state.printState == PrintState.Paused
     BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
         // The ring is ~90% of the focus's SMALLER dimension (largest circle that fits, both orientations).
@@ -174,7 +191,11 @@ private fun PrintStatusFocus(state: PrinterState) {
                     modifier = Modifier.fillMaxSize(),
                 )
                 // Preview slot: ~90% of the ring, circle-clipped (corners drop — preview isn't edge-to-edge).
-                // Idle → the Benchy no-job image (theme-accent tinted); Inc 2 puts the gcode thumbnail here.
+                // Idle → the Benchy no-job image (theme-accent tinted). Printing → the gcode thumbnail
+                // (Coil 3) when a metadata thumbnail URL is available, else the center stays EMPTY (the
+                // ring + % still read — never show Benchy while printing).
+                val thumbRel = metadata?.largestThumbRelPath
+                val filename = state.printFilename
                 Box(
                     Modifier.fillMaxSize(0.9f).align(Alignment.Center).clip(CircleShape),
                     contentAlignment = Alignment.Center,
@@ -185,6 +206,17 @@ private fun PrintStatusFocus(state: PrinterState) {
                             contentDescription = null,
                             tint = t.accent2,
                             modifier = Modifier.fillMaxWidth().aspectRatio(1600f / 900f),
+                        )
+                    } else if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
+                        // Default Coil loader (coil-network-okhttp on the classpath) — cleartext to the
+                        // LAN printer rides the same NSC posture as the websocket/REST.
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(thumbnailUrl(httpBase, filename, thumbRel))
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -211,7 +243,7 @@ private fun PrintStatusFocus(state: PrinterState) {
                     )
                 }
                 Text(
-                    text = "Z ${fmtZ(state)} · Layer ${state.currentLayer ?: "—"}/${state.totalLayer ?: "—"}",
+                    text = "Z ${fmtZ(state)} · Layer ${state.currentLayer ?: "—"}/${totalLayers(state, metadata)}",
                     color = t.text2,
                     fontFamily = GeistMono,
                     fontSize = fsSp(16f, t.fs).sp,
@@ -229,7 +261,7 @@ private fun PrintStatusFocus(state: PrinterState) {
  * The "final height" (Z) and Remaining (ETA) need file metadata → "—" until Inc 2.
  */
 @Composable
-private fun StatGrid(state: PrinterState, modifier: Modifier = Modifier) {
+private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val nozzle = primaryHeater(state)
     val bed = state.heaters["heater_bed"]
@@ -237,13 +269,15 @@ private fun StatGrid(state: PrinterState, modifier: Modifier = Modifier) {
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTwoRowCell(
                 icon = { sp -> MaterialSymbol("altitude", tint = t.text2, sizeSp = sp) },
-                active = fmtZ(state), inactive = "—", activeColor = t.text,
+                // Active = live Z; inactive = metadata object_height (final print height context), "—" when absent.
+                active = fmtZ(state), inactive = metadata?.objectHeight?.let { fmt(it) } ?: "—", activeColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
                 icon = { sp -> MaterialSymbol("layers", tint = t.text2, sizeSp = sp) },
                 active = state.currentLayer?.toString() ?: "—",
-                inactive = state.totalLayer?.toString() ?: "—",
+                // Total = live slicer value preferred, metadata layer_count as the reliable fallback.
+                inactive = totalLayers(state, metadata),
                 activeColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -266,9 +300,12 @@ private fun StatGrid(state: PrinterState, modifier: Modifier = Modifier) {
                 value = fmtDuration(state.printDuration), valueColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+            // Remaining = slicer-file estimate × (1 − live progress) → H:MM; "—" when estimate unknown.
+            val remainingSeconds = metadata?.estimatedTime?.let { it * (1.0 - state.progress.coerceIn(0.0, 1.0)) }
+            val remaining = remainingSeconds?.takeIf { it > 0.0 }?.let { fmtDuration(it) } ?: "—"
             IconValueCell(
                 icon = { sp -> MaterialSymbol("timer_arrow_down", tint = t.text2, sizeSp = sp) },
-                value = "—", valueColor = t.text3,
+                value = remaining, valueColor = if (remaining != "—") t.text else t.text3,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
@@ -388,6 +425,13 @@ private fun tempInactive(h: HeaterState?): String =
 /** Live Z height (mm, 1 decimal) from gcode_position[2]; "—" until a position is known. */
 private fun fmtZ(state: PrinterState): String =
     state.gcodePosition?.getOrNull(2)?.let { fmt(it) } ?: "—"
+
+/**
+ * Total layers: live slicer value (`print_stats.info.total_layer`) preferred, metadata `layer_count`
+ * as the reliable fallback (catalog), else "—". Never fabricated (docs/moonraker-capabilities.md).
+ */
+private fun totalLayers(state: PrinterState, metadata: PrintMetadata?): String =
+    (state.totalLayer ?: metadata?.layerCount)?.toString() ?: "—"
 
 /** Duration as H:MM (≥1h) or M:SS (<1h); "—" when zero/none. */
 private fun fmtDuration(seconds: Double): String {
