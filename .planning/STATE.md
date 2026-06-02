@@ -31,7 +31,7 @@ Status: Ready to plan
   → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
   → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
   → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
-Last activity: 2026-06-01 - Completed quick task 260601-sip: Status Inc 2 print metadata (ring thumbnail + layers/height/remaining)
+Last activity: 2026-06-01 - Completed quick task 260601-th9: Status Inc 3 idle field (last-job card + file_copy_off empty state via server.history.list)
 
 Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
 
@@ -161,6 +161,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260601-sip | Status Inc 2 — one-shot `server.files.metadata` (keyed on filename) lights up ring thumbnail (Coil 3) + Layer total (`layer_count`) + Z final-height (`object_height`) + Remaining (`estimated_time × (1−progress)`); strict catalog fidelity, graceful "—" degradation. compile + full release unit suite green. On-device thumbnail/ETA check Matthew-driven. | 2026-06-01 | 5c1302b | [260601-sip-status-print-metadata](./quick/260601-sip-status-print-metadata/) |
+| 260601-th9 | Status Inc 3 — idle FIELD area is state-driven by `print_stats.state`: printing→StatGrid (unchanged); idle+history→`LastJobCard` (thumbnail + stats from a ONE-shot `server.history.list?limit=1&order=desc`, fetched on each printing→idle edge, never polled); idle+none→centered `file_copy_off`. Both idle surfaces are clickable `TODO(nav)` seams (past-print detail / file browser destinations NOT built). history.list+totals shape captured live → recorded in docs/moonraker-capabilities.md. compile + full release suite green; Inc 2 parse test un-regressed by the shared thumbnail-pick refactor. On-device UAT Matthew-driven. | 2026-06-01 | c8584ed | [260601-th9-status-last-job-summary](./quick/260601-th9-status-last-job-summary/) |
 
 ## Deferred Items
 
