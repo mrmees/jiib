@@ -20,7 +20,7 @@ reviewed_at: 2026-06-02T00:00:00Z
 |----------|-------|
 | Tool | Native Android hybrid Dinghy design system; no shadcn (not a React/Next/Vite project — shadcn gate not applicable) |
 | Preset | not applicable |
-| Component library | Existing primitives: `ScreenScaffold` (Focus/Field/Gutter), `OutlinedControl` (intent-colored 2px-outline control), `ConfirmGuard`, `SeverityToast` (PRIM-04), `NumpadPage`, `ScrubberPage`, `MaterialSymbol`. Console scrollback reuses the proven RecyclerView-in-`AndroidView` pattern from `ui/files/FileListView.kt` + `RingBuffer.kt` backing store |
+| Component library | Existing primitives: `ScreenScaffold` (Focus/Field/Gutter), `OutlinedControl` (intent-colored 2px-outline control), `ConfirmGuard`, `SeverityToast` (PRIM-04), `NumpadPage`, `ScrubberPage`, `MaterialSymbol`. Console scrollback reuses the proven RecyclerView-in-`AndroidView` pattern from `ui/files/FileListView.kt`, backed by the new object-typed `state/ConsoleScrollback.kt` (NOT `render/RingBuffer.kt`, which is FloatArray-only and cannot hold ConsoleLine — S1) |
 | Icon library | Material Symbols via the local `MaterialSymbol` wrapper |
 | Font | Geist for UI text; **Geist Mono (tabular) is mandatory for all console lines, macro names, and parameter values** (a console line is data; a macro name is a data value) |
 
@@ -89,7 +89,7 @@ Accent reserved for: bookmarked/selected-macro state, the active state of a filt
 ### Console Screen (read-only — D-01)
 
 - Built on `ScreenScaffold`. **Field-only screen**: the Field IS the scrollback list; Focus is omitted (the freed height goes to scrollback — "fill the usable space").
-- Console scrollback is the **3rd Views-in-Compose scroll surface** (D-05). Apply the Files scroll lesson VERBATIM: real RecyclerView in `AndroidView` over-measures and composites over neighbors unless pinned — `BoxWithConstraints` → `.height(maxHeight)` **+ `Modifier.clipToBounds()`**. Reuse the `ui/files/FileListView.kt` pattern; back the bounded scrollback with `render/RingBuffer.kt`.
+- Console scrollback is the **3rd Views-in-Compose scroll surface** (D-05). Apply the Files scroll lesson VERBATIM: real RecyclerView in `AndroidView` over-measures and composites over neighbors unless pinned — `BoxWithConstraints` → `.height(maxHeight)` **+ `Modifier.clipToBounds()`**. Reuse the `ui/files/FileListView.kt` pattern; back the bounded scrollback with the object-typed `state/ConsoleScrollback.kt` (an ArrayDeque-backed `ConsoleLine` ring) — NOT `render/RingBuffer.kt`, which is FloatArray-only (S1).
 - **The global swipe-up App Drawer gesture MUST be suppressed on this screen** (scroll-Field law) — the full-canvas vertical-drag detector fights the list scroll. Keep an explicit **Back** exit in the Gutter (green, per safety doctrine — backing out changes nothing).
 - Each line: severity marker/color + the raw response text in Geist Mono, left-aligned, full cell width (panel-text-fills-the-box law). Timestamp display per line is **planner's discretion** (D-02 discretion) — if shown, render in `--text-3` faint, leading, monospace.
 - **Auto-scroll stick-to-bottom** unless the user has scrolled up (then hold position; new lines accrue below). Sensible scrollback bound ~1000 lines (planner may tune, D-02).
@@ -135,7 +135,7 @@ Accent reserved for: bookmarked/selected-macro state, the active state of a filt
 
 ### Performance And Accessibility (Adreno-320 floor)
 
-- Console list is RecyclerView + `RingBuffer` through the Compose shell; lines append without per-line recomposition of the tree. No looping/continuous animation (static glow only — Adreno-320 budget).
+- Console list is RecyclerView + `ConsoleScrollback` (the object-typed ArrayDeque-backed ring — NOT the FloatArray `RingBuffer`, S1) through the Compose shell; lines append without per-line recomposition of the tree. No looping/continuous animation (static glow only — Adreno-320 budget).
 - No animated list insertion, no shimmer, no breathing.
 - Every control has an accessible label/content description; gutter controls keep icon+label where space allows.
 - Action glyphs never repeat on one surface (filter toggles, Execute/Cancel, Back must use distinct glyphs or ≤3-char text labels).

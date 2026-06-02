@@ -147,9 +147,9 @@ The exact Mainsail filter regexes and the macro-param regex are extracted verbat
 - `time` (float) — Unix epoch seconds (for optional timestamp display + the dedup/cleared-since cut).
 - `type` (string) — **exactly two values: `"command"`** (a gcode command Moonraker received via its API) **and `"response"`** (a reply from the printer). `[CITED: moonraker.readthedocs.io]` Mainsail further reclassifies a `"response"` whose message starts with `// action:` → `action` and `// debug:` → `debug` at render time. `[VERIFIED: mainsail src/store/server/actions.ts:addEvent]`
 
-**Retention:** Moonraker's `gcode_store_size` config default is **1000 entries**. `[CITED: moonraker.readthedocs.io]` So a `count` of ~1000 backfills the whole server-side buffer; the project's ~1000-line client scrollback (D-02) aligns 1:1.
+**Retention (capped FIFO cache — NOT deduplicated):** Moonraker's `gcode_store` is a plain capped FIFO array (`gcode_store_size` config default **1000 entries**) — it does NOT deduplicate entries. `[CITED: moonraker.readthedocs.io]` So a `count` of ~1000 backfills the whole server-side buffer; the project's ~1000-line client scrollback (D-02) aligns 1:1. (N1: the word "dedup" below refers to the CLIENT-side strategy for avoiding double-display on reconnect — the server cache itself does no dedup; full replace is what avoids client-side append duplicates.)
 
-**Dedup strategy for reconnect (D-02 — "do not silently drop lines that arrived while disconnected"):**
+**Reconnect strategy — capped FIFO cache; full replace avoids client-side append duplicates (D-02 — "do not silently drop lines that arrived while disconnected"):**
 
 The critical insight from the Mainsail fork: on **every** (re)connect, Moonraker's `gcode_store` returns the *entire* retained server-side buffer — including any lines emitted while the client was disconnected (Moonraker keeps caching server-side regardless of client presence). Mainsail therefore does **`clearGcodeStore()` then `setGcodeStore(snapshot)`** on each connect — a **full replace**, NOT an append-merge. `[VERIFIED: mainsail src/store/server/actions.ts:getGcodeStore + src/store/printer/actions.ts:init]`
 

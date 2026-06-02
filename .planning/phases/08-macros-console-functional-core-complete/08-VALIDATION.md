@@ -54,8 +54,9 @@ created: 2026-06-02
 | 08-06-01 | 06 | 3 | MACRO-01 / MACRO-03 | — | Capability-gated; underscore-default-hide | unit | `:app:testReleaseUnitTest --tests *MacroHolderTest*` | ❌ W0 | ⬜ pending |
 | 08-06-02 | 06 | 3 | MACRO-01 / MACRO-02 | T-08-06-T1 (block_on:high) | Execute routes raw param → MacroInvocation.build → scriptParams (sanitizer in path) | build (assemble) | `:app:assembleRelease` | n/a (build) | ⬜ pending |
 | 08-06-03 | 06 | 3 | MACRO-01 / MACRO-03 | — | Selected-state accent; no dead tiles when capability absent | build (assemble) | `:app:assembleRelease` | n/a (build) | ⬜ pending |
-| 08-07-01 | 07 | 4 | MACRO-01..03 / CONS-02 | — | Drawer-swipe suppressed on scroll-Fields; session-owned holders | build (assemble) | `:app:assembleRelease` | n/a (build) | ⬜ pending |
-| 08-07-02 | 07 | 4 | MACRO-01..03 / CONS-02 | T-08-07-T (block_on:high) / T-08-07-A | On-device: injection neutralized live; console backfills/recovers; scroll holds Adreno-320 floor | manual (on-device UAT + gfxinfo perf) | flox + live Ender 5; `adb shell dumpsys gfxinfo works.mees.dinghy framestats` | n/a (manual) | ⬜ pending |
+| 08-07-01 | 07 | 4 | MACRO-03 | — | [B1] macros.preferences_pb DataStore wired (DinghyApp→AppContainer.macroPrefs→MacroHolder); bookmarks persist across restart | build (assemble) | `:app:assembleRelease` | n/a (build) | ⬜ pending |
+| 08-07-02 | 07 | 4 | MACRO-01..03 / CONS-02 | — | Drawer-swipe suppressed on scroll-Fields; session-owned holders; nav wiring | build (assemble) | `:app:assembleRelease` | n/a (build) | ⬜ pending |
+| 08-07-03 | 07 | 4 | MACRO-01..03 / CONS-02 | T-08-07-T (block_on:high) / T-08-07-A | On-device: injection neutralized live; console backfills/recovers; scroll holds Adreno-320 floor | manual (on-device UAT + gfxinfo perf) | flox + live Ender 5; `adb shell dumpsys gfxinfo works.mees.dinghy framestats` | n/a (manual) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
