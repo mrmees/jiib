@@ -268,3 +268,54 @@ that exist are `for key, value in params_filtered.items()` / `for p in params` l
 guard regex deliberately does NOT match). The `PARAM_IN_REGEX` path is therefore exercised in the
 RED test with a SYNTHETIC inline body (clearly labelled), since no real fixture exercises it — this
 is the only place an invented string is used, and only for a form the live printer doesn't carry.
+
+## Phase 8 — on-device UAT + console-scroll perf (2026-06-02)
+
+The Macros & Console functional-core gate (plan 08-07, Task 3) was run on the real **flox**
+(Nexus 7 2013, LineageOS 18.1 / API 30, Adreno 320 — the perf FLOOR) against the **live Ender 5
+Plus** (`192.168.1.120:7125`). Matthew confirmed checks 1–6 by hand; the orchestrator measured
+check 7 (perf) via gfxinfo. **All 7 checks PASS — functional core proven complete on real hardware.**
+
+### Functional checks (hand-verified on flox + live Ender 5)
+
+1. **Console backfill + live (CONS-02):** Console populates from `server.gcode_store` on connect
+   (not blank) and new lines append LIVE as gcode/macros run.
+2. **Severity color:** `!!` line renders red, `// ` echo amber, normal line default text
+   (color + text, never color-alone).
+3. **Filters (D-03/D-04):** toggling a filter ON hides matching lines and OFF re-reveals them —
+   proving the raw buffer survives filtering (filters are a render-time view, not a destructive cull).
+4. **Reconnect backfill (SC #3 — the functional-core gate):** with Console open, a
+   disconnect/restore window's lines BACKFILL correctly on reconnect (not silently dropped).
+5. **Macros incl. bookmark-persist (MACRO-01/02/03):** drawer Macros tile opens the Bookmarked
+   launcher; Manage → System list shows all macros (underscore helpers hidden until Show hidden);
+   bookmarks PERSIST across an app restart — proving the **B1** `macros.preferences_pb` DataStore
+   wiring landed in 08-07. A real param-declaring macro executes from the Execution popup and the
+   printer runs it.
+6. **Security injection-reject (B2 / T-08-07-T):** a string param containing a newline, `;`, or
+   `M112` is REJECTED by the V5 sanitizer — **no emergency-stop and no extra command fires** on the
+   live printer (the on-device backstop to the `MacroInvocationTest` unit gate).
+
+### Check 7 — console-scroll perf (gfxinfo, system-of-record on API 30)
+
+Method: `adb shell dumpsys gfxinfo works.mees.dinghy`, reset → ~15 s **continuous scroll** of the
+Console scrollback during live line flow → dump. `FrameTimingMetric`/Macrobenchmark is unreliable
+on this floor, so **gfxinfo is the system-of-record** per CLAUDE.md.
+
+**Continuous-scroll-only pass — 991 frames:**
+
+| Metric | Value |
+|--------|-------|
+| p50 | 7 ms |
+| p90 | 8 ms |
+| p95 | **9 ms** |
+| p99 | 11 ms |
+| Janky frames | 1 (0.10 %) |
+| Frozen frames (≥700 ms) | **0** |
+| Missed vsync | 0 |
+| Slow UI thread | 0 |
+
+**Beats the Files perf gate** (07-06 steady-scroll p95 ~15 ms). A first pass showed 32 frames in a
+4950 ms overflow bucket; that was confirmed **idle-attribution** (gfxinfo charged idle wall-time to
+the histogram) — a re-measured clean scroll-only run showed **0 frozen frames**. The Adreno-320
+floor holds for the Console scrollback (itemAnimator=null + incremental `notifyItemInserted` +
+bounded `ConsoleScrollback` + Views-in-Compose, no LazyColumn — T-08-07-A mitigated on-device).
