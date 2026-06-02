@@ -191,8 +191,9 @@ fun AppShell(
     // The current session dispatcher (the macro Execution popup routes through it); null while idle.
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     // Console backfill-failed flag: the server.gcode_store read failed on (re)connect. Best-effort —
-    // surfaced as the non-blanking notice. (No dedicated store flag yet; default false.)
-    val consoleBackfillFailed = false
+    // surfaced as the non-blanking "History unavailable" notice (WR-04). Re-keyed when the spine
+    // rebuilds so a reconnect re-points at the new session's store flag.
+    val consoleBackfillFailed by store.consoleBackfillFailed.collectAsStateWithLifecycle()
 
     // System Back: collapse the drawer if open; otherwise pop the back stack to the calling screen.
     // When the drawer is closed AND we're at the home root (empty stack), this is DISABLED so the OS

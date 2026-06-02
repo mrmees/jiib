@@ -89,6 +89,17 @@ class PrinterStateStore(
      */
     val consoleBackfill: StateFlow<List<ConsoleLine>> = _consoleBackfill.asStateFlow()
 
+    private val _consoleBackfillFailed = MutableStateFlow(false)
+    /**
+     * True when the `server.gcode_store` read FAILED on the most recent (re)handshake (08-04, CONS-02 /
+     * D-02). The handshake wraps that read in `runCatching` and otherwise leaves [consoleBackfill] at its
+     * empty default, which is indistinguishable from a genuinely quiet console — this flag disambiguates
+     * so the ConsoleScreen can surface the "History unavailable" notice instead of the "Console is quiet"
+     * empty state. Reset to `false` on each successful backfill REPLACE (a later reconnect that succeeds
+     * clears a prior failure).
+     */
+    val consoleBackfillFailed: StateFlow<Boolean> = _consoleBackfillFailed.asStateFlow()
+
     private val _macroBodies = MutableStateFlow<Map<String, String>>(emptyMap())
     /**
      * Macro-name (LOWERCASED, Moonraker's convention) → gcode body string, extracted from the SAME
@@ -192,6 +203,17 @@ class PrinterStateStore(
      */
     fun setGcodeBackfill(lines: List<ConsoleLine>) {
         _consoleBackfill.value = lines
+        // A successful read clears any prior failure (a later reconnect that succeeds recovers).
+        _consoleBackfillFailed.value = false
+    }
+
+    /**
+     * One-shot at (re)handshake: flag that the `server.gcode_store` read FAILED. Called from the
+     * handshake's `runCatching` failure branch so the ConsoleScreen surfaces "History unavailable"
+     * instead of the "Console is quiet" empty state (08-04, CONS-02 / D-02 — WR-04).
+     */
+    fun setGcodeBackfillFailed() {
+        _consoleBackfillFailed.value = true
     }
 
     /**

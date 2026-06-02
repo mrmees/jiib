@@ -360,6 +360,11 @@ class MoonrakerSession(
             // the seam at its empty default and never breaks Connected.
             val storeResult = rpc.request(CommandRegistry.gcodeStore, GcodeStoreArgs(count = 1000))
             store.setGcodeBackfill(parseGcodeStore(storeResult.jsonObject))
+        }.onFailure {
+            // A genuine gcode_store read failure must be distinguishable from a quiet console: flag it so
+            // the ConsoleScreen shows "History unavailable" rather than the empty state (WR-04). Still
+            // best-effort — never breaks Connected (the read already happened after subscribe).
+            store.setGcodeBackfillFailed()
         }
         runCatching {
             // configfile (ONE one-shot query, NOT live subscribe; Pitfall 3 — no duplicate configfile
