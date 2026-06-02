@@ -46,17 +46,16 @@ Exceptions: console line height is content-driven (text + `--fs`), not a fixed g
 
 ## Typography
 
-All sizes are base `sp` multiplied by `ThemeTokens.fs` (`S≈1.0`, `M≈1.15` default, `L≈1.32`). Exactly two weights.
+All sizes are base `sp` multiplied by `ThemeTokens.fs` (`S≈1.0`, `M≈1.15` default, `L≈1.32`). Four sizes, exactly two weights. Sizes track the canonical `hifi.css` type ramp (14px chip/label tier, 16px body, 18px `.ctl` control, ~28px display title).
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
+| Label / metadata / filter-toggle / console line / param value | 14sp * fs | 400 | 1.3 |
 | Body / macro name | 16sp * fs | 400 | 1.35 |
-| Console line / param value (Geist Mono) | 14sp * fs | 400 | 1.3 |
-| Label / metadata / filter-toggle | 13sp * fs | 400 | 1.25 |
 | Control / gutter / list emphasis | 18sp * fs | 600 | 1.2 |
 | Display / popup title | 28sp * fs | 600 | 1.15 |
 
-Console lines and parameter values use **Geist Mono** (tabular). Body/labels use Geist. Text fills its box at all three `--fs` settings (LAYOUT "panel text fills the box"); a single overflowing console line may marquee on overflow — never lock-width a console line to a narrower inner ruler.
+Console lines and parameter values use **Geist Mono** (tabular); labels, metadata, and filter-toggle text use Geist — both share the 14sp step. Body/macro names use Geist. Text fills its box at all three `--fs` settings (LAYOUT "panel text fills the box"); a single overflowing console line may marquee on overflow — never lock-width a console line to a narrower inner ruler.
 
 ---
 
