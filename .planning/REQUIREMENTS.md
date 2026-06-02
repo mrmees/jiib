@@ -94,8 +94,8 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Console
 
-- [ ] **CONS-01**: User can send an arbitrary G-code command
-- [ ] **CONS-02**: User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`
+- [ ] ~~**CONS-01**: User can send an arbitrary G-code command~~ — **DEFERRED (2026-06-02):** the console is read-only for now (the project's goal is touch input for typical functions, not a troubleshooting terminal). Text-send pulled from Phase 8, unscheduled — revisit in a later phase. See `phases/08-macros-console-functional-core-complete/08-CONTEXT.md`.
+- [ ] **CONS-02**: User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response` — read-only feed with opt-in noise filters (Phase 8)
 
 ### Packaging
 
@@ -208,7 +208,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MACRO-01 | Phase 8 | Pending |
 | MACRO-02 | Phase 8 | Pending |
 | MACRO-03 | Phase 8 | Pending |
-| CONS-01 | Phase 8 | Pending |
+| CONS-01 | Deferred | Pulled from Phase 8 (2026-06-02) — console read-only, text-send unscheduled |
 | CONS-02 | Phase 8 | Pending |
 | BEDM-01 | Phase 9 | Pending |
 | BEDL-01 | Phase 9 | Pending |
@@ -232,7 +232,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
 - Phase 6 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase, done FIRST of the remaining work (doc-derived command/function catalog from Klipper/Moonraker/Spoolman docs + canonical in-code command registry + per-printer availability matrix from live introspection; gates everything after)
 - Phase 7 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
-- Phase 8 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
+- Phase 8 (Macros & Console): 4 — MACRO-01..03, CONS-02 (CONS-01 deferred 2026-06-02 — console read-only this phase)
 - Phase 9 (Calibration & Maintenance): BEDM-01, BEDL-01, ZCAL-01 (promoted from v2; finer CALIB-* TBD at discuss)
 - Phase 10 (Webcam Streaming): CAM-01 (promoted; MJPEG-only, WebRTC deferred)
 - Phase 11 (Spool Management): SPOOL-01 (promoted; + the camera-QR-scan flow, finer SPOOL-* TBD at discuss)

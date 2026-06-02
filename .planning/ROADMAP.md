@@ -298,13 +298,13 @@ Plans:
 
 **Goal**: The escape hatches that prevent the user from ever needing SSH or a browser for anything unusual. Architecturally simple — they consume the event bus and command path already built — and they close the **functional-core-complete gate**. Built on the current pragmatic backend (raw response display + basic severity coloring); deeper request-cadence/error-handling consolidation is deferred to Phase 13. Nothing more; this phase holds the functional-core line. (Note: the Console's `notify_gcode_response` stream built here is the input the later Macro Prompt Protocol phase parses.)
 **Depends on**: Phase 7
-**Requirements**: MACRO-01, MACRO-02, MACRO-03, CONS-01, CONS-02
+**Requirements**: MACRO-01, MACRO-02, MACRO-03, CONS-02
+**Deferred (2026-06-02)**: CONS-01 (send arbitrary G-code) — the console is read-only this phase; text-send pulled and unscheduled (see `phases/08-.../08-CONTEXT.md`).
 **Success Criteria** (what must be TRUE):
 
-  1. User can list and run `gcode_macro` entries discovered from `printer.objects.list`, with generated parameter entry for macros that declare params, and can hide/show which macros appear (underscore-prefixed hidden by default)
-  2. User can type and send an arbitrary G-code command from the console using the on-screen keyboard primitive
-  3. User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`, with bounded scrollback
-  4. **Functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
+  1. User can list and run `gcode_macro` entries discovered from `printer.objects.list`, across three screens — a System list (check/select which macros surface, underscore-prefixed hidden by default), a Bookmarked launcher, and an Execution popup with auto-detected parameter entry (parsed from the macro's gcode body) and Execute/Cancel
+  2. User sees a READ-ONLY command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`, with bounded scrollback and opt-in noise filters (hide temperatures / timelapse / prompt commands)
+  3. **Functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
   
 **Plans**: TBD
 **UI hint**: yes
