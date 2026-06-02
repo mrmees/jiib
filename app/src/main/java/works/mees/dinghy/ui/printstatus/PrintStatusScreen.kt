@@ -2,6 +2,7 @@ package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -35,8 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -270,7 +276,9 @@ private fun PrintStatusFocus(
                 // Status text CENTERED ON the bottom of the circle (its center at box-center + R, R =
                 // ringSize/2 = the 6-o'clock point of the drawn ring): "Ready" idle → "NN%" printing.
                 Text(
-                    text = if (printing) "${(state.progress * 100).roundToInt()}%" else "READY",
+                    text = if (state.printState == PrintState.Printing)
+                        "${(state.progress * 100).roundToInt()}%"
+                    else statusLabel(state.printState),
                     color = t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
@@ -377,61 +385,131 @@ private fun LastJobCard(
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                alpha = 0.6f,
+                alpha = 0.3f, // fainter background so the (larger) overlaid text reads (Matthew)
                 modifier = Modifier.matchParentSize(),
             )
         }
-        // FOREGROUND — left-aligned paragraph of stats laid over the thumbnail.
+        // FOREGROUND — larger left-aligned text. The METRICS block (the short rows) is the width ruler;
+        // the filename and the Material line lock to that width and marquee-scroll when longer, so a long
+        // material name no longer dictates the box width or caps the font size (Matthew). Each metadata-
+        // derived row shows only when its field is present.
+        val density = LocalDensity.current
+        var statsWidthPx by remember(job.filename) { mutableStateOf(0) }
+        val locked =
+            if (statsWidthPx > 0) Modifier.width(with(density) { statsWidthPx.toDp() })
+            else Modifier.wrapContentWidth()
         Column(
-            Modifier.fillMaxSize().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            Modifier.align(Alignment.CenterStart).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            // Filename — marquee if it overflows one line (like the ring center).
+            // Filename — scrolls within the metrics-block width.
             Text(
                 text = job.filename.substringAfterLast('/').ifBlank { "—" },
                 color = t.text,
                 fontFamily = GeistMono,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
+                fontSize = fsSp(22f, t.fs).sp,
                 maxLines = 1,
                 softWrap = false,
-                modifier = Modifier.fillMaxWidth().basicMarquee(),
+                modifier = locked.basicMarquee(),
             )
-            LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
-            LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
-            LastJobStatRow(
-                "hourglass_empty",
-                "Est / actual",
-                job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
-            )
-            LastJobStatRow(
-                "straighten",
-                "Filament",
-                "${job.filamentUsed.roundToInt()} mm" +
-                    (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
-            )
-            LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
+            // Material — type · name + optional swatch; scrolls within the same width (shown if present).
+            if (job.filamentType != null || job.filamentName != null) {
+                LastJobScrollRow(
+                    symbol = "palette",
+                    text = listOfNotNull(job.filamentType, job.filamentName).joinToString(" · "),
+                    swatch = job.filamentColor?.let { parseHexColor(it) },
+                    widthModifier = locked,
+                )
+            }
+            // Metrics — the short rows; their widest line sizes the box (and the scrollers above).
+            Column(
+                Modifier.onSizeChanged { statsWidthPx = it.width },
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
+                job.endTime?.let { LastJobStatRow("event_available", "Finished", fmtFinished(it)) }
+                LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
+                LastJobStatRow(
+                    "hourglass_empty",
+                    "Est / actual",
+                    job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
+                )
+                LastJobStatRow(
+                    "straighten",
+                    "Filament",
+                    "${job.filamentUsed.roundToInt()} mm" +
+                        (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
+                )
+                LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
+                // Slicer provenance — shown only if present.
+                job.slicer?.let { s ->
+                    LastJobStatRow("build", "Slicer", s + (job.slicerVersion?.let { " $it" }.orEmpty()))
+                }
+            }
         }
     }
 }
 
-/** One icon-led stat line in the last-job card: glyph + dim label + GeistMono value ("—" when absent). */
+/**
+ * One icon-led stat line in the last-job card: glyph + dim label + (optional color [swatch]) + GeistMono
+ * value ("—" when absent). Wrap-content so the widest line sizes the card's text box; a value longer than
+ * the card ellipsizes rather than overflowing.
+ */
 @Composable
-private fun LastJobStatRow(symbol: String, label: String, value: String) {
+private fun LastJobStatRow(symbol: String, label: String, value: String, swatch: Color? = null) {
     val t = LocalTokens.current
     Row(
-        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(16f, t.fs))
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(13f, t.fs).sp)
+        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(20f, t.fs))
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(16f, t.fs).sp)
+        if (swatch != null) {
+            Box(
+                Modifier.size(fsSp(16f, t.fs).dp).clip(CircleShape)
+                    .background(swatch).border(BorderStroke(1.dp, t.hair), CircleShape),
+            )
+        }
         Text(
             value,
             color = if (value == "—") t.text3 else t.text,
             fontFamily = GeistMono,
             fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(15f, t.fs).sp,
+            fontSize = fsSp(20f, t.fs).sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * A scrolling header line in the last-job card (filename-style): glyph + optional color [swatch] + a
+ * single marquee value, locked to the metrics-block [widthModifier] so a long line scrolls instead of
+ * widening the card or capping the font size.
+ */
+@Composable
+private fun LastJobScrollRow(symbol: String, text: String, swatch: Color?, widthModifier: Modifier) {
+    val t = LocalTokens.current
+    Row(
+        widthModifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(18f, t.fs))
+        if (swatch != null) {
+            Box(
+                Modifier.size(fsSp(16f, t.fs).dp).clip(CircleShape)
+                    .background(swatch).border(BorderStroke(1.dp, t.hair), CircleShape),
+            )
+        }
+        Text(
+            text,
+            color = t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
             maxLines = 1,
             softWrap = false,
             modifier = Modifier.weight(1f).basicMarquee(),
@@ -608,3 +686,28 @@ private fun fmtDuration(seconds: Double): String {
 
 /** Tabular-friendly one-decimal formatting, rounded (not truncated). */
 private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
+
+/** Format an epoch-seconds instant as a short local "Finished" stamp, e.g. "Jun 1, 9:48 PM" (java.time
+ *  via core-library desugaring); "—" if the value is unparseable. */
+private fun fmtFinished(epochSeconds: Double): String =
+    runCatching {
+        java.time.Instant.ofEpochSecond(epochSeconds.toLong())
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, h:mm a"))
+    }.getOrNull() ?: "—"
+
+/** Parse a "#RRGGBB"/"#AARRGGBB" hex color (the slicer's `filament_colors[]`) to a Compose [Color], or
+ *  null when malformed — the swatch is then simply omitted. */
+private fun parseHexColor(hex: String): Color? =
+    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+
+/** The printer's current print state as a short uppercase label for the ring center (idle/finished
+ *  states); the Printing case is rendered as the live % instead. */
+private fun statusLabel(s: PrintState): String = when (s) {
+    PrintState.Standby -> "STANDBY"
+    PrintState.Printing -> "PRINTING"
+    PrintState.Paused -> "PAUSED"
+    PrintState.Complete -> "COMPLETE"
+    PrintState.Cancelled -> "CANCELLED"
+    PrintState.Error -> "ERROR"
+}
