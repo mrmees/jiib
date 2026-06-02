@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,6 +55,7 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.HeaterState
+import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -82,8 +84,17 @@ import works.mees.dinghy.theme.fsSp
  *  - **Z cell**: live Z stays the active value; metadata `object_height` is the inactive (final-height) line.
  *  - **Remaining**: slicer-file ETA = `estimated_time × (1 − progress)`, formatted H:MM, "—" when unknown.
  *
+ * ## Inc 3 (this pass — the FIELD area is state-driven by `print_stats.state`)
+ *  - **(A) printing/paused** → the existing [StatGrid] (UNCHANGED).
+ *  - **(B) idle + a last job exists** → a [LastJobCard] (gcode thumbnail + stat list), fed by ONE
+ *    one-shot `server.history.list?limit=1&order=desc` read fetched on entering a not-printing state
+ *    (and refreshed when a print completes), never polled.
+ *  - **(C) idle + no history** → a centered `file_copy_off` [LastJobEmpty].
+ *  - Both idle surfaces are clickable nav seams with no-op `TODO(nav)` onClicks (destinations unbuilt).
+ *
  * ## Deferred
- *  - Inc 3: tap a temp cell → its setting page; wire the mid-print Tune button.
+ *  - tap a temp cell → its setting page; wire the mid-print Tune button; B → past-print detail and
+ *    C → file browser destination screens.
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
  */
@@ -95,6 +106,7 @@ fun PrintStatusScreen(
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
+    val lastJob by container.lastJob.collectAsStateWithLifecycle(initialValue = null)
     val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
 
     var showEstopGuard by remember { mutableStateOf(false) }
@@ -120,11 +132,29 @@ fun PrintStatusScreen(
         ScreenScaffold(
             focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
             field = {
+                val printing = state.printState == PrintState.Printing || state.printState == PrintState.Paused
                 Column(
                     Modifier.fillMaxSize().padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    StatGrid(state = state, metadata = metadata, modifier = Modifier.fillMaxWidth().weight(1f))
+                    // State-driven field (Inc 3): printing → StatGrid (UNCHANGED); idle + history →
+                    // last-job card; idle + no history → file_copy_off empty state.
+                    val contentModifier = Modifier.fillMaxWidth().weight(1f)
+                    when {
+                        printing -> StatGrid(state = state, metadata = metadata, modifier = contentModifier)
+                        lastJob != null -> LastJobCard(
+                            job = lastJob!!,
+                            httpBase = httpBase,
+                            onClick = { /* TODO(nav): open past-print detail */ },
+                            modifier = contentModifier,
+                        )
+                        else -> LastJobEmpty(
+                            onClick = { /* TODO(nav): open file browser */ },
+                            modifier = contentModifier,
+                        )
+                    }
+                    // The estop-failure toast stays reachable in ALL branches (even idle) so a failed
+                    // command still surfaces.
                     failureText?.let { msg ->
                         SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                     }
@@ -311,6 +341,137 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
+    }
+}
+
+/**
+ * The idle "last completed job" card (Inc 3, mockup-grammar Field surface) — a clickable token surface
+ * filling the field: LEFT the gcode thumbnail (Coil 3 [AsyncImage], shown only when the source file
+ * still exists AND a thumbnail relative-path is known; else a quiet `image` glyph placeholder), RIGHT a
+ * GeistMono stat list. Every value reads from the [job] catalog fields; an absent metadata field shows
+ * "—" (never fabricated). The whole surface is the ONE nav seam — [onClick] is a one-liner to wire later
+ * (TODO(nav): past-print detail). All color via [LocalTokens].
+ */
+@Composable
+private fun LastJobCard(
+    job: LastJob,
+    httpBase: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val context = LocalContext.current
+    val shape = RoundedCornerShape(t.rCard)
+    val showThumb = job.exists && httpBase.isNotBlank() && job.largestThumbRelPath != null
+    Box(
+        modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+    ) {
+        Row(
+            Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // LEFT — thumbnail (sacred square), clipped to the card radius; quiet placeholder otherwise.
+            Box(
+                Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(t.rCtrl)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (showThumb) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(thumbnailUrl(httpBase, job.filename, job.largestThumbRelPath!!))
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    MaterialSymbol("image", tint = t.text3, sizeSp = fsSp(40f, t.fs))
+                }
+            }
+            // RIGHT — the stat list.
+            Column(
+                Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                // Filename — marquee if it overflows one line (like the ring center).
+                Text(
+                    text = job.filename.substringAfterLast('/').ifBlank { "—" },
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(18f, t.fs).sp,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.fillMaxWidth().basicMarquee(),
+                )
+                LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
+                LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
+                LastJobStatRow(
+                    "hourglass_empty",
+                    "Est / actual",
+                    job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
+                )
+                LastJobStatRow(
+                    "straighten",
+                    "Filament",
+                    "${job.filamentUsed.roundToInt()} mm" +
+                        (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
+                )
+                LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
+            }
+        }
+    }
+}
+
+/** One icon-led stat line in the last-job card: glyph + dim label + GeistMono value ("—" when absent). */
+@Composable
+private fun LastJobStatRow(symbol: String, label: String, value: String) {
+    val t = LocalTokens.current
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(16f, t.fs))
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(13f, t.fs).sp)
+        Text(
+            value,
+            color = if (value == "—") t.text3 else t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(15f, t.fs).sp,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.weight(1f).basicMarquee(),
+        )
+    }
+}
+
+/**
+ * The idle "no print history" empty state (Inc 3) — a clickable token surface filling the field with a
+ * centered `file_copy_off` Material Symbol sized by RATIO of the field's smaller dimension (no hardcoded
+ * px). The whole surface is the nav seam — [onClick] is a one-liner to wire later (TODO(nav): file
+ * browser). All color via [LocalTokens].
+ */
+@Composable
+private fun LastJobEmpty(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCard)
+    BoxWithConstraints(
+        modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Glyph ≈ 40% of the smaller box dimension — scales with the field, never a fixed px.
+        val glyphSp = minOf(maxWidth, maxHeight).value * 0.4f
+        MaterialSymbol("file_copy_off", tint = t.text3, sizeSp = glyphSp)
     }
 }
 
