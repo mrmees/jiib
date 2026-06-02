@@ -50,6 +50,7 @@ fun deriveCapabilities(objects: List<String>, components: Set<String> = emptySet
 private val V1_SUBSCRIBE_CORE: Set<String> = setOf(
     "webhooks",        // klippy state/state_message (STATE-04)
     "print_stats",     // job lifecycle (STATE-04 / Phase 6)
+    "pause_resume",    // pause/resume state confirmation (Phase 7)
     "virtual_sdcard",  // progress (Phase 6)
     "display_status",  // progress/message (Phase 6)
     "toolhead",        // position, homed_axes (Move/Phase 4)

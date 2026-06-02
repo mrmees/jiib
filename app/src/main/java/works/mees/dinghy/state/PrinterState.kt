@@ -80,6 +80,9 @@ data class PrinterState(
     /** Print progress 0.0..1.0 from `virtual_sdcard.progress` / `display_status.progress`. */
     val progress: Double = 0.0,
 
+    /** `pause_resume.is_paused` — state-confirmation truth for pause/resume controls. */
+    val pauseResumePaused: Boolean = false,
+
     /**
      * Staleness marker (D-03). True when the socket has dropped and the values above are the
      * last-known reading (shown dimmed, not blanked). Cleared on the post-reconnect resync (D-04).

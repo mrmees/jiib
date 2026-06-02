@@ -61,6 +61,7 @@ class DeriveCapabilitiesTest {
         // Core objects present on a full printer ARE subscribed.
         assertTrue("webhooks", "webhooks" in full)
         assertTrue("print_stats", "print_stats" in full)
+        assertTrue("pause_resume", "pause_resume" in full)
         assertTrue("toolhead", "toolhead" in full)
         assertTrue("heater_bed (present on full)", "heater_bed" in full)
         assertTrue("extruder", "extruder" in full)

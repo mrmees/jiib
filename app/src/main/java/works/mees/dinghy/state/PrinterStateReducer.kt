@@ -114,6 +114,10 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     status.objectOrNull("virtual_sdcard")?.doubleOrNullAt("progress")?.let { s = s.copy(progress = it) }
     status.objectOrNull("display_status")?.doubleOrNullAt("progress")?.let { s = s.copy(progress = it) }
 
+    status.objectOrNull("pause_resume")?.booleanOrNull("is_paused")?.let {
+        s = s.copy(pauseResumePaused = it)
+    }
+
     // Heaters: merge each present heater object field-by-field onto the retained HeaterState.
     val heaterUpdates = mutableMapOf<String, HeaterState>()
     for ((key, value) in status) {

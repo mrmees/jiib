@@ -204,6 +204,73 @@ class PrinterStateReducerTest {
         assertEquals(true, afterTempOnly.heaters["extruder"]!!.canExtrude)
     }
 
+    // --- Phase-7: print-control state confirmation for pause/resume/cancel ---
+
+    @Test
+    fun printControlDiffsTrackPauseResumeAndCancelWithoutWipingFilename() {
+        var state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{
+                  "print_stats": { "state": "printing", "filename": "folder/cube.gcode" },
+                  "virtual_sdcard": { "progress": 0.25 },
+                  "pause_resume": { "is_paused": false }
+                }""",
+            ).jsonObject,
+        )
+        assertEquals(PrintState.Printing, state.printState)
+        assertEquals(false, state.pauseResumePaused)
+        assertEquals("folder/cube.gcode", state.printFilename)
+
+        state = reduceDiff(
+            state,
+            MoonrakerJson.parseToJsonElement(
+                """{
+                  "print_stats": { "state": "paused" },
+                  "pause_resume": { "is_paused": true }
+                }""",
+            ).jsonObject,
+        )
+        assertEquals(PrintState.Paused, state.printState)
+        assertEquals(true, state.pauseResumePaused)
+        assertEquals("folder/cube.gcode", state.printFilename)
+        assertEquals(0.25, state.progress, 0.0001)
+
+        state = reduceDiff(
+            state,
+            MoonrakerJson.parseToJsonElement(
+                """{
+                  "print_stats": { "state": "printing" },
+                  "pause_resume": { "is_paused": false }
+                }""",
+            ).jsonObject,
+        )
+        assertEquals(PrintState.Printing, state.printState)
+        assertEquals(false, state.pauseResumePaused)
+
+        state = reduceDiff(
+            state,
+            MoonrakerJson.parseToJsonElement("""{ "print_stats": { "state": "cancelled" } }""").jsonObject,
+        )
+        assertEquals(PrintState.Cancelled, state.printState)
+        assertEquals("folder/cube.gcode", state.printFilename)
+    }
+
+    @Test
+    fun pauseResumeAbsentDiffRetainsPriorPausedTruth() {
+        val paused = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "pause_resume": { "is_paused": true } }""").jsonObject,
+        )
+        val afterProgressOnly = reduceDiff(
+            paused,
+            MoonrakerJson.parseToJsonElement("""{ "virtual_sdcard": { "progress": 0.5 } }""").jsonObject,
+        )
+
+        assertEquals(true, afterProgressOnly.pauseResumePaused)
+        assertEquals(0.5, afterProgressOnly.progress, 0.0001)
+    }
+
     /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */
     private fun quote(s: String): String =
         "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
