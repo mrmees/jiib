@@ -95,7 +95,7 @@ Requirements for the initial release: the functional print-control core, testabl
 ### Console
 
 - [ ] ~~**CONS-01**: User can send an arbitrary G-code command~~ — **DEFERRED (2026-06-02):** the console is read-only for now (the project's goal is touch input for typical functions, not a troubleshooting terminal). Text-send pulled from Phase 8, unscheduled — revisit in a later phase. See `phases/08-macros-console-functional-core-complete/08-CONTEXT.md`.
-- [ ] **CONS-02**: User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response` — read-only feed with opt-in noise filters (Phase 8)
+- [x] **CONS-02**: User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response` — read-only feed with opt-in noise filters (Phase 8)
 
 ### Packaging
 
@@ -209,7 +209,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MACRO-02 | Phase 8 | Complete |
 | MACRO-03 | Phase 8 | Complete |
 | CONS-01 | Deferred | Pulled from Phase 8 (2026-06-02) — console read-only, text-send unscheduled |
-| CONS-02 | Phase 8 | Pending |
+| CONS-02 | Phase 8 | Complete |
 | BEDM-01 | Phase 9 | Pending |
 | BEDL-01 | Phase 9 | Pending |
 | ZCAL-01 | Phase 9 | Pending |
