@@ -32,6 +32,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - [x] Focus / Field / Gutter responsive layout grammar (portrait + landscape) + the outline-led control language (intent colors, ≥64dp targets)
 - [x] Reusable component substrate: confirm-guard screen, single-setting scrubber/stepper page, severity toast, progress ring + line-graph render primitives — proven on flox at the Adreno-320 perf floor (sparse-redraw budget, two-part gate; Phase-6 re-validation mandated)
 
+**Macros & Console — functional-core gate** — Validated in Phase 8 (code-verified 3/3 + on-device UAT PASSED on flox + live Ender 5 Plus; console-scroll perf p95 9ms / 0 frozen frames)
+- [x] Macros (MACRO-01/02/03): list/run `gcode_macros` across three screens — System manage-visibility (underscore-hidden by default), Bookmarked launcher, Execution popup with auto-detected parameter entry parsed from the macro body; bookmarks/reveal persist via `macros.preferences_pb`. String-param **injection-reject** sanitizer (block_on:high) proven on-device.
+- [x] Console READ-ONLY (CONS-02): command/response history with severity coloring, backfilled from `server.gcode_store`, live via `notify_gcode_response`, bounded ~1000-line scrollback, opt-in noise filters; reconnect backfills correctly (no silent drop). _CONS-01 (arbitrary G-code SEND) deferred — console is read-only this phase._
+- _With this, the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place._
+
 ### Active
 
 <!-- v1 = functional core: the daily-driver print-control loop, testable on a real printer early. -->
@@ -47,8 +52,8 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - [ ] Extrude panel: extrude/retract, load/unload, distance & speed presets, active-tool selection
 - [ ] Files / Print: browse Moonraker gcode files with thumbnails/metadata, start a print
 - [ ] Job Status: live print progress, thumbnail, temps/speed/Z/time summaries, pause/resume/cancel/restart
-- [ ] Macros: list and run `gcode_macros`, with generated parameter entry
-- [ ] Console: send G-code, view command/response history with severity coloring
+- [x] Macros: list and run `gcode_macros`, with generated parameter entry — _validated Phase 8_
+- [~] Console: view command/response history with severity coloring — _read-only validated Phase 8; send G-code (CONS-01) deferred_
 
 **Supporting primitives**
 - [ ] Reusable UI primitives the panels depend on (per design system): single-setting scrubber/stepper page (replaces a numeric keypad), full-screen confirm-guard, severity toasts; text entry confined to the Settings screen (system keyboard), with alphanumeric printer controls triaged per-control
@@ -135,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-31 — Phase 3 (Design System & Theming Foundation) complete: the reusable theming + layout + control + render substrate every later screen inherits is built and code-verified (5/5), proven on flox at the Adreno-320 perf floor; on-device gallery sign-off (6 items) tracked in 03-HUMAN-UAT.md. Next: Phase 4 (Service, Shell, Settings & Print-Status Home). Scope (set 2026-05-31): phones→tablets, portrait+landscape, full theming, UI governed by `docs/ui_design/`; Nexus 7 retained as perf floor. 9-phase roadmap.*
+*Last updated: 2026-06-02 — Phase 8 (Macros & Console — Functional-Core Complete) complete: macros run with auto-detected param entry across three screens (injection-reject sanitizer proven on-device), read-only severity-colored console backfilled from `server.gcode_store` + live, reconnect recovers history. Code-verified 3/3 + on-device UAT PASSED on flox + live Ender 5 Plus (console-scroll p95 9ms / 0 frozen). 4 code-review warnings fixed (WR-01 holder-leak, WR-02 ring-full jank, WR-03 cold-connect param race, WR-04 dead backfill notice). With this the v1 functional core is in place. Next: Phase 9 (Calibration & Maintenance). Scope: phones→tablets, portrait+landscape, full theming, UI governed by `docs/ui_design/`; Nexus 7 retained as perf floor. NOTE: this Active list lags reality — Phases 4–7 (Service/Shell/Settings/Print-Status, Temp/Move/Extrude, Command-Matrix, Files/Print) shipped but their Active items aren't all moved to Validated; a fuller reconciliation (or `/gsd-docs-update`) is due.*
