@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -38,9 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.disabled
@@ -474,25 +470,21 @@ private fun LastJobCard(
                     .data(thumbnailUrl(httpBase, job.filename, job.largestThumbRelPath!!))
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                // Fit (not Crop): show the WHOLE preview, centered/letterboxed. Crop zoomed into a
+                // center strip in the tall, narrow landscape field pane (Matthew, 2026-06-02).
+                contentScale = ContentScale.Fit,
                 alpha = 0.3f, // fainter background so the (larger) overlaid text reads (Matthew)
                 modifier = Modifier.matchParentSize(),
             )
         }
-        // FOREGROUND — larger left-aligned text. The METRICS block (the short rows) is the width ruler;
-        // the filename and the Material line lock to that width and marquee-scroll when longer, so a long
-        // material name no longer dictates the box width or caps the font size (Matthew). Each metadata-
-        // derived row shows only when its field is present.
-        val density = LocalDensity.current
-        var statsWidthPx by remember(job.filename) { mutableStateOf(0) }
-        val locked =
-            if (statsWidthPx > 0) Modifier.width(with(density) { statsWidthPx.toDp() })
-            else Modifier.wrapContentWidth()
+        // FOREGROUND — larger left-aligned text filling the FULL cell width, so marquee lines scroll
+        // across the whole card instead of stopping at the widest stat row's width (Matthew, 2026-06-02).
+        // Each metadata-derived row shows only when its field is present.
         Column(
-            Modifier.align(Alignment.CenterStart).padding(12.dp),
+            Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            // Filename — scrolls within the metrics-block width.
+            // Filename — marquee-scrolls across the full cell width.
             Text(
                 text = job.filename.substringAfterLast('/').ifBlank { "—" },
                 color = t.text,
@@ -501,22 +493,19 @@ private fun LastJobCard(
                 fontSize = fsSp(22f, t.fs).sp,
                 maxLines = 1,
                 softWrap = false,
-                modifier = locked.basicMarquee(),
+                modifier = Modifier.fillMaxWidth().basicMarquee(),
             )
-            // Material — type · name + optional swatch; scrolls within the same width (shown if present).
+            // Material — type · name + optional swatch; scrolls across the full cell width (if present).
             if (job.filamentType != null || job.filamentName != null) {
                 LastJobScrollRow(
                     symbol = "palette",
                     text = listOfNotNull(job.filamentType, job.filamentName).joinToString(" · "),
                     swatch = job.filamentColor?.let { parseHexColor(it) },
-                    widthModifier = locked,
+                    widthModifier = Modifier.fillMaxWidth(),
                 )
             }
-            // Metrics — the short rows; their widest line sizes the box (and the scrollers above).
-            Column(
-                Modifier.onSizeChanged { statsWidthPx = it.width },
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
+            // Metrics — the short stat rows.
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
                 job.endTime?.let { LastJobStatRow("event_available", "Finished", fmtFinished(it)) }
                 LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))

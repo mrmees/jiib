@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -192,13 +192,16 @@ private fun FileBrowserField(
             path = state.directory.displayPath.ifBlank { "gcodes" },
             modifier = Modifier.fillMaxWidth(),
         )
-        Box(Modifier.fillMaxWidth().weight(1f)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+            // Pin the RecyclerView to an EXACT height. A real Android View hosted via AndroidView
+            // over-measures (wraps all rows) when handed a loose height, then composites OVER its
+            // Compose neighbors — that's why the list bled over the path chip and the gutter.
             FileListView(
                 directory = state.directory,
                 selectedStableId = state.selectedFile?.stableId,
                 httpBase = httpBase,
                 onRowClick = onRowClick,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth().height(maxHeight),
             )
             if (state.loading && state.directory.rows.isEmpty()) {
                 CenterText("Loading files...", Modifier.matchParentSize())
@@ -259,6 +262,13 @@ private fun CenterText(text: String, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Focus = the "about to print" card. Mirrors Print Status' `LastJobCard`: the gcode thumbnail is the
+ * dimmed BACKGROUND with left-aligned, vertically-centered GeistMono stats OVERLAID on top. Only
+ * fields relevant to a print you're about to START are shown (est time, filament needed, layers,
+ * height, size, modified) — never elapsed/finished/status, which belong to job history. The Delete
+ * action stays in the Focus (idle-only), as a button beneath the card.
+ */
 @Composable
 private fun FilePreviewFocus(
     selected: FileBrowserRow?,
@@ -269,32 +279,76 @@ private fun FilePreviewFocus(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(
-        modifier
-            .clip(RoundedCornerShape(t.rCtrl))
-            .border(BorderStroke(2.dp, if (selected != null) t.accentLine else t.hair), RoundedCornerShape(t.rCtrl))
-            .background(t.surface)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        PreviewThumbnail(
-            selected = selected,
-            preview = preview,
-            httpBase = httpBase,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
-        Text(
-            text = selected?.name ?: "Select a file",
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(22f, t.fs).sp,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        PreviewDetails(selected, preview, Modifier.fillMaxWidth())
+    val context = LocalContext.current
+    val shape = RoundedCornerShape(t.rCard)
+    // Prefer the LARGE preview thumbnail; fall back to the row's (small) thumb until metadata loads.
+    val url = preview?.thumbnailUrl(httpBase) ?: selected?.let {
+        val filename = it.relativeFilename
+        val thumb = it.thumbnailRelPath
+        if (filename != null && thumb != null && httpBase.isNotBlank()) thumbnailUrl(httpBase, filename, thumb) else null
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(shape)
+                .border(BorderStroke(2.dp, if (selected != null) t.accentLine else t.hair), shape)
+                .background(t.surface),
+        ) {
+            // BACKGROUND — gcode thumbnail, dimmed so the overlaid text reads (matches LastJobCard).
+            if (url != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(url)
+                        .size(FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3, FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3)
+                        .build(),
+                    contentDescription = null,
+                    // Fit (not Crop): show the WHOLE preview, centered/letterboxed — Crop zoomed into a
+                    // center strip in the tall, narrow landscape focus pane.
+                    contentScale = ContentScale.Fit,
+                    alpha = 0.3f,
+                    modifier = Modifier.matchParentSize(),
+                )
+            }
+            if (selected == null) {
+                Box(Modifier.matchParentSize(), contentAlignment = Alignment.Center) {
+                    MaterialSymbol("folder_open", tint = t.text3, sizeSp = fsSp(64f, t.fs))
+                }
+            } else {
+                // FOREGROUND — filename + future-print stats, vertically centered & left-aligned,
+                // filling the full cell width.
+                Column(
+                    Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = selected.name,
+                        color = t.text,
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = fsSp(20f, t.fs).sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    preview?.let { p ->
+                        p.estimatedTime?.let { FileStatRow("schedule", "Est", formatDuration(it)) }
+                        p.filamentTotal?.let { ft ->
+                            val w = p.filamentWeightTotal?.let { g -> " · ${"%.1f".format(Locale.US, g)} g" }.orEmpty()
+                            FileStatRow("straighten", "Filament", "${ft.toInt()} mm$w")
+                        }
+                        p.layerCount?.let { FileStatRow("layers", "Layers", it.toString()) }
+                        p.objectHeight?.let { FileStatRow("altitude", "Height", "${"%.1f".format(Locale.US, it)} mm") }
+                    }
+                    (preview?.sizeBytes ?: selected.sizeBytes)?.let { FileStatRow("save", "Size", formatBytes(it)) }
+                    (preview?.modifiedEpochSeconds ?: selected.modifiedEpochSeconds)?.let {
+                        FileStatRow("event", "Modified", formatDate(it))
+                    }
+                    if (preview == null) FileStatRow("hourglass_empty", "Preview", "loading…")
+                }
+            }
+        }
         if (selected != null) {
             FileActionControl(
                 label = "Delete file",
@@ -307,90 +361,26 @@ private fun FilePreviewFocus(
     }
 }
 
+/** One icon-led stat line in the future-print card: glyph + dim label + GeistMono value. */
 @Composable
-private fun PreviewThumbnail(
-    selected: FileBrowserRow?,
-    preview: FilePreviewMetadata?,
-    httpBase: String,
-    modifier: Modifier = Modifier,
-) {
+private fun FileStatRow(symbol: String, label: String, value: String) {
     val t = LocalTokens.current
-    val context = LocalContext.current
-    val url = preview?.thumbnailUrl(httpBase) ?: selected?.let {
-        val filename = it.relativeFilename
-        val thumb = it.thumbnailRelPath
-        if (filename != null && thumb != null && httpBase.isNotBlank()) thumbnailUrl(httpBase, filename, thumb) else null
-    }
-
-    Box(
-        modifier,
-        contentAlignment = Alignment.Center,
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(t.rCtrl))
-                .background(t.surface2)
-                .border(BorderStroke(2.dp, t.hair), RoundedCornerShape(t.rCtrl)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (url != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(url)
-                        .size(FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3, FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                MaterialSymbol(
-                    name = if (selected == null) "folder_open" else "description",
-                    tint = t.text3,
-                    sizeSp = fsSp(64f, t.fs),
-                )
-            }
-        }
+        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(18f, t.fs))
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(
+            value,
+            color = t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(17f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
-}
-
-@Composable
-private fun PreviewDetails(
-    selected: FileBrowserRow?,
-    preview: FilePreviewMetadata?,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val rows = listOfNotNull(
-        preview?.estimatedTime?.let { "Time ${formatDuration(it)}" },
-        (preview?.sizeBytes ?: selected?.sizeBytes)?.let { "Size ${formatBytes(it)}" },
-        (preview?.modifiedEpochSeconds ?: selected?.modifiedEpochSeconds)?.let { "Modified ${formatDate(it)}" },
-        preview?.filamentTotal?.let { "Filament ${it.toInt()} mm" },
-        preview?.filamentWeightTotal?.let { "Weight ${"%.1f".format(Locale.US, it)} g" },
-        preview?.layerCount?.let { "Layers $it" },
-        preview?.objectHeight?.let { "Height ${"%.1f".format(Locale.US, it)} mm" },
-    )
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (rows.isEmpty()) {
-            DetailLine("Preview details unavailable", t)
-        } else {
-            rows.forEach { DetailLine(it, t) }
-        }
-    }
-}
-
-@Composable
-private fun DetailLine(text: String, t: ThemeTokens) {
-    Text(
-        text = text,
-        color = t.text2,
-        fontFamily = GeistMono,
-        fontSize = fsSp(13f, t.fs).sp,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
 }
 
 @Composable

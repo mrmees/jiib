@@ -30,6 +30,8 @@ class FileBrowserModelsTest {
         assertEquals("new cube.gcode", FileBrowserPaths.relativeFilename(firstFile.rootPrefixedPath!!))
         assertEquals("gcodes/new cube.gcode", FileBrowserPaths.rootPrefixedPath(firstFile.relativeFilename!!))
         assertEquals("gcodes", FileBrowserPaths.directoryPath(null))
+        // List rows take the SMALLEST thumbnail (32x32), not the 300x300 — cheap to decode per cell.
+        assertEquals(".thumbs/new-32x32.png", firstFile.thumbnailRelPath)
     }
 
     @Test
@@ -95,7 +97,8 @@ class FileBrowserModelsTest {
         {
           "dirs": [
             { "dirname": "older-folder", "modified": 100.0 },
-            { "dirname": "calibration", "modified": 200.0 }
+            { "dirname": "calibration", "modified": 200.0 },
+            { "dirname": ".thumbs", "modified": 300.0 }
           ],
           "files": [
             { "filename": "older cube.gcode", "modified": 100.0, "size": 20 },

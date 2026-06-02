@@ -88,6 +88,8 @@ fun parseFileBrowserDirectory(
     val directories = result.arrayOrEmpty("dirs")
         .mapNotNull { it as? JsonObject }
         .mapNotNull { it.toDirectoryRow(normalizedDirectoryPath) }
+        // Hide dotfile dirs (.thumbs, .git, etc.) — they're machinery, never something to browse into.
+        .filterNot { it.name.startsWith(".") }
         .sortedBy { it.name.lowercase() }
     val files = result.arrayOrEmpty("files")
         .mapNotNull { it as? JsonObject }
@@ -140,7 +142,7 @@ private fun JsonObject.toFileRow(currentDirectoryPath: String): FileBrowserRow? 
         rootPrefixedPath = FileBrowserPaths.rootPrefixedPath(relative),
         sizeBytes = longOrNullAt("size"),
         modifiedEpochSeconds = doubleOrNullAt("modified"),
-        thumbnailRelPath = largestThumbRelPath(this),
+        thumbnailRelPath = smallestThumbRelPath(this),
     )
 }
 

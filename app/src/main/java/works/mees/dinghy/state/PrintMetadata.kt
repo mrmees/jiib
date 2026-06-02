@@ -107,6 +107,26 @@ internal fun largestThumbRelPath(metadata: JsonObject?): String? {
 }
 
 /**
+ * Pick the SMALLEST (least-wide) thumbnail's relative path — the cheap variant for dense list rows
+ * where the slot is ~48dp, so we never decode the 300x300 PNG just to draw a tiny cell. Same
+ * null-tolerance contract as [largestThumbRelPath]. The big Focus preview still uses the largest.
+ */
+internal fun smallestThumbRelPath(metadata: JsonObject?): String? {
+    val thumbs = metadata?.get("thumbnails") as? JsonArray ?: return null
+    var best: JsonObject? = null
+    var bestWidth = Int.MAX_VALUE
+    for (element in thumbs) {
+        val obj = element as? JsonObject ?: continue
+        val width = runCatching { obj["width"]?.jsonPrimitive?.intOrNull }.getOrNull() ?: continue
+        if (width < bestWidth) {
+            bestWidth = width
+            best = obj
+        }
+    }
+    return runCatching { best?.get("relative_path")?.jsonPrimitive?.content }.getOrNull()
+}
+
+/**
  * Build the absolute thumbnail URL for a gcode file's [relPath] (docs/moonraker-capabilities.md
  * § "Thumbnail URL construction"):
  *

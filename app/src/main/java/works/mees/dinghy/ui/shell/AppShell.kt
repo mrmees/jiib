@@ -130,9 +130,14 @@ fun AppShell(
             .fillMaxSize()
             .background(t.bg)
             // Swipe UP from anywhere on the canvas reveals the drawer (the one nav affordance).
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
+            // EXCEPT on Files: that screen is a scrolling RecyclerView picker, and a full-canvas
+            // vertical-drag detector fights the list scroll ("the stroke gets confusing"). Files
+            // has its own "Cancel picker" exit, so the drawer swipe is suppressed there.
+            .pointerInput(dest) {
+                if (dest != Dest.Files) {
+                    detectVerticalDragGestures { _, dragAmount ->
+                        if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
+                    }
                 }
             },
     ) {
