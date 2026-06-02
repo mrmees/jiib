@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T19:18:11.501Z"
-last_activity: 2026-06-02
+last_updated: "2026-06-02T20:27:46.954Z"
+last_activity: 2026-06-02 -- Phase 8 planning complete
 progress:
   total_phases: 15
   completed_phases: 6
-  total_plans: 46
+  total_plans: 53
   completed_plans: 45
   percent: 40
 ---
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 07 (files-print-control-core-print-loop-gate) — EXECUTING (plan 06, task 3 deferred)
 Plan: 6 of 6 — task 3 of 3 remaining (deferred)
-Status: executing
+Status: Ready to execute
   → Plans 07-01..07-05 executed + committed (registry/sidecars, file models, session holder, Files UI, Print Status controls).
   → Plan 07-06: task 1 automated release verification PASS (2c52731); task 2 large-library Files perf/OOM gate PASS (083709f) — steady-scroll p95 15.48ms, 0 frozen frames, no OOM, run against the real Ender 3 420-file library on flox (signed release build).
   → Unplanned detour this session: on-device Files UI polish (e2ff21c) + design-law doc sync (6ae4ff5); 3 deferred defects logged.
   → Task 3 (live core print-loop UAT) DEFERRED until an official UAT round (Matthew, 2026-06-02). 07-UAT.md stays PENDING; do not mark passed without a real recorded run.
   → Next action: when ready, run the official live print-loop UAT, record into 07-UAT.md, write 07-06-SUMMARY.md, close the phase. See .planning/HANDOFF.json / 07-.../.continue-here.md.
-Last activity: 2026-06-02
+Last activity: 2026-06-02 -- Phase 8 planning complete
 
 Progress (Phase 7): [█████████░] ~92% — 5/6 plans complete; plan 06 perf+automated gates PASS, live UAT deferred
 
@@ -205,6 +205,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T19:16:55.791Z
-Stopped at: Phase 8 context gathered (Macros & Console — read-only console, 3 macro screens)
-Resume file: .planning/phases/08-macros-console-functional-core-complete/08-CONTEXT.md
+Last session: 2026-06-02T19:30:38.176Z
+Stopped at: Phase 8 UI-SPEC approved
+Resume file: .planning/phases/08-macros-console-functional-core-complete/08-UI-SPEC.md
