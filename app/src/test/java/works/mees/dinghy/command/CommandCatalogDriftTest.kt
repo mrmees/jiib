@@ -43,6 +43,65 @@ class CommandCatalogDriftTest {
     }
 
     @Test
+    fun catalogEntriesHavePlanRequiredShape() {
+        val commands = catalogCommands()
+        assertTrue("catalog must not be empty", commands.isNotEmpty())
+
+        val missingPrefixes = listOf("KGC-", "MR-", "SPM-").filter { prefix ->
+            commands.none { it.string("id").startsWith(prefix) }
+        }
+        assertTrue("catalog must contain KGC-, MR-, and SPM- entries; missing $missingPrefixes", missingPrefixes.isEmpty())
+
+        val requiredKeys = listOf(
+            "id",
+            "catalog_id",
+            "source_api",
+            "name",
+            "purpose",
+            "params",
+            "semantics_tier",
+            "upstream_url",
+            "availability",
+            "runtime_registry",
+        )
+        val malformed = commands.mapNotNull { command ->
+            val missing = requiredKeys.filterNot { it in command }
+            val id = command["id"]?.jsonPrimitive?.content ?: command["catalog_id"]?.jsonPrimitive?.content ?: "<missing id>"
+            when {
+                missing.isNotEmpty() -> "$id missing $missing"
+                command.string("id") != command.string("catalog_id") -> "$id has mismatched id/catalog_id"
+                else -> null
+            }
+        }
+
+        assertTrue(
+            "catalog entries must expose plan-required machine-readable fields: $malformed",
+            malformed.isEmpty(),
+        )
+    }
+
+    @Test
+    fun catalogContainsPlannedV1ReferenceRows() {
+        val ids = catalogCommands().map { it.string("id") }.toSet()
+        val expected = setOf(
+            "KGC-SCREWS_TILT_CALCULATE",
+            "KGC-Z_TILT_ADJUST",
+            "KGC-BED_MESH_CALIBRATE",
+            "KGC-QUAD_GANTRY_LEVEL",
+            "MR-printer.print.start",
+            "MR-printer.gcode.help",
+            "MR-server.webcams.list",
+            "MR-server.spoolman.proxy",
+            "SPM-GET-health",
+            "SPM-GET-spool",
+            "SPM-PUT-spool-use",
+            "SPM-QR-SPOOL",
+        )
+        val missing = expected.filterNot { it in ids }
+        assertTrue("catalog missing planned v1 reference rows: $missing", missing.isEmpty())
+    }
+
+    @Test
     fun predicateReferencesAreBackedByMatrixEvidence() {
         val matrix = printerMatrix()
         val printers = matrix.printers
