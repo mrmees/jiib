@@ -143,6 +143,26 @@ class MacroHolder(
         bodies[name] ?: bodies.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
 
     /**
+     * Whether this macro's parameters can be considered AUTHORITATIVE yet (WR-03). The Execution popup
+     * uses this to tell "this macro genuinely takes no params" (config landed → empty list is real) apart
+     * from "the configfile body read hasn't arrived yet on a cold connect" (so it shows a loading state
+     * and keeps Execute disabled rather than silently running a parametered macro bare).
+     *
+     * True when EITHER this macro has its own parsed body, OR the bodies map is non-empty — a populated
+     * map means the one-shot `configfile` query landed and was parsed, so a macro absent from it (or
+     * present without a `.gcode`) genuinely declares no params. The bodies map starts empty (the shell
+     * collects `store.macroBodies` whose initial value is empty), so "non-empty" is the reliable
+     * configfile-landed signal without a separate latch.
+     *
+     * Reads the [MutableStateFlow]'s current `.value` directly; callers recompose off [state] (which the
+     * combine folds `_macroBodies` into), so a late body arrival re-runs this on the fresh value.
+     */
+    fun paramsKnown(name: String): Boolean {
+        val bodies = _macroBodies.value
+        return bodyFor(bodies, name) != null || bodies.isNotEmpty()
+    }
+
+    /**
      * Cancel the detached combine collector NOW (WR-01). The host calls this when `remember(store, …)`
      * swaps this holder for a new one on a spine rebuild (reconnect): without it, this discarded holder's
      * combine collector keeps folding the dead session's flows until the whole shell leaves composition,

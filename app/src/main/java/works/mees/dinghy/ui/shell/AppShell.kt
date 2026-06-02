@@ -292,6 +292,7 @@ fun AppShell(
         val liveDispatcher = dispatcher
         if (dest == Dest.Macros && popupMacro != null && liveDispatcher != null) {
             MacroExecutionPopup(
+                holder = macroHolder,
                 macro = popupMacro,
                 dispatcher = liveDispatcher,
                 onDismiss = { macroPopupFor = null },

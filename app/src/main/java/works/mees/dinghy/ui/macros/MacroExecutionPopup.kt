@@ -80,12 +80,22 @@ private val MACRO_NUMERIC_RANGE = -100_000.0..100_000.0
  * [SeverityToast]; the dispatcher's [DispatchEvent.Failure] message is already redacted (composed from
  * method/key, never the API key — V7).
  *
- * @param macro      the macro to run (name + parsed params).
+ * ## Reactive params on cold connect (WR-03)
+ * The param fields are read from the LIVE [MacroHolder] state by NAME, not frozen from the [MacroVm]
+ * captured at tap time. On a cold connect the `configfile` macro-body read is async, so a parametered
+ * macro tapped before its body lands would (if frozen) show "No parameters" and dispatch bare. Instead
+ * this popup re-resolves the live VM from [holder] each recomposition: until the body for this macro
+ * arrives it shows a LOADING state with Execute disabled (never silently running a parametered macro
+ * with none); the instant the body lands the fields populate and Execute enables.
+ *
+ * @param holder     the live macro state holder (params re-read by name, reactive to late bodies).
+ * @param macro      the tapped macro (used for its NAME — the stable identity; params come from [holder]).
  * @param dispatcher the shared command dispatcher (in-flight/debounce/timeout/redacted failure).
  * @param onDismiss  called to close the popup (Cancel, or after a successful dispatch).
  */
 @Composable
 fun MacroExecutionPopup(
+    holder: MacroHolder,
     macro: MacroVm,
     dispatcher: CommandDispatcher,
     onDismiss: () -> Unit,
@@ -96,9 +106,25 @@ fun MacroExecutionPopup(
     val inFlight by dispatcher.inFlight.collectAsStateWithLifecycle()
     val running = busyKey in inFlight
 
-    // Current value per param (seeded with the parsed default; the user edits over it).
-    val values = remember(macro.name) {
-        mutableStateMapOf(*macro.params.map { it.name to (it.default ?: "") }.toTypedArray())
+    // Re-resolve the LIVE VM by name from the holder so a late-arriving body populates params (WR-03).
+    // Fall back to the tapped VM only as an identity if the holder hasn't listed it yet.
+    val holderState by holder.state.collectAsStateWithLifecycle()
+    val liveMacro = remember(holderState, macro.name) {
+        holderState.macros.firstOrNull { it.name.equals(macro.name, ignoreCase = true) } ?: macro
+    }
+    // paramsKnown distinguishes "this macro genuinely takes no params" from "its body hasn't loaded yet".
+    // A macro is in the holder's macro list once discovered, but its `params` only populate once the
+    // configfile body read lands. We treat the popup as still-loading until params are authoritative —
+    // only THEN is an empty param list real "no parameters" (WR-03). Recomputed off holderState so a late
+    // body arrival re-evaluates it.
+    val bodyLoaded = remember(holderState, macro.name) { holder.paramsKnown(macro.name) }
+    val params = liveMacro.params
+
+    // Current value per param (seeded with the parsed default; the user edits over it). Re-seeded when
+    // the param SET changes — i.e. when a late body arrives and the fields first appear (WR-03), not on
+    // name alone (which would never re-seed after a cold-connect freeze).
+    val values = remember(macro.name, params) {
+        mutableStateMapOf(*params.map { it.name to (it.default ?: "") }.toTypedArray())
     }
 
     // A locally-detected forbidden-char rejection, or the printer's own rejection text.
@@ -120,7 +146,7 @@ fun MacroExecutionPopup(
         val gcode = try {
             MacroInvocation.buildTyped(
                 macro.name,
-                macro.params.map { p ->
+                params.map { p ->
                     Triple(p.name, values[p.name].orEmpty(), p.isNumeric)
                 },
             )
@@ -179,15 +205,22 @@ fun MacroExecutionPopup(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (macro.params.isEmpty()) {
+                if (params.isEmpty()) {
+                    // Distinguish "still loading" from "genuinely no params" (WR-03): until this macro's
+                    // body lands we must NOT present an empty list as "no parameters" and let Execute run
+                    // it bare — a parametered macro tapped on cold connect would dispatch with NONE.
                     Text(
-                        text = "No parameters. Execute runs this macro as-is.",
+                        text = if (bodyLoaded) {
+                            "No parameters. Execute runs this macro as-is."
+                        } else {
+                            "Loading parameters…"
+                        },
                         color = t.text2,
                         fontFamily = Geist,
                         fontSize = fsSp(15f, t.fs).sp,
                     )
                 }
-                for (param in macro.params) {
+                for (param in params) {
                     if (param.isNumeric) {
                         NumericParamField(
                             param = param,
@@ -230,10 +263,13 @@ fun MacroExecutionPopup(
                     modifier = Modifier.weight(1f),
                 )
                 PopupControl(
+                    // Disabled while the body is still loading (params unknown) so a parametered macro
+                    // can never dispatch bare on a cold connect (WR-03), and while a dispatch is in
+                    // flight (PRIM-05). A macro with a loaded, genuinely-empty param list stays runnable.
                     label = "Execute",
                     onClick = { execute() },
                     intent = Intent.Accent,
-                    enabled = !running,
+                    enabled = !running && bodyLoaded,
                     modifier = Modifier.weight(1f),
                 )
             }
