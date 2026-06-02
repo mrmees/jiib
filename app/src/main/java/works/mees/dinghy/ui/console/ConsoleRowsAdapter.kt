@@ -1,0 +1,164 @@
+package works.mees.dinghy.ui.console
+
+import android.graphics.Typeface
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
+import androidx.recyclerview.widget.RecyclerView
+import works.mees.dinghy.R
+
+/**
+ * The View-side severity color palette for console rows. The Composable resolves role tokens
+ * (`t.stop` / `t.heat` / `t.text` / `t.go` / `t.text3` / `t.surface`…) to packed ARGB ints and hands
+ * them down — the RecyclerView/ViewHolder cannot read `LocalTokens` (THEME-01 bridge, mirrors
+ * `FileRowPalette`). Severity → color:
+ *  - [error]   `!! ` lines    → `t.stop` (red)
+ *  - [warning] `// ` echoes    → `t.heat` (amber)
+ *  - [normal]  plain lines     → `t.text`
+ *  - [success] explicit `ok`   → `t.go` (green)
+ *  - [dimmed]  `// action:` / `// debug:` tiers → `t.text3` (faint)
+ */
+data class ConsoleRowPalette(
+    val background: Int,
+    val error: Int,
+    val warning: Int,
+    val normal: Int,
+    val success: Int,
+    val dimmed: Int,
+)
+
+/**
+ * RecyclerView adapter for the console scrollback (CONS-02 / D-05). Mirrors `FileRowsAdapter`'s
+ * `RecyclerView.Adapter` + token-palette discipline, but the UPDATE strategy is split for the
+ * Adreno-320 floor (S2):
+ *
+ *  - [appendLine] — the per-line LIVE hot path. Maintains a mutable backing list; `add()`s one line
+ *    and calls `notifyItemInserted(size-1)` — NEVER a whole-list DiffUtil diff. When the list exceeds
+ *    [scrollbackCap] it `removeAt(0)`s the oldest and calls `notifyItemRangeRemoved(0, evicted)`
+ *    (incremental). This is the only path that runs while lines stream in.
+ *  - [submitRows] — the REPLACE path, reserved ONLY for the backfill REPLACE on (re)connect and the
+ *    filter-toggle re-render (the two cases where the whole list genuinely changes). Recomputes the
+ *    backing list wholesale and `notifyDataSetChanged()`s. Not on the per-line hot path.
+ *
+ * STICK-TO-BOTTOM (S3): the caller ([ConsoleListView]) captures `wasAtBottom` from the OLD item count
+ * BEFORE invoking either path, then scrolls in the callback only if it was at the bottom — the
+ * post-update `itemCount` is never used for the bottom test (that is the S3 bug).
+ */
+class ConsoleRowsAdapter(
+    private val scrollbackCap: Int = works.mees.dinghy.state.ConsoleScrollback.DEFAULT_CAPACITY,
+) : RecyclerView.Adapter<ConsoleRowsAdapter.Holder>() {
+
+    private val items = ArrayList<ConsoleLine>()
+    private var palette: ConsoleRowPalette? = null
+
+    /** Current row count (read by the View BEFORE an update to capture stick-to-bottom — S3). */
+    override fun getItemCount(): Int = items.size
+
+    /** Update the active palette (theme swap / first bind). Repaints existing rows. */
+    fun setPalette(palette: ConsoleRowPalette) {
+        if (this.palette == palette) return
+        this.palette = palette
+        if (items.isNotEmpty()) notifyItemRangeChanged(0, items.size)
+    }
+
+    /**
+     * LIVE-APPEND hot path (S2): append exactly one [line] with an incremental
+     * [notifyItemInserted], evicting the oldest with [notifyItemRangeRemoved] when over [scrollbackCap].
+     * NO DiffUtil. Returns the inserted position so the View can scroll-to it when `wasAtBottom`.
+     */
+    fun appendLine(line: ConsoleLine): Int {
+        items.add(line)
+        val inserted = items.size - 1
+        notifyItemInserted(inserted)
+        if (items.size > scrollbackCap) {
+            val evicted = items.size - scrollbackCap
+            repeat(evicted) { items.removeAt(0) }
+            notifyItemRangeRemoved(0, evicted)
+            return items.size - 1
+        }
+        return inserted
+    }
+
+    /**
+     * REPLACE path: wholesale-replace the backing list (backfill REPLACE / filter-toggle re-render
+     * ONLY). Not on the per-line hot path — a full refresh here is correct because the whole list
+     * genuinely changed.
+     */
+    fun submitRows(rows: List<ConsoleLine>) {
+        items.clear()
+        items.addAll(rows)
+        notifyDataSetChanged()
+    }
+
+    /** True when the adapter's backing list is exactly [other]'s items in order (identity-cheap check). */
+    fun matches(other: List<ConsoleLine>): Boolean = items == other
+
+    /** The current row at [index], or null. Used by the View to detect a pure single-line append. */
+    fun lastOrNull(): ConsoleLine? = items.lastOrNull()
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder =
+        Holder(ConsoleRowView(parent.context))
+
+    override fun onBindViewHolder(holder: Holder, position: Int) {
+        holder.view.bind(items[position], palette)
+    }
+
+    class Holder(val view: ConsoleRowView) : RecyclerView.ViewHolder(view)
+}
+
+/**
+ * One console line: the raw response text in **Geist Mono** (UI-SPEC mandatory tabular), left-aligned,
+ * full cell width (panel-text-fills-the-box). The `!! `/`// ` prefix is STRIPPED for display but
+ * severity was derived from the ORIGINAL prefix upstream (kept on [ConsoleLine.severity]); the model's
+ * `rawMessage` stays intact. ACTION/DEBUG tiers render dimmed.
+ */
+class ConsoleRowView(context: android.content.Context) : TextView(context) {
+    init {
+        layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        setPadding(dp(12), dp(4), dp(12), dp(4))
+        // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the same res/font the
+        // Compose GeistMono FontFamily uses; falls back to platform monospace if unavailable.
+        typeface = ResourcesCompat.getFont(context, R.font.geist_mono_medium) ?: Typeface.MONOSPACE
+        textSize = 14f
+        setTextIsSelectable(false)
+    }
+
+    fun bind(line: ConsoleLine, palette: ConsoleRowPalette?) {
+        text = displayText(line.rawMessage)
+        val p = palette
+        if (p != null) {
+            setBackgroundColor(p.background)
+            setTextColor(
+                when (line.severity) {
+                    ConsoleSeverity.ERROR -> p.error
+                    ConsoleSeverity.WARNING -> p.warning
+                    ConsoleSeverity.NORMAL -> if (isOkLine(line.rawMessage)) p.success else p.normal
+                    ConsoleSeverity.ACTION -> p.dimmed
+                    ConsoleSeverity.DEBUG -> p.dimmed
+                },
+            )
+        }
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        /** Strip the leading Klipper severity prefix for display (severity already derived upstream). */
+        private fun displayText(raw: String): String = when {
+            raw.startsWith("!! ") -> raw.removePrefix("!! ")
+            raw.startsWith("// action:") -> raw.removePrefix("// ")
+            raw.startsWith("// debug:") -> raw.removePrefix("// ")
+            raw.startsWith("// ") -> raw.removePrefix("// ")
+            else -> raw
+        }
+
+        /** A plain `ok`-style success line gets the positive (green) tier. */
+        private fun isOkLine(raw: String): Boolean =
+            raw == "ok" || raw.startsWith("ok ")
+    }
+}
