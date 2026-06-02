@@ -30,8 +30,13 @@ The executor reran these read-only endpoints against both printers on 2026-06-02
   `v0.10.0-20-g9008485`, API `1.5.0`, 27 components, 98 objects, 60 macros, and 133
   `printer.gcode.help` positives.
 
-The full structured evidence now lives in `docs/commands/printer-matrix.json`. Treat
-`printer.gcode.help` as positive evidence only; missing help entries are not absence proof.
+The full structured evidence now lives in `docs/commands/printer-matrix.json`, with the human
+command-by-command view in `docs/commands/printer-availability-matrix.md`. Treat `printer.gcode.help`
+as positive evidence only; missing help entries are not absence proof. The refreshed matrix reconciles
+`FORCE_MOVE` from gcode-help positives, not from a nonexistent `force_move` status object. Public
+`LOAD_FILAMENT` and `UNLOAD_FILAMENT` macros are absent on both observed printers, so Extrude UI must
+continue using live macro gating/fallback behavior instead of assuming the private underscore helpers
+are public commands.
 
 ---
 

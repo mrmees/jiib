@@ -2,12 +2,15 @@
   "schema_version": 2,
   "generated_for_phase": "06-command-reference-capability-matrix",
   "source_markdown": "docs/moonraker-capabilities.md",
+  "catalog_source": "docs/commands/catalog.json",
   "captured_at": "2026-06-02T11:46:45Z",
   "capture_approval": "Task 1 human-verify checkpoint approved by user on 2026-06-02 after successful read-only probes.",
   "notes": [
     "Dev-facing evidence only; Dinghy runtime capability gating remains live and is never backed by static per-printer data.",
     "Predicate evidence is intentionally machine-readable so tests never parse Markdown prose.",
-    "printer.gcode.help is positive evidence only; absence from help output is not interpreted as unsupported."
+    "printer.gcode.help is positive evidence only; absence from help output is not interpreted as unsupported.",
+    "command_availability records registry commands only; broader catalog reference rows remain in catalog.json and source Markdown.",
+    "FORCE_MOVE availability is reconciled from gcode-help positives rather than a force_move status object."
   ],
   "printers": [
     {
@@ -1297,6 +1300,640 @@
       ]
     }
   ],
+  "command_availability": [
+    {
+      "catalog_id": "MR-server.connection.identify",
+      "name": "server.connection.identify",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-access.oneshot_token",
+      "name": "access.oneshot_token",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.info",
+      "name": "server.info",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "/server/info returned HTTP 200 in the approved capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "/server/info returned HTTP 200 in the approved capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.objects.list",
+      "name": "printer.objects.list",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "/printer/objects/list returned HTTP 200 in the approved capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "/printer/objects/list returned HTTP 200 in the approved capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.objects.query",
+      "name": "printer.objects.query",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "/printer/objects/query?gcode returned HTTP 200 in the approved capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "/printer/objects/query?gcode returned HTTP 200 in the approved capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.objects.subscribe",
+      "name": "printer.objects.subscribe",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.temperature_store",
+      "name": "server.temperature_store",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "history"
+      },
+      "predicate_key": "component_present:history",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component history listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component history listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.files.metadata",
+      "name": "server.files.metadata",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "file_manager"
+      },
+      "predicate_key": "component_present:file_manager",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component file_manager listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.history.list",
+      "name": "server.history.list",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "history"
+      },
+      "predicate_key": "component_present:history",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "component history listed in /server/info capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "component history listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.emergency_stop",
+      "name": "printer.emergency_stop",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.firmware_restart",
+      "name": "printer.firmware_restart",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-printer.restart",
+      "name": "printer.restart",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate; official Moonraker docs are the source of command support.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_HEATER_TEMPERATURE",
+      "name": "SET_HEATER_TEMPERATURE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_HEATER_TEMPERATURE_PRESET",
+      "name": "SET_HEATER_TEMPERATURE preset pair",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "heater_bed"
+      },
+      "predicate_key": "object_present:heater_bed",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object heater_bed listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object heater_bed listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G1_JOG",
+      "name": "G1 relative jog",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G1_OVERRIDE_JOG",
+      "name": "SET_KINEMATIC_POSITION + G1",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-FORCE_MOVE",
+      "name": "FORCE_MOVE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "gcode_command_present",
+        "name": "FORCE_MOVE"
+      },
+      "predicate_key": "gcode_command_present:FORCE_MOVE",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "FORCE_MOVE appeared in /printer/gcode/help positive evidence.",
+          "caveat": "gcode.help is positive evidence only; absence would not prove unsupported."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "FORCE_MOVE appeared in /printer/gcode/help positive evidence.",
+          "caveat": "gcode.help is positive evidence only; absence would not prove unsupported."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G28_HOME_ALL",
+      "name": "G28",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G28_HOME_XY",
+      "name": "G28 X Y",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G28_HOME_AXIS",
+      "name": "G28 <axis>",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-G1_EXTRUDE",
+      "name": "G1 E",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-T_SELECT_TOOL",
+      "name": "T<n>",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-LOAD_FILAMENT",
+      "name": "LOAD_FILAMENT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "macro_present",
+        "name": "LOAD_FILAMENT"
+      },
+      "predicate_key": "macro_present:LOAD_FILAMENT",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "not_on_our_printers",
+          "evidence": "macro LOAD_FILAMENT not listed in /printer/objects/query?gcode capture.",
+          "caveat": "Private helper(s) observed instead: _LOAD_FILAMENT, _UNLOAD_FILAMENT."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "not_on_our_printers",
+          "evidence": "macro LOAD_FILAMENT not listed in /printer/objects/query?gcode capture.",
+          "caveat": "Private helper(s) observed instead: _LOAD_FILAMENT."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-UNLOAD_FILAMENT",
+      "name": "UNLOAD_FILAMENT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "macro_present",
+        "name": "UNLOAD_FILAMENT"
+      },
+      "predicate_key": "macro_present:UNLOAD_FILAMENT",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "not_on_our_printers",
+          "evidence": "macro UNLOAD_FILAMENT not listed in /printer/objects/query?gcode capture.",
+          "caveat": "Private helper(s) observed instead: _UNLOAD_FILAMENT."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "not_on_our_printers",
+          "evidence": "macro UNLOAD_FILAMENT not listed in /printer/objects/query?gcode capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-TURN_OFF_HEATERS",
+      "name": "TURN_OFF_HEATERS",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-M84_DISABLE_STEPPERS",
+      "name": "M84",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    }
+  ],
   "not_on_printers": [
     {
       "predicate": {
@@ -1351,17 +1988,6 @@
     },
     {
       "predicate": {
-        "type": "object_present",
-        "name": "force_move"
-      },
-      "printer_ids": [
-        "ender5plus",
-        "ender3"
-      ],
-      "reason": "The 2026-06-02 objects.list captures do not expose a force_move status object; FORCE_MOVE appears in gcode-help positives, so predicate reconciliation should use gcode-command evidence rather than object presence."
-    },
-    {
-      "predicate": {
         "type": "macro_present",
         "name": "LOAD_FILAMENT"
       },
@@ -1369,7 +1995,7 @@
         "ender5plus",
         "ender3"
       ],
-      "reason": "The 2026-06-02 captures expose private _LOAD_FILAMENT macros but not a public LOAD_FILAMENT macro; Extrude UI must keep live macro gating/fallback behavior."
+      "reason": "The 2026-06-02 captures expose no public LOAD_FILAMENT macro on either printer. Ender 5 Plus and Ender 3 Pro expose private _LOAD_FILAMENT helpers; Extrude UI must keep live macro gating/fallback behavior."
     },
     {
       "predicate": {
@@ -1380,7 +2006,7 @@
         "ender5plus",
         "ender3"
       ],
-      "reason": "The 2026-06-02 captures expose private _UNLOAD_FILAMENT macros but not a public UNLOAD_FILAMENT macro; Extrude UI must keep live macro gating/fallback behavior."
+      "reason": "The 2026-06-02 captures expose no public UNLOAD_FILAMENT macro on either printer. Ender 5 Plus exposes a private _UNLOAD_FILAMENT helper; Ender 3 Pro does not expose an unload helper in the capture."
     }
   ],
   "unknown": []

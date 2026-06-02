@@ -173,7 +173,7 @@ object CommandRegistry {
         catalogId = "KGC-FORCE_MOVE",
         key = { args -> "jog_${args.axis}" },
         gcode = { args -> PrinterCommands.forceMove(args.axis, args.mm, args.velocityMmS) },
-        availability = AvailabilityPredicate.ObjectPresent("force_move"),
+        availability = AvailabilityPredicate.GcodeCommandPresent("FORCE_MOVE"),
     )
 
     val homeAll: CommandSpec<Unit> = gcode(
