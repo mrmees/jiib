@@ -24,6 +24,10 @@ data class HomeAxisArgs(val axis: String)
 data class ExtrudeArgs(val mm: Double, val feedMmMin: Int)
 data class SelectToolArgs(val index: Int)
 data class MetadataArgs(val filename: String)
+data class FileDirectoryArgs(val path: String? = null, val extended: Boolean = true)
+data class FileNameArgs(val filename: String)
+data class FileDeleteArgs(val path: String)
+data class PrintStartArgs(val filename: String)
 data class HistoryListArgs(val limit: Int = 1, val order: String = "desc")
 data class ObjectSubsetArgs(val objects: Set<String>)
 class ServerInfoArgs private constructor()
@@ -33,6 +37,18 @@ object CommandRegistry {
         success = "JSON-RPC result acknowledges the request.",
         error = "JSON-RPC error is surfaced by the existing client or dispatcher path.",
         acceptance = "Callers interpret result payloads using the existing state/holder logic.",
+    )
+
+    private val fileActionSemantics = CommandSemantics(
+        success = "JSON-RPC result acknowledges Moonraker accepted the file request.",
+        error = "JSON-RPC error is surfaced by the existing client or dispatcher path.",
+        acceptance = "Callers confirm user-visible success from refreshed file browser or selected-file holder state.",
+    )
+
+    private val printActionSemantics = CommandSemantics(
+        success = "JSON-RPC result acknowledges Moonraker accepted the print-control request.",
+        error = "JSON-RPC error is surfaced by the existing client or dispatcher path.",
+        acceptance = "Callers confirm user-visible success from print_stats, virtual_sdcard, and pause_resume state changes.",
     )
 
     private val gcodeSemantics = CommandSemantics(
@@ -105,6 +121,74 @@ object CommandRegistry {
         key = { args -> "files_metadata_${args.filename}" },
         params = { args -> buildJsonObject { put("filename", args.filename) } },
         availability = AvailabilityPredicate.ComponentPresent("file_manager"),
+    )
+
+    val filesGetDirectory: CommandSpec<FileDirectoryArgs> = jsonRpc(
+        catalogId = "MR-server.files.get_directory",
+        method = JsonRpcMethods.FILES_GET_DIRECTORY,
+        key = { args -> "files_browse_${args.path ?: "root"}" },
+        params = { args ->
+            buildJsonObject {
+                args.path?.let { put("path", it) }
+                put("extended", args.extended)
+            }
+        },
+        availability = AvailabilityPredicate.ComponentPresent("file_manager"),
+        semantics = fileActionSemantics,
+    )
+
+    val filesThumbnails: CommandSpec<FileNameArgs> = jsonRpc(
+        catalogId = "MR-server.files.thumbnails",
+        method = JsonRpcMethods.FILES_THUMBNAILS,
+        key = { args -> "files_thumbnails_${args.filename}" },
+        params = { args -> buildJsonObject { put("filename", args.filename) } },
+        availability = AvailabilityPredicate.ComponentPresent("file_manager"),
+        semantics = fileActionSemantics,
+    )
+
+    val filesDelete: CommandSpec<FileDeleteArgs> = jsonRpc(
+        catalogId = "MR-server.files.delete_file",
+        method = JsonRpcMethods.FILES_DELETE_FILE,
+        key = { args -> "files_delete_${args.path}" },
+        params = { args -> buildJsonObject { put("path", args.path) } },
+        availability = AvailabilityPredicate.ComponentPresent("file_manager"),
+        semantics = fileActionSemantics,
+    )
+
+    val printStart: CommandSpec<PrintStartArgs> = jsonRpc(
+        catalogId = "MR-printer.print.start",
+        method = JsonRpcMethods.PRINT_START,
+        key = { args -> "start_print_${args.filename}" },
+        params = { args -> buildJsonObject { put("filename", args.filename) } },
+        availability = AvailabilityPredicate.ObjectPresent("virtual_sdcard"),
+        semantics = printActionSemantics,
+    )
+
+    val printPause: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-printer.print.pause",
+        method = JsonRpcMethods.PRINT_PAUSE,
+        key = { "pause_print" },
+        params = { null },
+        availability = AvailabilityPredicate.ObjectPresent("pause_resume"),
+        semantics = printActionSemantics,
+    )
+
+    val printResume: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-printer.print.resume",
+        method = JsonRpcMethods.PRINT_RESUME,
+        key = { "resume_print" },
+        params = { null },
+        availability = AvailabilityPredicate.ObjectPresent("pause_resume"),
+        semantics = printActionSemantics,
+    )
+
+    val printCancel: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-printer.print.cancel",
+        method = JsonRpcMethods.PRINT_CANCEL,
+        key = { "cancel_print" },
+        params = { null },
+        availability = AvailabilityPredicate.ObjectPresent("pause_resume"),
+        semantics = printActionSemantics,
     )
 
     val historyList: CommandSpec<HistoryListArgs> = jsonRpc(
@@ -248,6 +332,13 @@ object CommandRegistry {
         objectsSubscribe,
         temperatureStore,
         filesMetadata,
+        filesGetDirectory,
+        filesThumbnails,
+        filesDelete,
+        printStart,
+        printPause,
+        printResume,
+        printCancel,
         historyList,
         emergencyStop,
         firmwareRestart,
@@ -280,6 +371,7 @@ object CommandRegistry {
         key: (P) -> String,
         params: (P) -> JsonElement?,
         availability: AvailabilityPredicate = AvailabilityPredicate.Always,
+        semantics: CommandSemantics = jsonRpcSemantics,
     ): CommandSpec<P> = CommandSpec(
         catalogId = catalogId,
         transport = CommandTransport.JsonRpc,
@@ -287,7 +379,7 @@ object CommandRegistry {
         dispatchKey = key,
         params = params,
         availability = availability,
-        semantics = jsonRpcSemantics,
+        semantics = semantics,
     )
 
     private fun <P> gcode(

@@ -115,6 +115,15 @@ object JsonRpcMethods {
     // estimated_time; fetched ONCE per active print filename for the Status home derived cells.
     const val FILES_METADATA = "server.files.metadata"
 
+    // Phase-7 file browser and core print-loop JSON-RPC commands.
+    const val FILES_GET_DIRECTORY = "server.files.get_directory"
+    const val FILES_THUMBNAILS = "server.files.thumbnails"
+    const val FILES_DELETE_FILE = "server.files.delete_file"
+    const val PRINT_START = "printer.print.start"
+    const val PRINT_PAUSE = "printer.print.pause"
+    const val PRINT_RESUME = "printer.print.resume"
+    const val PRINT_CANCEL = "printer.print.cancel"
+
     // One-shot most-recent job history (260601-th9 Inc 3) — server.history.list?limit=1&order=desc;
     // fetched ONCE per not-printing transition for the idle Status "last completed job" card.
     const val HISTORY_LIST = "server.history.list"
