@@ -69,6 +69,31 @@ fun derivePrintStatusControls(
     return PrintStatusControlModel(controls = controls, restartFilename = restartFilename)
 }
 
+fun clearPrintStatusPendingAction(
+    pendingAction: PrintStatusPendingAction?,
+    state: PrinterState,
+): PrintStatusPendingAction? = when (pendingAction) {
+    null -> null
+    PrintStatusPendingAction.Pause -> when (state.printState) {
+        PrintState.Printing -> pendingAction
+        else -> null
+    }
+    PrintStatusPendingAction.Resume -> when (state.printState) {
+        PrintState.Paused -> pendingAction
+        else -> null
+    }
+    PrintStatusPendingAction.Cancel -> when (state.printState) {
+        PrintState.Printing,
+        PrintState.Paused,
+        -> pendingAction
+        else -> null
+    }
+    is PrintStatusPendingAction.Restart -> {
+        val active = state.printState == PrintState.Printing || state.printState == PrintState.Paused
+        if (active && state.printFilename == pendingAction.filename) null else pendingAction
+    }
+}
+
 private fun activeControls(
     label: String,
     tapAction: PrintStatusControlAction,

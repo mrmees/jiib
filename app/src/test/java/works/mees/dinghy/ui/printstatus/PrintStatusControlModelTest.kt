@@ -125,6 +125,70 @@ class PrintStatusControlModelTest {
         )
     }
 
+    @Test
+    fun pendingPauseClearsOnlyWhenPrinterReportsPausedOrNoLongerPrinting() {
+        assertEquals(
+            PrintStatusPendingAction.Pause,
+            clearPrintStatusPendingAction(
+                PrintStatusPendingAction.Pause,
+                PrinterState(printState = PrintState.Printing),
+            ),
+        )
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Pause, PrinterState(printState = PrintState.Paused)))
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Pause, PrinterState(printState = PrintState.Complete)))
+    }
+
+    @Test
+    fun pendingResumeClearsOnlyWhenPrinterReportsPrintingOrNoLongerPaused() {
+        assertEquals(
+            PrintStatusPendingAction.Resume,
+            clearPrintStatusPendingAction(
+                PrintStatusPendingAction.Resume,
+                PrinterState(printState = PrintState.Paused),
+            ),
+        )
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Resume, PrinterState(printState = PrintState.Printing)))
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Resume, PrinterState(printState = PrintState.Cancelled)))
+    }
+
+    @Test
+    fun pendingCancelClearsWhenPrinterLeavesActiveStates() {
+        assertEquals(
+            PrintStatusPendingAction.Cancel,
+            clearPrintStatusPendingAction(
+                PrintStatusPendingAction.Cancel,
+                PrinterState(printState = PrintState.Printing),
+            ),
+        )
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Cancel, PrinterState(printState = PrintState.Cancelled)))
+        assertNull(clearPrintStatusPendingAction(PrintStatusPendingAction.Cancel, PrinterState(printState = PrintState.Standby)))
+    }
+
+    @Test
+    fun pendingRestartClearsOnlyWhenMatchingFilenameBecomesActive() {
+        val pending = PrintStatusPendingAction.Restart("cube.gcode")
+
+        assertEquals(
+            pending,
+            clearPrintStatusPendingAction(
+                pending,
+                PrinterState(printState = PrintState.Printing, printFilename = "other.gcode"),
+            ),
+        )
+        assertNull(
+            clearPrintStatusPendingAction(
+                pending,
+                PrinterState(printState = PrintState.Printing, printFilename = "cube.gcode"),
+            ),
+        )
+        assertNull(
+            clearPrintStatusPendingAction(
+                pending,
+                PrinterState(printState = PrintState.Paused, printFilename = "cube.gcode"),
+            ),
+        )
+    }
+
     private fun assertControls(model: PrintStatusControlModel, left: String, center: String, right: String) {
         assertEquals(listOf(left, center, right), model.controls.map { it.label })
         assertTrue(model.controls.size == 3)
