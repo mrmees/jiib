@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "generated_for_phase": "06-command-reference-capability-matrix",
+  "source_markdown": "docs/moonraker-capabilities.md",
+  "notes": [
+    "Dev-facing evidence only; Dinghy runtime capability gating remains live and is never backed by static per-printer data.",
+    "Predicate evidence is intentionally machine-readable so tests never parse Markdown prose."
+  ],
+  "printers": [
+    {
+      "id": "ender5plus",
+      "display_name": "Ender 5 Plus",
+      "host": "192.168.1.120:7125",
+      "capture": {
+        "date": "2026-06-01",
+        "klipper": "v0.13.0-662",
+        "moonraker": "v0.10.0",
+        "moonraker_api": "1.5.0",
+        "slicer": "OrcaSlicer 2.4"
+      },
+      "components": [
+        "announcements",
+        "file_manager",
+        "history",
+        "job_queue",
+        "job_state",
+        "mqtt",
+        "octoprint_compat",
+        "spoolman",
+        "timelapse",
+        "update_manager",
+        "webcam"
+      ],
+      "objects": [
+        "bed_mesh",
+        "configfile",
+        "display_status",
+        "exclude_object",
+        "extruder",
+        "fan",
+        "filament_motion_sensor encoder_sensor",
+        "filament_switch_sensor switch_sensor",
+        "force_move",
+        "gcode_move",
+        "heater_bed",
+        "heater_fan hotend_fan",
+        "heater_generic chamber",
+        "idle_timeout",
+        "motion_report",
+        "pause_resume",
+        "print_stats",
+        "probe",
+        "quad_gantry_level",
+        "screws_tilt_adjust",
+        "system_stats",
+        "toolhead",
+        "virtual_sdcard",
+        "webhooks",
+        "z_tilt"
+      ],
+      "macros": [
+        "LOAD_FILAMENT",
+        "UNLOAD_FILAMENT",
+        "START_PRINT",
+        "END_PRINT",
+        "CANCEL_PRINT"
+      ],
+      "predicate_evidence": [
+        { "predicate": { "type": "object_present", "name": "toolhead" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "extruder" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "heater_bed" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "force_move" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "quad_gantry_level" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "z_tilt" }, "available": true },
+        { "predicate": { "type": "macro_present", "name": "LOAD_FILAMENT" }, "available": true },
+        { "predicate": { "type": "macro_present", "name": "UNLOAD_FILAMENT" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "history" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "file_manager" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "spoolman" }, "available": true }
+      ]
+    },
+    {
+      "id": "ender3",
+      "display_name": "Ender 3 Pro",
+      "host": "192.168.1.121:7125",
+      "capture": {
+        "date": "2026-06-01",
+        "klipper": "v0.13.0-662",
+        "moonraker": "v0.10.0",
+        "moonraker_api": "1.5.0",
+        "slicer": "OrcaSlicer 2.3"
+      },
+      "components": [
+        "analysis",
+        "file_manager",
+        "history",
+        "job_queue",
+        "job_state",
+        "spoolman",
+        "update_manager",
+        "webcam"
+      ],
+      "objects": [
+        "bed_mesh",
+        "configfile",
+        "display_status",
+        "exclude_object",
+        "extruder",
+        "fan",
+        "filament_switch_sensor switch_sensor",
+        "force_move",
+        "gcode_move",
+        "heater_bed",
+        "heater_fan hotend_fan",
+        "idle_timeout",
+        "motion_report",
+        "pause_resume",
+        "print_stats",
+        "probe",
+        "screws_tilt_adjust",
+        "system_stats",
+        "toolhead",
+        "virtual_sdcard",
+        "webhooks",
+        "z_tilt"
+      ],
+      "macros": [
+        "LOAD_FILAMENT",
+        "UNLOAD_FILAMENT",
+        "START_PRINT",
+        "END_PRINT",
+        "CANCEL_PRINT"
+      ],
+      "predicate_evidence": [
+        { "predicate": { "type": "object_present", "name": "toolhead" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "extruder" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "heater_bed" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "force_move" }, "available": true },
+        { "predicate": { "type": "object_present", "name": "z_tilt" }, "available": true },
+        { "predicate": { "type": "macro_present", "name": "LOAD_FILAMENT" }, "available": true },
+        { "predicate": { "type": "macro_present", "name": "UNLOAD_FILAMENT" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "history" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "file_manager" }, "available": true },
+        { "predicate": { "type": "component_present", "name": "spoolman" }, "available": true }
+      ]
+    }
+  ],
+  "not_on_printers": [
+    {
+      "predicate": { "type": "object_present", "name": "quad_gantry_level" },
+      "printer_ids": ["ender3"],
+      "reason": "Ender 3 Pro is not a quad-gantry printer."
+    },
+    {
+      "predicate": { "type": "component_present", "name": "mqtt" },
+      "printer_ids": ["ender3"],
+      "reason": "Component observed on Ender 5 Plus only in the 2026-06-01 capture."
+    },
+    {
+      "predicate": { "type": "component_present", "name": "timelapse" },
+      "printer_ids": ["ender3"],
+      "reason": "Component observed on Ender 5 Plus only in the 2026-06-01 capture."
+    }
+  ]
+}
