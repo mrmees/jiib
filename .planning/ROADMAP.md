@@ -21,13 +21,14 @@ progress-ring + line-graph render primitives). Then the app comes alive: the for
 Settings screen (connection config + theme + feature toggles), klippy-state-driven routing, the swipe-up
 App Drawer, the Print Status home, and the shared command-dispatch primitive. (Scope note, 2026-05-31:
 v1 broadened to phones→tablets, portrait + landscape, full theming; the Nexus 7 / Adreno 320 is retained
-as the perf FLOOR, not the only target.) Then panels ship in daily-driver order: manual control
-(Temperature/Move/Extrude), then **Files & Print Control** — the *core print-loop gate* of "drive a real
-print start-to-finish without the browser" (the old "Job Status" phase dissolved here: its live-monitoring
-half was already delivered by the Status home, its print controls fold in, and its deep robustness defers
-to release hardening). **Macros/Console** close out the *functional-core* gate. Then a **Command Reference
-& Capability Matrix** is knocked out (canonical in-code command registry + a live per-printer availability
-matrix) so the daily-driver power features can capability-gate cleanly: **Calibration & Maintenance**
+as the perf FLOOR, not the only target.) Then, with manual control done (Temperature/Move/Extrude), the
+**Command Reference & Capability Matrix** is knocked out FIRST of the remaining work (canonical in-code
+command registry + a live per-printer availability matrix) so everything after it registers commands
+canonically and capability-gates cleanly. Next, **Files & Print Control** — the *core print-loop gate* of
+"drive a real print start-to-finish without the browser" (the old "Job Status" phase dissolved here: its
+live-monitoring half was already delivered by the Status home, its print controls fold in, and its deep
+robustness defers to release hardening) — then **Macros/Console** close out the *functional-core* gate.
+Then the daily-driver power features, each capability-gated off the matrix: **Calibration & Maintenance**
 (screws-tilt / Z-tilt / bed-mesh / QGL pages), **Webcam Streaming** (MJPEG), **Spool Management** (Spoolman
 + a tablet-camera QR-scan-to-assign flow), and **Macro Prompt Protocol** (interactive dialogs from user
 macros). Only once EVERY screen exists does **Optimization, Network Efficiency & End-to-End Reliability**
@@ -52,10 +53,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits (completed 2026-05-31)
 - [x] **Phase 4: Service, Shell, Settings & Print-Status Home** - Foreground service owning the spine, the Settings screen (connection config + theme + text size + feature toggles), klippy-state-driven splash/home/job routing, swipe-up App Drawer navigation, the Print Status home (render/throttle in anger) with a Stop→Confirm-guard control, and the shared command-dispatch primitive (completed 2026-06-01)
 - [x] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware (completed 2026-06-01)
-- [ ] **Phase 6: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (restructured 2026-06-01; absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
-- [ ] **Phase 7: Macros & Console — v1 Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the v1 functional-core-complete gate
-- [ ] **Phase 8: Command Reference & Capability Matrix** - Establish a canonical single-source-of-truth in-code command registry for every Moonraker/Klipper command the app uses, and commit a per-printer (Ender 5 Plus / Ender 3) command/object/macro **availability matrix** live-introspected from the real printers, citing the authoritative Klipper G-Code + Moonraker API docs — the reference foundation later phases (esp. Calibration) gate against (split out of the old "Backend Consolidation", matrix knocked out early; restructured 2026-06-01)
-- [ ] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-8 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser
+- [ ] **Phase 6: Command Reference & Capability Matrix** - Done FIRST of the remaining work (moved to top 2026-06-01) because it gates everything after it: a canonical single-source-of-truth in-code command registry for every Moonraker/Klipper command the app uses, plus a committed per-printer (Ender 5 Plus / Ender 3) command/object/macro **availability matrix** live-introspected from the real printers, citing the authoritative Klipper G-Code + Moonraker API docs as upstream truth (matrix knocked out early)
+- [ ] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
+- [ ] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate
+- [ ] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser
 - [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
 - [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
 - [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
@@ -228,10 +229,25 @@ Plans:
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
-### Phase 6: Files & Print Control — Core Print-Loop Gate
+### Phase 6: Command Reference & Capability Matrix
 
-**Goal**: The **core print-loop gate** — drive a real print start-to-finish without the browser. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files; the same phase wires the **state-adaptive print-control actions (pause / resume / cancel / restart)** onto the existing Print Status home (the currently-stubbed gutter Pause/Resume + Tune buttons), so starting AND controlling a print is one complete user capability. The live-monitoring half of the old "Job Status" phase (progress/temps/Z) was already delivered by the Phase-4 Print Status home + the Status quick-task enrichment (Inc 1–3), so this phase verifies it end-to-end against a real print rather than rebuilding it. Reuses the already-built `PrintMetadataHolder` / `thumbnailUrl()` / Coil wiring / `LastJobHolder` primitives. The deep robustness (reconnect print-state resync, process-death recovery) is deferred to Phase 9.
+**Goal**: Done FIRST of the remaining work (moved to the top 2026-06-01) because it gates everything after it — and the availability matrix is being knocked out up front by live introspection. Two deliverables: (1) a canonical **in-code command registry** — one single-source-of-truth definition per Moonraker/Klipper command the app sends, that all later phases register into (replacing the scattered ad-hoc method constants from phases 1–5); (2) a committed **per-printer capability/command availability matrix** — for the real Ender 5 Plus and Ender 3, the available gcode commands, `printer.objects.list` objects, `gcode_macro`s, and which optional features/components exist — citing the authoritative Klipper G-Code + Config references and Moonraker API docs as the upstream source of truth. The matrix is what lets each later page ask "does THIS printer support this command/object?" instead of guessing. Establishing it before building Files/Macros/Calibration means those phases register their commands canonically from the start, rather than retrofitting.
 **Depends on**: Phase 5
+**Requirements**: *(reference/quality phase — no new functional REQ-IDs; produces the canonical command registry + the committed capability matrix that later phases consume. Catalogs what the printers actually expose, not a speculative full-API dump.)*
+**Success Criteria** (what must be TRUE):
+
+  1. A committed `docs/` capability matrix lists, per real printer (E5 + E3), the available gcode commands, subscribable objects, `gcode_macro`s, and present Moonraker components — live-introspected, with the authoritative Klipper/Moonraker doc URLs recorded as the upstream source
+  2. A canonical in-code command registry exists (one definition per command the app sends); the existing phase-1–5 scattered method constants are migrated to reference it, and later phases register their commands there rather than inventing new ad-hoc constants
+  3. Later phases can capability-gate off the matrix/registry (e.g. Calibration only shows `QUAD_GANTRY_LEVEL` where the printer has it) — the gating data is present and queryable
+  4. The reference is verified against both real printers and stays consistent with the live captures already in `docs/moonraker-capabilities.md`
+
+**Plans**: TBD
+**Research note**: DEEPER — pin down the authoritative Klipper G-Code/Config + Moonraker API doc locations and reconcile them with live `printer.objects.list` / gcode-help introspection from the real printers. (The capability matrix is being knocked out up front as a reference artifact.)
+
+### Phase 7: Files & Print Control — Core Print-Loop Gate
+
+**Goal**: The **core print-loop gate** — drive a real print start-to-finish without the browser. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files; the same phase wires the **state-adaptive print-control actions (pause / resume / cancel / restart)** onto the existing Print Status home (the currently-stubbed gutter Pause/Resume + Tune buttons), so starting AND controlling a print is one complete user capability. The live-monitoring half of the old "Job Status" phase (progress/temps/Z) was already delivered by the Phase-4 Print Status home + the Status quick-task enrichment (Inc 1–3), so this phase verifies it end-to-end against a real print rather than rebuilding it. Reuses the already-built `PrintMetadataHolder` / `thumbnailUrl()` / Coil wiring / `LastJobHolder` primitives and registers its commands into the Phase-6 command registry. The deep robustness (reconnect print-state resync, process-death recovery) is deferred to Phase 14.
+**Depends on**: Phase 6
 **Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, JOB-01, JOB-02, JOB-03, JOB-04, JOB-05
 **Success Criteria** (what must be TRUE):
 
@@ -246,57 +262,42 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — Moonraker file API + thumbnail URL resolution (already proven by the Status quick-tasks) and the `print_stats`-driven pause/resume/cancel/restart command set verified against official docs.
 
-### Phase 7: Macros & Console — v1 Functional-Core Complete
+### Phase 8: Macros & Console — Functional-Core Complete
 
-**Goal**: The escape hatches that prevent the user from ever needing SSH or a browser for anything unusual. Architecturally simple — they consume the event bus and command path already built — and they close the **v1 functional-core-complete gate**. Built on the current pragmatic backend (raw response display + basic severity coloring); the exhaustive Klipper command/error/acceptance catalog is deliberately deferred to Phase 8. Nothing more; this phase holds the v1 line.
-**Depends on**: Phase 6
+**Goal**: The escape hatches that prevent the user from ever needing SSH or a browser for anything unusual. Architecturally simple — they consume the event bus and command path already built — and they close the **functional-core-complete gate**. Built on the current pragmatic backend (raw response display + basic severity coloring); deeper request-cadence/error-handling consolidation is deferred to Phase 13. Nothing more; this phase holds the functional-core line. (Note: the Console's `notify_gcode_response` stream built here is the input the later Macro Prompt Protocol phase parses.)
+**Depends on**: Phase 7
 **Requirements**: MACRO-01, MACRO-02, MACRO-03, CONS-01, CONS-02
 **Success Criteria** (what must be TRUE):
 
   1. User can list and run `gcode_macro` entries discovered from `printer.objects.list`, with generated parameter entry for macros that declare params, and can hide/show which macros appear (underscore-prefixed hidden by default)
   2. User can type and send an arbitrary G-code command from the console using the on-screen keyboard primitive
   3. User sees command/response history with severity coloring (errors `!!`, warnings `//`), backfilled from `server.gcode_store` and updated live via `notify_gcode_response`, with bounded scrollback
-  4. **v1 functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full v1 functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
-
+  4. **Functional-core complete:** after a reconnect, Console history backfills correctly from `server.gcode_store` rather than silently dropping the lines that arrived while disconnected — and with this the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place
+  
 **Plans**: TBD
 **UI hint**: yes
 **Research note**: STANDARD — straightforward application of the existing notify event bus and command path.
 
-### Phase 8: Command Reference & Capability Matrix
-
-**Goal**: Establish the reference foundation the back half of the project gates against — done EARLY (the availability matrix knocked out up front by live introspection) because it informs every later phase, especially Calibration's capability gating. Two deliverables: (1) a canonical **in-code command registry** — one single-source-of-truth definition per Moonraker/Klipper command the app sends, that later phases register into (replacing scattered ad-hoc method constants); (2) a committed **per-printer capability/command availability matrix** — for the real Ender 5 Plus and Ender 3, the available gcode commands, `printer.objects.list` objects, `gcode_macro`s, and which optional features/components exist — citing the authoritative Klipper G-Code + Config references and Moonraker API docs as the upstream source of truth. The matrix is what lets each later page ask "does THIS printer support this command/object?" instead of guessing.
-**Depends on**: Phase 7
-**Requirements**: *(reference/quality phase — no new functional REQ-IDs; produces the canonical command registry + the committed capability matrix that later phases consume. Catalogs what the printers actually expose, not a speculative full-API dump.)*
-**Success Criteria** (what must be TRUE):
-
-  1. A committed `docs/` capability matrix lists, per real printer (E5 + E3), the available gcode commands, subscribable objects, `gcode_macro`s, and present Moonraker components — live-introspected, with the authoritative Klipper/Moonraker doc URLs recorded as the upstream source
-  2. A canonical in-code command registry exists (one definition per command the app sends); the per-phase scattered method constants are migrated to reference it, and later phases register their commands there rather than inventing new ad-hoc constants
-  3. Later phases can capability-gate off the matrix/registry (e.g. Calibration only shows `QUAD_GANTRY_LEVEL` where the printer has it) — the gating data is present and queryable
-  4. The reference is verified against both real printers and stays consistent with the live captures already in `docs/moonraker-capabilities.md`
-
-**Plans**: TBD
-**Research note**: DEEPER — pin down the authoritative Klipper G-Code/Config + Moonraker API doc locations and reconcile them with live `printer.objects.list` / gcode-help introspection from the real printers. (The capability matrix is being knocked out up front as a reference artifact.)
-
 ### Phase 9: Calibration & Maintenance
 
-**Goal**: Dedicated touch pages for the high-use, semi-regular calibration routines a Klipper owner actually runs from the printer — so they never need a browser for routine maintenance. Each page runs the relevant gcode and presents its result legibly: `SCREWS_TILT_CALCULATE` (manual bed leveling — parse the per-screw "CW/CCW turns" from the gcode response into a readable adjust-this-screw display), `Z_TILT_ADJUST` (multi-Z gantry level — the E5 Plus has dual Z), `BED_MESH_CALIBRATE` (probe mesh — run + optionally visualize), and `QUAD_GANTRY_LEVEL` where present. Every page is **capability-gated by the Phase-8 matrix** (hidden when the printer lacks the command), runs through the shared confirm/dispatch path, and reflects completion from the gcode-response/state rather than a bare ack.
+**Goal**: Dedicated touch pages for the high-use, semi-regular calibration routines a Klipper owner actually runs from the printer — so they never need a browser for routine maintenance. Each page runs the relevant gcode and presents its result legibly: `SCREWS_TILT_CALCULATE` (manual bed leveling — parse the per-screw "CW/CCW turns" from the gcode response into a readable adjust-this-screw display), `Z_TILT_ADJUST` (multi-Z gantry level — the E5 Plus has dual Z), `BED_MESH_CALIBRATE` (probe mesh — run + optionally visualize), and `QUAD_GANTRY_LEVEL` where present. Every page is **capability-gated by the Phase-6 matrix** (hidden when the printer lacks the command), runs through the shared confirm/dispatch path, and reflects completion from the gcode-response/state rather than a bare ack.
 **Depends on**: Phase 8
 **Requirements**: *(new CALIB-* family — to be defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
-  1. The Calibration drawer/pages show ONLY the routines the connected printer supports (capability-gated by the Phase-8 matrix) — no dead buttons on a printer that lacks the command
+  1. The Calibration drawer/pages show ONLY the routines the connected printer supports (capability-gated by the Phase-6 matrix) — no dead buttons on a printer that lacks the command
   2. `SCREWS_TILT_CALCULATE` runs and its result is parsed into a clear per-screw adjustment display (which screw, direction, amount), not raw console text
   3. `Z_TILT_ADJUST` / `QUAD_GANTRY_LEVEL` run with live progress/convergence feedback and a clear done/failed result; `BED_MESH_CALIBRATE` runs and the result is at least confirmed (mesh visualization is a stretch goal)
   4. Long-running calibrations respect the gcode-completion timeout discipline (no false "command could not be sent") and route through the confirm/dispatch primitive
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: DEEPER — exact gcode-response shapes for `SCREWS_TILT_CALCULATE` (turn directions/amounts), `Z_TILT_ADJUST`/`QGL` convergence lines, and `BED_MESH` output verified against Klipper docs + the Phase-8 capability matrix.
+**Research note**: DEEPER — exact gcode-response shapes for `SCREWS_TILT_CALCULATE` (turn directions/amounts), `Z_TILT_ADJUST`/`QGL` convergence lines, and `BED_MESH` output verified against Klipper docs + the Phase-6 capability matrix.
 
 ### Phase 10: Webcam Streaming
 
 **Goal**: View the printer's webcam on the tablet without a browser. Decode the common Klipper MJPEG case (`ustreamer`/`crowsnest`/`mjpg-streamer`) — enumerate cams via Moonraker `/server/webcams/list`, stream the `multipart/x-mixed-replace` feed, and decode frames **hard-downscaled** to the display size (reuse-a-bitmap, `inSampleSize`) because full-res MJPEG decode will OOM/jank the Adreno-320 / 2GB floor. WebRTC (`camera-streamer`/`go2rtc`) is explicitly deferred past MJPEG.
-**Depends on**: Phase 8
+**Depends on**: Phase 9
 **Requirements**: *(CAM-* family — map the existing future CAM REQ-ID(s) + define the rest at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -312,7 +313,7 @@ Plans:
 ### Phase 11: Spool Management — Spoolman + Camera QR
 
 **Goal**: Bring real spool management to the printer-side screen — the thing people most want — via Moonraker's Spoolman integration (both target printers already run it). List spools and the active spool, show filament remaining/usage, and set the active spool. The headline feature: a **tablet-camera QR-scan-to-assign** flow — point the device camera at the spool's Spoolman QR label (`web+spoolman:s-<id>`), decode it, and set that spool active. Far easier than rigging an ESP32 NFC tag. Decoder is **ZXing** (pure-Java) because the Nexus 7 floor has no Play Services for Google ML Kit.
-**Depends on**: Phase 8
+**Depends on**: Phase 10
 **Requirements**: *(new SPOOL-* family — to be defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -328,7 +329,7 @@ Plans:
 ### Phase 12: Macro Prompt Protocol
 
 **Goal**: Make user-authored macros that drive interactive dialogs work on Dinghy. Klipper macros emit `// action:prompt_begin/prompt_text/prompt_button/prompt_footer_button/prompt_show/prompt_end` lines through the gcode-response stream; this phase parses that mini-protocol (per the klipper-macro-prompt-protocol, github.com/mrmees/klipper-macro-prompt-protocol) and renders the corresponding interactive dialog — title, text, and buttons that fire their gcode — reusing the Console's `notify_gcode_response` stream and the design system's dialog primitive. The escape hatch that lets power users build their own guided flows (filament change wizards, multi-step maintenance) and have them just work on the tablet.
-**Depends on**: Phase 7 (Console gcode-response stream), Phase 3 (dialog primitive)
+**Depends on**: Phase 11 (sequential); functional inputs: Phase 8 (Console `notify_gcode_response` stream) + Phase 3 (dialog primitive)
 **Requirements**: *(new PROMPT-* family — to be defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -339,22 +340,22 @@ Plans:
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — the protocol is specced (klipper-macro-prompt-protocol); reuses the Phase-7 gcode-response bus and Phase-3 dialog primitive.
+**Research note**: STANDARD — the protocol is specced (klipper-macro-prompt-protocol); reuses the Phase-8 gcode-response bus and Phase-3 dialog primitive.
 
 ### Phase 13: Optimization, Network Efficiency & End-to-End Reliability
 
-**Goal**: With EVERY screen built (control, files, macros/console, calibration, webcam, spool, prompts), do the driven backend pass that would have been speculative earlier — the app now knows exactly which key-values it displays and which commands it sends. A **request-cadence audit**: justify every subscribed object (one-shot vs subscribe), coalesce/throttle high-rate data to display cadence, and ensure NO screen opens its own polling outside the central `PrinterStateStore` / single `objects.subscribe` handshake — so the app stops spamming the wireless LAN multiple times a second for data that doesn't need it. Plus end-to-end reliability hardening: principled error/staleness handling per the Phase-8 command/error reference, and the cross-screen behaviors that only emerge once everything coexists. A refactor/quality phase, not a new-screen phase; pays down the deliberately-pragmatic backend the screens were built on.
+**Goal**: With EVERY screen built (control, files, macros/console, calibration, webcam, spool, prompts), do the driven backend pass that would have been speculative earlier — the app now knows exactly which key-values it displays and which commands it sends. A **request-cadence audit**: justify every subscribed object (one-shot vs subscribe), coalesce/throttle high-rate data to display cadence, and ensure NO screen opens its own polling outside the central `PrinterStateStore` / single `objects.subscribe` handshake — so the app stops spamming the wireless LAN multiple times a second for data that doesn't need it. Plus end-to-end reliability hardening: principled error/staleness handling per the Phase-6 command/error reference, and the cross-screen behaviors that only emerge once everything coexists. A refactor/quality phase, not a new-screen phase; pays down the deliberately-pragmatic backend the screens were built on.
 **Depends on**: Phase 12
 **Requirements**: *(quality/refactor phase — non-functional request-efficiency + reliability goals; no new functional REQ-IDs)*
 **Success Criteria** (what must be TRUE):
 
   1. A request-cadence audit is complete and applied: every subscribed object is justified, high-rate data is coalesced/throttled to display cadence, and no screen polls outside the central single-subscribe handshake — measurably reducing per-second LAN request volume vs the pre-optimization baseline
-  2. Error/staleness handling is principled across screens (driven by the Phase-8 command/error reference), not per-screen guesswork
+  2. Error/staleness handling is principled across screens (driven by the Phase-6 command/error reference), not per-screen guesswork
   3. The optimization is behavior-preserving for the user — every screen still shows correct live data — provable on the real Ender 5 Plus and Ender 3 with the existing on-device gates green
   4. Cross-screen reliability holds (rapid navigation, reconnect mid-feature, capability changes) without leaks or stale subscriptions
 
 **Plans**: TBD
-**Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-8 command/error reference and the live captures in `docs/moonraker-capabilities.md`.
+**Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-6 command/error reference and the live captures in `docs/moonraker-capabilities.md`.
 
 ### Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
 
@@ -384,9 +385,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
-| 6. Files & Print Control — Core Print-Loop Gate | 0/TBD | Not started | - |
-| 7. Macros & Console — Functional-Core Complete | 0/TBD | Not started | - |
-| 8. Command Reference & Capability Matrix | 0/TBD | Not started | - |
+| 6. Command Reference & Capability Matrix | 0/TBD | Not started | - |
+| 7. Files & Print Control — Core Print-Loop Gate | 0/TBD | Not started | - |
+| 8. Macros & Console — Functional-Core Complete | 0/TBD | Not started | - |
 | 9. Calibration & Maintenance | 0/TBD | Not started | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |

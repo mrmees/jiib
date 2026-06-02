@@ -196,20 +196,20 @@ Which phases cover which requirements. Populated during roadmap creation.
 | EXTR-02 | Phase 5 | Complete |
 | EXTR-03 | Phase 5 | Complete |
 | EXTR-04 | Phase 5 | Complete |
-| FILE-01 | Phase 6 | Pending |
-| FILE-02 | Phase 6 | Pending |
-| FILE-03 | Phase 6 | Pending |
-| FILE-04 | Phase 6 | Pending |
-| JOB-01 | Phase 6 | Pending |
-| JOB-02 | Phase 6 | Pending |
-| JOB-03 | Phase 6 | Pending |
-| JOB-04 | Phase 6 | Pending |
-| JOB-05 | Phase 6 | Pending |
-| MACRO-01 | Phase 7 | Pending |
-| MACRO-02 | Phase 7 | Pending |
-| MACRO-03 | Phase 7 | Pending |
-| CONS-01 | Phase 7 | Pending |
-| CONS-02 | Phase 7 | Pending |
+| FILE-01 | Phase 7 | Pending |
+| FILE-02 | Phase 7 | Pending |
+| FILE-03 | Phase 7 | Pending |
+| FILE-04 | Phase 7 | Pending |
+| JOB-01 | Phase 7 | Pending |
+| JOB-02 | Phase 7 | Pending |
+| JOB-03 | Phase 7 | Pending |
+| JOB-04 | Phase 7 | Pending |
+| JOB-05 | Phase 7 | Pending |
+| MACRO-01 | Phase 8 | Pending |
+| MACRO-02 | Phase 8 | Pending |
+| MACRO-03 | Phase 8 | Pending |
+| CONS-01 | Phase 8 | Pending |
+| CONS-02 | Phase 8 | Pending |
 | BEDM-01 | Phase 9 | Pending |
 | BEDL-01 | Phase 9 | Pending |
 | ZCAL-01 | Phase 9 | Pending |
@@ -230,9 +230,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
 - Phase 4 (Service, Shell, Settings & Print-Status Home): 9 — CONN-01, SET-01, SHELL-01..05, PRIM-02, PRIM-05
 - Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
-- Phase 6 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
-- Phase 7 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
-- Phase 8 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase (canonical command registry + per-printer capability matrix)
+- Phase 6 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase, done FIRST of the remaining work (canonical command registry + per-printer capability matrix; gates everything after)
+- Phase 7 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
+- Phase 8 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
 - Phase 9 (Calibration & Maintenance): BEDM-01, BEDL-01, ZCAL-01 (promoted from v2; finer CALIB-* TBD at discuss)
 - Phase 10 (Webcam Streaming): CAM-01 (promoted; MJPEG-only, WebRTC deferred)
 - Phase 11 (Spool Management): SPOOL-01 (promoted; + the camera-QR-scan flow, finer SPOOL-* TBD at discuss)
