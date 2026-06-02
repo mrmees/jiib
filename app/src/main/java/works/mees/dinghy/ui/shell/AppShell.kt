@@ -138,7 +138,10 @@ fun AppShell(
     ) {
         // The active destination, full-bleed (no persistent chrome).
         when (dest) {
-            Dest.PrintStatus -> PrintStatusScreen(container = container)
+            Dest.PrintStatus -> PrintStatusScreen(
+                container = container,
+                onOpenFiles = { navigateTo(Dest.Files) },
+            )
             Dest.Temperature -> TemperatureScreen(
                 container = container,
                 holder = temperatureHolder,

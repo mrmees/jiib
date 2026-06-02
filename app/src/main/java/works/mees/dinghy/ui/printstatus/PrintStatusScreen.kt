@@ -41,6 +41,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,7 @@ import kotlinx.coroutines.delay
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.PrintStartArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
@@ -108,6 +113,7 @@ import works.mees.dinghy.theme.fsSp
 @Composable
 fun PrintStatusScreen(
     container: AppContainer,
+    onOpenFiles: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -117,7 +123,15 @@ fun PrintStatusScreen(
     val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
 
     var showEstopGuard by remember { mutableStateOf(false) }
+    var showCancelGuard by remember { mutableStateOf(false) }
+    var showRestartGuard by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<PrintStatusPendingAction?>(null) }
     var failureText by remember { mutableStateOf<String?>(null) }
+    val controlModel = derivePrintStatusControls(
+        state = state,
+        lastJob = lastJob,
+        pendingAction = pendingAction,
+    )
 
     LaunchedEffect(dispatcher) {
         failureText = null
@@ -132,6 +146,38 @@ fun PrintStatusScreen(
         if (failureText != null) {
             delay(4_000)
             failureText = null
+        }
+    }
+    LaunchedEffect(pendingAction, state.printState, state.printFilename) {
+        val next = clearPrintStatusPendingAction(pendingAction, state)
+        if (next != pendingAction) pendingAction = next
+    }
+
+    fun runAction(action: PrintStatusControlAction) {
+        when (action) {
+            PrintStatusControlAction.OpenFiles -> onOpenFiles()
+            PrintStatusControlAction.RestartPrint -> {
+                if (pendingAction == null && controlModel.restartFilename != null) showRestartGuard = true
+            }
+            PrintStatusControlAction.Tune -> Unit
+            PrintStatusControlAction.PausePrint -> {
+                if (pendingAction == null) {
+                    dispatcher?.dispatch(CommandRegistry.printPause, Unit)
+                    pendingAction = PrintStatusPendingAction.Pause
+                }
+            }
+            PrintStatusControlAction.ResumePrint -> {
+                if (pendingAction == null) {
+                    dispatcher?.dispatch(CommandRegistry.printResume, Unit)
+                    pendingAction = PrintStatusPendingAction.Resume
+                }
+            }
+            PrintStatusControlAction.GracefulCancel -> {
+                if (pendingAction == null) showCancelGuard = true
+            }
+            PrintStatusControlAction.EmergencyStop -> {
+                showEstopGuard = true
+            }
         }
     }
 
@@ -172,18 +218,28 @@ fun PrintStatusScreen(
                     Modifier.fillMaxWidth().padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // Tune/Pause are placeholders until Inc 3 / Phase 7; Stop is wired.
-                    // Pause flips to Resume while the print is paused (Matthew, 2026-06-01).
-                    DisabledTile(label = "Tune", modifier = Modifier.weight(1f))
-                    DisabledTile(
-                        label = if (state.printState == PrintState.Paused) "Resume" else "Pause",
-                        modifier = Modifier.weight(1f),
-                    )
-                    StopButton(
-                        onTap = { showEstopGuard = true },
-                        onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                        modifier = Modifier.weight(1f),
-                    )
+                    controlModel.controls.forEach { control ->
+                        val renderControl = control.copy(
+                            enabled = control.enabled &&
+                                (pendingAction == null ||
+                                    control.tapAction == PrintStatusControlAction.OpenFiles ||
+                                    control.tapAction == PrintStatusControlAction.EmergencyStop),
+                        )
+                        if (control.tapAction == PrintStatusControlAction.EmergencyStop) {
+                            StopButton(
+                                onTap = { runAction(PrintStatusControlAction.EmergencyStop) },
+                                onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            PrintStatusControlTile(
+                                control = renderControl,
+                                onTap = { control.tapAction?.let(::runAction) },
+                                onHold = { control.holdAction?.let(::runAction) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
             },
         )
@@ -198,6 +254,39 @@ fun PrintStatusScreen(
                     showEstopGuard = false
                 },
                 onCancel = { showEstopGuard = false },
+                destructive = true,
+            )
+        }
+        if (showCancelGuard) {
+            ConfirmGuard(
+                title = "Cancel print?",
+                message = "Klipper will run the normal cancel flow. Emergency Stop remains separate.",
+                confirmLabel = "Cancel print",
+                cancelLabel = "Keep printing",
+                onConfirm = {
+                    dispatcher?.dispatch(CommandRegistry.printCancel, Unit)
+                    pendingAction = PrintStatusPendingAction.Cancel
+                    showCancelGuard = false
+                },
+                onCancel = { showCancelGuard = false },
+                destructive = true,
+            )
+        }
+        if (showRestartGuard) {
+            val filename = controlModel.restartFilename
+            ConfirmGuard(
+                title = "Restart print?",
+                message = filename ?: "No restartable filename is available.",
+                confirmLabel = "Restart print",
+                cancelLabel = "Not now",
+                onConfirm = {
+                    if (filename != null) {
+                        dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(filename))
+                        pendingAction = PrintStatusPendingAction.Restart(filename)
+                    }
+                    showRestartGuard = false
+                },
+                onCancel = { showRestartGuard = false },
                 destructive = true,
             )
         }
@@ -619,6 +708,73 @@ private fun IconValueCell(
  * The gutter Stop: a red `crisis_alert` glyph (no label). TAP opens the e-stop [ConfirmGuard]; HOLD
  * (>~½ s, the system long-press) fires the e-stop IMMEDIATELY (the panic path, with haptic) — Matthew.
  */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PrintStatusControlTile(
+    control: PrintStatusControl,
+    onTap: () -> Unit,
+    onHold: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val outline = if (control.enabled) controlColor(control, t) else t.hair
+    val base = modifier
+        .heightIn(min = 64.dp)
+        .clip(shape)
+        .border(BorderStroke(2.dp, outline), shape)
+        .then(
+            if (control.accessibilityAction == PrintStatusControlAction.GracefulCancel && control.enabled) {
+                Modifier.semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction("Cancel print") {
+                            onHold()
+                            true
+                        },
+                    )
+                }
+            } else {
+                Modifier
+            },
+        )
+    val actionModifier = if (control.enabled) {
+        base.combinedClickable(
+            onClick = onTap,
+            onLongClick = if (control.holdAction != null) onHold else null,
+        )
+    } else {
+        base.semantics { disabled() }
+    }
+
+    Box(actionModifier, contentAlignment = Alignment.Center) {
+        Text(
+            text = control.label,
+            color = if (control.enabled) t.text else t.text3,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun controlColor(control: PrintStatusControl, t: works.mees.dinghy.theme.ThemeTokens): Color =
+    when (control.tapAction) {
+        PrintStatusControlAction.OpenFiles,
+        PrintStatusControlAction.PausePrint,
+        -> t.accentLine
+        PrintStatusControlAction.ResumePrint,
+        PrintStatusControlAction.RestartPrint,
+        -> t.go
+        PrintStatusControlAction.EmergencyStop,
+        PrintStatusControlAction.GracefulCancel,
+        -> t.stop
+        PrintStatusControlAction.Tune,
+        null,
+        -> t.hair
+    }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier = Modifier) {
