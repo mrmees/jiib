@@ -64,7 +64,14 @@ fun derivePrintStatusControls(
             restartFilename = restartFilename,
             pendingRestart = pendingAction as? PrintStatusPendingAction.Restart,
         )
-        PrintState.Standby -> standbyControls()
+        PrintState.Standby -> if (restartFilename != null) {
+            terminalControls(
+                restartFilename = restartFilename,
+                pendingRestart = pendingAction as? PrintStatusPendingAction.Restart,
+            )
+        } else {
+            standbyControls()
+        }
     }
     return PrintStatusControlModel(controls = controls, restartFilename = restartFilename)
 }
@@ -155,8 +162,14 @@ private fun stopControl(): PrintStatusControl =
     )
 
 private fun PrinterState.restartFilename(lastJob: LastJob?): String? {
-    if (printState != PrintState.Complete && printState != PrintState.Error && printState != PrintState.Cancelled) {
-        return null
+    return when (printState) {
+        PrintState.Complete,
+        PrintState.Error,
+        PrintState.Cancelled,
+        -> printFilename.ifBlank { lastJob?.filename.orEmpty() }.ifBlank { null }
+        PrintState.Standby -> lastJob?.filename?.ifBlank { null }
+        PrintState.Printing,
+        PrintState.Paused,
+        -> null
     }
-    return printFilename.ifBlank { lastJob?.filename.orEmpty() }.ifBlank { null }
 }

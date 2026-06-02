@@ -82,10 +82,23 @@ class PrintStatusControlModelTest {
     }
 
     @Test
-    fun standbyDoesNotExposeRestart() {
+    fun standbyWithLastJob_mapsToFilesRestartStop() {
         val model = derivePrintStatusControls(
             state = PrinterState(printState = PrintState.Standby, printFilename = ""),
             lastJob = lastJob("history/benchy.gcode"),
+        )
+
+        assertControls(model, "Files", "Restart print", "Stop")
+        assertEquals("history/benchy.gcode", model.restartFilename)
+        assertEquals(PrintStatusControlAction.OpenFiles, model.controls[0].tapAction)
+        assertEquals(PrintStatusControlAction.RestartPrint, model.controls[1].tapAction)
+    }
+
+    @Test
+    fun standbyWithoutLastJob_keepsIdleControls() {
+        val model = derivePrintStatusControls(
+            state = PrinterState(printState = PrintState.Standby, printFilename = ""),
+            lastJob = null,
         )
 
         assertControls(model, "Tune", "Pause", "Stop")
