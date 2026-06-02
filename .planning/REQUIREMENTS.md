@@ -230,7 +230,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
 - Phase 4 (Service, Shell, Settings & Print-Status Home): 9 — CONN-01, SET-01, SHELL-01..05, PRIM-02, PRIM-05
 - Phase 5 (Temp/Move/Extrude): 12 — TEMP-01..04, MOVE-01..04, EXTR-01..04
-- Phase 6 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase, done FIRST of the remaining work (canonical command registry + per-printer capability matrix; gates everything after)
+- Phase 6 (Command Reference & Capability Matrix): 0 functional reqs — reference/quality phase, done FIRST of the remaining work (doc-derived command/function catalog from Klipper/Moonraker/Spoolman docs + canonical in-code command registry + per-printer availability matrix from live introspection; gates everything after)
 - Phase 7 (Files & Print Control): 9 — FILE-01..04, JOB-01..05 (JOB live-monitoring largely pre-delivered by the Phase-4 Status home + Status quick-tasks; verified here against a real print)
 - Phase 8 (Macros & Console): 5 — MACRO-01..03, CONS-01..02
 - Phase 9 (Calibration & Maintenance): BEDM-01, BEDL-01, ZCAL-01 (promoted from v2; finer CALIB-* TBD at discuss)
