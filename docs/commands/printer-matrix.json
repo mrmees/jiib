@@ -1,35 +1,812 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "generated_for_phase": "06-command-reference-capability-matrix",
   "source_markdown": "docs/moonraker-capabilities.md",
+  "captured_at": "2026-06-02T11:46:45Z",
+  "capture_approval": "Task 1 human-verify checkpoint approved by user on 2026-06-02 after successful read-only probes.",
   "notes": [
     "Dev-facing evidence only; Dinghy runtime capability gating remains live and is never backed by static per-printer data.",
-    "Predicate evidence is intentionally machine-readable so tests never parse Markdown prose."
+    "Predicate evidence is intentionally machine-readable so tests never parse Markdown prose.",
+    "printer.gcode.help is positive evidence only; absence from help output is not interpreted as unsupported."
   ],
   "printers": [
     {
       "id": "ender5plus",
       "display_name": "Ender 5 Plus",
       "host": "192.168.1.120:7125",
+      "captured_at": "2026-06-02T11:46:45Z",
       "capture": {
-        "date": "2026-06-01",
-        "klipper": "v0.13.0-662",
-        "moonraker": "v0.10.0",
+        "date": "2026-06-02",
+        "captured_at": "2026-06-02T11:46:45Z",
+        "klipper": "v0.13.0-662-gbd99b19b-dirty",
+        "klipper_version": "v0.13.0-662-gbd99b19b-dirty",
+        "moonraker": "v0.10.0-20-g9008485",
+        "moonraker_version": "v0.10.0-20-g9008485",
         "moonraker_api": "1.5.0",
-        "slicer": "OrcaSlicer 2.4"
+        "api_version": "1.5.0",
+        "slicer": "OrcaSlicer 2.4",
+        "source": "approved live read-only probe refresh on 2026-06-02"
+      },
+      "endpoint_support": {
+        "/printer/gcode/help": {
+          "bytes": 10992,
+          "status": 200
+        },
+        "/printer/info": {
+          "bytes": 403,
+          "status": 200
+        },
+        "/printer/objects/list": {
+          "bytes": 4207,
+          "status": 200
+        },
+        "/printer/objects/query?gcode": {
+          "bytes": 13174,
+          "status": 200
+        },
+        "/server/info": {
+          "bytes": 739,
+          "status": 200
+        }
       },
       "components": [
         "announcements",
+        "application",
+        "authorization",
+        "data_store",
+        "database",
+        "dbus_manager",
+        "extensions",
         "file_manager",
         "history",
+        "http_client",
+        "internal_transport",
         "job_queue",
         "job_state",
+        "jsonrpc",
+        "klippy_apis",
+        "klippy_connection",
+        "machine",
         "mqtt",
         "octoprint_compat",
+        "proc_stats",
+        "secrets",
+        "shell_command",
         "spoolman",
+        "template",
         "timelapse",
         "update_manager",
-        "webcam"
+        "webcam",
+        "websockets"
+      ],
+      "objects": [
+        "bed_mesh",
+        "canbus_stats EBBCan",
+        "configfile",
+        "display_status",
+        "exclude_object",
+        "extruder",
+        "fan",
+        "fan_generic FILTER_fan",
+        "filament_motion_sensor encoder_sensor",
+        "filament_switch_sensor switch_sensor",
+        "gcode",
+        "gcode_macro Attach_Probe",
+        "gcode_macro Attach_Probe_Lock",
+        "gcode_macro BED_MESH_CALIBRATE",
+        "gcode_macro CANCEL_DELAYED_PAUSE",
+        "gcode_macro CANCEL_PRINT",
+        "gcode_macro Dock_Probe",
+        "gcode_macro Dock_Probe_Unlock",
+        "gcode_macro END_PRINT",
+        "gcode_macro FIND_DUPLICATES",
+        "gcode_macro G28",
+        "gcode_macro GET_TIMELAPSE_SETUP",
+        "gcode_macro HYPERLAPSE",
+        "gcode_macro KOMB",
+        "gcode_macro KOMB_purge",
+        "gcode_macro LINE_PURGE",
+        "gcode_macro M0",
+        "gcode_macro M117",
+        "gcode_macro M600",
+        "gcode_macro PAUSE",
+        "gcode_macro PAUSE_AFTER_D",
+        "gcode_macro PROBE_ACCURACY",
+        "gcode_macro PROBE_CALIBRATE",
+        "gcode_macro PROMPT_TEST",
+        "gcode_macro PUBLISH_ALERT",
+        "gcode_macro RESUME",
+        "gcode_macro SCREWS_TILT_CALCULATE",
+        "gcode_macro SEARCH_VARS",
+        "gcode_macro SET_PAUSE_AT_LAYER",
+        "gcode_macro SET_PAUSE_NEXT_LAYER",
+        "gcode_macro SET_PRINT_STATS_INFO",
+        "gcode_macro SMARTHOME",
+        "gcode_macro SMART_PARK",
+        "gcode_macro START_PRINT",
+        "gcode_macro TEST_STREAM_DELAY",
+        "gcode_macro TIMELAPSE_RENDER",
+        "gcode_macro TIMELAPSE_TAKE_FRAME",
+        "gcode_macro VORON_PURGE",
+        "gcode_macro WAIT_FOR_ENCLOSURE_TEMP",
+        "gcode_macro Z_TILT_ADJUST",
+        "gcode_macro _BED_SAFETY_ARM",
+        "gcode_macro _BED_SAFETY_DISARM",
+        "gcode_macro _CLIENT_EXTRUDE",
+        "gcode_macro _CLIENT_LINEAR_MOVE",
+        "gcode_macro _CLIENT_RETRACT",
+        "gcode_macro _CLOSE_PROMPT_AND_RESUME",
+        "gcode_macro _COLOR_TRACKER",
+        "gcode_macro _CheckProbe",
+        "gcode_macro _DeployKlickyDock",
+        "gcode_macro _FILAMENT_SENSOR_CONFIG",
+        "gcode_macro _FILAMENT_SWAP_PROMPT",
+        "gcode_macro _FILTER_FAN_OFF",
+        "gcode_macro _FILTER_FAN_ON",
+        "gcode_macro _GET_PRINT_FILENAME",
+        "gcode_macro _Home_Z_",
+        "gcode_macro _Homing_Variables",
+        "gcode_macro _KAMP_Settings",
+        "gcode_macro _KOMB_Variables",
+        "gcode_macro _KOMB_trigger",
+        "gcode_macro _KlickyDebug",
+        "gcode_macro _LOAD_FILAMENT",
+        "gcode_macro _PAUSE_ON_SWITCH",
+        "gcode_macro _PRE_SCAN_TOOL_CHANGES",
+        "gcode_macro _Park_Toolhead",
+        "gcode_macro _Probe_Lock",
+        "gcode_macro _Probe_Unlock",
+        "gcode_macro _Probe_Variables",
+        "gcode_macro _RetractKlickyDock",
+        "gcode_macro _SAVE_PRINT_FILE",
+        "gcode_macro _SET_TIMELAPSE_SETUP",
+        "gcode_macro _SHOW_TOOL_CHANGE_COLOR",
+        "gcode_macro _SHOW_TOOL_CHANGE_STATUS",
+        "gcode_macro _START_FAN_TIMER",
+        "gcode_macro _SetProbeState",
+        "gcode_macro _THERMAL_ADJUST_ENABLE",
+        "gcode_macro _TIMELAPSE_NEW_FRAME",
+        "gcode_macro _TOOLHEAD_PARK_PAUSE_CANCEL",
+        "gcode_macro _TRACK_TOOL_CHANGE",
+        "gcode_macro _UNLOAD_FILAMENT",
+        "gcode_macro _Umbilical_Path",
+        "gcode_macro _User_Variables",
+        "gcode_macro _entry_point",
+        "gcode_macro _exit_point",
+        "gcode_macro _klicky_check_variables_version",
+        "gcode_macro _klicky_status_busy",
+        "gcode_macro _klicky_status_calibrating_z",
+        "gcode_macro _klicky_status_cleaning",
+        "gcode_macro _klicky_status_homing",
+        "gcode_macro _klicky_status_leveling",
+        "gcode_macro _klicky_status_meshing",
+        "gcode_macro _klicky_status_ready",
+        "gcode_macro axes_map_calibration",
+        "gcode_macro axes_shaper_calibration",
+        "gcode_macro compare_belts_responses",
+        "gcode_macro create_vibrations_profile",
+        "gcode_macro excitate_axis_at_freq",
+        "gcode_macro quick_mesh",
+        "gcode_move",
+        "heater_bed",
+        "heater_fan heatbreak_cooling_fan",
+        "heaters",
+        "idle_timeout",
+        "led chamber_light",
+        "manual_probe",
+        "mcu",
+        "mcu EBBCan",
+        "mcu expander",
+        "mcu ezboard",
+        "menu",
+        "motion_report",
+        "neopixel expanderPixel",
+        "output_pin bed_safety_switch",
+        "output_pin mosfet2",
+        "output_pin mosfet3",
+        "output_pin virtual_pause",
+        "pause_resume",
+        "print_stats",
+        "probe",
+        "query_endstops",
+        "save_variables",
+        "screws_tilt_adjust",
+        "servo camera_servo",
+        "servo camera_servo_y",
+        "skew_correction",
+        "stepper_enable",
+        "system_stats",
+        "temperature_combined combined_frame",
+        "temperature_host temp_RPi4",
+        "temperature_sensor chamber_air",
+        "temperature_sensor combined_frame",
+        "temperature_sensor frame_sensor_front_right",
+        "temperature_sensor frame_sensor_rear_left",
+        "temperature_sensor temp_EBBCan",
+        "temperature_sensor temp_EZboard",
+        "temperature_sensor temp_RPi4",
+        "temperature_sensor temp_SKR",
+        "tmc2209 extruder",
+        "tmc2209 stepper_x",
+        "tmc2209 stepper_y",
+        "tmc2209 stepper_z",
+        "tmc2209 stepper_z1",
+        "toolhead",
+        "virtual_pins",
+        "virtual_sdcard",
+        "webhooks",
+        "z_tilt"
+      ],
+      "macros": [
+        "_BED_SAFETY_ARM",
+        "_BED_SAFETY_DISARM",
+        "_CheckProbe",
+        "_CLIENT_EXTRUDE",
+        "_CLIENT_LINEAR_MOVE",
+        "_CLIENT_RETRACT",
+        "_CLOSE_PROMPT_AND_RESUME",
+        "_COLOR_TRACKER",
+        "_DeployKlickyDock",
+        "_entry_point",
+        "_exit_point",
+        "_FILAMENT_SENSOR_CONFIG",
+        "_FILAMENT_SWAP_PROMPT",
+        "_FILTER_FAN_OFF",
+        "_FILTER_FAN_ON",
+        "_GET_PRINT_FILENAME",
+        "_Home_Z_",
+        "_Homing_Variables",
+        "_KAMP_Settings",
+        "_klicky_check_variables_version",
+        "_klicky_status_busy",
+        "_klicky_status_calibrating_z",
+        "_klicky_status_cleaning",
+        "_klicky_status_homing",
+        "_klicky_status_leveling",
+        "_klicky_status_meshing",
+        "_klicky_status_ready",
+        "_KlickyDebug",
+        "_KOMB_trigger",
+        "_KOMB_Variables",
+        "_LOAD_FILAMENT",
+        "_Park_Toolhead",
+        "_PAUSE_ON_SWITCH",
+        "_PRE_SCAN_TOOL_CHANGES",
+        "_Probe_Lock",
+        "_Probe_Unlock",
+        "_Probe_Variables",
+        "_RetractKlickyDock",
+        "_SAVE_PRINT_FILE",
+        "_SET_TIMELAPSE_SETUP",
+        "_SetProbeState",
+        "_SHOW_TOOL_CHANGE_COLOR",
+        "_SHOW_TOOL_CHANGE_STATUS",
+        "_START_FAN_TIMER",
+        "_THERMAL_ADJUST_ENABLE",
+        "_TIMELAPSE_NEW_FRAME",
+        "_TOOLHEAD_PARK_PAUSE_CANCEL",
+        "_TRACK_TOOL_CHANGE",
+        "_Umbilical_Path",
+        "_UNLOAD_FILAMENT",
+        "_User_Variables",
+        "Attach_Probe",
+        "Attach_Probe_Lock",
+        "axes_map_calibration",
+        "axes_shaper_calibration",
+        "BED_MESH_CALIBRATE",
+        "CANCEL_DELAYED_PAUSE",
+        "CANCEL_PRINT",
+        "compare_belts_responses",
+        "create_vibrations_profile",
+        "Dock_Probe",
+        "Dock_Probe_Unlock",
+        "END_PRINT",
+        "excitate_axis_at_freq",
+        "FIND_DUPLICATES",
+        "G28",
+        "GET_TIMELAPSE_SETUP",
+        "HYPERLAPSE",
+        "KOMB",
+        "KOMB_purge",
+        "LINE_PURGE",
+        "M0",
+        "M117",
+        "M600",
+        "PAUSE",
+        "PAUSE_AFTER_D",
+        "PROBE_ACCURACY",
+        "PROBE_CALIBRATE",
+        "PROMPT_TEST",
+        "PUBLISH_ALERT",
+        "quick_mesh",
+        "RESUME",
+        "SCREWS_TILT_CALCULATE",
+        "SEARCH_VARS",
+        "SET_PAUSE_AT_LAYER",
+        "SET_PAUSE_NEXT_LAYER",
+        "SET_PRINT_STATS_INFO",
+        "SMART_PARK",
+        "SMARTHOME",
+        "START_PRINT",
+        "TEST_STREAM_DELAY",
+        "TIMELAPSE_RENDER",
+        "TIMELAPSE_TAKE_FRAME",
+        "VORON_PURGE",
+        "WAIT_FOR_ENCLOSURE_TEMP",
+        "Z_TILT_ADJUST"
+      ],
+      "gcode_help_positive": [
+        "ACCELEROMETER_DEBUG_READ",
+        "ACCELEROMETER_DEBUG_WRITE",
+        "ACCELEROMETER_MEASURE",
+        "ACCELEROMETER_QUERY",
+        "ACTIVATE_EXTRUDER",
+        "ATTACH_PROBE",
+        "ATTACH_PROBE_LOCK",
+        "AXES_MAP_CALIBRATION",
+        "AXES_SHAPER_CALIBRATION",
+        "BED_MESH_CALIBRATE",
+        "BED_MESH_CLEAR",
+        "BED_MESH_MAP",
+        "BED_MESH_OFFSET",
+        "BED_MESH_OUTPUT",
+        "BED_MESH_PROFILE",
+        "CALC_MEASURED_SKEW",
+        "CANCEL_DELAYED_PAUSE",
+        "CANCEL_PRINT",
+        "CANCEL_PRINT_BASE",
+        "CLEAR_PAUSE",
+        "COMPARE_BELTS_RESPONSES",
+        "CREATE_VIBRATIONS_PROFILE",
+        "DOCK_PROBE",
+        "DOCK_PROBE_UNLOCK",
+        "DUMP_TMC",
+        "DYNAMIC_MACRO",
+        "DYNAMIC_RENDER",
+        "END_PRINT",
+        "EXCITATE_AXIS_AT_FREQ",
+        "EXCLUDE_OBJECT",
+        "EXCLUDE_OBJECT_DEFINE",
+        "EXCLUDE_OBJECT_END",
+        "EXCLUDE_OBJECT_START",
+        "FIND_DUPLICATES",
+        "FIRMWARE_RESTART",
+        "FORCE_MOVE",
+        "G28",
+        "G28.6245197",
+        "GET_CURRENT_SKEW",
+        "GET_POSITION",
+        "GET_TIMELAPSE_SETUP",
+        "HELP",
+        "HYPERLAPSE",
+        "INIT_TMC",
+        "KOMB",
+        "KOMB_PURGE",
+        "LINE_PURGE",
+        "M0",
+        "M117",
+        "M117.1",
+        "M600",
+        "MANUAL_PROBE",
+        "MEASURE_AXES_NOISE",
+        "PAUSE",
+        "PAUSE_AFTER_D",
+        "PAUSE_BASE",
+        "PID_CALIBRATE",
+        "PROBE",
+        "PROBE_ACCURACY",
+        "PROBE_CALIBRATE",
+        "PROMPT_TEST",
+        "PUBLISH_ALERT",
+        "QUERY_ADC",
+        "QUERY_ENDSTOPS",
+        "QUERY_FILAMENT_SENSOR",
+        "QUERY_PROBE",
+        "QUICK_MESH",
+        "RESPOND",
+        "RESTART",
+        "RESTORE_GCODE_STATE",
+        "RESUME",
+        "RESUME_BASE",
+        "RUN_SHELL_COMMAND",
+        "SAVE_CONFIG",
+        "SAVE_GCODE_STATE",
+        "SAVE_VARIABLE",
+        "SCREWS_TILT_CALCULATE",
+        "SDCARD_PRINT_FILE",
+        "SDCARD_RESET_FILE",
+        "SEARCH_VARS",
+        "SET_DISPLAY_GROUP",
+        "SET_DISPLAY_TEXT",
+        "SET_DYNAMIC_VARIABLE",
+        "SET_EXTRUDER_ROTATION_DISTANCE",
+        "SET_FAN_SPEED",
+        "SET_FILAMENT_SENSOR",
+        "SET_GCODE_OFFSET",
+        "SET_GCODE_VARIABLE",
+        "SET_HEATER_TEMPERATURE",
+        "SET_IDLE_TIMEOUT",
+        "SET_INPUT_SHAPER",
+        "SET_KINEMATIC_POSITION",
+        "SET_LED",
+        "SET_LED_TEMPLATE",
+        "SET_PAUSE_AT_LAYER",
+        "SET_PAUSE_NEXT_LAYER",
+        "SET_PIN",
+        "SET_PRESSURE_ADVANCE",
+        "SET_PRINT_STATS_INFO",
+        "SET_PRINT_STATS_INFO_BASE",
+        "SET_SERVO",
+        "SET_SKEW",
+        "SET_STEPPER_ENABLE",
+        "SET_TMC_CURRENT",
+        "SET_TMC_FIELD",
+        "SET_VELOCITY_LIMIT",
+        "SET_VIRTUAL_PIN",
+        "SHAPER_CALIBRATE",
+        "SKEW_PROFILE",
+        "SMARTHOME",
+        "SMART_PARK",
+        "START_PRINT",
+        "STATUS",
+        "STEPPER_BUZZ",
+        "SYNC_EXTRUDER_MOTION",
+        "TEMPERATURE_WAIT",
+        "TEST_RESONANCES",
+        "TEST_STREAM_DELAY",
+        "TIMELAPSE_RENDER",
+        "TIMELAPSE_TAKE_FRAME",
+        "TUNING_TOWER",
+        "TURN_OFF_HEATERS",
+        "UPDATE_DELAYED_GCODE",
+        "VORON_PURGE",
+        "WAIT_FOR_ENCLOSURE_TEMP",
+        "Z_OFFSET_APPLY_PROBE",
+        "Z_TILT_ADJUST",
+        "_AXES_MAP_CALIBRATION",
+        "_AXES_SHAPER_CALIBRATION",
+        "_BED_MESH_CALIBRATE",
+        "_BED_SAFETY_ARM",
+        "_BED_SAFETY_DISARM",
+        "_CHECKPROBE",
+        "_CLIENT_EXTRUDE",
+        "_CLIENT_LINEAR_MOVE",
+        "_CLIENT_RETRACT",
+        "_CLOSE_PROMPT_AND_RESUME",
+        "_COLOR_TRACKER",
+        "_COMPARE_BELTS_RESPONSES",
+        "_CREATE_VIBRATIONS_PROFILE",
+        "_DEPLOYKLICKYDOCK",
+        "_ENTRY_POINT",
+        "_EXCITATE_AXIS_AT_FREQ",
+        "_EXIT_POINT",
+        "_FILAMENT_SENSOR_CONFIG",
+        "_FILAMENT_SWAP_PROMPT",
+        "_FILTER_FAN_OFF",
+        "_FILTER_FAN_ON",
+        "_GET_PRINT_FILENAME",
+        "_HOME_Z_",
+        "_HOMING_VARIABLES",
+        "_KAMP_SETTINGS",
+        "_KLICKYDEBUG",
+        "_KLICKY_CHECK_VARIABLES_VERSION",
+        "_KLICKY_STATUS_BUSY",
+        "_KLICKY_STATUS_CALIBRATING_Z",
+        "_KLICKY_STATUS_CLEANING",
+        "_KLICKY_STATUS_HOMING",
+        "_KLICKY_STATUS_LEVELING",
+        "_KLICKY_STATUS_MESHING",
+        "_KLICKY_STATUS_READY",
+        "_KOMB_TRIGGER",
+        "_KOMB_VARIABLES",
+        "_LOAD_FILAMENT",
+        "_PARK_TOOLHEAD",
+        "_PAUSE_ON_SWITCH",
+        "_PRE_SCAN_TOOL_CHANGES",
+        "_PROBE_ACCURACY",
+        "_PROBE_CALIBRATE",
+        "_PROBE_LOCK",
+        "_PROBE_UNLOCK",
+        "_PROBE_VARIABLES",
+        "_RETRACTKLICKYDOCK",
+        "_SAVE_PRINT_FILE",
+        "_SCREWS_TILT_CALCULATE",
+        "_SETPROBESTATE",
+        "_SET_TIMELAPSE_SETUP",
+        "_SHOW_TOOL_CHANGE_COLOR",
+        "_SHOW_TOOL_CHANGE_STATUS",
+        "_START_FAN_TIMER",
+        "_THERMAL_ADJUST_ENABLE",
+        "_TIMELAPSE_NEW_FRAME",
+        "_TOOLHEAD_PARK_PAUSE_CANCEL",
+        "_TRACK_TOOL_CHANGE",
+        "_UMBILICAL_PATH",
+        "_UNLOAD_FILAMENT",
+        "_USER_VARIABLES",
+        "_Z_TILT_ADJUST"
+      ],
+      "caveats": [
+        "printer.gcode.help is recorded as positive evidence only; missing help entries are not treated as command absence.",
+        "This matrix is dev-facing evidence. Runtime gating evaluates live Capabilities on every connection."
+      ],
+      "predicate_evidence": [
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "toolhead"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "extruder"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "heater_bed"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "z_tilt"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "bed_mesh"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "screws_tilt_adjust"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "probe"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "pause_resume"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "virtual_sdcard"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "PAUSE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "RESUME"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "CANCEL_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "START_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "END_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "SCREWS_TILT_CALCULATE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "BED_MESH_CALIBRATE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "Z_TILT_ADJUST"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "file_manager"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "history"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "job_queue"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "job_state"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "spoolman"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "update_manager"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "webcam"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "mqtt"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "timelapse"
+          },
+          "available": true,
+          "source": "server.info.components"
+        }
+      ]
+    },
+    {
+      "id": "ender3",
+      "display_name": "Ender 3 Pro",
+      "host": "192.168.1.121:7125",
+      "captured_at": "2026-06-02T11:46:45Z",
+      "capture": {
+        "date": "2026-06-02",
+        "captured_at": "2026-06-02T11:46:45Z",
+        "klipper": "v0.13.0-662-gbd99b19b0-dirty",
+        "klipper_version": "v0.13.0-662-gbd99b19b0-dirty",
+        "moonraker": "v0.10.0-20-g9008485",
+        "moonraker_version": "v0.10.0-20-g9008485",
+        "moonraker_api": "1.5.0",
+        "api_version": "1.5.0",
+        "slicer": "OrcaSlicer 2.3",
+        "source": "approved live read-only probe refresh on 2026-06-02"
+      },
+      "endpoint_support": {
+        "/printer/gcode/help": {
+          "bytes": 7123,
+          "status": 200
+        },
+        "/printer/info": {
+          "bytes": 404,
+          "status": 200
+        },
+        "/printer/objects/list": {
+          "bytes": 2517,
+          "status": 200
+        },
+        "/printer/objects/query?gcode": {
+          "bytes": 8776,
+          "status": 200
+        },
+        "/server/info": {
+          "bytes": 700,
+          "status": 200
+        }
+      },
+      "components": [
+        "analysis",
+        "announcements",
+        "application",
+        "authorization",
+        "data_store",
+        "database",
+        "dbus_manager",
+        "extensions",
+        "file_manager",
+        "history",
+        "http_client",
+        "internal_transport",
+        "job_queue",
+        "job_state",
+        "jsonrpc",
+        "klippy_apis",
+        "klippy_connection",
+        "machine",
+        "octoprint_compat",
+        "proc_stats",
+        "secrets",
+        "shell_command",
+        "spoolman",
+        "template",
+        "update_manager",
+        "webcam",
+        "websockets"
       ],
       "objects": [
         "bed_mesh",
@@ -40,126 +817,538 @@
         "fan",
         "filament_motion_sensor encoder_sensor",
         "filament_switch_sensor switch_sensor",
-        "force_move",
+        "gcode",
+        "gcode_macro Attach_Probe",
+        "gcode_macro Attach_Probe_Lock",
+        "gcode_macro BED_MESH_CALIBRATE",
+        "gcode_macro CANCEL_DELAYED_PAUSE",
+        "gcode_macro CANCEL_PRINT",
+        "gcode_macro Dock_Probe",
+        "gcode_macro Dock_Probe_Unlock",
+        "gcode_macro END_PRINT",
+        "gcode_macro FIND_DUPLICATES",
+        "gcode_macro Home_Lock",
+        "gcode_macro LINE_PURGE",
+        "gcode_macro M0",
+        "gcode_macro M117",
+        "gcode_macro M600",
+        "gcode_macro PAUSE",
+        "gcode_macro PAUSE_AFTER_D",
+        "gcode_macro PROBE_ACCURACY",
+        "gcode_macro PROBE_CALIBRATE",
+        "gcode_macro RESUME",
+        "gcode_macro SCREWS_TILT_CALCULATE",
+        "gcode_macro SEARCH_VARS",
+        "gcode_macro SET_PAUSE_AT_LAYER",
+        "gcode_macro SET_PAUSE_NEXT_LAYER",
+        "gcode_macro SET_PRINT_STATS_INFO",
+        "gcode_macro SMART_PARK",
+        "gcode_macro START_PRINT",
+        "gcode_macro VORON_PURGE",
+        "gcode_macro _CLIENT_EXTRUDE",
+        "gcode_macro _CLIENT_LINEAR_MOVE",
+        "gcode_macro _CLIENT_RETRACT",
+        "gcode_macro _CLOSE_PROMPT_AND_RESUME",
+        "gcode_macro _COLOR_TRACKER",
+        "gcode_macro _Center_Nozzle",
+        "gcode_macro _Center_Probe",
+        "gcode_macro _CheckProbe",
+        "gcode_macro _FILAMENT_SENSOR_CONFIG",
+        "gcode_macro _FILAMENT_SWAP_PROMPT",
+        "gcode_macro _GET_FILAMENT_SENSOR_STATE",
+        "gcode_macro _GET_PRINT_FILENAME",
+        "gcode_macro _Home_Z",
+        "gcode_macro _Homing_Variables",
+        "gcode_macro _KAMP_Settings",
+        "gcode_macro _KlackDebug",
+        "gcode_macro _Klack_check_variables_version",
+        "gcode_macro _LOAD_FILAMENT",
+        "gcode_macro _Move_to_Safe_z",
+        "gcode_macro _PRE_SCAN_TOOL_CHANGES",
+        "gcode_macro _Park_Toolhead",
+        "gcode_macro _Probe_Lock",
+        "gcode_macro _Probe_Unlock",
+        "gcode_macro _Probe_Variables",
+        "gcode_macro _RESTORE_FILAMENT_SENSOR_STATE",
+        "gcode_macro _SAVE_FILAMENT_SENSOR_STATE",
+        "gcode_macro _SAVE_PRINT_FILE",
+        "gcode_macro _SHOW_TOOL_CHANGE_COLOR",
+        "gcode_macro _SHOW_TOOL_CHANGE_STATUS",
+        "gcode_macro _SetProbeState",
+        "gcode_macro _TOOLHEAD_PARK_PAUSE_CANCEL",
+        "gcode_macro _TRACK_TOOL_CHANGE",
+        "gcode_macro _User_Variables",
         "gcode_move",
         "heater_bed",
-        "heater_fan hotend_fan",
-        "heater_generic chamber",
+        "heater_fan nozzle_cooling_fan",
+        "heaters",
         "idle_timeout",
+        "manual_probe",
+        "mcu",
         "motion_report",
+        "output_pin ignore_m600",
         "pause_resume",
         "print_stats",
         "probe",
-        "quad_gantry_level",
+        "query_endstops",
+        "save_variables",
         "screws_tilt_adjust",
+        "skew_correction",
+        "stepper_enable",
         "system_stats",
+        "temperature_host rockpro64",
+        "temperature_sensor SKR",
+        "temperature_sensor rockpro64",
+        "tmc2209 extruder",
+        "tmc2209 stepper_x",
+        "tmc2209 stepper_y",
+        "tmc2209 stepper_z",
         "toolhead",
+        "virtual_pins",
         "virtual_sdcard",
-        "webhooks",
-        "z_tilt"
+        "webhooks"
       ],
       "macros": [
-        "LOAD_FILAMENT",
-        "UNLOAD_FILAMENT",
-        "START_PRINT",
+        "_Center_Nozzle",
+        "_Center_Probe",
+        "_CheckProbe",
+        "_CLIENT_EXTRUDE",
+        "_CLIENT_LINEAR_MOVE",
+        "_CLIENT_RETRACT",
+        "_CLOSE_PROMPT_AND_RESUME",
+        "_COLOR_TRACKER",
+        "_FILAMENT_SENSOR_CONFIG",
+        "_FILAMENT_SWAP_PROMPT",
+        "_GET_FILAMENT_SENSOR_STATE",
+        "_GET_PRINT_FILENAME",
+        "_Home_Z",
+        "_Homing_Variables",
+        "_KAMP_Settings",
+        "_Klack_check_variables_version",
+        "_KlackDebug",
+        "_LOAD_FILAMENT",
+        "_Move_to_Safe_z",
+        "_Park_Toolhead",
+        "_PRE_SCAN_TOOL_CHANGES",
+        "_Probe_Lock",
+        "_Probe_Unlock",
+        "_Probe_Variables",
+        "_RESTORE_FILAMENT_SENSOR_STATE",
+        "_SAVE_FILAMENT_SENSOR_STATE",
+        "_SAVE_PRINT_FILE",
+        "_SetProbeState",
+        "_SHOW_TOOL_CHANGE_COLOR",
+        "_SHOW_TOOL_CHANGE_STATUS",
+        "_TOOLHEAD_PARK_PAUSE_CANCEL",
+        "_TRACK_TOOL_CHANGE",
+        "_User_Variables",
+        "Attach_Probe",
+        "Attach_Probe_Lock",
+        "BED_MESH_CALIBRATE",
+        "CANCEL_DELAYED_PAUSE",
+        "CANCEL_PRINT",
+        "Dock_Probe",
+        "Dock_Probe_Unlock",
         "END_PRINT",
-        "CANCEL_PRINT"
+        "FIND_DUPLICATES",
+        "Home_Lock",
+        "LINE_PURGE",
+        "M0",
+        "M117",
+        "M600",
+        "PAUSE",
+        "PAUSE_AFTER_D",
+        "PROBE_ACCURACY",
+        "PROBE_CALIBRATE",
+        "RESUME",
+        "SCREWS_TILT_CALCULATE",
+        "SEARCH_VARS",
+        "SET_PAUSE_AT_LAYER",
+        "SET_PAUSE_NEXT_LAYER",
+        "SET_PRINT_STATS_INFO",
+        "SMART_PARK",
+        "START_PRINT",
+        "VORON_PURGE"
+      ],
+      "gcode_help_positive": [
+        "ACTIVATE_EXTRUDER",
+        "ATTACH_PROBE",
+        "ATTACH_PROBE_LOCK",
+        "BASE_PAUSE",
+        "BASE_RESUME",
+        "BED_MESH_CALIBRATE",
+        "BED_MESH_CLEAR",
+        "BED_MESH_MAP",
+        "BED_MESH_OFFSET",
+        "BED_MESH_OUTPUT",
+        "BED_MESH_PROFILE",
+        "CALC_MEASURED_SKEW",
+        "CANCEL_DELAYED_PAUSE",
+        "CANCEL_PRINT",
+        "CANCEL_PRINT_BASE",
+        "CLEAR_PAUSE",
+        "DOCK_PROBE",
+        "DOCK_PROBE_UNLOCK",
+        "DUMP_TMC",
+        "DYNAMIC_MACRO",
+        "DYNAMIC_RENDER",
+        "END_PRINT",
+        "EXCLUDE_OBJECT",
+        "EXCLUDE_OBJECT_DEFINE",
+        "EXCLUDE_OBJECT_END",
+        "EXCLUDE_OBJECT_START",
+        "FIND_DUPLICATES",
+        "FIRMWARE_RESTART",
+        "FORCE_MOVE",
+        "GET_CURRENT_SKEW",
+        "GET_POSITION",
+        "HELP",
+        "HOME_LOCK",
+        "INIT_TMC",
+        "LINE_PURGE",
+        "M0",
+        "M117",
+        "M117.1",
+        "M600",
+        "MANUAL_PROBE",
+        "PAUSE",
+        "PAUSE_AFTER_D",
+        "PID_CALIBRATE",
+        "PROBE",
+        "PROBE_ACCURACY",
+        "PROBE_CALIBRATE",
+        "QUERY_ADC",
+        "QUERY_ENDSTOPS",
+        "QUERY_FILAMENT_SENSOR",
+        "QUERY_PROBE",
+        "RESPOND",
+        "RESTART",
+        "RESTORE_GCODE_STATE",
+        "RESUME",
+        "RUN_SHELL_COMMAND",
+        "SAVE_CONFIG",
+        "SAVE_GCODE_STATE",
+        "SAVE_VARIABLE",
+        "SCREWS_TILT_CALCULATE",
+        "SDCARD_PRINT_FILE",
+        "SDCARD_RESET_FILE",
+        "SEARCH_VARS",
+        "SET_DISPLAY_TEXT",
+        "SET_DYNAMIC_VARIABLE",
+        "SET_EXTRUDER_ROTATION_DISTANCE",
+        "SET_FILAMENT_SENSOR",
+        "SET_GCODE_OFFSET",
+        "SET_GCODE_VARIABLE",
+        "SET_HEATER_TEMPERATURE",
+        "SET_IDLE_TIMEOUT",
+        "SET_INPUT_SHAPER",
+        "SET_KINEMATIC_POSITION",
+        "SET_PAUSE_AT_LAYER",
+        "SET_PAUSE_NEXT_LAYER",
+        "SET_PIN",
+        "SET_PRESSURE_ADVANCE",
+        "SET_PRINT_STATS_INFO",
+        "SET_PRINT_STATS_INFO_BASE",
+        "SET_SKEW",
+        "SET_STEPPER_ENABLE",
+        "SET_TMC_CURRENT",
+        "SET_TMC_FIELD",
+        "SET_VELOCITY_LIMIT",
+        "SET_VIRTUAL_PIN",
+        "SKEW_PROFILE",
+        "SMART_PARK",
+        "START_PRINT",
+        "STATUS",
+        "STEPPER_BUZZ",
+        "SYNC_EXTRUDER_MOTION",
+        "TEMPERATURE_WAIT",
+        "TUNING_TOWER",
+        "TURN_OFF_HEATERS",
+        "UPDATE_DELAYED_GCODE",
+        "VORON_PURGE",
+        "Z_OFFSET_APPLY_PROBE",
+        "_BED_MESH_CALIBRATE",
+        "_CENTER_NOZZLE",
+        "_CENTER_PROBE",
+        "_CHECKPROBE",
+        "_CLIENT_EXTRUDE",
+        "_CLIENT_LINEAR_MOVE",
+        "_CLIENT_RETRACT",
+        "_CLOSE_PROMPT_AND_RESUME",
+        "_COLOR_TRACKER",
+        "_FILAMENT_SENSOR_CONFIG",
+        "_FILAMENT_SWAP_PROMPT",
+        "_GET_FILAMENT_SENSOR_STATE",
+        "_GET_PRINT_FILENAME",
+        "_HOME_Z",
+        "_HOMING_VARIABLES",
+        "_KAMP_SETTINGS",
+        "_KLACKDEBUG",
+        "_KLACK_CHECK_VARIABLES_VERSION",
+        "_LOAD_FILAMENT",
+        "_MOVE_TO_SAFE_Z",
+        "_PARK_TOOLHEAD",
+        "_PRE_SCAN_TOOL_CHANGES",
+        "_PROBE_ACCURACY",
+        "_PROBE_CALIBRATE",
+        "_PROBE_LOCK",
+        "_PROBE_UNLOCK",
+        "_PROBE_VARIABLES",
+        "_RESTORE_FILAMENT_SENSOR_STATE",
+        "_SAVE_FILAMENT_SENSOR_STATE",
+        "_SAVE_PRINT_FILE",
+        "_SCREWS_TILT_CALCULATE",
+        "_SETPROBESTATE",
+        "_SHOW_TOOL_CHANGE_COLOR",
+        "_SHOW_TOOL_CHANGE_STATUS",
+        "_TOOLHEAD_PARK_PAUSE_CANCEL",
+        "_TRACK_TOOL_CHANGE",
+        "_USER_VARIABLES"
+      ],
+      "caveats": [
+        "printer.gcode.help is recorded as positive evidence only; missing help entries are not treated as command absence.",
+        "This matrix is dev-facing evidence. Runtime gating evaluates live Capabilities on every connection."
       ],
       "predicate_evidence": [
-        { "predicate": { "type": "object_present", "name": "toolhead" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "extruder" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "heater_bed" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "force_move" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "quad_gantry_level" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "z_tilt" }, "available": true },
-        { "predicate": { "type": "macro_present", "name": "LOAD_FILAMENT" }, "available": true },
-        { "predicate": { "type": "macro_present", "name": "UNLOAD_FILAMENT" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "history" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "file_manager" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "spoolman" }, "available": true }
-      ]
-    },
-    {
-      "id": "ender3",
-      "display_name": "Ender 3 Pro",
-      "host": "192.168.1.121:7125",
-      "capture": {
-        "date": "2026-06-01",
-        "klipper": "v0.13.0-662",
-        "moonraker": "v0.10.0",
-        "moonraker_api": "1.5.0",
-        "slicer": "OrcaSlicer 2.3"
-      },
-      "components": [
-        "analysis",
-        "file_manager",
-        "history",
-        "job_queue",
-        "job_state",
-        "spoolman",
-        "update_manager",
-        "webcam"
-      ],
-      "objects": [
-        "bed_mesh",
-        "configfile",
-        "display_status",
-        "exclude_object",
-        "extruder",
-        "fan",
-        "filament_switch_sensor switch_sensor",
-        "force_move",
-        "gcode_move",
-        "heater_bed",
-        "heater_fan hotend_fan",
-        "idle_timeout",
-        "motion_report",
-        "pause_resume",
-        "print_stats",
-        "probe",
-        "screws_tilt_adjust",
-        "system_stats",
-        "toolhead",
-        "virtual_sdcard",
-        "webhooks",
-        "z_tilt"
-      ],
-      "macros": [
-        "LOAD_FILAMENT",
-        "UNLOAD_FILAMENT",
-        "START_PRINT",
-        "END_PRINT",
-        "CANCEL_PRINT"
-      ],
-      "predicate_evidence": [
-        { "predicate": { "type": "object_present", "name": "toolhead" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "extruder" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "heater_bed" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "force_move" }, "available": true },
-        { "predicate": { "type": "object_present", "name": "z_tilt" }, "available": true },
-        { "predicate": { "type": "macro_present", "name": "LOAD_FILAMENT" }, "available": true },
-        { "predicate": { "type": "macro_present", "name": "UNLOAD_FILAMENT" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "history" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "file_manager" }, "available": true },
-        { "predicate": { "type": "component_present", "name": "spoolman" }, "available": true }
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "toolhead"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "extruder"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "heater_bed"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "bed_mesh"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "screws_tilt_adjust"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "probe"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "pause_resume"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "object_present",
+            "name": "virtual_sdcard"
+          },
+          "available": true,
+          "source": "printer.objects.list"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "PAUSE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "RESUME"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "CANCEL_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "START_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "END_PRINT"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "SCREWS_TILT_CALCULATE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "macro_present",
+            "name": "BED_MESH_CALIBRATE"
+          },
+          "available": true,
+          "source": "printer.objects.list/gcode_macro"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "file_manager"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "history"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "job_queue"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "job_state"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "spoolman"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "update_manager"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "webcam"
+          },
+          "available": true,
+          "source": "server.info.components"
+        },
+        {
+          "predicate": {
+            "type": "component_present",
+            "name": "analysis"
+          },
+          "available": true,
+          "source": "server.info.components"
+        }
       ]
     }
   ],
   "not_on_printers": [
     {
-      "predicate": { "type": "object_present", "name": "quad_gantry_level" },
-      "printer_ids": ["ender3"],
-      "reason": "Ender 3 Pro is not a quad-gantry printer."
+      "predicate": {
+        "type": "object_present",
+        "name": "quad_gantry_level"
+      },
+      "printer_ids": [
+        "ender3"
+      ],
+      "reason": "Ender 3 Pro objects.list does not expose quad_gantry_level in the 2026-06-02 capture."
     },
     {
-      "predicate": { "type": "component_present", "name": "mqtt" },
-      "printer_ids": ["ender3"],
-      "reason": "Component observed on Ender 5 Plus only in the 2026-06-01 capture."
+      "predicate": {
+        "type": "component_present",
+        "name": "mqtt"
+      },
+      "printer_ids": [
+        "ender3"
+      ],
+      "reason": "Component observed on Ender 5 Plus only in the 2026-06-02 capture."
     },
     {
-      "predicate": { "type": "component_present", "name": "timelapse" },
-      "printer_ids": ["ender3"],
-      "reason": "Component observed on Ender 5 Plus only in the 2026-06-01 capture."
+      "predicate": {
+        "type": "component_present",
+        "name": "timelapse"
+      },
+      "printer_ids": [
+        "ender3"
+      ],
+      "reason": "Component observed on Ender 5 Plus only in the 2026-06-02 capture."
+    },
+    {
+      "predicate": {
+        "type": "component_present",
+        "name": "analysis"
+      },
+      "printer_ids": [
+        "ender5plus"
+      ],
+      "reason": "Component observed on Ender 3 Pro only in the 2026-06-02 capture."
+    },
+    {
+      "predicate": {
+        "type": "component_present",
+        "name": "power"
+      },
+      "printer_ids": [
+        "ender5plus",
+        "ender3"
+      ],
+      "reason": "Neither server.info capture listed Moonraker power; future power-device UI must query live component/device APIs."
     }
-  ]
+  ],
+  "unknown": []
 }

@@ -16,6 +16,23 @@ curl -s "http://$H/server/files/list?root=gcodes"
 curl -s "http://$H/server/files/metadata?filename=<a real file>"
 ```
 
+## Latest command-availability refresh — captured 2026-06-02
+
+The Phase 06-04 live-probe checkpoint was approved by the user after successful read-only evidence.
+The executor reran these read-only endpoints against both printers on 2026-06-02:
+`/server/info`, `/printer/info`, `/printer/objects/list`, `/printer/objects/query?gcode`, and
+`/printer/gcode/help`. Every endpoint returned HTTP 200 for both printers.
+
+- Ender 5 Plus (`192.168.1.120:7125`): Klipper `v0.13.0-662-gbd99b19b-dirty`, Moonraker
+  `v0.10.0-20-g9008485`, API `1.5.0`, 28 components, 156 objects, 96 macros, and 188
+  `printer.gcode.help` positives.
+- Ender 3 Pro (`192.168.1.121:7125`): Klipper `v0.13.0-662-gbd99b19b0-dirty`, Moonraker
+  `v0.10.0-20-g9008485`, API `1.5.0`, 27 components, 98 objects, 60 macros, and 133
+  `printer.gcode.help` positives.
+
+The full structured evidence now lives in `docs/commands/printer-matrix.json`. Treat
+`printer.gcode.help` as positive evidence only; missing help entries are not absence proof.
+
 ---
 
 ## Ender 5 Plus (`ender5plus`, 192.168.1.120:7125) — captured 2026-06-01
