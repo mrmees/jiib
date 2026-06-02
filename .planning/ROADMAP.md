@@ -257,7 +257,7 @@ Plans:
 - [x] 06-04-PLAN.md — Comprehensive Klipper/Moonraker/Spoolman catalog plus E5/E3 availability matrix backed by `catalog.json` and `printer-matrix.json`
 
 **Wave 4** *(blocked on Wave 3; final manual regression checkpoint)*
-- [ ] 06-05-PLAN.md — Final host verification, blocking flox + live Ender 5 Plus regression, and phase verification record
+- [x] 06-05-PLAN.md — Final host verification, blocking flox + live Ender 5 Plus regression, and phase verification record
 **Research note**: DEEPER — this phase is substantially a documentation-reading + reference effort: pin down and READ the authoritative Klipper G-Code/Config references, Moonraker API docs (JSON-RPC + REST), and Spoolman API, then reconcile the catalog with live `printer.objects.list` / gcode-help introspection from the real printers. (The availability matrix is being knocked out up front as a reference artifact.)
 
 ### Phase 7: Files & Print Control — Core Print-Loop Gate

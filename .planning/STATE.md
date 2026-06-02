@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-02T12:03:16.256Z"
+status: planning
+last_updated: "2026-06-02T12:40:16Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 15
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 40
-  completed_plans: 39
-  percent: 33
+  completed_plans: 40
+  percent: 40
 ---
 
 # Project State
@@ -20,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 06 — command-reference-capability-matrix
+**Current focus:** Phase 7 — Files & Print Control — Core Print-Loop Gate
 
 ## Current Position
 
-Phase: 06 (command-reference-capability-matrix) — EXECUTING
-Plan: 5 of 5
-Status: Ready to execute
-  → Task 1 (nav wiring) COMPLETE + committed (b338c8c) + test retarget (8181218). Dest += Temperature/Move/Extrude; drawer Move→Move / Temp→Temperature / Tools→Extrude live; AppShell when(dest) renders all three full-bleed off per-session holders. compileReleaseKotlin + full unit suite GREEN.
-  → Release APK built + debug-signed + INSTALLED on flox (0a64b42e); confirmed it launches to the real RootController shell (NOT the Phase-1 scaffold — MainActivity wired in 04-07; the stale 04-06b scaffold blocker is now MOOT).
-  → AWAITING Task 2 (D-06 multi-trace perf re-measure) + Task 3 (SC-5 end-to-end UAT) on flox + live Ender 5 Plus. Human-device + human-eyes required — perf numbers NOT fabricated, plan NOT advanced, ROADMAP NOT updated, no SUMMARY claiming on-device success.
+Phase: 06 (command-reference-capability-matrix) — COMPLETE
+Plan: 5 of 5 complete
+Status: Ready for Phase 7 planning/execution
+  → Phase 6 command catalog, in-code registry, and E5/E3 availability matrix complete.
+  → Host gates GREEN: catalog/matrix JSON parse, targeted Phase 6 tests, full release unit suite, and compileReleaseKotlin.
+  → flox + live Ender 5 Plus regression PASS on 2026-06-02 after registry call-site refactor: connection, Move, Temperature, Extrude, Stop/Splash, and recovery actions all passed.
 Last activity: 2026-06-02
 
-Progress (Phase 3): [██████████] 100% — 7/7 plans complete, ready for verification
+Progress (Phase 6): [██████████] 100% — 5/5 plans complete, verified
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Progress (Phase 3): [██████████] 100% — 7/7 plans complete
 | Phase 06 P02 | 10min | 3 tasks | 8 files |
 | Phase 06 P03 | 8min | 3 tasks | 11 files |
 | Phase 06-command-reference-capability-matrix P04 | 16m 24s | 3 tasks | 9 files |
+| Phase 06 P05 | final verification + UAT | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 5][05-10 gap-closure]: G2 HIGH + G3 MED closed — notify_klippy_ready on the still-open socket now re-runs the FULL runHandshake() (re-objects/subscribe + re-run BOTH 05-03 one-shot reads), so the FGS-held session self-heals after a Klipper FIRMWARE_RESTART without a force-stop (G2) and edited configfile values refresh on a printer.cfg reload (G3). Gated by per-attempt handshakeComplete (no duplicate of the initial connect handshake), serialized by rehandshakeMutex, launched on the attempt scope off the frame collector, best-effort runCatching. MoonrakerService unchanged (verified against code). TDD RED->GREEN; faithful test injects a real no-id klippy_ready frame.
 - [Phase 06]: Plan 06-01 is a RED-only guard wave; production CommandRegistry and Capabilities.objects/hasObject are deferred to Plan 02. — The Phase 6 plan intentionally establishes drift, gcode, capability, dispatcher, and handshake guards before implementation.
 - [Phase 06]: docs/commands JSON sidecars are the enforcement source for command catalog and printer matrix guards. — Markdown command documentation remains human-facing and is not parsed by tests.
+- [Phase 06]: Command Reference & Capability Matrix complete — Comprehensive Klipper/Moonraker/Spoolman command catalog, canonical in-code CommandRegistry, live Capabilities predicate surface, and E5/E3 availability matrix are complete; all Phase 1-5 outbound call sites now dispatch/request through registry helpers; flox + live Ender 5 Plus regression passed on 2026-06-02.
 - [Phase 06]: Registry entries use unique operation-level catalog IDs while retaining generic upstream catalog rows.
 - [Phase 06]: JsonRpcClient registry helper rejects non-JsonRpc specs; gcode specs continue through CommandDispatcher.
 - [Phase 06]: [Phase 06/06-03]: Existing Phase 1-5 outbound sends now route through CommandRegistry helpers; inbound notify_* constants remain in JsonRpcMethods.
