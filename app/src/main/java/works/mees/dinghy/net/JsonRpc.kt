@@ -111,6 +111,10 @@ object JsonRpcMethods {
     // One-shot temperature-history backfill for the temp graph (RESEARCH §1).
     const val TEMPERATURE_STORE = "server.temperature_store"
 
+    // One-shot per-file gcode metadata (260601-sip Inc 2) — thumbnails, layer_count, object_height,
+    // estimated_time; fetched ONCE per active print filename for the Status home derived cells.
+    const val FILES_METADATA = "server.files.metadata"
+
     // Notifications (server → client, no id)
     const val NOTIFY_STATUS_UPDATE = "notify_status_update"
     const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"
