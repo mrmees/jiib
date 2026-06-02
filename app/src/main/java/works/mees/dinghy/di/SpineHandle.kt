@@ -8,6 +8,7 @@ import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.ui.files.FileBrowserClient
 
 /**
  * An IMMUTABLE atomic snapshot of one live Moonraker spine (review #6). All references a screen needs
@@ -75,6 +76,8 @@ data class SpineHandle(
      * so the idle Status field shows the "last completed job" card as soon as the history is fetched.
      */
     val lastJob: StateFlow<LastJob?>,
+    /** Session-owned Files facade; UI never receives a raw JsonRpcClient. */
+    val fileBrowser: FileBrowserClient,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
 )

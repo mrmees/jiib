@@ -15,6 +15,7 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.net.MoonrakerSession
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.state.PrinterState
 
 /**
@@ -64,6 +65,7 @@ class AppContainerTest {
             httpBase = "http://test:7125",
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
+            fileBrowser = object : FileBrowserClient {},
             sessionInstanceId = id,
         )
     }
@@ -97,6 +99,18 @@ class AppContainerTest {
         assertSame(b.connectionState, published.connectionState)
         assertSame(b.capabilities, published.capabilities)
         assertSame(b.dispatcher, published.dispatcher)
+        assertSame(b.fileBrowser, published.fileBrowser)
+    }
+
+    @Test
+    fun fileBrowserFlowIsNullWhenIdleAndSwapsWithSpine() {
+        val container = newContainer()
+        assertNull(container.currentFileBrowser)
+
+        val handle = handle(3)
+        container.publishSpine(handle)
+
+        assertSame(handle.fileBrowser, container.currentFileBrowser)
     }
 
     @Test

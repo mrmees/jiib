@@ -41,6 +41,7 @@ import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
+import works.mees.dinghy.ui.files.MoonrakerFileBrowserClient
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -134,6 +135,7 @@ class MoonrakerService : Service() {
             // clientUrl left at its live-verified default ("https://mees.works/dinghy-display") — DO NOT regress.
         )
         val dispatcher = CommandDispatcher(rpc, serviceScope)
+        val fileBrowserClient = MoonrakerFileBrowserClient(rpc, dispatcher)
 
         // One-shot-per-filename gcode metadata (260601-sip Inc 2). The fetch seam fires a single
         // server.files.metadata read per active filename; rpc.request returns the `result` element
@@ -170,6 +172,7 @@ class MoonrakerService : Service() {
             httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
+            fileBrowser = fileBrowserClient,
             sessionInstanceId = id,
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.

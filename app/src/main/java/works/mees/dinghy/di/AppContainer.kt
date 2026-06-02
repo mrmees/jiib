@@ -22,6 +22,7 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
+import works.mees.dinghy.ui.files.FileBrowserClient
 
 /**
  * The process-scoped service-locator (no DI framework — D-02). It is the promotion of GalleryActivity's
@@ -101,6 +102,13 @@ class AppContainer(
     /** Live one-shot-on-idle last completed job; null when no history / idle (260601-th9 Inc 3). */
     val lastJob: Flow<LastJob?> =
         spine.flatMapLatest { it?.lastJob ?: flowOf(null) }
+
+    /** Current session's Files facade, or null when idle. */
+    val fileBrowser: Flow<FileBrowserClient?> = spine.map { it?.fileBrowser }
+
+    /** Synchronous nullable access for code paths that only need the current session snapshot. */
+    val currentFileBrowser: FileBrowserClient?
+        get() = spine.value?.fileBrowser
 
     /** The current session's REST base for thumbnail URLs; "" when idle (260601-sip Inc 2). */
     val httpBase: Flow<String> = spine.map { it?.httpBase ?: "" }
