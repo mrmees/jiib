@@ -55,12 +55,14 @@ If any item fails:
 
 ## Deferred Defects (fix + verify in a future UAT round)
 
-- **Delete gating is too broad.** `FilesScreen` computes `deleteEnabled = selected != null &&
-  !printingActive`, where `printingActive` is the GLOBAL print state. So while any print runs, Delete
-  is disabled for EVERY file — not just the one being printed. Desired: only block deleting the file
-  that is currently printing (the active `print_stats.filename`); other idle files stay deletable
-  during a print. NOTE: this relaxes the original UI-SPEC "Delete is idle-only" rule — confirm the
-  rule change when fixing. (Found 2026-06-02 on-device; deferred per Matthew.)
+- **Delete gating is too broad.** → **FOLDED INTO PHASE 9 UAT (2026-06-02, per Matthew).**
+  Tracked in `.planning/todos/pending/files-delete-gating-too-broad.md` (`resolves_phase: 09`).
+  Summary: `FilesScreen` computes `deleteEnabled = selected != null && !printingActive`, where
+  `printingActive` is the GLOBAL print state — so while any print runs, Delete is disabled for
+  EVERY file, not just the one being printed. Desired: only block deleting the active
+  `print_stats.filename`; other idle files stay deletable during a print. (Relaxes the original
+  UI-SPEC "Delete is idle-only" rule — confirm the rule change when fixing.) Fix + verify happen
+  in Phase 9; see the todo for the fix location and the Phase-9 UAT check.
 
 ## Gate Result
 
