@@ -56,11 +56,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Command Reference & Capability Matrix** - Done FIRST of the remaining work (moved to top 2026-06-01) because it gates everything after it. Three layers: a **command/function catalog read from the authoritative Klipper G-Code/config, Moonraker API (JSON-RPC + REST), and Spoolman docs** (the universe + what each does + error/acceptance semantics); a canonical single-source-of-truth **in-code command registry** for the commands the app actually sends; and a committed per-printer (Ender 5 Plus / Ender 3) **availability matrix** cross-referencing the catalog against live introspection — so later pages can capability-gate. Matrix knocked out early
 - [ ] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
 - [x] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate (completed 2026-06-02)
-- [ ] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser
+- [x] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser (completed 2026-06-03; on-device UAT passed on flox + live Ender 3. One cross-cutting reliability defect — SAVE_CONFIG re-handshake live-feed freeze — deferred to Phase 13, now promoted to run next)
 - [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
 - [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
 - [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
-- [ ] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** - Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase
+- [ ] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase
 - [ ] **Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
@@ -446,7 +446,12 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+Originally numeric 1 → … → 14. **Revised 2026-06-03 (reliability promotion):**
+1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → **13 (Optimization/Reliability — PROMOTED)** → 10 → 11 → 12 → 14.
+Phase 13 was pulled ahead of the remaining feature phases (Webcam/Spool/Macro-Prompt) so the
+connection/data-model standardization + session-layer reliability fixes land before more screens are
+built on the pragmatic backend. Phase NUMBERS are unchanged — only execution order moved (keeps all
+existing "Phase 13" references valid).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -458,11 +463,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
-| 9. Calibration & Maintenance | 6/7 | In Progress|  |
-| 10. Webcam Streaming | 0/TBD | Not started | - |
-| 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
-| 12. Macro Prompt Protocol | 0/TBD | Not started | - |
-| 13. Optimization, Network Efficiency & End-to-End Reliability | 0/TBD | Not started | - |
+| 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
+| 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
+| 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
+| 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
+| 13. Optimization, Network Efficiency & End-to-End Reliability | 0/TBD | ⏩ NEXT (promoted) | - |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
