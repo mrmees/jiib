@@ -110,6 +110,23 @@ class MoonrakerSocket(
         const val OPEN_TIMEOUT_MS = 10_000L
 
         /**
+         * Websocket keepalive interval (ms). A websocket over WiFi can go HALF-OPEN silently — the
+         * tablet's WiFi is toggled off, or the printer's network is pulled mid-print — leaving a dead
+         * TCP peer that never produces an `onFailure`. With no keepalive, OkHttp never detects the dead
+         * peer, [SocketEvent.Closed] is never emitted, the reconnect supervisor never runs, and the feed
+         * just freezes indefinitely (the on-device G-B1 freeze the 13-04 live UAT caught). OkHttp's
+         * `pingInterval` sends websocket PING frames and FAILS the connection on a missing PONG within
+         * the interval → `onFailure` → [SocketEvent.Closed] → the reconnect supervisor reconnects and
+         * resyncs. This is the load-bearing half-open-detection mechanism — NOT `readTimeout` (a ws must
+         * never die on a read timeout; we keep `readTimeout(0)`).
+         *
+         * The unit suite missed this because [WebSocketFactory]'s `FakeWebSocket` SYNTHESIZES `Closed`
+         * on cancel, while a REAL OkHttp socket never produces `Closed` without keepalive — the project's
+         * 4th mock-vs-reality strike. [MoonrakerSocketClientTest] now pins `pingIntervalMillis > 0`.
+         */
+        const val PING_INTERVAL_MS = 10_000L
+
+        /**
          * Build a [MoonrakerSocket] over a REAL OkHttp client (the production path). Carries the
          * smoke-test posture: finite `connectTimeout`, `readTimeout(0)` (no read timeout on a ws).
          * The [client] is reused for REST too (one TLS/pool/timeout config — CLAUDE.md networking).
@@ -131,6 +148,9 @@ class MoonrakerSocket(
             OkHttpClient.Builder()
                 .connectTimeout(OPEN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS) // websocket: no read timeout
+                // Half-open detection: PING the peer; a missing PONG within the interval fails the
+                // connection → onFailure → SocketEvent.Closed → reconnect supervisor. See PING_INTERVAL_MS.
+                .pingInterval(PING_INTERVAL_MS, TimeUnit.MILLISECONDS)
                 .build()
     }
 }
