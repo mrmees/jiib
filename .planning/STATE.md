@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T03:35:56.169Z"
+last_updated: "2026-06-03T04:30:00.000Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 60
-  completed_plans: 56
-  percent: 47
+  completed_plans: 57
+  percent: 48
 ---
 
 # Project State
@@ -25,14 +25,15 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 09 (calibration-maintenance) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
   → Plan 09-01 (Wave 0) COMPLETE 2026-06-03 (commits b45c4ad + 69f36cf + 7b764fd): five REAL E5 calibration fixtures captured live + seven compile-fail-RED parser scaffolds. Recorded surprises: clock-STRING screw adjust, [x,y]-array mesh_min/max, ?????? z-bounds, results PERSIST post-run (Open-Q1 resolved), profiles is a name-keyed dict.
   → Plan 09-02 (Wave 1) EXECUTED + COMPLETE 2026-06-03 (2 tasks, commits 5506fbf + bcb8265): the calibration SPINE. Task 1 — 14 object-gated calibration CommandSpecs via the gcode(...) factory (each inherits the G4 120s timeout; zEndstopCalibrate gates GcodeCommandPresent("Z_ENDSTOP_CALIBRATE") NOT ObjectPresent("probe") per A3 — a probe predicate would hide it on probe-less printers; saveConfig=Always); PrinterCommands.testZ clamp-before-format (±MAX_TESTZ_MM, T-09-02-01) + sanitizeProfileName allowlist [A-Za-z0-9_.-]+ on the keyboard-editable mesh profile name (T-09-02-02 — newline-reject blocks a 2nd-gcode-line injection); BedMeshProfileNameTest 9 GREEN. Three docs/commands sidecar touches kept CommandCatalogDriftTest green (catalog rows+registered=true, command_availability rows, not_on_printers exclusions z_tilt∉ender3 / qgl∉ender5plus / Z_ENDSTOP_CALIBRATE∉both). Task 2 — five live objects (screwsTilt/zTiltApplied/qglApplied/bedMesh/manualProbe + ScrewConfig/Screw models) surfaced VERBATIM through null-safe reducer walks (new double2dListOrNull; mesh_min/max read as [x,y] List<Double>) into RETAINED PrinterState; the five + probe added to V1_SUBSCRIBE_CORE (A3 intersect-with-detected); PrinterStateStore.screwsTiltConfig one-shot StateFlow modeled on the minExtrudeTemp seam. PrinterStateReducerTest fed the real *_e5 fixtures + malformed-retains-prior; DeriveCapabilitiesTest present-when-detected/absent-when-missing per object. The seven Wave-0 RED scaffolds were SET ASIDE for the GREEN run then RESTORED byte-identical (Phase-8 pattern). Combined run BUILD SUCCESSFUL, 0 failures. No deviations. NO requirements marked Complete (BEDM/BEDL/ZCAL stay Pending until on-device UAT; CALIB-* stay Planned — closed by the 09-03+ screens).
-  → Next action: execute Plan 09-03 (screws-tilt screen — turns ScrewsTiltResultTest GREEN, consumes the spine).
+  → Plan 09-05 (Wave 3) EXECUTED + COMPLETE 2026-06-03 (3 tasks, commits f4a74cf + c8c9ffd + 86fe4d4): the Z-tilt/QGL + bed-mesh screens + the one new render surface. Task 1 — ConfirmGuard amber `warn` proceed-at-peril variant (Intent.Warn + --heat-soft, precedence over destructive; red/green API intact) = the reusable SAVE_CONFIG restart gate (D-12); BedMeshHeatmapView, the ONLY new render surface — allocation-free Views Canvas 2D heatmap, a SIBLING of GraphView (NOT a fork), token red(--stop)/blue(--accent) ramp through a neutral --surface-2 mid + faint density-scaled --text-3 probe dots, six scale modes (RELATIVE/PLATE/±0.10/0.25/0.50/1.00) as pure host-testable color-mapping, ThemeableView recolor, NO anim loop; BedMeshHeatmapHost mirrors GraphViewHost. bed_tilt.svg → res/drawable/bed_tilt.xml (Rule-3: no Coil SVG decoder, nozzle.xml precedent). Task 2 — TiltHolder (headless, ADR-0001, parameterized by an applied-selector lambda {zTiltApplied}|{qglApplied} so ONE screen serves both, D-02) folds applied+dispatched+Failure → tiltState (Pitfall 2: Done=applied==true, Failed=RpcError ONLY, Running=dispatched-and-not-applied); TiltScreen bed_tilt Focus + question_exchange→data_table overlay, Run(blue, dispatches zTiltAdjust|quadGantryLevel)/Back(green), NO Abort (D-11), homed gate + inline Home (D-13); Failure→SeverityToast redacted. Task 3 — BedMeshHolder (BedMeshModel.from over RECONSTRUCTED bed_mesh JSON so the parse stays in ONE place; holder-owned cyclable scaleMode no-re-probe; isEmpty SEPARATE from saved profiles, Pitfall 4; clears stale Failure ONLY on the printerState clean-mesh edge, never the fold path); BedMeshScreen heatmap Focus + top-left scale toggle (white/setting) + 50/25/25 Activate(bedMeshCalibrate)/Save/Load; Save→keyboard-editable name (YY.MM.DD_HH.MM, isValidProfileName-gated, Rule-2 added)→bedMeshProfileSave→amber ConfirmGuard→saveConfig; Load scrollable selector + per-row red Remove; carve-out recorded in docs/ui_design/. TiltHolderTest + BedMeshHolderTest GREEN; full :app:testReleaseUnitTest GREEN; assembleRelease SUCCESSFUL; token-purity clean. Heatmap Adreno-320 fill-rate (≤50×50 worst case) DEFERRED to 09-07 gfxinfo gate. No requirements marked Complete (BEDM-01/BEDL-01/ZCAL-01 stay Pending until on-device UAT).
+  → Next action: execute Plan 09-06 (Probe-Calibrate — the interactive/stateful manual-probe page + D-15 Files-delete scoping).
 Last activity: 2026-06-03
 
-Progress (Phase 9): [███░░░░░░░] 29% — 2/7 plans complete (09-01 fixtures+RED, 09-02 spine); the calibration spine every downstream screen codes against is live.
+Progress (Phase 9): [███████░░░] 71% — 5/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap); the heatmap render surface + automatic-flow screens are built (Probe-Calibrate 09-06; nav-wiring + on-device UAT 09-07).
 
 ## Performance Metrics
 
@@ -110,6 +111,7 @@ Progress (Phase 9): [███░░░░░░░] 29% — 2/7 plans complete 
 | Phase 09 P02 | 30min | 2 tasks | 12 files |
 | Phase 09 P03 | 22min | 2 tasks | 7 files |
 | Phase 09 P04 | 35 | 2 tasks | 5 files |
+| Phase 09 P05 | 40min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -193,6 +195,7 @@ Recent decisions affecting current work:
 - [Phase 09/09-01]: Wave-0 fixture-capture-first — five REAL E5 calibration fixtures captured live (192.168.1.120:7125, attended) BEFORE any parser; seven RED scaffolds bind each parser-to-be to its fixture (compile-fail RED = baseline). Surprises recorded: screws adjust is a CLOCK STRING 'MM:SS' not a float; bed_mesh mesh_min/max are [x,y] ARRAYS not objects; manual_probe console z-bounds can be literal '??????' (parseZPosition must treat as null); max_deviation null + screws_tilt_adjust.results PERSIST post-run (RESEARCH Open-Q1 resolved — 09-03 can read post-hoc); profiles is a dict keyed by saved-profile name (pre/post/default). Third mock-vs-reality backstop now load-bearing.
 - [Phase 09]: [09-02] Calibration spine landed: 14 object-gated calibration CommandSpecs via the gcode factory (inherit the G4 120s timeout; zEndstopCalibrate gates GcodeCommandPresent NOT ObjectPresent(probe) per A3; saveConfig=Always). Five live objects (screwsTilt/zTiltApplied/qglApplied/bedMesh/manualProbe) surfaced VERBATIM through null-safe reducer walks (new double2dListOrNull; mesh_min/max are [x,y] arrays) into retained PrinterState; the five + probe added to V1_SUBSCRIBE_CORE (A3 intersect). screwsTiltConfig one-shot StateFlow on the minExtrudeTemp seam. testZ clamp-before-format + sanitizeProfileName allowlist (newline-reject = no 2nd-gcode-line injection on the keyboard-editable profile name). Three sidecar touches kept CommandCatalogDriftTest green. GREEN over real *_e5 fixtures.
 - [Phase ?]: [Phase 09/09-03] Five pure result parsers + two gating predicates + D-15 delete gate landed GREEN over the REAL E5 *_e5 fixtures (the Nyquist core). parseScrewsTilt ranks worst by max |z| NOT adjust-clock (the fixture's worst non-base z carries a smaller clock, so adjust-rank picks the wrong screw); adjust/sign carried verbatim. BedMeshModel.from: [x,y]-array min/max + profile-KEY list + isEmpty SEPARATE from saved profiles. tiltState = pure {Idle,Running,Done,Failed}, Failed only from RpcError (Pitfall 2). parseZPosition: ?????? bounds -> null. probeCalibrateGate=A3; calibrationSupported gates each routine on its own objects.list name (all 5 rendered supported-first); deleteAllowed (D-15) plain relative-path == so gcodes/-prefixed selection legitimately misses the bare active filename (path-form guard). All seven Wave-0 scaffolds GREEN; full suite green. Implemented to the TEST contract (manualProbeActive). Phase-8 set-aside-RED-restore used for the two-task split.
+- [Phase 09]: [09-05]: Z-tilt/QGL + bed-mesh screens + the ONE new render surface landed. ConfirmGuard gained an amber `warn` proceed-at-peril variant (Intent.Warn + --heat-soft, precedence over destructive; red/green API intact) = the reusable SAVE_CONFIG restart gate (D-12). BedMeshHeatmapView = the ONLY new render surface: allocation-free Views Canvas 2D heatmap, a SIBLING of GraphView (not a fork) — token red(--stop)/blue(--accent) ramp through a neutral --surface-2 mid + faint density-scaled --text-3 probe dots; six scale modes (RELATIVE/PLATE/±0.10/0.25/0.50/1.00) as PURE host-testable color-mapping (deviationToRamp/lerpArgb); ThemeableView recolor, NO anim loop; Host mirrors GraphViewHost. TiltHolder is parameterized by an applied-selector lambda ({zTiltApplied}|{qglApplied}) so ONE screen+holder serves Z-tilt AND QGL (D-02); tiltState (Pitfall 2): Done=applied==true, Failed=dispatcher RpcError ONLY, Running=dispatched-and-not-applied. BedMeshHolder reconstructs raw bed_mesh JSON from the reduced object → BedMeshModel.from (parse in ONE place, ScrewsTiltHolder trick); isEmpty SEPARATE from saved profiles (Pitfall 4); cyclable scaleMode re-colors only (no re-probe); clears stale Failure ONLY on the printerState clean-mesh edge (never the fold path — a just-arrived rejection must surface over a still-populated prior mesh). BedMeshScreen Save = keyboard-editable name (YY.MM.DD_HH.MM, isValidProfileName allowlist gate added) → bedMeshProfileSave → amber ConfirmGuard → saveConfig; Load = scrollable selector + per-row red Remove. bed_tilt.svg → res/drawable/bed_tilt.xml (no Coil SVG decoder; nozzle.xml precedent). Save-name keyboard carve-out recorded in docs/ui_design/. Holders host-tested GREEN; full suite GREEN; assembleRelease SUCCESSFUL. Heatmap Adreno-320 fill-rate (≤50×50) DEFERRED to 09-07 gfxinfo gate.
 - [Phase ?]: [Phase 09/09-04]: Calibration hub + screws-tilt screen landed — headless ScrewsTiltHolder/CalibrationHubHolder (ExtrudeHolder template, no second throttle, no Compose/ADR-0001). Holder reconstructs raw screws_tilt_adjust JSON from reduced models + feeds parseScrewsTilt so worst-screw math (deviation-from-base; adjust clock+sign+name verbatim) stays in ONE place — screen NEVER re-ranks (honors ef260cb). Hub = Field-only tile grid, all five routines (supported accent/unsupported greyed-but-tappable §1), five unique glyphs, green Back. Screws-tilt = to-scale bed Focus (Canvas+MaterialSymbol at real coords; clock_loader_10 wedge bearing DERIVED runtime atan2 center→screw+Y-flip+native-offset const, no hardcoded angles; D-06 headline-only fallback) + scrollable 20/40/40 list (generic N-screw D-04) + Run(blue gated-on-homed, inline Home D-13)/Back(green) one-shot no Accept/Cancel D-05; Failure→redacted toast T-09-04-02. Bed extents from screw-coord bbox+margin (no axis bounds in state). Token-pure; assembleRelease + full suite GREEN. CALIB-01/02+BEDL-01 Pending until 09-07 on-device UAT.
 
 ### Pending Todos
@@ -224,6 +227,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T03:35:32.951Z
-Stopped at: Completed 09-02-PLAN.md (calibration spine)
+Last session: 2026-06-03T04:30:00.000Z
+Stopped at: Completed 09-05-PLAN.md (Z-tilt/QGL + bed-mesh heatmap + ConfirmGuard amber)
 Resume file: None

@@ -354,7 +354,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 - [x] 09-04-PLAN.md — Calibration hub (D-14) + screws-tilt guided-loop screen (owner-authored to-scale bed) + holders
-- [ ] 09-05-PLAN.md — Z-tilt/QGL screen + bed-mesh heatmap (NEW BedMeshHeatmapView) + scale toggle + profiles + ConfirmGuard amber variant
+- [x] 09-05-PLAN.md — Z-tilt/QGL screen + bed-mesh heatmap (NEW BedMeshHeatmapView) + scale toggle + profiles + ConfirmGuard amber variant
 
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 09-06-PLAN.md — Interactive Probe-Calibrate page (TESTZ/Accept/Abort/amber SAVE_CONFIG) + the D-15 Files-delete scoping fix + 09-UAT.md
