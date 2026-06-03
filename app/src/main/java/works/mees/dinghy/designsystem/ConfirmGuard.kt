@@ -30,12 +30,18 @@ import works.mees.dinghy.theme.fsSp
  * buttons ARE the actions, so there is no separate action row — the whole screen is the decision.
  *
  * Intent contract (docs/ui_design/THEMING.md "Button intent = color"):
- *  - the confirm action is [Intent.Danger] (red `--stop`) when [destructive] (the default), else
- *    [Intent.Go] (green `--go`) for a positive commit;
+ *  - the confirm action is [Intent.Warn] (amber `--heat`) when [warn] (the proceed-at-peril variant),
+ *    else [Intent.Danger] (red `--stop`) when [destructive] (the default), else [Intent.Go] (green
+ *    `--go`) for a positive commit;
  *  - the cancel/dismiss action is always [Intent.Neutral] — backing out of a guard is a
  *    non-destructive safe dismiss, never itself a red act.
  *
- * The full-bleed background carries a faint tint of the relevant token (`--stop-soft` /
+ * Amber proceed-at-peril variant (09-05 / D-12): the reusable **SAVE_CONFIG restart gate**. A
+ * config-save+restart is the *intended, expected* result of calibration (bed-mesh Save, probe-calibrate
+ * Save), not a destructive stop — so it is amber [Intent.Warn] + a `--heat-soft` tint, NOT red. [warn]
+ * takes precedence over [destructive] (the SAVE_CONFIG gate is amber even though it mutates printer.cfg).
+ *
+ * The full-bleed background carries a faint tint of the relevant token (`--stop-soft` / `--heat-soft` /
  * `--go-soft`) so the decision's gravity reads at a glance before any label is parsed. This guard
  * DISPATCHES NOTHING itself (threat T-03-04) — it only invokes [onConfirm]/[onCancel]; the actual
  * destructive command (PRIM-05) lands in Phase 4.
@@ -50,6 +56,8 @@ import works.mees.dinghy.theme.fsSp
  * @param onCancel    invoked when the user backs out (safe dismiss).
  * @param cancelLabel label for the safe-dismiss action; defaults to the existing "Cancel".
  * @param destructive when true (default) confirm is red ([Intent.Danger]); when false it is green.
+ * @param warn        when true, confirm is amber [Intent.Warn] (proceed-at-peril, the SAVE_CONFIG
+ *                    restart gate, D-12) — takes PRECEDENCE over [destructive].
  */
 @Composable
 fun ConfirmGuard(
@@ -61,10 +69,20 @@ fun ConfirmGuard(
     modifier: Modifier = Modifier,
     cancelLabel: String = "Cancel",
     destructive: Boolean = true,
+    warn: Boolean = false,
 ) {
     val t = LocalTokens.current
-    val tint = if (destructive) t.stopSoft else t.goSoft
-    val confirmIntent = if (destructive) Intent.Danger else Intent.Go
+    // warn (amber proceed-at-peril) takes precedence; then destructive (red); else positive (green).
+    val tint = when {
+        warn -> t.heatSoft
+        destructive -> t.stopSoft
+        else -> t.goSoft
+    }
+    val confirmIntent = when {
+        warn -> Intent.Warn
+        destructive -> Intent.Danger
+        else -> Intent.Go
+    }
 
     // G-4: the stop-soft / go-soft tints are ALPHA-BEARING (…/ .15, …/ .16) — content behind bled
     // through, weakening the emergency-stop safety gate. Lay the OPAQUE token bg under the tint
