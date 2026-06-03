@@ -1,76 +1,31 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-02T12:25:00-05:00",
-  "phase": "07",
-  "phase_name": "files-print-control-core-print-loop-gate",
-  "phase_dir": ".planning/phases/07-files-print-control-core-print-loop-gate",
-  "plan": 6,
-  "task": 3,
-  "total_tasks": 3,
+  "timestamp": "2026-06-03T16:03:03Z",
+  "phase": "09",
+  "phase_name": "calibration-maintenance",
+  "phase_dir": ".planning/phases/09-calibration-maintenance",
+  "plan": 7,
+  "task": 2,
+  "total_tasks": 2,
   "status": "paused",
   "completed_tasks": [
-    {
-      "id": 1,
-      "name": "Automated release verification",
-      "status": "done",
-      "commit": "2c52731"
-    },
-    {
-      "id": 2,
-      "name": "Files route-render + large-library perf/OOM gate",
-      "status": "done",
-      "result": "PASS",
-      "commit": "083709f",
-      "notes": "Route-render ShellPresenceTest passed on flox (da9a406). Large-library gate run against the REAL Ender 3 library (420 files / 404 thumbnails) on flox, signed release build — no throwaway fixture written to Moonraker. Steady-scroll p95 15.48ms, 0 frozen frames >700ms, no OOM/ANR/death. First-load p95 24.97ms / max 173ms, 0 frozen. See 07-PERF.md."
-    },
-    {
-      "id": "files-ui-polish",
-      "name": "On-device Files UI polish (unplanned detour) + design-law doc sync",
-      "status": "done",
-      "commit": "e2ff21c (code), 6ae4ff5 (docs)",
-      "notes": "Fixed Codex-built Files screen on flox: list clip/overflow + pinned height, smallest-thumb-per-row, dotfile-dir hiding, future-print image-backed Focus card, Fit-not-Crop, full-width panel text, drawer-swipe suppressed on Files. Laws synced to docs/ui_design/."
-    }
+    {"id": 1, "name": "09-07 Task 1: nav wiring (Dest.Calibration + drawer tile + hub sub-routing) + G2 re-handshake regression", "status": "done", "commit": "ea95a19"}
   ],
   "remaining_tasks": [
-    {
-      "id": 3,
-      "name": "Live core print-loop UAT",
-      "status": "deferred",
-      "details": "DEFERRED until an official UAT round (Matthew, 2026-06-02). He informally confirmed most behaviors hands-on, but 07-UAT.md stays PENDING — do not mark rows passed without a real recorded run. Requires a real print on a safe file (start/pause/resume/graceful cancel/restart) + safe throwaway delete. Do NOT autonomously start a print."
-    }
+    {"id": 2, "name": "09-07 Task 2: on-device live-E5 UAT (human-verify checkpoint) — 6 items", "status": "in_progress", "progress": "Items 1 hub, 2 bed-mesh+heatmap-perf, 3 z-tilt, 4 screws-tilt all PASS (3 & 4 reworked on-device). Items 5 (probe-calibrate -> SAVE_CONFIG recovery) and 6 (Files delete scoping) NOT yet tested."}
   ],
-  "blockers": [
-    {
-      "description": "Live print-loop UAT requires a real print on safe hardware/file/conditions — human-driven, deferred to an official UAT round.",
-      "type": "human_action",
-      "workaround": "Matthew runs the official UAT and reports outcomes for 07-UAT.md."
-    }
-  ],
+  "blockers": [],
   "human_actions_pending": [
-    {
-      "action": "Run the official live core print-loop UAT and record results into 07-UAT.md, then write 07-06-SUMMARY.md and close the phase.",
-      "context": "Last remaining item for Phase 7. Deferred by Matthew 2026-06-02 until an official UAT round.",
-      "blocking": true
-    }
+    {"action": "Run UAT items 5 (probe-calibrate Start->TESTZ->Accept->Save->amber gate->klippy restart->auto-reconnect, no force-stop) and 6 (start a print, in Files confirm ONLY the printing file is undeletable) on flox + live E5", "context": "Last two items of the 09-07 on-device UAT checkpoint; phase cannot be verified until these pass", "blocking": true},
+    {"action": "After UAT passes: write 09-07-SUMMARY.md, record gfxinfo in docs/moonraker-capabilities.md, update 09-UAT.md sign-off, then re-run /gsd-execute-phase 9 to run verification + phase.complete", "context": "09-07 SUMMARY intentionally NOT written yet (checkpoint protocol)", "blocking": true}
   ],
-  "deferred_defects": [
-    {
-      "id": "files-delete-gating",
-      "where": "07-UAT.md Deferred Defects",
-      "summary": "Files Delete blocks deleting ANY file during any print, not just the actively-printing file. Should key off print_stats.filename. Relaxes UI-SPEC 'Delete idle-only' rule."
-    },
-    {
-      "id": "status-progress-ring-dual-source-jump",
-      "where": ".planning/todos/pending/status-progress-ring-dual-source-jump.md (commit 015e1b1)",
-      "summary": "Status progress ring jumps down then up on a short print. Not filament-based: PrinterStateReducer lets virtual_sdcard.progress and display_status.progress fight (last-writer-wins). Phase-4 work."
-    },
-    {
-      "id": "status-lastjob-red-slash",
-      "where": "unfiled (noted in .continue-here.md)",
-      "summary": "Possible red-diagonal-slash artifact on the Status cancelled last-job card (screenshot 2026-06-02). Unverified intentional vs glitch. Phase-4 Status code."
-    }
+  "decisions": [
+    {"decision": "Worst screw ranked by deviation-from-base z (== Klipper adjust clock), NOT max|z|", "rationale": "Live fixture proved adjust clock derives from |z-baseZ|; max|z| picked the wrong screw and marked the true-worst in-tolerance", "phase": "09"},
+    {"decision": "Screws-tilt is a fresh instance each visit; measured turns surface only after a Run completes THIS load (setShowResults = armed && !running)", "rationale": "screws_tilt_adjust.results persist across the session; showing them on entry or mid-run looks like stale guidance (owner)", "phase": "09"},
+    {"decision": "Bed-mesh Save does NOT route through SAVE_CONFIG restart gate; bed_mesh reducer field-merges partial deltas", "rationale": "Owner: meshes load dynamically; partial-delta rebuild was wiping profiles/mesh on LOAD/SAVE", "phase": "09"},
+    {"decision": "Z-tilt screen is load-scoped (no persisted z_tilt.applied); shows parsed per-stepper adjustments", "rationale": "applied persists all session; the adjustment block arrives as ONE gcode_response with embedded newlines", "phase": "09"}
   ],
   "uncommitted_files": [],
-  "next_action": "When Matthew is ready for the official UAT: run the live core print-loop UAT on a real print (his hardware/safe-file choice — do NOT autonomously start a print), record into 07-UAT.md, write 07-06-SUMMARY.md, close the phase.",
-  "context_notes": "Phase 7 plan 06: task 1 (automated) and task 2 (perf gate) are DONE+committed; only task 3 (live UAT) remains, DEFERRED to an official UAT round. Installed build on flox is the signed RELEASE APK. .planning/STATE.md Phase-7 progress is stale — trust 07-* summaries/PERF/UAT and commits. See .continue-here.md for full detail."
+  "next_action": "On flox + live E5, run UAT item 5 (probe-calibrate -> SAVE_CONFIG -> auto-reconnect) and item 6 (Files delete scoping during a print). Current signed release APK on flox is up to date (commit b47a955).",
+  "context_notes": "Mid 09-07 human-verify checkpoint. The 09-07 executor returned the checkpoint; orchestrator drives on-device UAT directly: build/sign/install via E:\\Android\\gw.bat + E:\\Android\\sign-release.bat + adb install; Matthew navigates/eyeballs; Claude screenshots via 'adb exec-out screencap -p'. flox (0a64b42e, LineageOS/API30) USB-connected; E5 at 192.168.1.120:7125. Screens 3 (z-tilt) + 4 (screws-tilt) substantially reworked during UAT (commits 517ab4a, b47a955). 09-01..09-06 + the worst-screw fix + bed-mesh/alert fixes already committed. Tree clean except pre-existing untracked img/bed_tilt.svg."
 }
