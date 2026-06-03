@@ -62,7 +62,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
 - [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
 - [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
-- [ ] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase
+- [ ] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification)
 - [ ] **Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
@@ -485,7 +485,11 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 13-04-PLAN.md — binding gate (D-09): dual-printer dual-scenario on-device UAT on flox + live E5 & E3
+- [x] 13-04-PLAN.md — binding gate (D-09): dual-printer dual-scenario on-device UAT on flox + live E5 & E3 (1st run FAILED → 2 gaps; SUPERSEDED by 13-05; RE-RUN PASSED 2026-06-03)
+
+**Wave 5 — gap closure** *(blocked on Wave 4; closes the 13-04 binding-gate FAIL)*
+
+- [x] 13-05-PLAN.md — gap-closure: G-B1a OkHttp pingInterval keepalive + G-A1 hoist shell nav state (no Home bounce) + G-B1b socket-reconnect Syncing splash + ~600ms min-dwell (the D-05 departure); re-run binding UAT PASSED on flox + live E5 & E3
 
 **Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-6 command/error reference and the live captures in `docs/moonraker-capabilities.md`. NOTE (D-08): the old Phase-14 "reconnect print-state resync" line is pulled INTO Phase 13 (all in-session resync — klippy-restart + mid-print network-drop reconnect + the print-state resync that rides along). Phase numbers/order otherwise unchanged.
 
@@ -529,7 +533,7 @@ existing "Phase 13" references valid).
 | 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
-| 13. Optimization, Network Efficiency & End-to-End Reliability | 3/4 | In Progress|  |
+| 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Plans done — UAT PASSED, awaiting phase verification | - |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)

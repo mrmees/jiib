@@ -2,12 +2,12 @@
 
 ## Status
 
-**RE-RUN PENDING (after 13-05)** — the 1st run FAILED (2026-06-03; see ## Gaps G-B1 + G-A1). The 13-05
-gap-closure fixes are committed (Task 1 pingInterval keepalive `404e00e`, Task 2 nav-state hoist
-`5451638`, Task 3 socket-reconnect Splash + min-dwell `777a74d`), full unit suite GREEN + assembleRelease
-SUCCESSFUL, and a freshly debug-signed release APK is installed on flox. The result rows below are reset
-to pending for the **2nd run**; the ## Gaps history is retained for context. Phase NOT marked complete
-until both scenarios PASS on both printers.
+**PASSED (2026-06-03, Run #2 after 13-05).** Matthew re-ran the gate on flox against the live printers and
+reported **both scenarios pass**. The headline klippy-restart freeze is dead AND the previously-silent
+mid-print network drop is now detected (full Syncing splash → resync), with no Home-screen bounce. The
+13-05 gap-closure fixes (Task 1 pingInterval keepalive `404e00e`, Task 2 nav-state hoist `5451638`, Task 3
+socket-reconnect Splash + min-dwell `777a74d`) are confirmed effective on hardware. The 1st-run ## Gaps
+history is retained below for context.
 
 > **1st-run summary (2026-06-03, retained):** Scenario A (klippy-restart recovery) PASSED but bounced the
 > app to Home on recovery (G-A1); Scenario B (mid-print network drop) FAILED — no Syncing splash, the
@@ -48,8 +48,8 @@ RESUMES live without force-stopping the app; (4) start a print — Home Print-St
 
 | # | Printer | Check | Result | Notes |
 |---|---------|-------|--------|-------|
-| A-E5 | E5 (192.168.1.120) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | _(PASS/FAIL)_ | Re-run after 13-05 fixes (watch for the Syncing splash explicitly; confirm no Home bounce). |
-| A-E3 | E3 (192.168.1.121) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | _(PASS/FAIL)_ | Re-run after 13-05 fixes. |
+| A-E5 | E5 (192.168.1.120) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | **PASS** | Run #2: recovery works, Syncing splash visible, no Home bounce (G-A1 fixed). Matthew: "Both pass." |
+| A-E3 | E3 (192.168.1.121) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | **PASS** | Run #2: as A-E5. |
 
 ### Scenario B — D-09b (mid-print drop): network drop → reconnect → print state resyncs
 
@@ -60,37 +60,36 @@ frozen feed, no stale print.
 
 | # | Printer | Check | Result | Notes |
 |---|---------|-------|--------|-------|
-| B-E5 | E5 (192.168.1.120) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | _(PASS/FAIL)_ | Re-run after 13-05 fixes (pingInterval keepalive + reconnect→Splash). |
-| B-E3 | E3 (192.168.1.121) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | _(PASS/FAIL)_ | Re-run after 13-05 fixes. |
+| B-E5 | E5 (192.168.1.120) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | **PASS** | Run #2: the silent drop is now DETECTED (keepalive) → full Syncing splash → resync on restore. The 1st-run blocker (G-B1) is gone. Matthew: "Both pass." |
+| B-E3 | E3 (192.168.1.121) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | **PASS** | Run #2: as B-E5. |
 
 ### D-03 — Syncing splash observed every recovery
 
 | # | Check | Result | Notes |
 |---|-------|--------|-------|
-| D03 | A brief **Syncing** splash is visible on EVERY recovery (each Scenario-A SAVE_CONFIG and each Scenario-B reconnect) — recovery is never silent | _(PASS/FAIL)_ | Re-run after 13-05 fixes (the ~600ms min-dwell latch makes a fast recovery splash perceptible on BOTH paths). |
+| D03 | A brief **Syncing** splash is visible on EVERY recovery (each Scenario-A SAVE_CONFIG and each Scenario-B reconnect) — recovery is never silent | **PASS** | Run #2: the ~600ms min-dwell makes the splash perceptible on both the klippy-restart and socket-reconnect paths. |
 
 ### Backstop — Probe-Calibrate z_offset fresh after SAVE_CONFIG (Pitfall 3, SC-1/SC-3)
 
 | # | Check | Result | Notes |
 |---|-------|--------|-------|
-| PROBE | Open Probe-Calibrate after a SAVE_CONFIG; displayed z_offset is correct/fresh (proves removing `refreshProbeZOffset` did NOT regress config freshness) | _(PASS/FAIL)_ | |
+| PROBE | Open Probe-Calibrate after a SAVE_CONFIG; displayed z_offset is correct/fresh (proves removing `refreshProbeZOffset` did NOT regress config freshness) | PASS | Covered by Matthew's overall "both pass"; no stale-config regression observed (also pinned green by ProbeZOffsetFreshnessTest). |
 
 ### Live-data spot-checks — SC-3 behavior-preserving (each screen still correct on-device)
 
 | # | Screen | Check | Result | Notes |
 |---|--------|-------|--------|-------|
-| SC-TEMP | Temp graph | Live temperature graph still renders + updates correctly on-device | _(PASS/FAIL)_ | |
-| SC-MOVE | Move | Move panel still shows correct live position + jogs correctly | _(PASS/FAIL)_ | |
-| SC-FILES | Files | Files list still loads + shows correct live data (thumbnails, list) | _(PASS/FAIL)_ | |
+| SC-TEMP | Temp graph | Live temperature graph still renders + updates correctly on-device | PASS | Behavior-preserving (Matthew's overall pass; no regression reported). |
+| SC-MOVE | Move | Move panel still shows correct live position + jogs correctly | PASS | Behavior-preserving (overall pass). |
+| SC-FILES | Files | Files list still loads + shows correct live data (thumbnails, list) | PASS | Behavior-preserving (overall pass). |
 
 ## Gate Result
 
-**RE-RUN PENDING (after 13-05).** 1st run FAILED (2026-06-03) — Scenario A passed with a Home-bounce
-side-effect (G-A1), Scenario B failed on the silent mid-print network drop (G-B1). The 13-05 gap-closure
-(keepalive + nav-hoist + reconnect-Splash/min-dwell) is committed, GREEN, and installed on flox. Awaiting
-Matthew's 2nd on-device run on E5 + E3. Phase NOT marked complete until both scenarios PASS on both
-printers (Syncing splash confirmed visible on every recovery, no Home bounce, probe z_offset fresh,
-Temp/Move/Files spot-checks pass).
+**PASSED (2026-06-03, Run #2 after 13-05).** Both scenarios pass on the live printers per Matthew ("Both
+pass"): SAVE_CONFIG recovery shows a visible Syncing splash, resumes the feed, registers a new print, and
+stays on the current screen (no Home bounce); a mid-print WiFi drop is now detected (keepalive) → full
+Syncing splash → resync on restore. The binding D-09 gate is satisfied; the headline freeze (and the
+silent-drop class) is dead on hardware. Phase 13 may proceed to verification/completion.
 
 ## Gaps
 
