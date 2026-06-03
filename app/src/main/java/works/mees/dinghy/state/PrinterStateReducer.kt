@@ -118,6 +118,60 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         s = s.copy(pauseResumePaused = it)
     }
 
+    // --- Phase-9 calibration live objects (CALIB-02..05) -----------------------------------------
+    // Each walk is null-safe (the house rule): a missing object is skipped (retained); a present object
+    // REPLACES the prior value (these are whole structured objects, not field-merged like heaters). The
+    // structured object is the result source-of-truth (RESEARCH Pattern 1) — never console parsing.
+
+    status.objectOrNull("screws_tilt_adjust")?.let { st ->
+        val results = LinkedHashMap<String, ScrewResult>()
+        st.objectOrNull("results")?.let { res ->
+            for ((screw, value) in res) {
+                val r = (value as? JsonObject) ?: continue
+                results[screw] = ScrewResult(
+                    z = r.doubleOrNullAt("z"),
+                    sign = r.stringOrNull("sign"),
+                    adjust = r.stringOrNull("adjust"),
+                    isBase = r.booleanOrNull("is_base") ?: false,
+                )
+            }
+        }
+        s = s.copy(
+            screwsTilt = ScrewsTiltObject(
+                error = st.booleanOrNull("error") ?: false,
+                maxDeviation = st.doubleOrNullAt("max_deviation"),
+                results = results,
+            ),
+        )
+    }
+
+    status.objectOrNull("z_tilt")?.booleanOrNull("applied")?.let { s = s.copy(zTiltApplied = it) }
+    status.objectOrNull("quad_gantry_level")?.booleanOrNull("applied")?.let { s = s.copy(qglApplied = it) }
+
+    status.objectOrNull("bed_mesh")?.let { bm ->
+        s = s.copy(
+            bedMesh = BedMeshObject(
+                profileName = bm.stringOrNull("profile_name") ?: "",
+                meshMin = bm.doubleListOrNull("mesh_min"),
+                meshMax = bm.doubleListOrNull("mesh_max"),
+                probedMatrix = bm.double2dListOrNull("probed_matrix"),
+                meshMatrix = bm.double2dListOrNull("mesh_matrix"),
+                profileNames = bm.objectOrNull("profiles")?.keys?.toList() ?: emptyList(),
+            ),
+        )
+    }
+
+    status.objectOrNull("manual_probe")?.let { mp ->
+        s = s.copy(
+            manualProbe = ManualProbeObject(
+                isActive = mp.booleanOrNull("is_active") ?: false,
+                zPosition = mp.doubleOrNullAt("z_position"),
+                zPositionLower = mp.doubleOrNullAt("z_position_lower"),
+                zPositionUpper = mp.doubleOrNullAt("z_position_upper"),
+            ),
+        )
+    }
+
     // Heaters: merge each present heater object field-by-field onto the retained HeaterState.
     val heaterUpdates = mutableMapOf<String, HeaterState>()
     for ((key, value) in status) {
@@ -181,3 +235,14 @@ private fun JsonObject.booleanOrNull(key: String): Boolean? =
 
 private fun JsonObject.doubleListOrNull(key: String): List<Double>? =
     runCatching { (this[key] as? JsonArray)?.map { it.jsonPrimitive.double } }.getOrNull()
+
+/**
+ * Array-of-arrays of Doubles (the `bed_mesh` `mesh_matrix`/`probed_matrix` grids — CALIB-04). Null-safe
+ * like the 1-D sibling: a non-array key, or any non-numeric cell, makes the WHOLE read null (skip-and-retain).
+ */
+private fun JsonObject.double2dListOrNull(key: String): List<List<Double>>? =
+    runCatching {
+        (this[key] as? JsonArray)?.map { row ->
+            (row as JsonArray).map { it.jsonPrimitive.double }
+        }
+    }.getOrNull()

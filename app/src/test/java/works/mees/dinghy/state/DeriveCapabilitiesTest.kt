@@ -112,6 +112,43 @@ class DeriveCapabilitiesTest {
         assertTrue("existing macro convenience helper stays available", caps.hasMacroIgnoreCase("LOAD_FILAMENT"))
     }
 
+    // --- Phase-9: calibration objects join the subscribe superset, intersected with detected (A3) ---
+
+    private val calibrationObjects =
+        listOf("screws_tilt_adjust", "z_tilt", "quad_gantry_level", "bed_mesh", "manual_probe", "probe")
+
+    @Test
+    fun subscribeSetIncludesCalibrationObjectsWhenDetected() {
+        // A printer that exposes every calibration object subscribes to all of them.
+        val objects = minimal + calibrationObjects
+        val set = deriveSubscribeSet(objects)
+        for (obj in calibrationObjects) {
+            assertTrue("$obj subscribed when present", obj in set)
+        }
+    }
+
+    @Test
+    fun subscribeSetOmitsCalibrationObjectsWhenAbsent() {
+        // The minimal printer has NONE of the calibration objects — A3: none are subscribed.
+        val set = deriveSubscribeSet(minimal)
+        for (obj in calibrationObjects) {
+            assertFalse("$obj omitted when absent (A3)", obj in set)
+        }
+    }
+
+    @Test
+    fun subscribeSetIncludesOnlyTheDetectedCalibrationObjects() {
+        // A probe-less single-Z printer: bed_mesh + screws_tilt_adjust present, z_tilt/probe/etc absent.
+        val objects = minimal + listOf("bed_mesh", "screws_tilt_adjust")
+        val set = deriveSubscribeSet(objects)
+        assertTrue("bed_mesh subscribed", "bed_mesh" in set)
+        assertTrue("screws_tilt_adjust subscribed", "screws_tilt_adjust" in set)
+        assertFalse("z_tilt omitted (absent)", "z_tilt" in set)
+        assertFalse("quad_gantry_level omitted (absent)", "quad_gantry_level" in set)
+        assertFalse("manual_probe omitted (absent)", "manual_probe" in set)
+        assertFalse("probe omitted (absent)", "probe" in set)
+    }
+
     @Test
     fun liveComponentsAreRetainedAndHasComponentWorks() {
         val caps = deriveCapabilities(

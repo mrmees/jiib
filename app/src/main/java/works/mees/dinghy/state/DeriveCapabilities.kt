@@ -57,6 +57,14 @@ private val V1_SUBSCRIBE_CORE: Set<String> = setOf(
     "gcode_move",      // speed/extrude factor, gcode_position (Phase 4/6)
     "heater_bed",      // temp/target/power (Temp/Phase 4)
     "extruder",        // temp/target/power/can_extrude (Temp/Extrude/Phase 4)
+    // Phase-9 calibration objects (CALIB-02..05) — always-requested-IF-present; the intersect loop
+    // in deriveSubscribeSet enforces A3 (never subscribe an object the printer does not define).
+    "screws_tilt_adjust", // CALIB-02 guided-loop result source
+    "z_tilt",             // CALIB-03 applied flag
+    "quad_gantry_level",  // CALIB-03 applied flag (gated off on both test printers, D-02)
+    "bed_mesh",           // CALIB-04 mesh matrices / profiles
+    "manual_probe",       // CALIB-05 is_active / z_position session state
+    "probe",              // CALIB-05 probe-present gate (PROBE_CALIBRATE vs Z_ENDSTOP_CALIBRATE, A3)
 )
 
 /**

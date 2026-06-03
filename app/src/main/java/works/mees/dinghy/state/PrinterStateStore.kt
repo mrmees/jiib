@@ -108,6 +108,20 @@ class PrinterStateStore(
      */
     val macroBodies: StateFlow<Map<String, String>> = _macroBodies.asStateFlow()
 
+    private val _screwsTiltConfig = MutableStateFlow<ScrewConfig?>(null)
+    /**
+     * The `[screws_tilt_adjust]` config (screw coords + names, D-04/D-06) read ONCE at handshake from the
+     * SINGLE existing `configfile` query (Pitfall 3 — no duplicate query), modeled EXACTLY on the
+     * [minExtrudeTemp] one-shot seam. Holders COMBINE it with the live `screws_tilt_adjust.results` to map
+     * 1-based `screwN` results to labels (09-04). Best-effort: null when the section is absent/unreadable;
+     * the screws-tilt page degrades to an index-labeled list (D-06 fallback). A StateFlow (not @Volatile)
+     * so holders react the instant the read lands. Per RESEARCH Open-Q1 the 09-01 capture RESOLVED that
+     * `screws_tilt_adjust.results` PERSISTS post-run, so 09-04 can read results via a post-hoc one-shot
+     * `objects/query?screws_tilt_adjust` on the dispatch-completion edge if a subscribe diff is missed —
+     * that belt-and-braces hook is the holder's (09-04) concern; the config one-shot here is its companion.
+     */
+    val screwsTiltConfig: StateFlow<ScrewConfig?> = _screwsTiltConfig.asStateFlow()
+
     init {
         // Sampled flush: every sampleMillis, publish the accumulator IF a high-rate update is pending.
         scope.launch {
@@ -222,6 +236,15 @@ class PrinterStateStore(
      */
     fun setMacroBodies(bodies: Map<String, String>) {
         _macroBodies.value = bodies
+    }
+
+    /**
+     * One-shot at (re)handshake: the `[screws_tilt_adjust]` config (screw coords + names, D-04/D-06), from
+     * the single `configfile` query (Pitfall 3). Null when the section is absent/unreadable (best-effort).
+     * NOT the throttled hot path (09-02 spine seam; the session wires the read in 09-04).
+     */
+    fun setScrewsTiltConfig(config: ScrewConfig?) {
+        _screwsTiltConfig.value = config
     }
 
     // ---- internals ------------------------------------------------------------------------------

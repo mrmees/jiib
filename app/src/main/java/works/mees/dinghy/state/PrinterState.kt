@@ -91,6 +91,102 @@ data class PrinterState(
 
     /** Always-observable connection lifecycle alongside the data (CONN-06). */
     val connection: ConnectionState = ConnectionState.Disconnected,
+
+    // --- Phase-9 calibration live objects (CALIB-02..05) -----------------------------------------
+    // Each is NULLABLE (null = the object was never present in a diff/snapshot) and surfaced verbatim
+    // from the structured `notify_status_update` object, NOT console parsing (RESEARCH Pattern 1). The
+    // reducer walks are null-safe — a garbage/missing field is SKIPPED (retained), never fatal.
+
+    /** `screws_tilt_adjust` (CALIB-02 / D-03): per-screw turn results + error flag. Null until first seen. */
+    val screwsTilt: ScrewsTiltObject? = null,
+
+    /**
+     * `z_tilt.applied` (CALIB-03 / Pitfall 2): SUCCESS flag — null = never run, false = running OR failed,
+     * true = converged. NEVER infer "failed" from false alone (failure = the dispatcher's RpcError).
+     */
+    val zTiltApplied: Boolean? = null,
+
+    /** `quad_gantry_level.applied` (CALIB-03 / D-02): same tri-aware success flag as [zTiltApplied]. */
+    val qglApplied: Boolean? = null,
+
+    /** `bed_mesh` (CALIB-04 / D-07): interpolated + probed grids, extents, active profile, saved profiles. */
+    val bedMesh: BedMeshObject? = null,
+
+    /** `manual_probe` (CALIB-05 / D-01): the interactive Z-calibrate session state. Null when never opened. */
+    val manualProbe: ManualProbeObject? = null,
+)
+
+/**
+ * `screws_tilt_adjust` live object (CALIB-02). [results] is keyed `screw1`..`screwN` (1-based index — join
+ * to the `[screws_tilt_adjust]` config by index for labels, Pitfall 1). [error] is true if MAX_DEVIATION was
+ * exceeded; [maxDeviation] is the MAX_DEVIATION arg float or null (it is null even after a run on the E5 —
+ * done-detection keys off `error==false` + populated [results], NOT [maxDeviation]; 09-01 surprise #2).
+ */
+data class ScrewsTiltObject(
+    val error: Boolean = false,
+    val maxDeviation: Double? = null,
+    /** screwN -> per-screw turn result. */
+    val results: Map<String, ScrewResult> = emptyMap(),
+)
+
+/**
+ * One screw's turn result. [adjust] is a CLOCK STRING `"MM:SS"` (09-01 surprise #1 — NOT a float; e.g.
+ * `"00:07"`), [sign] is `"CW"`/`"CCW"`, [isBase] marks the reference screw (`adjust=="00:00"`). The
+ * worst-screw math (parsing the clock string) is the 09-03 parser's job — the reducer carries it verbatim.
+ */
+data class ScrewResult(
+    val z: Double? = null,
+    val sign: String? = null,
+    val adjust: String? = null,
+    val isBase: Boolean = false,
+)
+
+/**
+ * `bed_mesh` live object (CALIB-04). [profileName] is `""` when no mesh is ACTIVE (empty-state, Pitfall 4 —
+ * SEPARATE from [profileNames] saved-list non-emptiness). [meshMin]/[meshMax] are JSON ARRAYS `[x,y]`
+ * (Python tuple → array; 09-01 surprise #4), surfaced as `List<Double>`. [meshMatrix] (interpolated) and
+ * [probedMatrix] (raw dots) are arrays-of-arrays. [profileNames] are the KEYS of the `profiles` dict.
+ */
+data class BedMeshObject(
+    val profileName: String = "",
+    val meshMin: List<Double>? = null,
+    val meshMax: List<Double>? = null,
+    val probedMatrix: List<List<Double>>? = null,
+    val meshMatrix: List<List<Double>>? = null,
+    val profileNames: List<String> = emptyList(),
+)
+
+/**
+ * `manual_probe` live object (CALIB-05 / D-01). [isActive] drives the page's enable/disable (Pattern 3);
+ * [zPosition] is the current bracketed Z; [zPositionLower]/[zPositionUpper] are the nudge brackets. All
+ * nullable (the structured object reports null bounds before they're set; the CONSOLE line can read
+ * `??????` — that `??????→null` parse is the 09-06 parser's job, not the reducer's).
+ */
+data class ManualProbeObject(
+    val isActive: Boolean = false,
+    val zPosition: Double? = null,
+    val zPositionLower: Double? = null,
+    val zPositionUpper: Double? = null,
+)
+
+/**
+ * The `[screws_tilt_adjust]` CONFIG (D-04/D-06) — read ONCE at handshake from `configfile.settings`,
+ * exposed via [PrinterStateStore.screwsTiltConfig]. Distinct from the live [ScrewsTiltObject] (turn
+ * results): this carries the static screw COORDS + LABELS so the guided loop can map the live results'
+ * 1-based `screwN` keys to a coordinate + name (Pitfall 1). Generic N-screw (no hardcoded count, D-04).
+ */
+data class ScrewConfig(
+    /** Ordered 1-based screws (index 0 = `screw1`). */
+    val screws: List<Screw> = emptyList(),
+    /** `screw_thread` (e.g. `"CCW-M4"`) — informational; the live object already carries the turn math. */
+    val screwThread: String? = null,
+)
+
+/** One configured leveling screw: its bed `[x, y]` coordinate + optional display label. */
+data class Screw(
+    val x: Double,
+    val y: Double,
+    val name: String? = null,
 )
 
 /** A single heater's live readings (current temp, target, and heater power 0.0..1.0). */

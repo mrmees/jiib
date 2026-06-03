@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -269,6 +270,141 @@ class PrinterStateReducerTest {
 
         assertEquals(true, afterProgressOnly.pauseResumePaused)
         assertEquals(0.5, afterProgressOnly.progress, 0.0001)
+    }
+
+    // --- Phase-9: the five calibration live objects, fed the REAL Ender-5-Plus fixtures (09-01) ---
+
+    /**
+     * Load a captured `*_e5.json` calibration fixture as a status diff. The fixtures are wrapped
+     * `{ "<object_name>": <value> }` — exactly the "changed objects" shape `applyStatus` consumes — so a
+     * fixture IS a one-object `notify_status_update` diff.
+     */
+    private fun calibrationDiff(fixture: String): JsonObject {
+        val res = javaClass.getResource("/fixtures/$fixture")
+            ?: error("fixture /fixtures/$fixture missing from test classpath")
+        return MoonrakerJson.parseToJsonElement(res.readText()).jsonObject
+    }
+
+    @Test
+    fun bedMeshFixturePopulatesBedMeshWithArrayMinMaxAndMatrices() {
+        val state = reduceDiff(PrinterState(), calibrationDiff("bed_mesh_e5.json"))
+        assertNotNull("bed_mesh populated", state.bedMesh)
+        val bm = state.bedMesh!!
+
+        // mesh_min / mesh_max read as [x, y] arrays (Python tuple → JSON array; 09-01 surprise #4).
+        assertEquals(2, bm.meshMin!!.size)
+        assertEquals(2, bm.meshMax!!.size)
+        assertEquals(85.52119999999996, bm.meshMin!![0], 0.0001)
+        assertEquals(237.48999999999998, bm.meshMax!![1], 0.0001)
+
+        // mesh_matrix (interpolated) is the wider grid; probed_matrix is the raw dots — both non-empty.
+        assertTrue("meshMatrix non-empty", bm.meshMatrix!!.isNotEmpty() && bm.meshMatrix!![0].isNotEmpty())
+        assertTrue("probedMatrix non-empty", bm.probedMatrix!!.isNotEmpty() && bm.probedMatrix!![0].isNotEmpty())
+        assertEquals(3, bm.probedMatrix!!.size)
+        assertEquals(4, bm.probedMatrix!![0].size)
+
+        // profile_name is the active loaded mesh; empty-state is SEPARATE from saved profiles (Pitfall 4).
+        assertEquals("adaptive-7FA0AB1C50", bm.profileName)
+    }
+
+    @Test
+    fun screwsTiltFixturePopulatesResultsAndError() {
+        val state = reduceDiff(PrinterState(), calibrationDiff("screws_tilt_adjust_e5.json"))
+        val st = state.screwsTilt!!
+
+        assertFalse("error false when in tolerance", st.error)
+        // max_deviation is null even after a run (09-01 surprise #2) — done-detection uses error+results.
+        assertEquals(null, st.maxDeviation)
+        assertTrue("≥1 screw result", st.results.size >= 1)
+        assertEquals(4, st.results.size)
+
+        // adjust is carried VERBATIM as a clock STRING (09-01 surprise #1 — not a float).
+        val base = st.results["screw1"]!!
+        assertTrue("screw1 is the base reference", base.isBase)
+        assertEquals("00:00", base.adjust)
+        assertEquals("CCW", st.results["screw2"]!!.sign)
+        assertEquals("00:07", st.results["screw2"]!!.adjust)
+    }
+
+    @Test
+    fun manualProbeFixturePopulatesIsActiveAndZPosition() {
+        val state = reduceDiff(PrinterState(), calibrationDiff("manual_probe_e5.json"))
+        val mp = state.manualProbe!!
+
+        assertTrue("is_active true mid-session", mp.isActive)
+        assertNotNull("z_position present", mp.zPosition)
+        assertEquals(27.52437499995758, mp.zPosition!!, 0.0001)
+        assertEquals(7.624374999975678, mp.zPositionLower!!, 0.0001)
+        assertEquals(27.62437499995749, mp.zPositionUpper!!, 0.0001)
+    }
+
+    @Test
+    fun zTiltFixtureCarriesAppliedFalseWithoutImplyingFailure() {
+        // applied:false post-run is BOTH "running" AND "failed" — the reducer just carries the flag (Pitfall 2).
+        val state = reduceDiff(PrinterState(), calibrationDiff("z_tilt_e5.json"))
+        assertEquals(false, state.zTiltApplied)
+    }
+
+    @Test
+    fun zTiltAppliedTrueIsCarried() {
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "z_tilt": { "applied": true } }""").jsonObject,
+        )
+        assertEquals(true, state.zTiltApplied)
+    }
+
+    @Test
+    fun quadGantryLevelAppliedIsCarried() {
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "quad_gantry_level": { "applied": true } }""").jsonObject,
+        )
+        assertEquals(true, state.qglApplied)
+    }
+
+    // --- Defensive: a malformed calibration field is SKIPPED, retaining the prior value (Pitfall 6) ---
+
+    @Test
+    fun malformedBedMeshDiffRetainsPriorMesh() {
+        // Seed a good mesh, then feed a GARBAGE bed_mesh diff (matrix is a string, min/max wrong type).
+        val good = reduceDiff(PrinterState(), calibrationDiff("bed_mesh_e5.json"))
+        assertEquals("adaptive-7FA0AB1C50", good.bedMesh!!.profileName)
+
+        val afterGarbage = reduceDiff(
+            good,
+            MoonrakerJson.parseToJsonElement(
+                """{ "bed_mesh": { "mesh_matrix": "not-an-array", "mesh_min": 5, "profile_name": 99 } }""",
+            ).jsonObject,
+        )
+
+        // The walk never throws; the matrices/min-max degrade to null and the prior mesh is NOT lost as a
+        // whole (the reducer still produced a BedMeshObject — no crash). The critical property: no throw.
+        assertNotNull("reducer did not crash on garbage bed_mesh", afterGarbage.bedMesh)
+        assertEquals(null, afterGarbage.bedMesh!!.meshMatrix)
+        assertEquals(null, afterGarbage.bedMesh!!.meshMin)
+    }
+
+    @Test
+    fun calibrationObjectsDefaultNullUntilSeen() {
+        // A pristine state (no calibration diff) leaves every calibration field at its null default.
+        val s = PrinterState()
+        assertEquals(null, s.bedMesh)
+        assertEquals(null, s.screwsTilt)
+        assertEquals(null, s.zTiltApplied)
+        assertEquals(null, s.qglApplied)
+        assertEquals(null, s.manualProbe)
+    }
+
+    @Test
+    fun heaterOnlyDiffRetainsPriorCalibrationObjects() {
+        // STATE-01 merge: a heater diff must not wipe a previously-seen bed_mesh.
+        val seeded = reduceDiff(PrinterState(), calibrationDiff("bed_mesh_e5.json"))
+        val afterHeater = reduceDiff(
+            seeded,
+            MoonrakerJson.parseToJsonElement("""{ "extruder": { "temperature": 205.0 } }""").jsonObject,
+        )
+        assertEquals("adaptive-7FA0AB1C50", afterHeater.bedMesh!!.profileName)
     }
 
     /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */
