@@ -52,7 +52,6 @@ import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.state.FileBrowserRow
 import works.mees.dinghy.state.FileBrowserRowKind
 import works.mees.dinghy.state.FilePreviewMetadata
-import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.Geist
@@ -74,8 +73,16 @@ fun FilesScreen(
     val scope = rememberCoroutineScope()
     var guard by remember { mutableStateOf<FileGuard?>(null) }
     val selected = state.selectedFile
-    val printingActive = printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused
     val startEnabled = selected != null && canStartPrint && state.pendingAction == null
+    // D-15: delete is scoped to the ACTIVE print file, not idle-only. During a print only the
+    // currently-printing file (print_stats.filename) is undeletable; every other idle file stays
+    // deletable. Routed through the host-tested pure `deleteAllowed` helper (09-03) so the path-form
+    // match (relative, no leading "gcodes/") can't silently regress.
+    val deleteEnabled = deleteAllowed(
+        selectedPath = selected?.relativeFilename,
+        activePrintFilename = printerState.printFilename,
+        printState = printerState.printState,
+    )
 
     LaunchedEffect(holder) {
         holder.loadRoot()
@@ -91,7 +98,7 @@ fun FilesScreen(
                             selected = selected,
                             preview = state.selectedPreview,
                             httpBase = httpBase,
-                            deleteEnabled = selected != null && !printingActive,
+                            deleteEnabled = deleteEnabled,
                             onDelete = { guard = FileGuard.Delete },
                             modifier = Modifier.fillMaxSize().padding(8.dp),
                         )

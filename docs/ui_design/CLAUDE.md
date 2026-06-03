@@ -69,6 +69,15 @@
   (`[A-Za-z0-9_.-]+`, no whitespace/control/`;`/newline) before it can be saved. Future keyboard
   requests reference THIS established rule instead of reopening the debate. (Owner decision,
   2026-06-02; 09-05.)
+- **Delete is scoped to the active print file, not idle-only.** This **supersedes** the original
+  "Delete is idle-only" rule. During a print, ONLY the currently-printing file
+  (`print_stats.filename`) is undeletable; every other file stays deletable, even mid-print. When the
+  printer is idle, all files are deletable. The scoping check is the pure host-tested predicate
+  `deleteAllowed(selectedPath, activePrintFilename, printState)` — applied at BOTH the FilesScreen
+  delete-enabled gate and the FileBrowserHolder dispatch gate (one shared helper so the path-form
+  match can't regress; the relative, no-leading-`gcodes/` form matches `print_stats.filename`). The
+  old blanket "block all deletes during any print" behavior was a Phase-7 UAT defect (D-15).
+  (2026-06-02; 09-06.)
 
 ## Hi-fi visual language
 - Type: Geist + Geist Mono (tabular numerals for live data).

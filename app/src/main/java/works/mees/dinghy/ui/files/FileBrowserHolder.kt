@@ -90,12 +90,17 @@ class FileBrowserHolder(
     fun requestDeleteSelected() {
         val selected = state.value.selectedFile ?: return
         val path = selected.rootPrefixedPath ?: return
-        val printState = printerState.value.printState
-        if (printState == PrintState.Printing || printState == PrintState.Paused) {
-            _state.update { it.copy(error = "Cannot delete while a print is active.") }
+        val printer = printerState.value
+        // D-15: scope the holder gate to the ACTIVE print file, not every delete during a print. The
+        // host-tested pure `deleteAllowed` predicate compares the RELATIVE, no-"gcodes/" form against
+        // print_stats.filename — the SAME helper the FilesScreen gate uses, so the path-form match can't
+        // silently regress. Only the currently-printing file is rejected; every other idle file proceeds.
+        if (!deleteAllowed(selected.relativeFilename, printer.printFilename, printer.printState)) {
+            _state.update { it.copy(error = "Cannot delete the file that is currently printing.") }
             return
         }
 
+        // The API still needs the gcodes-prefixed path even though the gate compared the relative form.
         client.deleteFile(path)
         val currentDirectory = state.value.directory
         _state.update {

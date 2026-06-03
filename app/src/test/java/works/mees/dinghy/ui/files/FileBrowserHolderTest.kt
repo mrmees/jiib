@@ -120,8 +120,9 @@ class FileBrowserHolderTest {
     }
 
     @Test
-    fun deleteIsBlockedWhilePrintingOrPaused() = runTest(UnconfinedTestDispatcher()) {
-        val printer = MutableStateFlow(PrinterState(printState = PrintState.Printing))
+    fun deleteIsBlockedOnlyForTheActivelyPrintingFile() = runTest(UnconfinedTestDispatcher()) {
+        // D-15: during a print only the currently-printing file (print_stats.filename) is undeletable.
+        val printer = MutableStateFlow(PrinterState(printState = PrintState.Printing, printFilename = "new.gcode"))
         val client = FakeFileBrowserClient()
         val holder = holder(client, printer)
 
@@ -129,10 +130,11 @@ class FileBrowserHolderTest {
         holder.selectFile(holder.state.value.directory.rows.first { it.name == "new.gcode" })
         holder.requestDeleteSelected()
 
-        assertTrue(client.deletes.isEmpty())
-        assertEquals("Cannot delete while a print is active.", holder.state.value.error)
+        assertTrue("the active print file stays undeletable", client.deletes.isEmpty())
+        assertEquals("Cannot delete the file that is currently printing.", holder.state.value.error)
 
-        printer.value = PrinterState(printState = PrintState.Paused)
+        // Paused → still scoped to the active file (same predicate).
+        printer.value = PrinterState(printState = PrintState.Paused, printFilename = "new.gcode")
         holder.requestDeleteSelected()
         assertTrue(client.deletes.isEmpty())
     }
