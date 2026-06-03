@@ -45,20 +45,20 @@ class ProbeCalibrateHolderTest {
     }
 
     @Test
-    fun activeSessionExposesLiveZPosition() = runTest(UnconfinedTestDispatcher()) {
+    fun activeSessionExposesLiveZPositionFromMacroFeedback() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
         val holder = ProbeCalibrateHolder(backgroundScope, store)
 
-        store.seed(
-            PrinterState(
-                manualProbe = ManualProbeObject(isActive = true, zPosition = 7.624),
-            ),
-        )
+        // is_active true, but `manual_probe.z_position` reports a DIVERGENT value (0.001) — the live hero
+        // must come from the macro feedback (the `// Z position:` console line), not this status field.
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.001)))
+        runCurrent()
+        store.onGcodeLine("// Z position: ?????? --> 4.800 <-- ??????")
         runCurrent()
 
         val vm = holder.vm.value
         assertEquals(ProbePageState.Active, vm.state)
-        assertEquals(7.624, vm.zPosition!!, 0.0001)
+        assertEquals("hero is the macro feedback 4.8, not the 0.001 status field", 4.800, vm.zPosition!!, 0.0001)
     }
 
     @Test
@@ -119,17 +119,78 @@ class ProbeCalibrateHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = ProbeCalibrateHolder(backgroundScope, store)
 
-        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.25)))
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.001)))
+        runCurrent()
+        // The macro feedback reports the real probed Z (0.25), distinct from the status field.
+        store.onGcodeLine("// Z position: ?????? --> 0.25 <-- ??????")
         runCurrent()
         assertEquals(ProbePageState.Active, holder.vm.value.state)
 
-        // The user accepts: Klipper flips is_active false. The page captured the last live Z as the offset.
+        // The user accepts: Klipper flips is_active false. The captured offset = the last macro-feedback Z.
         store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = false)))
         runCurrent()
 
         val vm = holder.vm.value
         assertEquals(ProbePageState.Accepted, vm.state)
-        assertEquals("captured offset = the last live probed Z", 0.25, vm.capturedOffset!!, 0.0001)
+        assertEquals("captured offset = the last macro-feedback Z, not the status field", 0.25, vm.capturedOffset!!, 0.0001)
+    }
+
+    @Test
+    fun abortReturnsToIdleNotAccepted() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ProbeCalibrateHolder(backgroundScope, store)
+
+        // Active session, then the user taps Abort (markAborted) before the printer closes it.
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.25)))
+        runCurrent()
+        assertEquals(ProbePageState.Active, holder.vm.value.state)
+        holder.markAborted()
+
+        // Klipper closes the session (is_active false) — an ABORT must land on Idle (Start/Back), NOT
+        // Accepted, and must NOT capture an offset to Save.
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = false)))
+        runCurrent()
+
+        val vm = holder.vm.value
+        assertEquals(ProbePageState.Idle, vm.state)
+        assertNull("aborted run captures no offset", vm.capturedOffset)
+    }
+
+    @Test
+    fun homedGateReflectsHomedAxes() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ProbeCalibrateHolder(backgroundScope, store)
+
+        store.seed(PrinterState(homedAxes = "xy", manualProbe = ManualProbeObject(isActive = false)))
+        runCurrent()
+        assertEquals("partial homing → gate closed", false, holder.vm.value.homedGate)
+
+        store.seed(PrinterState(homedAxes = "xyz", manualProbe = ManualProbeObject(isActive = false)))
+        runCurrent()
+        assertTrue("all axes homed → gate open", holder.vm.value.homedGate)
+    }
+
+    @Test
+    fun resetReturnsToIdleSoReEntryIsFresh() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ProbeCalibrateHolder(backgroundScope, store)
+
+        // Run a full session: Active → Accept → Accepted (captured offset latched on the per-session holder).
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.25)))
+        runCurrent()
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = false)))
+        runCurrent()
+        assertEquals(ProbePageState.Accepted, holder.vm.value.state)
+
+        // Re-entering the page calls reset() (the onEnter seam) — the stale captured offset must NOT
+        // resurface as an Accepted page; a returning user gets a clean Idle.
+        holder.reset()
+        runCurrent()
+
+        val vm = holder.vm.value
+        assertEquals(ProbePageState.Idle, vm.state)
+        assertNull("captured offset cleared on reset", vm.capturedOffset)
+        assertNull("folded error cleared on reset", vm.errorText)
     }
 
     @Test

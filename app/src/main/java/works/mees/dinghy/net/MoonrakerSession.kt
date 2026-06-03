@@ -106,6 +106,22 @@ class MoonrakerSession(
     }
 
     /**
+     * Re-read the saved probe `z_offset` from configfile on demand and republish it on the store. Called
+     * when the Probe-Calibrate page is (re)opened so the displayed "current Z offset" reflects a
+     * just-applied SAVE_CONFIG without an app restart (the value is otherwise only read at handshake).
+     * Best-effort: a failed/absent read leaves the prior value (the request throwing skips the setter).
+     */
+    suspend fun refreshProbeZOffset() {
+        runCatching {
+            val cfgResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(setOf("configfile")))
+            val settings = parseStatus(cfgResult)
+                ?.objectOrNull("configfile")
+                ?.objectOrNull("settings")
+            store.setProbeZOffset(settings?.objectOrNull("probe")?.floatOrNullAt("z_offset"))
+        }
+    }
+
+    /**
      * Run the supervisor until [scope][coroutineScope] cancellation. Maintains the connection forever:
      * network failures back off (uncapped, jittered) and retry; an AuthRequired result quiesces until
      * [requestReconnectNow].
@@ -384,6 +400,10 @@ class MoonrakerSession(
             val extruderCfg = settings?.objectOrNull("extruder")
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
             store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
+
+            // The saved probe z_offset (09-07): shown as the idle "current Z offset" on Probe-Calibrate.
+            // Same one-shot configfile result (Pitfall 3, no extra query); null on a probe-less printer.
+            store.setProbeZOffset(settings?.objectOrNull("probe")?.floatOrNullAt("z_offset"))
 
             // (c) the `[screws_tilt_adjust]` config — screw coords + names (D-04/D-06) — the one-shot the
             // Screws-Tilt holder COMBINEs for the to-scale bed + per-point labels. Same configfile result;

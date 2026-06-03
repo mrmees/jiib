@@ -75,6 +75,11 @@ class PrinterStateStore(
     /** `configfile.settings.extruder.max_extrude_only_distance` (Extrude ceiling); null if unreadable. */
     val maxExtrudeDistance: StateFlow<Float?> = _maxExtrudeDistance.asStateFlow()
 
+    private val _probeZOffset = MutableStateFlow<Float?>(null)
+    /** `configfile.settings.probe.z_offset` (the saved probe calibration — shown idle on Probe-Calibrate);
+     *  null if the printer has no `[probe]` section (probe-less, Z_ENDSTOP_CALIBRATE) or the read fails. */
+    val probeZOffset: StateFlow<Float?> = _probeZOffset.asStateFlow()
+
     private val _temperatureBackfill = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
     /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
@@ -203,6 +208,11 @@ class PrinterStateStore(
     /** One-shot at handshake: the max-extrude-only-distance ceiling (05-03). NOT the throttled hot path. */
     fun setMaxExtrudeDistance(value: Float?) {
         _maxExtrudeDistance.value = value
+    }
+
+    /** One-shot at handshake: the saved probe `z_offset` (09-07 Probe-Calibrate idle readout). */
+    fun setProbeZOffset(value: Float?) {
+        _probeZOffset.value = value
     }
 
     /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */

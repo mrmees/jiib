@@ -399,6 +399,14 @@ fun AppShell(
                         tokens = t,
                         dispatcher = dispatcher,
                         onStartDispatched = { },
+                        onEnter = {
+                            probeCalibrateHolder.reset()
+                            // Re-read the saved z_offset on entry so a just-applied SAVE_CONFIG shows
+                            // immediately (it's otherwise only read at handshake) — no app restart needed.
+                            spine?.refreshProbeZOffset?.invoke()
+                        },
+                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                        onAbort = { probeCalibrateHolder.markAborted() },
                         onBack = { calibrationRoutine = null },
                     )
                 }

@@ -174,6 +174,9 @@ class MoonrakerService : Service() {
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
             fileBrowser = fileBrowserClient,
             sessionInstanceId = id,
+            // On-demand probe z_offset re-read (Probe-Calibrate page entry) so a just-applied SAVE_CONFIG
+            // shows without an app restart. Fire-and-forget on the service scope; best-effort in-session.
+            refreshProbeZOffset = { serviceScope.launch { session.refreshProbeZOffset() } },
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.
         container.publishSpine(handle)

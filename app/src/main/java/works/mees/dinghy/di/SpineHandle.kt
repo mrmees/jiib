@@ -80,4 +80,6 @@ data class SpineHandle(
     val fileBrowser: FileBrowserClient,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */
     val sessionInstanceId: Long,
+    /** On-demand re-read of the saved probe `z_offset` (Probe-Calibrate page entry, post-SAVE_CONFIG). */
+    val refreshProbeZOffset: () -> Unit = {},
 )

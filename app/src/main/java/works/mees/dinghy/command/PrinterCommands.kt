@@ -44,11 +44,13 @@ object PrinterCommands {
     const val MAX_FORCE_VEL_MM_S = 50
 
     /**
-     * Manual-probe TESTZ nudge magnitude cap (mm). The Z-calibrate jog (D-01) offers fine step presets
-     * (1 / 0.1 / 0.05 / 0.025 mm — Claude's-discretion per RESEARCH); ±5 mm is an ample bound that still
-     * clamps any absurd value out of the formatted string (ASVS V5 clamp-before-format).
+     * Manual-probe TESTZ nudge magnitude cap (mm). The Z-calibrate jog (D-01) offers step presets up to
+     * 10 mm (a detachable/klicky flow lifts the head ~20 mm to remove the probe before the paper test, so
+     * a coarse 10 mm step is legitimate). ±25 mm is a generous bound that still clamps any absurd value
+     * out of the formatted string (ASVS V5 clamp-before-format). Was 5 mm — too low, it silently clamped
+     * the 10 mm step to 5 (UAT, Ender 3 klicky).
      */
-    const val MAX_TESTZ_MM = 5.0
+    const val MAX_TESTZ_MM = 25.0
 
     /** Max bed-mesh profile-name length accepted by [sanitizeProfileName] (defensive upper bound). */
     const val MAX_PROFILE_NAME_LEN = 64
