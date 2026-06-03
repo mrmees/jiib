@@ -2,11 +2,16 @@
 
 ## Status
 
-**FAILED (2026-06-03)** — gate run on flox. Scenario A (klippy-restart recovery) PASSES with a minor nav
-side-effect (app returns to the Home screen on recovery). **Scenario B (mid-print network drop) FAILS**:
-no Syncing splash, no indication the connection was lost — the feed just freezes (numbers stop). Root
-cause diagnosed (printer-independent, tablet-side): see **## Gaps** below. Phase NOT marked complete; a
-gap-closure plan is required.
+**RE-RUN PENDING (after 13-05)** — the 1st run FAILED (2026-06-03; see ## Gaps G-B1 + G-A1). The 13-05
+gap-closure fixes are committed (Task 1 pingInterval keepalive `404e00e`, Task 2 nav-state hoist
+`5451638`, Task 3 socket-reconnect Splash + min-dwell `777a74d`), full unit suite GREEN + assembleRelease
+SUCCESSFUL, and a freshly debug-signed release APK is installed on flox. The result rows below are reset
+to pending for the **2nd run**; the ## Gaps history is retained for context. Phase NOT marked complete
+until both scenarios PASS on both printers.
+
+> **1st-run summary (2026-06-03, retained):** Scenario A (klippy-restart recovery) PASSED but bounced the
+> app to Home on recovery (G-A1); Scenario B (mid-print network drop) FAILED — no Syncing splash, the
+> feed just froze (G-B1, the silent half-open drop). Both root-caused tablet-side and fixed in 13-05.
 
 > This is the **binding phase gate** (D-09). Full unit suite GREEN is necessary but NOT sufficient — a real
 > Klipper FIRMWARE_RESTART and a real mid-print LAN drop cannot be exercised in unit tests, and this
@@ -14,8 +19,8 @@ gap-closure plan is required.
 
 ## Preconditions
 
-- Full `:app:testReleaseUnitTest` is GREEN (the three Wave-0 fix-driver tests + the whole suite). — **DONE** (Task 1, exit 0, forced `--rerun-tasks`).
-- `:app:assembleRelease` SUCCESSFUL; signed release APK installed on flox. — **DONE** (Task 1, `adb install -r` → Success).
+- Full `:app:testReleaseUnitTest` is GREEN (incl. the new MoonrakerSocketClientTest pinning the keepalive + the updated TopRouteTest reconnect→Splash arms). — **DONE** (13-05, exit 0).
+- `:app:assembleRelease` SUCCESSFUL; signed release APK installed on flox. — **DONE** (13-05, `app-armeabi-v7a-release-signed.apk` debug-signed + `adb install -r` → Success).
 - Browser / Mainsail / KlipperScreen remains closed during the workflow (avoid competing subscriptions).
 - Use safe operating conditions: a homed, supervised printer; bed at a safe Z before any probe nudge.
 - Use a safe throwaway gcode file for any start-print check.
@@ -23,10 +28,11 @@ gap-closure plan is required.
 
 ## Environment
 
-- **Timestamp:** _(fill on run)_
+- **Timestamp:** _(fill on run)_  — **Run #2 (after 13-05)**
 - **Device/tablet:** flox (Nexus 7 2013 / LineageOS 18.1 / API 30 / Adreno 320 — the perf FLOOR)
-- **App commit/build:** through `1feb38b` (13-03 complete), release APK
-  `app-armeabi-v7a-release-signed.apk` debug-signed + installed on flox (Task 1, this session).
+- **App commit/build:** through `777a74d` (13-05 Tasks 1-3 complete: G-B1a keepalive + G-A1 nav-hoist +
+  G-B1b reconnect-Splash/min-dwell), release APK `app-armeabi-v7a-release-signed.apk` debug-signed +
+  installed on flox (this session).
 - **Printers:** E5 = Ender 5 Plus (Pi 4, `192.168.1.120:7125`); E3 = Ender 3 Pro (RockPro64,
   `192.168.1.121:7125`). Both klicky detachable probes. **The E5 is unproven, not assumed-good (D-02) —
   both printers run both scenarios.**
@@ -42,8 +48,8 @@ RESUMES live without force-stopping the app; (4) start a print — Home Print-St
 
 | # | Printer | Check | Result | Notes |
 |---|---------|-------|--------|-------|
-| A-E5 | E5 (192.168.1.120) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) | PASS* | Recovery works, feed resumes, print registers without restart. *Side-effect: app navigates back to the Home screen on recovery (G-A1, minor — "not the worst behavior"). |
-| A-E3 | E3 (192.168.1.121) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) | PASS* | Same as A-E5 (recovery works; returns to Home on recovery). |
+| A-E5 | E5 (192.168.1.120) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | _(PASS/FAIL)_ | Re-run after 13-05 fixes (watch for the Syncing splash explicitly; confirm no Home bounce). |
+| A-E3 | E3 (192.168.1.121) | SAVE_CONFIG → Syncing splash → feed resumes no restart → start print registers (printState→Printing) → **stays on the screen you were on (NOT forced to Home, G-A1)** | _(PASS/FAIL)_ | Re-run after 13-05 fixes. |
 
 ### Scenario B — D-09b (mid-print drop): network drop → reconnect → print state resyncs
 
@@ -54,14 +60,14 @@ frozen feed, no stale print.
 
 | # | Printer | Check | Result | Notes |
 |---|---------|-------|--------|-------|
-| B-E5 | E5 (192.168.1.120) | mid-print network drop → reconnect → print state resyncs (printState→Printing, live progress/temps resume) | **FAIL** | No Syncing splash, no "connection lost" indication — feed just freezes (numbers stop moving). Drop is never detected (G-B1). Root cause is tablet-side (printer-independent), so this fails identically regardless of printer. |
-| B-E3 | E3 (192.168.1.121) | mid-print network drop → reconnect → print state resyncs (printState→Printing, live progress/temps resume) | **FAIL** | Same root cause as B-E5 (printer-independent — missing WS keepalive + Disconnected-not-Syncing on the network-reconnect path). |
+| B-E5 | E5 (192.168.1.120) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | _(PASS/FAIL)_ | Re-run after 13-05 fixes (pingInterval keepalive + reconnect→Splash). |
+| B-E3 | E3 (192.168.1.121) | mid-print → tablet WiFi off → within ~10-20s a full Syncing splash appears (drop detected via the new keepalive) → restore WiFi → print state resyncs (printState→Printing, live progress/temps resume) | _(PASS/FAIL)_ | Re-run after 13-05 fixes. |
 
 ### D-03 — Syncing splash observed every recovery
 
 | # | Check | Result | Notes |
 |---|-------|--------|-------|
-| D03 | A brief **Syncing** splash is visible on EVERY recovery (each Scenario-A SAVE_CONFIG and each Scenario-B reconnect) — recovery is never silent | **FAIL** | Splash not confirmed on Scenario A recovery; definitively ABSENT on Scenario B (the drop is never detected, and the network-reconnect path emits Disconnected, not Syncing). |
+| D03 | A brief **Syncing** splash is visible on EVERY recovery (each Scenario-A SAVE_CONFIG and each Scenario-B reconnect) — recovery is never silent | _(PASS/FAIL)_ | Re-run after 13-05 fixes (the ~600ms min-dwell latch makes a fast recovery splash perceptible on BOTH paths). |
 
 ### Backstop — Probe-Calibrate z_offset fresh after SAVE_CONFIG (Pitfall 3, SC-1/SC-3)
 
@@ -79,12 +85,19 @@ frozen feed, no stale print.
 
 ## Gate Result
 
-**FAILED (2026-06-03).** Scenario A passes (with the minor Home-screen nav side-effect, G-A1). Scenario B
-fails on the mid-print network-drop path (G-B1) — the binding D-09b requirement is not met. Phase NOT
-marked complete; gap-closure required (see ## Gaps). Probe-Calibrate + Temp/Move/Files spot-checks were
-not separately recorded (Scenario B blocked the full run); to be re-run in the gap-closure UAT.
+**RE-RUN PENDING (after 13-05).** 1st run FAILED (2026-06-03) — Scenario A passed with a Home-bounce
+side-effect (G-A1), Scenario B failed on the silent mid-print network drop (G-B1). The 13-05 gap-closure
+(keepalive + nav-hoist + reconnect-Splash/min-dwell) is committed, GREEN, and installed on flox. Awaiting
+Matthew's 2nd on-device run on E5 + E3. Phase NOT marked complete until both scenarios PASS on both
+printers (Syncing splash confirmed visible on every recovery, no Home bounce, probe z_offset fresh,
+Temp/Move/Files spot-checks pass).
 
 ## Gaps
+
+> **Re-run after 13-05 fixes** — both gaps below are addressed by 13-05 (G-B1a OkHttp pingInterval
+> keepalive `404e00e`; G-A1 nav-state hoist `5451638`; G-B1b socket-reconnect Splash + ~600ms min-dwell
+> `777a74d`). This history is retained for context; the binding verification is the 2nd on-device run
+> above.
 
 ### G-B1 — Mid-print network drop is never detected (BLOCKING, SC-3/D-09b)
 - **Symptom (on-device):** toggling the tablet WiFi off mid-print produces NO Syncing splash and NO
