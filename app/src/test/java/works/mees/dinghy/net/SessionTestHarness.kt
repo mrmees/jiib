@@ -93,6 +93,53 @@ class SessionTestHarness {
     @Volatile
     var failOnOpen: Boolean = false
 
+    /**
+     * D-10 klippy-down window. While true, the printer is mid-restart: `objects.subscribe` and
+     * `objects.query` do NOT receive an auto-injected SUCCESS reply — they get the real mid-restart
+     * error frame Moonraker returns (code 503 "Klippy Not Connected"), exactly as the live server does
+     * across a FIRMWARE_RESTART / SAVE_CONFIG window. This is the toggle the keystone + self-heal tests
+     * drive so a re-handshake's subscribe is rejected/withheld until the test declares klippy ready
+     * (set this false, then inject [klippyReadyFrame]). Modeled on [failOnOpen] / [identifyErrorFrame].
+     *
+     * Faithful-mock discipline: do NOT make the fake more lenient than the real server — while down, a
+     * subscribe genuinely fails, so [RespondingFakeWebSocket] never flips subscriptionActive back true,
+     * and a status diff injected through the gate cannot reach the store.
+     */
+    @Volatile
+    var klippyDown: Boolean = false
+
+    // ---- D-10 captured klippy-restart signal frames (verbatim from the live E3 capture) ---------
+    // The repro printer (E3) emits, on the SAME socket: notify_klippy_disconnected … [gap] …
+    // notify_klippy_ready (no notify_klippy_shutdown, no webhooks.state transition). These are non-status
+    // frames, so they pass the FakeWebSocket subscription gate; the harness uses them to drive the
+    // down-window verbatim rather than a lone synthetic ready.
+
+    /** The captured klippy-DROP signal (clears the live subscription). E3/E5 both emit this verbatim. */
+    val klippyDisconnectedFrame: String = """{"jsonrpc":"2.0","method":"notify_klippy_disconnected"}"""
+
+    /** The captured klippy-READY signal (the restart-complete notification on the same socket). */
+    val klippyReadyFrame: String = """{"jsonrpc":"2.0","method":"notify_klippy_ready"}"""
+
+    /**
+     * Inject the captured klippy-DROP signal on the live socket and clear [RespondingFakeWebSocket]'s
+     * subscriptionActive flag — modelling the instant the printer's subscription is lost (FIRMWARE_RESTART).
+     * After this, no `notify_status_update` can reach the store until a genuine re-subscribe succeeds.
+     */
+    fun injectKlippyDrop() {
+        val fake = current.get() ?: return
+        fake.subscriptionActive = false
+        fake.inject(klippyDisconnectedFrame)
+    }
+
+    /** Inject the captured klippy-READY signal on the live socket (drives the re-handshake path). */
+    fun injectKlippyReady() {
+        current.get()?.inject(klippyReadyFrame)
+    }
+
+    /** The real mid-restart error Moonraker returns for subscribe/query while klippy is disconnected. */
+    private fun klippyNotConnectedError(id: Long): String =
+        """{"jsonrpc":"2.0","error":{"code":503,"message":"Klippy Not Connected"},"id":$id}"""
+
     /** The socket-events factory to inject into the session. */
     fun socketEvents(): (String?) -> Flow<SocketEvent> = { _ ->
         val factory = WebSocketFactory { request: Request, listener: WebSocketListener ->
@@ -132,8 +179,14 @@ class SessionTestHarness {
             // answer it with the static parsed-config shape (real Moonraker always defines configfile).
             JsonRpcMethods.OBJECTS_QUERY ->
                 if (queriesOnlyConfigfile(obj)) {
+                    // The one-shot configfile read is only reached AFTER objects.subscribe succeeds in
+                    // runHandshake; if klippy is down the subscribe below fails first, so this branch is
+                    // never hit mid-restart. Always answer it with the (possibly mutated) config fixture.
                     """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(configfileResultJson)},"id":$id}"""
                 }
+                // D-10: while klippy is down the FULL-subset query fails with the real 503, exactly as the
+                // live server does mid-restart (the fake must not be more lenient than reality).
+                else if (klippyDown) klippyNotConnectedError(id)
                 else invalidObjectsSubset(obj)?.let {
                     """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
                 } ?: reIdResult(snapshotJson, id)
@@ -144,7 +197,12 @@ class SessionTestHarness {
             JsonRpcMethods.GCODE_STORE ->
                 """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(gcodeStoreResultJson)},"id":$id}"""
             JsonRpcMethods.OBJECTS_SUBSCRIBE ->
-                invalidObjectsSubset(obj)?.let {
+                // D-10: a re-handshake's subscribe is REJECTED while klippy is down (real 503) — the
+                // subscription does NOT come back, so RespondingFakeWebSocket does NOT re-arm
+                // subscriptionActive and resumed diffs stay gated. Only a subscribe that produces a
+                // SUCCESS reply (klippy up) flips subscriptionActive back true (see RespondingFakeWebSocket.send).
+                if (klippyDown) klippyNotConnectedError(id)
+                else invalidObjectsSubset(obj)?.let {
                     """{"jsonrpc":"2.0","error":{"code":400,"message":"$it"},"id":$id}"""
                 } ?: reIdResult(subscribeSnapshotJson ?: snapshotJson, id)
             else -> """{"jsonrpc":"2.0","result":{},"id":$id}"""
@@ -228,8 +286,24 @@ class RespondingFakeWebSocket(
     override fun send(text: String): Boolean {
         val accepted = super.send(text)
         if (accepted) {
-            harness.replyFor(text)?.let { inject(it) }
+            harness.replyFor(text)?.let { reply ->
+                // D-10: a LIVE subscription exists only once a SUCCESSFUL objects.subscribe reply is
+                // produced. Flip subscriptionActive TRUE *before* injecting it, so any status diff that
+                // follows passes the gate. A down-window subscribe yields an error reply (no `result`) →
+                // subscriptionActive stays false and resumed diffs remain dropped (the inject() gate).
+                if (isSuccessfulSubscribeReply(text, reply)) subscriptionActive = true
+                inject(reply)
+            }
         }
         return accepted
     }
+
+    /** True iff [outbound] was an objects.subscribe request AND [reply] is a success (has `result`). */
+    private fun isSuccessfulSubscribeReply(outbound: String, reply: String): Boolean =
+        runCatching {
+            val method = MoonrakerJson.parseToJsonElement(outbound)
+                .jsonObject["method"]?.jsonPrimitive?.content
+            if (method != JsonRpcMethods.OBJECTS_SUBSCRIBE) return@runCatching false
+            MoonrakerJson.parseToJsonElement(reply).jsonObject.containsKey("result")
+        }.getOrDefault(false)
 }
