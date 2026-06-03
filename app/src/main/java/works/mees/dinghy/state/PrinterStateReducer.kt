@@ -170,12 +170,20 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     }
 
     status.objectOrNull("manual_probe")?.let { mp ->
+        // Merge field-by-field onto the retained object (like bed_mesh above / heaters below) — Moonraker
+        // pushes PARTIAL manual_probe deltas. A TESTZ move during a live session sends only the changed
+        // `z_position`(+`z_position_lower`) and OMITS the unchanged `is_active`. Rebuilding from the delta
+        // alone reset isActive to false (absent → false), which collapsed the live Probe-Calibrate session
+        // to "Accepted" mid-probe (froze the Z hero, disabled the jog) — proven on the real Ender 3 klicky
+        // flow (probe → TESTZ Z=20 lift to remove the detachable probe). An ABSENT field retains prior;
+        // session-end sends an explicit `is_active:false`, which is honored.
+        val prev = s.manualProbe ?: ManualProbeObject()
         s = s.copy(
             manualProbe = ManualProbeObject(
-                isActive = mp.booleanOrNull("is_active") ?: false,
-                zPosition = mp.doubleOrNullAt("z_position"),
-                zPositionLower = mp.doubleOrNullAt("z_position_lower"),
-                zPositionUpper = mp.doubleOrNullAt("z_position_upper"),
+                isActive = mp.booleanOrNull("is_active") ?: prev.isActive,
+                zPosition = mp.doubleOrNullAt("z_position") ?: prev.zPosition,
+                zPositionLower = mp.doubleOrNullAt("z_position_lower") ?: prev.zPositionLower,
+                zPositionUpper = mp.doubleOrNullAt("z_position_upper") ?: prev.zPositionUpper,
             ),
         )
     }

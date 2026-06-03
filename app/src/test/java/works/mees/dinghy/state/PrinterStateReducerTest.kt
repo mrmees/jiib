@@ -339,6 +339,43 @@ class PrinterStateReducerTest {
     }
 
     @Test
+    fun manualProbePartialDiffWithoutIsActiveRetainsActiveSession() {
+        // The real Ender-3 klicky flow: PROBE_CALIBRATE starts a session (is_active true, z≈9.825), then
+        // the macro's `TESTZ Z=20` lift sends a PARTIAL diff carrying only the changed z_position(+lower)
+        // and OMITTING the unchanged is_active. Rebuilding from the delta alone reset is_active→false,
+        // collapsing the live session to "Accepted" mid-probe (froze the Z hero at 9.825, killed the jog).
+        // A partial diff MUST retain is_active and update z_position.
+        val opened = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "manual_probe": { "is_active": true, "z_position": 9.825 } }""",
+            ).jsonObject,
+        )
+        assertTrue("session active after probe", opened.manualProbe!!.isActive)
+        assertEquals(9.825, opened.manualProbe!!.zPosition!!, 0.0001)
+
+        val afterTestZLift = reduceDiff(
+            opened,
+            MoonrakerJson.parseToJsonElement(
+                """{ "manual_probe": { "z_position": 35.990, "z_position_lower": 15.990 } }""",
+            ).jsonObject,
+        )
+
+        // is_active was OMITTED from the diff → must RETAIN true (not collapse to false)...
+        assertTrue("is_active retained through partial diff", afterTestZLift.manualProbe!!.isActive)
+        // ...and z_position must follow the lift to 35.990 (the hero was frozen at 9.825 before the fix).
+        assertEquals(35.990, afterTestZLift.manualProbe!!.zPosition!!, 0.0001)
+        assertEquals(15.990, afterTestZLift.manualProbe!!.zPositionLower!!, 0.0001)
+
+        // Session end DOES send an explicit is_active:false — honored.
+        val ended = reduceDiff(
+            afterTestZLift,
+            MoonrakerJson.parseToJsonElement("""{ "manual_probe": { "is_active": false } }""").jsonObject,
+        )
+        assertEquals(false, ended.manualProbe!!.isActive)
+    }
+
+    @Test
     fun zTiltFixtureCarriesAppliedFalseWithoutImplyingFailure() {
         // applied:false post-run is BOTH "running" AND "failed" — the reducer just carries the flag (Pitfall 2).
         val state = reduceDiff(PrinterState(), calibrationDiff("z_tilt_e5.json"))
