@@ -42,6 +42,7 @@ import works.mees.dinghy.calibration.BedMeshVm
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.BedMeshProfileArgs
+import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
@@ -111,6 +112,22 @@ fun BedMeshScreen(
         if (successText != null) {
             delay(3_500)
             successText = null
+        }
+    }
+
+    // Dismissable error toast — drive from local state so a rejected Activate/Save/Load can be dismissed
+    // (tap) and auto-clears; the holder's folded errorText persists, which previously stuck the popup on
+    // screen. Seeded from live dispatcher Failures AND the holder fold (a failure predating this collector).
+    var toastError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(dispatcher) {
+        val d = dispatcher ?: return@LaunchedEffect
+        d.events.collect { event -> if (event is DispatchEvent.Failure) toastError = event.message }
+    }
+    LaunchedEffect(vm.errorText) { vm.errorText?.let { toastError = it } }
+    LaunchedEffect(toastError) {
+        if (toastError != null) {
+            delay(5_000)
+            toastError = null
         }
     }
 
@@ -209,11 +226,16 @@ fun BedMeshScreen(
             },
         )
 
-        // --- Error / success toasts (bottom overlay) ---
-        val toast = successText?.let { Severity.Success to it } ?: vm.errorText?.let { Severity.Error to it }
+        // --- Error / success toasts (bottom overlay) --- success auto-dismisses; error is tap-dismissable
+        // (and auto-clears) so a rejected routine no longer leaves a stuck popup.
+        val toast = successText?.let { Severity.Success to it } ?: toastError?.let { Severity.Error to it }
         if (toast != null) {
             Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                SeverityToast(toast.first, toast.second, Modifier.fillMaxWidth())
+                SeverityToast(
+                    toast.first,
+                    toast.second,
+                    Modifier.fillMaxWidth().clickable { toastError = null },
+                )
             }
         }
 
