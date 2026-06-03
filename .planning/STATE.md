@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T02:58:05.347Z"
+last_updated: "2026-06-03T03:10:03.874Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 60
-  completed_plans: 54
+  completed_plans: 55
   percent: 47
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 09 (calibration-maintenance) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
   → Plan 09-01 (Wave 0) COMPLETE 2026-06-03 (commits b45c4ad + 69f36cf + 7b764fd): five REAL E5 calibration fixtures captured live + seven compile-fail-RED parser scaffolds. Recorded surprises: clock-STRING screw adjust, [x,y]-array mesh_min/max, ?????? z-bounds, results PERSIST post-run (Open-Q1 resolved), profiles is a name-keyed dict.
   → Plan 09-02 (Wave 1) EXECUTED + COMPLETE 2026-06-03 (2 tasks, commits 5506fbf + bcb8265): the calibration SPINE. Task 1 — 14 object-gated calibration CommandSpecs via the gcode(...) factory (each inherits the G4 120s timeout; zEndstopCalibrate gates GcodeCommandPresent("Z_ENDSTOP_CALIBRATE") NOT ObjectPresent("probe") per A3 — a probe predicate would hide it on probe-less printers; saveConfig=Always); PrinterCommands.testZ clamp-before-format (±MAX_TESTZ_MM, T-09-02-01) + sanitizeProfileName allowlist [A-Za-z0-9_.-]+ on the keyboard-editable mesh profile name (T-09-02-02 — newline-reject blocks a 2nd-gcode-line injection); BedMeshProfileNameTest 9 GREEN. Three docs/commands sidecar touches kept CommandCatalogDriftTest green (catalog rows+registered=true, command_availability rows, not_on_printers exclusions z_tilt∉ender3 / qgl∉ender5plus / Z_ENDSTOP_CALIBRATE∉both). Task 2 — five live objects (screwsTilt/zTiltApplied/qglApplied/bedMesh/manualProbe + ScrewConfig/Screw models) surfaced VERBATIM through null-safe reducer walks (new double2dListOrNull; mesh_min/max read as [x,y] List<Double>) into RETAINED PrinterState; the five + probe added to V1_SUBSCRIBE_CORE (A3 intersect-with-detected); PrinterStateStore.screwsTiltConfig one-shot StateFlow modeled on the minExtrudeTemp seam. PrinterStateReducerTest fed the real *_e5 fixtures + malformed-retains-prior; DeriveCapabilitiesTest present-when-detected/absent-when-missing per object. The seven Wave-0 RED scaffolds were SET ASIDE for the GREEN run then RESTORED byte-identical (Phase-8 pattern). Combined run BUILD SUCCESSFUL, 0 failures. No deviations. NO requirements marked Complete (BEDM/BEDL/ZCAL stay Pending until on-device UAT; CALIB-* stay Planned — closed by the 09-03+ screens).
@@ -108,6 +108,7 @@ Progress (Phase 9): [███░░░░░░░] 29% — 2/7 plans complete 
 | Phase 08 P08-07 | 40min | 3 tasks | 8 files |
 | Phase 09 P01 | 14 | 2 tasks | 12 files |
 | Phase 09 P02 | 30min | 2 tasks | 12 files |
+| Phase 09 P03 | 22min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,7 @@ Recent decisions affecting current work:
 - [Phase 08/08-07]: Nav wiring + functional-core on-device gate complete (MACRO-01/02/03, CONS-02). B1 CLOSED: macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle — bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder, wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven), injection-reject (newline/;/M112 rejected, NO estop, B2/T-08-07-T). Console-scroll gfxinfo (system-of-record API 30): p95 9ms, 0 frozen frames, 991 frames — beats Files 07-06 (~15ms). Third mock-vs-reality backstop held clean.
 - [Phase 09/09-01]: Wave-0 fixture-capture-first — five REAL E5 calibration fixtures captured live (192.168.1.120:7125, attended) BEFORE any parser; seven RED scaffolds bind each parser-to-be to its fixture (compile-fail RED = baseline). Surprises recorded: screws adjust is a CLOCK STRING 'MM:SS' not a float; bed_mesh mesh_min/max are [x,y] ARRAYS not objects; manual_probe console z-bounds can be literal '??????' (parseZPosition must treat as null); max_deviation null + screws_tilt_adjust.results PERSIST post-run (RESEARCH Open-Q1 resolved — 09-03 can read post-hoc); profiles is a dict keyed by saved-profile name (pre/post/default). Third mock-vs-reality backstop now load-bearing.
 - [Phase 09]: [09-02] Calibration spine landed: 14 object-gated calibration CommandSpecs via the gcode factory (inherit the G4 120s timeout; zEndstopCalibrate gates GcodeCommandPresent NOT ObjectPresent(probe) per A3; saveConfig=Always). Five live objects (screwsTilt/zTiltApplied/qglApplied/bedMesh/manualProbe) surfaced VERBATIM through null-safe reducer walks (new double2dListOrNull; mesh_min/max are [x,y] arrays) into retained PrinterState; the five + probe added to V1_SUBSCRIBE_CORE (A3 intersect). screwsTiltConfig one-shot StateFlow on the minExtrudeTemp seam. testZ clamp-before-format + sanitizeProfileName allowlist (newline-reject = no 2nd-gcode-line injection on the keyboard-editable profile name). Three sidecar touches kept CommandCatalogDriftTest green. GREEN over real *_e5 fixtures.
+- [Phase ?]: [Phase 09/09-03] Five pure result parsers + two gating predicates + D-15 delete gate landed GREEN over the REAL E5 *_e5 fixtures (the Nyquist core). parseScrewsTilt ranks worst by max |z| NOT adjust-clock (the fixture's worst non-base z carries a smaller clock, so adjust-rank picks the wrong screw); adjust/sign carried verbatim. BedMeshModel.from: [x,y]-array min/max + profile-KEY list + isEmpty SEPARATE from saved profiles. tiltState = pure {Idle,Running,Done,Failed}, Failed only from RpcError (Pitfall 2). parseZPosition: ?????? bounds -> null. probeCalibrateGate=A3; calibrationSupported gates each routine on its own objects.list name (all 5 rendered supported-first); deleteAllowed (D-15) plain relative-path == so gcodes/-prefixed selection legitimately misses the bare active filename (path-form guard). All seven Wave-0 scaffolds GREEN; full suite green. Implemented to the TEST contract (manualProbeActive). Phase-8 set-aside-RED-restore used for the two-task split.
 
 ### Pending Todos
 
@@ -220,6 +222,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T02:57:49.262Z
+Last session: 2026-06-03T03:09:35.987Z
 Stopped at: Completed 09-02-PLAN.md (calibration spine)
 Resume file: None
