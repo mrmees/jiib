@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T20:53:29.572Z"
-last_activity: 2026-06-03 -- Phase 13 planning complete
+last_updated: "2026-06-03T21:51:05.934Z"
+last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 64
-  completed_plans: 59
+  completed_plans: 60
   percent: 53
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 13 — Optimization, Network Efficiency & End-to-End Reliability (PROMOTED to run next after Phase 9; ready to plan)
+**Current focus:** Phase 13 — optimization-network-efficiency-end-to-end-reliability
 
 ## Current Position
 
-Phase: 09 (calibration-maintenance) — COMPLETE (UAT-passed 2026-06-03)
-Plan: 7 of 7 — COMPLETE
+Phase: 13 (optimization-network-efficiency-end-to-end-reliability) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
   → Phase-9 transition DONE 2026-06-03: ROADMAP promotion APPLIED (Phase 13 execution-order-promoted to run next; Webcam/Spool/Macro-Prompt deferred behind it; numbers unchanged). Phase 9 marked complete in the ROADMAP checklist + progress table. PROJECT.md evolved (calibration → Validated). Remaining: discuss/plan Phase 13.
   → Plan 09-01 (Wave 0) COMPLETE 2026-06-03 (commits b45c4ad + 69f36cf + 7b764fd): five REAL E5 calibration fixtures captured live + seven compile-fail-RED parser scaffolds. Recorded surprises: clock-STRING screw adjust, [x,y]-array mesh_min/max, ?????? z-bounds, results PERSIST post-run (Open-Q1 resolved), profiles is a name-keyed dict.
@@ -35,7 +35,8 @@ Status: Ready to execute
   → Plan 09-07 (Wave 5) Task 1 DONE 2026-06-03 (commit ea95a19): nav-wiring + G2 re-handshake regression extension. Dest.Calibration added; ONE 'Calibration' drawer tile (tune glyph, D-14) flipped live; AppShell builds all five calibration holders via remember(store) (re-keyed on spine rebuild), sources dispatcher Failure events from spine?.dispatcher?.events; the Dest.Calibration arm renders a lean LOCAL hub→routine back-stack (mirrors Dest.Macros — NOT five top-level Dests) with a BackHandler popping a routine page to the hub; two TiltHolders (z_tilt/qgl) share ONE TiltScreen via an applied-selector lambda + per-variant dispatchKey (D-02); Dest.Calibration added to the swipe-drawer-suppression set (BedMesh Load is a scrollable Field). KlippyReadyResyncTest EXTENDED (not forked) with a SAVE_CONFIG shutdown→ready test that PARSES the re-issued objects.subscribe frame and asserts it CONTAINS the calibration objects (bed_mesh/z_tilt), not merely that runHandshake fired (T-09-07-01 payload-level regression guard). :app:testReleaseUnitTest full suite GREEN + :app:assembleRelease SUCCESSFUL with the route live. No deviations.
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
-Last activity: 2026-06-03 -- Phase 13 planning complete
+  → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
+Last activity: 2026-06-03
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -235,6 +236,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T20:19:36.114Z
+Last session: 2026-06-03T21:51:05.876Z
 Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-optimization-network-efficiency-end-to-end-reliability/13-CONTEXT.md
+Resume file: None

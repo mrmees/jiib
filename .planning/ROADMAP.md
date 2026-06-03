@@ -473,7 +473,7 @@ Plans:
 **Plans**: 4 plans
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — Wave 0 (BLOCKING, D-10): live SAVE_CONFIG wire-capture on BOTH printers + harden the mock-that-lied (klippy-down window) + RED resumed-diff/Syncing/self-heal regression tests
+- [x] 13-01-PLAN.md — Wave 0 (BLOCKING, D-10): live SAVE_CONFIG wire-capture on BOTH printers + harden the mock-that-lied (klippy-down window) + RED resumed-diff/Syncing/self-heal regression tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -529,7 +529,7 @@ existing "Phase 13" references valid).
 | 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
-| 13. Optimization, Network Efficiency & End-to-End Reliability | 0/TBD | ⏩ NEXT (promoted) | - |
+| 13. Optimization, Network Efficiency & End-to-End Reliability | 1/4 | In Progress|  |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
