@@ -213,6 +213,12 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BEDM-01 | Phase 9 | Pending |
 | BEDL-01 | Phase 9 | Pending |
 | ZCAL-01 | Phase 9 | Pending |
+| CALIB-01 (hub/gating; ⊂ BEDL-01/BEDM-01/ZCAL-01) | Phase 9 | Planned |
+| CALIB-02 (screws-tilt; ⊂ BEDL-01) | Phase 9 | Planned |
+| CALIB-03 (Z-tilt/QGL; ⊂ BEDL-01) | Phase 9 | Planned |
+| CALIB-04 (bed-mesh; ⊂ BEDM-01) | Phase 9 | Planned |
+| CALIB-05 (PROBE_CALIBRATE; ⊂ ZCAL-01) | Phase 9 | Planned |
+| CALIB-06 (files-delete scoping D-15) | Phase 9 | Planned |
 | CAM-01 | Phase 10 | Pending |
 | SPOOL-01 | Phase 11 | Pending |
 | PROMPT-01 | Phase 12 | Pending |
@@ -222,7 +228,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 **Coverage:**
 - Functional requirements mapped: 61 (55 prior + 6 promoted/added for the expanded roadmap: BEDM-01, BEDL-01, ZCAL-01, CAM-01, SPOOL-01 promoted from v2; PROMPT-01 new)
 - Phases 8 & 13 are quality/reference phases with no functional REQ-IDs
-- Finer per-phase req families (CALIB-*, CAM-*, SPOOL-*, PROMPT-*) to be defined at each feature phase's `/gsd-discuss-phase`; the single promoted REQ-IDs above are the coarse umbrella until then
+- Finer per-phase req families: **CALIB-01..06 coined at Phase-9 planning (2026-06-02)** — CALIB-01 hub/gating, CALIB-02 screws-tilt (⊂ BEDL-01), CALIB-03 Z-tilt/QGL (⊂ BEDL-01), CALIB-04 bed-mesh (⊂ BEDM-01), CALIB-05 PROBE_CALIBRATE (⊂ ZCAL-01), CALIB-06 files-delete-scoping (folded D-15). The umbrella BEDM-01/BEDL-01/ZCAL-01 stay Pending until the Phase-9 on-device UAT closes. (CAM-*, SPOOL-*, PROMPT-* still TBD at their phases' `/gsd-discuss-phase`.)
 
 **Per-phase counts (14-phase single-milestone roadmap, expanded 2026-06-01 — see note below):**
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05

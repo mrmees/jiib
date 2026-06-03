@@ -340,9 +340,29 @@ Plans:
   3. `Z_TILT_ADJUST` / `QUAD_GANTRY_LEVEL` run with live progress/convergence feedback and a clear done/failed result; `BED_MESH_CALIBRATE` runs and the result is at least confirmed (mesh visualization is a stretch goal)
   4. Long-running calibrations respect the gcode-completion timeout discipline (no false "command could not be sent") and route through the confirm/dispatch primitive
 
-**Plans**: TBD
-**UI hint**: yes
-**Research note**: DEEPER — exact gcode-response shapes for `SCREWS_TILT_CALCULATE` (turn directions/amounts), `Z_TILT_ADJUST`/`QGL` convergence lines, and `BED_MESH` output verified against Klipper docs + the Phase-6 capability matrix.
+**Plans**: 7 plans
+Plans:
+
+**Wave 0**
+- [ ] 09-01-PLAN.md — Capture the five REAL E5 calibration fixtures + seven RED parser scaffolds (fixture-capture-first; live checkpoint)
+
+**Wave 1** *(blocked on Wave 0)*
+- [ ] 09-02-PLAN.md — Spine plumbing: register ~12 calibration commands (ObjectPresent-gated, G4 timeout) + surface the five live objects in PrinterState/reducer/subscribe-superset + screws-config one-shot
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 09-03-PLAN.md — The five pure result parsers + two gating predicates (the Nyquist core; turns the RED scaffolds GREEN)
+
+**Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
+- [ ] 09-04-PLAN.md — Calibration hub (D-14) + screws-tilt guided-loop screen (owner-authored to-scale bed) + holders
+- [ ] 09-05-PLAN.md — Z-tilt/QGL screen + bed-mesh heatmap (NEW BedMeshHeatmapView) + scale toggle + profiles + ConfirmGuard amber variant
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 09-06-PLAN.md — Interactive Probe-Calibrate page (TESTZ/Accept/Abort/amber SAVE_CONFIG) + the D-15 Files-delete scoping fix + 09-UAT.md
+
+**Wave 5** *(blocked on Wave 4; on-device gate)*
+- [ ] 09-07-PLAN.md — Nav wiring (single Calibration tile → hub → five sub-routes) + SAVE_CONFIG G2 re-handshake regression + on-device heatmap perf + full live-E5 UAT
+**UI hint**: yes — governed by `docs/ui_design/` (LAW): 05-screws-tilt.png (locked) + 09-UI-SPEC.md (five new screens)
+**Research note**: DEEPER — exact gcode-response shapes for `SCREWS_TILT_CALCULATE` (turn directions/amounts), `Z_TILT_ADJUST`/`QGL` convergence lines, and `BED_MESH` output verified against Klipper docs + the Phase-6 capability matrix. Key de-risking finding: results come from STRUCTURED live objects (screws_tilt_adjust.results / bed_mesh.mesh_matrix / z_tilt.applied / manual_probe), not console parsing.
 
 ### Phase 10: Webcam Streaming
 
@@ -438,7 +458,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
-| 9. Calibration & Maintenance | 0/TBD | Not started | - |
+| 9. Calibration & Maintenance | 0/7 | Planned | - |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
 | 12. Macro Prompt Protocol | 0/TBD | Not started | - |

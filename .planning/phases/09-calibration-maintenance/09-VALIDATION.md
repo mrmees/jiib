@@ -1,9 +1,9 @@
 ---
 phase: 9
 slug: calibration-maintenance
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: planned
+nyquist_compliant: true
+wave_0_complete: false  # set true after 09-01 captures fixtures + RED scaffolds
 created: 2026-06-02
 ---
 
@@ -108,4 +108,4 @@ Capture REAL shapes from the live E5 **before** writing any parser (Pitfall 6 / 
 - [ ] Feedback latency < 90s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planned 2026-06-02 (7 plans; Wave 0 = 09-01 fixtures+RED; per-task verify mapped)
