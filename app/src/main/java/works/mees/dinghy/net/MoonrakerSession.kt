@@ -35,6 +35,8 @@ import works.mees.dinghy.command.request
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.state.Screw
+import works.mees.dinghy.state.ScrewConfig
 import works.mees.dinghy.state.deriveCapabilities
 import works.mees.dinghy.state.deriveSubscribeSet
 import works.mees.dinghy.state.parseTemperatureStore
@@ -383,6 +385,11 @@ class MoonrakerSession(
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
             store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
 
+            // (c) the `[screws_tilt_adjust]` config — screw coords + names (D-04/D-06) — the one-shot the
+            // Screws-Tilt holder COMBINEs for the to-scale bed + per-point labels. Same configfile result;
+            // no extra query (Pitfall 3). Without this the bed graphic + row names never populate.
+            store.setScrewsTiltConfig(parseScrewConfig(settings?.objectOrNull("screws_tilt_adjust")))
+
             val macroBodies: Map<String, String> = settings
                 ?.entries
                 ?.mapNotNull { (key, value) ->
@@ -425,6 +432,29 @@ class MoonrakerSession(
 
     private fun JsonObject.floatOrNullAt(key: String): Float? =
         runCatching { this[key]?.jsonPrimitive?.doubleOrNull?.toFloat() }.getOrNull()
+
+    /**
+     * Parse the `[screws_tilt_adjust]` config subtree (`screw1:[x,y]`, `screw1_name:"..."`, …,
+     * `screw_thread`) into a [ScrewConfig] for the to-scale bed + per-screw labels (D-04/D-06). 1-based
+     * `screwN` keys, contiguous (stop at the first gap). Null/empty → null (the screen falls back to the
+     * unlabeled list). Never `!!` on wire data.
+     */
+    private fun parseScrewConfig(sta: JsonObject?): ScrewConfig? {
+        if (sta == null) return null
+        val screws = buildList {
+            var n = 1
+            while (true) {
+                val arr = sta["screw$n"] as? JsonArray ?: break
+                val x = arr.getOrNull(0)?.jsonPrimitive?.doubleOrNull ?: break
+                val y = arr.getOrNull(1)?.jsonPrimitive?.doubleOrNull ?: break
+                val name = (sta["screw${n}_name"] as? JsonPrimitive)?.contentOrNull
+                add(Screw(x = x, y = y, name = name))
+                n++
+            }
+        }
+        if (screws.isEmpty()) return null
+        return ScrewConfig(screws = screws, screwThread = (sta["screw_thread"] as? JsonPrimitive)?.contentOrNull)
+    }
 
     /**
      * Extract a macro section's `gcode` body (08-04, MACRO-02). Normally a single newline-joined string;

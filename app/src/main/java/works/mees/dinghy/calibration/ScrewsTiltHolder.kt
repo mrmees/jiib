@@ -70,6 +70,13 @@ class ScrewsTiltHolder(
     @Volatile
     private var latestError: String? = null
 
+    // Measured results surface ONLY when [showResults] — the screen sets it true only after a Run
+    // COMPLETES this load (false on entry + while running). screws_tilt_adjust.results PERSIST across the
+    // session, so without this a returning user — or one mid-run — sees stale turn directions for screws
+    // they may already have adjusted (owner). The bed/list LAYOUT still shows from config regardless.
+    @Volatile
+    private var showResults: Boolean = false
+
     init {
         // COMBINE the throttled state with the one-shot screws config so the names/coords are
         // deterministic the instant the config read lands (NOT contingent on a later status diff).
@@ -98,9 +105,22 @@ class ScrewsTiltHolder(
         }
     }
 
+    /**
+     * Show or hide the measured turn data. The screen drives this with `armed && !running`: false on
+     * entry and WHILE a run is in flight (so a fresh page and an in-progress run never show stale or
+     * previous-run directions), true only once the current run completes. Hiding also clears a stale
+     * error so a fresh visit / new run starts clean.
+     */
+    fun setShowResults(show: Boolean) {
+        showResults = show
+        if (!show) latestError = null
+        _vm.value = buildVm(store.printerState.value, store.screwsTiltConfig.value)
+    }
+
     private fun buildVm(state: PrinterState, config: ScrewConfig?): ScrewsTiltVm {
         val live = state.screwsTilt
-        val loop = if (live != null) {
+        // Measured turns only when showResults (a Run completed this load) — else no measurements at all.
+        val loop = if (showResults && live != null) {
             parseScrewsTilt(liveToJson(live), configToJson(config))
         } else {
             GuidedLoopState()
@@ -108,17 +128,23 @@ class ScrewsTiltHolder(
 
         // A clean, populated run (results present, error == false) clears any stale failure so a
         // successful re-probe doesn't keep showing the old rejection toast.
-        if (loop.totalScrews > 0 && !loop.error) {
+        if (showResults && loop.totalScrews > 0 && !loop.error) {
             latestError = null
         }
 
-        // The to-scale bed point set: join config coords (by 1-based index) to each live screw row, so
-        // the screen draws each indicator at its real bed location. Null/empty config → no coords →
-        // the screen falls back to the labeled point list (D-06).
+        // The display list is the CONFIGURED screws (name + bed coords) — ALWAYS present so the bed/list
+        // render the layout even before/without a measurement. Each measured [ScrewTurn] is joined by
+        // 1-based index ONLY when showResults; turn == null = "not yet measured". No config → fall back
+        // to the measured rows (no coords → D-06 list).
         val coords = config?.screws.orEmpty()
-        val points = loop.screws.map { turn ->
-            val screw = coords.getOrNull(turn.index - 1)
-            ScrewPoint(turn = turn, x = screw?.x, y = screw?.y)
+        val turnByIndex = loop.screws.associateBy { it.index }
+        val points = if (coords.isNotEmpty()) {
+            coords.mapIndexed { i, screw ->
+                val idx = i + 1
+                ScrewPoint(key = "screw$idx", index = idx, name = screw.name, x = screw.x, y = screw.y, turn = turnByIndex[idx])
+            }
+        } else {
+            loop.screws.map { ScrewPoint(key = it.key, index = it.index, name = it.name, turn = it) }
         }
 
         // homed gate (D-13) — homed_axes is lowercase (RESEARCH §3); all three present = ready to probe.
@@ -196,14 +222,21 @@ class ScrewsTiltHolder(
 }
 
 /**
- * One bed point: a guided-loop [ScrewTurn] joined to its real bed `[x, y]` coordinate (from config, by
- * 1-based index). [x]/[y] are null when the config carried no coords for that screw — the screen then
- * falls back to the labeled point list (D-06) for that point.
+ * One screw on the page — the SOURCE OF TRUTH for both the bed map and the Field list. Built from the
+ * CONFIG (so the layout — [name] + bed `[x, y]` coords — shows even before/without a measurement), with
+ * the measured [turn] joined by 1-based index ONLY once a Run has completed this load.
+ *
+ *  - [turn] == null → "not yet measured": the screen shows the name + a neutral `point_scan` point with
+ *    NO turn direction / degrees / probed height (a fresh-instance / mid-run screw, owner).
+ *  - [x]/[y] == null → the config carried no coords for that screw (D-06 list fallback, no bed).
  */
 data class ScrewPoint(
-    val turn: ScrewTurn,
+    val key: String,
+    val index: Int,
+    val name: String? = null,
     val x: Double? = null,
     val y: Double? = null,
+    val turn: ScrewTurn? = null,
 )
 
 /**

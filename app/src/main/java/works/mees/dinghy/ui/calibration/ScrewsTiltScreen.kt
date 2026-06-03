@@ -1,12 +1,12 @@
 package works.mees.dinghy.ui.calibration
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,8 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.calibration.ScrewPoint
+import works.mees.dinghy.calibration.ScrewTurn
 import works.mees.dinghy.calibration.ScrewsTiltHolder
 import works.mees.dinghy.calibration.ScrewsTiltVm
 import works.mees.dinghy.command.CommandRegistry
@@ -54,9 +51,7 @@ import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
-import kotlin.math.atan2
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * The Screws-Tilt page (CALIB-02) — the OWNER-AUTHORED spatial layout (UI-SPEC §2, supersedes the
@@ -126,9 +121,16 @@ fun ScrewsTiltScreen(
     val runKey = CommandRegistry.screwsTiltCalculate.dispatchKey(Unit)
     val running = runKey in inFlight
 
+    // Measured turns surface only after a Run COMPLETES this load: armed (Run tapped this visit) AND not
+    // running. False on entry (fresh `remember`) and WHILE a run is in flight — so a returning user and an
+    // in-progress run never show stale/previous turn directions; flips true the instant the run finishes.
+    var armed by remember { mutableStateOf(false) }
+    LaunchedEffect(armed, running) { holder.setShowResults(armed && !running) }
+
     fun runProbe() {
         if (running) return
         dispatcher?.dispatch(CommandRegistry.screwsTiltCalculate, Unit)
+        armed = true
     }
     fun home() {
         val key = CommandRegistry.homeAll.dispatchKey(Unit)
@@ -138,7 +140,8 @@ fun ScrewsTiltScreen(
 
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
-            portraitFocusAspect = 1f,
+            // Portrait = an even vertical focus/field split (default weighted 50/50) — NOT an aspect-locked
+            // square focus; the bed sits centered in the top half (owner: don't force-fill the focus frame).
             focus = {
                 ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
             },
@@ -186,73 +189,34 @@ fun ScrewsTiltScreen(
 }
 
 /**
- * Focus = the headline ("X of N in tolerance" + the worst turn) over the to-scale bed. The bed extents
- * are derived from the screw-coord bounding box (with margin); each point sits at its real location.
- * D-06 fallback: when no coords are available, only the headline shows.
+ * Focus = the to-scale bed, centered and filling the pane. Each point is a state glyph at its real bed
+ * location + the screw name (see [BedScale]). The tolerance count + worst-screw readout were removed
+ * (owner: they cluttered the Focus) — per-screw status reads off the bed glyphs and the Field list.
+ * D-06 fallback: when no coords are available, a short prompt shows instead.
  */
 @Composable
 private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
     val t = LocalTokens.current
-    val loop = vm.loop
     val shape = RoundedCornerShape(t.rCard)
-
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Headline — VERBATIM from the loop (no re-rank).
-        val countLine = if (loop.totalScrews > 0) {
-            "${loop.inToleranceCount} of ${loop.totalScrews} in tolerance"
-        } else {
-            "Run to probe the bed screws"
-        }
-        Text(
-            text = countLine,
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        loop.worstScrew?.let { worst ->
-            val turn = "${worst.adjust} ${worst.sign.orEmpty()}".trim()
-            Text(
-                text = turn,
-                color = t.heat,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(40f, t.fs).sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            worst.name?.let { name ->
-                Text(
-                    text = name,
-                    color = t.text2,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, t.fs).sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-
-        // The to-scale bed (sacred square), centered, only when real coords exist (D-06).
+    Box(modifier, contentAlignment = Alignment.Center) {
         if (vm.hasCoords) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                BedScale(
-                    vm = vm,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .clip(shape)
-                        .border(BorderStroke(2.dp, t.outline), shape)
-                        .background(t.surface),
-                )
-            }
+            BedScale(
+                vm = vm,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f)
+                    .clip(shape)
+                    .border(BorderStroke(2.dp, t.outline), shape)
+                    .background(t.surface),
+            )
+        } else {
+            Text(
+                text = if (vm.loop.totalScrews > 0) "Bed screw map unavailable" else "Run to probe the bed screws",
+                color = t.text2,
+                fontFamily = Geist,
+                fontSize = fsSp(16f, t.fs).sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -285,44 +249,10 @@ private fun BedScale(vm: ScrewsTiltVm, modifier: Modifier) {
     val hiX = maxX + padX
     val loY = minY - padY
     val hiY = maxY + padY
-    val cx = (loX + hiX) / 2.0
-    val cy = (loY + hiY) / 2.0
-
     Box(modifier) {
-        // The wedge-pointer chrome (faint) is drawn on a Canvas under the glyphs; the glyphs themselves
-        // are placed with offsets so MaterialSymbol's font glyph can carry the per-state icon.
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val drawSpanX = (hiX - loX).toFloat()
-            val drawSpanY = (hiY - loY).toFloat()
-            coordPoints.forEach { p ->
-                val fx = ((p.x!! - loX) / drawSpanX).toFloat()
-                // printer Y up → screen Y down (flip).
-                val fy = (1f - ((p.y!! - loY) / drawSpanY)).toFloat()
-                val px = fx * w
-                val py = fy * h
-
-                // Bearing from bed-center toward the screw, with the printer-Y-up→screen-Y-down flip and
-                // the icon's native wedge offset (~30° from 12-o'clock). atan2 here yields the screen-space
-                // angle (clockwise from +x); the wedge baseline points up, so add 90°, then the asset's
-                // ~30° native wedge-center offset. Derived per-point — not a hardcoded angle table.
-                val dx = (p.x!! - cx).toFloat()
-                val dyScreen = -(p.y!! - cy).toFloat() // flip to screen space
-                val angleDeg = Math.toDegrees(atan2(dyScreen.toDouble(), dx.toDouble())).toFloat()
-                val wedgeRotation = angleDeg + 90f + WEDGE_NATIVE_OFFSET_DEG
-
-                rotate(degrees = wedgeRotation, pivot = Offset(px, py)) {
-                    // a faint radial tick toward the screw, the size cue for the wedge direction.
-                    drawCircle(
-                        color = t.outline,
-                        radius = min(w, h) * 0.012f,
-                        center = Offset(px, py - min(w, h) * 0.06f),
-                    )
-                }
-            }
-        }
-        // State glyphs at each point.
+        // State glyph + name label at each screw's real bed position. (No wedge/tick chrome — the
+        // rotate_left/rotate_right/commit/anchor glyph already conveys direction; the faint rotated
+        // ticks just read as askew stray dots.)
         BoxWithPoints(coordPoints, loX, hiX, loY, hiY)
     }
 }
@@ -343,35 +273,75 @@ private fun BoxWithPoints(
             val fx = ((p.x!! - loX) / (hiX - loX)).toFloat().coerceIn(0f, 1f)
             val fy = (1f - ((p.y!! - loY) / (hiY - loY)).toFloat()).coerceIn(0f, 1f)
             val turn = p.turn
+            // turn == null → not yet measured: neutral point_scan, name only (no turn glyph / height).
             val glyph = when {
+                turn == null -> "point_scan"
+                turn.isBase -> "anchor"
                 turn.isInTol -> "commit"
                 turn.sign == "CCW" -> "rotate_left"
                 turn.sign == "CW" -> "rotate_right"
                 else -> "point_scan"
             }
-            val tint = if (turn.isInTol) t.go else t.accent
+            val tint = when {
+                turn == null -> t.text2         // not yet measured — neutral
+                turn.isBase -> t.text2          // anchor / reference — neutral
+                turn.isInTol -> t.accent        // within tolerance → theme accent
+                turn.sign == "CW" -> t.go       // clockwise → green
+                turn.sign == "CCW" -> t.stop    // counterclockwise → red
+                else -> t.accent
+            }
             Box(
                 Modifier.fillMaxSize().padding(8.dp),
                 contentAlignment = BiasAlignment(fx, fy),
             ) {
-                MaterialSymbol(name = glyph, tint = tint, sizeSp = fsSp(28f, t.fs))
+                // Glyph + the screw's name beneath it (UI-SPEC §2 line: "the point shows its name").
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    MaterialSymbol(name = glyph, tint = tint, sizeSp = fsSp(56f, t.fs))
+                    p.name?.let { name ->
+                        Text(
+                            text = shortScrewName(name),
+                            color = t.text2,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = fsSp(22f, t.fs).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    // Measured probe height (mm, 3 decimals) — only once measured this run.
+                    if (turn != null) {
+                        Text(
+                            text = "${"%.3f".format(turn.z)} mm",
+                            color = t.text3,
+                            fontFamily = GeistMono,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = fsSp(16f, t.fs).sp,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
         }
     }
 }
+
+/** Trim a trailing " screw" so corner labels stay short on the bed ("front left screw" → "front left"). */
+private fun shortScrewName(name: String): String =
+    name.trim().removeSuffix("screw").trim().ifEmpty { name.trim() }
 
 /** Map a 0..1 fraction to Compose's -1..1 bias for [androidx.compose.ui.BiasAlignment]. */
 private fun BiasAlignment(fx: Float, fy: Float): Alignment =
     androidx.compose.ui.BiasAlignment(horizontalBias = fx * 2f - 1f, verticalBias = fy * 2f - 1f)
 
 /**
- * The point list (Field). Each row ratio-split 20%/40%/40% (indicator / `hh:mm` turn / degrees), Mono
- * for the values. VERTICALLY SCROLLABLE (D-04 — never assume 3/4 rows; a 5/6-screw bed scrolls).
+ * The point list (Field). Only 3–4 screws on this bed (owner), so the rows EXPAND to fill the pane
+ * (weighted Column, no scroll). Built from [ScrewsTiltVm.points] (the config layout) — the named rows
+ * show even before a Run; a row's measured turn (minutes/degrees) appears only once a run completes.
  */
 @Composable
 private fun ScrewPointList(vm: ScrewsTiltVm, modifier: Modifier) {
     val t = LocalTokens.current
-    val rows = vm.loop.screws
+    val rows = vm.points
     if (rows.isEmpty()) {
         Box(modifier, contentAlignment = Alignment.Center) {
             Text(
@@ -384,62 +354,92 @@ private fun ScrewPointList(vm: ScrewsTiltVm, modifier: Modifier) {
         }
         return
     }
-    LazyColumn(
-        modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { point ->
+            ScrewRow(point = point, modifier = Modifier.fillMaxWidth().weight(1f))
+        }
+    }
+}
+
+/**
+ * One screw row, expanded to fill its share of the Field: an ~80%-height status glyph + the screw name
+ * (title) over the minutes (left) ⟷ degrees (right) adjustment. When the screw is NOT yet measured
+ * ([ScrewPoint.turn] == null) the row shows only the name + a neutral `point_scan` icon — no turn data.
+ */
+@Composable
+private fun ScrewRow(point: ScrewPoint, modifier: Modifier) {
+    val t = LocalTokens.current
+    val turn = point.turn
+    val glyph = when {
+        turn == null -> "point_scan"
+        turn.isBase -> "anchor"
+        turn.isInTol -> "commit"
+        turn.sign == "CW" -> "rotate_right"
+        turn.sign == "CCW" -> "rotate_left"
+        else -> "point_scan"
+    }
+    val tint = when {
+        turn == null -> t.text2          // not yet measured — neutral
+        turn.isBase -> t.text2           // anchor / reference — neutral
+        turn.isInTol -> t.accent         // within tolerance → theme accent
+        turn.sign == "CW" -> t.go        // clockwise → green
+        turn.sign == "CCW" -> t.stop     // counterclockwise → red
+        else -> t.accent
+    }
+    val needsTurn = turn != null && !turn.isBase && !turn.isInTol
+    BoxWithConstraints(
+        modifier
+            .clip(RoundedCornerShape(t.rCtrl))
+            .background(t.surface2)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        items(rows, key = { it.key }) { row ->
-            val glyph = when {
-                row.isInTol -> "commit"
-                row.sign == "CCW" -> "rotate_left"
-                row.sign == "CW" -> "rotate_right"
-                else -> "point_scan"
+        val glyphSp = maxHeight.value * 0.8f
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            // [icon] ~80%-height status glyph — the only direction/status cue.
+            Box(Modifier.weight(0.2f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                MaterialSymbol(name = glyph, tint = tint, sizeSp = glyphSp)
             }
-            val tint = if (row.isInTol) t.go else t.accent
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 64.dp)
-                    .clip(RoundedCornerShape(t.rCtrl))
-                    .background(t.surface2)
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // [remainder] name title; the minutes (left) ⟷ degrees (right) split shows only when measured.
+            Column(
+                Modifier.weight(0.8f).fillMaxHeight().padding(start = 8.dp),
+                verticalArrangement = Arrangement.Center,
             ) {
-                // [≤20%] direction indicator
-                Box(Modifier.weight(0.2f), contentAlignment = Alignment.Center) {
-                    MaterialSymbol(name = glyph, tint = tint, sizeSp = fsSp(24f, t.fs))
-                }
-                // [40%] hh:mm turn (Mono)
-                Box(Modifier.weight(0.4f), contentAlignment = Alignment.CenterStart) {
-                    Column {
-                        row.name?.let {
-                            Text(
-                                it,
-                                color = t.text2,
-                                fontFamily = Geist,
-                                fontSize = fsSp(12f, t.fs).sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                Text(
+                    text = point.name ?: point.key,
+                    color = t.text,
+                    fontFamily = Geist,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(24f, t.fs).sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (turn != null) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        val valueColor = if (needsTurn) t.text else t.text3
+                        // Degrees signed by direction: a CCW turn reads negative (e.g. -66°), CW positive.
+                        // Zero-guard avoids "-0°" on the base/zero-turn screw.
+                        val degMag = "%.0f".format(turn.degrees)
+                        val degText = if (turn.sign == "CCW" && degMag != "0") "-$degMag°" else "$degMag°"
                         Text(
-                            text = "${row.adjust} ${row.sign.orEmpty()}".trim(),
-                            color = t.text,
+                            text = turn.adjust,
+                            color = valueColor,
                             fontFamily = GeistMono,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, t.fs).sp,
+                            fontSize = fsSp(22f, t.fs).sp,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = degText,
+                            color = valueColor,
+                            fontFamily = GeistMono,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(22f, t.fs).sp,
+                            maxLines = 1,
                         )
                     }
-                }
-                // [40%] degrees (Mono)
-                Box(Modifier.weight(0.4f), contentAlignment = Alignment.CenterStart) {
-                    Text(
-                        text = "${"%.0f".format(row.degrees)}°",
-                        color = if (row.isInTol) t.go else t.text,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(18f, t.fs).sp,
-                    )
                 }
             }
         }
@@ -474,6 +474,3 @@ private fun ScrewsTiltActionControl(
         )
     }
 }
-
-/** The `clock_loader_10` asset's filled wedge sits ~30° clockwise of 12-o'clock; calibrated once here. */
-private const val WEDGE_NATIVE_OFFSET_DEG = 30f

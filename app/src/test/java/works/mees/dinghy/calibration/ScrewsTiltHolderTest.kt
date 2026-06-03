@@ -67,6 +67,7 @@ class ScrewsTiltHolderTest {
 
         store.setScrewsTiltConfig(fourScrewConfig())
         store.seed(fourScrewState())
+        holder.setShowResults(true) // a Run completed this load → results surface
         runCurrent()
 
         val vm = holder.vm.value
@@ -88,13 +89,14 @@ class ScrewsTiltHolderTest {
 
         store.setScrewsTiltConfig(fourScrewConfig())
         store.seed(fourScrewState())
+        holder.setShowResults(true) // a Run completed this load → results surface
         runCurrent()
 
         val vm = holder.vm.value
         assertTrue("config coords present → draw the to-scale bed", vm.hasCoords)
         assertEquals(4, vm.points.size)
         // screw2 (index 2) → config[1] = (270, 30).
-        val screw2 = vm.points.first { it.turn.key == "screw2" }
+        val screw2 = vm.points.first { it.key == "screw2" }
         assertEquals(270.0, screw2.x!!, 0.001)
         assertEquals(30.0, screw2.y!!, 0.001)
     }
@@ -106,6 +108,7 @@ class ScrewsTiltHolderTest {
 
         // No config one-shot read landed → the screen must fall back to the labeled list (D-06).
         store.seed(fourScrewState())
+        holder.setShowResults(true) // a Run completed this load → results surface
         runCurrent()
 
         val vm = holder.vm.value
@@ -157,5 +160,33 @@ class ScrewsTiltHolderTest {
         events.emit(DispatchEvent.Failure(key = "z_tilt", message = "Too many retries"))
         runCurrent()
         assertNull("only the screws-tilt dispatch key folds in", holder.vm.value.errorText)
+    }
+
+    @Test
+    fun hidingResultsSuppressesMeasurementsButKeepsLayout() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ScrewsTiltHolder(backgroundScope, store)
+        store.setScrewsTiltConfig(fourScrewConfig())
+        store.seed(fourScrewState()) // results persist in printer state across the session
+
+        // A completed run this load → measured turns surface.
+        holder.setShowResults(true)
+        runCurrent()
+        assertEquals(4, holder.vm.value.loop.totalScrews)
+        assertTrue("measured points carry a turn", holder.vm.value.points.all { it.turn != null })
+
+        // Fresh instance / mid-run (showResults=false): the bed/list LAYOUT stays (config names + coords),
+        // but every measured turn is dropped — no stale turn directions for a screw maybe already adjusted.
+        holder.setShowResults(false)
+        runCurrent()
+        assertEquals("no measured loop while hidden", 0, holder.vm.value.loop.totalScrews)
+        assertTrue("layout (bed) still shows from config", holder.vm.value.hasCoords)
+        assertEquals("all four screws still listed", 4, holder.vm.value.points.size)
+        assertTrue("but with NO measurement", holder.vm.value.points.all { it.turn == null })
+
+        // Completing a run again re-surfaces the measurements.
+        holder.setShowResults(true)
+        runCurrent()
+        assertEquals(4, holder.vm.value.loop.totalScrews)
     }
 }
