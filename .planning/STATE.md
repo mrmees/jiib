@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T22:47:36.664Z"
+last_updated: "2026-06-03T23:32:42.967Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 64
+  total_plans: 65
   completed_plans: 62
   percent: 53
 ---
@@ -212,6 +212,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-02: test hang = advanceUntilIdle chasing the permanently-failing klippyDown harness + firing the 30s watchdog — fixed with runCurrent between drop/ready, clear klippyDown after observing escalation, advanceTimeBy + withTimeout deadman. 2 RED fix-drivers GREEN; full suite + assembleRelease green. ProbeZOffsetFreshnessTest GREEN unblocks 13-03 refreshProbeZOffset removal
 - [Phase 13]: 13-03: request-cadence contract committed as the phases-10-12 guardrail; oneshotToken flagged declared-not-live (REST path, no websocket call site)
 - [Phase 13]: 13-03: redundant refreshProbeZOffset configfile re-query removed end-to-end, gated GREEN by ProbeZOffsetFreshnessTest (Pitfall 3)
+- [Phase 13][13-05 Tasks 1-3, D-05 DEPARTURE 2026-06-03]: Socket ConnectionState NOW routes the recovery Splash (supersedes the original D-05 'socket state is chrome, never routes'). derive() arm order (load-bearing): !cfg→Connect ; klippy!=Ready→Splash ; connection !is Connected→Splash ; else→Shell. SAFE only because shell nav state (dest+backStack+calibrationRoutine) was HOISTED into RootController above the Splash/Shell switch (new ShellNavState) so the recovery splash no longer bounces the user to Home (G-A1); macroPopupFor reset on return, macroShowSystem preserved. G-B1a: OkHttp pingInterval(10s) keepalive on defaultClient() so a half-open WiFi drop → onFailure → SocketEvent.Closed → reconnect (the 4th mock-vs-reality strike pinned by MoonrakerSocketClientTest). RootController-owned ~600ms min-dwell latch makes a fast recovery splash perceptible on BOTH the klippy-restart and socket-reconnect paths (delays HIDING only, never the recovery). docs/ui_design/CLAUDE.md synced. Tasks 1-3 committed 404e00e/5451638/777a74d, full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded), signed APK installed on flox. Task 4 = BLOCKING on-device dual-printer dual-scenario UAT (Matthew) — 13-05-SUMMARY.md NOT written, plan/phase NOT complete until it passes.
 
 ### Pending Todos
 
@@ -243,6 +244,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T22:44:54.739Z
-Stopped at: Completed 13-02-PLAN.md
-Resume file: None
+Last session: 2026-06-03T23:32:42.908Z
+Stopped at: 13-05 Tasks 1-3 executed + committed (404e00e/5451638/777a74d); signed APK installed on flox; PAUSED at Task 4 BLOCKING on-device dual-printer dual-scenario UAT (Matthew)
+Resume file: .planning/phases/13-optimization-network-efficiency-end-to-end-reliability/13-05-PLAN.md (Task 4)
