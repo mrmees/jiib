@@ -41,21 +41,21 @@
       "rest_endpoint": null,
       "http_method": null,
       "availability": {
-        "type": "gcode_command_present",
-        "name": "ABORT"
+        "type": "object_present",
+        "name": "manual_probe"
       },
       "predicate": {
-        "type": "gcode_command_present",
-        "name": "ABORT"
+        "type": "object_present",
+        "name": "manual_probe"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-ACCELEROMETER_DEBUG_READ",
@@ -390,13 +390,13 @@
         "name": "bed_mesh"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-BED_MESH_CLEAR",
@@ -2728,13 +2728,13 @@
         "name": "probe"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-PROBE_EDDY_CURRENT_CALIBRATE",
@@ -2821,13 +2821,13 @@
         "name": "quad_gantry_level"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-QUERY_ADC",
@@ -3251,21 +3251,19 @@
       "rest_endpoint": null,
       "http_method": null,
       "availability": {
-        "type": "object_present",
-        "name": "configfile"
+        "type": "always"
       },
       "predicate": {
-        "type": "object_present",
-        "name": "configfile"
+        "type": "always"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-SAVE_DUAL_CARRIAGE_STATE",
@@ -3385,13 +3383,13 @@
         "name": "screws_tilt_adjust"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-SDCARD_LOOP_BEGIN",
@@ -4995,13 +4993,13 @@
         "name": "Z_ENDSTOP_CALIBRATE"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-Z_OFFSET_APPLY_ENDSTOP",
@@ -5088,13 +5086,13 @@
         "name": "z_tilt"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "MR-access.delete_user",
@@ -10273,6 +10271,177 @@
       "success_semantics": "Spoolman returns the documented REST response body for successful requests.",
       "error_semantics": "Spoolman returns HTTP validation, not-found, or server errors as documented by its OpenAPI spec.",
       "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+    },
+    {
+      "id": "KGC-BED_MESH_PROFILE_SAVE",
+      "catalog_id": "KGC-BED_MESH_PROFILE_SAVE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "BED_MESH_PROFILE SAVE",
+      "category": "calibration",
+      "purpose": "Klipper `BED_MESH_PROFILE SAVE=<name>` \u2014 save the active mesh into a named profile (D-10).",
+      "params": [
+        "SAVE"
+      ],
+      "key_params": [
+        "SAVE"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-BED_MESH_PROFILE_LOAD",
+      "catalog_id": "KGC-BED_MESH_PROFILE_LOAD",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "BED_MESH_PROFILE LOAD",
+      "category": "calibration",
+      "purpose": "Klipper `BED_MESH_PROFILE LOAD=<name>` \u2014 load a saved mesh profile (D-10).",
+      "params": [
+        "LOAD"
+      ],
+      "key_params": [
+        "LOAD"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-BED_MESH_PROFILE_REMOVE",
+      "catalog_id": "KGC-BED_MESH_PROFILE_REMOVE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "BED_MESH_PROFILE REMOVE",
+      "category": "calibration",
+      "purpose": "Klipper `BED_MESH_PROFILE REMOVE=<name>` \u2014 remove a saved mesh profile (D-10).",
+      "params": [
+        "REMOVE"
+      ],
+      "key_params": [
+        "REMOVE"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-TESTZ",
+      "catalog_id": "KGC-TESTZ",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "TESTZ",
+      "category": "calibration",
+      "purpose": "Klipper `TESTZ Z=<step>` \u2014 nudge Z within the manual-probe session (D-01).",
+      "params": [
+        "Z"
+      ],
+      "key_params": [
+        "Z"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-ACCEPT",
+      "catalog_id": "KGC-ACCEPT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "ACCEPT",
+      "category": "calibration",
+      "purpose": "Klipper `ACCEPT` \u2014 accept the current Z and conclude the manual-probe session (D-01).",
+      "params": [],
+      "key_params": [],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     }
   ]
 }

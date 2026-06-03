@@ -2123,6 +2123,343 @@
           "evidence": "object pause_resume listed in /printer/objects/list capture."
         }
       ]
+    },
+    {
+      "catalog_id": "KGC-SCREWS_TILT_CALCULATE",
+      "name": "SCREWS_TILT_CALCULATE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "screws_tilt_adjust"
+      },
+      "predicate_key": "object_present:screws_tilt_adjust",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "screws_tilt_adjust present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "screws_tilt_adjust present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-Z_TILT_ADJUST",
+      "name": "Z_TILT_ADJUST",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "z_tilt"
+      },
+      "predicate_key": "object_present:z_tilt",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "z_tilt present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "not_on_our_printers",
+          "evidence": "object_present:z_tilt not observed in the 2026-06-02 capture for this printer.",
+          "caveat": "Recorded as not_on_printers; runtime predicate gates the command off live."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-QUAD_GANTRY_LEVEL",
+      "name": "QUAD_GANTRY_LEVEL",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "quad_gantry_level"
+      },
+      "predicate_key": "object_present:quad_gantry_level",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "not_on_our_printers",
+          "evidence": "object_present:quad_gantry_level not observed in the 2026-06-02 capture for this printer.",
+          "caveat": "Recorded as not_on_printers; runtime predicate gates the command off live."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "not_on_our_printers",
+          "evidence": "object_present:quad_gantry_level not observed in the 2026-06-02 capture for this printer.",
+          "caveat": "Recorded as not_on_printers; runtime predicate gates the command off live."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-BED_MESH_CALIBRATE",
+      "name": "BED_MESH_CALIBRATE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate_key": "object_present:bed_mesh",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-BED_MESH_PROFILE_SAVE",
+      "name": "BED_MESH_PROFILE SAVE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate_key": "object_present:bed_mesh",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-BED_MESH_PROFILE_LOAD",
+      "name": "BED_MESH_PROFILE LOAD",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate_key": "object_present:bed_mesh",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-BED_MESH_PROFILE_REMOVE",
+      "name": "BED_MESH_PROFILE REMOVE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "bed_mesh"
+      },
+      "predicate_key": "object_present:bed_mesh",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "bed_mesh present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-PROBE_CALIBRATE",
+      "name": "PROBE_CALIBRATE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "probe"
+      },
+      "predicate_key": "object_present:probe",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-Z_ENDSTOP_CALIBRATE",
+      "name": "Z_ENDSTOP_CALIBRATE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "gcode_command_present",
+        "name": "Z_ENDSTOP_CALIBRATE"
+      },
+      "predicate_key": "gcode_command_present:Z_ENDSTOP_CALIBRATE",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "not_on_our_printers",
+          "evidence": "gcode_command_present:Z_ENDSTOP_CALIBRATE not observed in the 2026-06-02 capture for this printer.",
+          "caveat": "Recorded as not_on_printers; runtime predicate gates the command off live."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "not_on_our_printers",
+          "evidence": "gcode_command_present:Z_ENDSTOP_CALIBRATE not observed in the 2026-06-02 capture for this printer.",
+          "caveat": "Recorded as not_on_printers; runtime predicate gates the command off live."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-TESTZ",
+      "name": "TESTZ",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "predicate_key": "object_present:manual_probe",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-ACCEPT",
+      "name": "ACCEPT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "predicate_key": "object_present:manual_probe",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-ABORT",
+      "name": "ABORT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "manual_probe"
+      },
+      "predicate_key": "object_present:manual_probe",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "manual_probe present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SAVE_CONFIG",
+      "name": "SAVE_CONFIG",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry availability is Always (host action, not object-gated).",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry availability is Always (host action, not object-gated).",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
     }
   ],
   "not_on_printers": [
@@ -2132,7 +2469,8 @@
         "name": "quad_gantry_level"
       },
       "printer_ids": [
-        "ender3"
+        "ender3",
+        "ender5plus"
       ],
       "reason": "Ender 3 Pro objects.list does not expose quad_gantry_level in the 2026-06-02 capture."
     },
@@ -2198,6 +2536,27 @@
         "ender3"
       ],
       "reason": "The 2026-06-02 captures expose no public UNLOAD_FILAMENT macro on either printer. Ender 5 Plus exposes a private _UNLOAD_FILAMENT helper; Ender 3 Pro does not expose an unload helper in the capture."
+    },
+    {
+      "predicate": {
+        "type": "object_present",
+        "name": "z_tilt"
+      },
+      "printer_ids": [
+        "ender3"
+      ],
+      "reason": "Ender 3 Pro is single-Z; z_tilt not exposed in the 2026-06-02 objects.list capture."
+    },
+    {
+      "predicate": {
+        "type": "gcode_command_present",
+        "name": "Z_ENDSTOP_CALIBRATE"
+      },
+      "printer_ids": [
+        "ender5plus",
+        "ender3"
+      ],
+      "reason": "Neither printer exposed Z_ENDSTOP_CALIBRATE in /printer/gcode/help (both have a probe; PROBE_CALIBRATE is the live path). A3 probe-less sibling, gated off live."
     }
   ],
   "unknown": []

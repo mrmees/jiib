@@ -127,6 +127,39 @@ class PrinterCommandsTest {
         PrinterCommands.jog("E", 10.0, 3000)
     }
 
+    // --- Phase-9 calibration builders -------------------------------------------------------------
+
+    @Test
+    fun calibrationConstants_areExact() {
+        assertEquals("SCREWS_TILT_CALCULATE", PrinterCommands.SCREWS_TILT_CALCULATE)
+        assertEquals("Z_TILT_ADJUST", PrinterCommands.Z_TILT_ADJUST)
+        assertEquals("QUAD_GANTRY_LEVEL", PrinterCommands.QUAD_GANTRY_LEVEL)
+        // BED_MESH_CALIBRATE is BARE — no METHOD/ADAPTIVE injected (RESEARCH Open-Q2).
+        assertEquals("BED_MESH_CALIBRATE", PrinterCommands.BED_MESH_CALIBRATE)
+        assertEquals("PROBE_CALIBRATE", PrinterCommands.PROBE_CALIBRATE)
+        assertEquals("Z_ENDSTOP_CALIBRATE", PrinterCommands.Z_ENDSTOP_CALIBRATE)
+        assertEquals("ACCEPT", PrinterCommands.ACCEPT)
+        assertEquals("ABORT", PrinterCommands.ABORT)
+        assertEquals("SAVE_CONFIG", PrinterCommands.SAVE_CONFIG)
+    }
+
+    @Test
+    fun testZ_exactStringAndClampsToBound() {
+        assertEquals("TESTZ Z=0.05", PrinterCommands.testZ(0.05))
+        assertEquals("TESTZ Z=-0.1", PrinterCommands.testZ(-0.1))
+        // Clamp-before-format (ASVS V5 / T-09-02-01): an absurd value never reaches the string.
+        assertTrue(PrinterCommands.testZ(999.0).contains("Z=${PrinterCommands.MAX_TESTZ_MM}"))
+        assertTrue(PrinterCommands.testZ(-999.0).contains("Z=-${PrinterCommands.MAX_TESTZ_MM}"))
+    }
+
+    @Test
+    fun bedMeshProfileSave_exactString() {
+        assertEquals(
+            "BED_MESH_PROFILE SAVE=26.06.02_14.05",
+            PrinterCommands.bedMeshProfileSave("26.06.02_14.05"),
+        )
+    }
+
     // --- scriptParams serialization ---------------------------------------------------------------
 
     @Test

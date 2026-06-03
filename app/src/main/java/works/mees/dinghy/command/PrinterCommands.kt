@@ -43,12 +43,53 @@ object PrinterCommands {
     /** Force-move velocity ceiling (mm/s) — kept conservative; force moves skip all limit checks. */
     const val MAX_FORCE_VEL_MM_S = 50
 
+    /**
+     * Manual-probe TESTZ nudge magnitude cap (mm). The Z-calibrate jog (D-01) offers fine step presets
+     * (1 / 0.1 / 0.05 / 0.025 mm — Claude's-discretion per RESEARCH); ±5 mm is an ample bound that still
+     * clamps any absurd value out of the formatted string (ASVS V5 clamp-before-format).
+     */
+    const val MAX_TESTZ_MM = 5.0
+
+    /** Max bed-mesh profile-name length accepted by [sanitizeProfileName] (defensive upper bound). */
+    const val MAX_PROFILE_NAME_LEN = 64
+
     // --- Constant action gcodes -------------------------------------------------------------------
     /** Turn off every heater (Temp-panel Cooldown). */
     const val COOLDOWN = "TURN_OFF_HEATERS"
 
     /** Disable all stepper motors (Move-panel disable-motors). */
     const val DISABLE_STEPPERS = "M84"
+
+    // --- Calibration action gcodes (Phase 9 / no params) ------------------------------------------
+    /** `SCREWS_TILT_CALCULATE` — one-shot manual-bed-level probe (CALIB-02). */
+    const val SCREWS_TILT_CALCULATE = "SCREWS_TILT_CALCULATE"
+
+    /** `Z_TILT_ADJUST` — automatic dual-Z tilt level (CALIB-03). */
+    const val Z_TILT_ADJUST = "Z_TILT_ADJUST"
+
+    /** `QUAD_GANTRY_LEVEL` — automatic four-corner gantry level (CALIB-03; built blind, D-02). */
+    const val QUAD_GANTRY_LEVEL = "QUAD_GANTRY_LEVEL"
+
+    /**
+     * `BED_MESH_CALIBRATE` — BARE (no METHOD/ADAPTIVE injected). Let the printer's config / KAMP defaults
+     * decide (RESEARCH Open-Q2 — config-editing is out of scope). CALIB-04.
+     */
+    const val BED_MESH_CALIBRATE = "BED_MESH_CALIBRATE"
+
+    /** `PROBE_CALIBRATE` — open the interactive manual-probe Z-calibrate session (CALIB-05 / D-01). */
+    const val PROBE_CALIBRATE = "PROBE_CALIBRATE"
+
+    /** `Z_ENDSTOP_CALIBRATE` — the probe-LESS sibling of PROBE_CALIBRATE (same manual-probe helper, A3). */
+    const val Z_ENDSTOP_CALIBRATE = "Z_ENDSTOP_CALIBRATE"
+
+    /** `ACCEPT` — accept the current Z in the manual-probe session (D-01). */
+    const val ACCEPT = "ACCEPT"
+
+    /** `ABORT` — terminate the manual-probe session with no change (D-01). */
+    const val ABORT = "ABORT"
+
+    /** `SAVE_CONFIG` — persist config + restart the host (D-12; reuses the G2 re-handshake). */
+    const val SAVE_CONFIG = "SAVE_CONFIG"
 
     // --- Fixed identifier sets --------------------------------------------------------------------
     private val MOTION_AXES = setOf("X", "Y", "Z")
@@ -145,10 +186,50 @@ object PrinterCommands {
     /** Run the printer's UNLOAD_FILAMENT macro (popup-if-missing handled by the caller). */
     fun unloadFilament(): String = "UNLOAD_FILAMENT"
 
+    // --- Calibration parameterized builders (Phase 9) ---------------------------------------------
+
+    /**
+     * `TESTZ Z=<step>` — the manual-probe Z-jog nudge (D-01). [step] is CLAMPED to ±[MAX_TESTZ_MM] BEFORE
+     * formatting (ASVS V5 clamp-before-format, T-09-02-01) — no free-text reaches the gcode string; the
+     * scrubber/stepper that feeds this is the only input source.
+     */
+    fun testZ(step: Double): String = "TESTZ Z=${step.coerceIn(-MAX_TESTZ_MM, MAX_TESTZ_MM)}"
+
+    /**
+     * Strict allowlist validator for a bed-mesh profile NAME (T-09-02-02). The name DEFAULTS to the
+     * app-generated `YY.MM.DD_HH.MM` timestamp (D-10) but is keyboard-EDITABLE per the UI-SPEC owner
+     * carve-out, so it IS a user-controlled injection surface: a newline would inject a SECOND gcode line.
+     * Accepts only `[A-Za-z0-9_.-]+` (no whitespace, no control chars, no `;`, no newline); rejects blank
+     * and over-[MAX_PROFILE_NAME_LEN]. Returns the validated name; `require()`-fails (IllegalArgumentException)
+     * on any violation — callers MUST catch/guard rather than ship raw input.
+     */
+    fun sanitizeProfileName(name: String): String {
+        require(name.isNotEmpty()) { "bed-mesh profile name must not be blank" }
+        require(name.length <= MAX_PROFILE_NAME_LEN) {
+            "bed-mesh profile name exceeds $MAX_PROFILE_NAME_LEN chars"
+        }
+        require(name.matches(PROFILE_NAME_ALLOWLIST)) {
+            "bed-mesh profile name must match [A-Za-z0-9_.-]+ (no whitespace/control/newline/';')"
+        }
+        return name
+    }
+
+    /** `BED_MESH_PROFILE SAVE=<name>`. [name] is allowlist-validated by [sanitizeProfileName] (T-09-02-02). */
+    fun bedMeshProfileSave(name: String): String = "BED_MESH_PROFILE SAVE=${sanitizeProfileName(name)}"
+
+    /** `BED_MESH_PROFILE LOAD=<name>`. [name] is allowlist-validated by [sanitizeProfileName] (T-09-02-02). */
+    fun bedMeshProfileLoad(name: String): String = "BED_MESH_PROFILE LOAD=${sanitizeProfileName(name)}"
+
+    /** `BED_MESH_PROFILE REMOVE=<name>`. [name] is allowlist-validated by [sanitizeProfileName] (T-09-02-02). */
+    fun bedMeshProfileRemove(name: String): String = "BED_MESH_PROFILE REMOVE=${sanitizeProfileName(name)}"
+
     /** Wrap a gcode string into the `{"script": <gcode>}` [JsonElement] `printer.gcode.script` carries. */
     fun scriptParams(gcode: String): JsonElement = buildJsonObject { put("script", gcode) }
 
     // --- internals --------------------------------------------------------------------------------
+    /** Bed-mesh profile-name allowlist (T-09-02-02): letters/digits/underscore/dot/hyphen only. */
+    private val PROFILE_NAME_ALLOWLIST = Regex("""[A-Za-z0-9_.-]+""")
+
     private fun requireAxis(axis: String): String {
         require(axis in MOTION_AXES) { "axis must be one of $MOTION_AXES, was '$axis'" }
         return axis

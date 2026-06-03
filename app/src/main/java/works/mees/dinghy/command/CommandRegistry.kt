@@ -33,6 +33,12 @@ data class GcodeStoreArgs(val count: Int = 1000)
 data class ObjectSubsetArgs(val objects: Set<String>)
 class ServerInfoArgs private constructor()
 
+/** Manual-probe Z-jog nudge (D-01) — [step] is clamped to ±MAX_TESTZ_MM by [PrinterCommands.testZ]. */
+data class TestZArgs(val step: Double)
+
+/** Bed-mesh profile name arg (D-10) — [name] is allowlist-validated by [PrinterCommands.sanitizeProfileName]. */
+data class BedMeshProfileArgs(val name: String)
+
 object CommandRegistry {
     private val jsonRpcSemantics = CommandSemantics(
         success = "JSON-RPC result acknowledges the request.",
@@ -331,6 +337,104 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
     )
 
+    // --- Calibration commands (Phase 9). Every gcode spec inherits the G4 120s timeout automatically
+    // (CommandDispatcher keys the long timeout off method == GCODE_SCRIPT — no per-spec timeout code). ---
+
+    val screwsTiltCalculate: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-SCREWS_TILT_CALCULATE",
+        key = { "screws_tilt" },
+        gcode = { PrinterCommands.SCREWS_TILT_CALCULATE },
+        availability = AvailabilityPredicate.ObjectPresent("screws_tilt_adjust"),
+    )
+
+    val zTiltAdjust: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-Z_TILT_ADJUST",
+        key = { "z_tilt_adjust" },
+        gcode = { PrinterCommands.Z_TILT_ADJUST },
+        availability = AvailabilityPredicate.ObjectPresent("z_tilt"),
+    )
+
+    val quadGantryLevel: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-QUAD_GANTRY_LEVEL",
+        key = { "quad_gantry_level" },
+        gcode = { PrinterCommands.QUAD_GANTRY_LEVEL },
+        // Built blind (D-02): gates itself off on both test printers via the live object predicate.
+        availability = AvailabilityPredicate.ObjectPresent("quad_gantry_level"),
+    )
+
+    val bedMeshCalibrate: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-BED_MESH_CALIBRATE",
+        key = { "bed_mesh_calibrate" },
+        gcode = { PrinterCommands.BED_MESH_CALIBRATE },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
+    val bedMeshProfileSave: CommandSpec<BedMeshProfileArgs> = gcode(
+        catalogId = "KGC-BED_MESH_PROFILE_SAVE",
+        key = { "bed_mesh_profile_save" },
+        gcode = { args -> PrinterCommands.bedMeshProfileSave(args.name) },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
+    val bedMeshProfileLoad: CommandSpec<BedMeshProfileArgs> = gcode(
+        catalogId = "KGC-BED_MESH_PROFILE_LOAD",
+        key = { "bed_mesh_profile_load" },
+        gcode = { args -> PrinterCommands.bedMeshProfileLoad(args.name) },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
+    val bedMeshProfileRemove: CommandSpec<BedMeshProfileArgs> = gcode(
+        catalogId = "KGC-BED_MESH_PROFILE_REMOVE",
+        key = { "bed_mesh_profile_remove" },
+        gcode = { args -> PrinterCommands.bedMeshProfileRemove(args.name) },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
+    val probeCalibrate: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-PROBE_CALIBRATE",
+        key = { "probe_calibrate" },
+        gcode = { PrinterCommands.PROBE_CALIBRATE },
+        availability = AvailabilityPredicate.ObjectPresent("probe"),
+    )
+
+    val zEndstopCalibrate: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-Z_ENDSTOP_CALIBRATE",
+        key = { "z_endstop_calibrate" },
+        gcode = { PrinterCommands.Z_ENDSTOP_CALIBRATE },
+        // Probe-LESS sibling (A3): gate on the printer actually EXPOSING the command, NOT ObjectPresent("probe")
+        // — a probe predicate would hide it on exactly the probe-less printers that need it. Mirrors FORCE_MOVE.
+        availability = AvailabilityPredicate.GcodeCommandPresent("Z_ENDSTOP_CALIBRATE"),
+    )
+
+    val testZ: CommandSpec<TestZArgs> = gcode(
+        catalogId = "KGC-TESTZ",
+        key = { "testz" },
+        gcode = { args -> PrinterCommands.testZ(args.step) },
+        availability = AvailabilityPredicate.ObjectPresent("manual_probe"),
+    )
+
+    val accept: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-ACCEPT",
+        key = { "accept" },
+        gcode = { PrinterCommands.ACCEPT },
+        availability = AvailabilityPredicate.ObjectPresent("manual_probe"),
+    )
+
+    val abort: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-ABORT",
+        key = { "abort" },
+        gcode = { PrinterCommands.ABORT },
+        availability = AvailabilityPredicate.ObjectPresent("manual_probe"),
+    )
+
+    val saveConfig: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-SAVE_CONFIG",
+        key = { "save_config" },
+        gcode = { PrinterCommands.SAVE_CONFIG },
+        // Host action, NOT object-gated (D-12) — available whenever connected.
+        availability = AvailabilityPredicate.Always,
+    )
+
     val all: List<CommandSpec<*>> = listOf(
         identify,
         oneshotToken,
@@ -366,6 +470,19 @@ object CommandRegistry {
         unloadFilament,
         cooldown,
         disableSteppers,
+        screwsTiltCalculate,
+        zTiltAdjust,
+        quadGantryLevel,
+        bedMeshCalibrate,
+        bedMeshProfileSave,
+        bedMeshProfileLoad,
+        bedMeshProfileRemove,
+        probeCalibrate,
+        zEndstopCalibrate,
+        testZ,
+        accept,
+        abort,
+        saveConfig,
     )
 
     private fun objectsParam(objects: Set<String>): JsonElement = buildJsonObject {
