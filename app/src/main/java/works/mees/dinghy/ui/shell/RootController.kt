@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.shell
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +44,21 @@ fun RootController(container: AppContainer) {
     // the Splash "Set up / Edit connection" action. No other surface owns an open-Settings path.
     var settingsEscape by remember { mutableStateOf(false) }
 
+    // The shell's NAV state, HOISTED HERE (above the Splash/Shell switch) so a transient recovery Splash
+    // that decomposes [AppShell] does NOT reset the user to Home (G-A1, 13-05 Task 2). [RootController]
+    // stays composed across the Splash/Shell flip, so this `remember`-ed holder survives the blip.
+    val nav = rememberShellNavState()
+
     val route = derive(hasConfig, state)
+
+    // On RETURN from a recovery Splash (the route was Splash, now it is not), clear the TRANSIENT
+    // sub-nav state ([macroPopupFor]) — a half-state macro popup must not survive a reconnect — while
+    // [dest]/[backStack]/[calibrationRoutine]/[macroShowSystem] are deliberately PRESERVED (G-A1: the
+    // user returns to their screen, not Home).
+    val onSplash = route is TopRoute.Splash
+    LaunchedEffect(onSplash) {
+        if (!onSplash) nav.resetTransient()
+    }
 
     when {
         // First run (no config) OR an active escape → the ONE Settings destination, owned here.
@@ -65,9 +80,10 @@ fun RootController(container: AppContainer) {
             )
         }
 
-        // The running shell (in-shell Settings is a Dest.Settings reached via the App Drawer).
+        // The running shell (in-shell Settings is a Dest.Settings reached via the App Drawer). The nav
+        // state is passed IN from the root-owned [nav] holder so it survives a transient Splash override.
         else -> {
-            AppShell(container = container)
+            AppShell(container = container, nav = nav)
         }
     }
 }

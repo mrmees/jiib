@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,7 +47,6 @@ import works.mees.dinghy.ui.files.FilesScreen
 import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
 import works.mees.dinghy.ui.macros.MacroExecutionPopup
 import works.mees.dinghy.ui.macros.MacroHolder
-import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.macros.SystemMacrosScreen
 import works.mees.dinghy.ui.calibration.BedMeshScreen
 import works.mees.dinghy.ui.calibration.CalibrationHubScreen
@@ -101,48 +99,40 @@ import works.mees.dinghy.ui.temperature.TemperatureScreen
 @Composable
 fun AppShell(
     container: AppContainer,
+    nav: ShellNavState,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
 
-    // The lean route holder (D-05) — NOT Navigation-Compose. [dest] is the visible screen; [backStack]
-    // holds the CALLERS (most-recent last). Navigating to a panel pushes the current screen; Back pops
-    // to the caller. PrintStatus is the home/root — navigating home CLEARS the stack, and Back at home
-    // (empty stack) is left to the OS so it closes the app (per the system-Back contract).
-    var dest by remember { mutableStateOf(Dest.PrintStatus) }
-    val backStack = remember { mutableStateListOf<Dest>() }
+    // The lean route holder (D-05) — NOT Navigation-Compose — is HOISTED into [ShellNavState], owned by
+    // [RootController] ABOVE the Splash/Shell switch, so a transient recovery Splash that decomposes this
+    // shell does NOT reset the user to Home (G-A1, 13-05 Task 2). [dest] is the visible screen; the
+    // [backStack] holds the CALLERS (most-recent last); navigating to a panel pushes the current screen,
+    // Back pops to the caller; PrintStatus is the home/root (navigating home CLEARS the stack; Back at
+    // home falls through to the OS so it closes the app). [drawerOpen] stays shell-local (it is
+    // meaningless while the shell is decomposed). Local aliases keep the body below unchanged.
+    val dest = nav.dest
+    val backStack = nav.backStack
     var drawerOpen by remember { mutableStateOf(false) }
 
     // Macro sub-navigation (within Dest.Macros — NOT separate top-level Dests, mirroring how the popup
     // lives inside the macro surface). The drawer "Macros" tile opens the Bookmarked launcher;
     // `Manage macros` reveals the System list; tapping a macro opens its Execution popup as an overlay.
-    var macroShowSystem by remember { mutableStateOf(false) }
-    var macroPopupFor by remember { mutableStateOf<MacroVm?>(null) }
+    // [macroShowSystem] is a view PREFERENCE (preserved across the Splash blip); [macroPopupFor] is
+    // TRANSIENT (reset on return from a recovery Splash). Both live on the hoisted [nav].
+    val macroShowSystem = nav.macroShowSystem
+    val macroPopupFor = nav.macroPopupFor
 
     // Calibration sub-navigation (a lean LOCAL back-stack WITHIN Dest.Calibration — NOT five new
     // top-level Dests, mirroring how Dest.Macros hosts its Bookmarked-vs-System sub-screens). null =
     // the hub; a non-null routine = that routine's page. The hub's onNavigate pushes; a BackHandler
-    // (and each page's green Back) pops back to the hub.
-    var calibrationRoutine by remember { mutableStateOf<CalibrationRoutine?>(null) }
+    // (and each page's green Back) pops back to the hub. Hoisted on [nav] so a user mid-routine returns
+    // to it after a recovery Splash, not to Home.
+    val calibrationRoutine = nav.calibrationRoutine
 
-    fun navigateTo(target: Dest) {
-        if (target == dest) return
-        if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
-        // Entering the Macros surface always starts on the Bookmarked launcher with no popup open.
-        if (target == Dest.Macros) {
-            macroShowSystem = false
-            macroPopupFor = null
-        }
-        // Entering the Calibration surface always starts on the hub (no routine selected).
-        if (target == Dest.Calibration) {
-            calibrationRoutine = null
-        }
-        dest = target
-    }
-    fun goBack() {
-        if (backStack.isNotEmpty()) dest = backStack.removeAt(backStack.lastIndex)
-    }
+    fun navigateTo(target: Dest) = nav.navigateTo(target)
+    fun goBack() = nav.goBack()
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
@@ -264,16 +254,16 @@ fun AppShell(
     // Macro sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
     // higher priority): an open popup closes first, then the System list returns to the launcher.
     BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor != null) {
-        macroPopupFor = null
+        nav.macroPopupFor = null
     }
     BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor == null && macroShowSystem) {
-        macroShowSystem = false
+        nav.macroShowSystem = false
     }
     // Calibration sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
     // higher priority): an open routine page returns to the hub; from the hub, Back falls through to the
     // generic back-stack pop (leaving the Calibration surface).
     BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
-        calibrationRoutine = null
+        nav.calibrationRoutine = null
     }
 
     BoxWithConstraints(
@@ -334,13 +324,13 @@ fun AppShell(
                         holder = macroHolder,
                         onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
                         onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
-                        onBack = { macroShowSystem = false },
+                        onBack = { nav.macroShowSystem = false },
                     )
                 } else {
                     BookmarkedMacrosScreen(
                         holder = macroHolder,
-                        onRunMacro = { macro -> macroPopupFor = macro },
-                        onManage = { macroShowSystem = true },
+                        onRunMacro = { macro -> nav.macroPopupFor = macro },
+                        onManage = { nav.macroShowSystem = true },
                         onBack = { goBack() },
                     )
                 }
@@ -359,13 +349,13 @@ fun AppShell(
                 when (val routine = calibrationRoutine) {
                     null -> CalibrationHubScreen(
                         holder = calibrationHubHolder,
-                        onNavigate = { calibrationRoutine = it },
+                        onNavigate = { nav.calibrationRoutine = it },
                         onBack = { goBack() },
                     )
                     CalibrationRoutine.SCREWS_TILT -> ScrewsTiltScreen(
                         container = container,
                         holder = screwsTiltHolder,
-                        onBack = { calibrationRoutine = null },
+                        onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.Z_TILT -> TiltScreen(
                         vm = zTiltVm,
@@ -375,7 +365,7 @@ fun AppShell(
                         onRunDispatched = { zTiltHolder.markDispatched() },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                         onEnter = { zTiltHolder.reset() },
-                        onBack = { calibrationRoutine = null },
+                        onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
                         vm = qglVm,
@@ -385,14 +375,14 @@ fun AppShell(
                         onRunDispatched = { qglHolder.markDispatched() },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                         onEnter = { qglHolder.reset() },
-                        onBack = { calibrationRoutine = null },
+                        onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.BED_MESH -> BedMeshScreen(
                         vm = bedMeshVm,
                         tokens = t,
                         dispatcher = dispatcher,
                         onCycleScaleMode = { bedMeshHolder.cycleScaleMode() },
-                        onBack = { calibrationRoutine = null },
+                        onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.PROBE_CALIBRATE -> ProbeCalibrateScreen(
                         vm = probeCalibrateVm,
@@ -409,7 +399,7 @@ fun AppShell(
                         },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                         onAbort = { probeCalibrateHolder.markAborted() },
-                        onBack = { calibrationRoutine = null },
+                        onBack = { nav.calibrationRoutine = null },
                     )
                 }
             }
@@ -429,7 +419,7 @@ fun AppShell(
                 holder = macroHolder,
                 macro = popupMacro,
                 dispatcher = liveDispatcher,
-                onDismiss = { macroPopupFor = null },
+                onDismiss = { nav.macroPopupFor = null },
             )
         }
 
