@@ -107,22 +107,6 @@ class MoonrakerSession(
     }
 
     /**
-     * Re-read the saved probe `z_offset` from configfile on demand and republish it on the store. Called
-     * when the Probe-Calibrate page is (re)opened so the displayed "current Z offset" reflects a
-     * just-applied SAVE_CONFIG without an app restart (the value is otherwise only read at handshake).
-     * Best-effort: a failed/absent read leaves the prior value (the request throwing skips the setter).
-     */
-    suspend fun refreshProbeZOffset() {
-        runCatching {
-            val cfgResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(setOf("configfile")))
-            val settings = parseStatus(cfgResult)
-                ?.objectOrNull("configfile")
-                ?.objectOrNull("settings")
-            store.setProbeZOffset(settings?.objectOrNull("probe")?.floatOrNullAt("z_offset"))
-        }
-    }
-
-    /**
      * Run the supervisor until [scope][coroutineScope] cancellation. Maintains the connection forever:
      * network failures back off (uncapped, jittered) and retry; an AuthRequired result quiesces until
      * [requestReconnectNow].

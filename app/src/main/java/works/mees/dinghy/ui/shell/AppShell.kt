@@ -401,9 +401,11 @@ fun AppShell(
                         onStartDispatched = { },
                         onEnter = {
                             probeCalibrateHolder.reset()
-                            // Re-read the saved z_offset on entry so a just-applied SAVE_CONFIG shows
-                            // immediately (it's otherwise only read at handshake) — no app restart needed.
-                            spine?.refreshProbeZOffset?.invoke()
+                            // z_offset is kept fresh by the handshake's configfile one-shot, which the
+                            // post-SAVE_CONFIG notify_klippy_ready re-handshake re-runs (Phase 13) — so a
+                            // just-applied SAVE_CONFIG shows without an app restart and without a redundant
+                            // page-open configfile re-query (cadence contract Rule 3, gated GREEN by
+                            // ProbeZOffsetFreshnessTest).
                         },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                         onAbort = { probeCalibrateHolder.markAborted() },
