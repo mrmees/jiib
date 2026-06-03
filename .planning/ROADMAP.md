@@ -481,7 +481,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 13-03-PLAN.md — cadence audit deliverable (docs/request-cadence-contract.md, SC-1) + the one applied fix (remove redundant refreshProbeZOffset, sequenced after 13-02)
+- [x] 13-03-PLAN.md — cadence audit deliverable (docs/request-cadence-contract.md, SC-1) + the one applied fix (remove redundant refreshProbeZOffset, sequenced after 13-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -529,7 +529,7 @@ existing "Phase 13" references valid).
 | 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
-| 13. Optimization, Network Efficiency & End-to-End Reliability | 2/4 | In Progress|  |
+| 13. Optimization, Network Efficiency & End-to-End Reliability | 3/4 | In Progress|  |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T22:36:11.649Z"
+last_updated: "2026-06-03T22:47:36.664Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 64
-  completed_plans: 61
+  completed_plans: 62
   percent: 53
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 13 (optimization-network-efficiency-end-to-end-reliability) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
   → Plan 13-02 (Wave 1, the HEADLINE reliability fix) EXECUTED + COMPLETE 2026-06-03 (commits c2f2970 production + cceb51b tests). The in-session klippy-restart re-handshake is now VISIBLE (emit Syncing→Connected wrapping runHandshake(skipIdentify=true), D-03), DISCONNECT-DRIVEN (markStale + emit(Syncing) + a 30s bounded escalate-watchdog the instant notify_klippy_disconnected arrives — branch (a) per the 13-01 capture: NO shutdown, NO webhooks.state, so NO store klippyState edge exposed), and SELF-HEALING (a rejected/withheld/timed-out re-subscribe in the klippy-down window closes the REAL RpcConnection → OkHttp cancel → SocketEvent.Closed → closed.await() unblocks → run() reconnects on a fresh socket — NOT rpc.close which would park closed.await() forever). CODEX-FOUND PRODUCTION BUG fixed: a single one-shot shared `recovered` CompletableDeferred let only the FIRST same-socket recovery arm a watchdog; a 2nd klippy drop returned instantly off the completed deferred (dead escalate-timeout = dead-forever for the COMMON repeated-SAVE_CONFIG flow). Fix = a PER-DROP deferred in an AtomicReference (each drop swaps in a fresh deferred, completing the prior harmlessly; its watchdog awaits THAT deferred; the matching ready completes the current one). Also dropped the per-attempt `escalated` AtomicBoolean latch (it would block a 2nd drop's escalation) — RpcConnection.close is idempotent (own compareAndSet), so every genuine failure is free to escalate, no close storm. TEST-HANG fixed (Codex-confirmed): the hang was advanceUntilIdle() chasing the permanently-failing klippyDown harness + firing the 30s watchdog prematurely → runCurrent() between inject-drop/inject-ready; the self-heal test clears harness.klippyDown=false AFTER observing the first escalation re-enter connectAndServe so the reconnect SUCCEEDS + the session QUIESCES, then advanceTimeBy(60s) past backoff + withTimeout(5s){first{Connected}} deadman (never open-ended advanceUntilIdle). The two previously-RED 13-01 fix-drivers (KlippyRecoveryStateTest D-03 Syncing→Connected + KlippyReadyResyncTest self-heal escalation opens++/re-entry) are GREEN; the GREEN locks (resumed-diffs, min_extrude_temp refresh, D-07b) held; full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (all hard-timeout-guarded, exit codes authoritative). ProbeZOffsetFreshnessTest GREEN — the executable gate 13-03's refreshProbeZOffset removal depends on — is held GREEN (recovery re-reads configfile, so a changed probe.z_offset propagates). 2 deviations (both auto-fixed correctness: the Codex production bug + the test-hang). Next: 13-03 (cadence-audit deliverable + remove the now-redundant refreshProbeZOffset, gated on ProbeZOffsetFreshnessTest staying GREEN).
   → Phase-9 transition DONE 2026-06-03: ROADMAP promotion APPLIED (Phase 13 execution-order-promoted to run next; Webcam/Spool/Macro-Prompt deferred behind it; numbers unchanged). Phase 9 marked complete in the ROADMAP checklist + progress table. PROJECT.md evolved (calibration → Validated). Remaining: discuss/plan Phase 13.
@@ -210,6 +210,8 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-02: in-session klippy-restart recovery is now visible (Syncing→Connected, D-03), disconnect-driven (markStale + 30s bounded watchdog off notify_klippy_disconnected, branch (a) — no store klippyState edge needed) and self-healing (failed re-subscribe closes the REAL RpcConnection → run() reconnects, NOT rpc.close)
 - [Phase 13]: 13-02: Codex-found dead-forever bug fixed — per-DROP watchdog deferred (AtomicReference) replaces a one-shot shared deferred so a 2nd same-socket SAVE_CONFIG re-arms the escalate-timeout; dropped the per-attempt escalation latch (RpcConnection.close is idempotent)
 - [Phase 13]: 13-02: test hang = advanceUntilIdle chasing the permanently-failing klippyDown harness + firing the 30s watchdog — fixed with runCurrent between drop/ready, clear klippyDown after observing escalation, advanceTimeBy + withTimeout deadman. 2 RED fix-drivers GREEN; full suite + assembleRelease green. ProbeZOffsetFreshnessTest GREEN unblocks 13-03 refreshProbeZOffset removal
+- [Phase 13]: 13-03: request-cadence contract committed as the phases-10-12 guardrail; oneshotToken flagged declared-not-live (REST path, no websocket call site)
+- [Phase 13]: 13-03: redundant refreshProbeZOffset configfile re-query removed end-to-end, gated GREEN by ProbeZOffsetFreshnessTest (Pitfall 3)
 
 ### Pending Todos
 
@@ -241,6 +243,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T22:36:11.588Z
+Last session: 2026-06-03T22:44:54.739Z
 Stopped at: Completed 13-02-PLAN.md
 Resume file: None
