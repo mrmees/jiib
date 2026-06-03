@@ -25,6 +25,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import works.mees.dinghy.calibration.BedMeshHolder
+import works.mees.dinghy.calibration.CalibrationHubHolder
+import works.mees.dinghy.calibration.CalibrationRoutine
+import works.mees.dinghy.calibration.ProbeCalibrateHolder
+import works.mees.dinghy.calibration.ScrewsTiltHolder
+import works.mees.dinghy.calibration.TiltHolder
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
@@ -42,6 +50,12 @@ import works.mees.dinghy.ui.macros.MacroExecutionPopup
 import works.mees.dinghy.ui.macros.MacroHolder
 import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.macros.SystemMacrosScreen
+import works.mees.dinghy.ui.calibration.BedMeshScreen
+import works.mees.dinghy.ui.calibration.CalibrationHubScreen
+import works.mees.dinghy.ui.calibration.ProbeCalibrateScreen
+import works.mees.dinghy.ui.calibration.ScrewsTiltScreen
+import works.mees.dinghy.ui.calibration.TiltScreen
+import works.mees.dinghy.ui.calibration.TiltVariant
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
@@ -106,6 +120,12 @@ fun AppShell(
     var macroShowSystem by remember { mutableStateOf(false) }
     var macroPopupFor by remember { mutableStateOf<MacroVm?>(null) }
 
+    // Calibration sub-navigation (a lean LOCAL back-stack WITHIN Dest.Calibration — NOT five new
+    // top-level Dests, mirroring how Dest.Macros hosts its Bookmarked-vs-System sub-screens). null =
+    // the hub; a non-null routine = that routine's page. The hub's onNavigate pushes; a BackHandler
+    // (and each page's green Back) pops back to the hub.
+    var calibrationRoutine by remember { mutableStateOf<CalibrationRoutine?>(null) }
+
     fun navigateTo(target: Dest) {
         if (target == dest) return
         if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
@@ -113,6 +133,10 @@ fun AppShell(
         if (target == Dest.Macros) {
             macroShowSystem = false
             macroPopupFor = null
+        }
+        // Entering the Calibration surface always starts on the hub (no routine selected).
+        if (target == Dest.Calibration) {
+            calibrationRoutine = null
         }
         dest = target
     }
@@ -140,6 +164,45 @@ fun AppShell(
         FileBrowserHolder(scope = scope, client = fileBrowser, printerState = printerStateFlow)
     }
     val printerState by printerStateFlow.collectAsStateWithLifecycle()
+
+    // ---- Calibration holders (09-07) ---------------------------------------------------------------
+    // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
+    // when the spine rebuilds (reconnect), mirroring the Phase-5 control holders above. The dispatcher
+    // Failure stream comes from the per-session dispatcher (`spine?.dispatcher?.events`) — null while
+    // idle so the holders simply carry no error until a live session attaches; re-captured when `store`
+    // swaps (a new session brings a new dispatcher). The two TiltHolders share ONE TiltScreen via an
+    // applied-selector lambda (D-02) and each fold ONLY their own routine's failures via its dispatchKey.
+    val calibrationHubHolder = remember(store) { CalibrationHubHolder(scope = scope, store = store) }
+    val calibEvents = spine?.dispatcher?.events
+    val screwsTiltHolder = remember(store) {
+        ScrewsTiltHolder(scope = scope, store = store, events = calibEvents)
+    }
+    val zTiltHolder = remember(store) {
+        TiltHolder(
+            scope = scope,
+            store = store,
+            applied = { it.zTiltApplied },
+            events = calibEvents,
+            dispatchKey = CommandRegistry.zTiltAdjust.dispatchKey(Unit),
+        )
+    }
+    val qglHolder = remember(store) {
+        TiltHolder(
+            scope = scope,
+            store = store,
+            applied = { it.qglApplied },
+            events = calibEvents,
+            dispatchKey = CommandRegistry.quadGantryLevel.dispatchKey(Unit),
+        )
+    }
+    val bedMeshHolder = remember(store) { BedMeshHolder(scope = scope, store = store, events = calibEvents) }
+    val probeCalibrateHolder = remember(store) {
+        ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
+    }
+    val zTiltVm by zTiltHolder.vm.collectAsStateWithLifecycle()
+    val qglVm by qglHolder.vm.collectAsStateWithLifecycle()
+    val bedMeshVm by bedMeshHolder.vm.collectAsStateWithLifecycle()
+    val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
 
     // ---- Console + Macro holders (08-07) -----------------------------------------------------------
     // Both are SESSION-owned: built off the same per-session store and re-keyed when the spine rebuilds
@@ -208,6 +271,12 @@ fun AppShell(
     BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor == null && macroShowSystem) {
         macroShowSystem = false
     }
+    // Calibration sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
+    // higher priority): an open routine page returns to the hub; from the hub, Back falls through to the
+    // generic back-stack pop (leaving the Calibration surface).
+    BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
+        calibrationRoutine = null
+    }
 
     BoxWithConstraints(
         modifier
@@ -219,7 +288,10 @@ fun AppShell(
             // a full-canvas vertical-drag detector fights the list scroll ("the stroke gets confusing").
             // Each of those screens keeps an explicit green Back in its gutter as the exit (D-05).
             .pointerInput(dest) {
-                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros)) {
+                // Calibration is suppressed too: BedMeshScreen's Load selector is a scrollable Field
+                // (the Files Views-in-Compose scroll lesson) — the hub + each page keeps an explicit
+                // green Back as the exit (D-05).
+                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration)) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
@@ -280,6 +352,57 @@ fun AppShell(
                 onBack = { goBack() },
                 backfillFailed = consoleBackfillFailed,
             )
+            Dest.Calibration -> {
+                // The calibration surface: the hub (a routine grid) OR the selected routine page. The
+                // hub's onNavigate pushes the LOCAL sub-dest; each page's green Back (and system Back)
+                // pops back to the hub by clearing [calibrationRoutine] — a lean local back-stack within
+                // Dest.Calibration (NOT five top-level Dests, mirroring Dest.Macros). The two tilt
+                // variants (Z-Tilt / QGL) share ONE TiltScreen via [TiltVariant] + a per-variant holder.
+                when (val routine = calibrationRoutine) {
+                    null -> CalibrationHubScreen(
+                        holder = calibrationHubHolder,
+                        onNavigate = { calibrationRoutine = it },
+                        onBack = { goBack() },
+                    )
+                    CalibrationRoutine.SCREWS_TILT -> ScrewsTiltScreen(
+                        container = container,
+                        holder = screwsTiltHolder,
+                        onBack = { calibrationRoutine = null },
+                    )
+                    CalibrationRoutine.Z_TILT -> TiltScreen(
+                        vm = zTiltVm,
+                        variant = TiltVariant.ZTilt,
+                        tokens = t,
+                        dispatcher = dispatcher,
+                        onRunDispatched = { zTiltHolder.markDispatched() },
+                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                        onBack = { calibrationRoutine = null },
+                    )
+                    CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
+                        vm = qglVm,
+                        variant = TiltVariant.Qgl,
+                        tokens = t,
+                        dispatcher = dispatcher,
+                        onRunDispatched = { qglHolder.markDispatched() },
+                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                        onBack = { calibrationRoutine = null },
+                    )
+                    CalibrationRoutine.BED_MESH -> BedMeshScreen(
+                        vm = bedMeshVm,
+                        tokens = t,
+                        dispatcher = dispatcher,
+                        onCycleScaleMode = { bedMeshHolder.cycleScaleMode() },
+                        onBack = { calibrationRoutine = null },
+                    )
+                    CalibrationRoutine.PROBE_CALIBRATE -> ProbeCalibrateScreen(
+                        vm = probeCalibrateVm,
+                        tokens = t,
+                        dispatcher = dispatcher,
+                        onStartDispatched = { },
+                        onBack = { calibrationRoutine = null },
+                    )
+                }
+            }
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },

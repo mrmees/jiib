@@ -108,7 +108,7 @@ private data class DrawerTileSpec(
 
 /**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
- * Files + Extrude + Macros + Console are LIVE; Devices remains greyed "coming soon"; Power is the red,
+ * Files + Extrude + Macros + Console + Calibration are LIVE; Devices remains greyed "coming soon"; Power is the red,
  * greyed, deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The
  * Extrude tile (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its
  * function.
@@ -123,6 +123,9 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // `terminal` is unused elsewhere in DRAWER_TILES (icon-no-repeat law, RESEARCH Open-Q1) and distinct
     // from the Console screen's own gutter glyphs (thermostat/videocam/chat_bubble/arrow_back).
     DrawerTileSpec(label = "Console", symbol = "terminal", dest = Dest.Console),
+    // `tune` is the single Calibration tile (D-14) — unique among DRAWER_TILES glyphs (icon-no-repeat
+    // law). It opens the Calibration hub, which sub-routes to all five routine pages (09-07).
+    DrawerTileSpec(label = "Calibration", symbol = "tune", dest = Dest.Calibration),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),

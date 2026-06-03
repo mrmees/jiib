@@ -53,6 +53,26 @@ class KlippyReadyResyncTest {
     private fun count(frames: List<String>, method: String): Int =
         methodsOf(frames).count { it == method }
 
+    /**
+     * The `params.objects` keys of the LAST `objects.subscribe` frame in [frames] (or empty if none).
+     * This is the ACTUAL registered subscription set — what the live server will push diffs for — so
+     * asserting on it (not merely the call count) proves the calibration result objects are genuinely
+     * re-subscribed post-SAVE_CONFIG (and would catch DeriveCapabilities/V1_SUBSCRIBE_CORE silently
+     * dropping them).
+     */
+    private fun lastSubscribeObjectKeys(frames: List<String>): Set<String> =
+        frames.lastOrNull { raw ->
+            runCatching {
+                MoonrakerJson.parseToJsonElement(raw).jsonObject["method"]?.jsonPrimitive?.content ==
+                    JsonRpcMethods.OBJECTS_SUBSCRIBE
+            }.getOrDefault(false)
+        }?.let { raw ->
+            runCatching {
+                MoonrakerJson.parseToJsonElement(raw).jsonObject["params"]
+                    ?.jsonObject?.get("objects")?.jsonObject?.keys?.toSet()
+            }.getOrNull()
+        }.orEmpty()
+
     @Test
     fun klippyReadyOnLiveSocket_reRunsFullHandshake_resubscribeAndOneShotReads() =
         runTest(UnconfinedTestDispatcher()) {
@@ -127,6 +147,67 @@ class KlippyReadyResyncTest {
                 "the re-handshake must refresh the stale min_extrude_temp from the reloaded config (G3)",
                 220.0f,
                 store.minExtrudeTemp.value,
+            )
+
+            run.cancelAndJoin()
+        }
+
+    /**
+     * 09-07 (D-12 / T-09-07-01): after a SAVE_CONFIG-induced FIRMWARE_RESTART (notify_klippy_ready on
+     * the still-open socket), the re-issued `objects.subscribe` frame must CONTAIN the calibration result
+     * objects — proving they are actually re-subscribed/re-populated post-SAVE_CONFIG without a
+     * force-stop, not merely that runHandshake fired. A call-count assertion alone would stay green even
+     * if `DeriveCapabilities`/`V1_SUBSCRIBE_CORE` silently dropped the calibration objects, leaving the
+     * bed-mesh / z-tilt result panels stale after a Save; asserting the PAYLOAD is the real regression
+     * guard (the mock-vs-reality backstop). The printer here reports `bed_mesh` + `z_tilt` in
+     * `objects.list`, so `deriveSubscribeSet` (intersect-with-detected, A3) must include both.
+     */
+    @Test
+    fun klippyReadyAfterSaveConfig_reSubscribesCalibrationObjects() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(scope = backgroundScope, sampleMillis = 250L)
+            val rpc = JsonRpcClient(defaultTimeoutMs = 5_000L)
+            val harness = SessionTestHarness()
+            // A printer that DEFINES the calibration objects (a bed-leveling-capable machine). The
+            // subset is intersect-with-detected, so these must be present in objects.list to ever be
+            // subscribed — that is exactly the path SAVE_CONFIG must re-run.
+            harness.objectsListJson = """
+                {"jsonrpc":"2.0","result":{"objects":[
+                  "webhooks","configfile","mcu","gcode_move","toolhead","extruder","heater_bed",
+                  "print_stats","virtual_sdcard","display_status","pause_resume",
+                  "bed_mesh","z_tilt","screws_tilt_adjust","manual_probe","probe"
+                ]},"id":1455}
+            """.trimIndent()
+            val session = MoonrakerSession(store, rpc, harness.socketEvents())
+
+            val run = launch { session.run() }
+            session.connectionState.first { it is ConnectionState.Connected }
+
+            val fake = harness.current.get()!!
+            // The INITIAL handshake already subscribed the calibration objects (intersect-with-detected).
+            val subscribeBefore = count(fake.sentFrames.toList(), JsonRpcMethods.OBJECTS_SUBSCRIBE)
+            assertTrue(
+                "the initial subscribe must include the detected calibration objects (A3 intersect)",
+                lastSubscribeObjectKeys(fake.sentFrames.toList()).containsAll(setOf("bed_mesh", "z_tilt")),
+            )
+
+            // Inject the post-SAVE_CONFIG notify_klippy_ready the live server sends after the restart.
+            fake.inject("""{"jsonrpc":"2.0","method":"notify_klippy_ready"}""")
+            advanceUntilIdle()
+
+            val after = fake.sentFrames.toList()
+            // The re-handshake re-issued objects.subscribe …
+            assertTrue(
+                "SAVE_CONFIG restart must re-issue objects.subscribe (G2 re-handshake)",
+                count(after, JsonRpcMethods.OBJECTS_SUBSCRIBE) > subscribeBefore,
+            )
+            // … AND the RE-ISSUED subscription set still carries the calibration result objects, so the
+            // bed-mesh/z-tilt panels re-populate after the restart instead of going stale (T-09-07-01).
+            val reSubscribed = lastSubscribeObjectKeys(after)
+            assertTrue(
+                "the post-SAVE_CONFIG re-subscribe frame must CONTAIN the calibration objects " +
+                    "(bed_mesh/z_tilt) — not merely fire; actual keys = $reSubscribed",
+                reSubscribed.containsAll(setOf("bed_mesh", "z_tilt")),
             )
 
             run.cancelAndJoin()
