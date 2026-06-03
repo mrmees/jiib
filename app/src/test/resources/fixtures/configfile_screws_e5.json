@@ -1,0 +1,27 @@
+{
+  "screws_tilt_adjust": {
+    "screw1": [
+      38.0,
+      81.23
+    ],
+    "screw1_name": "front left screw",
+    "screw2": [
+      338.0,
+      81.23
+    ],
+    "screw2_name": "front right screw",
+    "screw3": [
+      338.0,
+      341.23
+    ],
+    "screw3_name": "rear right screw",
+    "screw4": [
+      38.0,
+      341.23
+    ],
+    "screw4_name": "rear left screw",
+    "screw_thread": "CCW-M4",
+    "horizontal_move_z": 10.0,
+    "speed": 100.0
+  }
+}

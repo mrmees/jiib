@@ -1,0 +1,32 @@
+{
+  "screws_tilt_adjust": {
+    "error": false,
+    "max_deviation": null,
+    "results": {
+      "screw1": {
+        "z": 0.12874999999547176,
+        "sign": "CCW",
+        "adjust": "00:00",
+        "is_base": true
+      },
+      "screw2": {
+        "z": 0.04687499999115419,
+        "sign": "CCW",
+        "adjust": "00:07",
+        "is_base": false
+      },
+      "screw3": {
+        "z": 0.19531249998682876,
+        "sign": "CW",
+        "adjust": "00:06",
+        "is_base": false
+      },
+      "screw4": {
+        "z": 0.15562499998235158,
+        "sign": "CW",
+        "adjust": "00:02",
+        "is_base": false
+      }
+    }
+  }
+}
