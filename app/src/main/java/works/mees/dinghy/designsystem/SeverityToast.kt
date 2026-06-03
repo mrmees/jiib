@@ -86,6 +86,10 @@ fun SeverityToast(
     Row(
         modifier = modifier
             .clip(shape)
+            // Opaque base UNDER the alpha-bearing soft tint (the G-4 lesson, same as ConfirmGuard): the
+            // …Soft tints carry alpha, so a floating toast over content/gutter bled through. The surface
+            // base makes the alert read as a solid pill; the tint still carries the severity color.
+            .background(t.surface)
             .background(severity.softTint(t))
             .border(BorderStroke(2.dp, accent), shape)
             .padding(horizontal = 16.dp, vertical = 12.dp),
