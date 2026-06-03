@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-06-02T23:56:08.839Z"
-last_activity: 2026-06-02
+status: executing
+last_updated: "2026-06-03T02:03:23.037Z"
+last_activity: 2026-06-03 -- Phase 09 planning complete
 progress:
   total_phases: 15
   completed_phases: 7
-  total_plans: 53
+  total_plans: 60
   completed_plans: 52
   percent: 47
 ---
@@ -26,14 +26,14 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 Phase: 9
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
   → Wave 0-1 landed: real probed fixtures + RED scaffolds (08-01); console pure layer (08-02); pure macro layer + V5 gcode-injection gate (08-03).
   → Plan 08-04 (Wave 2) COMPLETE: the two backend one-shot reads (consoleBackfill + macroBodies store seams ride runHandshake step 7).
   → Plan 08-05 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits cf6b210 + f66073c + ec8b9b6): the read-only Console screen (CONS-02 / D-01..D-05). ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04) — turns ConsoleHolderTest GREEN (4/4). ConsoleListView/ConsoleRowsAdapter = 3rd Views-in-Compose scroll surface, copied FileListView verbatim (clipToBounds + MATCH_PARENT + itemAnimator=null), split update strategy: incremental notifyItemInserted live-append hot path (S2) vs submitRows replace; wasAtBottom from OLD count BEFORE update (S3); severity palette stop/heat/text/go/text3 in Geist Mono. ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF, D-03) + green Back; ConsoleFilters at render only (D-04); no keyboard (D-01); empty/backfill-failed copy verbatim. One deviation (Rule 1): ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes cleanly + closes the replay=0 subscribe race. :app:assembleRelease SUCCESSFUL; MacroHolderTest set aside for the test run then restored clean.
   → Plan 08-06 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits 50e04d1 + 7487fef + 255e7e9): the three Macro screens (MACRO-01/02/03 / D-06..D-10). MacroHolder combines Capabilities.macros + bookmarks + revealHidden + parsed bodies into MacroScreensState (visibleMacros underscore-default-hide, bookmarkedMacros case-insensitive, unavailable capability gate) — turns MacroHolderTest GREEN (5/5). MacroExecutionPopup IS the action gate (no ConfirmGuard, D-08): numeric->NumpadPage (sole clamp owner S4), string->TokenTextField (the ONE alpha-keyboard site D-10), Execute->MacroInvocation.buildTyped (V5 sanitizer, T-08-06-T1)->scriptParams->dispatch(macro_<name>, PRIM-05 busy key); !! rejection->SeverityToast (redacted). Bookmarked launcher + System manager take reveal/bookmark MUTATION + nav as CALLBACKS (08-07 wires to MacroPrefs + store.macroBodies). Rule-1 fix: combine collector in detached SupervisorJob+UNDISPATCHED scope (08-05 pattern). LAST RED scaffold closed — full :app:testReleaseUnitTest GREEN (615 tests / 0 failures); :app:assembleRelease SUCCESSFUL.
   → Plan 08-07 (Wave 4) EXECUTED + COMPLETE 2026-06-02 (2 auto tasks + on-device UAT checkpoint; commits 8cd685b + c6b14c3 + 376b8ad docs): nav wiring + the functional-core gate. B1 CLOSED — macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle; bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder + wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven on-device), injection-reject (newline/;/M112 rejected, NO estop, B2). Console-scroll gfxinfo (system-of-record API 30): p95 9ms / 0 frozen frames / 991 frames — beats Files 07-06 (~15ms). Numbers in docs/moonraker-capabilities.md.
   → Next action: ORCHESTRATOR owns phase-level verification + the phase-complete mark. All 7 plans executed; functional core proven on real hardware.
-Last activity: 2026-06-02
+Last activity: 2026-06-03 -- Phase 09 planning complete
 
 Progress (Phase 8): [██████████] 100% — 7/7 plans complete (08-01..08-07); functional core proven on-device (flox + live Ender 5)
 
@@ -219,6 +219,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-02T23:56:08.787Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-calibration-maintenance/09-CONTEXT.md
+Last session: 2026-06-03T01:33:05.805Z
+Stopped at: Phase 09 UI-SPEC approved (owner-revised)
+Resume file: .planning/phases/09-calibration-maintenance/09-UI-SPEC.md
