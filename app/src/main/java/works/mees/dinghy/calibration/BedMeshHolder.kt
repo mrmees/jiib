@@ -102,10 +102,15 @@ class BedMeshHolder(
             latestError = null
         }
 
+        // Homed gate (D-13) — homed_axes is lowercase (RESEARCH §3); all three present = ready to probe.
+        // BED_MESH_CALIBRATE probes the bed, so its action is gated on homed exactly like screws-tilt/Z-tilt.
+        val homed = 'x' in state.homedAxes && 'y' in state.homedAxes && 'z' in state.homedAxes
+
         return BedMeshVm(
             model = model,
             scaleMode = scaleMode,
             errorText = latestError,
+            homed = homed,
         )
     }
 
@@ -148,11 +153,14 @@ class BedMeshHolder(
  *  - [model] the pure [BedMeshModel] the heatmap renders (interpolated grid + probe dots + extents).
  *  - [scaleMode] the active color-scale mode (D-09 — cycled by the screen's overlay toggle).
  *  - [errorText] the latest dispatcher Failure (the printer's redacted RpcError text), or null.
+ *  - [homed] true when all of X/Y/Z are homed — the primary action runs BED_MESH_CALIBRATE (a bed
+ *    probe) only when homed; otherwise the screen swaps in a Home-All action (D-13).
  */
 data class BedMeshVm(
     val model: BedMeshModel = BedMeshModel(),
     val scaleMode: ScaleMode = ScaleMode.RELATIVE,
     val errorText: String? = null,
+    val homed: Boolean = false,
 ) {
     /** Convenience: the saved-profile names (the Load selector list). */
     val profileNames: List<String> get() = model.profileNames

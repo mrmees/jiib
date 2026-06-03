@@ -131,4 +131,25 @@ class BedMeshHolderTest {
         runCurrent()
         assertEquals("bed level exceeds configured limits (0.42mm)!", holder.vm.value.errorText)
     }
+
+    @Test
+    fun homedGateRequiresAllThreeAxes() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = BedMeshHolder(backgroundScope, store)
+
+        // Unhomed → the screen shows Home-All instead of Activate (BED_MESH_CALIBRATE probes the bed).
+        store.seed(PrinterState(bedMesh = activeMesh(), homedAxes = ""))
+        runCurrent()
+        assertFalse("no axes homed → not gated", holder.vm.value.homed)
+
+        // Partial homing (X/Y only, no Z) is still NOT enough to probe.
+        store.seed(PrinterState(bedMesh = activeMesh(), homedAxes = "xy"))
+        runCurrent()
+        assertFalse("X/Y but no Z → still not homed", holder.vm.value.homed)
+
+        // All three homed → Activate is allowed.
+        store.seed(PrinterState(bedMesh = activeMesh(), homedAxes = "xyz"))
+        runCurrent()
+        assertTrue("x+y+z homed → gate open", holder.vm.value.homed)
+    }
 }

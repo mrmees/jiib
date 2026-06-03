@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,9 +32,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.calibration.BedMeshVm
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
@@ -61,11 +65,13 @@ import works.mees.dinghy.theme.fsSp
  *    `aspectRatio(1f)` centered, with the scale-mode toggle overlaid top-left (white/setting intent,
  *    taps [onCycleScaleMode] — pure color re-map, no re-probe, D-09). Empty-state (Pitfall 4) shows
  *    "No active mesh" copy with Activate/Load still present.
- *  - Field = three ratio-split buttons 50/25/25: **Activate** (blue, dispatches
- *    [CommandRegistry.bedMeshCalibrate] — bare, KAMP defaults), **Save** (blue → full-screen Save dialog
- *    → [CommandRegistry.bedMeshProfileSave] → amber [ConfirmGuard] SAVE_CONFIG restart gate →
- *    [CommandRegistry.saveConfig]), **Load** (full-screen scrollable selector → per-row red Remove +
- *    Apply → [CommandRegistry.bedMeshProfileLoad] / [CommandRegistry.bedMeshProfileRemove]).
+ *  - Field = two rows. Row 1 is the full-width primary action: **Activate** (blue, dispatches
+ *    [CommandRegistry.bedMeshCalibrate] — bare, KAMP defaults) when homed, else **Home All** (blue,
+ *    [CommandRegistry.homeAll]) — BED_MESH_CALIBRATE probes the bed, so it is homed-gated (D-13). Row 2 is
+ *    two equal columns: **Save** (blue → full-screen Save dialog → [CommandRegistry.bedMeshProfileSave] →
+ *    amber [ConfirmGuard] SAVE_CONFIG restart gate → [CommandRegistry.saveConfig]) and **Load** (full-screen
+ *    scrollable selector → per-row red Remove + Apply → [CommandRegistry.bedMeshProfileLoad] /
+ *    [CommandRegistry.bedMeshProfileRemove]).
  *  - Gutter = single green **Back**.
  *
  * The Save-name field is keyboard-editable (the owner carve-out) — it is validated with
@@ -91,8 +97,22 @@ fun BedMeshScreen(
     var dialog by remember { mutableStateOf<MeshDialog?>(null) }
     var saveName by remember { mutableStateOf("") }
     var removeTarget by remember { mutableStateOf<String?>(null) }
-    var savePendingName by remember { mutableStateOf<String?>(null) } // set after SAVE dispatch → amber gate
     var successText by remember { mutableStateOf<String?>(null) }
+
+    // In-flight guard (the sibling ScrewsTilt pattern): while BED_MESH_CALIBRATE is running the Activate
+    // button shows a wait glyph and is disabled, so it can't be fired twice before the mesh comes back.
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val calibrating = CommandRegistry.bedMeshCalibrate.dispatchKey(Unit) in inFlight
+
+    // Auto-dismiss the success toast (Save confirmation) so it doesn't linger on the page.
+    LaunchedEffect(successText) {
+        if (successText != null) {
+            delay(3_500)
+            successText = null
+        }
+    }
 
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
@@ -105,37 +125,76 @@ fun BedMeshScreen(
                 )
             },
             field = {
-                Row(
+                val t = LocalTokens.current
+                Column(
                     Modifier.fillMaxSize().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    MeshFieldButton(
-                        label = "Activate",
-                        symbol = "blur_on",
-                        onClick = { dispatcher?.dispatch(CommandRegistry.bedMeshCalibrate, Unit) },
-                        modifier = Modifier.weight(0.5f).fillMaxSize(),
-                        intent = Intent.Accent,
-                        enabled = dispatcher != null,
+                    // Current mesh name (D-07) — a small line above the primary action.
+                    Text(
+                        text = if (vm.isEmpty) "No active mesh" else "Mesh: ${vm.model.profileName}",
+                        color = t.text2,
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = fsSp(14f, t.fs).sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     )
-                    MeshFieldButton(
-                        label = "Save",
-                        symbol = "save",
-                        onClick = {
-                            saveName = defaultProfileName()
-                            dialog = MeshDialog.Save
-                        },
-                        modifier = Modifier.weight(0.25f).fillMaxSize(),
-                        intent = Intent.Accent,
-                        enabled = dispatcher != null,
-                    )
-                    MeshFieldButton(
-                        label = "Load",
-                        symbol = "folder_open",
-                        onClick = { dialog = MeshDialog.Load },
-                        modifier = Modifier.weight(0.25f).fillMaxSize(),
-                        intent = Intent.Neutral,
-                        enabled = dispatcher != null && vm.profileNames.isNotEmpty(),
-                    )
+                    // Row 1 — primary action, full width. BED_MESH_CALIBRATE probes the bed, so it is
+                    // homed-gated (D-13): unhomed → Home-All (G28); while calibrating → a DISABLED wait
+                    // glyph so it can't be fired twice before the mesh returns; otherwise Activate.
+                    when {
+                        !vm.homed -> MeshFieldButton(
+                            label = "Home All",
+                            symbol = "home",
+                            onClick = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            intent = Intent.Accent,
+                            enabled = dispatcher != null,
+                        )
+                        calibrating -> MeshFieldButton(
+                            label = "Calibrating…",
+                            symbol = "hourglass_top",
+                            onClick = {},
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            intent = Intent.Accent,
+                            enabled = false,
+                        )
+                        else -> MeshFieldButton(
+                            label = "Activate",
+                            symbol = "blur_on",
+                            onClick = { dispatcher?.dispatch(CommandRegistry.bedMeshCalibrate, Unit) },
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            intent = Intent.Accent,
+                            enabled = dispatcher != null,
+                        )
+                    }
+                    // Row 2 — Save | Load (two equal columns, both blue/accent).
+                    Row(
+                        Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        MeshFieldButton(
+                            label = "Save",
+                            symbol = "save",
+                            onClick = {
+                                saveName = defaultProfileName()
+                                dialog = MeshDialog.Save
+                            },
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            intent = Intent.Accent,
+                            enabled = dispatcher != null,
+                        )
+                        MeshFieldButton(
+                            label = "Load",
+                            symbol = "folder_open",
+                            onClick = { dialog = MeshDialog.Load },
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            intent = Intent.Accent,
+                            enabled = dispatcher != null && vm.profileNames.isNotEmpty(),
+                        )
+                    }
                 }
             },
             gutter = {
@@ -153,7 +212,7 @@ fun BedMeshScreen(
         // --- Error / success toasts (bottom overlay) ---
         val toast = successText?.let { Severity.Success to it } ?: vm.errorText?.let { Severity.Error to it }
         if (toast != null) {
-            Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.BottomCenter) {
+            Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                 SeverityToast(toast.first, toast.second, Modifier.fillMaxWidth())
             }
         }
@@ -167,30 +226,14 @@ fun BedMeshScreen(
                 onNameChange = { saveName = it },
                 onSave = {
                     if (valid) {
-                        // SAVE the profile, THEN route through the amber restart gate → SAVE_CONFIG.
+                        // BED_MESH_PROFILE SAVE persists the named profile and it is usable immediately —
+                        // meshes load dynamically, so NO SAVE_CONFIG / firmware restart (owner decision).
                         dispatcher?.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(saveName))
-                        savePendingName = saveName
+                        successText = "Profile $saveName saved"
                         dialog = null
                     }
                 },
                 onCancel = { dialog = null },
-            )
-        }
-
-        // --- Amber SAVE_CONFIG restart gate (D-12) — after BED_MESH_PROFILE SAVE ---
-        savePendingName?.let { pending ->
-            ConfirmGuard(
-                title = "Save & restart?",
-                message = "This saves the configuration and restarts the printer — the expected result of " +
-                    "calibration. The connection will briefly drop and reconnect.",
-                confirmLabel = "Save & restart",
-                warn = true,
-                onConfirm = {
-                    dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
-                    successText = "Profile $pending saved"
-                    savePendingName = null
-                },
-                onCancel = { savePendingName = null },
             )
         }
 
@@ -501,7 +544,7 @@ private fun MeshFieldButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        MaterialSymbol(symbol, tint = if (enabled) outline else t.text3, sizeSp = fsSp(28f, t.fs))
+        MaterialSymbol(symbol, tint = if (enabled) outline else t.text3, sizeSp = fsSp(44f, t.fs))
         Text(
             text = label,
             color = if (enabled) t.text else t.text3,

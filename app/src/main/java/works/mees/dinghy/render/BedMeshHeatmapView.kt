@@ -128,13 +128,16 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
         val (loZ, hiZ) = endpoints(grid, scaleMode)
         val span = (hiZ - loZ)
 
-        // Heatmap fill: one reused RectF + one reused Paint, color re-set per cell. Row 0 is the FAR
-        // bed edge (max Y) so it draws at the TOP — overhead orientation. No allocation in the loop.
+        // Heatmap fill: one reused RectF + one reused Paint, color re-set per cell. Klipper orders the
+        // matrix Y-ASCENDING — row 0 is mesh_min Y (the FRONT/near bed edge). For an overhead view as
+        // you face the printer (front at the BOTTOM, rear at the TOP — the Mainsail/Fluidd convention),
+        // row 0 must draw at the BOTTOM, so the row index is flipped vertically. Columns map left→right
+        // unchanged (col 0 = min X = left). No allocation in the loop.
         val cellW = w / cols
         val cellH = h / rows
         for (r in 0 until rows) {
             val rowVals = grid[r]
-            val top = r * cellH
+            val top = (rows - 1 - r) * cellH
             for (c in 0 until cols) {
                 val z = rowVals.getOrElse(c) { loZ }
                 val frac = if (span <= 0.0) 0.5 else ((z - loZ) / span).coerceIn(0.0, 1.0)
@@ -155,7 +158,8 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
             val baseR = max(cellW, cellH)
             val radius = (baseR * DOT_RADIUS_FRAC / max(pRows, pCols)).coerceAtLeast(MIN_DOT_PX)
             for (r in 0 until pRows) {
-                val cy = (r + 0.5f) * (h / pRows)
+                // Same vertical flip as the fill: probe row 0 = front → bottom of the overhead view.
+                val cy = (pRows - 1 - r + 0.5f) * (h / pRows)
                 for (c in 0 until pCols) {
                     val cx = (c + 0.5f) * (w / pCols)
                     canvas.drawCircle(cx, cy, radius, dotPaint)
