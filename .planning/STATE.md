@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-03T02:03:23.037Z"
-last_activity: 2026-06-03 -- Phase 09 planning complete
+last_updated: "2026-06-03T02:42:49.465Z"
+last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 60
-  completed_plans: 52
+  completed_plans: 53
   percent: 47
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 9 — calibration & maintenance
+**Current focus:** Phase 09 — calibration-maintenance
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
+Phase: 09 (calibration-maintenance) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
   → Wave 0-1 landed: real probed fixtures + RED scaffolds (08-01); console pure layer (08-02); pure macro layer + V5 gcode-injection gate (08-03).
   → Plan 08-04 (Wave 2) COMPLETE: the two backend one-shot reads (consoleBackfill + macroBodies store seams ride runHandshake step 7).
@@ -33,7 +33,7 @@ Status: Ready to execute
   → Plan 08-06 (Wave 3) EXECUTED + COMPLETE 2026-06-02 (3 tasks, commits 50e04d1 + 7487fef + 255e7e9): the three Macro screens (MACRO-01/02/03 / D-06..D-10). MacroHolder combines Capabilities.macros + bookmarks + revealHidden + parsed bodies into MacroScreensState (visibleMacros underscore-default-hide, bookmarkedMacros case-insensitive, unavailable capability gate) — turns MacroHolderTest GREEN (5/5). MacroExecutionPopup IS the action gate (no ConfirmGuard, D-08): numeric->NumpadPage (sole clamp owner S4), string->TokenTextField (the ONE alpha-keyboard site D-10), Execute->MacroInvocation.buildTyped (V5 sanitizer, T-08-06-T1)->scriptParams->dispatch(macro_<name>, PRIM-05 busy key); !! rejection->SeverityToast (redacted). Bookmarked launcher + System manager take reveal/bookmark MUTATION + nav as CALLBACKS (08-07 wires to MacroPrefs + store.macroBodies). Rule-1 fix: combine collector in detached SupervisorJob+UNDISPATCHED scope (08-05 pattern). LAST RED scaffold closed — full :app:testReleaseUnitTest GREEN (615 tests / 0 failures); :app:assembleRelease SUCCESSFUL.
   → Plan 08-07 (Wave 4) EXECUTED + COMPLETE 2026-06-02 (2 auto tasks + on-device UAT checkpoint; commits 8cd685b + c6b14c3 + 376b8ad docs): nav wiring + the functional-core gate. B1 CLOSED — macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle; bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder + wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven on-device), injection-reject (newline/;/M112 rejected, NO estop, B2). Console-scroll gfxinfo (system-of-record API 30): p95 9ms / 0 frozen frames / 991 frames — beats Files 07-06 (~15ms). Numbers in docs/moonraker-capabilities.md.
   → Next action: ORCHESTRATOR owns phase-level verification + the phase-complete mark. All 7 plans executed; functional core proven on real hardware.
-Last activity: 2026-06-03 -- Phase 09 planning complete
+Last activity: 2026-06-03
 
 Progress (Phase 8): [██████████] 100% — 7/7 plans complete (08-01..08-07); functional core proven on-device (flox + live Ender 5)
 
@@ -109,6 +109,7 @@ Progress (Phase 8): [██████████] 100% — 7/7 plans complete
 | Phase 08 P04 | 16min | 2 tasks tasks | 9 files files |
 | Phase 08 P06 | 25min | 3 tasks tasks | 5 files files |
 | Phase 08 P08-07 | 40min | 3 tasks | 8 files |
+| Phase 09 P01 | 14 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -189,6 +190,7 @@ Recent decisions affecting current work:
 - [Phase 08]: [Phase 08/08-06]: Three macro screens complete (MACRO-01/02/03) — MacroHolder combines Capabilities.macros + bookmarks + revealHidden + parsed bodies into visibleMacros/bookmarkedMacros/unavailable (underscore-default-hide MACRO-03, case-insensitive bookmark match); MacroExecutionPopup IS the action gate (no ConfirmGuard, D-08) routing numeric->NumpadPage (sole clamp owner S4) and string->TokenTextField (the ONE alpha-keyboard site D-10) through MacroInvocation.buildTyped (V5 sanitizer, T-08-06-T1) before scriptParams/dispatch; Bookmarked launcher + System manager screens take reveal/bookmark MUTATION + nav as CALLBACKS (08-07 wires to MacroPrefs + store.macroBodies). Holder kept the 4-arg test contract (StateFlow caps/bookmarks/revealHidden + setMacroBody/setMacroBodies seam), NOT a MacroPrefs object. Rule-1 fix: combine collector in a detached SupervisorJob+UNDISPATCHED scope (08-05 ConsoleHolder pattern) so the TestScope-rooted MacroHolderTest finishes clean. LAST RED scaffold closed: full :app:testReleaseUnitTest GREEN (615 tests / 0 failures). Next: 08-07 nav wiring.
 - [Phase 08/08-05]: Read-only Console screen complete (CONS-02 / D-01..D-05) — ConsoleHolder folds live gcodeResponses + REPLACE consoleBackfill into a RAW bounded StateFlow<List<ConsoleLine>> (D-02/D-04); ConsoleListView/ConsoleRowsAdapter is the 3rd Views-in-Compose scroll surface (copied FileListView verbatim: clipToBounds + MATCH_PARENT + itemAnimator=null, incremental notifyItemInserted hot path S2 vs submitRows replace, wasAtBottom from OLD count S3); ConsoleScreen = Field-only ScreenScaffold + 3 render-only filter toggles (default OFF D-03) + green Back, no keyboard (D-01); ConsoleFilters at render only so raw survives (D-04). Rule-1 fix: ConsoleHolder collectors run UNDISPATCHED in a detached SupervisorJob child scope so the TestScope-rooted holder finishes clean + closes the replay=0 subscribe race. ConsoleHolderTest GREEN (4/4); :app:assembleRelease SUCCESSFUL.
 - [Phase 08/08-07]: Nav wiring + functional-core on-device gate complete (MACRO-01/02/03, CONS-02). B1 CLOSED: macros.preferences_pb process-scoped DataStore created in DinghyApp -> AppContainer.macroPrefs (own file, app-scoped, NOT SpineHandle — bookmarks survive reconnects per MACRO-03). Dest.Macros/Dest.Console added; greyed Macros drawer tile flipped live + new Console tile (terminal glyph, icon-no-repeat); AppShell when(dest) builds session-owned ConsoleHolder/MacroHolder, wires bookmark/reveal callbacks to MacroPrefs + setMacroBodies(store.macroBodies); drawer-swipe suppressed on {Files,Console,Macros} (D-05). ON-DEVICE UAT 7/7 PASS on flox (Adreno-320 FLOOR) + live Ender 5: console backfill+live, severity color, filter ON->OFF re-reveal, reconnect backfill (SC#3), param macro executes + bookmarks persist across restart (B1 proven), injection-reject (newline/;/M112 rejected, NO estop, B2/T-08-07-T). Console-scroll gfxinfo (system-of-record API 30): p95 9ms, 0 frozen frames, 991 frames — beats Files 07-06 (~15ms). Third mock-vs-reality backstop held clean.
+- [Phase 09/09-01]: Wave-0 fixture-capture-first — five REAL E5 calibration fixtures captured live (192.168.1.120:7125, attended) BEFORE any parser; seven RED scaffolds bind each parser-to-be to its fixture (compile-fail RED = baseline). Surprises recorded: screws adjust is a CLOCK STRING 'MM:SS' not a float; bed_mesh mesh_min/max are [x,y] ARRAYS not objects; manual_probe console z-bounds can be literal '??????' (parseZPosition must treat as null); max_deviation null + screws_tilt_adjust.results PERSIST post-run (RESEARCH Open-Q1 resolved — 09-03 can read post-hoc); profiles is a dict keyed by saved-profile name (pre/post/default). Third mock-vs-reality backstop now load-bearing.
 
 ### Pending Todos
 
@@ -219,6 +221,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-03T01:33:05.805Z
+Last session: 2026-06-03T02:42:32.587Z
 Stopped at: Phase 09 UI-SPEC approved (owner-revised)
-Resume file: .planning/phases/09-calibration-maintenance/09-UI-SPEC.md
+Resume file: None

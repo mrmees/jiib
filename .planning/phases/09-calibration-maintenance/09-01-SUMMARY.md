@@ -135,6 +135,10 @@ None — no external service configuration required.
 - The four recorded surprises (clock-string adjust, `[x,y]` min/max, `??????` bounds, results-persist-post-run) are now load-bearing assertions, not assumptions — the third mock-vs-reality backstop is in place.
 - The bed-mesh heatmap fill-rate gate (CALIB-04, on-device gfxinfo on flox) remains a downstream device checkpoint, unchanged by this Wave-0 plan.
 
+## Self-Check: PASSED
+
+All 12 created files exist on disk; all 3 task/doc commits (b45c4ad, 69f36cf, 7b764fd) present in git history.
+
 ---
 *Phase: 09-calibration-maintenance*
 *Completed: 2026-06-03*

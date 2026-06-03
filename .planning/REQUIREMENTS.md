@@ -210,9 +210,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MACRO-03 | Phase 8 | Complete |
 | CONS-01 | Deferred | Pulled from Phase 8 (2026-06-02) — console read-only, text-send unscheduled |
 | CONS-02 | Phase 8 | Complete |
-| BEDM-01 | Phase 9 | Pending |
-| BEDL-01 | Phase 9 | Pending |
-| ZCAL-01 | Phase 9 | Pending |
+| BEDM-01 | Phase 9 | In Progress (Wave 0: fixtures + RED scaffolds landed 09-01; stays Pending until Phase-9 on-device UAT closes) |
+| BEDL-01 | Phase 9 | In Progress (Wave 0: fixtures + RED scaffolds landed 09-01; stays Pending until Phase-9 on-device UAT closes) |
+| ZCAL-01 | Phase 9 | In Progress (Wave 0: fixtures + RED scaffolds landed 09-01; stays Pending until Phase-9 on-device UAT closes) |
 | CALIB-01 (hub/gating; ⊂ BEDL-01/BEDM-01/ZCAL-01) | Phase 9 | Planned |
 | CALIB-02 (screws-tilt; ⊂ BEDL-01) | Phase 9 | Planned |
 | CALIB-03 (Z-tilt/QGL; ⊂ BEDL-01) | Phase 9 | Planned |
