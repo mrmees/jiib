@@ -2,45 +2,50 @@
 id: save-config-rehandshake-not-refreshing-config
 created: 2026-06-03
 source: Phase 9 Probe-Calibrate on-device UAT (Ender 3 klicky)
-priority: medium
-resolves_phase: 13
+priority: high
+resolves_phase: optimization-reliability
 ---
 
-# SAVE_CONFIG re-handshake does not refresh config-derived one-shot reads
+# SAVE_CONFIG re-handshake does NOT restore the live subscription (full feed freeze)
 
-## Symptom (observed live, Ender 3)
+## Severity: HIGH — core-loop reliability
 
-After a Probe-Calibrate **Save** (`SAVE_CONFIG` → Klipper FIRMWARE_RESTART → reconnect), the
-displayed saved `probe.z_offset` kept showing the **old** value. Only a full **app restart** picked
-up the just-applied offset — re-opening the page (pre-fix) did not.
+After a `SAVE_CONFIG` (or any Klipper FIRMWARE_RESTART / `printer.cfg` reload), the in-session
+recovery is broken: **the entire live subscription stops updating** until the app is force-restarted.
+This is the exact G2 freeze the `05-10` notify_klippy_ready re-handshake was supposed to prevent — and
+it is **NOT holding on the Ender 3**. `SAVE_CONFIG` is a routine action (every Z-calibrate save, PID
+tune, screws-tilt, bed-mesh save), so this silently breaks "monitor/drive a print" after common use.
 
-## Expected
+## Repro (live, Ender 3 192.168.1.121, 2026-06-03)
 
-The G2/G3 re-handshake (`05-10`) is supposed to re-run the FULL `runHandshake()` on
-`notify_klippy_ready`, which includes the one-shot configfile read block in
-`MoonrakerSession.runHandshake()` (`min_extrude_temp`, `max_extrude_only_distance`, screws-tilt
-config, macro bodies, and now `probe.z_offset`). So after a SAVE_CONFIG restart the re-read should
-republish the new values on the store. It apparently did not.
+1. Probe-Calibrate → Accept → Save → `SAVE_CONFIG` → Klipper restarts; app appears to reconnect.
+2. Start a print. The printer prints (confirmed via Moonraker: `print_stats.state=printing`,
+   `virtual_sdcard.is_active=true`), but:
+   - Home/Status stays **stuck on the LAST FINISHED print's info** — the whole feed is frozen, not
+     just `print_stats` (temps/position not ticking either; owner confirmed "stuck showing the last
+     finished print info").
+   - Files "Start" button stuck on "Starting…" (it waits for `printState→Printing`, which never lands).
+3. **Force-closing + restarting the app** (fresh socket → fresh handshake) immediately shows the
+   running print correctly. So reducer/subscription/routing are all correct — only the in-session
+   re-handshake recovery is broken.
 
-## Current mitigation (NOT the real fix)
+NOTE: the probe-calibrate screen *looked* fine post-SAVE_CONFIG only because `refreshProbeZOffset()`
+re-queries `probe.z_offset` on page entry, masking the dead feed.
 
-Phase 9 added `MoonrakerSession.refreshProbeZOffset()` exposed via `SpineHandle.refreshProbeZOffset`,
-called from the Probe-Calibrate screen's `onEnter` (AppShell). This makes **that one page**
-self-correct on entry, but it papers over the underlying re-handshake gap — every OTHER
-config-derived value (`minExtrudeTemp`, `maxExtrudeDistance`, screws config, macro bodies) would be
-equally stale after a runtime config change until an app restart.
+## Investigate (now the headline of the promoted reliability phase)
 
-## Investigate in Phase 13
+- Does `notify_klippy_ready` actually fire + get caught (`handshakeComplete==true`) on the E3
+  SAVE_CONFIG, or does the socket behave differently than the E5 (where Phase-5 G2 was verified)?
+- Does `runHandshake()`'s `objects.subscribe` re-register actually take effect after a klippy restart
+  on the SAME socket, or does Moonraker silently drop it (timing/ordering vs the restart)?
+- Is the frame collector / `rpc.statusUpdates` still delivering after the re-handshake, or did
+  something tear it down? (MoonrakerSession `connectAndServe` ~213–315.)
+- Consider: on `notify_klippy_ready`, force a full socket reconnect (the path that demonstrably works)
+  instead of an in-session re-subscribe, if the in-session re-subscribe can't be made reliable.
+- Add a LIVE repro/regression: SAVE_CONFIG → start print → assert `printState→Printing` reaches the
+  store without a reconnect. Extend the `05-10` KlippyReadyResync suite with a payload-level check.
 
-- Confirm whether `notify_klippy_ready` actually fires (and is caught, `handshakeComplete==true`) on a
-  SAVE_CONFIG restart vs. the socket dropping → reconnect path. Check the `rehandshakeMutex` /
-  `handshakeComplete` gating in `connectAndServe` (MoonrakerSession ~line 213–293).
-- Confirm the configfile query runs AFTER Klipper has reloaded the new config (timing/ordering — a
-  read that races the reload would return the stale value).
-- If the re-handshake path is sound, the per-page `refreshProbeZOffset` mitigation can be removed in
-  favor of the general refresh; if not, fix the re-handshake so ALL one-shot reads refresh.
-- Add a regression test that drives a `notify_klippy_ready` after the initial handshake and asserts
-  the configfile one-shot StateFlows are re-published (extend the `05-10` KlippyReadyResync tests).
+## Related
 
-Not blocking: the daily print-control loop is unaffected; this only touches config values that change
-rarely at runtime (calibration saves, printer.cfg edits).
+Subsumes the original "config one-shot reads go stale" framing — it's broader: the whole live feed
+dies, config staleness was just the first symptom noticed.

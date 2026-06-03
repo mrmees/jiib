@@ -37,6 +37,11 @@ control-a-print loop must work flawlessly on a Nexus 7.
 - [x] Console READ-ONLY (CONS-02): command/response history with severity coloring, backfilled from `server.gcode_store`, live via `notify_gcode_response`, bounded ~1000-line scrollback, opt-in noise filters; reconnect backfills correctly (no silent drop). _CONS-01 (arbitrary G-code SEND) deferred — console is read-only this phase._
 - _With this, the full functional core (Connect + Temp/Move/Extrude/Files/Print-Control/Macros/Console) is in place._
 
+**Calibration & Maintenance** — Validated in Phase 9 (code-verified + on-device UAT PASSED on flox + live Ender 3, 2026-06-03)
+- [x] Bed mesh (BEDM-01/BEDL-01) + Z-tilt/QGL + screws-tilt + the one interactive Probe-Calibrate manual-probe Z session (ZCAL-01), all capability-gated, reachable from a single Calibration drawer tile → hub → routine sub-routes. Worst-screw by deviation-from-base, load-scoped tilt state, allocation-free Views heatmap, klicky-aware probe flow (macro-feedback hero, home gate, SAVE_CONFIG amber gate).
+- [x] D-15: delete-during-print scoping — only the actively-printing/paused file is undeletable; every other file stays deletable.
+- ⚠ _Deferred (cross-cutting, NOT a calibration feature):_ the `SAVE_CONFIG` G2 re-handshake does not restore the live feed on the E3 (full freeze until app restart). Headline task of the promoted reliability phase — see STATE.md + `.planning/todos/pending/save-config-rehandshake-not-refreshing-config.md`.
+
 ### Active
 
 <!-- v1 = functional core: the daily-driver print-control loop, testable on a real printer early. -->
