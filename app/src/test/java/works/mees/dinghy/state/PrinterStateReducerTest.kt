@@ -378,11 +378,58 @@ class PrinterStateReducerTest {
             ).jsonObject,
         )
 
-        // The walk never throws; the matrices/min-max degrade to null and the prior mesh is NOT lost as a
-        // whole (the reducer still produced a BedMeshObject — no crash). The critical property: no throw.
+        // The walk never throws; field-merge SKIPS the unparseable matrix/min fields (they read null) and
+        // RETAINS the prior good values — strictly better than the old rebuild-from-delta that nulled them.
+        // A garbage diff can no longer wipe a good mesh.
         assertNotNull("reducer did not crash on garbage bed_mesh", afterGarbage.bedMesh)
-        assertEquals(null, afterGarbage.bedMesh!!.meshMatrix)
-        assertEquals(null, afterGarbage.bedMesh!!.meshMin)
+        assertEquals(good.bedMesh!!.meshMatrix, afterGarbage.bedMesh!!.meshMatrix)
+        assertEquals(good.bedMesh!!.meshMin, afterGarbage.bedMesh!!.meshMin)
+    }
+
+    @Test
+    fun partialBedMeshDeltaMergesAndRetainsOmittedFields() {
+        // The real Moonraker behavior the old rebuild-from-delta missed: PARTIAL bed_mesh deltas.
+        val seeded = reduceDiff(PrinterState(), calibrationDiff("bed_mesh_e5.json"))
+        assertTrue("seed has saved profiles", seeded.bedMesh!!.profileNames.isNotEmpty())
+        assertTrue("seed has a mesh", seeded.bedMesh!!.meshMatrix!!.isNotEmpty())
+
+        // A profile LOAD: matrices + name change, the unchanged `profiles` dict is NOT echoed → the saved
+        // list must be RETAINED (else the Load button blanks out after one use — UAT bug #1).
+        val afterLoad = reduceDiff(
+            seeded,
+            MoonrakerJson.parseToJsonElement(
+                """{ "bed_mesh": { "profile_name": "default", "mesh_matrix": [[0.1,0.2],[0.3,0.4]] } }""",
+            ).jsonObject,
+        )
+        assertEquals("default", afterLoad.bedMesh!!.profileName)
+        assertEquals("profiles list retained across a load", seeded.bedMesh!!.profileNames, afterLoad.bedMesh!!.profileNames)
+        assertEquals(2, afterLoad.bedMesh!!.meshMatrix!!.size)
+
+        // A profile SAVE: only `profiles` changes (new name added), the matrices are NOT echoed → the
+        // displayed mesh must be RETAINED (else the heatmap clears after a save — UAT bug #2).
+        val afterSave = reduceDiff(
+            afterLoad,
+            MoonrakerJson.parseToJsonElement(
+                """{ "bed_mesh": { "profiles": { "default": {}, "post": {}, "pre": {}, "new": {} } } }""",
+            ).jsonObject,
+        )
+        assertEquals("displayed mesh retained across a save", afterLoad.bedMesh!!.meshMatrix, afterSave.bedMesh!!.meshMatrix)
+        assertEquals("active profile retained across a save", "default", afterSave.bedMesh!!.profileName)
+        assertTrue("the newly-saved profile appears in the list", "new" in afterSave.bedMesh!!.profileNames)
+    }
+
+    @Test
+    fun bedMeshClearIsHonoredViaExplicitEmptyMatrix() {
+        // A genuine BED_MESH_CLEAR sends mesh_matrix [] + profile_name "" — PRESENT-but-empty, which the
+        // merge must honor as a real clear (distinct from "field absent → retain"). double2dListOrNull
+        // returns emptyList for [] vs null for an absent key, so the distinction holds.
+        val seeded = reduceDiff(PrinterState(), calibrationDiff("bed_mesh_e5.json"))
+        val afterClear = reduceDiff(
+            seeded,
+            MoonrakerJson.parseToJsonElement("""{ "bed_mesh": { "profile_name": "", "mesh_matrix": [] } }""").jsonObject,
+        )
+        assertEquals("", afterClear.bedMesh!!.profileName)
+        assertTrue("an explicit empty matrix clears the mesh", afterClear.bedMesh!!.meshMatrix!!.isEmpty())
     }
 
     @Test

@@ -149,14 +149,22 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     status.objectOrNull("quad_gantry_level")?.booleanOrNull("applied")?.let { s = s.copy(qglApplied = it) }
 
     status.objectOrNull("bed_mesh")?.let { bm ->
+        // Merge field-by-field onto the retained mesh (like the heater block below) — Moonraker pushes
+        // PARTIAL bed_mesh deltas: a profile LOAD carries the matrices but not the unchanged `profiles`
+        // dict; a profile SAVE carries the updated `profiles` but not the matrices. Rebuilding from the
+        // delta alone wiped the omitted fields (blanked the Load list after one load; cleared the
+        // displayed mesh after a save). An ABSENT field reads null → retain prior; a PRESENT-but-empty
+        // field (BED_MESH_CLEAR sends mesh_matrix []) reads empty → honored as a real clear, because
+        // double2dListOrNull distinguishes absent (null) from empty ([] -> emptyList).
+        val prev = s.bedMesh ?: BedMeshObject()
         s = s.copy(
             bedMesh = BedMeshObject(
-                profileName = bm.stringOrNull("profile_name") ?: "",
-                meshMin = bm.doubleListOrNull("mesh_min"),
-                meshMax = bm.doubleListOrNull("mesh_max"),
-                probedMatrix = bm.double2dListOrNull("probed_matrix"),
-                meshMatrix = bm.double2dListOrNull("mesh_matrix"),
-                profileNames = bm.objectOrNull("profiles")?.keys?.toList() ?: emptyList(),
+                profileName = bm.stringOrNull("profile_name") ?: prev.profileName,
+                meshMin = bm.doubleListOrNull("mesh_min") ?: prev.meshMin,
+                meshMax = bm.doubleListOrNull("mesh_max") ?: prev.meshMax,
+                probedMatrix = bm.double2dListOrNull("probed_matrix") ?: prev.probedMatrix,
+                meshMatrix = bm.double2dListOrNull("mesh_matrix") ?: prev.meshMatrix,
+                profileNames = bm.objectOrNull("profiles")?.keys?.toList() ?: prev.profileNames,
             ),
         )
     }
