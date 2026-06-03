@@ -181,7 +181,6 @@ fun AppShell(
         TiltHolder(
             scope = scope,
             store = store,
-            applied = { it.zTiltApplied },
             events = calibEvents,
             dispatchKey = CommandRegistry.zTiltAdjust.dispatchKey(Unit),
         )
@@ -190,7 +189,6 @@ fun AppShell(
         TiltHolder(
             scope = scope,
             store = store,
-            applied = { it.qglApplied },
             events = calibEvents,
             dispatchKey = CommandRegistry.quadGantryLevel.dispatchKey(Unit),
         )
@@ -376,6 +374,7 @@ fun AppShell(
                         dispatcher = dispatcher,
                         onRunDispatched = { zTiltHolder.markDispatched() },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                        onEnter = { zTiltHolder.reset() },
                         onBack = { calibrationRoutine = null },
                     )
                     CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
@@ -385,6 +384,7 @@ fun AppShell(
                         dispatcher = dispatcher,
                         onRunDispatched = { qglHolder.markDispatched() },
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+                        onEnter = { qglHolder.reset() },
                         onBack = { calibrationRoutine = null },
                     )
                     CalibrationRoutine.BED_MESH -> BedMeshScreen(
