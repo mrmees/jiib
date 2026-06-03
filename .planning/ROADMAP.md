@@ -30,7 +30,9 @@ live-monitoring half was already delivered by the Status home, its print control
 robustness defers to release hardening) — then **Macros/Console** close out the *functional-core* gate.
 Then the daily-driver power features, each capability-gated off the matrix: **Calibration & Maintenance**
 (screws-tilt / Z-tilt / bed-mesh / QGL pages), **Webcam Streaming** (MJPEG), **Spool Management** (Spoolman
+
 + a tablet-camera QR-scan-to-assign flow), and **Macro Prompt Protocol** (interactive dialogs from user
+
 macros). Only once EVERY screen exists does **Optimization, Network Efficiency & End-to-End Reliability**
 do the driven backend pass — a request-cadence audit so the app stops spamming the LAN, plus reliability
 hardening — work that would have been speculative before the screens defined what's actually needed. The
@@ -133,24 +135,31 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 03-01-PLAN.md — Token core: baked oklch→sRGB table + ThemeTokens + ThemeResolver StateFlow + DataStore ThemePrefs + Wave-0 unit tests (THEME-01/02)
 - [x] 03-02-PLAN.md — Geist/Geist Mono static fonts + the toolkit-agnostic bounded RingBuffer holder (THEME-02/D-12)
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 03-03-PLAN.md — Compose token boundary (LocalTokens/DinghyTheme, fontScale=1f) + ScreenScaffold (Focus/Field/Gutter) + OutlinedControl (UI-01/UI-02)
 
 **Wave 3** *(blocked on Wave 2)*
+
 - [x] 03-04-PLAN.md — Primitives: ConfirmGuard (PRIM-03) + ScrubberPage (PRIM-01) + SeverityToast (PRIM-04) + ThemeableView interface (D-06)
 - [x] 03-05-PLAN.md — Render primitives: ProgressRing (Compose Canvas) + GraphView (Views Canvas) + AndroidView host (D-11/D-06/D-13)
 
 **Wave 4** *(blocked on Wave 3)*
+
 - [x] 03-06-PLAN.md — In-APK component gallery + debug-only launcher + live-spine wire (D-07/D-08/D-14)
 
 **Wave 5** *(blocked on Wave 4)*
+
 - [x] 03-07-PLAN.md — gfxinfo perf proof: ring+graph render scene + on-device flox capture (criterion #5/D-10; device checkpoint)
 
 **Gap closure** *(UAT G-1..G-4)*
+
 - [x] 03-08-PLAN.md — Fix 4 Phase-3 UAT gaps: G-3 ScrubberPage tap-to-set, G-4 ConfirmGuard opaque scrim, G-2 scrubber width, G-1 gallery token-bg root (gap_closure)
+
 **UI hint**: yes — governed by `docs/ui_design/` (LAW); this phase IS the design-system build, so the UI contract is that bundle, not a generated UI-SPEC
 **Research note**: STANDARD — Compose theming/tokens, responsive layout, custom-`Canvas` drawing, and DataStore-backed settings are well-documented; the design contract (`docs/ui_design/hifi.css` + LAYOUT/THEMING) is the spec. A light pass on a clean Compose↔Views shared-token approach (ADR 0001 hybrid) may help.
 
@@ -171,22 +180,28 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 04-01-PLAN.md — Persisted connection: ConnectionConfig + ConnectionStore (DataStore, fail-safe, pure sanitize) + best-effort mDNS discovery (CONN-01/D-04)
 - [x] 04-02-PLAN.md — Pure primitives: CommandDispatcher (timeout+in-flight+debounce, PRIM-05/D-18) + TopRoute derive() (klippy-state routing, D-05/D-06)
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 04-03-PLAN.md — App wiring foundation: manifest FGS perms + specialUse service + DinghyApp/AppContainer service-locator + MoonrakerService owning the spine (SHELL-03/CONN-01/D-01..D-03; on-device rotation gate)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
+
 - [x] 04-04-PLAN.md — Settings screen: connection (host/port/key + mDNS scan) + theme/text-size + accent picker (SET-01/PRIM-02/CONN-01/D-15..D-17)
 - [x] 04-05-PLAN.md — Splash/recovery hard override: reason text + self-contained recovery actions for first-run/shutdown/unreachable (SHELL-05/D-11..D-13)
 - [x] 04-06-PLAN.md — Print Status home (part 1): state-adaptive Focus + 2×3 grid (strict capability fallback) + Stop→ConfirmGuard→emergency_stop, with a reserved sparkline slot (SHELL-04/SHELL-02/D-07..D-10)
 
 **Wave 4** *(blocked on Wave 3)*
+
 - [x] 04-06b-PLAN.md — Print Status home (part 2): heater sparkline (GraphView) into the reserved slot + on-device combined-render perf gate, split from 04-06 per review #4 (SHELL-04/D-09; on-device perf gate)
 
 **Wave 5** *(blocked on Wave 4)*
+
 - [x] 04-07-PLAN.md — Shell integration: swipe-up App Drawer + AppShell full-bleed host + single RootController routing/FGS-start (SHELL-01/D-14; on-device shell gate)
+
 **UI hint**: yes — per `docs/ui_design/` (Splash, App Drawer, Print Status, Settings screens)
 **Research note**: STANDARD — foreground Service + Doze-aware lifecycle + DataStore + state-driven nav are well-documented Android patterns. (Prior Phase-3 research retargeted to this phase in the `04-*` phase dir — FGS-owns-spine, pure `derive()` routing, render/throttle seam — still applies.)
 
@@ -207,25 +222,31 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 05-01-PLAN.md — Pure state additions: gcode_position + can_extrude reducer reads, hasMacroIgnoreCase helper, GCODE_SCRIPT/TEMPERATURE_STORE methods (MOVE-04/EXTR-02/EXTR-04)
 - [x] 05-02-PLAN.md — PrinterCommands pure gcode builders (bounded/clamped) + scriptParams + the third sensor-trace token (violet) baked dark+light (TEMP-02/03, MOVE-01..03, EXTR-01)
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 05-03-PLAN.md — Spine plumbing: one-shot temperature_store backfill + min_extrude_temp at handshake, pure backfill mapper, exposed on the SpineHandle/store (TEMP-04/EXTR-04)
 - [x] 05-04-PLAN.md — Extend GraphView to N pre-allocated traces + fixed shared Y-range (closes Phase-4 G-1) + multi-snapshot GraphViewHost (TEMP-04)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
+
 - [x] 05-05-PLAN.md — Temperature panel: legend + scrubber-set + presets/cooldown + multi-trace backfilled graph (TEMP-01..04)
 - [x] 05-06-PLAN.md — Move panel: 3×3 jog pad + Z row + distance selector + Home/Disable(ConfirmGuard)/Back, live gcode_position w/ per-axis homed gating (MOVE-01..04)
 - [x] 05-07-PLAN.md — Extrude panel: Move-style extrude/retract + selectors + load/unload popup + capability-gated tool selector + live cold-extrude gate (EXTR-01..04)
 
 **Wave 4** *(blocked on Wave 3; on-device gates)*
+
 - [x] 05-08-PLAN.md — Wire Dest/AppDrawer/AppShell routing for the three panels + D-06 multi-trace perf re-measure on flox + SC-5 end-to-end UAT on the live Ender 5 Plus
 
 **Gap closure** *(from 05-VERIFICATION.md; disjoint files — same wave)*
+
 - [x] 05-09-PLAN.md — G1 BLOCKER: catch RpcError in CommandDispatcher.dispatch() → non-fatal Failure toast (printer-rejected gcode no longer crashes the app); harden dispatcher fake to emit a gcode.script JSON-RPC error (regression guard)
 - [x] 05-10-PLAN.md — G2+G3: re-run the full handshake on notify_klippy_ready (re-subscribe + re-run one-shot reads) so the FGS-held session self-heals after a Klipper restart without force-stop and configfile/backfill values refresh
 - [x] 05-11-PLAN.md — G4: give printer.gcode.script a 120s timeout (was flat 10s) + typed ConnectionError.Timeout so a long-running-but-successful gcode (Z-home/macros) no longer shows a false "command could not be sent" — G1 rejection-surfacing + true connection-failure messaging preserved
+
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 04-move.png, 07-single-setting.png, 09-temperature-graph.png
 **Research note**: STANDARD — Moonraker temperature/move/extrude API verified; patterns established in earlier phases.
 
@@ -245,19 +266,25 @@ Plans:
 Plans:
 
 **Wave 0**
+
 - [x] 06-01-PLAN.md — Guard tests and machine-readable sidecar skeletons for registry/catalog drift, byte-identical gcode, capability predicates, dispatcher semantics, and handshake order
 
 **Wave 1** *(blocked on Wave 0)*
+
 - [x] 06-02-PLAN.md — Headless command registry foundation, registry dispatch/request helpers, and live `Capabilities.objects` / `hasObject()` predicate surface
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 06-03-PLAN.md — Full Phase 1-5 outbound call-site refactor through the registry while preserving handshake, dispatcher timeout, e-stop, and builder semantics
 
 **Wave 3** *(blocked on Wave 2; includes live capture checkpoint)*
+
 - [x] 06-04-PLAN.md — Comprehensive Klipper/Moonraker/Spoolman catalog plus E5/E3 availability matrix backed by `catalog.json` and `printer-matrix.json`
 
 **Wave 4** *(blocked on Wave 3; final manual regression checkpoint)*
+
 - [x] 06-05-PLAN.md — Final host verification, blocking flox + live Ender 5 Plus regression, and phase verification record
+
 **Research note**: DEEPER — this phase is substantially a documentation-reading + reference effort: pin down and READ the authoritative Klipper G-Code/Config references, Moonraker API docs (JSON-RPC + REST), and Spoolman API, then reconcile the catalog with live `printer.objects.list` / gcode-help introspection from the real printers. (The availability matrix is being knocked out up front as a reference artifact.)
 
 ### Phase 7: Files & Print Control — Core Print-Loop Gate
@@ -277,20 +304,26 @@ Plans:
 **Plans**: 6
 
 **Wave 1**
+
 - [x] 07-01-PLAN.md - Runtime registry and command sidecar promotion for Files and print-control operations
 - [x] 07-02-PLAN.md - Pure file-browser models, path discipline, sorting, and selected-file preview parsing
 
 **Wave 2**
+
 - [x] 07-03-PLAN.md - Session-owned file browser client, Files holder, and state-confirmed start/delete behavior
 
 **Wave 3**
+
 - [ ] 07-04-PLAN.md - Live Files route, ConfirmGuard safe-dismiss labels, and hybrid RecyclerView Files screen
 
 **Wave 4**
+
 - [ ] 07-05-PLAN.md - State-adaptive Print Status pause/resume/cancel/restart/Files gutter controls
 
 **Wave 5**
+
 - [ ] 07-06-PLAN.md - Automated release verification and Ender 5 Plus core print-loop UAT
+
 **UI hint**: yes
 **Research note**: STANDARD — Moonraker file API + thumbnail URL resolution (already proven by the Status quick-tasks) and the `print_stats`-driven pause/resume/cancel/restart command set verified against official docs.
 
@@ -310,21 +343,27 @@ Plans:
 Plans:
 
 **Wave 0**
+
 - [x] 08-01-PLAN.md — Live read-only probe of `server.gcode_store` + `configfile` macro-body shape recorded into docs (mock-vs-reality gate) + RED test scaffolds with real probed fixtures (CONS-02/MACRO-02; live checkpoint)
 
 **Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
+
 - [x] 08-02-PLAN.md — Console pure core: ConsoleLine + ConsoleSeverity classifier + ConsoleFilters (verbatim Mainsail regexes, view-layer only) + object-typed ConsoleScrollback ring (CONS-02/D-02..D-05)
 - [x] 08-03-PLAN.md — Macro pure core: MacroParamParser (verbatim Mainsail regex) + [BLOCKING] MacroInvocation string-param sanitizer w/ injection-rejection test + MacroPrefs DataStore (MACRO-02/03/D-09/D-10)
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 08-04-PLAN.md — Spine plumbing: `server.gcode_store` registry+method+parser, handshake backfill REPLACE read + extend the single `configfile` query for macro bodies, store seams (CONS-02/MACRO-02/D-02/D-04)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint ui/ packages)*
+
 - [x] 08-05-PLAN.md — Console screen: ConsoleHolder (raw, D-04) + RecyclerView-in-AndroidView scrollback (D-05) + Field-only ScreenScaffold w/ opt-in filter toggles, read-only no-keyboard (CONS-02/D-01..D-05)
 - [x] 08-06-PLAN.md — Macro screens: MacroHolder (combine caps/prefs/bodies) + Bookmarked launcher + System manage-visibility + Execution popup (action gate, NumpadPage/keyboard, sanitized dispatch) (MACRO-01/02/03/D-06..D-10)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
+
 - [x] 08-07-PLAN.md — Nav wiring (Dest+drawer tiles+AppShell branches, drawer-swipe suppress on scroll-Fields) + on-device UAT + console-scroll perf gate on flox + live Ender 5 Plus (functional-core gate)
+
 **UI hint**: yes
 **Research note**: STANDARD — straightforward application of the existing notify event bus and command path.
 
@@ -344,23 +383,30 @@ Plans:
 Plans:
 
 **Wave 0**
+
 - [x] 09-01-PLAN.md — Capture the five REAL E5 calibration fixtures + seven RED parser scaffolds (fixture-capture-first; live checkpoint)
 
 **Wave 1** *(blocked on Wave 0)*
+
 - [x] 09-02-PLAN.md — Spine plumbing: register ~12 calibration commands (ObjectPresent-gated, G4 timeout) + surface the five live objects in PrinterState/reducer/subscribe-superset + screws-config one-shot
 
 **Wave 2** *(blocked on Wave 1)*
+
 - [x] 09-03-PLAN.md — The five pure result parsers + two gating predicates (the Nyquist core; turns the RED scaffolds GREEN)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
+
 - [x] 09-04-PLAN.md — Calibration hub (D-14) + screws-tilt guided-loop screen (owner-authored to-scale bed) + holders
 - [x] 09-05-PLAN.md — Z-tilt/QGL screen + bed-mesh heatmap (NEW BedMeshHeatmapView) + scale toggle + profiles + ConfirmGuard amber variant
 
 **Wave 4** *(blocked on Wave 3)*
+
 - [x] 09-06-PLAN.md — Interactive Probe-Calibrate page (TESTZ/Accept/Abort/amber SAVE_CONFIG) + the D-15 Files-delete scoping fix + 09-UAT.md
 
 **Wave 5** *(blocked on Wave 4; on-device gate)*
+
 - [ ] 09-07-PLAN.md — Nav wiring (single Calibration tile → hub → five sub-routes) + SAVE_CONFIG G2 re-handshake regression + on-device heatmap perf + full live-E5 UAT
+
 **UI hint**: yes — governed by `docs/ui_design/` (LAW): 05-screws-tilt.png (locked) + 09-UI-SPEC.md (five new screens)
 **Research note**: DEEPER — exact gcode-response shapes for `SCREWS_TILT_CALCULATE` (turn directions/amounts), `Z_TILT_ADJUST`/`QGL` convergence lines, and `BED_MESH` output verified against Klipper docs + the Phase-6 capability matrix. Key de-risking finding: results come from STRUCTURED live objects (screws_tilt_adjust.results / bed_mesh.mesh_matrix / z_tilt.applied / manual_probe), not console parsing.
 
@@ -425,10 +471,22 @@ Plans:
   4. Cross-screen reliability holds (rapid navigation, reconnect mid-feature, capability changes) without leaks or stale subscriptions
 
 **Plans**: 4 plans
+**Wave 1**
+
 - [ ] 13-01-PLAN.md — Wave 0 (BLOCKING, D-10): live SAVE_CONFIG wire-capture on BOTH printers + harden the mock-that-lied (klippy-down window) + RED resumed-diff/Syncing/self-heal regression tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 13-02-PLAN.md — the headline fix: visible (D-03 Syncing→Connected), disconnect-driven, self-healing klippy-restart recovery in MoonrakerSession (reuse emit/markStale/seed/runHandshake/supervisor)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 13-03-PLAN.md — cadence audit deliverable (docs/request-cadence-contract.md, SC-1) + the one applied fix (remove redundant refreshProbeZOffset, sequenced after 13-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 13-04-PLAN.md — binding gate (D-09): dual-printer dual-scenario on-device UAT on flox + live E5 & E3
+
 **Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-6 command/error reference and the live captures in `docs/moonraker-capabilities.md`. NOTE (D-08): the old Phase-14 "reconnect print-state resync" line is pulled INTO Phase 13 (all in-session resync — klippy-restart + mid-print network-drop reconnect + the print-state resync that rides along). Phase numbers/order otherwise unchanged.
 
 ### Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK

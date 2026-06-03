@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-06-03T20:19:36.167Z"
-last_activity: 2026-06-03
+status: executing
+last_updated: "2026-06-03T20:53:29.572Z"
+last_activity: 2026-06-03 -- Phase 13 planning complete
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 60
+  total_plans: 64
   completed_plans: 59
   percent: 53
 ---
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 09 (calibration-maintenance) — COMPLETE (UAT-passed 2026-06-03)
 Plan: 7 of 7 — COMPLETE
-Status: Phase 9 CLOSED. 09-07 (nav wiring + on-device UAT) done; all five calibration manual-only verifications PASSED on real flox + live Ender 3 (`192.168.1.121`). BEDM-01/BEDL-01/ZCAL-01 + CALIB-01..06 → Validated. Probe-Calibrate substantially reworked on device this session (commits 2287acb/76a4598/3d87e5a/4f65fa0): manual_probe partial-diff field-wipe fix + regression, macro-feedback hero (not the divergent manual_probe.z_position), three-value display, jog rotate, MAX_TESTZ 5→25, home gate, abort→Idle, dismissable toasts, refreshProbeZOffset. **DEFERRED HIGH-priority defect:** the SAVE_CONFIG G2 re-handshake does NOT restore the live feed on the E3 (full freeze until app restart) — a cross-cutting session bug, NOT a calibration-feature failure; the 05-10 G2 fix is not holding on the E3. **Next phase = the PROMOTED Optimization/Network-Efficiency/End-to-End-Reliability phase** (moved to next-after-9, owner decision); the re-handshake freeze is its headline task. See `.planning/todos/pending/save-config-rehandshake-not-refreshing-config.md`.
+Status: Ready to execute
   → Phase-9 transition DONE 2026-06-03: ROADMAP promotion APPLIED (Phase 13 execution-order-promoted to run next; Webcam/Spool/Macro-Prompt deferred behind it; numbers unchanged). Phase 9 marked complete in the ROADMAP checklist + progress table. PROJECT.md evolved (calibration → Validated). Remaining: discuss/plan Phase 13.
   → Plan 09-01 (Wave 0) COMPLETE 2026-06-03 (commits b45c4ad + 69f36cf + 7b764fd): five REAL E5 calibration fixtures captured live + seven compile-fail-RED parser scaffolds. Recorded surprises: clock-STRING screw adjust, [x,y]-array mesh_min/max, ?????? z-bounds, results PERSIST post-run (Open-Q1 resolved), profiles is a name-keyed dict.
   → Plan 09-02 (Wave 1) EXECUTED + COMPLETE 2026-06-03 (2 tasks, commits 5506fbf + bcb8265): the calibration SPINE. Task 1 — 14 object-gated calibration CommandSpecs via the gcode(...) factory (each inherits the G4 120s timeout; zEndstopCalibrate gates GcodeCommandPresent("Z_ENDSTOP_CALIBRATE") NOT ObjectPresent("probe") per A3 — a probe predicate would hide it on probe-less printers; saveConfig=Always); PrinterCommands.testZ clamp-before-format (±MAX_TESTZ_MM, T-09-02-01) + sanitizeProfileName allowlist [A-Za-z0-9_.-]+ on the keyboard-editable mesh profile name (T-09-02-02 — newline-reject blocks a 2nd-gcode-line injection); BedMeshProfileNameTest 9 GREEN. Three docs/commands sidecar touches kept CommandCatalogDriftTest green (catalog rows+registered=true, command_availability rows, not_on_printers exclusions z_tilt∉ender3 / qgl∉ender5plus / Z_ENDSTOP_CALIBRATE∉both). Task 2 — five live objects (screwsTilt/zTiltApplied/qglApplied/bedMesh/manualProbe + ScrewConfig/Screw models) surfaced VERBATIM through null-safe reducer walks (new double2dListOrNull; mesh_min/max read as [x,y] List<Double>) into RETAINED PrinterState; the five + probe added to V1_SUBSCRIBE_CORE (A3 intersect-with-detected); PrinterStateStore.screwsTiltConfig one-shot StateFlow modeled on the minExtrudeTemp seam. PrinterStateReducerTest fed the real *_e5 fixtures + malformed-retains-prior; DeriveCapabilitiesTest present-when-detected/absent-when-missing per object. The seven Wave-0 RED scaffolds were SET ASIDE for the GREEN run then RESTORED byte-identical (Phase-8 pattern). Combined run BUILD SUCCESSFUL, 0 failures. No deviations. NO requirements marked Complete (BEDM/BEDL/ZCAL stay Pending until on-device UAT; CALIB-* stay Planned — closed by the 09-03+ screens).
@@ -35,7 +35,7 @@ Status: Phase 9 CLOSED. 09-07 (nav wiring + on-device UAT) done; all five calibr
   → Plan 09-07 (Wave 5) Task 1 DONE 2026-06-03 (commit ea95a19): nav-wiring + G2 re-handshake regression extension. Dest.Calibration added; ONE 'Calibration' drawer tile (tune glyph, D-14) flipped live; AppShell builds all five calibration holders via remember(store) (re-keyed on spine rebuild), sources dispatcher Failure events from spine?.dispatcher?.events; the Dest.Calibration arm renders a lean LOCAL hub→routine back-stack (mirrors Dest.Macros — NOT five top-level Dests) with a BackHandler popping a routine page to the hub; two TiltHolders (z_tilt/qgl) share ONE TiltScreen via an applied-selector lambda + per-variant dispatchKey (D-02); Dest.Calibration added to the swipe-drawer-suppression set (BedMesh Load is a scrollable Field). KlippyReadyResyncTest EXTENDED (not forked) with a SAVE_CONFIG shutdown→ready test that PARSES the re-issued objects.subscribe frame and asserts it CONTAINS the calibration objects (bed_mesh/z_tilt), not merely that runHandshake fired (T-09-07-01 payload-level regression guard). :app:testReleaseUnitTest full suite GREEN + :app:assembleRelease SUCCESSFUL with the route live. No deviations.
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
-Last activity: 2026-06-03
+Last activity: 2026-06-03 -- Phase 13 planning complete
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
