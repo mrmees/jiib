@@ -44,6 +44,7 @@ import works.mees.dinghy.state.reduceSnapshot
 import works.mees.dinghy.ui.console.parseGcodeStore
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The reconnect supervisor + resync handshake — the spine that turns the four seams into a live, resilient
@@ -183,6 +184,7 @@ class MoonrakerSession(
      * One connect attempt: optional token fetch → open socket → identify → list → derive → query →
      * subscribe → emit Connected → serve frames until the socket closes. Returns when the socket dies.
      */
+    @OptIn(ExperimentalCoroutinesApi::class) // select { onTimeout } in the drop-recovery watchdog
     private suspend fun connectAndServe(onConnected: () -> Unit = {}): ConnectAttempt = coroutineScope {
         // Per-attempt re-handshake gate: a fresh socket has not yet run its initial handshake, so an
         // early klippy_ready in the connect sequence must NOT trigger a re-handshake (it would duplicate
@@ -228,19 +230,107 @@ class MoonrakerSession(
         val statusReady = CompletableDeferred<Unit>()
         val klippyReady = CompletableDeferred<Unit>()
         val gcodeReady = CompletableDeferred<Unit>()
+        // PER-DROP recovery signal (Codex fix). A single shared CompletableDeferred is ONE-SHOT: once
+        // the first same-socket recovery completes it, a SECOND klippy drop on the SAME socket cannot
+        // arm a fresh watchdog — its `select { recovered.onAwait{} ; onTimeout{escalate} }` returns
+        // immediately (the deferred is already complete), so the escalate-timeout is dead and a stuck
+        // second restart can never self-heal. Multiple SAVE_CONFIGs in one session is a COMMON user
+        // flow, so each drop gets its OWN deferred held in this AtomicReference: a drop swaps in a
+        // FRESH deferred (completing the prior one harmlessly so its now-stale watchdog unblocks), and
+        // the matching klippy_ready completes whatever deferred is CURRENT at success time. Initialized
+        // already-completed so a stray pre-drop ready is a no-op.
+        val recovered = java.util.concurrent.atomic.AtomicReference(
+            CompletableDeferred<Unit>().apply { complete(Unit) },
+        )
+        // The live socket handle for THIS attempt (set on SocketEvent.Open below). The in-session
+        // re-handshake path reads it to self-heal: closing the REAL RpcConnection (→ OkHttp cancel →
+        // SocketEvent.Closed → closed.await() unblocks → run() reconnects). rpc.close() would NOT work —
+        // it only nulls the connection + fails pendings, leaving connectAndServe parked on closed.await()
+        // forever (the mechanical bug Codex flagged).
+        var liveConnection: RpcConnection? = null
+        // Close the REAL socket → drive a full reconnect through the proven supervisor path. The single
+        // self-heal lever, shared by the re-handshake-failure branch AND the drop-without-recovery
+        // watchdog (Task 2). Reuses RpcConnection.close (the served-then-died teardown lever), NOT a new
+        // backoff loop or rpc.close().
+        //
+        // NO per-attempt latch (Codex fix): a per-attempt AtomicBoolean would let only the FIRST
+        // escalation on a socket fire — a SECOND klippy drop on the same socket whose re-handshake also
+        // fails could then NEVER escalate (the latch is already set), re-introducing the dead-forever
+        // freeze for the repeated-SAVE_CONFIG flow. Double-close safety lives WHERE it belongs:
+        // RpcConnection.close is idempotent (its own AtomicBoolean compareAndSet — see RpcConnection.kt),
+        // so calling it more than once is a harmless no-op, NOT a close storm. Every genuine
+        // recovery-failure / drop-timeout is therefore free to escalate.
+        fun escalateReconnect(reason: ConnectionError) {
+            liveConnection?.close(reason)
+        }
         val routing: Job = launch {
             launch { rpc.statusUpdates.onSubscription { statusReady.complete(Unit) }.collect { store.onStatusDiff(it) } }
             launch {
                 rpc.klippyEvents.onSubscription { klippyReady.complete(Unit) }.collect { method ->
                     // Always fold into KlippyState (control-plane), as before.
                     store.onKlippyMethod(method)
-                    // Only notify_klippy_ready, and only AFTER the initial handshake, re-handshakes.
-                    if (method == JsonRpcMethods.NOTIFY_KLIPPY_READY && handshakeComplete) {
-                        attemptScope.launch {
-                            // Serialize re-runs (a second klippy_ready mid-re-handshake waits, then
-                            // re-runs against the freshest config) and keep it non-fatal.
-                            rehandshakeMutex.withLock {
-                                runCatching { runHandshake() }
+                    when {
+                        // EDIT SITE 2 — the captured klippy-DROP signal (notify_klippy_disconnected;
+                        // the capture shows NO notify_klippy_shutdown, NO webhooks.state — branch (a)).
+                        // Dim the screen the instant klippy drops (markStale, retains last-known values),
+                        // and arm a BOUNDED watchdog so a drop never freezes forever: if no successful
+                        // re-handshake lands within RECOVERY_WINDOW, escalate to a full reconnect. The
+                        // capture proves notify_klippy_ready DOES return on the same socket, so the
+                        // ready→re-handshake below is the primary recovery; the watchdog is the safety net.
+                        method == JsonRpcMethods.NOTIFY_KLIPPY_DISCONNECTED && handshakeComplete -> {
+                            store.markStale(ConnectionState.Syncing)
+                            emit(ConnectionState.Syncing)
+                            // Arm a FRESH per-drop deferred for THIS drop (Codex fix). Swap it into the
+                            // AtomicReference and complete the PRIOR one so any still-parked earlier
+                            // watchdog unblocks harmlessly (its drop is superseded by this newer one).
+                            // THIS drop's watchdog awaits THIS deferred, so a repeated drop on the same
+                            // socket re-arms a live escalate-timeout instead of returning instantly off a
+                            // long-since-completed shared deferred.
+                            val thisDrop = CompletableDeferred<Unit>()
+                            recovered.getAndSet(thisDrop).complete(Unit)
+                            attemptScope.launch {
+                                select<Unit> {
+                                    thisDrop.onAwait {}
+                                    onTimeout(RECOVERY_WINDOW) {
+                                        escalateReconnect(ConnectionError.Timeout)
+                                    }
+                                }
+                            }
+                        }
+                        // EDIT SITE 1 — notify_klippy_ready AFTER the initial handshake = a real klippy
+                        // restart on the live socket. Make recovery VISIBLE (emit Syncing → Connected,
+                        // D-03) and SELF-HEALING (a failed re-subscribe in the down-window closes the real
+                        // socket so the supervisor reconnects, Pitfall 4 / D-01 fallback).
+                        method == JsonRpcMethods.NOTIFY_KLIPPY_READY && handshakeComplete -> {
+                            attemptScope.launch {
+                                // Serialize re-runs (a second klippy_ready mid-re-handshake waits, then
+                                // re-runs against the freshest config).
+                                rehandshakeMutex.withLock {
+                                    emit(ConnectionState.Syncing)
+                                    // Skip identify: the capture proves a re-identify on the SAME socket
+                                    // 400s ("Connection already identified"). The other four steps
+                                    // (server.info/objects.list/objects.query/objects.subscribe) succeed
+                                    // and diffs resume — that re-subscribe is the recovery.
+                                    val result = runCatching { runHandshake(skipIdentify = true) }
+                                    if (result.isSuccess) {
+                                        // Complete the CURRENT per-drop deferred so ITS watchdog cancels
+                                        // (recovery landed in time). Read it from the AtomicReference at
+                                        // success time — completing a stale captured-at-arm reference
+                                        // could leave the live drop's watchdog parked. complete() is a
+                                        // no-op if already completed, so a ready with no matching pending
+                                        // drop (or a double-ready) is harmless.
+                                        recovered.get().complete(Unit)
+                                        emit(ConnectionState.Connected)
+                                    } else {
+                                        // Self-heal: a rejected/withheld/timed-out re-subscribe (G4
+                                        // Timeout / RpcError in the down-window) is "escalate," NOT "give
+                                        // up." Close the REAL socket → run() reconnects on a fresh socket.
+                                        val ex = result.exceptionOrNull()
+                                        val reason = (ex as? RpcConnectionException)?.reason
+                                            ?: ConnectionError.NetworkUnavailable
+                                        escalateReconnect(reason)
+                                    }
+                                }
                             }
                         }
                     }
@@ -258,6 +348,10 @@ class MoonrakerSession(
                 when (event) {
                     is SocketEvent.Open -> {
                         rpc.bind(event.connection)
+                        // Stash the live RpcConnection so the in-session re-handshake path can close the
+                        // REAL socket to self-heal (Task 2). This is the handle whose close() actually
+                        // cancels the OkHttp socket → SocketEvent.Closed → supervisor reconnect.
+                        liveConnection = event.connection
                         if (!opened.isCompleted) opened.complete(event.connection)
                     }
                     is SocketEvent.Frame -> rpc.dispatch(event.text)
@@ -318,18 +412,29 @@ class MoonrakerSession(
         ConnectAttempt.Served
     }
 
-    /** identify → server.info → objects.list → derive → objects.query(subset) → objects.subscribe(subset). */
-    private suspend fun runHandshake() {
-        // 1. identify (once, first).
-        rpc.request(
-            CommandRegistry.identify,
-            IdentifyArgs(
-                clientName = clientName,
-                version = clientVersion,
-                url = clientUrl,
-                apiKey = auth?.xApiKeyHeader(),
-            ),
-        )
+    /**
+     * identify → server.info → objects.list → derive → objects.query(subset) → objects.subscribe(subset).
+     *
+     * [skipIdentify]: the in-session klippy-restart re-handshake runs on the SAME still-open socket, which
+     * is ALREADY identified — a second `server.connection.identify` returns 400 "Connection already
+     * identified" (verified live on both E5 + E3 saveconfig captures under docs/commands/). The re-subscribe
+     * (and the configfile re-read) is the recovery; re-identifying is at best a harmless 400 and at worst
+     * (with strict error handling) a spurious failure, so the recovery path SKIPS it. The first-connect
+     * handshake (fresh, unidentified socket) always sends it (default false).
+     */
+    private suspend fun runHandshake(skipIdentify: Boolean = false) {
+        // 1. identify (once, first) — skipped on the in-session re-handshake (already identified, 400s).
+        if (!skipIdentify) {
+            rpc.request(
+                CommandRegistry.identify,
+                IdentifyArgs(
+                    clientName = clientName,
+                    version = clientVersion,
+                    url = clientUrl,
+                    apiKey = auth?.xApiKeyHeader(),
+                ),
+            )
+        }
 
         // 2. server.info → live Moonraker component names for ComponentPresent predicates (D-05).
         val components = parseComponents(rpc.request(CommandRegistry.serverInfo, Unit))
@@ -503,5 +608,15 @@ class MoonrakerSession(
         store.setConnectionState(state)
     }
 
-    private companion object
+    private companion object {
+        /**
+         * Bounded recovery window after a klippy DROP: if no successful in-session re-handshake lands
+         * within this window, escalate to a full reconnect (close the real socket → run() reconnects)
+         * rather than waiting forever for a notify_klippy_ready that may never arrive on the same socket
+         * (SC-2). The captured restart gap (E5/E3) was ~6.8s; this gives generous headroom for a slow
+         * FIRMWARE_RESTART before the safety-net reconnect kicks in. Uses the existing select/onTimeout
+         * idiom — no new poll loop, no standalone timer thread (Don't-Hand-Roll).
+         */
+        val RECOVERY_WINDOW: Duration = 30.seconds
+    }
 }
