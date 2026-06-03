@@ -477,7 +477,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 13-02-PLAN.md — the headline fix: visible (D-03 Syncing→Connected), disconnect-driven, self-healing klippy-restart recovery in MoonrakerSession (reuse emit/markStale/seed/runHandshake/supervisor)
+- [x] 13-02-PLAN.md — the headline fix: visible (D-03 Syncing→Connected), disconnect-driven, self-healing klippy-restart recovery in MoonrakerSession (reuse emit/markStale/seed/runHandshake/supervisor)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -529,7 +529,7 @@ existing "Phase 13" references valid).
 | 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
-| 13. Optimization, Network Efficiency & End-to-End Reliability | 1/4 | In Progress|  |
+| 13. Optimization, Network Efficiency & End-to-End Reliability | 2/4 | In Progress|  |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
