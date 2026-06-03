@@ -424,8 +424,12 @@ Plans:
   3. The optimization is behavior-preserving for the user — every screen still shows correct live data — provable on the real Ender 5 Plus and Ender 3 with the existing on-device gates green
   4. Cross-screen reliability holds (rapid navigation, reconnect mid-feature, capability changes) without leaks or stale subscriptions
 
-**Plans**: TBD
-**Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-6 command/error reference and the live captures in `docs/moonraker-capabilities.md`.
+**Plans**: 4 plans
+- [ ] 13-01-PLAN.md — Wave 0 (BLOCKING, D-10): live SAVE_CONFIG wire-capture on BOTH printers + harden the mock-that-lied (klippy-down window) + RED resumed-diff/Syncing/self-heal regression tests
+- [ ] 13-02-PLAN.md — the headline fix: visible (D-03 Syncing→Connected), disconnect-driven, self-healing klippy-restart recovery in MoonrakerSession (reuse emit/markStale/seed/runHandshake/supervisor)
+- [ ] 13-03-PLAN.md — cadence audit deliverable (docs/request-cadence-contract.md, SC-1) + the one applied fix (remove redundant refreshProbeZOffset, sequenced after 13-02)
+- [ ] 13-04-PLAN.md — binding gate (D-09): dual-printer dual-scenario on-device UAT on flox + live E5 & E3
+**Research note**: DEEPER — request-cadence/subscription audit informed by the Phase-6 command/error reference and the live captures in `docs/moonraker-capabilities.md`. NOTE (D-08): the old Phase-14 "reconnect print-state resync" line is pulled INTO Phase 13 (all in-session resync — klippy-restart + mid-print network-drop reconnect + the print-state resync that rides along). Phase numbers/order otherwise unchanged.
 
 ### Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
 
