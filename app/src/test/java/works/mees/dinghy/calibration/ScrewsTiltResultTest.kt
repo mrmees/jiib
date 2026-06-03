@@ -49,17 +49,20 @@ class ScrewsTiltResultTest {
 
     @Test
     fun realFixture_fourScrews_pickWorstByClockStringAdjust_excludingBase() {
-        // The four-screw E5 case: screw1 is_base "00:00", screw3 "00:06" is the worst non-base.
+        // The four-screw E5 case: screw1 is_base "00:00". The worst non-base screw is the one whose
+        // probed z deviates most from the BASE plane (== Klipper's largest adjust clock): screw2
+        // ("00:07" CCW). NOT the highest-absolute-z screw3 ("00:06") — absolute height is not "out of
+        // level". |z - baseZ|: screw2=0.082 > screw3=0.067 > screw4=0.027 (base z=0.129).
         val state = parseScrewsTilt(resultsFixture(), configFixture())
 
         assertEquals(4, state.totalScrews)
         assertFalse("error is false on a clean run", state.error)
-        // worst = the largest |adjust| clock among non-base screws → screw3 ("00:06" CW).
-        assertEquals("screw3", state.worstScrew?.key)
-        assertEquals("00:06", state.worstScrew?.adjust)
-        assertEquals("CW", state.worstScrew?.sign)
-        // 1-based join into configfile names: screw3 → "rear right screw".
-        assertEquals("rear right screw", state.worstScrew?.name)
+        // worst = the largest deviation-from-base / |adjust| clock among non-base screws → screw2 ("00:07" CCW).
+        assertEquals("screw2", state.worstScrew?.key)
+        assertEquals("00:07", state.worstScrew?.adjust)
+        assertEquals("CCW", state.worstScrew?.sign)
+        // 1-based join into configfile names: screw2 → "front right screw".
+        assertEquals("front right screw", state.worstScrew?.name)
     }
 
     @Test

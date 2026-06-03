@@ -24,10 +24,12 @@ import kotlin.math.abs
  *    worst-screw selection.
  *  - `results["screwN"]` joins to config `screwN_name` BY 1-BASED INDEX.
  *
- * WORST-SCREW RANK: the worst non-base screw is the one whose probed `z` deviates most from the base
- * reference plane — i.e. max `|z|` among non-base screws (the base sits at the reference; the screw
- * that needs the biggest physical correction is the one furthest off). The clock turn (`adjust`) is
- * the user-facing instruction Klipper computed for that screw, displayed verbatim.
+ * WORST-SCREW RANK: the worst non-base screw is the one whose probed `z` deviates most from the BASE
+ * screw's `z` — i.e. max `|z - baseZ|` among non-base screws. This equals Klipper's `adjust`-clock
+ * ordering (the clock is computed from that same deviation — verified against the real E5 fixture to a
+ * tenth of a clock-minute), so the worst screw is also the one needing the largest turn. Absolute
+ * `|z|` is NOT used: the base can sit at any height, so a large absolute z does not mean "most out of
+ * level" (the real fixture's highest-z screw is only the 2nd-worst turn). `adjust` is displayed verbatim.
  */
 
 /** Per-screw display row: the live turn result joined to its config name (1-based index). */
@@ -48,7 +50,7 @@ data class ScrewTurn(
     val adjustSeconds: Int,
     /** Convenience degrees view of the turn for the UI-SPEC second column (see [clockToDegrees]). */
     val degrees: Double,
-    /** True when this screw's |z| is within the D-03 tolerance band (`<= IN_TOL_MM`). */
+    /** True when this screw's deviation from the base (`|z - baseZ|`) is within the D-03 band (`<= IN_TOL_MM`). */
     val isInTol: Boolean,
     /** True for the base/reference screw (`is_base == true`). */
     val isBase: Boolean,
@@ -64,10 +66,10 @@ data class GuidedLoopState(
 )
 
 /**
- * D-03 in-tolerance threshold (mm of Z deviation). A non-base screw whose |z| is within this band of
- * the reference is "good enough" for the "X of N in tolerance" readout; the base screw is always in
- * tolerance. The worst screw is still surfaced regardless of this count. Klipper's SCREWS_TILT does
- * not expose a per-screw boolean, so we derive it from the probed Z magnitude.
+ * D-03 in-tolerance threshold (mm of Z deviation). A non-base screw whose `|z - baseZ|` is within this
+ * band of the base reference is "good enough" for the "X of N in tolerance" readout; the base screw is
+ * always in tolerance. The worst screw is still surfaced regardless of this count. Klipper's SCREWS_TILT
+ * does not expose a per-screw boolean, so we derive it from the probed Z deviation from the base.
  */
 private const val IN_TOL_MM = 0.05
 
@@ -103,6 +105,14 @@ fun parseScrewsTilt(results: JsonObject, config: JsonObject): GuidedLoopState = 
     val resultMap = sta["results"]?.jsonObject ?: return@runCatching GuidedLoopState(error = error)
     val cfg = config["screws_tilt_adjust"]?.jsonObject
 
+    // The base screw's probed Z is the reference plane every other screw's deviation is measured
+    // against (Klipper computes each `adjust` clock from `z - baseZ`, not absolute z). Fall back to
+    // 0.0 if no screw is flagged is_base (degenerate input) — then deviation collapses to |z|.
+    val baseZ = resultMap.values.firstNotNullOfOrNull { el ->
+        val o = el as? JsonObject ?: return@firstNotNullOfOrNull null
+        if (o["is_base"]?.jsonPrimitive?.booleanOrNull == true) o["z"]?.jsonPrimitive?.doubleOrNull else null
+    } ?: 0.0
+
     val screws = resultMap.entries.mapNotNull { (key, el) ->
         val obj = el as? JsonObject ?: return@mapNotNull null
         val index = key.removePrefix("screw").toIntOrNull() ?: return@mapNotNull null
@@ -120,16 +130,17 @@ fun parseScrewsTilt(results: JsonObject, config: JsonObject): GuidedLoopState = 
             adjust = adjust,
             adjustSeconds = clockToSeconds(adjust),
             degrees = clockToDegrees(adjust),
-            isInTol = isBase || abs(z) <= IN_TOL_MM,
+            isInTol = isBase || abs(z - baseZ) <= IN_TOL_MM,
             isBase = isBase,
         )
     }.sortedBy { it.index }
 
-    // Worst = the max |z| among NON-base screws (the screw whose probed plane deviates most from the
-    // reference needs the biggest physical correction). Null when every non-base screw is in tolerance.
+    // Worst = the max deviation-from-base among NON-base, out-of-tolerance screws (== Klipper's largest
+    // `adjust` clock; absolute |z| is meaningless since the base sits at an arbitrary height). Null when
+    // every non-base screw is in tolerance.
     val worst = screws
         .filter { !it.isBase && !it.isInTol }
-        .maxByOrNull { abs(it.z) }
+        .maxByOrNull { abs(it.z - baseZ) }
 
     GuidedLoopState(
         screws = screws,
