@@ -5,8 +5,10 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,13 +65,15 @@ class KlippyReadyResyncTest {
 
             // Sanity: while subscribed, a status diff reaches the store (the gate is OPEN).
             fake.inject(printingStatusDiff)
-            advanceUntilIdle()
+            runCurrent()
             assertEquals(PrintState.Printing, store.printerState.value.printState)
 
             // --- The captured klippy-down window (FIRMWARE_RESTART / SAVE_CONFIG on the same socket) ---
-            // The drop clears subscriptionActive: the subscription is gone, diffs no longer push.
+            // The drop clears subscriptionActive: the subscription is gone, diffs no longer push. Use
+            // runCurrent (NOT advanceUntilIdle): the drop arms a 30s escalate-watchdog and advancing
+            // virtual time past it would fire a spurious reconnect before the ready lands the recovery.
             harness.injectKlippyDrop()
-            advanceUntilIdle()
+            runCurrent()
 
             // While DOWN, an injected diff is DROPPED by the gate inside inject() — it must NOT reach
             // the store. (Reset the probe to Standby first so we can detect a leak.)
@@ -77,7 +81,7 @@ class KlippyReadyResyncTest {
                 """{"jsonrpc":"2.0","method":"notify_status_update",""" +
                     """"params":[{"print_stats":{"state":"standby"}},124.0]}""",
             )
-            advanceUntilIdle()
+            runCurrent()
             // The drop-window diff was gated out, so the store still shows the last-known Printing.
             assertEquals(
                 "a status diff injected while unsubscribed must be DROPPED by the inject() gate",
@@ -86,14 +90,16 @@ class KlippyReadyResyncTest {
             )
 
             // klippy comes back: the session must re-run the handshake on the SAME socket and the
-            // re-subscribe must SUCCEED (klippy is up), flipping subscriptionActive back TRUE.
+            // re-subscribe must SUCCEED (klippy is up), flipping subscriptionActive back TRUE. The
+            // re-handshake's fake auto-replies synchronously, so runCurrent drains it and quiesces the
+            // session (no permanently-failing harness here — klippyDown was never set).
             harness.injectKlippyReady()
-            advanceUntilIdle()
+            runCurrent()
 
             // The resumed-diff probe: a post-restart notify_status_update injected through the gated
             // inject(). It reaches the store ONLY if a real re-subscribe happened (gate reopened).
             fake.inject(printingStatusDiff)
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals(
                 "after a real re-subscribe the resumed status diff must reach the store (the live " +
@@ -130,11 +136,14 @@ class KlippyReadyResyncTest {
                   "min_extrude_temp":220.0,"max_extrude_only_distance":50.0}}}}}
             """.trimIndent()
 
-            // Drive the captured restart sequence on the same socket (drop → ready).
+            // Drive the captured restart sequence on the same socket (drop → ready). runCurrent (NOT
+            // advanceUntilIdle) between drop and ready: the drop's 30s watchdog must NOT fire before the
+            // ready lands the recovery. klippy comes back up (klippyDown unset), so the re-handshake's
+            // synchronous auto-replies drain under runCurrent and the session quiesces.
             harness.injectKlippyDrop()
-            advanceUntilIdle()
+            runCurrent()
             harness.injectKlippyReady()
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals(
                 "the re-handshake must refresh the stale min_extrude_temp from the reloaded config (G3)",
@@ -172,18 +181,32 @@ class KlippyReadyResyncTest {
             val firstSocket = harness.current.get()!!
 
             // Enter the klippy-down window so the re-handshake's objects.subscribe is REJECTED (real 503).
+            // runCurrent (NOT advanceUntilIdle): the drop arms the 30s watchdog; advancing past it would
+            // muddy WHICH lever (the ready-driven re-handshake failure vs the watchdog timeout) escalated.
             harness.klippyDown = true
             harness.injectKlippyDrop()
-            advanceUntilIdle()
+            runCurrent()
 
-            // The restart-complete signal triggers the re-handshake, whose subscribe now fails. The
+            // The restart-complete signal triggers the re-handshake, whose subscribe now fails (503). The
             // self-heal must close the socket (cancel()→onFailure→Closed) and the supervisor reconnects.
+            // runCurrent drains the synchronous failure → escalateReconnect → close → Closed and lets the
+            // supervisor enter its backoff wait. The reconnect itself is gated behind that backoff delay.
             harness.injectKlippyReady()
-            advanceUntilIdle()
+            runCurrent()
 
-            // Let the new socket's handshake run; clear the down window so the reconnect can succeed.
+            // CLEAR the down window BEFORE advancing time, so the supervisor's backoff-then-reconnect
+            // re-enters connectAndServe against a klippy that is now UP — the fresh socket's handshake
+            // SUCCEEDS and the session QUIESCES (Connected) instead of looping a permanently-failing
+            // reconnect. THIS is what makes the test terminate deterministically: without it,
+            // advanceUntilIdle would chase an endless down-window reconnect loop and hang.
             harness.klippyDown = false
-            advanceUntilIdle()
+
+            // Advance PAST the supervisor's max backoff so the reconnect fires, then drain the fresh
+            // handshake. advanceTimeBy + runCurrent (a BOUNDED step), never an open-ended advanceUntilIdle.
+            // The deadman withTimeout makes a still-stuck session FAIL fast rather than hang the JVM.
+            advanceTimeBy(60_000)
+            runCurrent()
+            withTimeout(5_000) { session.connectionState.first { it is ConnectionState.Connected } }
 
             // (a) A NEW socket was opened (escalation to a full reconnect, not a silent swallow).
             assertTrue(

@@ -5,8 +5,9 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.state.ConnectionState
@@ -51,16 +52,24 @@ class KlippyRecoveryStateTest {
             val collector = launch {
                 session.connectionState.collect { recovery += it }
             }
-            advanceUntilIdle()
+            runCurrent()
             // Drop the StateFlow's replayed current value (the initial Connected) so only post-restart
             // transitions remain — the initial connect can no longer satisfy the assertion.
             recovery.clear()
 
-            // 3. Drive the captured klippy restart on the SAME live socket (drop → ready).
+            // 3. Drive the captured klippy restart on the SAME live socket (drop → ready). Use
+            //    runCurrent() (NOT advanceUntilIdle) between drop and ready: the drop arms a 30s
+            //    bounded-escalation watchdog (RECOVERY_WINDOW), and advanceUntilIdle would advance
+            //    virtual time PAST it — firing a spurious escalate-reconnect before the ready can land
+            //    the recovery. runCurrent only drains tasks due NOW, leaving the watchdog pending so the
+            //    ready cancels it. This recovery is the happy path (klippy up), so the re-handshake
+            //    succeeds and the session quiesces — the bounded withTimeout below is a deadman, not a
+            //    real wait.
             harness.injectKlippyDrop()
-            advanceUntilIdle()
+            runCurrent()
             harness.injectKlippyReady()
-            advanceUntilIdle()
+            runCurrent()
+            withTimeout(5_000) { session.connectionState.first { it is ConnectionState.Connected } }
 
             // 4. The RECOVERY must emit Syncing, THEN Connected — in that order — on the fresh collector.
             val syncingIdx = recovery.indexOfFirst { it is ConnectionState.Syncing }
