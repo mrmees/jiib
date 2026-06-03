@@ -85,6 +85,62 @@ class ReconnectSupervisorTest {
         run.cancelAndJoin()
     }
 
+    /**
+     * D-07b (13-01, SC-2) regression LOCK: a mid-print socket DEATH (onClosing/onFailure) must drive a
+     * full reconnect, and after the reconnect's handshake completes the live diff stream must resync the
+     * running print back to Printing. The socket-death → reconnect path is already correct (RESEARCH §
+     * Current reconnect behavior); this test LOCKS it so a future change can't silently break it. It
+     * passes against current production — it is the regression lock, not a RED fix-driver.
+     */
+    @Test
+    fun midPrintSocketDeath_reconnects_andResyncsPrintStateToPrinting() = runTest(UnconfinedTestDispatcher()) {
+        val store = store(backgroundScope)
+        val rpc = JsonRpcClient(defaultTimeoutMs = 5_000L)
+        val harness = SessionTestHarness()
+        val session = MoonrakerSession(
+            store, rpc, harness.socketEvents(),
+            backoffBase = 10.milliseconds,
+            rng = Random(1),
+        )
+
+        val run = launch { session.run() }
+        session.connectionState.first { it is ConnectionState.Connected }
+        val opensBefore = harness.opens
+
+        // A print is running on the live socket (diff passes the now-open subscription gate).
+        harness.current.get()!!.inject(
+            """{"jsonrpc":"2.0","method":"notify_status_update",""" +
+                """"params":[{"print_stats":{"state":"printing"}},123.0]}""",
+        )
+        advanceUntilIdle()
+        assertEquals(
+            works.mees.dinghy.state.PrintState.Printing,
+            store.printerState.value.printState,
+        )
+
+        // The socket dies mid-print (server close / transport drop).
+        harness.current.get()!!.driveClosing()
+        advanceUntilIdle()
+
+        // The supervisor reconnects (a new socket opened) and re-runs the handshake → Connected.
+        session.connectionState.first { it is ConnectionState.Connected }
+        assertTrue("a mid-print socket death must trigger a reconnect", harness.opens > opensBefore)
+
+        // The running print resyncs over the new, live subscription.
+        harness.current.get()!!.inject(
+            """{"jsonrpc":"2.0","method":"notify_status_update",""" +
+                """"params":[{"print_stats":{"state":"printing"}},124.0]}""",
+        )
+        advanceUntilIdle()
+        assertEquals(
+            "after reconnect the live diff stream must resync printState to Printing (D-07b)",
+            works.mees.dinghy.state.PrintState.Printing,
+            store.printerState.value.printState,
+        )
+
+        run.cancelAndJoin()
+    }
+
     @Test
     fun authRequired_quiesces_doesNotChurn_thenResumesOnReconnectNow() = runTest(UnconfinedTestDispatcher()) {
         val store = store(backgroundScope)
