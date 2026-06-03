@@ -9,12 +9,19 @@ import works.mees.dinghy.state.PrinterState
 import org.junit.Test
 
 /**
- * Pure-derivation proof for the SINGLE top-level routing authority (review HIGH #2). Routing keys
- * off the Klippy/print lifecycle ONLY (D-05/D-06); the socket [ConnectionState] is chrome and must
- * NEVER move the route — the load-bearing `socketStateDoesNotRoute` case proves a transient reconnect
- * can't bounce the user off the home screen. All host-side, no Compose, no I/O.
+ * Pure-derivation proof for the SINGLE top-level routing authority (review HIGH #2). Arm order is
+ * load-bearing (Codex-reviewed, 13-05 Task 3): first-run Connect wins, then the klippy gate, then —
+ * NEW in 13-05 — a socket RECONNECT routes the recovery Splash too (the deliberate D-05 departure,
+ * Matthew 2026-06-03; safe because Task 2 hoisted the shell nav state so the splash can't bounce the
+ * user). All host-side, no Compose, no I/O.
+ *
+ * NOTE: a "Ready Shell" requires BOTH klippy Ready AND connection Connected — so the happy-path cases
+ * below pin `connection = ConnectionState.Connected` explicitly (the default is Disconnected, which now
+ * routes Splash).
  */
 class TopRouteTest {
+
+    private val connected = ConnectionState.Connected
 
     @Test
     fun noConfig_routesToConnect_regardlessOfState() {
@@ -23,7 +30,11 @@ class TopRouteTest {
             TopRoute.Connect,
             derive(
                 cfgPresent = false,
-                s = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Printing),
+                s = PrinterState(
+                    klippyState = KlippyState.Ready,
+                    printState = PrintState.Printing,
+                    connection = connected,
+                ),
             ),
         )
     }
@@ -32,7 +43,10 @@ class TopRouteTest {
     fun klippyStartup_routesToSplash() {
         assertEquals(
             TopRoute.Splash,
-            derive(cfgPresent = true, s = PrinterState(klippyState = KlippyState.Startup)),
+            derive(
+                cfgPresent = true,
+                s = PrinterState(klippyState = KlippyState.Startup, connection = connected),
+            ),
         )
     }
 
@@ -42,29 +56,37 @@ class TopRouteTest {
             assertEquals(
                 "klippyState=$k must route to Splash",
                 TopRoute.Splash,
-                derive(cfgPresent = true, s = PrinterState(klippyState = k)),
+                derive(cfgPresent = true, s = PrinterState(klippyState = k, connection = connected)),
             )
         }
     }
 
     @Test
-    fun klippyReadyPrinting_routesToShellPrintStatus() {
+    fun klippyReadyPrinting_andConnected_routesToShellPrintStatus() {
         assertEquals(
             TopRoute.Shell(Dest.PrintStatus),
             derive(
                 cfgPresent = true,
-                s = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Printing),
+                s = PrinterState(
+                    klippyState = KlippyState.Ready,
+                    printState = PrintState.Printing,
+                    connection = connected,
+                ),
             ),
         )
     }
 
     @Test
-    fun klippyReadyIdle_routesToSameShellPrintStatusSurface() {
+    fun klippyReadyIdle_andConnected_routesToSameShellPrintStatusSurface() {
         assertEquals(
             TopRoute.Shell(Dest.PrintStatus),
             derive(
                 cfgPresent = true,
-                s = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Standby),
+                s = PrinterState(
+                    klippyState = KlippyState.Ready,
+                    printState = PrintState.Standby,
+                    connection = connected,
+                ),
             ),
         )
     }
@@ -74,16 +96,41 @@ class TopRouteTest {
         assertEquals(Dest.Files, Dest.valueOf("Files"))
     }
 
+    /**
+     * The 13-05 G-B1b departure: with config present and klippy Ready, a socket that is NOT Connected
+     * (mid-reconnect: Connecting/Syncing/Disconnected/Error) now routes the full recovery Splash. This
+     * is the load-bearing new arm — a silent mid-print WiFi drop is no longer invisible.
+     */
     @Test
-    fun socketStateDoesNotRoute_changingOnlyConnectionKeepsRouteIdentical() {
-        val base = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Standby)
-        val connected = base.copy(connection = ConnectionState.Connected)
-        val reconnecting = base.copy(connection = ConnectionState.Connecting)
-        val errored = base.copy(connection = ConnectionState.Error(ConnectionError.NetworkUnavailable))
+    fun socketReconnecting_withConfigAndKlippyReady_routesToSplash() {
+        val base = PrinterState(klippyState = KlippyState.Ready, printState = PrintState.Printing)
+        val reconnectingStates = listOf(
+            ConnectionState.Connecting,
+            ConnectionState.Syncing,
+            ConnectionState.Disconnected,
+            ConnectionState.Error(ConnectionError.NetworkUnavailable),
+        )
+        for (c in reconnectingStates) {
+            assertEquals(
+                "connection=$c (not Connected) must route to the recovery Splash",
+                TopRoute.Splash,
+                derive(cfgPresent = true, s = base.copy(connection = c)),
+            )
+        }
+    }
 
-        val r = derive(cfgPresent = true, s = connected)
-        assertEquals(r, derive(cfgPresent = true, s = reconnecting))
-        assertEquals(r, derive(cfgPresent = true, s = errored))
-        assertEquals("a socket flap must not bounce off PrintStatus", TopRoute.Shell(Dest.PrintStatus), r)
+    /**
+     * Arm ORDER proof: first-run Connect WINS even when the socket is also reconnecting (Connect must
+     * not be trapped behind the new Syncing-splash arm).
+     */
+    @Test
+    fun noConfig_winsOverSocketReconnect() {
+        assertEquals(
+            TopRoute.Connect,
+            derive(
+                cfgPresent = false,
+                s = PrinterState(klippyState = KlippyState.Ready, connection = ConnectionState.Syncing),
+            ),
+        )
     }
 }

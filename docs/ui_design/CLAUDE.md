@@ -79,6 +79,20 @@
   old blanket "block all deletes during any print" behavior was a Phase-7 UAT defect (D-15).
   (2026-06-02; 09-06.)
 
+- **Recovery routing: a socket reconnect now shows the full Syncing Splash.** This **supersedes** the
+  earlier "socket `ConnectionState` is chrome, never routes" rule (the old D-05). As of Phase 13, the
+  top-level route derivation (`ui/route/TopRoute.derive`) routes the **full recovery Splash** when the
+  socket is mid-reconnect (`connection !is Connected`) with a config present and klippy otherwise Ready —
+  in addition to the klippy-not-Ready case. So a **silent mid-print network drop is visibly non-silent**:
+  a half-open WiFi drop (detected by the new OkHttp `pingInterval` keepalive) raises the Syncing Splash,
+  then resyncs. This is SAFE — and does NOT bounce the user off their screen — because the shell nav
+  state (`dest` + back-stack + in-progress calibration routine) was **hoisted above the Splash/Shell
+  switch** (`ShellNavState`, owned by `RootController`); the user returns to the screen they were on, not
+  Home. The recovery Splash also has a **minimum perceptible dwell** (~600ms, a `RootController`-owned UI
+  latch that only delays HIDING the splash, never the actual recovery) so a fast recovery is still seen.
+  The Splash's Disconnected/Error "Unreachable" surface (Retry + Edit connection) is preserved, so a
+  printer that is simply OFF stays reachable, not an eternal dead "Syncing". (Matthew, 2026-06-03; 13-05.)
+
 ## Hi-fi visual language
 - Type: Geist + Geist Mono (tabular numerals for live data).
 - Accent: cool blue (signature). Heat: amber (nozzle/bed). Go/Stop: green/red.

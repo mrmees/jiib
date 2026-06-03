@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.ui.route.TopRoute
@@ -22,16 +23,20 @@ import works.mees.dinghy.ui.screen.SplashScreen
  * `Dest.Settings`. This removes the original plan's dangling `onOpenSettings`-vs-`Dest.Settings`
  * ambiguity — there is exactly ONE open-Settings path, owned by this controller.
  *
- * ## Routing (off the pure [derive], D-05/D-06)
- * It collects the live [PrinterState] and `hasConfig`, computes `route = derive(hasConfig, state)`
- * (the socket [works.mees.dinghy.state.ConnectionState] NEVER routes), and owns ONE
- * `settingsEscape` flag:
- *  - `route is Connect` (first run) OR `settingsEscape` → [SettingsScreen] (the controlled escape; a
- *    successful save clears the escape).
- *  - `route is Splash` → [SplashScreen] (hard override). The AppShell/drawer is NOT composed at all
- *    while splash is showing (D-06), so the drawer is structurally unreachable during recovery. Splash
- *    only flips the root-owned escape via `onEditConnection`.
- *  - `route is Shell` → [AppShell] (the drawer hosts in-shell Settings as `Dest.Settings`).
+ * ## Routing (off the pure [derive], D-05-departure/D-06)
+ * It collects the live [PrinterState] and `hasConfig`, computes `rawRoute = derive(hasConfig, state)`,
+ * and owns ONE `settingsEscape` flag. As of 13-05 the socket
+ * [works.mees.dinghy.state.ConnectionState] NOW routes the recovery Splash (a reconnect shows the full
+ * Syncing splash — the deliberate D-05 departure, Matthew 2026-06-03), which is safe because the shell
+ * nav state was HOISTED here (G-A1) so the splash no longer bounces the user off their screen:
+ *  - `rawRoute is Connect` (first run) OR `settingsEscape` → [SettingsScreen] (the controlled escape; a
+ *    successful save clears the escape). BYPASSES the Splash dwell.
+ *  - the EFFECTIVE Splash (`rawRoute is Splash` OR the min-dwell floor still holding) → [SplashScreen]
+ *    (hard override). The AppShell/drawer is NOT composed at all while splash is showing (D-06), so the
+ *    drawer is structurally unreachable during recovery. Splash only flips the root-owned escape via
+ *    `onEditConnection`. A RootController-OWNED min-dwell latch ([SPLASH_MIN_DWELL_MS]) floors the splash
+ *    so a fast recovery is still perceptible (D-03) — it only delays HIDING, never the actual recovery.
+ *  - else → [AppShell] (the drawer hosts in-shell Settings as `Dest.Settings`), passed the hoisted [nav].
  *
  * @param container the process-scoped service-locator (the live spine + theme + session control).
  */
@@ -49,20 +54,45 @@ fun RootController(container: AppContainer) {
     // stays composed across the Splash/Shell flip, so this `remember`-ed holder survives the blip.
     val nav = rememberShellNavState()
 
-    val route = derive(hasConfig, state)
+    val rawRoute = derive(hasConfig, state)
 
-    // On RETURN from a recovery Splash (the route was Splash, now it is not), clear the TRANSIENT
-    // sub-nav state ([macroPopupFor]) — a half-state macro popup must not survive a reconnect — while
+    // ---- Minimum perceptible Splash dwell (D-03 / G-B1b, 13-05 Task 3) ----------------------------
+    // A recovery can complete FASTER than the eye can catch (Matthew missed the splash on the 13-04
+    // run). So the recovery Splash has a MINIMUM visible dwell: this RootController-OWNED UI latch only
+    // delays HIDING the splash — it NEVER blocks actual recovery (the socket/session layer is untouched;
+    // `derive` stays pure). `splashHeld` is true while the floor since the last Splash-entry has not yet
+    // elapsed. On entering Splash it is set immediately; on leaving Splash it stays true for the
+    // remaining floor, then clears. The Connect/Settings routes BYPASS the dwell entirely (below).
+    val rawSplash = rawRoute is TopRoute.Splash
+    var splashHeld by remember { mutableStateOf(false) }
+    LaunchedEffect(rawSplash) {
+        if (rawSplash) {
+            splashHeld = true
+        } else if (splashHeld) {
+            // Leaving Splash: keep it visible for the floor, then hide. Re-entry cancels this (the
+            // LaunchedEffect key flips), so a flapping reconnect re-arms the floor cleanly.
+            delay(SPLASH_MIN_DWELL_MS)
+            splashHeld = false
+        }
+    }
+
+    // The EFFECTIVE splash = the raw route OR the held floor — but NEVER over Connect/Settings (those
+    // bypass the dwell). The latch floors only the recovery Splash so it is perceptible on BOTH the
+    // klippy-restart and the socket-reconnect paths.
+    val showSplash = rawSplash || splashHeld
+
+    // On RETURN from a recovery Splash (the EFFECTIVE splash is now down), clear the TRANSIENT sub-nav
+    // state ([macroPopupFor]) — a half-state macro popup must not survive a reconnect — while
     // [dest]/[backStack]/[calibrationRoutine]/[macroShowSystem] are deliberately PRESERVED (G-A1: the
     // user returns to their screen, not Home).
-    val onSplash = route is TopRoute.Splash
-    LaunchedEffect(onSplash) {
-        if (!onSplash) nav.resetTransient()
+    LaunchedEffect(showSplash) {
+        if (!showSplash) nav.resetTransient()
     }
 
     when {
-        // First run (no config) OR an active escape → the ONE Settings destination, owned here.
-        route is TopRoute.Connect || settingsEscape -> {
+        // First run (no config) OR an active escape → the ONE Settings destination, owned here. This
+        // BYPASSES the Splash dwell (a first-run/auth-edit escape must never be floored behind a splash).
+        rawRoute is TopRoute.Connect || settingsEscape -> {
             SettingsScreen(
                 container = container,
                 onConnectionSaved = { settingsEscape = false },
@@ -70,8 +100,9 @@ fun RootController(container: AppContainer) {
         }
 
         // Splash hard override (D-06): NO AppShell/drawer composed — the drawer is structurally
-        // unreachable here. Splash never navigates itself; it only flips the root-owned escape.
-        route is TopRoute.Splash -> {
+        // unreachable here. Splash never navigates itself; it only flips the root-owned escape. Gated on
+        // the EFFECTIVE [showSplash] (raw route OR the min-dwell floor) so a fast recovery is still seen.
+        showSplash -> {
             SplashScreen(
                 container = container,
                 hasConfig = hasConfig,
@@ -87,3 +118,10 @@ fun RootController(container: AppContainer) {
         }
     }
 }
+
+/**
+ * Minimum perceptible recovery-Splash dwell (ms). A recovery that completes faster than this floor
+ * still shows the Splash for the floor duration so it is never silent (D-03, 13-05 Task 3). This only
+ * delays HIDING the splash — it never delays the actual reconnect/resync.
+ */
+private const val SPLASH_MIN_DWELL_MS = 600L
