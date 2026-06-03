@@ -353,7 +353,7 @@ Plans:
 - [x] 09-03-PLAN.md — The five pure result parsers + two gating predicates (the Nyquist core; turns the RED scaffolds GREEN)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
-- [ ] 09-04-PLAN.md — Calibration hub (D-14) + screws-tilt guided-loop screen (owner-authored to-scale bed) + holders
+- [x] 09-04-PLAN.md — Calibration hub (D-14) + screws-tilt guided-loop screen (owner-authored to-scale bed) + holders
 - [ ] 09-05-PLAN.md — Z-tilt/QGL screen + bed-mesh heatmap (NEW BedMeshHeatmapView) + scale toggle + profiles + ConfirmGuard amber variant
 
 **Wave 4** *(blocked on Wave 3)*
@@ -458,7 +458,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
 | 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
-| 9. Calibration & Maintenance | 3/7 | In Progress|  |
+| 9. Calibration & Maintenance | 4/7 | In Progress|  |
 | 10. Webcam Streaming | 0/TBD | Not started | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Not started | - |
 | 12. Macro Prompt Protocol | 0/TBD | Not started | - |
