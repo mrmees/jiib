@@ -62,6 +62,13 @@
   "stopping mid-screen.") (2026-06-02.)
 - **Theme-able via tokens.** Dark-first baseline; everything routes through semantic tokens
   (`--bg/--surface/--text/--outline/--accent/--heat/--go/--stop` …). See THEMING.md.
+- **Keyboard carve-out: Save-name fields.** The alphanumeric keyboard is barred from *printer
+  controls*, but a **pre-filled, optional-override name field for SAVING a named artifact** (the
+  bed-mesh **Save-name** dialog, pre-filled `YY.MM.DD_HH.MM`) is a Settings-class text entry, NOT a
+  hot-path control — the system keyboard is permitted there. The input is allowlist-validated
+  (`[A-Za-z0-9_.-]+`, no whitespace/control/`;`/newline) before it can be saved. Future keyboard
+  requests reference THIS established rule instead of reopening the debate. (Owner decision,
+  2026-06-02; 09-05.)
 
 ## Hi-fi visual language
 - Type: Geist + Geist Mono (tabular numerals for live data).

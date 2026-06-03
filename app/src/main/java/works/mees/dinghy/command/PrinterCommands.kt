@@ -203,6 +203,15 @@ object PrinterCommands {
      * and over-[MAX_PROFILE_NAME_LEN]. Returns the validated name; `require()`-fails (IllegalArgumentException)
      * on any violation — callers MUST catch/guard rather than ship raw input.
      */
+    /**
+     * Non-throwing companion to [sanitizeProfileName] (09-05): the Bed-Mesh Save dialog gates its Save
+     * gutter on this so an invalid keyboard-edited name never reaches [bedMeshProfileSave] (which would
+     * throw). Same allowlist contract — blank/whitespace/illegal-char/over-length → false. Belt-and-
+     * braces with the sanitize `require()` (T-09-05-03).
+     */
+    fun isValidProfileName(name: String): Boolean =
+        name.isNotEmpty() && name.length <= MAX_PROFILE_NAME_LEN && name.matches(PROFILE_NAME_ALLOWLIST)
+
     fun sanitizeProfileName(name: String): String {
         require(name.isNotEmpty()) { "bed-mesh profile name must not be blank" }
         require(name.length <= MAX_PROFILE_NAME_LEN) {
