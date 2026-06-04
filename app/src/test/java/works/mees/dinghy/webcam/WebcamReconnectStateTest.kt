@@ -177,6 +177,43 @@ class WebcamReconnectStateTest {
     }
 
     @Test
+    fun cancel_stopsTheInitWebcamsCollector_noOrphanOnReKey() = runTest {
+        // CR-01: the holder's init block launches a PERMANENT `webcams.collect` collector that mirrors the
+        // cam list into the VM. Pre-fix it ran on the shared injected scope and `cancel()` never stopped it,
+        // so every holder re-key (printer swap / config change / rotation) leaked an orphaned collector that
+        // kept consuming the upstream for the life of the composition. After the fix `cancel()` tears the
+        // holder's OWN scope down, so the collector stops observing — a later cam-list change is NOT
+        // reflected in the dead holder's VM.
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        val webcams = MutableStateFlow(oneCam)
+        val feed = WebcamFeed<String> { _, _ -> FeedOutcome.Cancelled }
+
+        val holder = WebcamHolder(
+            scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
+            host = "192.168.1.120", feed = feed, backoffRng = Random(0),
+        )
+        // Let the init collector wire up + mirror the initial list into the VM.
+        testScheduler.advanceTimeBy(10)
+        testScheduler.runCurrent()
+        assertEquals("the init collector mirrors the live cam list before cancel", 1, holder.vm.value.cams.size)
+
+        holder.cancel()
+        testScheduler.advanceTimeBy(10)
+        testScheduler.runCurrent()
+
+        // A NEW cam-list emission after cancel must NOT update the dead holder's VM — the collector is gone
+        // (no orphan kept alive on the shared scope). Pre-fix this would have updated cams to size 2.
+        val twoCams = oneCam + Webcam(name = "cam2", uid = "cam2", streamUrl = "http://h/s2")
+        webcams.value = twoCams
+        testScheduler.advanceTimeBy(10)
+        testScheduler.runCurrent()
+        assertEquals("after cancel() the orphaned init collector is gone — VM is NOT updated (CR-01)", 1, holder.vm.value.cams.size)
+
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+    }
+
+    @Test
     fun defaultPick_resolvesToFirstCam_whenNoPreference() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val scope = CoroutineScope(SupervisorJob() + dispatcher)

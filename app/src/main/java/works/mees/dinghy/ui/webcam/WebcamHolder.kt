@@ -3,6 +3,8 @@ package works.mees.dinghy.ui.webcam
 import android.graphics.Bitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,6 +87,23 @@ class WebcamHolder<T>(
 ) {
     private val _vm = MutableStateFlow(WebcamVm<T>())
 
+    /**
+     * The holder's OWN child scope (CR-01). Derived from the injected [scope]'s context + a child
+     * [SupervisorJob] parented to the injected scope's [Job], so it inherits the scope's dispatcher and
+     * cancels WITH the parent — but ALSO lets [cancel] tear down EVERYTHING this holder launched (the init
+     * `webcams.collect` collector, the driver, the pending `setPreferredCam` prefs writes) in one shot.
+     *
+     * The bug this closes: the init-block collector + the prefs-write launches were on the SHARED injected
+     * [scope] (a single `rememberCoroutineScope()` in AppShell, shared across the whole composition and
+     * EVERY holder). [stop]/[cancel] only cancelled [driver], so each holder re-key (printer swap / config
+     * change / rotation, which re-keys `remember(...)` in AppShell) leaked an orphaned `webcams.collect`
+     * that ran for the life of the composition — the "incomplete teardown" / frozen-feed-after-restart
+     * class WR-01 exists to prevent. Launching all owned work on [holderScope] and cancelling it in
+     * [cancel] mirrors the MoveHolder lifecycle precedent the class doc claims to follow.
+     */
+    private val holderScope: CoroutineScope =
+        CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
+
     /** The resolved webcam view-model (selected cam, latest frame, mode, multi-cam, cam list). */
     val vm: StateFlow<WebcamVm<T>> = _vm.asStateFlow()
 
@@ -101,7 +120,7 @@ class WebcamHolder<T>(
         // Keep the cam LIST + multi-cam flag live in the VM even before [start] (so the Field/cycle
         // overlay render correctly the moment the screen composes). The selected cam resolves in the
         // driver loop (it needs the suspend preferred-cam read).
-        scope.launch {
+        holderScope.launch {
             webcams.collect { cams ->
                 _vm.value = _vm.value.copy(cams = cams, multiCam = cams.size > 1)
             }
@@ -120,7 +139,7 @@ class WebcamHolder<T>(
         // JPEG decode never touch the main thread (NetworkOnMainThreadException); tests = the scope's own
         // (virtual-time) dispatcher. Cancellation still propagates: the child job is cancelled with the
         // parent scope on stop()/cancel() regardless of the dispatcher.
-        driver = scope.launch(driverContext) { drive() }
+        driver = holderScope.launch(driverContext) { drive() }
     }
 
     /**
@@ -139,14 +158,17 @@ class WebcamHolder<T>(
      */
     fun cancel() {
         cancelled = true
-        driver?.cancel()
+        // Cancel the holder's OWN scope: this tears down the init `webcams.collect` collector, the active
+        // driver, AND any pending `setPreferredCam` prefs write together (CR-01) — no orphaned collector
+        // survives a re-key. Idempotent: cancelling an already-cancelled scope is a no-op.
+        holderScope.cancel()
         driver = null
     }
 
     /** Select a specific cam by identity (uid/name) and persist it as the last-viewed (D-10). */
     fun selectCam(camId: String) {
         selectedId.value = camId
-        scope.launch { webcamPrefs.setPreferredCam(host, camId) }
+        holderScope.launch { webcamPrefs.setPreferredCam(host, camId) }
         start() // re-drive the new selection
     }
 
