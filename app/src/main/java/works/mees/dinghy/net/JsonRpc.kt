@@ -136,12 +136,26 @@ object JsonRpcMethods {
     // fetched ONCE per not-printing transition for the idle Status "last completed job" card.
     const val HISTORY_LIST = "server.history.list"
 
+    // Phase-11 Spoolman active-spool + inventory JSON-RPC surface (SPOOL-01/04/08; plan 11-04).
+    // status/get/post drive the Moonraker-owned ACTIVE spool over the existing JSON-RPC session;
+    // proxy is the use_v2_response=true REST passthrough the lean SpoolmanClient reads inventory through.
+    const val SPOOLMAN_STATUS = "server.spoolman.status"
+    const val SPOOLMAN_GET_SPOOL_ID = "server.spoolman.get_spool_id"
+    const val SPOOLMAN_POST_SPOOL_ID = "server.spoolman.post_spool_id"
+    const val SPOOLMAN_PROXY = "server.spoolman.proxy"
+
     // Notifications (server → client, no id)
     const val NOTIFY_STATUS_UPDATE = "notify_status_update"
     const val NOTIFY_GCODE_RESPONSE = "notify_gcode_response"
     const val NOTIFY_KLIPPY_READY = "notify_klippy_ready"
     const val NOTIFY_KLIPPY_SHUTDOWN = "notify_klippy_shutdown"
     const val NOTIFY_KLIPPY_DISCONNECTED = "notify_klippy_disconnected"
+
+    // Phase-11 Spoolman server-push notifications (SPOOL-08 / D-10 external-change reconciliation).
+    // Both carry `params` as a 1-ELEMENT array: active-spool-set → `[{spool_id}]`, status-changed →
+    // `[{spoolman_connected}]`. An external mutator (Fluidd, a runout macro) pushes these.
+    const val NOTIFY_ACTIVE_SPOOL_SET = "notify_active_spool_set"
+    const val NOTIFY_SPOOLMAN_STATUS_CHANGED = "notify_spoolman_status_changed"
 
     /** JSON-RPC error code Moonraker returns from `identify` when credentials are missing/invalid. */
     const val CODE_INVALID_PARAMS = -32602

@@ -33,6 +33,20 @@ data class GcodeStoreArgs(val count: Int = 1000)
 data class ObjectSubsetArgs(val objects: Set<String>)
 class ServerInfoArgs private constructor()
 
+/**
+ * Set/clear the Moonraker active spool (D-13). A non-null [spoolId] SETS it (`post_spool_id {spool_id}`);
+ * null CLEARS it (`post_spool_id {}` — the real clear contract). Routed through the active JSON-RPC
+ * session, gated on the `spoolman` component.
+ */
+data class SetSpoolArgs(val spoolId: Int?)
+
+/**
+ * A `server.spoolman.proxy` (use_v2_response=true) inventory request the lean SpoolmanClient issues
+ * (D-07). [method] is the HTTP verb ("GET"/"PUT"), [path] the Spoolman REST path (e.g. "/v1/spool"),
+ * [query] the optional already-URL-encoded query string (dotted keys encoded in the client layer).
+ */
+data class SpoolmanProxyArgs(val method: String, val path: String, val query: String? = null)
+
 /** Manual-probe Z-jog nudge (D-01) — [step] is clamped to ±MAX_TESTZ_MM by [PrinterCommands.testZ]. */
 data class TestZArgs(val step: Double)
 
@@ -226,6 +240,54 @@ object CommandRegistry {
         // NO availability predicate (D-08): the Moonraker `webcam` component is universal on E5/E3 — the
         // TILE is greyed on cam-count==0 (AppContainer.webcamCount), the command is never object-gated.
         // One-shot edge-driven read (cadence contract): NOT in V1_SUBSCRIBE_CORE, NOT polled.
+    )
+
+    // --- Phase-11 Spoolman active-spool + inventory specs (SPOOL-01/04/08; plan 11-04). ---
+    // Active-spool state is Moonraker-owned over the EXISTING JSON-RPC session; inventory rides the
+    // proxy passthrough. The read specs are ungated (status/get are universally answerable when the
+    // component exists); the WRITE (post) and the proxy passthrough carry the ComponentPresent gate
+    // (D-02) so they never fire on a printer without the spoolman component.
+
+    val spoolmanStatus: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-server.spoolman.status",
+        method = JsonRpcMethods.SPOOLMAN_STATUS,
+        key = { "spoolman_status" },
+        params = { null },
+    )
+
+    val spoolmanGetSpoolId: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-server.spoolman.get_spool_id",
+        method = JsonRpcMethods.SPOOLMAN_GET_SPOOL_ID,
+        key = { "spoolman_get_spool_id" },
+        params = { null },
+    )
+
+    val spoolmanPostSpoolId: CommandSpec<SetSpoolArgs> = jsonRpc(
+        catalogId = "MR-server.spoolman.post_spool_id",
+        method = JsonRpcMethods.SPOOLMAN_POST_SPOOL_ID,
+        key = { args -> "spoolman_post_${args.spoolId ?: "clear"}" },
+        // D-13: a non-null id SETS (`{spool_id}`); null CLEARS (`{}` — empty params object).
+        params = { args ->
+            buildJsonObject {
+                args.spoolId?.let { put("spool_id", it) }
+            }
+        },
+        availability = AvailabilityPredicate.ComponentPresent("spoolman"),
+    )
+
+    val spoolmanProxy: CommandSpec<SpoolmanProxyArgs> = jsonRpc(
+        catalogId = "MR-server.spoolman.proxy",
+        method = JsonRpcMethods.SPOOLMAN_PROXY,
+        key = { args -> "spoolman_proxy_${args.method}_${args.path}" },
+        params = { args ->
+            buildJsonObject {
+                put("use_v2_response", true)
+                put("request_method", args.method)
+                put("path", args.path)
+                args.query?.let { put("query", it) }
+            }
+        },
+        availability = AvailabilityPredicate.ComponentPresent("spoolman"),
     )
 
     val emergencyStop: CommandSpec<Unit> = jsonRpc(
@@ -464,6 +526,10 @@ object CommandRegistry {
         printCancel,
         historyList,
         webcamsList,
+        spoolmanStatus,
+        spoolmanGetSpoolId,
+        spoolmanPostSpoolId,
+        spoolmanProxy,
         emergencyStop,
         firmwareRestart,
         restart,

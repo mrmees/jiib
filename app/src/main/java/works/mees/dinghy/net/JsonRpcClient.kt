@@ -73,6 +73,22 @@ class JsonRpcClient(
      */
     val gcodeResponses: SharedFlow<String> = _gcodeResponses.asSharedFlow()
 
+    private val _activeSpoolSet = MutableSharedFlow<JsonObject>(extraBufferCapacity = SPOOLMAN_BUFFER)
+    /**
+     * `notify_active_spool_set` payloads — element [0] of the 1-element params array (the
+     * `{spool_id: <id-or-null>}` object). An external mutator (Fluidd, a runout macro) pushes this when
+     * the active spool changes; [works.mees.dinghy.spool.ActiveSpoolFacade] reconciles to it (D-10).
+     */
+    val activeSpoolSet: SharedFlow<JsonObject> = _activeSpoolSet.asSharedFlow()
+
+    private val _spoolmanStatusChanged = MutableSharedFlow<JsonObject>(extraBufferCapacity = SPOOLMAN_BUFFER)
+    /**
+     * `notify_spoolman_status_changed` payloads — element [0] of the 1-element params array (the
+     * `{spoolman_connected: <bool>}` object). The Spoolman backend connect/disconnect signal; the
+     * facade re-fetches status on it for truth (D-10).
+     */
+    val spoolmanStatusChanged: SharedFlow<JsonObject> = _spoolmanStatusChanged.asSharedFlow()
+
     /** Bind the active socket connection (call on [SocketEvent.Open]). */
     fun bind(connection: RpcConnection) {
         this.connection = connection
@@ -189,7 +205,15 @@ class JsonRpcClient(
             JsonRpcMethods.NOTIFY_KLIPPY_DISCONNECTED -> {
                 _klippyEvents.tryEmit(method)
             }
+            JsonRpcMethods.NOTIFY_ACTIVE_SPOOL_SET -> {
+                spoolNotifyParam(obj)?.let { _activeSpoolSet.tryEmit(it) }
+            }
+            JsonRpcMethods.NOTIFY_SPOOLMAN_STATUS_CHANGED -> {
+                spoolNotifyParam(obj)?.let { _spoolmanStatusChanged.tryEmit(it) }
+            }
             // Any other notify_* is unmodeled here; drop it (a later wave may add routing).
+            // The live notify golden interleaves nine `notify_proc_stat_update` frames around the
+            // spoolman pushes — they MUST fall through this `else` untouched (T-11-04).
             else -> Unit
         }
     }
@@ -223,6 +247,15 @@ class JsonRpcClient(
         obj["params"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.contentSafe()
     }.getOrNull()
 
+    /**
+     * Extract a Spoolman notify payload — element [0] of the 1-element params array (D-10: Moonraker
+     * wraps the single `{spool_id}` / `{spoolman_connected}` object in an array). Null-safe; a
+     * malformed/non-object/empty params yields null so the route drops the frame, never throws.
+     */
+    private fun spoolNotifyParam(obj: JsonObject): JsonObject? = runCatching {
+        obj["params"]?.jsonArray?.firstOrNull()?.jsonObject
+    }.getOrNull()
+
     private fun JsonPrimitive.contentSafe(): String? = runCatching { content }.getOrNull()
 
     companion object {
@@ -233,6 +266,8 @@ class JsonRpcClient(
         private const val STATUS_BUFFER = 64
         private const val KLIPPY_BUFFER = 16
         private const val GCODE_BUFFER = 256
+        // Spoolman pushes are rare (a user/macro spool change) — a small bound is ample.
+        private const val SPOOLMAN_BUFFER = 16
     }
 }
 

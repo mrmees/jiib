@@ -1566,6 +1566,100 @@
       ]
     },
     {
+      "catalog_id": "MR-server.spoolman.status",
+      "name": "server.spoolman.status",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info; live capture returned {spoolman_connected:true, spool_id:5, pending_reports:[]} (spoolman-live-ender5-status-before-set.json). Read spec ungated; the WRITE/proxy carry component_present:spoolman."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info capture; status read is answerable whenever the component exists."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.spoolman.get_spool_id",
+      "name": "server.spoolman.get_spool_id",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info; live capture returned {spool_id:5} (spoolman-live-ender5-notify.json get_spool_id call)."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.spoolman.post_spool_id",
+      "name": "server.spoolman.post_spool_id",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "spoolman"
+      },
+      "predicate_key": "component_present:spoolman",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info capture; set/clear (D-13) gated on the spoolman component."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-server.spoolman.proxy",
+      "name": "server.spoolman.proxy",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "component_present",
+        "name": "spoolman"
+      },
+      "predicate_key": "component_present:spoolman",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info; live use_v2_response=true proxy returned the PLA list envelope with X-Total-Count (spoolman-live-ender5-proxy-pla.json)."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "spoolman component listed in /server/info capture; proxy passthrough gated on the spoolman component."
+        }
+      ]
+    },
+    {
       "catalog_id": "MR-printer.emergency_stop",
       "name": "printer.emergency_stop",
       "source_api": "moonraker",
