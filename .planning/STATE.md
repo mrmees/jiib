@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-03T23:59:00.000Z"
+status: ready_to_plan
+last_updated: 2026-06-04T00:10:55.944Z
 last_activity: 2026-06-03
 progress:
   total_phases: 15
@@ -11,6 +11,7 @@ progress:
   total_plans: 65
   completed_plans: 64
   percent: 53
+stopped_at: Phase 13 complete (5/5) — ready to discuss Phase 14
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 13 — optimization-network-efficiency-end-to-end-reliability
+**Current focus:** Phase 14 — release hardening & ship — always on, lifecycle & signed apk
 
 ## Current Position
 
-Phase: 13 (optimization-network-efficiency-end-to-end-reliability) — PLANS COMPLETE, AWAITING PHASE VERIFICATION
-Plan: 5 of 5 (all complete — 13-01..13-05; 13-05 was a gap-closure plan added after the 13-04 binding-gate FAIL)
-Status: All plans complete + on-device UAT PASSED — ready for phase verification (orchestrator owns phase-complete)
+Phase: 14
+Plan: Not started
+Status: Ready to plan
   → Plans 13-04 + 13-05 FINALIZED 2026-06-03. The binding D-09 on-device UAT (dual-printer dual-scenario on flox + live E5/E3) is SATISFIED. Sequence: 13-04 Task 1 built/signed/installed the release APK on flox + scaffolded 13-UAT.md (commit b07a511); 13-04 Task 2 (the binding human-verify gate) FAILED on the 1st run (commit 07402c2), catching two on-hardware-only defects the GREEN unit suite missed — G-A1 (recovery bounced the app to Home) + G-B1 (a silent mid-print WiFi half-open drop was never detected, the feed just froze; code-confirmed root cause = no OkHttp pingInterval → onFailure never fires → SocketEvent.Closed never emitted → reconnect supervisor never runs; the 4th mock-vs-reality strike, FakeWebSocket synthesizes Closed while real OkHttp never does without keepalive). Per the plan's rule a FAIL spawned the 13-05 gap-closure, NOT a phase-complete mark (13-04 was held SUMMARY-less until the re-run passed). 13-05 fixed all three: G-B1a OkHttp pingInterval(~10s) keepalive on defaultClient() + MoonrakerSocketClientTest pinning pingIntervalMillis>0 (404e00e); G-A1 hoisted the shell nav state (dest+backStack+calibrationRoutine) into a root-scoped ShellNavState above the RootController Splash/Shell switch — macroPopupFor reset on return, macroShowSystem preserved (5451638); G-B1b derive() now routes the FULL Syncing splash on socket reconnect in the Codex-reviewed arm order (!cfg→Connect ; klippy!=Ready→Splash ; connection!is Connected→Splash ; else→Shell) + a RootController-owned ~600ms min-dwell latch making the recovery splash perceptible on BOTH the klippy-restart and socket-reconnect paths + docs/ui_design synced (777a74d). D-05 DEPARTURE (Matthew 2026-06-03): socket ConnectionState NOW routes the recovery Splash (supersedes the original 'socket state is chrome, never routes') — SAFE only because nav was hoisted (no Home bounce). Codex must-fix applied = the explicit sub-nav enumeration. Full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded), signed APK on flox. The RE-RUN binding UAT PASSED (Matthew: "Both pass") — 13-UAT.md = PASSED (Run #2): SAVE_CONFIG→visible Syncing splash→feed resumes→print registers→stays on screen; mid-print WiFi drop→full Syncing splash (keepalive-detected)→resync; D-03 splash perceptible every recovery; Probe z_offset fresh; Temp/Move/Files behavior-preserving. Phase 13's reliability work is complete pending the verifier. Next: phase verification (orchestrator).
   → Plan 13-02 (Wave 1, the HEADLINE reliability fix) EXECUTED + COMPLETE 2026-06-03 (commits c2f2970 production + cceb51b tests). The in-session klippy-restart re-handshake is now VISIBLE (emit Syncing→Connected wrapping runHandshake(skipIdentify=true), D-03), DISCONNECT-DRIVEN (markStale + emit(Syncing) + a 30s bounded escalate-watchdog the instant notify_klippy_disconnected arrives — branch (a) per the 13-01 capture: NO shutdown, NO webhooks.state, so NO store klippyState edge exposed), and SELF-HEALING (a rejected/withheld/timed-out re-subscribe in the klippy-down window closes the REAL RpcConnection → OkHttp cancel → SocketEvent.Closed → closed.await() unblocks → run() reconnects on a fresh socket — NOT rpc.close which would park closed.await() forever). CODEX-FOUND PRODUCTION BUG fixed: a single one-shot shared `recovered` CompletableDeferred let only the FIRST same-socket recovery arm a watchdog; a 2nd klippy drop returned instantly off the completed deferred (dead escalate-timeout = dead-forever for the COMMON repeated-SAVE_CONFIG flow). Fix = a PER-DROP deferred in an AtomicReference (each drop swaps in a fresh deferred, completing the prior harmlessly; its watchdog awaits THAT deferred; the matching ready completes the current one). Also dropped the per-attempt `escalated` AtomicBoolean latch (it would block a 2nd drop's escalation) — RpcConnection.close is idempotent (own compareAndSet), so every genuine failure is free to escalate, no close storm. TEST-HANG fixed (Codex-confirmed): the hang was advanceUntilIdle() chasing the permanently-failing klippyDown harness + firing the 30s watchdog prematurely → runCurrent() between inject-drop/inject-ready; the self-heal test clears harness.klippyDown=false AFTER observing the first escalation re-enter connectAndServe so the reconnect SUCCEEDS + the session QUIESCES, then advanceTimeBy(60s) past backoff + withTimeout(5s){first{Connected}} deadman (never open-ended advanceUntilIdle). The two previously-RED 13-01 fix-drivers (KlippyRecoveryStateTest D-03 Syncing→Connected + KlippyReadyResyncTest self-heal escalation opens++/re-entry) are GREEN; the GREEN locks (resumed-diffs, min_extrude_temp refresh, D-07b) held; full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (all hard-timeout-guarded, exit codes authoritative). ProbeZOffsetFreshnessTest GREEN — the executable gate 13-03's refreshProbeZOffset removal depends on — is held GREEN (recovery re-reads configfile, so a changed probe.z_offset propagates). 2 deviations (both auto-fixed correctness: the Codex production bug + the test-hang). Next: 13-03 (cadence-audit deliverable + remove the now-redundant refreshProbeZOffset, gated on ProbeZOffsetFreshnessTest staying GREEN).
   → Phase-9 transition DONE 2026-06-03: ROADMAP promotion APPLIED (Phase 13 execution-order-promoted to run next; Webcam/Spool/Macro-Prompt deferred behind it; numbers unchanged). Phase 9 marked complete in the ROADMAP checklist + progress table. PROJECT.md evolved (calibration → Validated). Remaining: discuss/plan Phase 13.
@@ -38,7 +39,7 @@ Status: All plans complete + on-device UAT PASSED — ready for phase verificati
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-03
+Last activity: 2026-06-04
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -46,7 +47,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 38
+- Total plans completed: 43
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -59,6 +60,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 03 | 7 | - | - |
 | 05 | 11 | - | - |
 | 08 | 7 | - | - |
+| 13 | 5 | - | - |
 
 **Recent Trend:**
 
