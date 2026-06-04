@@ -83,14 +83,13 @@ to regions as follows:
 
 ## Spacing Scale
 
-Declared values (multiples of 4; matches `MacroExecutionPopup` precedent and project convention):
+Declared values — all on the standard set {4, 8, 16, 24, 32, 48, 64}:
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4dp | inline icon gaps inside a row cell |
-| sm | 8dp | tight intra-component spacing |
-| md | 12dp | **default gap** — between content items, between footer buttons, inner button padding (matches `MacroExecutionPopup` `spacedBy(12.dp)`) |
-| lg | 16dp | overlay outer padding (matches `MacroExecutionPopup` `.padding(16.dp)`); gap between header / Field / footer bands |
+| sm | 8dp | tight intra-component gaps — inner button padding, gap between footer buttons |
+| lg | 16dp | **default gap** — between content items; overlay outer padding (matches `MacroExecutionPopup` `.padding(16.dp)`); gap between header / Field / footer bands |
 | xl | 24dp | major vertical break between the content Field and the footer action bar |
 
 **Touch-target floor (non-negotiable):** every interactive element — content button, footer button,
@@ -104,24 +103,29 @@ Exceptions: none beyond the LAW's permitted fixed values (hairline, touch floor,
 ## Typography
 
 Use the established `fsSp(baseSp, t.fs)` scale — **never a bare sp**. Mind the recurring
-**fonts-too-small** lesson: floor is 15sp for metadata, body 17–18sp, titles 20–28sp.
+**fonts-too-small** lesson: floor is 15sp for metadata, body 17–18sp, titles 22–28sp.
+
+Four distinct sizes only — `15 / 18 / 22 / 28` — exactly the protocol-mandated PromptMarkup
+`<size:small|normal|large|x-large>` ladder. The dialog title reuses the 28sp display tier (it does
+NOT introduce a 5th size).
 
 | Role | Base size (`fsSp(_, t.fs)`) | Font | Weight | Notes |
 |------|------------------------------|------|--------|-------|
-| Dialog title (`prompt_begin`) | **24sp** | Geist | SemiBold | Author text, not a filename → Geist, NOT Mono (the `MacroExecutionPopup` 28sp is a fixed macro-name label; a prompt title is variable author prose, 24sp gives more room, still firmly above the title floor). `maxLines = 3`, ellipsis. |
+| Dialog title (`prompt_begin`) | **28sp** | Geist | SemiBold | Author text, not a filename → Geist, NOT Mono. **Shares the 28sp display-tier value with `<size:x-large>`** (no extra size introduced); reads clearly above the 22sp tier and matches the `MacroExecutionPopup` 28sp title anchor. `maxLines = 3`, ellipsis. |
 | Markup / text content body | **18sp** | Geist | Regular (400) base | The PromptMarkup default. `<b>` lifts to SemiBold (600); `<size:...>` overrides per the size ladder below. Line-height ~1.4 for readable multi-line prose. |
 | Content button label | **18sp** | Geist | SemiBold | Plain text only (button-label markup is NOT v1). `maxLines = 2`, ellipsis. |
 | Footer button label | **18sp** | Geist | SemiBold | Same as content buttons. |
 | Image alt-text fallback (failed/rejected image) | **15sp** | Geist | Regular | Rendered as plain centered text when an image fails to load or is policy-rejected (D-07 / SPEC images). |
 
-**PromptMarkup `<size:...>` ladder** — maps the four protocol sizes onto the body base via `fsSp`:
+**PromptMarkup `<size:...>` ladder** — the four protocol sizes ARE the four declared sizes, mapped onto
+the body base via `fsSp`:
 
 | Markup size | Base sp (before `fs`) | Relationship to body |
 |-------------|------------------------|----------------------|
 | `small` | 15sp | floor — never below the 15sp metadata floor even at `--fs` S |
 | `normal` | 18sp | == body default |
 | `large` | 22sp | title-tier |
-| `x-large` | 28sp | display-tier (focus-tier emphasis) |
+| `x-large` | 28sp | display-tier (focus-tier emphasis) — **also the dialog-title size** |
 
 > Weight policy: the LAW prefers exactly two weights (Regular 400 + SemiBold 600). PromptMarkup `<b>`
 > uses SemiBold; `<i>` uses italic style (a font *style*, not a third weight); `<u>` uses underline
