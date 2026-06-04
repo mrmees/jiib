@@ -31,9 +31,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
-import works.mees.dinghy.command.CommandRegistry
-import works.mees.dinghy.command.SetSpoolArgs
-import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -65,6 +62,10 @@ import works.mees.dinghy.theme.fsSp
  * @param dispatcher the session action dispatcher (null when idle — Set/Clear no-op until reconnected).
  * @param onBack the red Back gutter exit.
  * @param onScan opens the QR scan sub-surface (the 11-07 surface; a no-op hook until wired).
+ * @param prefilter the D-04 gcode-aware prefilter seed carried from a Files spool-warning "Pick spool"
+ *   (null on a plain drawer open); applied ONCE on entry then cleared via [onPrefilterConsumed].
+ * @param onPrefilterConsumed clears the one-time [prefilter] seed after the picker applies it (so a later
+ *   manual reopen is unseeded).
  */
 @Composable
 fun SpoolScreen(
@@ -73,12 +74,22 @@ fun SpoolScreen(
     onBack: () -> Unit,
     onScan: () -> Unit,
     modifier: Modifier = Modifier,
+    prefilter: SpoolPrefilterSeed? = null,
+    onPrefilterConsumed: () -> Unit = {},
 ) {
     val state by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val selected = state.selected
 
     LaunchedEffect(holder) { holder.load() }
+    // D-04: apply the gcode-aware prefilter seed ONCE (keyed on the seed identity), then clear it so a
+    // later manual reopen of the picker is unseeded. Runs after load() seeds the chip universes; seeding
+    // the filters re-issues the list read with the file's material family + color hint.
+    LaunchedEffect(holder, prefilter) {
+        val seed = prefilter ?: return@LaunchedEffect
+        holder.seedPrefilter(seed)
+        onPrefilterConsumed()
+    }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Portrait shows the Focus only once a spool is selected (the FilesScreen idiom); landscape always
@@ -128,14 +139,17 @@ fun SpoolScreen(
                         symbol = "qr_code_scanner",
                     )
                     OutlinedControl(
-                        // Set the selected spool active (D-13 → post_spool_id {spool_id}); the holder
-                        // reconciles the resulting notify_active_spool_set into its "Loaded" mark (D-10).
-                        // No-op when nothing is selected OR no live session — the dispatcher is null then.
+                        // Set the selected spool active (D-13 → post_spool_id {spool_id}) via the holder's
+                        // change-during-print mutator: this re-points active-spool tracking ONLY and does
+                        // NOT interrupt a running print — there is NO print-state gating (the change is
+                        // allowed mid-print, the whole point of change-during-print). The holder reconciles
+                        // the resulting notify_active_spool_set into its "Loaded" mark (D-10). No-op when
+                        // nothing is selected OR no live session (the dispatcher is null then).
                         label = "Load spool",
                         onClick = {
                             val id = selected?.id
                             if (id != null) {
-                                dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, SetSpoolArgs(spoolId = id))
+                                holder.setActiveSpool(dispatcher, id)
                             }
                         },
                         modifier = Modifier.weight(1f),
