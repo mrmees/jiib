@@ -198,7 +198,16 @@ private fun CameraPreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val previewView = remember { PreviewView(context) }
+    val previewView = remember {
+        PreviewView(context).apply {
+            // FILL_CENTER = crop-to-fill (never letterbox); COMPATIBLE (TextureView) re-applies its
+            // transform when a different-aspect lens binds, so flipping to the front cam re-fills the
+            // screen — SurfaceView-backed PERFORMANCE mode doesn't always re-transform on switch,
+            // especially on old hardware (Matthew, 2026-06-04).
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
+    }
 
     AndroidView(factory = { previewView }, modifier = modifier.fillMaxSize())
 
