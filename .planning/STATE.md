@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T07:56:15.318Z"
+last_updated: "2026-06-04T08:05:17.071Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 15
   completed_phases: 11
   total_plans: 82
-  completed_plans: 77
+  completed_plans: 78
   percent: 73
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 11 (spool-management-spoolman-camera-qr) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -141,6 +141,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 11 P11-01 | ~5m | 3 tasks | 21 files |
 | Phase 11 P02 | 6m | 3 tasks | 6 files |
 | Phase 11 P11-03 | ~6m | 3 tasks | 6 files |
+| Phase 11 P05 | ~9m | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -247,6 +248,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Snapshot mode accepted as the honest v1 webcam fallback for WebRTC-only printers — ~0.3fps is MediaMTX server snapshot cadence (regenerates ~3-4s), not a flox/decoder limit; correctly badged. WebRTC deferred (SC-4).
 - [Phase 10]: Webcam A1/A2 decode constants PINNED on-device (flox/Adreno-320): TARGET_FPS=12, ARGB_8888, MAX_SAMPLE_SIZE=16, snapshot POLL_INTERVAL=500ms — render p95 ~20ms / 0 frozen frames; unchanged from assumed.
 - [Phase ?]: Wave-0 Spoolman foundation (11-01): 10 verbatim live goldens + hardened proxy-v2/notify fakes + 8 compile-clean RED scaffolds; mock-vs-reality 7th-strike guard baked in from day one
+- [Phase ?]: 11-05: CameraX 1.5.0 holds minSdk-23 floor (verifyMinSdkRelease green); no Camera2 fallback needed
+- [Phase ?]: 11-05: zxing:core pinned 3.3.3 (NOT 3.4.0+ API-23 decode crash); locked by a real JVM ZxingDecodeVersionTest
 
 ### Pending Todos
 
@@ -278,6 +281,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T07:56:15.260Z
+Last session: 2026-06-04T08:04:53.765Z
 Stopped at: Phase 11 context gathered
 Resume file: None
