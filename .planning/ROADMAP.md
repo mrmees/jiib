@@ -466,7 +466,18 @@ Plans:
   3. Camera permission is requested gracefully and the feature degrades cleanly on a device with no camera (manual spool-pick still works)
   4. Provable end-to-end on a real printer: load filament → scan its label → the active spool flips in Spoolman
 
-**Plans**: TBD
+**Plans**: 9 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Wave 0: live fixtures→goldens, hardened fakes, compile-clean RED scaffolds, catalog gap
+- [ ] 11-02-PLAN.md — Wave 1: null-safe Spoolman models/parsers (proxy-v2 envelope) + FilePreviewMetadata filament arrays
+- [ ] 11-03-PLAN.md — Wave 1: QR payload parser (D-12), warn-only print-start gate (D-01), scan state machine (D-15)
+- [ ] 11-04-PLAN.md — Wave 2: Spoolman spine — specs + notify routing + SpoolmanClient + ActiveSpoolFacade + derived flows
+- [ ] 11-05-PLAN.md — Wave 3: CameraX 1.5 + zxing 3.3.3 deps/manifest + QrCodeAnalyzer + ZxingDecodeVersionTest
+- [ ] 11-06-PLAN.md — Wave 4: Dest.Spool + greyed tile + active-spool Status card + Files-style picker/holder
+- [ ] 11-07-PLAN.md — Wave 4: scan surface (CameraX+release) + permission glue + confirm-first + measured-weight
+- [ ] 11-08-PLAN.md — Wave 5: warn-only gate hook + gcode-aware prefilter + change-during-print
+- [ ] 11-09-PLAN.md — Wave 6: on-device end-to-end UAT (scan→flip) + degrade + save→change→restore (BLOCKING)
 **UI hint**: yes
 **Research note**: DEEPER — Moonraker Spoolman API surface (`/server/spoolman/*`, active-spool set), Spoolman QR label payload format (`web+spoolman:s-<id>`), CameraX + ZXing on API 23 without GMS, and camera-permission flow.
 
