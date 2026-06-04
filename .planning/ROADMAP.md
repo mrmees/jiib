@@ -435,7 +435,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 
-- [ ] 10-03-PLAN.md — Enumeration spine wiring: server.webcams.list one-shot spec + SpineHandle.webcams StateFlow + AppContainer webcamCount (cadence-compliant, edge-driven)
+- [x] 10-03-PLAN.md — Enumeration spine wiring: server.webcams.list one-shot spec + SpineHandle.webcams StateFlow + AppContainer webcamCount (cadence-compliant, edge-driven)
 - [ ] 10-04-PLAN.md — Decode I/O: Content-Type probe + lean Okio MJPEG decoder (drop-behind, inBitmap) + ~2fps snapshot poller (two derived OkHttp postures)
 - [ ] 10-05-PLAN.md — Render surface: WebcamView (ThemeableView, pixel-square never-stretch + rounded cutout + token chrome) + WebcamViewHost
 
@@ -558,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 2/8 | In Progress|  |
+| 10. Webcam Streaming | 3/8 | In Progress|  |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
