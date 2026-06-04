@@ -1,0 +1,11 @@
+The webcam page should be relatively simple for now.  It should accept the feeds that are output from crowsnest (the defacto standard for klipper installations) in either encoder format (https://github.com/mainsail-crew/gb-crowsnest/blob/main/configuration/cam-section.md).  I also want to make sure it's setup to use my own "ravens perch" software (in our github folder, based on a mediamtx backend).  
+
+Default view is a single focus frame, showing the first camera feed available (or whatever the user had previously selected as the preferred camera for that printer).  It would be really cool if we could detect the ratio of the camera (either portrait or landscape) and make the view hide/show the field (a selectable list of the cameras) only if it made sense.  Eg:  If the device is in landscape and the feed is landscape, no field area is shown, but if the devices is in landscape and the feed is in portrait, show the field.  Gutter button is only "back".  If in "full focus mode" with no field, there should be an overlay icon within the camera feed if multiple cameras are detected (icon burstmode, text camera name within moonraker) that when clicked cycles through the cameras.  If a field is shown, show a pickable list of cameras, with the selected camera expanded to show available info from moonraker.  
+
+Camera feeds should never be stretched to fit (though they can always grow/shrink to fit), always keep them pixel-square and make sure that they get drawn correctly in either portrait or landscape mode.   
+
+Round the edges of the camera feed , we're ok losing that content to ensure visual continuity within the page, the square images of the feed will clash with our round edges everywhere else.  
+
+We really want to think about bandwidth/processor power eficiency here, I'm not sure if we have many options considering the age of the SDK we're designing against, but camera feeds and old hardware are typically a bad combination. 
+
+
