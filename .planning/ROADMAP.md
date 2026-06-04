@@ -472,7 +472,7 @@ Plans:
 - [x] 11-01-PLAN.md — Wave 0: live fixtures→goldens, hardened fakes, compile-clean RED scaffolds, catalog gap
 - [x] 11-02-PLAN.md — Wave 1: null-safe Spoolman models/parsers (proxy-v2 envelope) + FilePreviewMetadata filament arrays
 - [x] 11-03-PLAN.md — Wave 1: QR payload parser (D-12), warn-only print-start gate (D-01), scan state machine (D-15)
-- [ ] 11-04-PLAN.md — Wave 2: Spoolman spine — specs + notify routing + SpoolmanClient + ActiveSpoolFacade + derived flows
+- [x] 11-04-PLAN.md — Wave 2: Spoolman spine — specs + notify routing + SpoolmanClient + ActiveSpoolFacade + derived flows
 - [ ] 11-05-PLAN.md — Wave 3: CameraX 1.5 + zxing 3.3.3 deps/manifest + QrCodeAnalyzer + ZxingDecodeVersionTest
 - [ ] 11-06-PLAN.md — Wave 4: Dest.Spool + greyed tile + active-spool Status card + Files-style picker/holder
 - [ ] 11-07-PLAN.md — Wave 4: scan surface (CameraX+release) + permission glue + confirm-first + measured-weight
@@ -570,7 +570,7 @@ existing "Phase 13" references valid).
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
-| 11. Spool Management — Spoolman + Camera QR | 3/9 | In Progress|  |
+| 11. Spool Management — Spoolman + Camera QR | 4/9 | In Progress|  |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |

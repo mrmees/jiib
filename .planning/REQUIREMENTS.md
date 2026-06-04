@@ -220,7 +220,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CALIB-05 (PROBE_CALIBRATE; ⊂ ZCAL-01) | Phase 9 | Planned |
 | CALIB-06 (files-delete scoping D-15) | Phase 9 | Planned |
 | CAM-01 | Phase 10 | Complete |
-| SPOOL-01 | Phase 11 | Pending |
+| SPOOL-01 | Phase 11 | Complete |
 | SPOOL-02 (active-spool Status card; ⊂ SPOOL-01) | Phase 11 | Planned |
 | SPOOL-03 (picker + filters in Dest.Spool; ⊂ SPOOL-01) | Phase 11 | Planned |
 | SPOOL-04 (set/clear/change active via Moonraker JSON-RPC; ⊂ SPOOL-01) | Phase 11 | Planned |
