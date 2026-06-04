@@ -40,6 +40,15 @@ import kotlin.time.Duration.Companion.seconds
  *
  * SECURITY V7 / T-10-05: the E3 snapshot URL embeds a `?token=` — this class logs nothing in the clear;
  * any URL that reaches a surface MUST pass through [redactWebcamUrl].
+ *
+ * 10-08 ON-DEVICE PIN (flox / Adreno-320 / 2GB, live E3 token snapshot): the snapshot DE-DUP below was
+ * added after the live UAT found MediaMTX's snapshot endpoint regenerates only every ~3–4s — so the
+ * snapshot feed is a SERVER-CAPPED slideshow (~0.3fps), NOT decode-bound. Render measured p95 ~20ms /
+ * 0 frozen frames / near-zero GC on flox; the A1/A2 decode values are PINNED unchanged (TARGET_FPS=12,
+ * PREFER_RGB_565=false, MAX_SAMPLE_SIZE=16 in [MjpegDecodePolicy]; snapshot [POLL_INTERVAL]=500ms here).
+ * The de-dup just stops re-decoding the ~8 identical fetches per regenerated frame (CPU/battery win).
+ * True smooth video on these WebRTC-only printers needs WebRTC (deferred, SC-4) or a printer-side MJPEG
+ * streamer (crowsnest ustreamer) — neither home printer exposes one today.
  */
 class SnapshotPoller<T>(
     private val callFactory: Call.Factory,
@@ -63,13 +72,29 @@ class SnapshotPoller<T>(
      */
     suspend fun poll(resolvedSnapshotUrl: String): PollOutcome {
         var attempt = 0
+        // 10-08 DE-DUP (CPU/battery on the 2GB floor): MediaMTX's snapshot endpoint serves the SAME JPEG
+        // ~8× before regenerating (measured on E3: identical md5 for ~3–4s, then a new frame), so the feed
+        // is a SERVER-CAPPED slideshow at ~0.3fps regardless of how fast we poll. Re-decoding 8 identical
+        // ~100KB JPEGs per new image is wasted CPU/battery. Track the last fetched bytes; an identical
+        // fetch is a SUCCESSFUL poll (reset backoff, keep cadence) but is NOT decoded and NOT re-emitted —
+        // the view already shows it. The exact byte compare (~100KB memcmp, microseconds) is far cheaper
+        // than a JPEG decode it lets us skip. CRITICAL: an identical fetch is SUCCESS, never Transient —
+        // a server-capped slideshow must NOT trip the backoff.
+        var lastBytes: ByteArray? = null
         try {
             while (currentCoroutineContext().isActive) {
-                when (val r = fetchOne(resolvedSnapshotUrl)) {
+                when (val r = fetchOne(resolvedSnapshotUrl, lastBytes)) {
                     is Fetch.Frame -> {
                         channel.trySend(r.frame) // drop-behind: never suspends, newest wins
+                        lastBytes = r.bytes      // remember the changed image for the next de-dup compare
                         attempt = 0              // success resets backoff
                         delay(pollInterval)      // ~500ms → ~2fps (D-07)
+                    }
+                    Fetch.Duplicate -> {
+                        // Identical to the last fetch — a server-capped repeat. SUCCESS (no decode, no
+                        // re-emit, no backoff): the view already shows this frame. Keep polling at cadence.
+                        attempt = 0              // identical = success — must NOT trip backoff
+                        delay(pollInterval)      // hold cadence; wait for the server to regenerate
                     }
                     Fetch.Terminal -> return PollOutcome.Unsupported // 401/403 — STOP, no spin (A4)
                     Fetch.Transient -> {
@@ -88,12 +113,14 @@ class SnapshotPoller<T>(
     }
 
     private sealed interface Fetch<out T> {
-        data class Frame<out T>(val frame: T) : Fetch<T>
+        /** A new/changed image, decoded — carries the raw bytes so the loop can de-dup the next fetch. */
+        data class Frame<out T>(val frame: T, val bytes: ByteArray) : Fetch<T>
+        data object Duplicate : Fetch<Nothing>  // 200 byte-identical to the last fetch — success, no decode
         data object Terminal : Fetch<Nothing>   // 401/403 — terminal-for-cam
-        data object Transient : Fetch<Nothing>  // timeout / IOException / 5xx — retry with backoff
+        data object Transient : Fetch<Nothing>  // timeout / IOException / 5xx → retry with backoff
     }
 
-    private fun fetchOne(url: String): Fetch<T> {
+    private fun fetchOne(url: String, lastBytes: ByteArray?): Fetch<T> {
         val request = Request.Builder().url(url).get().build()
         return try {
             callFactory.newCall(request).execute().use { resp ->
@@ -102,8 +129,20 @@ class SnapshotPoller<T>(
                     !resp.isSuccessful -> Fetch.Transient                  // 5xx/404 → retry
                     else -> {
                         val bytes = resp.body?.bytes()
-                        val frame = if (bytes != null && bytes.isNotEmpty()) decode(bytes) else null
-                        if (frame != null) Fetch.Frame(frame) else Fetch.Transient
+                        when {
+                            bytes == null || bytes.isEmpty() -> Fetch.Transient
+                            // DE-DUP: byte-identical to the last image → skip the decode + re-emit. The
+                            // cheap length check short-circuits contentEquals on the common changed case.
+                            lastBytes != null &&
+                                bytes.size == lastBytes.size &&
+                                bytes.contentEquals(lastBytes) -> Fetch.Duplicate
+                            else -> {
+                                // Changed/new image → decode. A null decode (defensive — downsampling
+                                // should prevent it) is transient, NOT a duplicate.
+                                val frame = decode(bytes)
+                                if (frame != null) Fetch.Frame(frame, bytes) else Fetch.Transient
+                            }
+                        }
                     }
                 }
             }
