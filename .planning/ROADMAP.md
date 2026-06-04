@@ -510,7 +510,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 12-02-PLAN.md — Pure reducer state machine + model + 6-key view projection; turns the 26-fixture conformance gate GREEN under the dinghy/touch identity + the 8 hardening cases (PROMPT-01/03)
+- [x] 12-02-PLAN.md — Pure reducer state machine + model + 6-key view projection; turns the 26-fixture conformance gate GREEN under the dinghy/touch identity + the 8 hardening cases (PROMPT-01/03)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 
@@ -728,7 +728,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
-| 12. Macro Prompt Protocol | 1/5 | In Progress|  |
+| 12. Macro Prompt Protocol | 2/5 | In Progress|  |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 0/TBD | Not started | - |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
