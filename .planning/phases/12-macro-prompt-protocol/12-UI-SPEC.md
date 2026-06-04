@@ -1,10 +1,11 @@
 ---
 phase: 12
 slug: macro-prompt-protocol
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-04
+reviewed_at: 2026-06-04
 ---
 
 # Phase 12 — UI Design Contract
