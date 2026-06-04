@@ -215,21 +215,59 @@ object MjpegDecodePolicy {
 
 /**
  * Build a production [MjpegStreamDecoder] that decodes each JPEG part into ONE reused mutable [Bitmap] via
- * `inBitmap`+`inSampleSize`+`inMutable` (D-06). [inSampleSize] is computed once by the caller (a cheap
- * `inJustDecodeBounds` first pass on the first frame — RESEARCH Pattern 3) and held fixed; the same
- * [BitmapFactory.Options] (carrying the reused `inBitmap`) is threaded across every frame so there is NO
- * per-frame allocation in steady state. An `inBitmap` size-mismatch (`IllegalArgumentException`, Pitfall 5)
- * drops `inBitmap` for one frame and re-establishes from the freshly-decoded bitmap.
+ * `inBitmap`+`inSampleSize`+`inMutable` (D-06).
+ *
+ * WR-04 — the `inSampleSize` is computed from the REAL frame size, NOT a caller-supplied constant. The
+ * MJPEG source resolution is unknown until the first frame, so the caller cannot compute a correct sample
+ * up-front; passing `src == req` (the old bug) made [MjpegDecodePolicy.computeInSampleSize] always return 1
+ * → every frame decoded at full native res (e.g. 1920×1080 ARGB_8888 ≈ 8 MB) on the 2GB Adreno-320 floor,
+ * the exact OOM/jank trap the snapshot path was already fixed for. Instead this decoder does a cheap
+ * `inJustDecodeBounds` measurement on the FIRST frame (RESEARCH Pattern 3 — the same two-pass the snapshot
+ * path uses), computes the fixed sample from the real `outWidth/outHeight` vs the view px, and HOLDS it for
+ * every subsequent frame. Once sized, the reused `inBitmap` steady state is preserved (no per-frame alloc).
+ * An `inBitmap` size-mismatch (`IllegalArgumentException`, Pitfall 5) drops `inBitmap` for one frame and
+ * re-establishes from the freshly-decoded bitmap.
+ *
+ * @param viewWidthPx/[viewHeightPx] the target view px the decode downsamples toward (the decode budget,
+ *   per [MjpegDecodePolicy.computeInSampleSize]). `<= 0` falls back to a conservative non-1 sample so a
+ *   pre-measure decode can never run at full native res (mirrors the snapshot pre-measure fallback).
  */
-fun bitmaps(boundary: String, inSampleSize: Int): MjpegStreamDecoder<Bitmap> {
+fun bitmaps(boundary: String, viewWidthPx: Int, viewHeightPx: Int): MjpegStreamDecoder<Bitmap> {
+    // The decode Options carry the reused inBitmap; inSampleSize is established from the FIRST frame's real
+    // bounds (WR-04) then held fixed for the stream. `sized` flips true once measured.
     val options = BitmapFactory.Options().apply {
         inMutable = true
-        this.inSampleSize = inSampleSize.coerceAtLeast(1)
+        inSampleSize = 1
         inPreferredConfig =
             if (MjpegDecodePolicy.PREFER_RGB_565) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
     }
+    var sized = false
     return MjpegStreamDecoder(boundary) { jpeg ->
         if (jpeg.isEmpty()) return@MjpegStreamDecoder null
+
+        // Pass 1 (FIRST frame only): measure the REAL source size WITHOUT allocating pixels, then fix the
+        // downsample step from it vs the view px (WR-04). Held for the rest of the stream (cam res stable).
+        if (!sized) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
+            options.inSampleSize = if (viewWidthPx > 0 && viewHeightPx > 0) {
+                MjpegDecodePolicy.computeInSampleSize(
+                    srcWidth = bounds.outWidth, srcHeight = bounds.outHeight,
+                    reqWidth = viewWidthPx, reqHeight = viewHeightPx,
+                ).coerceAtLeast(1)
+            } else {
+                // View not measured yet → size against a sane default + a non-1 floor (snapshot precedent),
+                // so a pre-measure frame still can't decode at full native res on the 2GB floor.
+                MjpegDecodePolicy.computeInSampleSize(
+                    srcWidth = bounds.outWidth, srcHeight = bounds.outHeight,
+                    reqWidth = MJPEG_PREMEASURE_FALLBACK_PX, reqHeight = MJPEG_PREMEASURE_FALLBACK_PX,
+                ).coerceAtLeast(2)
+            }
+            // A new fixed sample invalidates any prior reused buffer (decoded at the old sample).
+            options.inBitmap = null
+            sized = true
+        }
+
         try {
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, options)?.also { options.inBitmap = it }
         } catch (e: IllegalArgumentException) {
@@ -239,3 +277,10 @@ fun bitmaps(boundary: String, inSampleSize: Int): MjpegStreamDecoder<Bitmap> {
         }
     }
 }
+
+/**
+ * Conservative target px used to size the MJPEG downsample when the view hasn't been measured yet (a
+ * pre-measure first frame). Keeps a pre-measure decode well clear of full native res on the 2GB floor —
+ * mirrors the snapshot path's pre-measure fallback (WR-04).
+ */
+private const val MJPEG_PREMEASURE_FALLBACK_PX: Int = 640

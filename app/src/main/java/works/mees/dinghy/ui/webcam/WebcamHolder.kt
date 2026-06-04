@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import works.mees.dinghy.config.ConnectionConfig
-import works.mees.dinghy.net.MjpegDecodePolicy
 import works.mees.dinghy.net.SnapshotPoller
 import works.mees.dinghy.net.WebcamClients
 import works.mees.dinghy.net.WebcamProbe
@@ -341,13 +340,11 @@ fun bitmapFeed(
     val probe = WebcamProbe(streamClient).probe(resolvedStream, cam.webcam.hasSnapshot)
     when (probe) {
         is WebcamProbe.ProbeResult.Mjpeg -> {
-            val sample = MjpegDecodePolicy.computeInSampleSize(
-                // Source size is unknown until the first frame; start at 1 (the decoder re-establishes
-                // inBitmap as frames arrive). 10-08 pins the on-device sample step.
-                srcWidth = viewWidthPx, srcHeight = viewHeightPx,
-                reqWidth = viewWidthPx, reqHeight = viewHeightPx,
-            )
-            val decoder = bitmaps(probe.boundary, sample)
+            // WR-04: the MJPEG source resolution is unknown until the first frame, so we pass the VIEW px
+            // into the decoder, which measures the real frame size (`inJustDecodeBounds`) on frame 1 and
+            // fixes the `inSampleSize` from it — NOT the old `computeInSampleSize(viewPx, viewPx)` that
+            // always returned 1 and decoded every frame at full native res (the 2GB-floor OOM trap).
+            val decoder = bitmaps(probe.boundary, viewWidthPx = viewWidthPx, viewHeightPx = viewHeightPx)
             // Structured concurrency: the frame collector is a CHILD of decodeStream's scope, so the
             // decoder finishing (or the holder cancelling the driver) tears the collector down too — no
             // orphaned collector (WR-01). The body is closed on exit regardless.
