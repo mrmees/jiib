@@ -26,4 +26,11 @@
 
 ## Status
 
-Automated verification is green. Live/device checkpoints remain open.
+Automated verification is green (re-confirmed 2026-06-04: `:app:testReleaseUnitTest` + `:app:compileReleaseKotlin`
+BUILD SUCCESSFUL after the Phase-8/9/13 work landed). Device checkpoints now CLOSED:
+- **07-PERF.md** — large-library Files route/render/perf gate PASS (flox + the Ender 3 417-file library; the
+  on-device Files polish pass switched to smallest-thumbnail-per-row, which made the large list scroll cleanly
+  on the Adreno 320).
+- **07-UAT.md** — core print-loop UAT CLOSED by **owner attestation** (2026-06-04): browse → start → monitor →
+  pause → resume → cancel → restart → delete confirmed working in real-world use; formal recorded run waived by
+  the owner; print-control wiring is code-verified present. Residual edges → future patch work.
