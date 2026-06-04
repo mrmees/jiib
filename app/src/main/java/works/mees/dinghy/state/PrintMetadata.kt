@@ -2,6 +2,7 @@ package works.mees.dinghy.state
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
@@ -43,6 +44,14 @@ data class FilePreviewMetadata(
     val layerCount: Int?,
     val objectHeight: Double?,
     val largestThumbRelPath: String?,
+    /** `filament_type[]` — per-extruder material families (multi-material), empty when absent. */
+    val filamentType: List<String> = emptyList(),
+    /** `filament_name[]` — per-extruder filament names, empty when absent. */
+    val filamentName: List<String> = emptyList(),
+    /** `filament_colors[]` — per-extruder `#hex` colors, empty when absent. */
+    val filamentColors: List<String> = emptyList(),
+    /** `filament_weights[]` — per-extruder used weights (g), empty when absent. */
+    val filamentWeights: List<Double> = emptyList(),
 ) {
     fun thumbnailUrl(httpBase: String): String? =
         largestThumbRelPath?.let { thumbnailUrl(httpBase, filename, it) }
@@ -80,8 +89,28 @@ fun parseFilePreviewMetadata(filename: String, result: JsonObject): FilePreviewM
         layerCount = printMetadata.layerCount,
         objectHeight = printMetadata.objectHeight,
         largestThumbRelPath = printMetadata.largestThumbRelPath,
+        filamentType = stringArray(result, "filament_type"),
+        filamentName = stringArray(result, "filament_name"),
+        filamentColors = stringArray(result, "filament_colors"),
+        filamentWeights = doubleArray(result, "filament_weights"),
     )
 }
+
+/**
+ * Lift a string `JsonArray` from [result] under [key] to a `List<String>`, null-safe: a missing,
+ * non-array, or garbage value (or a non-string entry) yields an empty list, never throws — mirroring
+ * [largestThumbRelPath]'s tolerant array walk. Used for the multi-material `filament_*[]` arrays.
+ */
+private fun stringArray(result: JsonObject, key: String): List<String> =
+    runCatching {
+        (result[key] as? JsonArray)?.mapNotNull { it.jsonPrimitive.contentOrNull }
+    }.getOrNull().orEmpty()
+
+/** Double variant of [stringArray] for `filament_weights[]`; same null-safety contract. */
+private fun doubleArray(result: JsonObject, key: String): List<Double> =
+    runCatching {
+        (result[key] as? JsonArray)?.mapNotNull { it.jsonPrimitive.doubleOrNull }
+    }.getOrNull().orEmpty()
 
 /**
  * The SHARED "largest thumbnail by width" pick (260601-th9 Inc 3 factored this out of
