@@ -445,7 +445,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 10-07-PLAN.md — Nav wiring: Dest.Webcam + runtime-greyed drawer tile (D-08) + AppShell arm + page-visible lifecycle + WR-01 DisposableEffect cancel + instrumented gating/lifecycle/dead-end tests
+- [x] 10-07-PLAN.md — Nav wiring: Dest.Webcam + runtime-greyed drawer tile (D-08) + AppShell arm + page-visible lifecycle + WR-01 DisposableEffect cancel + instrumented gating/lifecycle/dead-end tests
 
 **Wave 6** *(blocked on Wave 5; on-device gate)*
 
@@ -558,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 6/8 | In Progress|  |
+| 10. Webcam Streaming | 7/8 | In Progress|  |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
