@@ -45,7 +45,7 @@ class AppContainerTest {
     )
 
     private fun newContainer() =
-        AppContainer(FakeDataStore(), FakeDataStore(), FakeDataStore(), lazyDiscovery())
+        AppContainer(FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), lazyDiscovery())
 
     private fun handle(id: Long): SpineHandle {
         val store = works.mees.dinghy.state.PrinterStateStore(

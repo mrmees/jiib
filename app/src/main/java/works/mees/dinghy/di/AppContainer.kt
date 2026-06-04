@@ -25,6 +25,7 @@ import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
+import works.mees.dinghy.ui.webcam.WebcamPrefs
 
 /**
  * The process-scoped service-locator (no DI framework — D-02). It is the promotion of GalleryActivity's
@@ -51,6 +52,7 @@ class AppContainer(
     themeDataStore: DataStore<Preferences>,
     connectionDataStore: DataStore<Preferences>,
     macroDataStore: DataStore<Preferences>,
+    webcamDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -75,6 +77,15 @@ class AppContainer(
      * and the System/Bookmarked screens.
      */
     val macroPrefs: MacroPrefs = MacroPrefs(macroDataStore)
+
+    /**
+     * Per-printer preferred-cam persistence (CAM-01 / 10-06 D-10) — the SEPARATE webcam.preferences_pb
+     * store holding the last-viewed cam id keyed `preferred_cam_<host>`. Like [macroPrefs] it is
+     * PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): the saved cam survives
+     * reconnects and printer swaps. The 10-06 holder reads [WebcamPrefs.preferredCam] to default the
+     * focus cam (else first-in-list) and writes [WebcamPrefs.setPreferredCam] on a select/cycle.
+     */
+    val webcamPrefs: WebcamPrefs = WebcamPrefs(webcamDataStore)
 
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */
     val themeResolver: ThemeResolver = ThemeResolver()

@@ -53,11 +53,21 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("macros.preferences_pb") },
         )
+        // A FOURTH, INDEPENDENT file: webcam.preferences_pb (10-06 D-10). It carries no secrets, and is
+        // kept on its own lifecycle (separate from connection/theme/macros) per the established
+        // separate-file discipline — it backs the process-scoped, connection-independent per-printer
+        // preferred-cam store (WebcamPrefs, keyed `preferred_cam_<host>`). One instance per process (the
+        // single-writer invariant DataStore needs).
+        val webcamDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("webcam.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
             connectionDataStore = connectionDataStore,
             macroDataStore = macroDataStore,
+            webcamDataStore = webcamDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.
