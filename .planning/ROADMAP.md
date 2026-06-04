@@ -506,7 +506,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 12-01-PLAN.md — Fixture corpus port + RED conformance scaffold (compiles day-one) + the pure total line parser/sub-parsers + PromptMarkup AST (PROMPT-01)
+- [x] 12-01-PLAN.md — Fixture corpus port + RED conformance scaffold (compiles day-one) + the pure total line parser/sub-parsers + PromptMarkup AST (PROMPT-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -728,7 +728,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
-| 12. Macro Prompt Protocol | 0/TBD | Queued (next) | - |
+| 12. Macro Prompt Protocol | 1/5 | In Progress|  |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 0/TBD | Not started | - |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
