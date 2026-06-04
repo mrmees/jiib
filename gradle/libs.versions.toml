@@ -43,6 +43,17 @@ coroutines = "1.9.0"
 # --- Imaging (Coil 3, minSdk 23 exactly, fixed large-PNG OOM on API ≤23) ---
 coil = "3.1.0"
 
+# --- Camera + QR decode (SPOOL-05/06, Phase 11 — RESEARCH Pitfall 1/2) ---
+# CameraX 1.5.0 raised its floor to EXACTLY 23 (== our Nexus 7 floor); PROVEN by
+# verifyMinSdk after wiring. NOT 1.4.x (older floor story); do NOT bump blind.
+cameraX = "1.5.0"
+# zxing:core 3.3.3 — DO NOT bump to 3.4.0+. From 3.4.0 the QR decode path
+# (FinderPatternFinder) calls Java-8 List.sort, which NoSuchMethodError-crashes on
+# API 23. flox is API 30 so a device run would NOT catch it — the JVM
+# ZxingDecodeVersionTest + this pin are the only guards (RESEARCH Pitfall 1,
+# github.com/zxing/zxing/issues/1170). No coreLibraryDesugaring — the 3.3.3 pin avoids it.
+zxingCore = "3.3.3"
+
 # --- Persistence (THEME-02/D-02) ---
 # DataStore Preferences — coroutine/Flow-native settings store for the S/M/L --fs choice,
 # theme base, and custom token deltas. AndroidX 1.1.x line is minSdk-23-safe (June-2025 floor);
@@ -94,6 +105,14 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 # --- Coil 3 ---
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# --- Camera + QR decode (Phase 11) ---
+# Four first-party AndroidX CameraX artifacts (all version.ref = cameraX) + canonical ZXing core.
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraX" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
 
 # --- Persistence (THEME-02/D-02) ---
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }

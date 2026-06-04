@@ -125,6 +125,15 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // --- Camera + QR decode (SPOOL-05/06, Phase 11) ---
+    // CameraX 1.5.0 (floor == 23, PROVEN by verifyMinSdkRelease) + canonical zxing:core 3.3.3
+    // (NOT 3.4.0+ — see libs.versions.toml zxingCore comment; no coreLibraryDesugaring needed).
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.zxing.core)
+
     // --- Persistence (THEME-02/D-02): S/M/L --fs + theme base + custom token deltas ---
     implementation(libs.androidx.datastore.preferences)
 

@@ -31,6 +31,23 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!--
+      Phase 11 (SPOOL-05/06) — QR-scan camera (ADD ONLY; Phase-1 cleartext posture untouched):
+        * CAMERA: runtime permission for the scan surface; requested ONLY at scan entry (11-07)
+          via the Activity Result API, never at launch.
+        * uses-feature camera (+ autofocus) required="false" is LOAD-BEARING (D-15): a camera-less
+          device STILL installs and degrades to the manual spool picker. Without required="false"
+          the Play/installer feature filter would exclude such devices; we sideload, but the
+          declaration keeps the install floor honest and documents the optional-hardware contract.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
     <application
         android:name=".DinghyApp"
         android:allowBackup="true"
