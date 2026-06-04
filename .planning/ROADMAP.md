@@ -476,7 +476,7 @@ Plans:
 - [x] 11-05-PLAN.md — Wave 3: CameraX 1.5 + zxing 3.3.3 deps/manifest + QrCodeAnalyzer + ZxingDecodeVersionTest
 - [x] 11-06-PLAN.md — Wave 4: Dest.Spool + greyed tile + active-spool Status card + Files-style picker/holder
 - [x] 11-07-PLAN.md — Wave 4: scan surface (CameraX+release) + permission glue + confirm-first + measured-weight
-- [ ] 11-08-PLAN.md — Wave 5: warn-only gate hook + gcode-aware prefilter + change-during-print
+- [x] 11-08-PLAN.md — Wave 5: warn-only gate hook + gcode-aware prefilter + change-during-print
 - [ ] 11-09-PLAN.md — Wave 6: on-device end-to-end UAT (scan→flip) + degrade + save→change→restore (BLOCKING)
 **UI hint**: yes
 **Research note**: DEEPER — Moonraker Spoolman API surface (`/server/spoolman/*`, active-spool set), Spoolman QR label payload format (`web+spoolman:s-<id>`), CameraX + ZXing on API 23 without GMS, and camera-permission flow.
@@ -570,7 +570,7 @@ existing "Phase 13" references valid).
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
-| 11. Spool Management — Spoolman + Camera QR | 7/9 | In Progress|  |
+| 11. Spool Management — Spoolman + Camera QR | 8/9 | In Progress|  |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T08:34:52.356Z"
+last_updated: "2026-06-04T08:46:07.539Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 15
   completed_phases: 11
   total_plans: 82
-  completed_plans: 80
+  completed_plans: 81
   percent: 73
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 11 (spool-management-spoolman-camera-qr) — EXECUTING
-Plan: 8 of 9
+Plan: 9 of 9
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -144,6 +144,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 11 P05 | ~9m | 3 tasks | 5 files |
 | Phase 11 P11-06 | 18m | 3 tasks | 11 files |
 | Phase 11 P07 | 16m | 3 tasks | 9 files |
+| Phase 11 P08 | ~25m | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -252,6 +253,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Wave-0 Spoolman foundation (11-01): 10 verbatim live goldens + hardened proxy-v2/notify fakes + 8 compile-clean RED scaffolds; mock-vs-reality 7th-strike guard baked in from day one
 - [Phase ?]: 11-05: CameraX 1.5.0 holds minSdk-23 floor (verifyMinSdkRelease green); no Camera2 fallback needed
 - [Phase ?]: 11-05: zxing:core pinned 3.3.3 (NOT 3.4.0+ API-23 decode crash); locked by a real JVM ZxingDecodeVersionTest
+- [Phase ?]: 11-08: warn-only print-start gate folds into Files confirm via a 4-action SpoolWarningGuard (Pick/Scan/Print-anyway/Back); never hard-blocks, clean pass leaves Print file confirm unchanged (D-01)
+- [Phase ?]: 11-08: gcode prefilter color is a HINT not a hard filter (nearest-palette swatch pre-selected, colorFilamentIds null, D-04/D-06); change-during-print via SpoolHolder.setActiveSpool with no print-state gating (D-10)
 
 ### Pending Todos
 
@@ -283,6 +286,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T08:33:55.397Z
+Last session: 2026-06-04T08:45:53.219Z
 Stopped at: Phase 11 context gathered
 Resume file: None
