@@ -158,6 +158,9 @@ private fun SpoolWeightHeader(spool: SpoolmanSpool, t: ThemeTokens) {
     val shape = RoundedCornerShape(t.rCard)
     val filament = spool.filament
     val tare = spool.effectiveSpoolWeight
+    // What Spoolman currently believes the WHOLE spool weighs (tare + filament remaining) — the user
+    // sanity-checks their scale reading against this.
+    val believedTotal = if (tare != null && spool.remainingWeight != null) tare + spool.remainingWeight else null
     Column(
         Modifier
             .fillMaxWidth()
@@ -175,32 +178,40 @@ private fun SpoolWeightHeader(spool: SpoolmanSpool, t: ThemeTokens) {
             fontSize = fsSp(26f, t.fs).sp,
             maxLines = 1,
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Spool weight",
-                color = t.text2,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(18f, t.fs).sp,
-            )
-            Text(
-                text = tare?.let { "${it.roundToInt()} g" } ?: "not set",
-                color = if (tare == null) t.text3 else t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(26f, t.fs).sp,
-                maxLines = 1,
-            )
-        }
+        WeightStat("Spool weight", tare, t)
+        WeightStat("Spoolman thinks total", believedTotal, t)
         Text(
-            text = "Spoolman subtracts this from your weighed total to get filament remaining.",
+            text = "Spoolman subtracts the spool weight from your weighed total to get filament remaining.",
             color = t.text2,
             fontFamily = GeistMono,
             fontWeight = FontWeight.Medium,
             fontSize = fsSp(18f, t.fs).sp,
+        )
+    }
+}
+
+/** One labelled weight stat in the header: "<label>  <grams> g" (or "not set" when null). */
+@Composable
+private fun WeightStat(label: String, grams: Double?, t: ThemeTokens) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = grams?.let { "${it.roundToInt()} g" } ?: "not set",
+            color = if (grams == null) t.text3 else t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Bold,
+            fontSize = fsSp(26f, t.fs).sp,
+            maxLines = 1,
         )
     }
 }
