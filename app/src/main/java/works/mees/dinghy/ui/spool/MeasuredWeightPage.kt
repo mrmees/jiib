@@ -135,10 +135,14 @@ fun MeasuredWeightPage(
             OutlinedControl(
                 label = "Set",
                 onClick = {
-                    if (valid) {
+                    val g = grams
+                    if (valid && g != null) {
                         scope.launch {
-                            client?.measureSpool(spool.id, grams)
-                            onMeasured()
+                            // Only dismiss as success when the measure write actually returned a
+                            // result. A null client (no session) or a null result (failed write)
+                            // leaves the page open so the user can retry — no silent false-success.
+                            val result = client?.measureSpool(spool.id, g)
+                            if (result != null) onMeasured()
                         }
                     }
                 },
