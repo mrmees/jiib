@@ -68,7 +68,8 @@ unknown commands / malformed input, fixture-driven conformance tests.
 - **D-08:** **Implement `prompt_target` filtering.** Dinghy matches `all`, `touch` (category), and a new
   concrete frontend ID **`dinghy`**. Empty/whitespace target list → no match (per spec). Last
   `prompt_target` before `prompt_begin` wins; consumed at begin; cleared by `prompt_end`.
-- **D-09:** Add `dinghy` to the spec's target-name list (a one-line doc change in the owner's own
+- **D-09 [deferred]:** (cross-repo doc change, NOT Dinghy phase-12 code — see Deferred Ideas)
+  Add `dinghy` to the spec's target-name list (a one-line doc change in the owner's own
   `klipper-macro-prompt-protocol` repo — see Deferred). Until merged, `dinghy` is still a valid concrete
   ID Dinghy claims locally.
 

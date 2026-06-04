@@ -434,14 +434,17 @@ step. (The repo is paused at clean `main`; low churn risk, but guard anyway.)
 | A2 | Moonraker serves `config/...` images at a derivable URL reusing the existing base-URL plumbing | Image bounding | If the route differs, image load fails → alt-text fallback. Confirm the Moonraker file route during planning (Phase-10/Files already resolve Moonraker URLs). |
 | A3 | `Connected→Disconnected/Error` is the right D-10 trigger (not `Syncing`/`Connecting`) | Wiring | Closing too eagerly on a transient reconnect blip would flicker the prompt. Coordinate with Phase-13 reconnect state. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 1. **Where does `PromptEngine` live / who owns its scope?**
    - Known: spine-level, long-lived, alongside `CommandDispatcher` (so the overlay floats over any screen).
    - Unclear: exact construction seam in `di/AppContainer` / `SpineHandle` and how `AppShell` reads `visible`.
    - Recommendation: follow the calibration-holder + `MacroExecutionPopup` wiring; planner confirms the seam against current `AppShell`/`AppContainer`.
+   - **RESOLVED (12-03 + 12-05):** `PromptEngine(scope, store, events = spine?.dispatcher?.events)` is built in `AppShell` via `remember(store)` (the ProbeCalibrateHolder analog), `view: StateFlow<PromptView>` collected with `collectAsStateWithLifecycle`, and the overlay hoisted OUTSIDE `when(dest)` shown on `promptView.visible` — exactly the MacroExecutionPopup/ScanSurface seam.
 2. **Commit a copy of `fixtures.json` vs read the sibling repo at test time?**
    - Recommendation: commit a copy under `src/test/resources/prompt/` (hermetic), guard with `schema_version`+count assertions, document the refresh step. The sibling repo is paused/stable.
+   - **RESOLVED (12-01):** committed copy at `app/src/test/resources/prompt/fixtures.json` (byte-identical to source), guarded by `corpusGuard` (`schema_version==1` + count==26) with a `fixtures-source.txt` refresh note.
 3. **Coil SVG decoder presence** (see A1) — verify before planning the image task.
+   - **RESOLVED (12-04):** `coil-svg` is NOT in the catalog; `prompt_image` SVG falls through to the alt-text fallback (UI-SPEC-sanctioned) — PNG/JPEG render via Coil. SVG renders only if a verified pinned minSdk-23 `io.coil-kt.coil3:coil-svg` (matching coil 3.1.0) is added; alt-text is the shipping floor either way.
 
 ## Environment Availability
 | Dependency | Required By | Available | Version | Fallback |
