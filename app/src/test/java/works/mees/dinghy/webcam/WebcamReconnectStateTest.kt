@@ -177,6 +177,68 @@ class WebcamReconnectStateTest {
     }
 
     @Test
+    fun selectCam_joinsPriorDriver_teardownBeforeRelaunch_noStreamOverlap() = runTest {
+        // WR-01: selectCam()/cycleCam() restart the driver. Pre-fix start() did `driver?.cancel()` (async)
+        // then immediately launched a new driver, so the OLD driver's teardown (closing the MJPEG body) ran
+        // CONCURRENTLY with the new driver opening a fresh stream — overlapping open streams + racy VM
+        // writes. The fix `cancelAndJoin()`s the prior driver inside the new one before drive() runs. We
+        // prove the ordering: the prior feed's teardown (its finally) completes BEFORE the next feed begins,
+        // and the two feed invocations never overlap (open count never exceeds 1).
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        val cams = listOf(
+            Webcam(name = "alpha", uid = "a", streamUrl = "http://h/a"),
+            Webcam(name = "beta", uid = "b", streamUrl = "http://h/b"),
+        )
+        val webcams = MutableStateFlow(cams)
+
+        val events = mutableListOf<String>()      // ordered log of open/close across drivers
+        val openNow = AtomicInteger(0)            // concurrently-open feeds — must NEVER exceed 1
+        val maxOpen = AtomicInteger(0)
+
+        // A feed that stays "open" (a long-running stream) until cancelled, recording open/close. It honors
+        // cancellation: the finally runs the teardown (the body-close analogue) on cancelAndJoin().
+        val feed = WebcamFeed<String> { cam, _ ->
+            val id = cam.webcam.name
+            events += "open:$id"
+            val n = openNow.incrementAndGet()
+            maxOpen.getAndUpdate { maxOf(it, n) }
+            try {
+                delay(1_000_000) // run "forever" until the driver is cancelled
+                FeedOutcome.Cancelled
+            } finally {
+                openNow.decrementAndGet()
+                events += "close:$id"
+            }
+        }
+
+        val holder = WebcamHolder(
+            scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
+            host = "h", feed = feed, backoffRng = Random(0),
+        )
+        holder.start() // drives "alpha" (the default pick)
+        testScheduler.advanceTimeBy(100)
+        testScheduler.runCurrent()
+        assertEquals("the first feed opened", listOf("open:alpha"), events.toList())
+
+        holder.selectCam("b") // restart → must JOIN alpha's teardown before opening beta
+        testScheduler.advanceTimeBy(100)
+        testScheduler.runCurrent()
+
+        // The ordering proof: alpha CLOSES before beta OPENS (teardown-before-relaunch), and the two feeds
+        // never overlapped (the open count never exceeded 1).
+        assertEquals(
+            "prior driver tears down BEFORE the next launches (WR-01)",
+            listOf("open:alpha", "close:alpha", "open:beta"),
+            events.toList(),
+        )
+        assertEquals("at most one feed/stream is open at a time — no overlap (WR-01)", 1, maxOpen.get())
+
+        holder.cancel()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+    }
+
+    @Test
     fun cancel_stopsTheInitWebcamsCollector_noOrphanOnReKey() = runTest {
         // CR-01: the holder's init block launches a PERMANENT `webcams.collect` collector that mirrors the
         // cam list into the VM. Pre-fix it ran on the shared injected scope and `cancel()` never stopped it,

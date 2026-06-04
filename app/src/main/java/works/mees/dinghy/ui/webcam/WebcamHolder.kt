@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -134,12 +135,23 @@ class WebcamHolder<T>(
      */
     fun start() {
         if (cancelled) return
-        driver?.cancel()
+        // WR-01 driver-cancel race: do NOT fire-and-forget `driver?.cancel()` then immediately launch a
+        // new driver. `Job.cancel()` is asynchronous — it only REQUESTS cancellation and returns at once,
+        // so the previous driver (running on Dispatchers.IO, possibly mid-`coroutineScope{}` with an open
+        // MJPEG `ResponseBody` or an active snapshot poll) is still unwinding when the new one starts. That
+        // window lets two drivers race `_vm.value` writes (mode/frame flicker) and transiently multiplies
+        // open HTTP streams against the weak SBC on rapid cycleCam taps. Fix: hand the PREVIOUS job to the
+        // new driver and `cancelAndJoin()` it FIRST, so the old loop fully unwinds (body closed via `use`)
+        // before drive() re-resolves + re-opens. Serialized teardown → no overlapping streams, no racy VM.
+        val previous = driver
         // Run the driver on [driverContext] — production = Dispatchers.IO so the blocking HTTP probe +
         // JPEG decode never touch the main thread (NetworkOnMainThreadException); tests = the scope's own
         // (virtual-time) dispatcher. Cancellation still propagates: the child job is cancelled with the
         // parent scope on stop()/cancel() regardless of the dispatcher.
-        driver = holderScope.launch(driverContext) { drive() }
+        driver = holderScope.launch(driverContext) {
+            previous?.cancelAndJoin() // serialize: old loop fully unwinds (body closed) before drive()
+            drive()
+        }
     }
 
     /**
