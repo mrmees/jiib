@@ -19,6 +19,17 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class SessionTestHarness {
 
+    companion object {
+        /**
+         * The `server.webcams.list` JSON-RPC method (Phase 10 CAM-01). Held as a harness-local literal
+         * (NOT `JsonRpcMethods.WEBCAMS_LIST`) on purpose: plan 10-01 (Wave 0) adds NO production code,
+         * and the harness extension must compile before the production const exists. Plan 10-03 may
+         * point this at `JsonRpcMethods.WEBCAMS_LIST` once that const is built — the string value is
+         * identical to the real method name, so the canned reply still matches the live contract.
+         */
+        const val WEBCAMS_LIST = "server.webcams.list"
+    }
+
     /** The most recently opened fake (the live socket for the current attempt). */
     val current = AtomicReference<RespondingFakeWebSocket?>(null)
 
@@ -84,6 +95,55 @@ class SessionTestHarness {
           {"message":"// External Power OFF","time":1780184150.5,"type":"response"},
           {"message":"TURN_OFF_HEATERS","time":1780336705.0,"type":"command"}]}
     """.trimIndent()
+
+    /**
+     * The `server.webcams.list` one-shot enumeration RESULT object (Phase 10 CAM-01 / plan 10-01).
+     * Defaults to a `{webcams:[...]}` shape FAITHFUL to the E5/E3 goldens (two webrtc-mediamtx cams,
+     * one with a `?token=` snapshot, one with a blank `service`) so the spine's edge-driven one-shot
+     * enumeration read receives a REAL reply instead of the `else -> {"result":{}}` empty stub.
+     *
+     * Faithful-mock discipline (the harness's own rule): do NOT make this more lenient than the real
+     * server — the shape mirrors the captured goldens (`golden/webcams_list_e5.json` /
+     * `golden/webcams_list_e3.json`). The cadence test ([webcamsListRequests]) asserts the enumeration
+     * fires EXACTLY ONCE per handshake edge via the hit-counter below, never the private
+     * `V1_SUBSCRIBE_CORE` constant — so the once-per-edge contract is observable through PUBLIC
+     * behavior (request count + the subscribe frame carrying no webcam objects).
+     */
+    @Volatile
+    var webcamsListResultJson: String = """
+        {"webcams":[
+          {"name":"playstation_eye","location":"printer","service":"webrtc-mediamtx","enabled":true,
+           "icon":"mdiWebcam","target_fps":30,"target_fps_idle":5,
+           "stream_url":"http://192.168.1.120:8889/3/",
+           "snapshot_url":"http://192.168.1.120/cameras/snapshot/3.jpg",
+           "flip_horizontal":false,"flip_vertical":false,"rotation":0,"aspect_ratio":"16:9",
+           "extra_data":{},"source":"database","uid":"5bfa41e7-0000-0000-0000-000000000003"},
+          {"name":"","location":"printer","service":"","enabled":true,
+           "icon":"mdiWebcam","target_fps":30,"target_fps_idle":5,
+           "stream_url":"/webcam2/?action=stream","snapshot_url":"",
+           "flip_horizontal":false,"flip_vertical":true,"rotation":90,"aspect_ratio":"4:3",
+           "extra_data":{},"source":"config","uid":"3ba24469-0000-0000-0000-000000000002"}]}
+    """.trimIndent()
+
+    /**
+     * Per-method outbound-request hit-counter (Phase 10 CAM-01 cadence guard). Incremented in
+     * [replyFor] for every correlatable request frame the session sends, keyed by JSON-RPC `method`.
+     * Exposed read-only via [requestCount] / [webcamsListRequests] so a test can assert
+     * "`server.webcams.list` was requested EXACTLY once per handshake edge, zero on subsequent ticks"
+     * WITHOUT reaching into any private spine constant. This is the observable seam the
+     * `WebcamEnumerationCadenceTest` (built GREEN in 10-03) asserts against.
+     */
+    private val requestCounts = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    /** Read-only count of outbound requests seen for [method] (0 if none). */
+    fun requestCount(method: String): Int = requestCounts[method] ?: 0
+
+    /** Convenience: how many `server.webcams.list` requests the session has sent so far. */
+    val webcamsListRequests: Int
+        get() = requestCount(WEBCAMS_LIST)
+
+    /** Reset the per-method hit-counter (e.g. between handshake edges in a cadence test). */
+    fun resetRequestCounts() = requestCounts.clear()
 
     /** If non-null, the identify reply is this raw error frame (drives the auth/protocol-error path). */
     @Volatile
@@ -161,7 +221,14 @@ class SessionTestHarness {
             runCatching { MoonrakerJson.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return null
         val id = obj["id"]?.jsonPrimitive?.longOrNull ?: return null
         val method = obj["method"]?.jsonPrimitive?.content ?: return null
+        // Phase 10 cadence guard: count every correlatable outbound request by method, so a test can
+        // assert server.webcams.list fires exactly once per handshake edge via PUBLIC behavior.
+        requestCounts.merge(method, 1) { a, b -> a + b }
         return when (method) {
+            // Phase 10 CAM-01 one-shot enumeration — faithful {webcams:[...]} reply (NOT subscribed),
+            // so the spine's edge-driven read gets a real reply instead of the empty `else` stub.
+            WEBCAMS_LIST ->
+                """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(webcamsListResultJson)},"id":$id}"""
             JsonRpcMethods.IDENTIFY ->
                 identifyErrorFrame?.let { errorFrameWithId(it, id) }
                     // Mirror Moonraker's REAL contract: client_name/version/type/url are all required.
