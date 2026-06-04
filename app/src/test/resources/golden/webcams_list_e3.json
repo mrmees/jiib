@@ -1,0 +1,60 @@
+{
+  "result": {
+    "webcams": [
+      {
+        "name": "microsoft®_lifecam_hd-3000:_mi",
+        "location": "printer",
+        "service": "webrtc-mediamtx",
+        "enabled": true,
+        "icon": "mdiWebcam",
+        "target_fps": 30,
+        "target_fps_idle": 5,
+        "stream_url": "http://192.168.1.121:8889/1/",
+        "snapshot_url": "http://192.168.1.121/cameras/snapshot/1.jpg?token=udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk",
+        "flip_horizontal": false,
+        "flip_vertical": false,
+        "rotation": 0,
+        "aspect_ratio": "16:9",
+        "extra_data": {},
+        "source": "database",
+        "uid": "3ba24469-0000-0000-0000-000000000001"
+      },
+      {
+        "name": "",
+        "location": "printer",
+        "service": "",
+        "enabled": true,
+        "icon": "mdiWebcam",
+        "target_fps": 30,
+        "target_fps_idle": 5,
+        "stream_url": "/webcam2/?action=stream",
+        "snapshot_url": "",
+        "flip_horizontal": false,
+        "flip_vertical": true,
+        "rotation": 90,
+        "aspect_ratio": "4:3",
+        "extra_data": {},
+        "source": "config",
+        "uid": "3ba24469-0000-0000-0000-000000000002"
+      },
+      {
+        "name": "local_loopback_cam",
+        "location": "printer",
+        "service": "mjpegstreamer",
+        "enabled": true,
+        "icon": "mdiWebcam",
+        "target_fps": 15,
+        "target_fps_idle": 5,
+        "stream_url": "http://127.0.0.1:8080/?action=stream",
+        "snapshot_url": "http://localhost:8080/?action=snapshot",
+        "flip_horizontal": true,
+        "flip_vertical": false,
+        "rotation": 180,
+        "aspect_ratio": "16:9",
+        "extra_data": {},
+        "source": "database",
+        "uid": "3ba24469-0000-0000-0000-000000000003"
+      }
+    ]
+  }
+}

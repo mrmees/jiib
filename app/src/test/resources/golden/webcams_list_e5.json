@@ -1,0 +1,42 @@
+{
+  "result": {
+    "webcams": [
+      {
+        "name": "playstation_eye",
+        "location": "printer",
+        "service": "webrtc-mediamtx",
+        "enabled": true,
+        "icon": "mdiWebcam",
+        "target_fps": 30,
+        "target_fps_idle": 5,
+        "stream_url": "http://192.168.1.120:8889/3/",
+        "snapshot_url": "http://192.168.1.120/cameras/snapshot/3.jpg",
+        "flip_horizontal": false,
+        "flip_vertical": false,
+        "rotation": 0,
+        "aspect_ratio": "16:9",
+        "extra_data": {},
+        "source": "database",
+        "uid": "5bfa41e7-0000-0000-0000-000000000003"
+      },
+      {
+        "name": "bed_overhead",
+        "location": "printer",
+        "service": "webrtc-mediamtx",
+        "enabled": true,
+        "icon": "mdiWebcam",
+        "target_fps": 30,
+        "target_fps_idle": 5,
+        "stream_url": "http://192.168.1.120:8889/2/",
+        "snapshot_url": "http://192.168.1.120/cameras/snapshot/2.jpg",
+        "flip_horizontal": false,
+        "flip_vertical": false,
+        "rotation": 0,
+        "aspect_ratio": "16:9",
+        "extra_data": {},
+        "source": "database",
+        "uid": "5bfa41e7-0000-0000-0000-000000000002"
+      }
+    ]
+  }
+}
