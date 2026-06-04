@@ -230,15 +230,11 @@ fun SpoolFilterPickerOverlay(
                     )
                 }
 
-                SpoolFilterCategory.COLOR -> PALETTE_SWATCHES.forEach { (name, hex) ->
-                    OptionButton(
-                        label = name,
-                        selected = state.filters.colorSwatchHex.equals(hex, ignoreCase = true),
-                        swatchHex = hex,
-                        onClick = { onTapSwatch(hex) },
-                        t = t,
-                    )
-                }
+                SpoolFilterCategory.COLOR -> ColorSwatchGrid(
+                    selectedHex = state.filters.colorSwatchHex,
+                    onTapSwatch = onTapSwatch,
+                    t = t,
+                )
 
                 SpoolFilterCategory.MFG -> {
                     if (state.vendors.isEmpty()) {
@@ -279,6 +275,72 @@ fun SpoolFilterPickerOverlay(
                 symbol = "check",
             )
         }
+    }
+}
+
+/**
+ * The Color selector as a 3-column grid of LARGE swatch tiles (Matthew, 2026-06-04 — the palette size is
+ * fixed, so a grid with big icons beats a list). Non-lazy (chunked Rows) so it renders inside the overlay's
+ * verticalScroll. Selected = accent outline + soft fill + accent label.
+ */
+@Composable
+private fun ColorSwatchGrid(selectedHex: String?, onTapSwatch: (String) -> Unit, t: ThemeTokens) {
+    val columns = 3
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PALETTE_SWATCHES.chunked(columns).forEach { rowSwatches ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowSwatches.forEach { (name, hex) ->
+                    ColorTile(
+                        name = name,
+                        hex = hex,
+                        selected = selectedHex.equals(hex, ignoreCase = true),
+                        onClick = { onTapSwatch(hex) },
+                        t = t,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                // Pad a short final row so its tiles keep the same width as the full rows.
+                repeat(columns - rowSwatches.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/** One large color tile: a big swatch circle + name; selected = accent outline + soft fill + accent label. */
+@Composable
+private fun ColorTile(
+    name: String,
+    hex: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    t: ThemeTokens,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(t.rCtrl)
+    Column(
+        modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
+            .background(if (selected) t.accentSoft else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            Modifier.size(fsSp(56f, t.fs).dp).clip(CircleShape)
+                .background(parseNormalizedHex(hex) ?: t.surface2)
+                .border(BorderStroke(2.dp, t.hair), CircleShape),
+        )
+        Text(
+            text = name,
+            color = if (selected) t.accent2 else t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(15f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
