@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-04T03:48:10.558Z"
+status: verifying
+last_updated: "2026-06-04T04:36:07.569Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 15
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 73
-  completed_plans: 72
-  percent: 67
+  completed_plans: 73
+  percent: 73
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 10 (webcam-streaming) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
   → **Phases 6 + 7 CLOSED 2026-06-04 (tracking reconciliation):** Phase 6 was already PASS-verified (flox + live E5) but its ROADMAP row was never flipped → marked complete (5/5). Phase 7's final plan 07-06: Task 1 (release gate) + Task 2 (large-library Files perf, PASS on flox + the E3 417-file library) were done; Task 3 (live print-loop UAT) CLOSED by OWNER ATTESTATION (Matthew confirmed the browser-free loop works in real use, waived a formal recorded run; print-control wiring code-verified present). Phase 7 complete (6/6). Files-delete defect resolved back in Phase 9 (D-15).
@@ -136,6 +136,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 10 P05 | ~5min | 2 tasks | 2 files |
 | Phase 10 P06 | 12m | 3 tasks | 8 files |
 | Phase 10 P07 | ~15min | 3 tasks | 8 files |
+| Phase 10 P08 | 25min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -239,6 +240,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 10-07: Webcam drawer tile is runtime-greyed-gated on AppContainer.webcamCount (D-08, greyed at 0 cams / live at >=1) — deliberate departure from Phase-9 hide-the-tile
 - [Phase ?]: 10-07: WebcamHolder gained injectable driverContext (Dispatchers.IO in production); an instrumented test caught the blocking probe/decode on the main-thread Compose scope (NetworkOnMainThreadException) — Rule 1 fix
 - [Phase ?]: 10-07: webcam layer's shared OkHttp client is a process-scoped AppContainer.webcamHttpClient (per-session ws client is service-private; webcam HTTP is its own cadence-exempt connection)
+- [Phase ?]: Snapshot mode accepted as the honest v1 webcam fallback for WebRTC-only printers — ~0.3fps is MediaMTX server snapshot cadence (regenerates ~3-4s), not a flox/decoder limit; correctly badged. WebRTC deferred (SC-4).
+- [Phase 10]: Webcam A1/A2 decode constants PINNED on-device (flox/Adreno-320): TARGET_FPS=12, ARGB_8888, MAX_SAMPLE_SIZE=16, snapshot POLL_INTERVAL=500ms — render p95 ~20ms / 0 frozen frames; unchanged from assumed.
 
 ### Pending Todos
 
@@ -270,6 +273,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T03:47:50.635Z
+Last session: 2026-06-04T04:35:39.909Z
 Stopped at: Phase 10 context gathered
 Resume file: None

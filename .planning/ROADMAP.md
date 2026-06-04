@@ -59,7 +59,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment) (completed 2026-06-04)
 - [x] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate (completed 2026-06-02)
 - [x] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser (completed 2026-06-03; on-device UAT passed on flox + live Ender 3. One cross-cutting reliability defect — SAVE_CONFIG re-handshake live-feed freeze — deferred to Phase 13, now promoted to run next)
-- [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
+- [x] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred (completed 2026-06-04)
 - [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
 - [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
@@ -449,7 +449,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5; on-device gate)*
 
-- [ ] 10-08-PLAN.md — On-device flox perf pin (A1/A2 fps/inSampleSize, gfxinfo 0-frozen) + snapshot-ladder UAT (E3) + rung-3 card (E5/WebRTC) + WebRTC-deferred doc (BLOCKING human-verify)
+- [x] 10-08-PLAN.md — On-device flox perf pin (A1/A2 fps/inSampleSize, gfxinfo 0-frozen) + snapshot-ladder UAT (E3) + rung-3 card (E5/WebRTC) + WebRTC-deferred doc (BLOCKING human-verify)
 
 **UI hint**: yes
 **Research note**: STANDARD — MJPEG multipart decode pattern is in the stack doc (CLAUDE.md camera note); `niqdev/ipcam-view` / `perthcpe23/android-mjpeg-view` as reference (reimplement lean in Kotlin).
@@ -558,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 7/8 | In Progress|  |
+| 10. Webcam Streaming | 8/8 | Complete   | 2026-06-04 |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |

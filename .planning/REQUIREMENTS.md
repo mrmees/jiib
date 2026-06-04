@@ -219,7 +219,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CALIB-04 (bed-mesh; ⊂ BEDM-01) | Phase 9 | Planned |
 | CALIB-05 (PROBE_CALIBRATE; ⊂ ZCAL-01) | Phase 9 | Planned |
 | CALIB-06 (files-delete scoping D-15) | Phase 9 | Planned |
-| CAM-01 | Phase 10 | Pending |
+| CAM-01 | Phase 10 | Complete |
 | SPOOL-01 | Phase 11 | Pending |
 | PROMPT-01 | Phase 12 | Pending |
 | PKG-01 | Phase 14 | Pending |

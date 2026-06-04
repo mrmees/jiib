@@ -27,3 +27,50 @@ carries a `?token=…` and returns `200 image/jpeg` → it drives the **rung-2 s
 primary on-device-demoable path). The **Ender 5 Plus** snapshot URL has no token and returns `401`
 → no usable snapshot → it correctly shows the **rung-3 dead-end card**.
 
+## Snapshot mode is a server-capped slideshow — the honest v1 fallback (10-08 on-device, resolved)
+
+Live UAT on flox (Adreno-320 / 2GB) against the E3 token snapshot resolved the "why is the snapshot
+feed slow?" question, and the answer is **the server, not the app**:
+
+- **MediaMTX's snapshot endpoint regenerates only every ~3–4 s** (measured on E3: identical md5 for
+  ~3–4 s, then a new frame). So snapshot mode is a **server-capped slideshow at ~0.3 fps** regardless
+  of how fast the app polls — the ~2 fps poll cadence just re-fetches the **same** JPEG ~8× per new
+  image. This is the **honest v1 fallback** for WebRTC-only printers, correctly badged "Snapshot",
+  **not a bug** and **not a flox/decoder limitation**.
+- **The app is healthy:** flox→E3 snapshot GET ≈30 ms, ping ≈1.3 ms; render p95 ~20 ms, **0 frozen
+  frames**, near-zero GC (gfxinfo) — the feed is purely server-cadence-limited.
+- **The snapshot badge/overlay is CORRECT** for WebRTC-only cams: it tells the user this is a polled
+  snapshot, not smooth video. Don't "fix" the perceived rate in the app — there's nothing to fix.
+- **True smooth video on these printers needs one of:** (a) **WebRTC** decode (`webrtc-mediamtx` /
+  `go2rtc` / `camera-streamer`) — **explicitly deferred, SC-4** (`org.webrtc` is large/heavy on the
+  Adreno-320 / API-23 floor; v2); or (b) a **printer-side MJPEG streamer** (crowsnest in *ustreamer*
+  mode exposing `multipart/x-mixed-replace`) → the app's **rung-1 MJPEG decoder** handles that today
+  (fixture-proven; no live MJPEG subject exists on either home printer, so it stays fixture-proven).
+
+### Snapshot DE-DUP optimization (10-08)
+
+Because MediaMTX serves the **same** snapshot JPEG ~8× before regenerating, the poller now **byte-level
+de-dups**: it keeps the last fetched JPEG bytes and, on a `200` that is byte-identical, treats it as a
+**successful poll** (resets backoff, holds cadence) but **does NOT re-decode and does NOT re-emit** — the
+view already shows that frame. A changed image is decoded + emitted as before. The cheap length check
+short-circuits the exact `contentEquals` (~100 KB memcmp = microseconds, far cheaper than the JPEG decode
+it skips), so the CPU/battery win on the 2 GB floor is real. **Critical contract:** an identical fetch is
+**SUCCESS, never Transient** — a server-capped slideshow must never trip the backoff. (Host-tested in
+`SnapshotDeDupTest`.)
+
+### Pinned A1/A2 decode values (on-device, 10-08 — do not re-litigate)
+
+Validated on flox via gfxinfo during the live E3 snapshot feed (render p95 ~20 ms / 0 frozen frames /
+near-zero GC) — the ASSUMED A1/A2 values **hold unchanged**, now PINNED:
+
+| Const | Location | Pinned value |
+|-------|----------|--------------|
+| `TARGET_FPS` (A1 — MJPEG decode fps cap) | `MjpegDecodePolicy.TARGET_FPS` | **12** |
+| `PREFER_RGB_565` (A2 — 565 vs ARGB_8888) | `MjpegDecodePolicy.PREFER_RGB_565` | **false** (ARGB_8888) |
+| `MAX_SAMPLE_SIZE` (inSampleSize cap) | `MjpegDecodePolicy.MAX_SAMPLE_SIZE` | **16** |
+| Snapshot poll cadence (D-07) | `SnapshotPoller.POLL_INTERVAL` | **500 ms** (~2 fps poll; server caps perceived rate to ~0.3 fps) |
+
+The snapshot path two-pass-decodes (`inJustDecodeBounds` → `computeInSampleSize` to the view px → real
+decode), which is why ARGB_8888 + `TARGET_FPS=12` stay comfortable on the floor — the perceived rate is
+**server-bound**, not decode-bound, so there's nothing to claw back by lowering fps or flipping to RGB_565.
+
