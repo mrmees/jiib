@@ -358,16 +358,18 @@ On nav-away within the app (Compose back-stack pop, not a process background), t
 
 **These five are the only non-verified claims.** Everything tagged `[VERIFIED]`/`[CITED]` is either confirmed in the codebase, by live probe today, or by official docs.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Will any rung-1 (MJPEG) cam be available for live on-device UAT?**
    - What we know: Both project printers are WebRTC/snapshot (verified). The MJPEG decoder is the headline of CAM-01 but can't be exercised live on E5/E3 as-is.
    - What's unclear: Whether the owner will temporarily stand up a crowsnest/ustreamer cam for the gate.
    - Recommendation: Treat the **golden-byte-stream unit tests as the authoritative MJPEG proof**; drive live UAT through the snapshot ladder + rung-3 card. Flag this to the owner at discuss/plan time so the SC-2 "no-OOM/no-jank live decode" gate has a concrete subject (either a temp crowsnest cam, or an instrumented test that feeds a captured MJPEG byte stream through the real `MjpegStreamDecoder` on-device).
+   - **RESOLVED:** The golden-byte-stream unit tests (`MjpegStreamDecoderTest` + the with/no-Content-Length + split-JPEG fixtures, captured in plan 10-01 Wave 0) ARE the authoritative MJPEG-decode proof for this phase — there is no live MJPEG subject on E5/E3 and one is NOT required to close the phase. Live UAT is driven via the E3 token-snapshot ladder (plan 10-08, Task 2). The owner MAY optionally stand up a temporary crowsnest/ustreamer cam to exercise rung-1 live, but that is a nice-to-have, not a phase-close gate.
 
 2. **E5 snapshot is behind Basic Auth we don't have credentials for.**
    - What we know: E5 snapshot = 401. E3 snapshot = 200.
    - Recommendation: E5 cams will honestly show the rung-3/unreachable card on-device; that's correct behavior, not a defect to chase. Use the E3 (token-in-URL, 200) as the working snapshot-ladder demo subject.
+   - **RESOLVED:** The E5 snapshot 401 correctly drives the rung-3 dead-end card (terminal-for-cam per A4) — this is correct behavior, NOT a bug to chase. E3 (token-in-URL, 200) is the snapshot-ladder demo subject for the live UAT (plan 10-08). No webcam-credentials UI is added this phase (D-05).
 
 ## Environment Availability
 
