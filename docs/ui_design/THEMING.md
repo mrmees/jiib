@@ -87,6 +87,31 @@ These are defaults, overridable per case, but keep them consistent — color *is
 reading a phone at arm's length (~3 ft). Every font-size is `calc(<px> * var(--fs))` or a
 `clamp()` — never a bare px. Wire `--fs` to a persisted user preference.
 
+## Carve-out: macro-authored PromptMarkup author-hex (D-03)
+
+> Bounded exception to "every component references semantic role tokens — never a raw color."
+
+The **Macro Prompt Protocol** (Phase 12) lets a Klipper macro author render rich text inside a
+prompt via inline `PromptMarkup` runs: `<color:#rrggbb>…</color>` and `<bgcolor:#rrggbb>…</bgcolor>`.
+Those runs render the author's **exact literal hex** (`Color(0xFF000000 or #rrggbb)` in
+`PromptMarkupText.kt`) — they do **not** route through the role tokens. **This is intentional and
+correct, not a token-purity violation:**
+
+- The hex is **content DATA supplied by the macro author**, the same class of thing as a Spoolman
+  spool's filament color — not app **chrome**. A theme remap must not silently recolor a value the
+  author deliberately chose (a red "DANGER" run must stay red in light mode too).
+- The carve-out is **bounded to markup text runs ONLY.** Every piece of prompt *chrome* — the
+  dialog background, header, button outlines/intents, the close control, severity toasts, the
+  scrollable Field — stays fully token-routed. The author-hex `Color(...)` constructor in
+  `PromptMarkupText` is the **only** raw color in the entire prompt UI.
+- **Precedent:** the Spoolman spool-color detail border (Phase 11) already renders an
+  author/inventory-chosen color directly as content; this is the same principle applied to inline
+  text runs. The protocol's *semantic* button styles (`primary`/`info`/`warning`/`error`/`success`)
+  do still map to tokens (`promptStyleColor` → `accent`/`accent-2`/`heat`/`stop`/`go`).
+
+The Phase-21 theme/UI conformance audit should treat author-hex inside PromptMarkup text runs as
+sanctioned by this carve-out, not flag it.
+
 ## The control language (the outline rule)
 
 Interactive elements are a **2px outline + soft glow on a transparent fill**; primary/pressed

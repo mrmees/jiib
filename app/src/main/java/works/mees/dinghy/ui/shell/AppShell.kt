@@ -38,6 +38,10 @@ import works.mees.dinghy.calibration.TiltHolder
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.SetSpoolArgs
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.net.JsonRpcMethods
+import works.mees.dinghy.prompt.PromptEngine
+import works.mees.dinghy.ui.prompt.PromptDialog
+import works.mees.dinghy.ui.prompt.flattenContentButtons
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
@@ -332,6 +336,21 @@ fun AppShell(
     }
     // The current session dispatcher (the macro Execution popup routes through it); null while idle.
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+
+    // ---- Macro Prompt Protocol engine (12-05) ------------------------------------------------------
+    // The spine-level PromptEngine: an INDEPENDENT collector on the live per-session gcode stream that
+    // folds each parsed prompt action through the proven reducer into a StateFlow<PromptView>. Built off
+    // the SAME live per-session store and re-keyed when the spine rebuilds (reconnect), exactly like the
+    // calibration/control holders above; while idle the empty fallback store backs it (no prompts). The
+    // dispatcher Failure stream is the per-session one (`spine?.dispatcher?.events` == [calibEvents]) — a
+    // `prompt:`-keyed Failure folds into the overlay toast (latestPromptError). On a Connected→down edge
+    // the engine closes the prompt LOCALLY and dispatches NOTHING (D-10 cross-client safety, on-device
+    // gated in 12-05 Task 2). The engine owns the stable dispatch keys/params; the overlay below wires
+    // the actual CommandDispatcher.dispatch.
+    val promptEngine = remember(store) {
+        PromptEngine(scope = scope, store = store, events = calibEvents)
+    }
+    val promptView by promptEngine.view.collectAsStateWithLifecycle()
     // Console backfill-failed flag: the server.gcode_store read failed on (re)connect. Best-effort —
     // surfaced as the non-blanking "History unavailable" notice (WR-04). Re-keyed when the spine
     // rebuilds so a reconnect re-points at the new session's store flag.
@@ -361,6 +380,18 @@ fun AppShell(
     BackHandler(enabled = !drawerOpen && nav.scanActive) {
         nav.scanActive = false
     }
+    // An open Macro Prompt (12-05) intercepts system Back as an EXPLICIT user dismissal: dispatch
+    // `action:prompt_end` (the SAME path as the close control) so the prompt closes via the echoed
+    // prompt_end round-trip — NOT a local teardown. Registered last (highest priority) so a visible
+    // prompt dismisses before any generic back-stack pop. (Disconnect, by contrast, closes the prompt
+    // LOCALLY with NO dispatch — that path lives in the engine, D-10.)
+    BackHandler(enabled = !drawerOpen && promptView.visible) {
+        dispatcher?.dispatch(
+            promptEngine.closeKey,
+            JsonRpcMethods.GCODE_SCRIPT,
+            promptEngine.scriptParamsFor(promptEngine.closeGcode),
+        )
+    }
 
     BoxWithConstraints(
         modifier
@@ -371,7 +402,7 @@ fun AppShell(
             // Console (RecyclerView scrollback) and Macros (the System manage-visibility LazyColumn):
             // a full-canvas vertical-drag detector fights the list scroll ("the stroke gets confusing").
             // Each of those screens keeps an explicit green Back in its gutter as the exit (D-05).
-            .pointerInput(dest) {
+            .pointerInput(dest, promptView.visible) {
                 // Calibration is suppressed too: BedMeshScreen's Load selector is a scrollable Field
                 // (the Files Views-in-Compose scroll lesson) — the hub + each page keeps an explicit
                 // green Back as the exit (D-05).
@@ -381,7 +412,13 @@ fun AppShell(
                 // Spool joins the swipe-suppress set: it hosts a scrollable dense picker (the Files
                 // Views-in-Compose scroll lesson); a full-canvas vertical-drag detector would fight the
                 // list scroll. Its explicit red Back gutter is the exit (D-05).
-                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool)) {
+                // A visible Macro Prompt (12-05) ALSO suppresses the swipe: the full-screen overlay
+                // floats over any screen and owns the whole canvas (its Field scrolls its own content),
+                // so a content scroll must never trigger nav while the prompt is up. The prompt's
+                // always-present close control is the exit (D-05 exit-in-overlay).
+                if (!promptView.visible &&
+                    dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool)
+                ) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
@@ -576,6 +613,61 @@ fun AppShell(
                     navigateTo(Dest.Spool) // the manual picker always works (D-15).
                 },
                 onBack = { nav.scanActive = false },
+            )
+        }
+
+        // Macro Prompt overlay (12-05) — the full-screen PromptDialog hoisted OUTSIDE when(dest) so it
+        // floats over ANY screen (the MacroExecutionPopup / ScanSurface precedent; D-05 it is an overlay,
+        // not a Dest). Shown whenever the live reducer view is visible. Content/footer buttons + the
+        // always-present close fire gcode through the SHARED CommandDispatcher under the engine's stable
+        // keys; buttons do NOT auto-close (D-11) — only the inbound echoed `prompt_end` line closes it via
+        // the reducer (the on-device round-trip gate, 12-05 Task 2).
+        if (promptView.visible) {
+            // A prompt key is in flight iff any in-flight key is in this prompt's `prompt:` namespace —
+            // surfaces the "Sending…" info toast while a button gcode awaits its reply.
+            val inFlightKeys by (dispatcher?.inFlight
+                ?: remember { MutableStateFlow(emptySet<String>()) })
+                .collectAsStateWithLifecycle(initialValue = emptySet())
+            val promptInFlight = inFlightKeys.any { it.startsWith("prompt:") }
+            PromptDialog(
+                view = promptView,
+                httpBase = httpBase,
+                // CONTENT button: resolve gcode via the ONE shared depth-first buttons-only flatten — the
+                // SAME walk the renderer indexes with, so a button nested in a row/button_group fires the
+                // RIGHT gcode (the BLOCKER guard). Keyed on buttonKey(i) (prompt:<epoch>:<i>).
+                onButton = { buttonIndex ->
+                    val buttons = promptView.flattenContentButtons()
+                    buttons.getOrNull(buttonIndex)?.let { btn ->
+                        dispatcher?.dispatch(
+                            promptEngine.buttonKey(buttonIndex),
+                            JsonRpcMethods.GCODE_SCRIPT,
+                            promptEngine.scriptParamsFor(btn.gcode),
+                        )
+                    }
+                },
+                // FOOTER button: a SEPARATE sequence resolved by footerButtons[footerIndex], keyed on
+                // footerKey(i) (prompt:<epoch>:footer:<i>) — a DISTINCT namespace from buttonKey so a
+                // same-index content/footer pair never collides on the dispatcher (Codex pre-execute).
+                onFooterButton = { footerIndex ->
+                    promptView.footerButtons.getOrNull(footerIndex)?.let { fb ->
+                        dispatcher?.dispatch(
+                            promptEngine.footerKey(footerIndex),
+                            JsonRpcMethods.GCODE_SCRIPT,
+                            promptEngine.scriptParamsFor(fb.gcode),
+                        )
+                    }
+                },
+                // CLOSE control (in NEITHER index list): dispatch `action:prompt_end` keyed on closeKey —
+                // the prompt closes when that line ECHOES back through the stream (D-11), not locally.
+                onClose = {
+                    dispatcher?.dispatch(
+                        promptEngine.closeKey,
+                        JsonRpcMethods.GCODE_SCRIPT,
+                        promptEngine.scriptParamsFor(promptEngine.closeGcode),
+                    )
+                },
+                errorText = promptEngine.latestPromptError,
+                inFlight = promptInFlight,
             )
         }
 

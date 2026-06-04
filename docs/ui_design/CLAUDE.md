@@ -62,6 +62,14 @@
   "stopping mid-screen.") (2026-06-02.)
 - **Theme-able via tokens.** Dark-first baseline; everything routes through semantic tokens
   (`--bg/--surface/--text/--outline/--accent/--heat/--go/--stop` …). See THEMING.md.
+- **Token carve-out: macro-authored PromptMarkup author-hex (D-03).** The Macro Prompt Protocol
+  (Phase 12) renders a Klipper macro author's inline `<color:#hex>`/`<bgcolor:#hex>` text runs as the
+  author's EXACT literal hex — NOT a role token. This is a *bounded* exception to the tokens-only law:
+  the hex is content DATA the author chose (like a Spoolman spool color — the precedent), not chrome.
+  It is scoped to `PromptMarkupText` text runs ONLY — all prompt chrome (dialog bg, header, button
+  outlines/intents, close, toasts, Field) stays token-routed, and the semantic button styles still map
+  to tokens (`promptStyleColor`). The Phase-21 conformance audit treats this as sanctioned, not a
+  violation. See THEMING.md → "Carve-out: macro-authored PromptMarkup author-hex". (2026-06-04; 12-05.)
 - **Keyboard carve-out: Save-name fields.** The alphanumeric keyboard is barred from *printer
   controls*, but a **pre-filled, optional-override name field for SAVING a named artifact** (the
   bed-mesh **Save-name** dialog, pre-filled `YY.MM.DD_HH.MM`) is a Settings-class text entry, NOT a
