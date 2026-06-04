@@ -1,0 +1,277 @@
+package works.mees.dinghy.ui.spool
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
+import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.SetSpoolArgs
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.spool.normalizeColorHex
+import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.fsSp
+
+/**
+ * The Spool screen (Dest.Spool host; SPOOL-03, plan 11-06) — the Files-style picker built on
+ * [ScreenScaffold] (Focus/Field/Gutter, LAYOUT.md is LAW). Focus = the selected-spool detail; Field =
+ * [SpoolPicker] (the dense list + filter/sort chips); Gutter = red Back / green Set-active / accent Scan.
+ * Portrait collapses to a stacked Field-first layout (the Focus shows only once a spool is selected, the
+ * FilesScreen idiom). All color via [LocalTokens] (THEME-01); ratio-only sizing (NON-NEGOTIABLE 3).
+ *
+ * Font scale matches the FilesScreen analogs (D-16): focus values 30sp+ (the remaining/used hero), detail
+ * stat labels 17sp, metadata floor 15sp; gutter via [OutlinedControl] (18sp label). No hardcoded `.sp`.
+ *
+ * ## Two transports (D-07), inherited from the holder
+ * Inventory list/filter reads ride [holder] (the lean SpoolmanClient). The active-spool WRITE (Set/Clear)
+ * is dispatched here through [dispatcher] (`server.spoolman.post_spool_id` — D-13 `{}` clears) — the
+ * holder reconciles the resulting `notify_active_spool_set` into its "loaded" marks (D-10).
+ *
+ * @param holder the per-session picker holder (state + mutators).
+ * @param dispatcher the session action dispatcher (null when idle — Set/Clear no-op until reconnected).
+ * @param onBack the red Back gutter exit.
+ * @param onScan opens the QR scan sub-surface (the 11-07 surface; a no-op hook until wired).
+ */
+@Composable
+fun SpoolScreen(
+    holder: SpoolHolder,
+    dispatcher: CommandDispatcher?,
+    onBack: () -> Unit,
+    onScan: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state by holder.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val selected = state.selected
+
+    LaunchedEffect(holder) { holder.load() }
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        // Portrait shows the Focus only once a spool is selected (the FilesScreen idiom); landscape always
+        // shows it (Focus|Field 50/50). Ratio-only — no hardcoded px.
+        val showFocus = maxWidth > maxHeight || selected != null
+        ScreenScaffold(
+            focus = if (showFocus) {
+                {
+                    SpoolDetailFocus(
+                        spool = selected,
+                        isActive = selected?.id == state.activeStatus?.activeSpoolId,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                    )
+                }
+            } else {
+                null
+            },
+            field = {
+                SpoolPicker(
+                    state = state,
+                    onRowClick = { holder.selectSpool(it) },
+                    onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
+                    onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
+                    onToggleLocation = { scope.launch { holder.toggleLocation(it) } },
+                    onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
+                    onSelectSort = { scope.launch { holder.applySort(it) } },
+                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                )
+            },
+            gutter = {
+                Row(
+                    Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedControl(
+                        label = "Back",
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Danger, // back = red (THEME-04).
+                        symbol = "arrow_back",
+                    )
+                    OutlinedControl(
+                        label = "Scan",
+                        onClick = onScan,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent, // physical/command accent.
+                        symbol = "qr_code_scanner",
+                    )
+                    OutlinedControl(
+                        // Set the selected spool active (D-13 → post_spool_id {spool_id}); the holder
+                        // reconciles the resulting notify_active_spool_set into its "Loaded" mark (D-10).
+                        // No-op when nothing is selected OR no live session — the dispatcher is null then.
+                        label = "Load spool",
+                        onClick = {
+                            val id = selected?.id
+                            if (id != null) {
+                                dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, SetSpoolArgs(spoolId = id))
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Go, // green accept/commit.
+                        symbol = "check_circle",
+                    )
+                }
+            },
+        )
+    }
+}
+
+/**
+ * The Focus: the selected spool's detail (material / color split swatch / vendor / remaining·used linked
+ * (D-04) / location / archived badge D-09). Empty state when nothing is selected (landscape only — portrait
+ * never shows the empty Focus). Values via [LocalTokens]; the remaining/used pair is the GeistMono hero.
+ */
+@Composable
+private fun SpoolDetailFocus(spool: SpoolmanSpool?, isActive: Boolean, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCard)
+    Box(
+        modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, if (spool != null) t.accentLine else t.hair), shape)
+            .background(t.surface)
+            .padding(16.dp),
+    ) {
+        if (spool == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                MaterialSymbol("inventory_2", tint = t.text3, sizeSp = fsSp(64f, t.fs))
+            }
+            return@Box
+        }
+        val filament = spool.filament
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Title: material · name + the D-08 split swatch (never a raw hex).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DetailSwatch(filament?.colorSwatches ?: emptyList(), t)
+                Text(
+                    text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ").ifBlank { "Spool ${spool.id}" },
+                    color = t.text,
+                    fontFamily = Geist,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(22f, t.fs).sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            filament?.vendor?.name?.let { DetailRow("storefront", "Vendor", it, t) }
+            // Remaining — the GeistMono tabular hero (30sp).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MaterialSymbol("scale", tint = t.text2, sizeSp = fsSp(24f, t.fs))
+                Text(
+                    text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
+                    color = if (spool.remainingWeight == null) t.text3 else t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                    maxLines = 1,
+                )
+                Text("remaining", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(17f, t.fs).sp)
+            }
+            // Used is LINKED to remaining (D-04: used = initial − remaining).
+            spool.usedWeight?.let { DetailRow("history", "Used", "${it.roundToInt()} g", t) }
+            spool.location?.let { DetailRow("location_on", "Location", it, t) }
+            if (isActive) {
+                DetailBadge("check_circle", "Loaded on this printer", t.go, t)
+            }
+            if (spool.archived) {
+                DetailBadge("archive", "Archived — verify before loading", t.heat, t)
+            }
+        }
+    }
+}
+
+/** The detail split swatch (D-08 normalized; multi-color split; neutral marker on absence). */
+@Composable
+private fun DetailSwatch(swatches: List<String>, t: ThemeTokens) {
+    val size = fsSp(24f, t.fs).dp
+    if (swatches.isEmpty()) {
+        Box(Modifier.size(size).clip(CircleShape).background(t.surface2).border(BorderStroke(1.dp, t.hair), CircleShape))
+        return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        swatches.take(4).forEach { hex ->
+            Box(
+                Modifier.size(size).clip(CircleShape)
+                    .background(parseNormalizedHex(hex) ?: t.surface2)
+                    .border(BorderStroke(1.dp, t.hair), CircleShape),
+            )
+        }
+    }
+}
+
+/** One icon-led detail stat (label 17sp, value 17sp — never below the 15sp floor). */
+@Composable
+private fun DetailRow(symbol: String, label: String, value: String, t: ThemeTokens) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(20f, t.fs))
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(
+            value,
+            color = t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(17f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** An icon-led detail badge (loaded green / archived amber). */
+@Composable
+private fun DetailBadge(symbol: String, text: String, color: Color, t: ThemeTokens) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MaterialSymbol(symbol, tint = color, sizeSp = fsSp(20f, t.fs))
+        Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+    }
+}
+
+/** Parse an already-normalized hex to a Compose [Color] (D-08); guard via [normalizeColorHex]. */
+private fun parseNormalizedHex(hex: String): Color? {
+    val normalized = normalizeColorHex(hex) ?: return null
+    return runCatching { Color(android.graphics.Color.parseColor(normalized)) }.getOrNull()
+}
