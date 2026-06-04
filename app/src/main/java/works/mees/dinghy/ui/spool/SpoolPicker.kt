@@ -70,10 +70,10 @@ private val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
  *  - [COLOR] — the palette swatches (D-06; single-select, slow two-step on tap).
  *  - [MFG] — manufacturer / vendor (single-select).
  */
-enum class SpoolFilterCategory(val label: String) {
-    TYPE("Type"),
-    COLOR("Color"),
-    MFG("MFG"),
+enum class SpoolFilterCategory(val label: String, val icon: String) {
+    TYPE("Type", "experiment"),
+    COLOR("Color", "palette"),
+    MFG("MFG", "storefront"),
 }
 
 /**
@@ -141,36 +141,37 @@ fun SpoolFilterControls(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Row 1 — sort (Name / Date / Remaining); active button shows direction arrow + accent outline.
+        // Row 1 — sort (icons: match_case / calendar_clock / scale); the ACTIVE key adds its direction
+        // arrow (↑ asc / ↓ desc) as the label + reads accent.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SpoolSortKey.entries.forEach { key ->
                 val active = key == state.sortKey
-                val arrow = if (active) (if (state.sortAscending) " ↑" else " ↓") else ""
                 OutlinedControl(
-                    label = key.label + arrow,
+                    label = if (active) (if (state.sortAscending) "↑" else "↓") else "",
+                    symbol = key.icon,
                     onClick = { onSelectSort(key) },
                     modifier = Modifier.weight(1f),
                     intent = if (active) Intent.Accent else Intent.Neutral,
                 )
             }
         }
-        // Row 2 — filter categories (Type / Color / MFG); accent outline when that category is filtered.
+        // Row 2 — filter categories (icons: experiment / palette / storefront); accent outline when that
+        // category has an active filter. Each opens the full-screen selector.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val typeCount = state.filters.materialFamilies.size
             CategoryButton(
-                label = if (typeCount > 0) "${SpoolFilterCategory.TYPE.label} ($typeCount)" else SpoolFilterCategory.TYPE.label,
-                active = typeCount > 0,
+                category = SpoolFilterCategory.TYPE,
+                active = state.filters.materialFamilies.isNotEmpty(),
                 onClick = { onOpenFilter(SpoolFilterCategory.TYPE) },
                 modifier = Modifier.weight(1f),
             )
             CategoryButton(
-                label = SpoolFilterCategory.COLOR.label,
+                category = SpoolFilterCategory.COLOR,
                 active = state.filters.colorSwatchHex != null,
                 onClick = { onOpenFilter(SpoolFilterCategory.COLOR) },
                 modifier = Modifier.weight(1f),
             )
             CategoryButton(
-                label = SpoolFilterCategory.MFG.label,
+                category = SpoolFilterCategory.MFG,
                 active = state.filters.vendor != null,
                 onClick = { onOpenFilter(SpoolFilterCategory.MFG) },
                 modifier = Modifier.weight(1f),
@@ -179,11 +180,12 @@ fun SpoolFilterControls(
     }
 }
 
-/** One filter-category button (Row 2) — accent outline when its category has an active filter. */
+/** One icon-only filter-category button (Row 2) — accent outline when its category has an active filter. */
 @Composable
-private fun CategoryButton(label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun CategoryButton(category: SpoolFilterCategory, active: Boolean, onClick: () -> Unit, modifier: Modifier) {
     OutlinedControl(
-        label = label,
+        label = "",
+        symbol = category.icon,
         onClick = onClick,
         modifier = modifier,
         intent = if (active) Intent.Accent else Intent.Neutral,

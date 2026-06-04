@@ -97,7 +97,10 @@ fun OutlinedControl(
             .then(clickMod),
         contentAlignment = Alignment.Center,
     ) {
-        if (symbol != null) {
+        if (symbol != null && label.isBlank()) {
+            // Icon-only control (a blank label + a symbol) — the glyph IS the affordance.
+            MaterialSymbol(name = symbol, tint = t.text, sizeSp = fsSp(24f, t.fs))
+        } else if (symbol != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

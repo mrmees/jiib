@@ -30,10 +30,10 @@ import works.mees.dinghy.spool.parseSpoolmanVendors
  *  - [DATE] — `last_used` (most-recent-first by default; "what did I touch last").
  *  - [REMAINING] — `remaining_weight` (lowest-first by default; "what's about to run out").
  */
-enum class SpoolSortKey(val label: String, val field: String, val defaultAscending: Boolean) {
-    NAME("Name", "filament.name", true),
-    DATE("Date", "last_used", false),
-    REMAINING("Remaining", "remaining_weight", true),
+enum class SpoolSortKey(val label: String, val icon: String, val field: String, val defaultAscending: Boolean) {
+    NAME("Name", "match_case", "filament.name", true),
+    DATE("Date", "calendar_clock", "last_used", false),
+    REMAINING("Remaining", "scale", "remaining_weight", true),
 }
 
 /**

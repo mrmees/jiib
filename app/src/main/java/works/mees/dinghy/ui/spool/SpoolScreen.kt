@@ -139,11 +139,11 @@ fun SpoolScreen(
                         symbol = "arrow_back",
                     )
                     OutlinedControl(
-                        label = "Scan",
+                        label = "",
                         onClick = onScan,
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent, // physical/command accent.
-                        symbol = "qr_code_scanner",
+                        symbol = "qr_code",
                     )
                     OutlinedControl(
                         // Set the selected spool active (D-13 → post_spool_id {spool_id}) via the holder's
@@ -152,7 +152,7 @@ fun SpoolScreen(
                         // allowed mid-print, the whole point of change-during-print). The holder reconciles
                         // the resulting notify_active_spool_set into its "Loaded" mark (D-10). No-op when
                         // nothing is selected OR no live session (the dispatcher is null then).
-                        label = "Load spool",
+                        label = "",
                         onClick = {
                             val id = selected?.id
                             if (id != null) {
@@ -168,7 +168,7 @@ fun SpoolScreen(
                         },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Go, // green accept/commit.
-                        symbol = "check_circle",
+                        symbol = "add_circle",
                     )
                 }
             },
