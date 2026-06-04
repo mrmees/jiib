@@ -107,7 +107,19 @@ data class SpoolmanSpool(
     @SerialName("lot_nr") val lotNumber: String? = null,
     val archived: Boolean = false,
     val extra: Map<String, String> = emptyMap(),
+    @SerialName("initial_weight") val initialWeight: Double? = null,
+    @SerialName("registered") val registered: String? = null,
 ) {
+    /**
+     * The original (full) spool weight for the "remaining / original g" detail line: Spoolman's
+     * [initialWeight] when present, else reconstructed as remaining + used. Null only when neither is known.
+     */
+    val originalWeight: Double?
+        get() = initialWeight ?: run {
+            val r = remainingWeight
+            val u = usedWeight
+            if (r != null && u != null) r + u else null
+        }
     /**
      * Safely parse the JSON-encoded value Spoolman stores under [key] in `extra` (each value is a
      * JSON string, e.g. `"\"dried\""` or `"true"`). Returns null when the key is absent OR the stored

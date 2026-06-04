@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.control.Intent
@@ -222,43 +225,72 @@ private fun SpoolDetailFocus(
             return@Box
         }
         val filament = spool.filament
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Title: material · name + the D-08 split swatch (never a raw hex).
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Title line: the D-08 split swatch + the filament MATERIAL only (Matthew 2026-06-04).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 DetailSwatch(filament?.colorSwatches ?: emptyList(), t)
                 Text(
-                    text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ").ifBlank { "Spool ${spool.id}" },
+                    text = filament?.material?.ifBlank { null } ?: "Spool ${spool.id}",
                     color = t.text,
                     fontFamily = Geist,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = fsSp(22f, t.fs).sp,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            filament?.vendor?.name?.let { DetailRow("storefront", "Vendor", it, t) }
-            // Remaining — the GeistMono tabular hero (30sp).
+            // Line 2: storefront → vendor (no label) · palette → color/filament name (no label).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MaterialSymbol("storefront", tint = t.text2, sizeSp = fsSp(20f, t.fs))
+                DetailValue(filament?.vendor?.name, Modifier.weight(1f), t)
+                MaterialSymbol("palette", tint = t.text2, sizeSp = fsSp(20f, t.fs))
+                DetailValue(filament?.name, Modifier.weight(1f), t)
+            }
+            // Line 3: scale → "remaining/original g" tabular hero (drop the "remaining" label).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MaterialSymbol("scale", tint = t.text2, sizeSp = fsSp(24f, t.fs))
                 Text(
-                    text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
+                    text = spoolWeightText(spool),
                     color = if (spool.remainingWeight == null) t.text3 else t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(30f, t.fs).sp,
+                    fontSize = fsSp(26f, t.fs).sp,
                     maxLines = 1,
                 )
-                Text("remaining", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(17f, t.fs).sp)
             }
-            // Used is LINKED to remaining (D-04: used = initial − remaining).
-            spool.usedWeight?.let { DetailRow("history", "Used", "${it.roundToInt()} g", t) }
-            spool.location?.let { DetailRow("location_on", "Location", it, t) }
+            // Line 4: calendar_add_on → the Spoolman registration date (date part only).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MaterialSymbol("calendar_add_on", tint = t.text2, sizeSp = fsSp(20f, t.fs))
+                Text(
+                    text = spool.registered?.substringBefore('T')?.ifBlank { null } ?: "—",
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(17f, t.fs).sp,
+                    maxLines = 1,
+                )
+            }
+            // Line 5: nozzle → recommended nozzle temp · bed → recommended bed temp (Spoolman settings).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DrawableIcon(R.drawable.nozzle, t.text2, fsSp(22f, t.fs))
+                Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(20f, t.fs).sp, maxLines = 1)
+                DrawableIcon(R.drawable.heat_bed, t.text2, fsSp(22f, t.fs))
+                Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(20f, t.fs).sp, maxLines = 1)
+            }
             if (isActive) {
                 DetailBadge("check_circle", "Loaded on this printer", t.go, t)
             }
@@ -299,26 +331,45 @@ private fun DetailSwatch(swatches: List<String>, t: ThemeTokens) {
     }
 }
 
-/** One icon-led detail stat (label 17sp, value 17sp — never below the 15sp floor). */
+/** A label-less detail value (17sp; "—" when absent). Used for the vendor / color-name on line 2. */
 @Composable
-private fun DetailRow(symbol: String, label: String, value: String, t: ThemeTokens) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(20f, t.fs))
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
-        Text(
-            value,
-            color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+private fun DetailValue(value: String?, modifier: Modifier, t: ThemeTokens) {
+    Text(
+        text = value?.ifBlank { null } ?: "—",
+        color = if (value.isNullOrBlank()) t.text3 else t.text,
+        fontFamily = Geist,
+        fontWeight = FontWeight.Medium,
+        fontSize = fsSp(17f, t.fs).sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
+/** Render a vector drawable (nozzle / heat_bed) tinted via the token system, sized in sp (like fsSp). */
+@Composable
+private fun DrawableIcon(resId: Int, tint: Color, sizeSp: Float) {
+    Icon(
+        painter = painterResource(resId),
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.size(sizeSp.dp),
+    )
+}
+
+/** Line-3 weight text: "remaining/original g" (e.g. `579/1000 g`); degrades to remaining-only or "—". */
+private fun spoolWeightText(spool: SpoolmanSpool): String {
+    val remaining = spool.remainingWeight ?: return "—"
+    val original = spool.originalWeight
+    return if (original != null) {
+        "${remaining.roundToInt()}/${original.roundToInt()} g"
+    } else {
+        "${remaining.roundToInt()} g"
     }
 }
+
+/** Line-5 temperature text from a Spoolman filament setting: `210°C`, or "—" when unset. */
+private fun tempText(temp: Int?): String = temp?.let { "$it°C" } ?: "—"
 
 /** An icon-led detail badge (loaded green / archived amber). */
 @Composable
