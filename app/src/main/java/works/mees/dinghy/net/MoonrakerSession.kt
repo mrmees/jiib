@@ -248,6 +248,14 @@ class MoonrakerSession(
             liveConnection?.close(reason)
         }
         val routing: Job = launch {
+            // The scope backing [routing]'s children. The drop-recovery watchdog is launched on THIS
+            // scope (NOT attemptScope) so routing.cancelAndJoin() at socket teardown cancels any
+            // outstanding watchdog promptly. attemptScope is the connectAndServe coroutineScope{} which
+            // awaits ALL its children before returning — a watchdog parked there for up to RECOVERY_WINDOW
+            // would block the ConnectAttempt.Served return (and thus the supervisor's reconnect) for up to
+            // 30s when the socket dies mid-recovery-window (WR-01). As a child of routing the watchdog is
+            // cancelled the instant the socket closes, so Served returns immediately.
+            val routingScope = this
             launch { rpc.statusUpdates.onSubscription { statusReady.complete(Unit) }.collect { store.onStatusDiff(it) } }
             launch {
                 rpc.klippyEvents.onSubscription { klippyReady.complete(Unit) }.collect { method ->
@@ -272,7 +280,13 @@ class MoonrakerSession(
                             // long-since-completed shared deferred.
                             val thisDrop = CompletableDeferred<Unit>()
                             recovered.getAndSet(thisDrop).complete(Unit)
-                            attemptScope.launch {
+                            // Launch on routingScope (NOT attemptScope) so socket death cancels the
+                            // watchdog promptly via routing.cancelAndJoin() — a watchdog on attemptScope
+                            // would block the Served return for up to RECOVERY_WINDOW (WR-01). Normal
+                            // recovery still cancels it: notify_klippy_ready completes thisDrop, the
+                            // select's thisDrop.onAwait wins, and the coroutine returns before the timeout.
+                            // A 2nd same-socket drop swaps in a fresh thisDrop and arms a fresh watchdog.
+                            routingScope.launch {
                                 select<Unit> {
                                     thisDrop.onAwait {}
                                     onTimeout(RECOVERY_WINDOW) {
