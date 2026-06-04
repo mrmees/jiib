@@ -8,6 +8,7 @@ import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.ui.files.FileBrowserClient
 
 /**
@@ -76,6 +77,18 @@ data class SpineHandle(
      * so the idle Status field shows the "last completed job" card as soon as the history is fetched.
      */
     val lastJob: StateFlow<LastJob?>,
+    /**
+     * The session's `/server/webcams/list` enumeration (CAM-01, plan 10-03) — forwarded off the session
+     * exactly like [metadata]/[lastJob]. It is a ONE-SHOT-PER-HANDSHAKE read: a service-owned holder fires
+     * a single `server.webcams.list` request on each (re)connect/klippy_ready handshake edge (NOT a
+     * subscribe, NOT polled — cadence contract Rule 3), parses it via
+     * [works.mees.dinghy.state.parseWebcamsList], and publishes the result here. Empty list = no cams /
+     * a rejected or absent read (the greyed-tile signal, D-08) — never a crash. A late collector still
+     * sees the value because a StateFlow carries it forward; the handle is published BEFORE the first
+     * handshake fills this. The drawer greyed-gating (D-08) and the holder's default-cam pick (D-10) read
+     * the size via [works.mees.dinghy.di.AppContainer.webcamCount].
+     */
+    val webcams: StateFlow<List<Webcam>>,
     /** Session-owned Files facade; UI never receives a raw JsonRpcClient. */
     val fileBrowser: FileBrowserClient,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */

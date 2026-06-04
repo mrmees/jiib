@@ -42,6 +42,7 @@ import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
 import works.mees.dinghy.ui.files.MoonrakerFileBrowserClient
+import works.mees.dinghy.webcam.WebcamsHolder
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -157,6 +158,17 @@ class MoonrakerService : Service() {
             }.getOrNull()
         }
 
+        // One-shot-per-handshake webcam enumeration (CAM-01, plan 10-03). Fires a single
+        // server.webcams.list read on each (re)connect/klippy_ready handshake edge (the rising edge into
+        // ConnectionState.Connected) — NOT a subscribe, NOT polled (cadence contract Rule 3). The
+        // service-owned holder captures the session's rpc (the metadata/lastJob precedent); a rejected/
+        // absent read leaves the list empty (greyed tile, D-08), never crashes (T-10-08).
+        val webcamsHolder = WebcamsHolder(serviceScope, session.connectionState) {
+            runCatching {
+                rpc.request(CommandRegistry.webcamsList, Unit)
+            }.getOrNull()
+        }
+
         val id = idCounter.incrementAndGet()
         val handle = SpineHandle(
             printerState = store.printerState,
@@ -172,6 +184,7 @@ class MoonrakerService : Service() {
             httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
+            webcams = webcamsHolder.webcams, // one-shot-per-handshake webcam enumeration (CAM-01, 10-03).
             fileBrowser = fileBrowserClient,
             sessionInstanceId = id,
         )

@@ -20,6 +20,7 @@ import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
@@ -114,6 +115,17 @@ class AppContainer(
     /** Live one-shot-on-idle last completed job; null when no history / idle (260601-th9 Inc 3). */
     val lastJob: Flow<LastJob?> =
         spine.flatMapLatest { it?.lastJob ?: flowOf(null) }
+
+    /** Live one-shot-per-handshake webcam enumeration; empty when none / idle (CAM-01, 10-03). */
+    val webcams: Flow<List<Webcam>> =
+        spine.flatMapLatest { it?.webcams ?: flowOf(emptyList()) }
+
+    /**
+     * The webcam COUNT (CAM-01, 10-03) — the D-08 drawer greyed-gating signal (tile live when ≥1, greyed
+     * when 0) AND the D-10 default-cam pick source (the holder picks the first cam when none is saved).
+     * Derived off [webcams] so it always reflects the CURRENT session's enumeration; 0 when idle.
+     */
+    val webcamCount: Flow<Int> = webcams.map { it.size }
 
     /** Current session's Files facade, or null when idle. */
     val fileBrowser: Flow<FileBrowserClient?> = spine.map { it?.fileBrowser }
