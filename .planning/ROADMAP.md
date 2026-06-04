@@ -501,7 +501,26 @@ Plans:
   3. `prompt_end`/footer semantics and re-entrancy (a macro re-prompting) are handled, and an unsupported/garbage action line never crashes or wedges the Console
   4. Provable with a real prompt-protocol macro on the printer (e.g. a load-filament wizard) driven start-to-finish from the tablet
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 12-01-PLAN.md — Fixture corpus port + RED conformance scaffold (compiles day-one) + the pure total line parser/sub-parsers + PromptMarkup AST (PROMPT-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 12-02-PLAN.md — Pure reducer state machine + model + 6-key view projection; turns the 26-fixture conformance gate GREEN under the dinghy/touch identity + the 8 hardening cases (PROMPT-01/03)
+
+**Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
+
+- [ ] 12-03-PLAN.md — PromptEngine spine holder: gcode-stream subscribe→reduce, disconnect-local-close-no-prompt_end (D-10), stable dispatch keys + Failure fold (PROMPT-01/03)
+- [ ] 12-04-PLAN.md — PromptDialog full-screen overlay + markup→AnnotatedString (D-03 author-hex carve-out) + 6-style→token resolver + Coil-bounded image + equal-width rows + degenerate states (PROMPT-02)
+
+**Wave 4** *(blocked on Wave 3; on-device gate)*
+
+- [ ] 12-05-PLAN.md — AppShell wiring (engine construct + overlay hoist + button/close dispatch + drawer suppress) + the D-03 UI-LAW carve-out docs + on-device live-macro UAT (SC-4 wizard, close echo, disconnect-no-prompt_end) (PROMPT-02/03/04)
+
 **UI hint**: yes
 **Research note**: STANDARD — the protocol is specced (klipper-macro-prompt-protocol); reuses the Phase-8 gcode-response bus and Phase-3 dialog primitive.
 
