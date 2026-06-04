@@ -154,3 +154,35 @@
 | `MR-server.webcams.delete_item` | `server.webcams.delete_item` | light | reference_only | `always` | https://moonraker.readthedocs.io/en/latest/external_api/webcams/ |
 | `MR-server.webcams.post_item` | `server.webcams.post_item` | light | reference_only | `always` | https://moonraker.readthedocs.io/en/latest/external_api/webcams/ |
 | `MR-server.websocket.id` | `server.websocket.id` | light | reference_only | `always` | https://moonraker.readthedocs.io/en/latest/external_api/server/ |
+
+## Server-push notifications
+
+Moonraker pushes these over the websocket as JSON-RPC notifications (no `id`). Per the live
+contract, `params` is **always a 1-element array** carrying a single object, even when only one
+object is delivered (verified against `docs/commands/spoolman-live-ender5-notify.json`).
+
+| ID | Method | Tier | Runtime | Availability | Upstream |
+|---|---|---|---|---|---|
+| `MR-notify_active_spool_set` | `notify_active_spool_set` | full | planned_v1 | `component_present: spoolman` | https://moonraker.readthedocs.io/en/latest/external_api/integrations/ |
+| `MR-notify_spoolman_status_changed` | `notify_spoolman_status_changed` | full | planned_v1 | `component_present: spoolman` | https://moonraker.readthedocs.io/en/latest/external_api/integrations/ |
+
+**`notify_active_spool_set`** — fired when the active spool changes (set, cleared, or reported by
+another client). `params` is a 1-element array carrying `{spool_id: Int}`. A cleared active spool
+is reported as `spool_id: null`.
+
+```json
+{"jsonrpc":"2.0","method":"notify_active_spool_set","params":[{"spool_id":1}]}
+```
+
+**`notify_spoolman_status_changed`** — fired when Moonraker's connection to the Spoolman server
+changes. `params` is a 1-element array carrying `{spoolman_connected: Boolean}` (and may carry
+`pending_reports`). Mirrors the `server.spoolman.status` reply shape.
+
+```json
+{"jsonrpc":"2.0","method":"notify_spoolman_status_changed","params":[{"spoolman_connected":false}]}
+```
+
+Unrelated push notifications (e.g. `notify_proc_stat_update`) carry the same 1-element-array
+`params` shape but must be ignored by the Spoolman notify router (golden:
+`spoolman-live-ender5-notify.json` interleaves nine `notify_proc_stat_update` frames around the
+two `notify_active_spool_set` frames).
