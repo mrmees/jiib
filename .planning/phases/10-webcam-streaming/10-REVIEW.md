@@ -32,6 +32,16 @@ findings:
   info: 5
   total: 13
 status: issues_found
+resolved:
+  - CR-01  # holder child scope cancels the orphaned webcams collector (a98aa15)
+  - CR-02  # redactWebcamUrl wired as the only URL-surface path via surfaceWebcamUrl (7859014)
+  - WR-01  # join prior driver before relaunch — teardown-before-start (e0fd181)
+  - WR-03  # double-buffer MJPEG frames across the decode/UI handoff (b824d5a)
+  - WR-04  # measure real MJPEG frame bounds for inSampleSize (eb09aa3)
+deferred:
+  - WR-02  # holder re-keyed on view px (rotation tears down the feed) — user-deferred
+  - WR-05  # unenforced bitmap ownership / recycle race — user-deferred (tied to WR-03 decision)
+  - WR-06  # MJPEG boundary-substring / duplicate-Content-Length hardening — user-deferred
 ---
 
 # Phase 10: Code Review Report
@@ -62,6 +72,12 @@ security control is dead code today.
 ## Critical Issues
 
 ### CR-01: Orphaned `webcams.collect` collector leaks on every holder re-key — `cancel()`/`stop()` never stop it
+
+> **RESOLVED** (commit `a98aa15`): WebcamHolder now owns its own child scope
+> (`scope.coroutineContext + SupervisorJob(scope's Job)`); the init `webcams.collect`
+> collector, the driver, and the `setPreferredCam` prefs writes all launch on it, and
+> `cancel()` cancels that scope so a re-key tears everything down together — no orphaned
+> collector. Regression test: `WebcamReconnectStateTest.cancel_stopsTheInitWebcamsCollector_noOrphanOnReKey`.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/webcam/WebcamHolder.kt:100-109`, `140-144`
 **Issue:**
@@ -106,6 +122,14 @@ MoveHolder lifecycle precedent the doc claims to follow.
 
 ### CR-02: `redactWebcamUrl` is never invoked — the V7 token-redaction control is dead code
 
+> **RESOLVED** (commit `7859014`): added `surfaceWebcamUrl()` as the ONE sanctioned path from a
+> webcam URL to any surfaced/diagnostic string (delegates to `redactWebcamUrl`), and wired it into
+> `WebcamProbe`'s transport-failure path — a new pre-redacted `ProbeResult.Unsupported.reason`
+> breadcrumb is the only `ProbeResult` field that may trace a URL, and it is built exclusively through
+> `surfaceWebcamUrl`. Regression test:
+> `WebcamProbeTest.transportFailure_diagnosticReason_isProducedThroughSurfaceRedactor_neverRawToken`
+> asserts the surfaced reason equals `surfaceWebcamUrl(url)` and never contains the raw token.
+
 **File:** `app/src/main/java/works/mees/dinghy/net/WebcamUrl.kt:63-64` (defined); `WebcamProbe.kt`, `SnapshotPoller.kt`, `WebcamHolder.kt`, `bitmapFeed` (callers — none)
 **Issue:**
 Security V7 / T-10-05 requires that any webcam URL (which embeds `?token=…` for the E3 snapshot)
@@ -138,6 +162,13 @@ and add `WebcamUrlRedactionTest` proving `redactWebcamUrl("http://h/s?token=abc&
 
 ### WR-01: `selectCam()`/`start()` cancel the driver from a foreign coroutine, racing the old driver's body/scope teardown
 
+> **RESOLVED** (commit `e0fd181`): `start()` now hands the previous driver to the new one and
+> `cancelAndJoin()`s it FIRST, so the old loop fully unwinds (body closed via `use`) before `drive()`
+> re-resolves + re-opens — teardown is serialized with the next start, no overlapping streams, no racy
+> `_vm` writes. Regression test:
+> `WebcamReconnectStateTest.selectCam_joinsPriorDriver_teardownBeforeRelaunch_noStreamOverlap`
+> asserts close-before-open ordering and at most one stream open at a time.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/webcam/WebcamHolder.kt:116-124`, `147-151`, `157-164`
 **Issue:**
 `start()` does `driver?.cancel(); driver = scope.launch(driverContext){ drive() }`. `selectCam`
@@ -167,6 +198,10 @@ fun start() {
 
 ### WR-02: Holder construction is keyed on view pixel size — a rotation tears down and rebuilds the entire feed
 
+> **DEFERRED** (user choice, 2026-06-04): left as a documented note. The CR-01 fix removes the
+> leak-amplifier half of this finding (a rotation re-key no longer leaks a collector); the remaining
+> feed-drop-on-rotation behavior is deferred.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/shell/AppShell.kt:183-200`
 **Issue:**
 `viewWidthPx`/`viewHeightPx` are derived from `LocalConfiguration` (`AppShell.kt:183-184`) and are
@@ -183,6 +218,14 @@ and push the px hint into the holder/feed as updatable state (e.g. a `setViewSiz
 killing the connection.
 
 ### WR-03: `WebcamView.setFrame` does not invalidate when handed the same bitmap instance twice
+
+> **RESOLVED** (commit `b824d5a`): the MJPEG `bitmaps()` decoder now DOUBLE-BUFFERS — two decode
+> targets (each its own reused `inBitmap`) ping-ponged per frame, so the bitmap just handed off over
+> the drop-behind channel (possibly on-screen) is never the next write target, removing the torn-frame
+> across the decode-thread → UI-thread handoff. `WebcamView.setFrame` also skips the invalidate on an
+> identical bitmap reference, so an unrelated recomposition no longer forces a redundant re-blit.
+> On-device tearing observation under fast MJPEG is the remaining human-verification step (no live MJPEG
+> subject on either home printer; fixture-proven only).
 
 **File:** `app/src/main/java/works/mees/dinghy/render/WebcamView.kt:186-189`; `bitmaps()` in `MjpegStreamDecoder.kt:224-241`
 **Issue:**
@@ -206,6 +249,13 @@ already does fresh decodes safely). Confirm on-device under fast MJPEG whether t
 if double-buffering, the decoder must not re-`inBitmap` the buffer currently referenced by the channel.
 
 ### WR-04: `bitmapFeed` computes the MJPEG `inSampleSize` from `(viewPx, viewPx)` as the *source* size — always yields 1
+
+> **RESOLVED** (commit `eb09aa3`): `bitmaps()` now takes the view px and does a cheap
+> `inJustDecodeBounds` measurement on the FIRST frame (the same two-pass the snapshot path uses),
+> computes the fixed `inSampleSize` from the real `outWidth/outHeight` vs the view px, and holds it for
+> the stream — no more full-res ARGB_8888 decode on the floor. A pre-measure frame falls back to a
+> conservative non-1 sample. The actual downsample/OOM-avoidance is an on-device property (Adreno-320),
+> flagged for the flox verification.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/webcam/WebcamHolder.kt:310-316`
 **Issue:**
@@ -232,6 +282,9 @@ fallback (`coerceAtLeast(2)`) so a full-res frame can't OOM the floor before the
 
 ### WR-05: `WebcamView` references a recycled/foreign bitmap with no ownership guarantee
 
+> **DEFERRED** (user choice, 2026-06-04): left as a documented note (tied to the WR-03 decision). The
+> WR-03 double-buffer reduces the shared-mutation hazard; explicit detach/recycle ownership is deferred.
+
 **File:** `app/src/main/java/works/mees/dinghy/render/WebcamView.kt:186-189`, `244-249`
 **Issue:**
 `setFrame` stores the bitmap and `onDraw` guards with `!bmp.isRecycled` — good defensive check. But the
@@ -246,6 +299,9 @@ whoever recycles bitmaps does so only after the View has released them (or never
 frames and rely on GC). Tie this to the WR-03 decision.
 
 ### WR-06: `parseContentLength` accepts a malformed multi-line header and a folded/duplicate header silently
+
+> **DEFERRED** (user choice, 2026-06-04): left as a documented note. Hostile-server boundary-substring /
+> duplicate-Content-Length hardening is unlikely against crowsnest/ustreamer and is deferred.
 
 **File:** `app/src/main/java/works/mees/dinghy/net/MjpegStreamDecoder.kt:167-173`, `100-102`
 **Issue:**
