@@ -1,4 +1,13 @@
+---
+status: passed
+---
+
 # Phase 6 Verification
+
+<!-- status: passed — normalized 2026-06-04 so /gsd-stats recognizes this phase as Complete.
+     The verdict below already reads "Status: PASS - automated gates green and flox + live
+     Ender 5 Plus regression approved"; this only adds the literal token the SDK matches. -->
+
 
 **Plan:** 06-05 - Final host verification and flox regression checkpoint
 **Started:** 2026-06-02T12:06:58Z
