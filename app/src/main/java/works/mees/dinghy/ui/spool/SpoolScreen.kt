@@ -174,7 +174,6 @@ fun SpoolScreen(
                 onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
                 onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
                 onMultiColor = { scope.launch { holder.applyMultiColor() } },
-                onClearColor = { scope.launch { holder.clearColor() } },
                 onClear = {
                     scope.launch {
                         when (category) {
