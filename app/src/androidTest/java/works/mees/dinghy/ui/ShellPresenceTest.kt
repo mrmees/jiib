@@ -94,6 +94,7 @@ class ShellPresenceTest {
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
             webcams = MutableStateFlow(emptyList()),
+            activeSpool = MutableStateFlow(null),
             fileBrowser = object : FileBrowserClient {},
             sessionInstanceId = 1L,
         )

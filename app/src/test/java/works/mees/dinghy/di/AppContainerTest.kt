@@ -67,6 +67,7 @@ class AppContainerTest {
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
             webcams = MutableStateFlow(emptyList()),
+            activeSpool = MutableStateFlow(null),
             fileBrowser = object : FileBrowserClient {},
             sessionInstanceId = id,
         )

@@ -151,6 +151,22 @@ class AppContainer(
      */
     val webcamCount: Flow<Int> = webcams.map { it.size }
 
+    /**
+     * Live active-spool status (SPOOL-01/08, plan 11-04) — forwarded off the current session's
+     * [SpineHandle.activeSpool], which a service-owned [works.mees.dinghy.spool.ActiveSpoolFacade]
+     * fetches on each handshake edge and reconciles to the two server-push notifications (D-10). null
+     * when no active spool / unavailable / idle.
+     */
+    val activeSpool: Flow<works.mees.dinghy.spool.SpoolmanStatus?> =
+        spine.flatMapLatest { it?.activeSpool ?: flowOf(null) }
+
+    /**
+     * Whether the connected printer has the Moonraker `spoolman` component (D-02). The drawer
+     * greyed-gating input for the Spool tile — the role [webcamCount] > 0 plays for the Webcam tile.
+     * Derived off [capabilities] so it always reflects the CURRENT session; false when idle.
+     */
+    val spoolmanPresent: Flow<Boolean> = capabilities.map { it.hasComponent("spoolman") }
+
     /** Current session's Files facade, or null when idle. */
     val fileBrowser: Flow<FileBrowserClient?> = spine.map { it?.fileBrowser }
 

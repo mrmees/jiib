@@ -9,6 +9,7 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.spool.SpoolmanStatus
 import works.mees.dinghy.ui.files.FileBrowserClient
 
 /**
@@ -89,6 +90,16 @@ data class SpineHandle(
      * the size via [works.mees.dinghy.di.AppContainer.webcamCount].
      */
     val webcams: StateFlow<List<Webcam>>,
+    /**
+     * The session's active-spool status (SPOOL-01/08, plan 11-04) — forwarded off the session exactly
+     * like [webcams]. A service-owned [works.mees.dinghy.spool.ActiveSpoolFacade] fetches
+     * `server.spoolman.status` on each handshake edge AND reconciles the two server-push notifications
+     * (D-10: an external Fluidd/runout-macro spool change). null = no active spool / unavailable / not
+     * yet fetched (a StateFlow carries the value forward to late collectors; the handle is published
+     * BEFORE the first handshake fills this). The drawer greyed-gating reads
+     * [works.mees.dinghy.di.AppContainer.spoolmanPresent] (the capability gate), NOT this flow.
+     */
+    val activeSpool: StateFlow<SpoolmanStatus?>,
     /** Session-owned Files facade; UI never receives a raw JsonRpcClient. */
     val fileBrowser: FileBrowserClient,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */

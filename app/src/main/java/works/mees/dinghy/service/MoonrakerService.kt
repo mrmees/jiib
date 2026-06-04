@@ -41,6 +41,7 @@ import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
+import works.mees.dinghy.spool.ActiveSpoolFacade
 import works.mees.dinghy.ui.files.MoonrakerFileBrowserClient
 import works.mees.dinghy.webcam.WebcamsHolder
 import java.util.concurrent.atomic.AtomicLong
@@ -169,6 +170,24 @@ class MoonrakerService : Service() {
             }.getOrNull()
         }
 
+        // Active-spool spine (SPOOL-01/08, plan 11-04). The facade mirrors WebcamsHolder VERBATIM in
+        // shape: it fetches server.spoolman.status on each handshake edge AND reconciles the two
+        // server-push notifications (D-10 — an external Fluidd/runout-macro spool change). The fetch
+        // seam captures the session's rpc (the metadata/lastJob/webcams precedent); a rejected/absent
+        // read leaves the prior value, never crashes. Inventory rides a SEPARATE lean SpoolmanClient
+        // (server.spoolman.proxy) the UI waves construct off the same rpc — NOT this facade.
+        val activeFacade = ActiveSpoolFacade(
+            serviceScope,
+            session.connectionState,
+            rpc.activeSpoolSet,
+            rpc.spoolmanStatusChanged,
+            fetchStatus = {
+                runCatching {
+                    rpc.request(CommandRegistry.spoolmanStatus, Unit)
+                }.getOrNull()
+            },
+        )
+
         val id = idCounter.incrementAndGet()
         val handle = SpineHandle(
             printerState = store.printerState,
@@ -185,6 +204,7 @@ class MoonrakerService : Service() {
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
             webcams = webcamsHolder.webcams, // one-shot-per-handshake webcam enumeration (CAM-01, 10-03).
+            activeSpool = activeFacade.activeSpool, // edge-fetch + notify-reconciled active spool (SPOOL-01/08, 11-04).
             fileBrowser = fileBrowserClient,
             sessionInstanceId = id,
         )

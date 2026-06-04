@@ -91,6 +91,7 @@ class DrawerWebcamGatingTest {
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
             webcams = MutableStateFlow(cams),
+            activeSpool = MutableStateFlow(null),
             fileBrowser = object : FileBrowserClient {},
             sessionInstanceId = 1L,
         )
