@@ -431,7 +431,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 10-02-PLAN.md — Pure core: tolerant Webcam models + D-09 URL resolver/rewriter + D-02 rung selection
+- [x] 10-02-PLAN.md — Pure core: tolerant Webcam models + D-09 URL resolver/rewriter + D-02 rung selection
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 
@@ -558,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 1/8 | In Progress|  |
+| 10. Webcam Streaming | 2/8 | In Progress|  |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |

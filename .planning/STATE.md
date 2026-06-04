@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T02:25:09.782Z"
+last_updated: "2026-06-04T02:34:45.893Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 15
   completed_phases: 10
   total_plans: 73
-  completed_plans: 66
+  completed_plans: 67
   percent: 67
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 10 (webcam-streaming) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -130,6 +130,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 13 P04 | on-device gate | 2 tasks | 1 file |
 | Phase 13 P05 | gap-closure | 4 tasks | 8 files |
 | Phase 10 P01 | 25 | 2 tasks | 17 files |
+| Phase 10 P02 | 12 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -225,6 +226,7 @@ Recent decisions affecting current work:
 - [Phase 13][13-05 Tasks 1-3, D-05 DEPARTURE 2026-06-03]: Socket ConnectionState NOW routes the recovery Splash (supersedes the original D-05 'socket state is chrome, never routes'). derive() arm order (load-bearing): !cfg→Connect ; klippy!=Ready→Splash ; connection !is Connected→Splash ; else→Shell. SAFE only because shell nav state (dest+backStack+calibrationRoutine) was HOISTED into RootController above the Splash/Shell switch (new ShellNavState) so the recovery splash no longer bounces the user to Home (G-A1); macroPopupFor reset on return, macroShowSystem preserved. G-B1a: OkHttp pingInterval(10s) keepalive on defaultClient() so a half-open WiFi drop → onFailure → SocketEvent.Closed → reconnect (the 4th mock-vs-reality strike pinned by MoonrakerSocketClientTest). RootController-owned ~600ms min-dwell latch makes a fast recovery splash perceptible on BOTH the klippy-restart and socket-reconnect paths (delays HIDING only, never the recovery). docs/ui_design/CLAUDE.md synced. Tasks 1-3 committed 404e00e/5451638/777a74d, full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded), signed APK installed on flox. Task 4 = BLOCKING on-device dual-printer dual-scenario UAT (Matthew) — 13-05-SUMMARY.md NOT written, plan/phase NOT complete until it passes.
 - [Phase ?]: Phase 10 Wave 0 (10-01): compiling runtime-RED scaffold pattern keeps the whole test source set compiling while each scaffold fails RED at runtime; owning wave replaces the body with typed assertions
 - [Phase ?]: Phase 10 (10-01): synthetic MJPEG golden byte-streams ARE the authoritative decode proof (E5/E3 both webrtc-mediamtx, no live MJPEG); SessionTestHarness gained a webcams.list reply + per-method hit-counter as the observable cadence seam
+- [Phase ?]: [Phase 10/10-02]: rungFor takes NO service param — D-02 Content-Type-as-truth enforced by signature (T-10-06); stream 401/403/404+snapshot → Rung.Snapshot, Unsupported only when no snapshot; parseWebcamsList drops bad entries but fails safe to empty (V5); resolveWebcamUrl = HttpUrl.resolve + loopback rewrite preserving ?token=, redactWebcamUrl mirrors redactWsUrl (V7). 3 scaffolds GREEN, 5 stay RED.
 
 ### Pending Todos
 
@@ -256,6 +258,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T02:24:49.151Z
+Last session: 2026-06-04T02:32:13.756Z
 Stopped at: Phase 10 context gathered
 Resume file: None
