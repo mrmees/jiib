@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -199,6 +202,8 @@ fun SpoolFilterPickerOverlay(
     onToggleMaterial: (String) -> Unit,
     onToggleVendor: (String) -> Unit,
     onTapSwatch: (String) -> Unit,
+    onMultiColor: () -> Unit,
+    onClearColor: () -> Unit,
     onClear: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
@@ -215,28 +220,38 @@ fun SpoolFilterPickerOverlay(
             fontWeight = FontWeight.SemiBold,
             fontSize = fsSp(22f, t.fs).sp,
         )
-        Column(
-            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        // Content fills the space between title and gutter. COLOR is a no-scroll fill grid (all swatches
+        // on ONE screen); TYPE / MFG are scrollable option lists (variable length).
+        Box(Modifier.fillMaxWidth().weight(1f)) {
             when (category) {
-                SpoolFilterCategory.TYPE -> MATERIAL_FAMILIES.forEach { (label, _) ->
-                    OptionButton(
-                        label = label,
-                        selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
-                        swatchHex = null,
-                        onClick = { onToggleMaterial(label) },
-                        t = t,
-                    )
-                }
-
                 SpoolFilterCategory.COLOR -> ColorSwatchGrid(
                     selectedHex = state.filters.colorSwatchHex,
                     onTapSwatch = onTapSwatch,
+                    onMultiColor = onMultiColor,
+                    onAny = onClearColor,
                     t = t,
+                    modifier = Modifier.fillMaxSize(),
                 )
 
-                SpoolFilterCategory.MFG -> {
+                SpoolFilterCategory.TYPE -> Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MATERIAL_FAMILIES.forEach { (label, _) ->
+                        OptionButton(
+                            label = label,
+                            selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
+                            swatchHex = null,
+                            onClick = { onToggleMaterial(label) },
+                            t = t,
+                        )
+                    }
+                }
+
+                SpoolFilterCategory.MFG -> Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     if (state.vendors.isEmpty()) {
                         Text(
                             text = "No manufacturers found.",
@@ -278,62 +293,116 @@ fun SpoolFilterPickerOverlay(
     }
 }
 
+/** A choice in the Color grid: a named palette swatch, the Multi-color option, or Any (clears color). */
+private sealed interface ColorChoice {
+    data class Named(val name: String, val hex: String) : ColorChoice
+    data object Multi : ColorChoice
+    data object Any : ColorChoice
+}
+
+/** The "multi-color" tile's rainbow swatch — a sweep gradient (data swatch, not a theme role token). */
+private val MULTICOLOR_BRUSH: Brush = Brush.sweepGradient(
+    listOf(
+        Color(0xFFFF0000), Color(0xFFFF8000), Color(0xFFFFFF00), Color(0xFF00C000),
+        Color(0xFF0050FF), Color(0xFF8000FF), Color(0xFFFF0000),
+    ),
+)
+
 /**
- * The Color selector as a 3-column grid of LARGE swatch tiles (Matthew, 2026-06-04 — the palette size is
- * fixed, so a grid with big icons beats a list). Non-lazy (chunked Rows) so it renders inside the overlay's
- * verticalScroll. Selected = accent outline + soft fill + accent label.
+ * The Color selector as a FILL-TO-FIT grid (Matthew, 2026-06-04 — every swatch on ONE screen, no scroll).
+ * 3 columns; the rows share the available height via `weight`, so the grid always fits regardless of count
+ * or orientation (the swatch circle scales to the row height). Includes the named palette + a Multi-color
+ * tile (filters `multi_color_hexes` filaments) + an Any tile (clears the color filter).
  */
 @Composable
-private fun ColorSwatchGrid(selectedHex: String?, onTapSwatch: (String) -> Unit, t: ThemeTokens) {
+private fun ColorSwatchGrid(
+    selectedHex: String?,
+    onTapSwatch: (String) -> Unit,
+    onMultiColor: () -> Unit,
+    onAny: () -> Unit,
+    t: ThemeTokens,
+    modifier: Modifier = Modifier,
+) {
     val columns = 3
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PALETTE_SWATCHES.chunked(columns).forEach { rowSwatches ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rowSwatches.forEach { (name, hex) ->
+    val choices: List<ColorChoice> = buildList {
+        PALETTE_SWATCHES.forEach { (name, hex) -> add(ColorChoice.Named(name, hex)) }
+        add(ColorChoice.Multi)
+        add(ColorChoice.Any)
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        choices.chunked(columns).forEach { rowChoices ->
+            Row(
+                Modifier.fillMaxWidth().weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowChoices.forEach { choice ->
                     ColorTile(
-                        name = name,
-                        hex = hex,
-                        selected = selectedHex.equals(hex, ignoreCase = true),
-                        onClick = { onTapSwatch(hex) },
+                        choice = choice,
+                        selectedHex = selectedHex,
+                        onTapSwatch = onTapSwatch,
+                        onMultiColor = onMultiColor,
+                        onAny = onAny,
                         t = t,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
                 // Pad a short final row so its tiles keep the same width as the full rows.
-                repeat(columns - rowSwatches.size) { Box(Modifier.weight(1f)) }
+                repeat(columns - rowChoices.size) { Box(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** One large color tile: a big swatch circle + name; selected = accent outline + soft fill + accent label. */
+/** One color tile (named swatch / Multi-color sweep / Any ring); the circle scales to the row height. */
 @Composable
 private fun ColorTile(
-    name: String,
-    hex: String,
-    selected: Boolean,
-    onClick: () -> Unit,
+    choice: ColorChoice,
+    selectedHex: String?,
+    onTapSwatch: (String) -> Unit,
+    onMultiColor: () -> Unit,
+    onAny: () -> Unit,
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
+    val selected = when (choice) {
+        is ColorChoice.Named -> selectedHex.equals(choice.hex, ignoreCase = true)
+        ColorChoice.Multi -> selectedHex == SpoolFilters.MULTICOLOR
+        ColorChoice.Any -> selectedHex == null
+    }
+    val label = when (choice) {
+        is ColorChoice.Named -> choice.name
+        ColorChoice.Multi -> "Multi"
+        ColorChoice.Any -> "Any"
+    }
     val shape = RoundedCornerShape(t.rCtrl)
     Column(
         modifier
             .clip(shape)
             .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
             .background(if (selected) t.accentSoft else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
+            .clickable {
+                when (choice) {
+                    is ColorChoice.Named -> onTapSwatch(choice.hex)
+                    ColorChoice.Multi -> onMultiColor()
+                    ColorChoice.Any -> onAny()
+                }
+            }
+            .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
     ) {
-        Box(
-            Modifier.size(fsSp(56f, t.fs).dp).clip(CircleShape)
-                .background(parseNormalizedHex(hex) ?: t.surface2)
-                .border(BorderStroke(2.dp, t.hair), CircleShape),
-        )
+        // The swatch circle scales with the row height (fillMaxHeight fraction), kept square via aspectRatio.
+        val circleMod = Modifier.fillMaxHeight(0.6f).aspectRatio(1f).clip(CircleShape)
+            .border(BorderStroke(2.dp, t.hair), CircleShape)
+        when (choice) {
+            is ColorChoice.Named -> Box(circleMod.background(parseNormalizedHex(choice.hex) ?: t.surface2))
+            ColorChoice.Multi -> Box(circleMod.background(MULTICOLOR_BRUSH))
+            ColorChoice.Any -> Box(circleMod.background(t.surface2), contentAlignment = Alignment.Center) {
+                MaterialSymbol("block", tint = t.text3, sizeSp = fsSp(20f, t.fs))
+            }
+        }
         Text(
-            text = name,
+            text = label,
             color = if (selected) t.accent2 else t.text,
             fontFamily = Geist,
             fontWeight = FontWeight.SemiBold,
