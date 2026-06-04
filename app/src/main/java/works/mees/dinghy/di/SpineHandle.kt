@@ -9,6 +9,7 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanStatus
 import works.mees.dinghy.ui.files.FileBrowserClient
 
@@ -100,6 +101,15 @@ data class SpineHandle(
      * [works.mees.dinghy.di.AppContainer.spoolmanPresent] (the capability gate), NOT this flow.
      */
     val activeSpool: StateFlow<SpoolmanStatus?>,
+    /**
+     * Session-owned Spoolman INVENTORY reader (SPOOL-02/03, plan 11-06) — the lean proxy-v2
+     * [works.mees.dinghy.spool.MoonrakerSpoolmanClient] wrapping the session JsonRpcClient (11-04). The
+     * Spool picker holder consumes THIS for its list/filter reads, exactly as the Files holder consumes
+     * [fileBrowser] — the UI never receives a raw JsonRpcClient (D-02 "service constructs, UI consumes").
+     * Defaults to a no-op (every read → null) so the three headless SpineHandle test sites construct
+     * without it; the live service always supplies the real client.
+     */
+    val spoolmanClient: SpoolmanClient = object : SpoolmanClient {},
     /** Session-owned Files facade; UI never receives a raw JsonRpcClient. */
     val fileBrowser: FileBrowserClient,
     /** Monotonic, build-time-stamped id; the rotation-continuity signal (review #3). */

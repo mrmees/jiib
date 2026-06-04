@@ -67,6 +67,9 @@ import works.mees.dinghy.ui.route.Dest
  * @param onDestination invoked with the chosen LIVE [Dest] (the shell sets it as the active route).
  * @param onDismiss     collapse the drawer (also called after a live-tile tap).
  * @param webcamEnabled D-08 runtime gate: the Webcam tile is LIVE only when this is true (≥1 cam).
+ * @param spoolEnabled  D-02 capability gate: the Spool tile is LIVE only when the connected printer has
+ *   the Moonraker `spoolman` component (`AppContainer.spoolmanPresent`). The SAME runtime-greying shape as
+ *   [webcamEnabled] — greyed (hairline) when the component is absent, accent-outline live when present.
  */
 @Composable
 fun AppDrawer(
@@ -74,6 +77,7 @@ fun AppDrawer(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     webcamEnabled: Boolean = false,
+    spoolEnabled: Boolean = false,
 ) {
     val t = LocalTokens.current
     Dialog(
@@ -93,6 +97,7 @@ fun AppDrawer(
                 DrawerTile(
                     tile = tile,
                     webcamEnabled = webcamEnabled,
+                    spoolEnabled = spoolEnabled,
                     onClick = {
                         // Only LIVE tiles navigate; greyed tiles are no-op (their dest is null).
                         tile.dest?.let {
@@ -152,6 +157,13 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // greyed-gating is UNCHANGED (0 cams → still greyed hairline/`t.text3`); beta-amber is the LIVE
     // styling only.
     DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = Dest.Webcam, beta = true),
+    // The Spool tile carries a LIVE [dest] but is RUNTIME capability-gated (D-02), the SAME shape as the
+    // Webcam tile: greyed when the connected printer lacks the Moonraker `spoolman` component, live when
+    // it has it. The gating input is `spoolEnabled` (AppContainer.spoolmanPresent), folded into
+    // [DrawerTile]'s live-decision (NOT a compile-time `dest = null`, which would grey it permanently).
+    // `inventory_2` is unique among DRAWER_TILES glyphs (icon-no-repeat law). No `beta = true` — Spool is
+    // not a development flag (the camera feed is).
+    DrawerTileSpec(label = "Spool", symbol = "inventory_2", dest = Dest.Spool),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
@@ -167,13 +179,17 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
 private fun DrawerTile(
     tile: DrawerTileSpec,
     webcamEnabled: Boolean,
+    spoolEnabled: Boolean,
     onClick: () -> Unit,
 ) {
     val t = LocalTokens.current
-    // A tile is LIVE when it carries a [dest] AND (for the runtime-gated Webcam tile, D-08) the runtime
-    // enablement holds. The Webcam tile greys when `!webcamEnabled` (0 cams) via the SAME greyed styling
-    // below — only this enablement INPUT is new (the styling was already correct).
-    val live = tile.dest != null && (tile.dest != Dest.Webcam || webcamEnabled)
+    // A tile is LIVE when it carries a [dest] AND (for the runtime-gated Webcam/Spool tiles) the runtime
+    // enablement holds. The Webcam tile greys when `!webcamEnabled` (0 cams) and the Spool tile greys when
+    // `!spoolEnabled` (no spoolman component, D-02) — both via the SAME greyed styling below; only these
+    // enablement INPUTS are runtime (the styling was already correct).
+    val live = tile.dest != null &&
+        (tile.dest != Dest.Webcam || webcamEnabled) &&
+        (tile.dest != Dest.Spool || spoolEnabled)
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = when {
         tile.danger -> t.stop          // red Power tile — destructive intent reads even while disabled.

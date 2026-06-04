@@ -167,6 +167,15 @@ class AppContainer(
      */
     val spoolmanPresent: Flow<Boolean> = capabilities.map { it.hasComponent("spoolman") }
 
+    /**
+     * The current session's lean Spoolman INVENTORY reader (SPOOL-02/03, plan 11-06), or null when idle.
+     * The Spool picker holder reads its list/filter inventory through this — the role [fileBrowser]
+     * plays for the Files picker. Synchronous snapshot access mirrors [currentFileBrowser]: the shell
+     * `remember`s the holder keyed on the session, so it grabs the current client at construction.
+     */
+    val currentSpoolmanClient: works.mees.dinghy.spool.SpoolmanClient?
+        get() = spine.value?.spoolmanClient
+
     /** Current session's Files facade, or null when idle. */
     val fileBrowser: Flow<FileBrowserClient?> = spine.map { it?.fileBrowser }
 

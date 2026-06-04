@@ -42,6 +42,7 @@ import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.ui.printstatus.LastJobHolder
 import works.mees.dinghy.ui.printstatus.PrintMetadataHolder
 import works.mees.dinghy.spool.ActiveSpoolFacade
+import works.mees.dinghy.spool.MoonrakerSpoolmanClient
 import works.mees.dinghy.ui.files.MoonrakerFileBrowserClient
 import works.mees.dinghy.webcam.WebcamsHolder
 import java.util.concurrent.atomic.AtomicLong
@@ -188,6 +189,13 @@ class MoonrakerService : Service() {
             },
         )
 
+        // Lean Spoolman INVENTORY reader (SPOOL-02/03, plan 11-06) — wraps the SAME session rpc as the
+        // active-spool facade (one connection/TLS stack), but rides the server.spoolman.proxy passthrough
+        // for inventory list/filter reads rather than the active-spool JSON-RPC methods. Exposed on the
+        // handle so the Spool picker holder consumes it exactly as the Files holder consumes fileBrowser
+        // (the UI never sees a raw JsonRpcClient — D-02).
+        val spoolmanClient = MoonrakerSpoolmanClient(rpc)
+
         val id = idCounter.incrementAndGet()
         val handle = SpineHandle(
             printerState = store.printerState,
@@ -205,6 +213,7 @@ class MoonrakerService : Service() {
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
             webcams = webcamsHolder.webcams, // one-shot-per-handshake webcam enumeration (CAM-01, 10-03).
             activeSpool = activeFacade.activeSpool, // edge-fetch + notify-reconciled active spool (SPOOL-01/08, 11-04).
+            spoolmanClient = spoolmanClient, // lean proxy-v2 inventory reader for the picker (SPOOL-02/03, 11-06).
             fileBrowser = fileBrowserClient,
             sessionInstanceId = id,
         )

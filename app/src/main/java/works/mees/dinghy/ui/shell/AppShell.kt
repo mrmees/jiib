@@ -63,6 +63,8 @@ import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.spool.SpoolHolder
+import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
@@ -224,6 +226,21 @@ fun AppShell(
         }
     }
 
+    // ---- Spool holder + capability gate (11-06) ----------------------------------------------------
+    // The D-02 capability greyed-gating signal: the drawer Spool tile is LIVE only when the CURRENT
+    // session's printer has the Moonraker `spoolman` component (false while idle). Collected here and
+    // threaded into AppDrawer below — the SAME shape webcamEnabled plays for the Webcam tile.
+    val spoolEnabled by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
+    // The per-session Spool picker holder, re-keyed on the live store (the MoveHolder/webcamHolder
+    // precedent) so a spine rebuild (reconnect) re-points it at the new session's inventory client +
+    // active-spool flow. The inventory reader is the session's lean SpoolmanClient (an idle fallback
+    // no-op keeps it constructible while no session exists — every read → null → empty); the active-spool
+    // truth is the session's StateFlow (an idle MutableStateFlow(null) while no session).
+    val spoolmanClient = spine?.spoolmanClient ?: remember { object : works.mees.dinghy.spool.SpoolmanClient {} }
+    val activeSpoolFlow = spine?.activeSpool
+        ?: remember { MutableStateFlow<works.mees.dinghy.spool.SpoolmanStatus?>(null) }
+    val spoolHolder = remember(store) { SpoolHolder(scope = scope, client = spoolmanClient, activeSpool = activeSpoolFlow) }
+
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
     // when the spine rebuilds (reconnect), mirroring the Phase-5 control holders above. The dispatcher
@@ -351,7 +368,10 @@ fun AppShell(
                 // Webcam joins the swipe-suppress set: the full-focus cam-cycle tap overlay wants the
                 // whole canvas (a full-canvas vertical-drag detector would fight that tap), and the
                 // explicit red Back gutter is the exit (D-05, PATTERNS.md recommends YES).
-                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam)) {
+                // Spool joins the swipe-suppress set: it hosts a scrollable dense picker (the Files
+                // Views-in-Compose scroll lesson); a full-canvas vertical-drag detector would fight the
+                // list scroll. Its explicit red Back gutter is the exit (D-05).
+                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool)) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
@@ -363,6 +383,7 @@ fun AppShell(
             Dest.PrintStatus -> PrintStatusScreen(
                 container = container,
                 onOpenFiles = { navigateTo(Dest.Files) },
+                onOpenSpool = { navigateTo(Dest.Spool) },
             )
             Dest.Temperature -> TemperatureScreen(
                 container = container,
@@ -479,6 +500,14 @@ fun AppShell(
                 holder = webcamHolder,
                 onBack = { goBack() },
             )
+            Dest.Spool -> SpoolScreen(
+                holder = spoolHolder,
+                dispatcher = dispatcher,
+                onBack = { goBack() },
+                // The QR scan sub-surface lands in 11-07 — a no-op hook for now (mirrors how the Webcam
+                // screen takes its callbacks). Wiring this to the scan Dest is a one-liner there.
+                onScan = { },
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },
@@ -513,6 +542,7 @@ fun AppShell(
                 onDestination = { navigateTo(it) },
                 onDismiss = { drawerOpen = false },
                 webcamEnabled = webcamEnabled,
+                spoolEnabled = spoolEnabled,
             )
         }
     }
