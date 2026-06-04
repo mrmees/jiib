@@ -98,8 +98,9 @@ fun OutlinedControl(
         contentAlignment = Alignment.Center,
     ) {
         if (symbol != null && label.isBlank()) {
-            // Icon-only control (a blank label + a symbol) — the glyph IS the affordance.
-            MaterialSymbol(name = symbol, tint = t.text, sizeSp = fsSp(24f, t.fs))
+            // Icon-only control (a blank label + a symbol) — the glyph IS the affordance, so it fills the
+            // cell: ~78% of the 64dp touch-floor (NOT --fs-scaled, since the cell height is a fixed dp).
+            MaterialSymbol(name = symbol, tint = t.text, sizeSp = 50f)
         } else if (symbol != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

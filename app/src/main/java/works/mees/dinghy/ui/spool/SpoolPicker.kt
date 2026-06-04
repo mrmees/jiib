@@ -140,19 +140,30 @@ fun SpoolFilterControls(
     onOpenFilter: (SpoolFilterCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val t = LocalTokens.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Row 1 — sort (icons: match_case / calendar_clock / scale); the ACTIVE key adds its direction
-        // arrow (↑ asc / ↓ desc) as the label + reads accent.
+        // Row 1 — sort (icon-only: match_case / calendar_clock / scale); the ACTIVE key reads accent and
+        // overlays a small direction arrow (↑ asc / ↓ desc) in its corner.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SpoolSortKey.entries.forEach { key ->
                 val active = key == state.sortKey
-                OutlinedControl(
-                    label = if (active) (if (state.sortAscending) "↑" else "↓") else "",
-                    symbol = key.icon,
-                    onClick = { onSelectSort(key) },
-                    modifier = Modifier.weight(1f),
-                    intent = if (active) Intent.Accent else Intent.Neutral,
-                )
+                Box(Modifier.weight(1f)) {
+                    OutlinedControl(
+                        label = "",
+                        symbol = key.icon,
+                        onClick = { onSelectSort(key) },
+                        modifier = Modifier.fillMaxWidth(),
+                        intent = if (active) Intent.Accent else Intent.Neutral,
+                    )
+                    if (active) {
+                        MaterialSymbol(
+                            name = if (state.sortAscending) "arrow_upward" else "arrow_downward",
+                            tint = t.accent2,
+                            sizeSp = fsSp(16f, t.fs),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
+                        )
+                    }
+                }
             }
         }
         // Row 2 — filter categories (icons: experiment / palette / storefront); accent outline when that

@@ -454,7 +454,9 @@ fun buildSpoolQuery(filters: SpoolFilters, sortKey: SpoolSortKey, ascending: Boo
     }
     val dir = if (ascending) "asc" else "desc"
     val sortClause = when (sortKey) {
-        SpoolSortKey.NAME -> "filament.name:$dir,id:asc"
+        // Alphabetical = the displayed row title order ("<material> · <name>"): material first, then name
+        // (Matthew 2026-06-04 — NOT just filament.name / the color name).
+        SpoolSortKey.NAME -> "filament.material:$dir,filament.name:$dir,id:asc"
         SpoolSortKey.DATE -> "last_used:$dir,registered:$dir"
         SpoolSortKey.REMAINING -> "remaining_weight:$dir,id:asc"
     }
