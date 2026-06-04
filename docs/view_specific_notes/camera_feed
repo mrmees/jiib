@@ -74,3 +74,26 @@ The snapshot path two-pass-decodes (`inJustDecodeBounds` → `computeInSampleSiz
 decode), which is why ARGB_8888 + `TARGET_FPS=12` stay comfortable on the floor — the perceived rate is
 **server-bound**, not decode-bound, so there's nothing to claw back by lowering fps or flipping to RGB_565.
 
+## Webcam drawer tile is AMBER-flagged as BETA (development indicator)
+
+The App Drawer's **Webcam** tile renders in the amber `--heat` ("proceed-at-peril") role token (`t.heat`)
+when LIVE, as a **BETA / development indicator** — the camera feed is an ongoing beta (MJPEG rung-1 +
+~2 fps snapshot rung-2 only; WebRTC explicitly deferred, SC-4). This is a parallel of the red-Power
+intent-color precedent (`DrawerTileSpec.danger → t.stop`): a new `DrawerTileSpec.beta` flag folds into
+`DrawerTile`'s color decisions so the LIVE tile (outline + icon + label) reads amber, while the **D-08
+greyed-gating is UNCHANGED** — when the session enumerated 0 cams the tile still greys out exactly as
+before (hairline outline + `t.text3`, inert). Beta-amber is the LIVE styling only. It routes through the
+`t.heat` role token (THEME-01: no raw color literal), so it recolors correctly on a dark/light/custom
+theme flip (and is user-overridable per D-01, which is fine).
+
+### FUTURE DIRECTION — gate the camera feed behind device-performance capability
+
+The camera feed stays an ongoing **"beta"** feature, and the intended future direction is to **GATE IT
+BEHIND DEVICE-PERFORMANCE CAPABILITY** rather than ship it unconditionally to all hardware. The idea:
+show/enable the webcam feed (or its smoother rungs) only on hardware above some performance threshold,
+because camera feeds + old/weak GPUs are a bad combination — the **Adreno-320 floor is the marginal
+case** the threshold has to reason about. The amber drawer tile is the current honest signal that this
+surface is experimental; a future phase could replace/augment it with an actual capability gate (e.g.
+detect device perf class and only light the tile / unlock higher-fps rungs above the bar). Recorded here
+as documented future-work so the intent isn't lost.
+

@@ -109,13 +109,17 @@ fun AppDrawer(
 /**
  * One drawer tile description. A LIVE tile carries a [dest]; a greyed "coming soon" tile has `dest =
  * null` (no-op) and is rendered disabled. [danger] flags the red Power tile (stop-intent outline,
- * still disabled in Phase 4).
+ * still disabled in Phase 4). [beta] flags a development/"beta" feature: when the tile is LIVE it
+ * renders in the amber `--heat` "proceed-at-peril" token (THEMING.md) to signal it is still
+ * experimental — currently only the Webcam tile (camera feed is an ongoing beta; see the greyed-gating
+ * note below). Beta-amber applies ONLY to the LIVE styling; the greyed path is untouched.
  */
 private data class DrawerTileSpec(
     val label: String,
     val symbol: String, // Material Symbols ligature name (see MaterialSymbol)
     val dest: Dest?,
     val danger: Boolean = false,
+    val beta: Boolean = false,
 )
 
 /**
@@ -142,7 +146,12 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // enumerated 0 cams, live at ≥1 — the gating input is `webcamEnabled`, folded into [DrawerTile]'s
     // live-decision (NOT a compile-time `dest = null`, which would grey it permanently). `photo_camera`
     // is unique among DRAWER_TILES glyphs (icon-no-repeat law; `videocam` is a Console gutter glyph).
-    DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = Dest.Webcam),
+    // `beta = true`: when LIVE this tile renders in the amber `--heat` (`t.heat`) "proceed-at-peril"
+    // token as a BETA/development indicator — the camera feed is an ongoing beta (MJPEG/snapshot only,
+    // WebRTC deferred SC-4) and may later be gated behind device-performance capability. The D-08
+    // greyed-gating is UNCHANGED (0 cams → still greyed hairline/`t.text3`); beta-amber is the LIVE
+    // styling only.
+    DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = Dest.Webcam, beta = true),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
@@ -168,6 +177,7 @@ private fun DrawerTile(
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = when {
         tile.danger -> t.stop          // red Power tile — destructive intent reads even while disabled.
+        live && tile.beta -> t.heat    // live BETA tile (Webcam) — amber "proceed-at-peril" / development flag.
         live -> t.accentLine           // live tile — accent outline (Status/Settings).
         else -> t.hair                 // greyed "coming soon" — hairline outline.
     }
@@ -188,6 +198,7 @@ private fun DrawerTile(
 
     val contentColor = when {
         tile.danger -> t.stop
+        live && tile.beta -> t.heat    // live BETA tile (Webcam) — amber icon + label as a development flag.
         live -> t.text
         else -> t.text3
     }
