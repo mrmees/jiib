@@ -529,6 +529,7 @@ fun AppShell(
             Dest.Spool -> SpoolScreen(
                 holder = spoolHolder,
                 dispatcher = dispatcher,
+                client = spoolmanClient,
                 onBack = { goBack() },
                 // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
                 // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).

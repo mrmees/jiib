@@ -3,6 +3,7 @@ package works.mees.dinghy.ui.spool
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.theme.Geist
@@ -76,6 +78,7 @@ import works.mees.dinghy.theme.fsSp
 fun SpoolScreen(
     holder: SpoolHolder,
     dispatcher: CommandDispatcher?,
+    client: SpoolmanClient?,
     onBack: () -> Unit,
     onScan: () -> Unit,
     modifier: Modifier = Modifier,
@@ -87,6 +90,8 @@ fun SpoolScreen(
     val selected = state.selected
     // Which filter category's full-screen selector is open (null = none) — Matthew 2026-06-04.
     var openFilter by remember { mutableStateOf<SpoolFilterCategory?>(null) }
+    // The spool whose measured-gross-weight page is open (null = none) — D-04 measured-weight correction.
+    var measureSpool by remember { mutableStateOf<SpoolmanSpool?>(null) }
 
     LaunchedEffect(holder) { holder.load() }
     // D-04: apply the gcode-aware prefilter seed ONCE (keyed on the seed identity), then clear it so a
@@ -109,6 +114,7 @@ fun SpoolScreen(
                     SpoolDetailFocus(
                         spool = selected,
                         isActive = selected?.id == state.activeStatus?.activeSpoolId,
+                        onMeasure = { selected?.let { measureSpool = it } },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -196,6 +202,21 @@ fun SpoolScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+
+        // The full-screen measured-gross-weight page overlays the screen when the detail weight is tapped
+        // (D-04). On a successful measure, refresh the list so the corrected remaining shows, then dismiss.
+        measureSpool?.let { target ->
+            MeasuredWeightPage(
+                spool = target,
+                client = client,
+                onCancel = { measureSpool = null },
+                onMeasured = {
+                    measureSpool = null
+                    scope.launch { holder.refresh() }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -208,6 +229,7 @@ fun SpoolScreen(
 private fun SpoolDetailFocus(
     spool: SpoolmanSpool?,
     isActive: Boolean,
+    onMeasure: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -262,8 +284,11 @@ private fun SpoolDetailFocus(
                 MaterialSymbol("palette", tint = t.text2, sizeSp = iconSp)
                 DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
             }
-            // Line 3 (BODY): scale → "remaining/original g" (drop the "remaining" label).
+            // Line 3 (BODY): scale → "remaining/original g" (drop the "remaining" label). Tap to correct
+            // the measured gross weight (D-04) — the trailing edit glyph hints it's editable.
             Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(t.rCtrl)).clickable(onClick = onMeasure)
+                    .padding(vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -275,7 +300,9 @@ private fun SpoolDetailFocus(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = bodySp.sp,
                     maxLines = 1,
+                    modifier = Modifier.weight(1f),
                 )
+                MaterialSymbol("edit", tint = t.text3, sizeSp = iconSp)
             }
             // Line 4 (BODY): calendar_add_on → the Spoolman registration date (date part only).
             Row(
