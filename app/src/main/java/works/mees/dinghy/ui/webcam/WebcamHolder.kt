@@ -68,6 +68,11 @@ import kotlin.time.Duration.Companion.seconds
  * @param host the active printer host (the per-printer preferred-cam key + the loopback-rewrite host).
  * @param feed the rung-select + active-loop driver (injected for host-testability; production = [bitmapFeed]).
  * @param backoffRng deterministic RNG for the retry backoff in tests (default real RNG).
+ * @param driverContext the dispatcher the blocking decode/probe/poll driver runs on. PRODUCTION passes
+ *   [kotlinx.coroutines.Dispatchers.IO] (via [webcamBitmapHolder]) so the HTTP probe + JPEG decode NEVER
+ *   touch the main thread (RESEARCH "decode on a background dispatcher"; a main-thread probe throws
+ *   `NetworkOnMainThreadException`). Host unit tests leave the default (the scope's own dispatcher) so
+ *   the scripted feed stays on the virtual-time test scheduler — the scripted feed never blocks.
  */
 class WebcamHolder<T>(
     private val scope: CoroutineScope,
@@ -76,6 +81,7 @@ class WebcamHolder<T>(
     private val host: String,
     private val feed: WebcamFeed<T>,
     private val backoffRng: Random = Random.Default,
+    private val driverContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) {
     private val _vm = MutableStateFlow(WebcamVm<T>())
 
@@ -110,7 +116,11 @@ class WebcamHolder<T>(
     fun start() {
         if (cancelled) return
         driver?.cancel()
-        driver = scope.launch { drive() }
+        // Run the driver on [driverContext] — production = Dispatchers.IO so the blocking HTTP probe +
+        // JPEG decode never touch the main thread (NetworkOnMainThreadException); tests = the scope's own
+        // (virtual-time) dispatcher. Cancellation still propagates: the child job is cancelled with the
+        // parent scope on stop()/cancel() regardless of the dispatcher.
+        driver = scope.launch(driverContext) { drive() }
     }
 
     /**
@@ -357,4 +367,7 @@ fun webcamBitmapHolder(
     webcamPrefs = webcamPrefs,
     host = cfg.host,
     feed = bitmapFeed(cfg, sharedClient, viewWidthPx, viewHeightPx),
+    // The blocking probe/decode/poll MUST run off the main thread (the shell builds the holder on a
+    // main-thread Compose scope) — a main-thread HTTP probe throws NetworkOnMainThreadException.
+    driverContext = kotlinx.coroutines.Dispatchers.IO,
 )
