@@ -23,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +50,12 @@ import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.spool.SpoolmanClient
+import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.spool.SpoolmanStatus
+import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.state.FileBrowserRow
 import works.mees.dinghy.state.FileBrowserRowKind
 import works.mees.dinghy.state.FilePreviewMetadata
@@ -59,7 +66,22 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.spool.SpoolWarning
+import works.mees.dinghy.ui.spool.evaluatePrintStartGate
 
+/**
+ * @param spoolmanPresent    D-02 capability gate — true only on a printer with the Moonraker `spoolman`
+ *                           component. When false the warn-only print-start gate is SKIPPED ENTIRELY
+ *                           (no spool warnings; the plain `Print file` confirm shows unchanged).
+ * @param activeSpoolStatus  the D-10-reconciled active-spool status (`spool_id` + pending reports); null
+ *                           while idle / unavailable.
+ * @param spoolmanClient     the session inventory reader the gate resolves the active-spool DETAIL through
+ *                           (best-effort `getSpool` — a rejected/absent read surfaces a "could not verify"
+ *                           amber warning, never a crash). Null while idle.
+ * @param onPickSpoolForFile D-04 gcode-aware prefilter: opens the Spool picker seeded by the selected
+ *                           file's `filament_type[]` (material) + `filament_colors[]` (color hint).
+ * @param onScanSpool        opens the QR scan sub-surface (the active-spool card / Spool screen Scan path).
+ */
 @Composable
 fun FilesScreen(
     holder: FileBrowserHolder,
@@ -68,11 +90,59 @@ fun FilesScreen(
     canStartPrint: Boolean,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    spoolmanPresent: Boolean = false,
+    activeSpoolStatus: SpoolmanStatus? = null,
+    spoolmanClient: SpoolmanClient? = null,
+    onPickSpoolForFile: (filamentType: List<String>, filamentColors: List<String>) -> Unit = { _, _ -> },
+    onScanSpool: () -> Unit = {},
 ) {
     val state by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var guard by remember { mutableStateOf<FileGuard?>(null) }
     val selected = state.selectedFile
+
+    // ---- D-01 warn-only print-start gate (SPOOL-07) ------------------------------------------------
+    // Resolve the active-spool DETAIL once-per-id via the session's lean SpoolmanClient (the
+    // PrintStatusScreen precedent): a best-effort getSpool whose rejection surfaces a "could not verify"
+    // amber warning, never a crash. The gate runs ONLY when the printer has the spoolman component
+    // (D-02); otherwise no warnings compute and the plain confirm shows unchanged.
+    val activeSpoolId = activeSpoolStatus?.activeSpoolId
+    var spoolDetail by remember { mutableStateOf<SpoolmanSpool?>(null) }
+    var spoolFetchFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(activeSpoolId, spoolmanPresent, spoolmanClient) {
+        val id = activeSpoolId
+        if (!spoolmanPresent || id == null) {
+            spoolDetail = null
+            spoolFetchFailed = false
+        } else {
+            val client = spoolmanClient
+            if (client == null) {
+                spoolDetail = null
+                spoolFetchFailed = false
+            } else {
+                val envelope = runCatching { client.getSpool(id) }.getOrNull()
+                val resolved = parseSpoolmanSpools(envelope).rows.firstOrNull { it.id == id }
+                spoolDetail = resolved
+                // An id is set but the detail could not be resolved → the gate surfaces FetchFailed
+                // (retry/override), distinct from "no spool selected". A successful resolve clears it.
+                spoolFetchFailed = resolved == null
+            }
+        }
+    }
+    // The ordered warn-only warnings (empty = clean pass → the unchanged `Print file` confirm). Skipped
+    // entirely when the spoolman component is absent (D-02). NEVER blocks — recomputed for the current
+    // selection + active spool.
+    val selectedPreview = state.selectedPreview
+    val spoolWarnings: List<SpoolWarning> = if (spoolmanPresent && activeSpoolStatus != null && selectedPreview != null) {
+        evaluatePrintStartGate(
+            activeSpool = spoolDetail,
+            status = activeSpoolStatus,
+            fetchFailed = spoolFetchFailed,
+            file = selectedPreview,
+        )
+    } else {
+        emptyList()
+    }
     val startEnabled = selected != null && canStartPrint && state.pendingAction == null
     // D-15: delete is scoped to the ACTIVE print file, not idle-only. During a print only the
     // currently-printing file (print_stats.filename) is undeletable; every other idle file stays
@@ -148,18 +218,45 @@ fun FilesScreen(
         when (guard) {
             FileGuard.Start -> {
                 val file = selected
-                ConfirmGuard(
-                    title = "Print ${file?.name ?: "file"}?",
-                    message = selectedFileDetails(file, state.selectedPreview),
-                    confirmLabel = "Print file",
-                    cancelLabel = "Keep browsing",
-                    onConfirm = {
-                        holder.requestStartSelected()
-                        guard = null
-                    },
-                    onCancel = { guard = null },
-                    destructive = false,
-                )
+                if (spoolWarnings.isEmpty()) {
+                    // CLEAN PASS (D-01): no spool warnings → the existing `Print file` confirm, UNCHANGED.
+                    ConfirmGuard(
+                        title = "Print ${file?.name ?: "file"}?",
+                        message = selectedFileDetails(file, state.selectedPreview),
+                        confirmLabel = "Print file",
+                        cancelLabel = "Keep browsing",
+                        onConfirm = {
+                            holder.requestStartSelected()
+                            guard = null
+                        },
+                        onCancel = { guard = null },
+                        destructive = false,
+                    )
+                } else {
+                    // WARN-ONLY GATE (D-01): amber proceed-at-peril warnings the user taps PAST in one
+                    // action. NEVER blocks — "Print anyway" is always one tap straight to the dispatch.
+                    SpoolWarningGuard(
+                        fileName = file?.name ?: "file",
+                        warnings = spoolWarnings,
+                        fileDetails = selectedFileDetails(file, state.selectedPreview),
+                        onPickSpool = {
+                            onPickSpoolForFile(
+                                selectedPreview?.filamentType.orEmpty(),
+                                selectedPreview?.filamentColors.orEmpty(),
+                            )
+                            guard = null
+                        },
+                        onScan = {
+                            onScanSpool()
+                            guard = null
+                        },
+                        onPrintAnyway = {
+                            holder.requestStartSelected()
+                            guard = null
+                        },
+                        onBack = { guard = null },
+                    )
+                }
             }
             FileGuard.Delete -> {
                 val file = selected
@@ -428,6 +525,130 @@ private fun intentColor(intent: Intent, t: ThemeTokens): Color = when (intent) {
     Intent.Warn -> t.heat
     Intent.Danger -> t.stop
     Intent.Go -> t.go
+}
+
+/**
+ * The D-01 warn-only print-start gate surface (SPOOL-07). The full-screen analog of [ConfirmGuard]'s
+ * amber proceed-at-peril variant, but it offers the FOUR D-01 actions instead of a confirm/cancel pair:
+ *  - **Pick spool** (accent) — opens the Spool picker with the gcode-aware prefilter seed (D-04).
+ *  - **Scan** (accent) — opens the QR scan surface.
+ *  - **Print anyway** (amber [Intent.Warn]) — proceeds to the print in ONE tap; the gate NEVER blocks.
+ *  - **Back** (neutral) — safe dismiss, returns to browsing.
+ *
+ * The amber [warnings] are listed as proceed-at-peril body text on a `--heat-soft` tint (the
+ * SAVE_CONFIG-gate visual grammar), each [SpoolWarning.message] a line. Type matches [ConfirmGuard]'s
+ * scale via `fsSp` (D-16): the 28sp title, the ≥17sp warning body (never below the 15sp floor); no
+ * hardcoded `.sp`. All color via [LocalTokens] (THEME-01). Dispatches nothing itself — only the lambdas.
+ */
+@Composable
+private fun SpoolWarningGuard(
+    fileName: String,
+    warnings: List<SpoolWarning>,
+    fileDetails: String,
+    onPickSpool: () -> Unit,
+    onScan: () -> Unit,
+    onPrintAnyway: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    // The opaque token bg under the amber tint so the underlying browser is firmly obscured (the G-4
+    // ConfirmGuard opaque-backdrop lesson — the heat-soft tint is alpha-bearing).
+    Box(modifier.fillMaxSize().background(t.bg).background(t.heatSoft)) {
+        ScreenScaffold(
+            field = {
+                Column(
+                    Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Print $fileName?",
+                        color = t.text,
+                        fontFamily = Geist,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fsSp(28f, t.fs).sp,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = "Spool check found something to review:",
+                        color = t.text2,
+                        fontFamily = Geist,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = fsSp(17f, t.fs).sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                    )
+                    // Each warning is one amber proceed-at-peril line — body ≥18sp (above the 15sp floor).
+                    warnings.forEach { w ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MaterialSymbol("warning", tint = t.heat, sizeSp = fsSp(18f, t.fs))
+                            Text(
+                                text = w.message,
+                                color = t.heat,
+                                fontFamily = Geist,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = fsSp(18f, t.fs).sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    Text(
+                        text = fileDetails,
+                        color = t.text3,
+                        fontFamily = Geist,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = fsSp(15f, t.fs).sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
+                    )
+                    // Row 1: the two fix-it routes (Pick spool / Scan) — accent (physical/command).
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        OutlinedControl(
+                            label = "Pick spool",
+                            onClick = onPickSpool,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent,
+                            symbol = "inventory_2",
+                        )
+                        OutlinedControl(
+                            label = "Scan",
+                            onClick = onScan,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent,
+                            symbol = "qr_code_scanner",
+                        )
+                    }
+                    Spacer(Modifier.size(12.dp))
+                    // Row 2: Back (neutral safe dismiss) | Print anyway (amber proceed-at-peril, one tap).
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        OutlinedControl(
+                            label = "Back",
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Neutral,
+                        )
+                        OutlinedControl(
+                            label = "Print anyway",
+                            onClick = onPrintAnyway,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Warn,
+                        )
+                    }
+                }
+            },
+        )
+    }
 }
 
 private fun selectedFileDetails(file: FileBrowserRow?, preview: FilePreviewMetadata?): String =

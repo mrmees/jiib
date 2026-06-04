@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 
 /**
  * The shell's NAV state, HOISTED above the [RootController] Splash/Shell switch (G-A1).
@@ -62,6 +63,14 @@ class ShellNavState {
      */
     var scanActive by mutableStateOf(false)
 
+    /**
+     * D-04 gcode-aware prefilter seed (11-08): carried from a Files spool-warning "Pick spool" into the
+     * Spool picker so it opens pre-filtered by the selected file's material family + color hint. null = a
+     * plain drawer open (no seed). TRANSIENT — reset on return from a recovery Splash ([resetTransient]):
+     * a stale seed must not survive a reconnect. [SpoolScreen] clears it the moment it applies the seed.
+     */
+    var spoolPrefilter by mutableStateOf<SpoolPrefilterSeed?>(null)
+
     fun navigateTo(target: Dest) {
         if (target == dest) return
         if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
@@ -90,6 +99,7 @@ class ShellNavState {
     fun resetTransient() {
         macroPopupFor = null
         scanActive = false
+        spoolPrefilter = null
     }
 }
 

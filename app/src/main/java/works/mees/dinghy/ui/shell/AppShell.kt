@@ -65,6 +65,7 @@ import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.spool.SpoolHolder
+import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.screen.SettingsScreen
@@ -242,6 +243,8 @@ fun AppShell(
     val activeSpoolFlow = spine?.activeSpool
         ?: remember { MutableStateFlow<works.mees.dinghy.spool.SpoolmanStatus?>(null) }
     val spoolHolder = remember(store) { SpoolHolder(scope = scope, client = spoolmanClient, activeSpool = activeSpoolFlow) }
+    // The live active-spool status the Files print-start gate reads (D-01) — the D-10-reconciled truth.
+    val activeSpoolStatus by activeSpoolFlow.collectAsStateWithLifecycle()
 
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
@@ -415,6 +418,20 @@ fun AppShell(
                 httpBase = httpBase,
                 canStartPrint = capabilities.hasObject("virtual_sdcard"),
                 onBack = { goBack() },
+                // D-01 warn-only print-start gate inputs (SPOOL-07): the capability gate, the
+                // D-10-reconciled active status, and the inventory reader the gate resolves the
+                // active-spool detail through. The gate is skipped entirely when spoolman is absent.
+                spoolmanPresent = spoolEnabled,
+                activeSpoolStatus = activeSpoolStatus,
+                spoolmanClient = spoolmanClient,
+                // D-04 gcode-aware prefilter: the gate's "Pick spool" seeds the picker from the file's
+                // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
+                onPickSpoolForFile = { filamentType, filamentColors ->
+                    nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
+                    navigateTo(Dest.Spool)
+                },
+                // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
+                onScanSpool = { nav.scanActive = true },
             )
             Dest.Macros -> {
                 // The macro surface: Bookmarked launcher OR the System manage-visibility list. Tapping a
@@ -516,6 +533,11 @@ fun AppShell(
                 // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
                 // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).
                 onScan = { nav.scanActive = true },
+                // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
+                // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it
+                // so a later manual reopen is unseeded.
+                prefilter = nav.spoolPrefilter,
+                onPrefilterConsumed = { nav.spoolPrefilter = null },
             )
             Dest.Settings -> SettingsScreen(
                 container = container,
