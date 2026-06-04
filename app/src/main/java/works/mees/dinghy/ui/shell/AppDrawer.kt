@@ -55,14 +55,25 @@ import works.mees.dinghy.ui.route.Dest
  * Static styling only (D-13): outline + faint fill, no looping/breathing animation (Adreno-320 floor).
  * Every color routes through [LocalTokens] — NO raw color literal (THEME-01).
  *
+ * ## Runtime greyed-gating (D-08, plan 10-07)
+ * Most tiles' live-vs-greyed state is a COMPILE-TIME property of [DrawerTileSpec.dest] (`null` = greyed
+ * "coming soon"). The Webcam tile is the deliberate DEPARTURE (D-08, the opposite of Phase-9's hide-the-
+ * tile): it is ALWAYS shown, GREYED when the current session enumerated 0 cams and LIVE when ≥1 — a
+ * RUNTIME condition the static tile set cannot express. The shell threads [webcamEnabled]
+ * (`AppContainer.webcamCount > 0`) in; [DrawerTile] folds it into its live-decision so the Webcam tile
+ * greys/lives without any change to the (already-correct) greyed STYLING. Default `false` so an
+ * idle/no-session drawer greys it.
+ *
  * @param onDestination invoked with the chosen LIVE [Dest] (the shell sets it as the active route).
  * @param onDismiss     collapse the drawer (also called after a live-tile tap).
+ * @param webcamEnabled D-08 runtime gate: the Webcam tile is LIVE only when this is true (≥1 cam).
  */
 @Composable
 fun AppDrawer(
     onDestination: (Dest) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    webcamEnabled: Boolean = false,
 ) {
     val t = LocalTokens.current
     Dialog(
@@ -81,6 +92,7 @@ fun AppDrawer(
             items(DRAWER_TILES, key = { it.label }) { tile ->
                 DrawerTile(
                     tile = tile,
+                    webcamEnabled = webcamEnabled,
                     onClick = {
                         // Only LIVE tiles navigate; greyed tiles are no-op (their dest is null).
                         tile.dest?.let {
@@ -126,6 +138,11 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // `tune` is the single Calibration tile (D-14) — unique among DRAWER_TILES glyphs (icon-no-repeat
     // law). It opens the Calibration hub, which sub-routes to all five routine pages (09-07).
     DrawerTileSpec(label = "Calibration", symbol = "tune", dest = Dest.Calibration),
+    // The Webcam tile carries a LIVE [dest] but is RUNTIME-gated (D-08): greyed when the session
+    // enumerated 0 cams, live at ≥1 — the gating input is `webcamEnabled`, folded into [DrawerTile]'s
+    // live-decision (NOT a compile-time `dest = null`, which would grey it permanently). `photo_camera`
+    // is unique among DRAWER_TILES glyphs (icon-no-repeat law; `videocam` is a Console gutter glyph).
+    DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = Dest.Webcam),
     DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
@@ -140,10 +157,14 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
 @Composable
 private fun DrawerTile(
     tile: DrawerTileSpec,
+    webcamEnabled: Boolean,
     onClick: () -> Unit,
 ) {
     val t = LocalTokens.current
-    val live = tile.dest != null
+    // A tile is LIVE when it carries a [dest] AND (for the runtime-gated Webcam tile, D-08) the runtime
+    // enablement holds. The Webcam tile greys when `!webcamEnabled` (0 cams) via the SAME greyed styling
+    // below — only this enablement INPUT is new (the styling was already correct).
+    val live = tile.dest != null && (tile.dest != Dest.Webcam || webcamEnabled)
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = when {
         tile.danger -> t.stop          // red Power tile — destructive intent reads even while disabled.
