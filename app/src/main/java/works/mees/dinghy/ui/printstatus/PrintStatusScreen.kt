@@ -68,6 +68,10 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
+import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.spool.parseSpoolmanSpools
+import works.mees.dinghy.ui.spool.ActiveSpoolCard
+import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -110,6 +114,7 @@ import works.mees.dinghy.theme.fsSp
 fun PrintStatusScreen(
     container: AppContainer,
     onOpenFiles: () -> Unit = {},
+    onOpenSpool: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -117,6 +122,35 @@ fun PrintStatusScreen(
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
     val lastJob by container.lastJob.collectAsStateWithLifecycle(initialValue = null)
     val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
+
+    // ---- Active-spool card (SPOOL-02, 11-06) -------------------------------------------------------
+    // The D-03 card reads the capability gate + the D-10-reconciled active status; the spool DETAIL is
+    // resolved once-per-id via the session's lean SpoolmanClient (a best-effort getSpool — a rejected/
+    // absent read leaves the card in its Loading variant, never crashes). The whole card / its Change
+    // action route to the Spool screen; Clear dispatches post_spool_id {} (D-13).
+    val spoolmanPresent by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
+    val activeSpool by container.activeSpool.collectAsStateWithLifecycle(initialValue = null)
+    var spoolDetail by remember { mutableStateOf<SpoolmanSpool?>(null) }
+    val activeSpoolId = activeSpool?.activeSpoolId
+    LaunchedEffect(activeSpoolId) {
+        val id = activeSpoolId
+        if (id == null) {
+            spoolDetail = null
+        } else {
+            val envelope = container.currentSpoolmanClient?.let { runCatching { it.getSpool(id) }.getOrNull() }
+            // The detail endpoint returns a SINGLE spool object inside the proxy-v2 envelope; reuse the
+            // list parser (it tolerates an object response → empty) by wrapping the lone row, or fall back
+            // to a one-row parse. parseSpoolmanSpools handles the array case; a bare object stays null
+            // (the card keeps Loading) rather than crashing.
+            spoolDetail = parseSpoolmanSpools(envelope).rows.firstOrNull { it.id == id }
+                ?: parseSpoolDetail(envelope, id)
+        }
+    }
+    val activeSpoolCardState = deriveActiveSpoolCardState(
+        spoolmanPresent = spoolmanPresent,
+        status = activeSpool,
+        detail = spoolDetail,
+    )
 
     var showEstopGuard by remember { mutableStateOf(false) }
     var showCancelGuard by remember { mutableStateOf(false) }
@@ -186,6 +220,21 @@ fun PrintStatusScreen(
                     Modifier.fillMaxSize().padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Active-spool card (SPOOL-02, 11-06): a compact "what's loaded" glance, shown only
+                    // when the printer has the spoolman component (D-02 — hidden entirely on printers
+                    // without it, so it never crowds a non-Spoolman setup). Sits above the state-driven
+                    // content (it is useful both idle AND mid-print — a runout/M600 swap is a print-time
+                    // concern). The whole card / Change → the Spool screen; Clear → post_spool_id {} (D-13).
+                    if (spoolmanPresent) {
+                        ActiveSpoolCard(
+                            state = activeSpoolCardState,
+                            onScan = onOpenSpool, // the dedicated scan surface lands in 11-07; route to Spool for now.
+                            onChange = onOpenSpool,
+                            onClear = { dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, works.mees.dinghy.command.SetSpoolArgs(spoolId = null)) },
+                            onClick = onOpenSpool,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     // State-driven field (Inc 3): printing → StatGrid (UNCHANGED); idle + history →
                     // last-job card; idle + no history → file_copy_off empty state.
                     val contentModifier = Modifier.fillMaxWidth().weight(1f)
@@ -846,6 +895,22 @@ private fun fmtFinished(epochSeconds: Double): String =
  *  null when malformed — the swatch is then simply omitted. */
 private fun parseHexColor(hex: String): Color? =
     runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+
+/**
+ * Decode the single-spool DETAIL from a `/v1/spool/{id}` proxy-v2 envelope (its `response` is a lone
+ * object, not an array — so [parseSpoolmanSpools] sees no array and returns empty). Best-effort: walk the
+ * envelope's `response` object and decode it via the shared [works.mees.dinghy.net.MoonrakerJson]; a
+ * malformed/absent envelope or an id mismatch yields null (the card stays in its Loading variant), never
+ * throws (T-11-06-01).
+ */
+private fun parseSpoolDetail(envelope: kotlinx.serialization.json.JsonElement?, expectedId: Int): SpoolmanSpool? {
+    val obj = envelope as? kotlinx.serialization.json.JsonObject ?: return null
+    val response = obj["response"] as? kotlinx.serialization.json.JsonObject ?: return null
+    val spool = runCatching {
+        works.mees.dinghy.net.MoonrakerJson.decodeFromJsonElement(SpoolmanSpool.serializer(), response)
+    }.getOrNull() ?: return null
+    return spool.takeIf { it.id == expectedId }
+}
 
 /** The printer's current print state as a short uppercase label for the ring center (idle/finished
  *  states); the Printing case is rendered as the live % instead. */
