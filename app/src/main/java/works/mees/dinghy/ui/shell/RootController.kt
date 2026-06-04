@@ -76,6 +76,15 @@ fun RootController(container: AppContainer) {
         }
     }
 
+    // WR-03: when the user explicitly escapes to Settings (taps "Edit connection") DURING a sub-600ms
+    // recovery dwell, the dwell intent is fulfilled — clear [splashHeld] so the dwell remainder cannot
+    // re-show a ghost Splash after the subsequent Settings save (settingsEscape→false on a healthy,
+    // Connected session would otherwise leave showSplash = rawSplash || splashHeld = false || true).
+    // The normal recovery min-dwell (no escape) is untouched.
+    LaunchedEffect(settingsEscape) {
+        if (settingsEscape) splashHeld = false
+    }
+
     // The EFFECTIVE splash = the raw route OR the held floor — but NEVER over Connect/Settings (those
     // bypass the dwell). The latch floors only the recovery Splash so it is perceptible on BOTH the
     // klippy-restart and the socket-reconnect paths.
