@@ -184,6 +184,13 @@ class WebcamView(context: Context) : View(context), ThemeableView {
      * seam (plan 10-06); the View only references it for the blit.
      */
     fun setFrame(bitmap: Bitmap?) {
+        // WR-03: the host's `update` block pushes setFrame(frame) on EVERY recomposition (theme change,
+        // sibling state), so an unrelated recompose would otherwise trigger a full re-blit with no new
+        // frame. Skip the invalidate when handed the SAME bitmap reference again — only a genuinely new
+        // frame (a different instance from the decoder's double-buffer, WR-03) repaints. A new decoded
+        // frame is always a distinct buffer instance from the previous on-screen one (the ping-pong), so a
+        // real frame is never suppressed; an identical-reference re-push (recompose) is correctly a no-op.
+        if (bitmap === this.frame) return
         this.frame = bitmap
         invalidate()
     }

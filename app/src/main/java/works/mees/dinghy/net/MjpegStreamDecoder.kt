@@ -214,8 +214,8 @@ object MjpegDecodePolicy {
 }
 
 /**
- * Build a production [MjpegStreamDecoder] that decodes each JPEG part into ONE reused mutable [Bitmap] via
- * `inBitmap`+`inSampleSize`+`inMutable` (D-06).
+ * Build a production [MjpegStreamDecoder] that decodes each JPEG part into a DOUBLE-BUFFERED pair of reused
+ * mutable [Bitmap]s via `inBitmap`+`inSampleSize`+`inMutable` (D-06).
  *
  * WR-04 — the `inSampleSize` is computed from the REAL frame size, NOT a caller-supplied constant. The
  * MJPEG source resolution is unknown until the first frame, so the caller cannot compute a correct sample
@@ -224,33 +224,45 @@ object MjpegDecodePolicy {
  * the exact OOM/jank trap the snapshot path was already fixed for. Instead this decoder does a cheap
  * `inJustDecodeBounds` measurement on the FIRST frame (RESEARCH Pattern 3 — the same two-pass the snapshot
  * path uses), computes the fixed sample from the real `outWidth/outHeight` vs the view px, and HOLDS it for
- * every subsequent frame. Once sized, the reused `inBitmap` steady state is preserved (no per-frame alloc).
- * An `inBitmap` size-mismatch (`IllegalArgumentException`, Pitfall 5) drops `inBitmap` for one frame and
- * re-establishes from the freshly-decoded bitmap.
+ * every subsequent frame.
+ *
+ * WR-03 — torn frames across the decoder-thread → UI-thread handoff. The OLD single-reused-`inBitmap`
+ * strategy let the IO-thread decoder overwrite the very pixel buffer the UI thread's `onDraw` was blitting
+ * (no synchronization), so a partially-decoded frame could be drawn on the 2GB device. Fix: DOUBLE-BUFFER —
+ * two independent decode targets (each its own [BitmapFactory.Options] carrying its own reused `inBitmap`)
+ * alternated per frame, so the bitmap just handed off over the drop-behind channel (the one the View may be
+ * drawing) is NEVER the one the next frame decodes into. The conflated capacity-1 channel keeps at most one
+ * frame in flight to the View, so two buffers are sufficient. This preserves the allocation-free steady
+ * state (no per-frame alloc — each buffer's `inBitmap` is reused on its turn) while removing the shared
+ * mutation. An `inBitmap` size-mismatch (`IllegalArgumentException`, Pitfall 5) drops that buffer's
+ * `inBitmap` for one frame and re-establishes from the freshly-decoded bitmap.
  *
  * @param viewWidthPx/[viewHeightPx] the target view px the decode downsamples toward (the decode budget,
  *   per [MjpegDecodePolicy.computeInSampleSize]). `<= 0` falls back to a conservative non-1 sample so a
  *   pre-measure decode can never run at full native res (mirrors the snapshot pre-measure fallback).
  */
 fun bitmaps(boundary: String, viewWidthPx: Int, viewHeightPx: Int): MjpegStreamDecoder<Bitmap> {
-    // The decode Options carry the reused inBitmap; inSampleSize is established from the FIRST frame's real
-    // bounds (WR-04) then held fixed for the stream. `sized` flips true once measured.
-    val options = BitmapFactory.Options().apply {
+    // WR-03 double-buffer: two decode targets, each carrying its OWN reused inBitmap. We ping-pong between
+    // them so the buffer the View is currently drawing is never the one being written next.
+    fun newOptions() = BitmapFactory.Options().apply {
         inMutable = true
         inSampleSize = 1
         inPreferredConfig =
             if (MjpegDecodePolicy.PREFER_RGB_565) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
     }
-    var sized = false
+    val buffers = arrayOf(newOptions(), newOptions())
+    var next = 0       // which buffer the NEXT frame decodes into (alternates 0/1)
+    var sized = false  // inSampleSize is fixed from the first frame's real bounds, then held
+
     return MjpegStreamDecoder(boundary) { jpeg ->
         if (jpeg.isEmpty()) return@MjpegStreamDecoder null
 
         // Pass 1 (FIRST frame only): measure the REAL source size WITHOUT allocating pixels, then fix the
-        // downsample step from it vs the view px (WR-04). Held for the rest of the stream (cam res stable).
+        // downsample step from it vs the view px (WR-04). Apply it to BOTH buffers; held for the stream.
         if (!sized) {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
-            options.inSampleSize = if (viewWidthPx > 0 && viewHeightPx > 0) {
+            val sample = if (viewWidthPx > 0 && viewHeightPx > 0) {
                 MjpegDecodePolicy.computeInSampleSize(
                     srcWidth = bounds.outWidth, srcHeight = bounds.outHeight,
                     reqWidth = viewWidthPx, reqHeight = viewHeightPx,
@@ -263,11 +275,14 @@ fun bitmaps(boundary: String, viewWidthPx: Int, viewHeightPx: Int): MjpegStreamD
                     reqWidth = MJPEG_PREMEASURE_FALLBACK_PX, reqHeight = MJPEG_PREMEASURE_FALLBACK_PX,
                 ).coerceAtLeast(2)
             }
-            // A new fixed sample invalidates any prior reused buffer (decoded at the old sample).
-            options.inBitmap = null
+            buffers.forEach { it.inSampleSize = sample; it.inBitmap = null }
             sized = true
         }
 
+        // Decode into the next buffer in the ping-pong; advance the cursor so the following frame uses the
+        // OTHER buffer — the one just handed off (and possibly on-screen) is never the next write target.
+        val options = buffers[next]
+        next = next xor 1
         try {
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, options)?.also { options.inBitmap = it }
         } catch (e: IllegalArgumentException) {
