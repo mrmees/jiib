@@ -2,6 +2,7 @@ package works.mees.dinghy.command
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
@@ -45,7 +46,7 @@ data class SetSpoolArgs(val spoolId: Int?)
  * (D-07). [method] is the HTTP verb ("GET"/"PUT"), [path] the Spoolman REST path (e.g. "/v1/spool"),
  * [query] the optional already-URL-encoded query string (dotted keys encoded in the client layer).
  */
-data class SpoolmanProxyArgs(val method: String, val path: String, val query: String? = null)
+data class SpoolmanProxyArgs(val method: String, val path: String, val query: String? = null, val body: JsonObject? = null)
 
 /** Manual-probe Z-jog nudge (D-01) — [step] is clamped to ±MAX_TESTZ_MM by [PrinterCommands.testZ]. */
 data class TestZArgs(val step: Double)
@@ -285,6 +286,7 @@ object CommandRegistry {
                 put("request_method", args.method)
                 put("path", args.path)
                 args.query?.let { put("query", it) }
+                args.body?.let { put("body", it) }
             }
         },
         availability = AvailabilityPredicate.ComponentPresent("spoolman"),

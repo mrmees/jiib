@@ -1,6 +1,9 @@
 package works.mees.dinghy.spool
 
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.SpoolmanProxyArgs
 import works.mees.dinghy.command.request
@@ -84,17 +87,17 @@ class MoonrakerSpoolmanClient(private val rpc: JsonRpcClient) : SpoolmanClient {
      * from `gross − spool_weight`; the caller re-reads the spool to reflect the update.
      */
     override suspend fun measureSpool(id: Int, grossGrams: Double): JsonElement? =
-        proxy("PUT", "/v1/spool/$id/measure", "weight=$grossGrams")
+        proxy("PUT", "/v1/spool/$id/measure", body = buildJsonObject { put("weight", grossGrams) })
 
     /**
      * Issue one proxy-v2 read. [query] is the plain `key=value&key=value` string; dotted keys are
      * URL-encoded here (D-07/Pitfall 5) before the proxy sees them. Best-effort — any failure → null.
      */
-    private suspend fun proxy(method: String, path: String, query: String? = null): JsonElement? =
+    private suspend fun proxy(method: String, path: String, query: String? = null, body: JsonObject? = null): JsonElement? =
         runCatching {
             rpc.request(
                 CommandRegistry.spoolmanProxy,
-                SpoolmanProxyArgs(method = method, path = path, query = encodeQuery(query)),
+                SpoolmanProxyArgs(method = method, path = path, query = encodeQuery(query), body = body),
             )
         }.getOrNull()
 
