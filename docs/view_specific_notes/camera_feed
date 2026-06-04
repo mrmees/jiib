@@ -6,6 +6,24 @@ Camera feeds should never be stretched to fit (though they can always grow/shrin
 
 Round the edges of the camera feed , we're ok losing that content to ensure visual continuity within the page, the square images of the feed will clash with our round edges everywhere else.  
 
-We really want to think about bandwidth/processor power eficiency here, I'm not sure if we have many options considering the age of the SDK we're designing against, but camera feeds and old hardware are typically a bad combination. 
+We really want to think about bandwidth/processor power eficiency here, I'm not sure if we have many options considering the age of the SDK we're designing against, but camera feeds and old hardware are typically a bad combination.
 
+---
+
+## WebRTC explicitly deferred (Phase 10 scope note — SC-4)
+
+Phase 10 ships **MJPEG decode (rung 1) + ~2 fps snapshot poll (rung 2) only**. WebRTC / H.264
+low-latency decode (`camera-streamer` / `go2rtc` / **ravens-perch's `webrtc-mediamtx`** streams) is
+**explicitly deferred** past MJPEG (roadmap SC-4 — `org.webrtc` is large and heavy on the
+Adreno-320 / API-23 floor; likely a v2 phase). A camera whose `stream_url` is a WebRTC service AND
+whose `snapshot_url` is absent/unauthorized (no decodable rung-1 stream AND no usable rung-2
+snapshot) correctly renders the **rung-3 dead-end card** naming the detected service ("This camera
+uses WebRTC — not supported yet"), with **no open-in-browser button** (D-04). This is intended
+behavior, **not a bug**.
+
+Live reality on the home printers (captured 2026-06-04 from flox): both ravens-perch installs report
+`service: webrtc-mediamtx`, so neither stream_url is MJPEG-decodable. The **Ender 3 Pro** snapshot URL
+carries a `?token=…` and returns `200 image/jpeg` → it drives the **rung-2 snapshot ladder** (the
+primary on-device-demoable path). The **Ender 5 Plus** snapshot URL has no token and returns `401`
+→ no usable snapshot → it correctly shows the **rung-3 dead-end card**.
 
