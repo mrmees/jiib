@@ -458,7 +458,7 @@ Plans:
 
 **Goal**: Bring real spool management to the printer-side screen — the thing people most want — via Moonraker's Spoolman integration (both target printers already run it). List spools and the active spool, show filament remaining/usage, and set the active spool. The headline feature: a **tablet-camera QR-scan-to-assign** flow — point the device camera at the spool's Spoolman QR label (`web+spoolman:s-<id>`), decode it, and set that spool active. Far easier than rigging an ESP32 NFC tag. Decoder is **ZXing** (pure-Java) because the Nexus 7 floor has no Play Services for Google ML Kit.
 **Depends on**: Phase 10
-**Requirements**: *(new SPOOL-* family — to be defined at phase discuss)*
+**Requirements**: SPOOL-01 (umbrella) + finer family coined at discuss/plan (mirrors CALIB-*): SPOOL-02 (active-spool Status card, ⊂SPOOL-01/SC-1), SPOOL-03 (picker + filters in `Dest.Spool`, ⊂SPOOL-01/SC-1), SPOOL-04 (set/clear/change active via Moonraker JSON-RPC, ⊂SPOOL-01/SC-1), SPOOL-05 (QR scan-to-assign, ZXing GMS-free, SC-2/SC-4), SPOOL-06 (camera permission + no-camera degrade, SC-3), SPOOL-07 (print-start warn-only gate in Files, D-01), SPOOL-08 (external-change reconciliation + notify routing + pending-report staleness, D-10/D-11), SPOOL-09 (measured-weight correction + nice-to-haves: gcode-aware prefilter, location shortcuts, archived warning, D-04)
 **Success Criteria** (what must be TRUE):
 
   1. The app lists Spoolman spools + the active spool and filament remaining/usage via Moonraker `/server/spoolman/*`, and can set the active spool — capability-gated on the `spoolman` component being present
