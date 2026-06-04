@@ -62,3 +62,15 @@ fun resolveWebcamUrl(raw: String?, cfg: ConnectionConfig): String? {
  */
 fun redactWebcamUrl(url: String): String =
     url.replace(Regex("([?&]token=)[^&]*"), "$1<redacted>")
+
+/**
+ * The ONE sanctioned way for ANY webcam URL to reach a surfaced/diagnostic string (Security V7 / T-10-05,
+ * CR-02). EVERY diagnostic that wants to mention a resolved URL — a probe/poll failure reason, a future
+ * `Log.*`, a thrown message, a crash breadcrumb — MUST route the URL through here so the `?token=` is
+ * ALWAYS stripped. This makes [redactWebcamUrl] a LIVE, enforced control rather than dead code that the
+ * next added log line would silently bypass: there is no second path from a raw URL to a surfaced string.
+ *
+ * Pass `null`/blank (no URL) → "" (nothing to surface). Otherwise → the redacted URL.
+ */
+fun surfaceWebcamUrl(url: String?): String =
+    if (url.isNullOrBlank()) "" else redactWebcamUrl(url)

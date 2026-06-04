@@ -6,6 +6,7 @@ import okhttp3.ResponseBody
 import works.mees.dinghy.state.Rung
 import works.mees.dinghy.state.rungFor
 import java.io.IOException
+// surfaceWebcamUrl: the ONE sanctioned redacted-URL surface (CR-02 / V7) — same package, no explicit import needed.
 
 /**
  * The D-02 Content-Type probe + rung selector (CAM-01, Pitfall 1/3/4; Security V7).
@@ -67,8 +68,17 @@ class WebcamProbe(
          * unreachable). [terminal] is true for a definitive auth/HTTP rejection (A4) — the holder shows
          * the dead-end card and does not spin; it is false for a transient transport failure the holder
          * may retry under foreground backoff.
+         *
+         * [reason] is a PRE-REDACTED diagnostic breadcrumb (CR-02 / Security V7 / T-10-05): it is the
+         * ONLY field on a [ProbeResult] that may carry any trace of the probed URL, and it is built
+         * EXCLUSIVELY through [surfaceWebcamUrl], so the `?token=` is already stripped before it can reach
+         * any log/crash/error surface. Empty when there is nothing safe to surface. This keeps the V7
+         * redactor a LIVE, enforced control instead of dead code a future log line would bypass.
          */
-        data class Unsupported(override val terminal: Boolean) : ProbeResult {
+        data class Unsupported(
+            override val terminal: Boolean,
+            val reason: String = "",
+        ) : ProbeResult {
             override val rung: Rung get() = Rung.Unsupported
         }
     }
@@ -95,7 +105,13 @@ class WebcamProbe(
             // Transport failure (DNS/host down/refused/mid-read) — typed, NEVER an escaping IOException.
             // Transient: if a snapshot exists the cam still has a rung-2 fallback; otherwise a
             // NON-terminal Unsupported the holder may retry under foreground backoff (not a 401 spin).
-            return if (snapshotUrlPresent) ProbeResult.Snapshot else ProbeResult.Unsupported(terminal = false)
+            // The diagnostic breadcrumb routes the URL through [surfaceWebcamUrl] (CR-02 / V7 / T-10-05),
+            // so the `?token=` is stripped before this reason can ever reach a log/crash surface.
+            return if (snapshotUrlPresent) {
+                ProbeResult.Snapshot
+            } else {
+                ProbeResult.Unsupported(terminal = false, reason = surfaceWebcamUrl(resolvedStreamUrl))
+            }
         }
 
         // Content-Type authority (D-02): prefer the response header; fall back to the body's media type

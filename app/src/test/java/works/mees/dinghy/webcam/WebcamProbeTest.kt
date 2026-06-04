@@ -11,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.net.WebcamProbe
 import works.mees.dinghy.net.redactWebcamUrl
+import works.mees.dinghy.net.surfaceWebcamUrl
 import works.mees.dinghy.state.Rung
 
 /**
@@ -135,5 +136,30 @@ class WebcamProbeTest {
         val redacted = redactWebcamUrl(tokened)
         assertFalse("the raw token must not survive redaction", redacted.contains("SECRETTOKEN12345"))
         assertTrue(redacted.contains("token=<redacted>"))
+    }
+
+    @Test
+    fun transportFailure_diagnosticReason_isProducedThroughSurfaceRedactor_neverRawToken() {
+        // CR-02: [surfaceWebcamUrl]/[redactWebcamUrl] must be a LIVE control, not dead code. The probe's
+        // transient-transport-failure path is the one place a URL surfaces as a diagnostic today, and it
+        // builds that breadcrumb EXCLUSIVELY through [surfaceWebcamUrl]. Prove the resulting reason is the
+        // redacted URL — the raw ?token= NEVER reaches the surfaced string — so a future log of this reason
+        // cannot leak the token.
+        val tokenedStream = "http://192.168.1.121/webcam/?action=stream&token=SECRETTOKEN12345"
+        val http = FakeWebcamHttp(responder = { throw java.io.IOException("connection refused") })
+        val probe = WebcamProbe(http)
+
+        // No snapshot fallback → a NON-terminal Unsupported carrying the redacted diagnostic reason.
+        val res = probe.probe(tokenedStream, snapshotUrlPresent = false)
+        assertTrue(res is WebcamProbe.ProbeResult.Unsupported)
+        res as WebcamProbe.ProbeResult.Unsupported
+
+        assertEquals(
+            "the diagnostic reason is produced through the sanctioned redactor (CR-02)",
+            surfaceWebcamUrl(tokenedStream),
+            res.reason,
+        )
+        assertFalse("the raw token must NEVER reach a surfaced diagnostic", res.reason.contains("SECRETTOKEN12345"))
+        assertTrue("the surfaced reason is redacted", res.reason.contains("token=<redacted>"))
     }
 }
