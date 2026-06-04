@@ -41,7 +41,7 @@ created: 2026-06-03
 |----------|----------|------------|-----------------|-----------|-------------------|-------------|--------|
 | CAM-01 / enumerate | Parse `/server/webcams/list` golden frames (E5+E3 verbatim, all 16 fields, blank `service`, missing snapshot) → correct cam models | T-V5 | Untrusted fields tolerated (`ignoreUnknownKeys`, nullable); fail safe, never crash | unit | `…--tests *WebcamListParseTest*` | ❌ W0 | ⬜ pending |
 | CAM-01 / D-02 sniff | `webrtc-mediamtx` / blank / `image/jpeg` / `multipart` Content-Types route to the correct rung (1/2/3) | — | Content-Type is source of truth, `service` only a hint | unit | `…--tests *WebcamRungSelectTest*` | ❌ W0 | ⬜ pending |
-| CAM-01 / cadence | Enumeration fires EXACTLY ONCE per handshake edge (not on a wall-clock timer, no re-fetch on subsequent ticks), and the spec is absent from `V1_SUBSCRIBE_CORE` — the cadence-contract Rule 3 guard (Phase-13 re-handshake-test pattern); RED in 10-01 W0, GREEN in 10-03 | T-10-07 | One-shot edge-driven read, not a subscribe/poll — no FGS-waking loop | unit (handshake-edge harness) | `…--tests *WebcamEnumerationCadenceTest*` | ❌ W0 | ⬜ pending |
+| CAM-01 / cadence | Enumeration fires EXACTLY ONCE per handshake edge — asserted via PUBLIC observable behavior: the `server.webcams.list` request hit-count is 1 per edge (0 on subsequent ticks/timers) AND the post-handshake `objects.subscribe` frame carries NO webcam objects (webcams is a one-shot read, not part of the subscription). Does NOT assert the private `V1_SUBSCRIBE_CORE` constant. The cadence-contract Rule 3 guard (Phase-13 re-handshake-test pattern). COMPILING runtime-RED scaffold dropped in 10-01 W0 (with the SessionTestHarness webcams.list reply + hit-counter extension); body REPLACED with typed assertions + GREEN in 10-03 (wave 3) | T-10-07 | One-shot edge-driven read, not a subscribe/poll — no FGS-waking loop | unit (handshake-edge harness) | `…--tests *WebcamEnumerationCadenceTest*` | ❌ W0 | ⬜ pending |
 | CAM-01 / D-09 | Relative URL resolves against host; `127.0.0.1`/`localhost` rewritten to host; `?token=` preserved | T-V7 | Resolved URL never logged (redact `?token=…`) | unit | `…--tests *WebcamUrlResolverTest*` | ❌ W0 | ⬜ pending |
 | SC-2 / decode | Mock MJPEG byte stream (WITH and WITHOUT Content-Length; JPEG split across reads) yields N frames; one reused bitmap, no per-frame alloc | T-V5 | Cap part size; reject absurd Content-Length (OOM-by-hostile-frame) | unit | `…--tests *MjpegStreamDecoderTest*` | ❌ W0 | ⬜ pending |
 | SC-2 / no-OOM/no-jank | Real decoder on flox over a captured MJPEG byte stream / live snapshot loop; `gfxinfo` p95 + **0 frozen frames** during ~15 s continuous decode | — | `inSampleSize` downscale always | on-device (manual + gfxinfo) | `adb shell dumpsys gfxinfo works.mees.dinghy` (reset→decode→dump) | ❌ W0 | ⬜ pending |
@@ -61,7 +61,8 @@ created: 2026-06-03
 - [ ] `app/src/test/resources/golden/webcams_list_e5.json` / `webcams_list_e3.json` — capture verbatim (the RESEARCH.md § Code Examples blocks are the source)
 - [ ] `app/src/test/resources/fixtures/mjpeg_with_content_length.bin` + `mjpeg_no_content_length.bin` + `mjpeg_split_jpeg.bin` — golden MJPEG byte streams (synthesize a 2–3-frame `multipart/x-mixed-replace` body; the **only** place a synthetic stream is justified since no live MJPEG cam exists on E5/E3 — clearly label it synthetic)
 - [ ] `FakeMjpegStream` / `FakeWebcamHttp` test doubles **hardened to the real contract** (no-Content-Length path, split JPEG, 401, 404 `text/plain`, relative + `127.0.0.1` URLs) — guards against the project's recurring mock-vs-reality gap
-- [ ] RED scaffolds for the test classes above
+- [ ] `SessionTestHarness` EXTENDED with a canned `server.webcams.list` reply (faithful to the goldens) + a per-method request hit-counter — the observable seam the `WebcamEnumerationCadenceTest` asserts against (the existing harness returns `{}` for unknown methods + has no counter, so the cadence test is otherwise not implementable)
+- [ ] COMPILING runtime-RED scaffolds for the test classes above — each is a `fail()`-bodied stub that COMPILES day-one (NO direct typed reference to a not-yet-built production symbol), so targeted `--tests` runs in intervening waves are not broken by unresolved references across the shared `testDebugUnitTest` source set; each is REPLACED with real typed assertions by the plan that builds its symbol (10-02 / 10-03 / 10-04 / 10-06)
 - [ ] No framework install needed (JUnit / coroutines-test / Compose-test already present)
 
 ---
@@ -81,7 +82,7 @@ created: 2026-06-03
 
 - [ ] All tasks have an `<automated>` verify or a Wave 0 dependency
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (goldens, MJPEG fixtures, hardened fakes, RED scaffolds)
+- [ ] Wave 0 covers all MISSING references (goldens, MJPEG fixtures, hardened fakes, harness extension, COMPILING runtime-RED scaffolds)
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 90 s (JVM unit)
 - [ ] `nyquist_compliant: true` set in frontmatter
