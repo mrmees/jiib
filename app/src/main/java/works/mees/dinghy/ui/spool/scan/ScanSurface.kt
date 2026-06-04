@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -88,6 +89,10 @@ fun ScanSurface(
     var lastDecode by remember { mutableStateOf<SpoolQrResult?>(null) }
     var bindFailed by remember { mutableStateOf(false) }
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
+    // Lens selection (Matthew 2026-06-04): default BACK (D-14 — never *hard-code* front; this is a
+    // user-driven toggle, the supported way to reach the front lens), flip rebinds CameraX.
+    var useBackCamera by remember { mutableStateOf(true) }
+    val lensSelector = if (useBackCamera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
 
     // Activity-Result CAMERA glue → derives the ScanState (request only on entry; degrade on denial).
     CameraPermissionGate(
@@ -136,17 +141,17 @@ fun ScanSurface(
                 )
 
                 ScanState.Unsupported -> {
-                    CameraPreview(onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
+                    CameraPreview(lensSelector, onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
                     ScanHint("Recognized, but not a spool code — keep aiming at a spool QR.", t)
                 }
 
                 ScanState.NotRecognized -> {
-                    CameraPreview(onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
+                    CameraPreview(lensSelector, onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
                     ScanHint("That isn't a Spoolman spool QR — aim at the spool's QR label.", t)
                 }
 
                 ScanState.Scanning -> {
-                    CameraPreview(onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
+                    CameraPreview(lensSelector, onDecode = { lastDecode = it }, onBindFailed = { bindFailed = it })
                     ScanHint("Point the camera at the spool's QR label.", t)
                 }
 
@@ -154,14 +159,28 @@ fun ScanSurface(
             }
         }
 
-        // Gutter — Back only, red Intent.Danger (mirror WebcamScreen; THEME-04 back=red).
-        OutlinedControl(
-            label = "Back",
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Danger,
-            symbol = "arrow_back",
-        )
+        // Gutter — red Back (THEME-04), plus a camera-flip toggle while a live preview is showing.
+        val livePreview = state is ScanState.Scanning ||
+            state is ScanState.Unsupported ||
+            state is ScanState.NotRecognized
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedControl(
+                label = "Back",
+                onClick = onBack,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Danger,
+                symbol = "arrow_back",
+            )
+            if (livePreview) {
+                OutlinedControl(
+                    label = if (useBackCamera) "Front cam" else "Rear cam",
+                    onClick = { useBackCamera = !useBackCamera },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent,
+                    symbol = "cameraswitch",
+                )
+            }
+        }
     }
 }
 
@@ -172,6 +191,7 @@ fun ScanSurface(
  */
 @Composable
 private fun CameraPreview(
+    lensSelector: CameraSelector,
     onDecode: (SpoolQrResult) -> Unit,
     onBindFailed: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -182,7 +202,9 @@ private fun CameraPreview(
 
     AndroidView(factory = { previewView }, modifier = modifier.fillMaxSize())
 
-    DisposableEffect(lifecycleOwner) {
+    // Keyed on the lens too: flipping back↔front re-runs the effect, unbinding the old lens and rebinding
+    // the new one (Matthew 2026-06-04).
+    DisposableEffect(lifecycleOwner, lensSelector) {
         val executor = ContextCompat.getMainExecutor(context)
         val analyzerExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
         val providerFuture = ProcessCameraProvider.getInstance(context)
@@ -206,7 +228,7 @@ private fun CameraPreview(
                 provider.unbindAll()
                 provider.bindToLifecycle(
                     lifecycleOwner,
-                    CameraSelector.DEFAULT_BACK_CAMERA, // NEVER hard-code front (D-14).
+                    lensSelector, // back by default; user-flippable to front (D-14 — not hard-coded).
                     preview,
                     analysis,
                 )

@@ -56,49 +56,87 @@ private val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
 )
 
 /**
- * The Spool-picker FIELD (SPOOL-03): a sort toggle + the filter chip rows (material family / color
- * palette / vendor / location) over a dense scrollable spool list. Mirrors the Files dense-list grammar
- * and the Webcam CamPicker pure-Compose precedent — a Compose [LazyColumn], so the Views-in-Compose
- * pinned-height scroll lesson is moot (no RecyclerView here). All color via [LocalTokens] (THEME-01).
+ * The Spool-picker FIELD (SPOOL-03): JUST the dense scrollable spool list, so it gets the WHOLE Field
+ * height (the filter/sort chips now live at the bottom of the Focus — Matthew, 2026-06-04 — see
+ * [SpoolFilterControls]). Mirrors the Files dense-list grammar; a Compose [LazyColumn], so the
+ * Views-in-Compose pinned-height scroll lesson is moot. All color via [LocalTokens] (THEME-01).
  *
- * Font scale matches the FilesScreen rows (D-16): row primary 17–18sp, metadata floor 15sp, chips 15sp,
- * remaining tabular value 18sp — never smaller. Every row shows the spool's ACTUAL swatch (D-06: a color
- * filter can match unexpectedly, so the row never lies about its own color).
+ * Font scale matches the FilesScreen rows (D-16): row primary 17–18sp, metadata floor 15sp, remaining
+ * tabular value 18sp — never smaller. Every row shows the spool's ACTUAL swatch (D-06). Row actions are
+ * NEVER gated on print-state (avoids the Files Delete-blocks-all-during-print defect).
  *
- * NB: row actions are NEVER gated on print-state (avoids the Files Delete-blocks-all-during-print defect).
- *
- * @param state the picker state (list + chip universes + applied filters/sort + active-spool mark).
+ * @param state the picker state (list + applied filters/sort + active-spool mark).
  * @param onRowClick select a spool (its detail fills the Focus).
- * @param onToggleMaterial/[onToggleVendor]/[onToggleLocation]/[onTapSwatch]/[onSelectSort] chip actions.
  */
 @Composable
 fun SpoolPicker(
     state: SpoolPickerState,
     onRowClick: (SpoolmanSpool) -> Unit,
-    onToggleMaterial: (String) -> Unit,
-    onToggleVendor: (String) -> Unit,
-    onToggleLocation: (String) -> Unit,
-    onTapSwatch: (String) -> Unit,
-    onSelectSort: (SpoolSort) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
     val activeId = state.activeStatus?.activeSpoolId
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Sort toggle (recent / low-remaining / default).
-        SortRow(active = state.sort, onSelect = onSelectSort, t = t)
-
-        // Material family chips (D-05) — the real inventory materials, comma-multi-select.
-        if (state.materials.isNotEmpty()) {
-            ChipRow {
-                state.materials.forEach { material ->
-                    FilterChip(
-                        label = material,
-                        selected = state.filters.materialFamilies.any { it.equals(material, ignoreCase = true) },
-                        onClick = { onToggleMaterial(material) },
+    Box(modifier.fillMaxWidth()) {
+        if (state.spools.isEmpty()) {
+            Text(
+                text = when {
+                    state.loading -> "Loading spools…"
+                    state.error != null -> state.error
+                    else -> "No spools match. Clear filters to see your inventory."
+                },
+                color = t.text2,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
+                modifier = Modifier.align(Alignment.Center).padding(16.dp),
+            )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(state.spools, key = { it.id }) { spool ->
+                    SpoolRow(
+                        spool = spool,
+                        selected = spool.id == state.selected?.id,
+                        isActive = spool.id == activeId,
+                        onClick = { onRowClick(spool) },
                         t = t,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The filter / sort chip rows (SPOOL-03), rendered at the BOTTOM of the Focus pane so the Field can be a
+ * pure scrolling list (Matthew, 2026-06-04). Sort toggle (Name / Date / Remaining, re-tap flips direction)
+ * + fuzzy material-family chips (D-05) + color palette (D-06) + vendor / location (D-04). Chips 15sp (floor).
+ *
+ * @param state the picker state (applied filters/sort + the vendor/location chip universes).
+ * @param onToggleMaterial/[onToggleVendor]/[onToggleLocation]/[onTapSwatch]/[onSelectSort] chip actions.
+ */
+@Composable
+fun SpoolFilterControls(
+    state: SpoolPickerState,
+    onToggleMaterial: (String) -> Unit,
+    onToggleVendor: (String) -> Unit,
+    onToggleLocation: (String) -> Unit,
+    onTapSwatch: (String) -> Unit,
+    onSelectSort: (SpoolSortKey) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Sort toggle — Name / Date / Remaining; the active chip shows its direction arrow.
+        SortRow(activeKey = state.sortKey, ascending = state.sortAscending, onSelect = onSelectSort, t = t)
+
+        // Fuzzy material-FAMILY chips (D-05) — fixed families, comma-multi-select (PLA catches PLA+, …).
+        ChipRow {
+            MATERIAL_FAMILIES.forEach { (label, _) ->
+                FilterChip(
+                    label = label,
+                    selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
+                    onClick = { onToggleMaterial(label) },
+                    t = t,
+                )
             }
         }
 
@@ -140,35 +178,6 @@ fun SpoolPicker(
                     onClick = { onToggleLocation(SpoolFilters.LOCATION_NONE) },
                     t = t,
                 )
-            }
-        }
-
-        // The dense spool list (Compose LazyColumn — scroll lesson moot).
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-            if (state.spools.isEmpty()) {
-                Text(
-                    text = when {
-                        state.loading -> "Loading spools…"
-                        state.error != null -> state.error
-                        else -> "No spools match. Clear filters to see your inventory."
-                    },
-                    color = t.text2,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, t.fs).sp,
-                    modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                )
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.spools, key = { it.id }) { spool ->
-                        SpoolRow(
-                            spool = spool,
-                            selected = spool.id == state.selected?.id,
-                            isActive = spool.id == activeId,
-                            onClick = { onRowClick(spool) },
-                            t = t,
-                        )
-                    }
-                }
             }
         }
     }
@@ -263,13 +272,23 @@ private fun RowSwatch(swatches: List<String>, t: ThemeTokens) {
     }
 }
 
-/** The recent / low-remaining / default sort toggle. */
+/**
+ * The Name / Date / Remaining sort toggle. The ACTIVE key's chip shows a direction arrow (↑ asc / ↓ desc);
+ * tapping the active key again flips direction (Matthew, 2026-06-04).
+ */
 @Composable
-private fun SortRow(active: SpoolSort, onSelect: (SpoolSort) -> Unit, t: ThemeTokens) {
+private fun SortRow(
+    activeKey: SpoolSortKey,
+    ascending: Boolean,
+    onSelect: (SpoolSortKey) -> Unit,
+    t: ThemeTokens,
+) {
     ChipRow {
-        FilterChip("Browse", active == SpoolSort.DEFAULT, { onSelect(SpoolSort.DEFAULT) }, t)
-        FilterChip("Recent", active == SpoolSort.RECENT, { onSelect(SpoolSort.RECENT) }, t)
-        FilterChip("Low remaining", active == SpoolSort.LOW_REMAINING, { onSelect(SpoolSort.LOW_REMAINING) }, t)
+        SpoolSortKey.entries.forEach { key ->
+            val active = key == activeKey
+            val label = if (active) "${key.label} ${if (ascending) "↑" else "↓"}" else key.label
+            FilterChip(label, active, { onSelect(key) }, t)
+        }
     }
 }
 

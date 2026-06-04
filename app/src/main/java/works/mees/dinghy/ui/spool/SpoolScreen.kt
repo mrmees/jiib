@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -91,31 +90,35 @@ fun SpoolScreen(
         onPrefilterConsumed()
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        // Portrait shows the Focus only once a spool is selected (the FilesScreen idiom); landscape always
-        // shows it (Focus|Field 50/50). Ratio-only — no hardcoded px.
-        val showFocus = maxWidth > maxHeight || selected != null
+    // Focus = the selected-spool detail (top, flexible) + the filter/sort chips PINNED AT ITS BOTTOM
+    // (Matthew 2026-06-04); the Field is then a pure scrolling list that gets the whole Field height.
+    // Focus is always shown so the filters are always reachable (both orientations).
+    Box(modifier.fillMaxSize()) {
         ScreenScaffold(
-            focus = if (showFocus) {
-                {
+            focus = {
+                // Detail fills the flexible top; the chips sit at the bottom of the Focus pane.
+                Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
                     SpoolDetailFocus(
                         spool = selected,
                         isActive = selected?.id == state.activeStatus?.activeSpoolId,
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        onUnload = { holder.clearActiveSpool(dispatcher) },
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
-            } else {
-                null
-            },
-            field = {
-                SpoolPicker(
+                SpoolFilterControls(
                     state = state,
-                    onRowClick = { holder.selectSpool(it) },
                     onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
                     onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
                     onToggleLocation = { scope.launch { holder.toggleLocation(it) } },
                     onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
                     onSelectSort = { scope.launch { holder.applySort(it) } },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                )
+            },
+            field = {
+                SpoolPicker(
+                    state = state,
+                    onRowClick = { holder.selectSpool(it) },
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             },
@@ -168,7 +171,12 @@ fun SpoolScreen(
  * never shows the empty Focus). Values via [LocalTokens]; the remaining/used pair is the GeistMono hero.
  */
 @Composable
-private fun SpoolDetailFocus(spool: SpoolmanSpool?, isActive: Boolean, modifier: Modifier = Modifier) {
+private fun SpoolDetailFocus(
+    spool: SpoolmanSpool?,
+    isActive: Boolean,
+    onUnload: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCard)
     Box(
@@ -227,6 +235,17 @@ private fun SpoolDetailFocus(spool: SpoolmanSpool?, isActive: Boolean, modifier:
             }
             if (spool.archived) {
                 DetailBadge("archive", "Archived — verify before loading", t.heat, t)
+            }
+            // When THIS spool is the one loaded, offer Unload here in the detail (D-13 → post_spool_id {}).
+            // Red Danger intent (clear/unload is the destructive-ish action), Matthew 2026-06-04.
+            if (isActive) {
+                OutlinedControl(
+                    label = "Unload spool",
+                    onClick = onUnload,
+                    modifier = Modifier.fillMaxWidth(),
+                    intent = Intent.Danger,
+                    symbol = "eject",
+                )
             }
         }
     }
