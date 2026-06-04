@@ -77,8 +77,6 @@ fun MeasuredWeightPage(
         modifier.fillMaxSize().background(t.bg).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SpoolWeightHeader(spool, t)
-
         // The single data-entry field — the TOTAL weighed weight, via the system numeric keyboard.
         Text(
             text = "Total weighed weight (spool + filament)",
@@ -122,6 +120,9 @@ fun MeasuredWeightPage(
                 )
             }
         }
+
+        // The detail / info pane sits BELOW the input (Matthew 2026-06-04).
+        SpoolWeightHeader(spool, t)
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl(
