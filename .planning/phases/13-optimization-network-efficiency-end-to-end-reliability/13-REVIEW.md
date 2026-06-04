@@ -27,7 +27,21 @@ findings:
   warning: 3
   info: 3
   total: 6
-status: issues_found
+status: resolved
+resolution:
+  resolved: 2026-06-03
+  warnings_fixed: 3
+  info_deferred: 3
+  commits:
+    - "db6bfb0: WR-01 — watchdog launched on routing scope (no 30s Served-path stall)"
+    - "6bbc495: WR-02 — ProbeZOffsetFreshnessTest uses runCurrent (same-socket path)"
+    - "ccd7a09: WR-03 — clear splashHeld on Settings escape (no post-save ghost splash)"
+  gate: ":app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded, exit 0)"
+  note: >
+    All 3 WARNING findings fixed and verified. The 3 INFO findings (IN-01 unused
+    close cause, IN-02 missing arm-priority test, IN-03 ws-capture helper) were
+    NOT addressed — low priority, deferred. This was a polish pass; the phase is
+    NOT re-marked complete by this review resolution.
 ---
 
 # Phase 13: Code Review Report
