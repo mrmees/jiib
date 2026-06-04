@@ -429,13 +429,13 @@ Plans:
 
 - [ ] 10-01-PLAN.md — Wave 0: verbatim E5+E3 /server/webcams/list goldens + labeled synthetic MJPEG fixtures + hardened fakes + RED scaffolds (mock-vs-reality gate)
 
-**Wave 2** *(blocked on Wave 1; parallel — disjoint files)*
+**Wave 2** *(blocked on Wave 1)*
 
 - [ ] 10-02-PLAN.md — Pure core: tolerant Webcam models + D-09 URL resolver/rewriter + D-02 rung selection
-- [ ] 10-03-PLAN.md — Enumeration spine wiring: server.webcams.list one-shot spec + SpineHandle.webcams StateFlow + AppContainer webcamCount (cadence-compliant, edge-driven)
 
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 
+- [ ] 10-03-PLAN.md — Enumeration spine wiring: server.webcams.list one-shot spec + SpineHandle.webcams StateFlow + AppContainer webcamCount (cadence-compliant, edge-driven)
 - [ ] 10-04-PLAN.md — Decode I/O: Content-Type probe + lean Okio MJPEG decoder (drop-behind, inBitmap) + ~2fps snapshot poller (two derived OkHttp postures)
 - [ ] 10-05-PLAN.md — Render surface: WebcamView (ThemeableView, pixel-square never-stretch + rounded cutout + token chrome) + WebcamViewHost
 
