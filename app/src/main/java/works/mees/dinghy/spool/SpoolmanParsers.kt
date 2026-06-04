@@ -80,6 +80,24 @@ fun <T> parseProxyEnvelope(result: JsonElement?, strategy: DeserializationStrate
 fun parseSpoolmanSpools(result: JsonElement?): ProxyEnvelope<SpoolmanSpool> =
     parseProxyEnvelope(result, SpoolmanSpool.serializer())
 
+/**
+ * Decode the SINGLE-spool DETAIL from a `/v1/spool/{id}` proxy-v2 envelope. Unlike a list endpoint the
+ * `response` here is a lone object (not an array), so [parseSpoolmanSpools] sees no array and returns
+ * empty — this walk pulls the object directly. Best-effort: a malformed/absent envelope or (when
+ * [expectedId] is non-null) an id mismatch yields null, never throws (T-11-06-01 / T-11-07 confirm-card).
+ *
+ * @param expectedId when non-null, the decoded spool's `id` MUST match it (guards against a stale/echoed
+ *        envelope resolving the wrong spool into a confirm card); pass null to accept any well-formed id.
+ */
+fun parseSpoolmanSpoolDetail(result: JsonElement?, expectedId: Int? = null): SpoolmanSpool? {
+    val obj = result as? JsonObject ?: return null
+    val response = obj["response"] as? JsonObject ?: return null
+    val spool = runCatching {
+        MoonrakerJson.decodeFromJsonElement(SpoolmanSpool.serializer(), response)
+    }.getOrNull() ?: return null
+    return if (expectedId == null || spool.id == expectedId) spool else null
+}
+
 /** Filament rows (e.g. the color-red-filaments / filament-search goldens). */
 fun parseSpoolmanFilaments(result: JsonElement?): ProxyEnvelope<SpoolmanFilament> =
     parseProxyEnvelope(result, SpoolmanFilament.serializer())

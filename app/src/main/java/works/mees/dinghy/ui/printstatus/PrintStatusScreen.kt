@@ -115,6 +115,7 @@ fun PrintStatusScreen(
     container: AppContainer,
     onOpenFiles: () -> Unit = {},
     onOpenSpool: () -> Unit = {},
+    onScanSpool: () -> Unit = onOpenSpool,
     modifier: Modifier = Modifier,
 ) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -228,7 +229,7 @@ fun PrintStatusScreen(
                     if (spoolmanPresent) {
                         ActiveSpoolCard(
                             state = activeSpoolCardState,
-                            onScan = onOpenSpool, // the dedicated scan surface lands in 11-07; route to Spool for now.
+                            onScan = onScanSpool, // the dedicated QR scan surface (11-07); falls back to the picker.
                             onChange = onOpenSpool,
                             onClear = { dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, works.mees.dinghy.command.SetSpoolArgs(spoolId = null)) },
                             onClick = onOpenSpool,

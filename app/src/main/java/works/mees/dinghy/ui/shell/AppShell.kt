@@ -36,6 +36,7 @@ import works.mees.dinghy.calibration.ProbeCalibrateHolder
 import works.mees.dinghy.calibration.ScrewsTiltHolder
 import works.mees.dinghy.calibration.TiltHolder
 import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.SetSpoolArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.Capabilities
@@ -65,6 +66,7 @@ import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolScreen
+import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
@@ -351,6 +353,11 @@ fun AppShell(
     BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
         nav.calibrationRoutine = null
     }
+    // The open QR scan overlay (11-07) intercepts system Back: close the scan (releasing the camera via
+    // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
+    BackHandler(enabled = !drawerOpen && nav.scanActive) {
+        nav.scanActive = false
+    }
 
     BoxWithConstraints(
         modifier
@@ -384,6 +391,8 @@ fun AppShell(
                 container = container,
                 onOpenFiles = { navigateTo(Dest.Files) },
                 onOpenSpool = { navigateTo(Dest.Spool) },
+                // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
+                onScanSpool = { nav.scanActive = true },
             )
             Dest.Temperature -> TemperatureScreen(
                 container = container,
@@ -504,9 +513,9 @@ fun AppShell(
                 holder = spoolHolder,
                 dispatcher = dispatcher,
                 onBack = { goBack() },
-                // The QR scan sub-surface lands in 11-07 — a no-op hook for now (mirrors how the Webcam
-                // screen takes its callbacks). Wiring this to the scan Dest is a one-liner there.
-                onScan = { },
+                // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
+                // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).
+                onScan = { nav.scanActive = true },
             )
             Dest.Settings -> SettingsScreen(
                 container = container,
@@ -525,6 +534,25 @@ fun AppShell(
                 macro = popupMacro,
                 dispatcher = liveDispatcher,
                 onDismiss = { nav.macroPopupFor = null },
+            )
+        }
+
+        // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen
+        // (D-12 confirm-first / D-14 release-on-dispose / D-15 picker degrade). The camera binds inside
+        // ScanSurface and unbindAll()s the instant this overlay leaves composition. A green confirm
+        // dispatches set-active (D-13 post_spool_id) and closes; "Use picker instead" closes to the picker.
+        if (nav.scanActive) {
+            ScanSurface(
+                client = spoolmanClient,
+                onConfirm = { id ->
+                    dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, SetSpoolArgs(spoolId = id))
+                    nav.scanActive = false
+                },
+                onUsePicker = {
+                    nav.scanActive = false
+                    navigateTo(Dest.Spool) // the manual picker always works (D-15).
+                },
+                onBack = { nav.scanActive = false },
             )
         }
 

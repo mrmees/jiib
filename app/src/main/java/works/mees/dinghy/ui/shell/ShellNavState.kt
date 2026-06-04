@@ -54,6 +54,14 @@ class ShellNavState {
     /** Calibration sub-nav: null = the hub, non-null = that routine's page. Preserved across a Splash blip. */
     var calibrationRoutine by mutableStateOf<CalibrationRoutine?>(null)
 
+    /**
+     * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open OVER the Spool
+     * screen / active-spool card. TRANSIENT — reset on return from a recovery Splash ([resetTransient]):
+     * a live camera surface must NOT survive a reconnect (the camera was released on decompose; re-opening
+     * a half-state scan is wrong), exactly as a macro Execution popup is cleared.
+     */
+    var scanActive by mutableStateOf(false)
+
     fun navigateTo(target: Dest) {
         if (target == dest) return
         if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
@@ -81,6 +89,7 @@ class ShellNavState {
      */
     fun resetTransient() {
         macroPopupFor = null
+        scanActive = false
     }
 }
 
