@@ -230,15 +230,15 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SPOOL-08 (external-change reconciliation + notify routing + pending-report staleness; D-10/D-11) | Phase 11 | Complete |
 | SPOOL-09 (measured-weight correction + nice-to-haves: gcode prefilter, location shortcuts, archived warning; D-04) | Phase 11 | Complete |
 | PROMPT-01 | Phase 12 | Pending |
-| PKG-01 | Phase 14 | Pending |
-| PKG-03 | Phase 14 | Pending |
+| PKG-01 | Phase 22 | Pending |
+| PKG-03 | Phase 22 | Pending |
 
 **Coverage:**
 - Functional requirements mapped: 61 (55 prior + 6 promoted/added for the expanded roadmap: BEDM-01, BEDL-01, ZCAL-01, CAM-01, SPOOL-01 promoted from v2; PROMPT-01 new)
 - Phases 8 & 13 are quality/reference phases with no functional REQ-IDs
 - Finer per-phase req families: **CALIB-01..06 coined at Phase-9 planning (2026-06-02)** — CALIB-01 hub/gating, CALIB-02 screws-tilt (⊂ BEDL-01), CALIB-03 Z-tilt/QGL (⊂ BEDL-01), CALIB-04 bed-mesh (⊂ BEDM-01), CALIB-05 PROBE_CALIBRATE (⊂ ZCAL-01), CALIB-06 files-delete-scoping (folded D-15). The umbrella BEDM-01/BEDL-01/ZCAL-01 stay Pending until the Phase-9 on-device UAT closes. (CAM-* resolved at Phase 10.) **SPOOL-02..09 coined at Phase-11 discuss/plan (2026-06-04)** — SPOOL-02 active-spool Status card, SPOOL-03 picker+filters (`Dest.Spool`), SPOOL-04 set/clear/change active (Moonraker JSON-RPC), SPOOL-05 QR scan-to-assign (ZXing GMS-free, SC-2/SC-4), SPOOL-06 camera-permission + no-camera degrade (SC-3), SPOOL-07 print-start warn-only gate (D-01), SPOOL-08 external-change reconciliation + notify routing + pending-report staleness (D-10/D-11), SPOOL-09 measured-weight correction + nice-to-haves (D-04); all ⊂ SPOOL-01, which stays Pending until the Phase-11 on-device UAT closes. (PROMPT-* still TBD at Phase 12's `/gsd-discuss-phase`.)
 
-**Per-phase counts (14-phase single-milestone roadmap, expanded 2026-06-01 — see note below):**
+**Per-phase counts (22-phase single-milestone roadmap, expanded 2026-06-04 — see note below):**
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
 - Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04
@@ -252,8 +252,16 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 11 (Spool Management): SPOOL-01 (promoted; + the camera-QR-scan flow, finer SPOOL-* TBD at discuss)
 - Phase 12 (Macro Prompt Protocol): PROMPT-01 (new; finer PROMPT-* TBD at discuss)
 - Phase 13 (Optimization, Network Efficiency & Reliability): 0 functional reqs — quality/refactor phase (request-cadence audit + reliability; non-functional)
-- Phase 14 (Release Hardening & Ship): 2 — PKG-01, PKG-03 (also re-exercises CONN-04 reconnect-resync against a live print, deferred from the dissolved Job-Status phase)
+- Phase 14 (Multi-Printer Switching): new MULTI-* family — TBD at discuss
+- Phase 15 (Fine-Tune / Live-Adjust Panel): new TUNE-* family — TBD at discuss
+- Phase 16 (Output Controls — Fans, Lights & Generic Pins): new OUT-* family — TBD at discuss
+- Phase 17 (WebRTC Camera Streaming): CAM-* WebRTC extension — TBD at discuss (continues CAM-01)
+- Phase 18 (System Information Page): new SYS-* family — TBD at discuss
+- Phase 19 (Home / Print-Status Redesign): refines SHELL-*/JOB-* — UX rework, no new functional REQ-IDs
+- Phase 20 (Settings Redesign): refines SET-*/connection reqs — UX rework, no new functional REQ-IDs
+- Phase 21 (Final Theme / UI Conformance Pass): enforces THEME-*/UI-* conformance — no new functional REQ-IDs
+- Phase 22 (Release Hardening & Ship): 2 — PKG-01, PKG-03 (also re-exercises CONN-04 reconnect-resync against a live print, deferred from the dissolved Job-Status phase)
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-06-01 (roadmap expansion to 14 phases, single milestone) — the project is now ONE roadmap shipping once at the end (no v1/v2 split). Five v2 reqs PROMOTED into the active roadmap: BEDM-01/BEDL-01/ZCAL-01 → Phase 9 (Calibration & Maintenance), CAM-01 → Phase 10 (Webcam Streaming), SPOOL-01 → Phase 11 (Spool Management); PROMPT-01 added → Phase 12 (Macro Prompt Protocol). NEW Phase 8 = Command Reference & Capability Matrix (reference/quality, matrix knocked out early). Old "Backend Consolidation" → Phase 13 "Optimization, Network Efficiency & Reliability" (moved after ALL screens). Release → Phase 14 (ships the whole project at once). PKG-01/03 remapped Phase 9 → 14. Finer feature-req families to be defined at each phase's discuss. Prior: 2026-06-01 remaining-phase (6–9) restructure (Job Status dissolved → controls to P6, robustness to release); 2026-05-31 scope broadened per `docs/ui_design/`; 2026-05-30 Codex cross-AI review.*
+*Last updated: 2026-06-04 (roadmap expansion to 22 phases) — 8 phases added before ship: 14 Multi-Printer Switching, 15 Fine-Tune/Live-Adjust, 16 Output Controls (fans/lights/pins), 17 WebRTC Camera (promoted from v2; MJPEG Phase 10 can't run on the dev's WebRTC-only printers), 18 System Information, 19 Home/Status redesign, 20 Settings redesign, 21 Final Theme/UI conformance pass. Ship renumbered Phase 14 → 22 (stays last); PKG-01/03 remapped 14 → 22. New phases' finer REQ families (MULTI-*/TUNE-*/OUT-*/SYS-*) coined at each phase's discuss. Prior — 2026-06-01 (roadmap expansion to 14 phases, single milestone) — the project is now ONE roadmap shipping once at the end (no v1/v2 split). Five v2 reqs PROMOTED into the active roadmap: BEDM-01/BEDL-01/ZCAL-01 → Phase 9 (Calibration & Maintenance), CAM-01 → Phase 10 (Webcam Streaming), SPOOL-01 → Phase 11 (Spool Management); PROMPT-01 added → Phase 12 (Macro Prompt Protocol). NEW Phase 8 = Command Reference & Capability Matrix (reference/quality, matrix knocked out early). Old "Backend Consolidation" → Phase 13 "Optimization, Network Efficiency & Reliability" (moved after ALL screens). Release → Phase 14 (ships the whole project at once). PKG-01/03 remapped Phase 9 → 14. Finer feature-req families to be defined at each phase's discuss. Prior: 2026-06-01 remaining-phase (6–9) restructure (Job Status dissolved → controls to P6, robustness to release); 2026-05-31 scope broadened per `docs/ui_design/`; 2026-05-30 Codex cross-AI review.*

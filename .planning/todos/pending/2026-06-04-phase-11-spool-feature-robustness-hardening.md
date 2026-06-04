@@ -2,7 +2,7 @@
 created: 2026-06-04T19:59:06Z
 title: Phase 11 spool feature robustness hardening (Codex review)
 area: ui
-target_phase: 14
+target_phase: 22
 files:
   - app/src/main/java/works/mees/dinghy/spool/ActiveSpoolFacade.kt:91
   - app/src/main/java/works/mees/dinghy/ui/spool/SpoolHolder.kt:275
@@ -18,7 +18,7 @@ runtime crashed twice during the phase) surfaced five transient-failure robustne
 None are crashes; none were caught by flox/live UAT because the failures need a flaky
 network or single-lens hardware to manifest. The two real bugs + stale comment + camera
 disposal leak from the same review were fixed immediately; these five are deferred to
-**Phase 14 (Release Hardening)** as network-resilience + test-mock hardening.
+**Phase 22 (Release Hardening & Ship)** as network-resilience + test-mock hardening.
 
 Source: Codex review thread (agentId a0e5c3855584d3df3).
 
@@ -53,7 +53,7 @@ Source: Codex review thread (agentId a0e5c3855584d3df3).
 
 ## Solution
 
-Fold into Phase 14 planning as a "spool resilience" slice.
+Fold into Phase 22 (ship) planning as a "spool resilience" slice.
 
 1. Keep prior `_activeSpool` value on a null/failed parse (only overwrite on a successful parse);
    accept a genuine disconnect signal separately if needed.
