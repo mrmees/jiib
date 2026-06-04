@@ -4,25 +4,36 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
-import works.mees.dinghy.designsystem.MaterialSymbol
-import works.mees.dinghy.designsystem.NumpadPage
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.theme.Geist
@@ -31,29 +42,20 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
-/** Sensible gross-weight bounds (g): 0 up to a generous spool+filament ceiling — clamps fat-finger entry. */
-private val GROSS_WEIGHT_RANGE: ClosedFloatingPointRange<Double> = 0.0..10_000.0
-
 /**
- * SPOOL-09 / D-04 — the measured GROSS-weight correction page. A THIN caller of [NumpadPage] (the
- * shared full-screen single-bounded-numeric-entry primitive — REUSED, never forked): label="Gross
- * weight", unit="g", `allowDecimal=true`, seeded from the spool's last-known gross when derivable. On
- * Set it issues [SpoolmanClient.measureSpool] (PUT /v1/spool/{id}/measure) — Spoolman subtracts the
- * spool's empty weight and RECOMPUTES `remaining_weight` (and therefore `used_weight`); the active-spool
- * card/picker reflect the new remaining via the existing flows.
+ * SPOOL-09 / D-04 — the measured GROSS-weight correction page. The user puts the whole spool on a scale
+ * and enters the TOTAL weighed weight (filament + spool); Spoolman subtracts the empty-spool weight and
+ * recomputes `remaining_weight`/`used_weight` (e.g. enter 1210 g on a spool whose empty weight is 210 g →
+ * Spoolman records 1000 g remaining). The active-spool card / picker reflect the new remaining via the
+ * existing flows.
  *
- * ## D-04 / Pitfall 7: show that remaining and used are LINKED
- * `used = initial − remaining` — the page's header (CALLER-side copy, NOT a NumpadPage change) spells
- * this out so the user understands a measured correction propagates to BOTH: a lower measured gross
- * lowers `remaining` and raises `used` in lock-step. The header shows the spool's current
- * remaining/used so the relationship is concrete before the correction.
+ * The header makes the deduction OBVIOUS: it shows this spool's **spool weight** (the empty/tare weight
+ * Spoolman subtracts), so the user knows exactly what's being taken off their measurement. Per Matthew
+ * (2026-06-04) the entry is the **system numeric keyboard** (BasicTextField, KeyboardType.Number) — a
+ * deliberate exception to the keyboard-free control LAW for this single inventory-correction field.
  *
- * Numeric-only entry (NumpadPage is a digit pad, not an alphanumeric keyboard — honors the "no keyboard
- * in printer controls" LAW). [onCancel] returns without a write. Font scale (D-16): header title 22sp,
- * the remaining/used tabular figures 26sp GeistMono, the relationship line ≥17sp; no hardcoded `.sp`.
- *
- * @param spool the spool being corrected (its id is the measure target; its remaining/used seed the copy).
- * @param client the session Spoolman reader (the measure write); null → the Set is a no-op (no session).
+ * @param spool the spool being corrected (its id is the measure target; its spool weight seeds the header).
+ * @param client the session Spoolman reader (the measure write); null → Set is a no-op (no session).
  * @param onCancel returns without writing.
  * @param onMeasured invoked AFTER a successful measure write so the caller can refresh + dismiss.
  */
@@ -67,100 +69,138 @@ fun MeasuredWeightPage(
 ) {
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
+    var text by remember { mutableStateOf("") }
+    val grams = text.toDoubleOrNull()
+    val valid = grams != null && grams > 0.0
 
-    // Seed the entry from the last-known gross when derivable (remaining + the empty-spool weight is not
-    // exposed on the spool here, so default to the current remaining as the nearest sensible starting
-    // point — the user overwrites it with the scale reading anyway).
-    val seed = spool.remainingWeight ?: 0.0
-
-    Column(modifier.fillMaxSize().background(t.bg)) {
-        LinkedWeightHeader(spool, t)
-        NumpadPage(
-            label = "Gross weight",
-            initial = seed,
-            range = GROSS_WEIGHT_RANGE,
-            unit = "g",
-            allowDecimal = true,
-            onCancel = onCancel,
-            onSet = { grams ->
-                scope.launch {
-                    client?.measureSpool(spool.id, grams)
-                    onMeasured()
-                }
-            },
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
-    }
-}
-
-/**
- * The CALLER-side header (D-04): names the spool and shows that remaining/used are LINKED. The
- * `used = initial − remaining` relationship is spelled out so the user understands the measured gross
- * correction propagates to both figures.
- */
-@Composable
-private fun LinkedWeightHeader(spool: SpoolmanSpool, t: ThemeTokens) {
-    val shape = RoundedCornerShape(t.rCard)
     Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clip(shape)
-            .background(t.surface)
-            .border(BorderStroke(2.dp, t.hair), shape)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier.fillMaxSize().background(t.bg).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        val filament = spool.filament
+        SpoolWeightHeader(spool, t)
+
+        // The single data-entry field — the TOTAL weighed weight, via the system numeric keyboard.
         Text(
-            text = listOfNotNull(filament?.material, filament?.name)
-                .joinToString(" · ").ifBlank { "Spool ${spool.id}" },
-            color = t.text,
+            text = "Total weighed weight (spool + filament)",
+            color = t.text2,
             fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
         )
-        // Current remaining + used, the GeistMono tabular pair (26sp) — the concrete linked figures.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(t.rCtrl))
+                .border(BorderStroke(2.dp, if (valid) t.accentLine else t.outline), RoundedCornerShape(t.rCtrl))
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
-            LinkedFigure("scale", "remaining", spool.remainingWeight, t)
-            LinkedFigure("history", "used", spool.usedWeight, t)
+            BasicTextField(
+                value = text,
+                onValueChange = { new -> text = new.filter { it.isDigit() || it == '.' }.take(8) },
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                ),
+                cursorBrush = SolidColor(t.accent2),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (text.isEmpty()) {
+                Text(
+                    text = "0 g",
+                    color = t.text3,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                )
+            }
         }
-        // The load-bearing D-04 copy: remaining and used are linked — a measured gross moves BOTH.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MaterialSymbol("link", tint = t.accent2, sizeSp = fsSp(20f, t.fs))
-            Text(
-                text = "Linked: used = initial − remaining. A measured gross weight updates both.",
-                color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(17f, t.fs).sp,
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedControl(
+                label = "Back",
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Danger,
+                symbol = "arrow_back",
+            )
+            OutlinedControl(
+                label = "Set",
+                onClick = {
+                    if (valid) {
+                        scope.launch {
+                            client?.measureSpool(spool.id, grams)
+                            onMeasured()
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Go,
+                symbol = "check",
             )
         }
     }
 }
 
-/** One tabular linked figure (the 26sp GeistMono value + its caption, D-16). */
+/**
+ * The header (D-04): names the spool and shows the **spool weight** (empty/tare) Spoolman will subtract
+ * from the entered gross — so it's obvious what the deduction is.
+ */
 @Composable
-private fun LinkedFigure(symbol: String, caption: String, grams: Double?, t: ThemeTokens) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun SpoolWeightHeader(spool: SpoolmanSpool, t: ThemeTokens) {
+    val shape = RoundedCornerShape(t.rCard)
+    val filament = spool.filament
+    val tare = spool.effectiveSpoolWeight
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(t.surface)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(22f, t.fs))
         Text(
-            text = grams?.let { "${it.roundToInt()} g" } ?: "—",
-            color = if (grams == null) t.text3 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
+            text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ").ifBlank { "Spool ${spool.id}" },
+            color = t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
             fontSize = fsSp(26f, t.fs).sp,
             maxLines = 1,
         )
-        Text(caption, color = t.text2, fontFamily = GeistMono, fontSize = fsSp(17f, t.fs).sp)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Spool weight",
+                color = t.text2,
+                fontFamily = Geist,
+                fontWeight = FontWeight.Medium,
+                fontSize = fsSp(18f, t.fs).sp,
+            )
+            Text(
+                text = tare?.let { "${it.roundToInt()} g" } ?: "not set",
+                color = if (tare == null) t.text3 else t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(26f, t.fs).sp,
+                maxLines = 1,
+            )
+        }
+        Text(
+            text = "Spoolman subtracts this from your weighed total to get filament remaining.",
+            color = t.text2,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+        )
     }
 }

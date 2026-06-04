@@ -63,6 +63,7 @@ data class SpoolmanFilament(
     val vendor: SpoolmanVendor? = null,
     @SerialName("settings_extruder_temp") val settingsExtruderTemp: Int? = null,
     @SerialName("settings_bed_temp") val settingsBedTemp: Int? = null,
+    @SerialName("spool_weight") val spoolWeight: Double? = null,
     val extra: Map<String, String> = emptyMap(),
 ) {
     /**
@@ -109,7 +110,13 @@ data class SpoolmanSpool(
     val extra: Map<String, String> = emptyMap(),
     @SerialName("initial_weight") val initialWeight: Double? = null,
     @SerialName("registered") val registered: String? = null,
+    @SerialName("spool_weight") val spoolWeight: Double? = null,
 ) {
+    /**
+     * The empty-spool (tare) weight Spoolman subtracts from a measured GROSS weight to get remaining
+     * filament: the spool's own `spool_weight` if set, else the filament's default. Null = not configured.
+     */
+    val effectiveSpoolWeight: Double? get() = spoolWeight ?: filament?.spoolWeight
     /**
      * The original (full) spool weight for the "remaining / original g" detail line: Spoolman's
      * [initialWeight] when present, else reconstructed as remaining + used. Null only when neither is known.
