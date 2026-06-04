@@ -5,7 +5,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -57,10 +57,16 @@ class ProbeZOffsetFreshnessTest {
             harness.configfileResultJson = configWithZOffset(1.475)
 
             // Drive the captured klippy restart (drop → ready) — the re-handshake re-reads configfile.
+            // Use runCurrent (NOT advanceUntilIdle) between drop and ready, matching KlippyReadyResyncTest's
+            // discipline (WR-02): the drop arms a 30s escalate-watchdog, and advancing virtual time past it
+            // would fire a spurious FULL reconnect — so the test would assert the RECONNECT configfile
+            // re-read, NOT the intended SAME-SOCKET re-handshake (the gate the 13-03 refreshProbeZOffset
+            // removal actually depends on). runCurrent drains tasks due NOW and leaves the watchdog pending,
+            // so notify_klippy_ready lands the same-socket re-handshake before the timeout.
             harness.injectKlippyDrop()
-            advanceUntilIdle()
+            runCurrent()
             harness.injectKlippyReady()
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals(
                 "the re-handshake must refresh probe.z_offset to the NEW saved value (the green gate the " +
