@@ -218,9 +218,17 @@ private fun CameraPreview(
         val analyzerExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var boundProvider: ProcessCameraProvider? = null
+        var disposed = false
 
         providerFuture.addListener({
             val provider = runCatching { providerFuture.get() }.getOrNull()
+            // If onDispose ran before this async listener fired, boundProvider was still null so
+            // onDispose unbound nothing — release the just-resolved provider here and bail before
+            // binding, or we leak a camera that never gets unbound.
+            if (disposed) {
+                provider?.unbindAll()
+                return@addListener
+            }
             if (provider == null) {
                 onBindFailed(true)
                 return@addListener
@@ -252,6 +260,7 @@ private fun CameraPreview(
 
         onDispose {
             // Release the camera the instant the surface leaves composition (D-14).
+            disposed = true
             boundProvider?.unbindAll()
             analyzerExecutor.shutdown()
         }
