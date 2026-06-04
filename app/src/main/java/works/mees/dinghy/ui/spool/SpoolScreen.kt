@@ -230,77 +230,82 @@ private fun SpoolDetailFocus(
             return@Box
         }
         val filament = spool.filament
+        // The detail pane uses just TWO type sizes (Matthew 2026-06-04): one larger HEADER for the title,
+        // and one consistent smaller BODY size for every secondary line. Icons match the body.
+        val headerSp = fsSp(26f, t.fs)
+        val bodySp = fsSp(18f, t.fs)
+        val iconSp = fsSp(20f, t.fs)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Title line: the D-08 split swatch + the filament MATERIAL only (Matthew 2026-06-04).
+            // Header line (LARGER): the D-08 split swatch + the filament MATERIAL only.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DetailSwatch(filament?.colorSwatches ?: emptyList(), t)
+                DetailSwatch(filament?.colorSwatches ?: emptyList(), headerSp, t)
                 Text(
                     text = filament?.material?.ifBlank { null } ?: "Spool ${spool.id}",
                     color = t.text,
                     fontFamily = Geist,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = fsSp(22f, t.fs).sp,
+                    fontSize = headerSp.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            // Line 2: storefront → vendor (no label) · palette → color/filament name (no label).
+            // Line 2 (BODY): storefront → vendor (no label) · palette → color/filament name (no label).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("storefront", tint = t.text2, sizeSp = fsSp(20f, t.fs))
-                DetailValue(filament?.vendor?.name, Modifier.weight(1f), t)
-                MaterialSymbol("palette", tint = t.text2, sizeSp = fsSp(20f, t.fs))
-                DetailValue(filament?.name, Modifier.weight(1f), t)
+                MaterialSymbol("storefront", tint = t.text2, sizeSp = iconSp)
+                DetailValue(filament?.vendor?.name, bodySp, Modifier.weight(1f), t)
+                MaterialSymbol("palette", tint = t.text2, sizeSp = iconSp)
+                DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
             }
-            // Line 3: scale → "remaining/original g" tabular hero (drop the "remaining" label).
+            // Line 3 (BODY): scale → "remaining/original g" (drop the "remaining" label).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("scale", tint = t.text2, sizeSp = fsSp(24f, t.fs))
+                MaterialSymbol("scale", tint = t.text2, sizeSp = iconSp)
                 Text(
                     text = spoolWeightText(spool),
                     color = if (spool.remainingWeight == null) t.text3 else t.text,
                     fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(26f, t.fs).sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = bodySp.sp,
                     maxLines = 1,
                 )
             }
-            // Line 4: calendar_add_on → the Spoolman registration date (date part only).
+            // Line 4 (BODY): calendar_add_on → the Spoolman registration date (date part only).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("calendar_add_on", tint = t.text2, sizeSp = fsSp(20f, t.fs))
+                MaterialSymbol("calendar_add_on", tint = t.text2, sizeSp = iconSp)
                 Text(
                     text = spool.registered?.substringBefore('T')?.ifBlank { null } ?: "—",
                     color = t.text,
                     fontFamily = GeistMono,
-                    fontSize = fsSp(17f, t.fs).sp,
+                    fontSize = bodySp.sp,
                     maxLines = 1,
                 )
             }
-            // Line 5: nozzle → recommended nozzle temp · bed → recommended bed temp (Spoolman settings).
+            // Line 5 (BODY): nozzle → recommended nozzle temp · bed → recommended bed temp.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DrawableIcon(R.drawable.nozzle, t.text2, fsSp(22f, t.fs))
-                Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(20f, t.fs).sp, maxLines = 1)
-                DrawableIcon(R.drawable.heat_bed, t.text2, fsSp(22f, t.fs))
-                Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(20f, t.fs).sp, maxLines = 1)
+                DrawableIcon(R.drawable.nozzle, t.text2, iconSp)
+                Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+                DrawableIcon(R.drawable.heat_bed, t.text2, iconSp)
+                Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
             }
             if (isActive) {
-                DetailBadge("check_circle", "Loaded on this printer", t.go, t)
+                DetailBadge("check_circle", "Loaded on this printer", bodySp, iconSp, t.go, t)
             }
             if (spool.archived) {
-                DetailBadge("archive", "Archived — verify before loading", t.heat, t)
+                DetailBadge("archive", "Archived — verify before loading", bodySp, iconSp, t.heat, t)
             }
         }
     }
@@ -308,8 +313,8 @@ private fun SpoolDetailFocus(
 
 /** The detail split swatch (D-08 normalized; multi-color split; neutral marker on absence). */
 @Composable
-private fun DetailSwatch(swatches: List<String>, t: ThemeTokens) {
-    val size = fsSp(24f, t.fs).dp
+private fun DetailSwatch(swatches: List<String>, sizeSp: Float, t: ThemeTokens) {
+    val size = sizeSp.dp
     if (swatches.isEmpty()) {
         Box(Modifier.size(size).clip(CircleShape).background(t.surface2).border(BorderStroke(1.dp, t.hair), CircleShape))
         return
@@ -325,15 +330,15 @@ private fun DetailSwatch(swatches: List<String>, t: ThemeTokens) {
     }
 }
 
-/** A label-less detail value (17sp; "—" when absent). Used for the vendor / color-name on line 2. */
+/** A label-less detail value (body size; "—" when absent). Used for the vendor / color-name on line 2. */
 @Composable
-private fun DetailValue(value: String?, modifier: Modifier, t: ThemeTokens) {
+private fun DetailValue(value: String?, fontSizeSp: Float, modifier: Modifier, t: ThemeTokens) {
     Text(
         text = value?.ifBlank { null } ?: "—",
         color = if (value.isNullOrBlank()) t.text3 else t.text,
         fontFamily = Geist,
         fontWeight = FontWeight.Medium,
-        fontSize = fsSp(17f, t.fs).sp,
+        fontSize = fontSizeSp.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier,
@@ -365,15 +370,15 @@ private fun spoolWeightText(spool: SpoolmanSpool): String {
 /** Line-5 temperature text from a Spoolman filament setting: `210°C`, or "—" when unset. */
 private fun tempText(temp: Int?): String = temp?.let { "$it°C" } ?: "—"
 
-/** An icon-led detail badge (loaded green / archived amber). */
+/** An icon-led detail badge (loaded green / archived amber) at the body size. */
 @Composable
-private fun DetailBadge(symbol: String, text: String, color: Color, t: ThemeTokens) {
+private fun DetailBadge(symbol: String, text: String, textSp: Float, iconSp: Float, color: Color, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = color, sizeSp = fsSp(20f, t.fs))
-        Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        MaterialSymbol(symbol, tint = color, sizeSp = iconSp)
+        Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = textSp.sp)
     }
 }
 
