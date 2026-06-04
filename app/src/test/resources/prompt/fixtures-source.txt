@@ -1,0 +1,12 @@
+fixtures.json is a COMMITTED COPY of the renderer-neutral conformance oracle from:
+
+  /mnt/e/claude/personal/github/klipper-macro-prompt-protocol/fixtures/fixtures.json
+  (upstream: github.com/mrmees/klipper-macro-prompt-protocol)
+
+schema_version: 1  ·  26 fixtures (8 core + 18 optional)
+
+It is copied VERBATIM (byte-identical — `diff` exits 0) from a paused/stable `main`.
+Do NOT hand-edit this committed copy. If the upstream corpus changes, re-copy the whole
+file and re-run PromptFixtureTest.corpusGuard (it pins schema_version==1 and count==26).
+This is the Pitfall-7 stale-copy guard: the corpus is the contract every prompt frontend
+validates against (D-14), so a silent local edit would fork the oracle.

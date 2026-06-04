@@ -1,0 +1,873 @@
+{
+  "schema_version": 1,
+  "protocol": "macro-prompt-v1-draft",
+  "event_prefix": "// action:",
+  "fixtures": [
+    {
+      "id": "core-basic",
+      "level": "core",
+      "description": "Basic prompt with plain text, one content button, one footer button, and explicit show.",
+      "events": [
+        "// action:prompt_begin Core Prompt",
+        "// action:prompt_text Home all axes before continuing.",
+        "// action:prompt_button Home|G28|primary",
+        "// action:prompt_footer_button Cancel|RESPOND TYPE=command MSG=\"action:prompt_end\"|secondary",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Core Prompt",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Home all axes before continuing."
+          },
+          {
+            "type": "button",
+            "label": "Home",
+            "gcode": "G28",
+            "style": "primary"
+          }
+        ],
+        "footer_buttons": [
+          {
+            "label": "Cancel",
+            "gcode": "RESPOND TYPE=command MSG=\"action:prompt_end\"",
+            "style": "secondary"
+          }
+        ]
+      }
+    },
+    {
+      "id": "live-append-after-show",
+      "level": "optional",
+      "extension": "live_append",
+      "description": "Content after prompt_show appends to the visible prompt in source order.",
+      "events": [
+        "// action:prompt_begin Live Status",
+        "// action:prompt_text Heating nozzle...",
+        "// action:prompt_show",
+        "// action:prompt_text Nozzle ready.",
+        "// action:prompt_footer_button Continue|RESUME|primary"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Live Status",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Heating nozzle..."
+          },
+          {
+            "type": "text",
+            "text": "Nozzle ready."
+          }
+        ],
+        "footer_buttons": [
+          {
+            "label": "Continue",
+            "gcode": "RESUME",
+            "style": "primary"
+          }
+        ]
+      },
+      "notes": [
+        "Mainsail currently snapshots content before prompt_show; this fixture represents the optional v1 live-append capability."
+      ]
+    },
+    {
+      "id": "replace-active-prompt",
+      "level": "core",
+      "description": "A second prompt_begin replaces the active prompt and clears previous content.",
+      "events": [
+        "// action:prompt_begin First Prompt",
+        "// action:prompt_text This content is replaced.",
+        "// action:prompt_show",
+        "// action:prompt_begin Replacement Prompt",
+        "// action:prompt_text Replacement content.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Replacement Prompt",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Replacement content."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "button-field-defaults",
+      "level": "core",
+      "description": "Button parsing defaults omitted gcode to label and omitted/unknown style to secondary.",
+      "events": [
+        "// action:prompt_begin Button Defaults",
+        "// action:prompt_button M117 hello",
+        "// action:prompt_button Upper Style|M117 styled|Primary",
+        "// action:prompt_button Unknown Style|M117 unknown|neon",
+        "// action:prompt_footer_button Done||",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Button Defaults",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "button",
+            "label": "M117 hello",
+            "gcode": "M117 hello",
+            "style": "secondary"
+          },
+          {
+            "type": "button",
+            "label": "Upper Style",
+            "gcode": "M117 styled",
+            "style": "primary"
+          },
+          {
+            "type": "button",
+            "label": "Unknown Style",
+            "gcode": "M117 unknown",
+            "style": "secondary"
+          }
+        ],
+        "footer_buttons": [
+          {
+            "label": "Done",
+            "gcode": "Done",
+            "style": "secondary"
+          }
+        ]
+      }
+    },
+    {
+      "id": "button-group",
+      "level": "core",
+      "description": "Grouped content buttons preserve button order and grouping.",
+      "events": [
+        "// action:prompt_begin Jog Distance",
+        "// action:prompt_button_group_start",
+        "// action:prompt_button +10|_MOVE_PLUS_10|secondary",
+        "// action:prompt_button +1|_MOVE_PLUS_1|secondary",
+        "// action:prompt_button -1|_MOVE_MINUS_1|secondary",
+        "// action:prompt_button -10|_MOVE_MINUS_10|secondary",
+        "// action:prompt_button_group_end",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Jog Distance",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "button_group",
+            "children": [
+              {
+                "type": "button",
+                "label": "+10",
+                "gcode": "_MOVE_PLUS_10",
+                "style": "secondary"
+              },
+              {
+                "type": "button",
+                "label": "+1",
+                "gcode": "_MOVE_PLUS_1",
+                "style": "secondary"
+              },
+              {
+                "type": "button",
+                "label": "-1",
+                "gcode": "_MOVE_MINUS_1",
+                "style": "secondary"
+              },
+              {
+                "type": "button",
+                "label": "-10",
+                "gcode": "_MOVE_MINUS_10",
+                "style": "secondary"
+              }
+            ]
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "image-alt-scale",
+      "level": "optional",
+      "extension": "images",
+      "description": "Image command carries config path, fallback alt text, and advisory scale in one command.",
+      "events": [
+        "// action:prompt_begin Image Prompt",
+        "// action:prompt_image config/prompt-assets/spool.svg|Blue PLA spool preview|0.75",
+        "// action:prompt_image config/prompt-assets/nozzle.png||0.5",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Image Prompt",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "image",
+            "path": "config/prompt-assets/spool.svg",
+            "alt": "Blue PLA spool preview",
+            "scale": 0.75
+          },
+          {
+            "type": "image",
+            "path": "config/prompt-assets/nozzle.png",
+            "alt": "",
+            "scale": 0.5
+          }
+        ],
+        "footer_buttons": []
+      },
+      "fallback_expected": {
+        "if_image_unsupported_first_item_text": "Blue PLA spool preview",
+        "if_image_unsupported_second_item_may_be_omitted": true
+      }
+    },
+    {
+      "id": "invalid-image-paths",
+      "level": "optional",
+      "extension": "images",
+      "description": "Invalid image paths are rejected without breaking later prompt content.",
+      "events": [
+        "// action:prompt_begin Invalid Images",
+        "// action:prompt_image /tmp/nozzle.png|Absolute path rejected|1",
+        "// action:prompt_image ~/nozzle.png|Home path rejected|1",
+        "// action:prompt_image config/../secret.svg|Parent traversal rejected|1",
+        "// action:prompt_image config/prompt-assets/valid.svg|Valid image|1",
+        "// action:prompt_text Still renders.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Invalid Images",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Absolute path rejected"
+          },
+          {
+            "type": "text",
+            "text": "Home path rejected"
+          },
+          {
+            "type": "text",
+            "text": "Parent traversal rejected"
+          },
+          {
+            "type": "image",
+            "path": "config/prompt-assets/valid.svg",
+            "alt": "Valid image",
+            "scale": 1
+          },
+          {
+            "type": "text",
+            "text": "Still renders."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "prompt-markup",
+      "level": "optional",
+      "extension": "PromptMarkup",
+      "description": "PromptMarkup supports safe emphasis, color, size, escapes, line breaks, and plain text fallback.",
+      "events": [
+        "// action:prompt_begin Markup Prompt",
+        "// action:prompt_markup <b><color:#22c55e>Ready &amp; safe</color></b>\\n<size:small>Use &lt;care&gt; near the nozzle.</size>",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Markup Prompt",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "markup",
+            "markup": "<b><color:#22c55e>Ready &amp; safe</color></b>\\n<size:small>Use &lt;care&gt; near the nozzle.</size>",
+            "plain_text": "Ready & safe\nUse <care> near the nozzle."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "row-layout",
+      "level": "optional",
+      "extension": "rows",
+      "description": "Rows group mixed items onto the same row while preserving source order.",
+      "events": [
+        "// action:prompt_begin Spool Row",
+        "// action:prompt_row_start",
+        "// action:prompt_image config/prompt-assets/spool.svg|Spool preview|0.35",
+        "// action:prompt_markup <b>Blue PLA</b>\\n<size:small>215 C</size>",
+        "// action:prompt_button Select|_SELECT_SPOOL|primary",
+        "// action:prompt_row_end",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Spool Row",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "row",
+            "children": [
+              {
+                "type": "image",
+                "path": "config/prompt-assets/spool.svg",
+                "alt": "Spool preview",
+                "scale": 0.35
+              },
+              {
+                "type": "markup",
+                "markup": "<b>Blue PLA</b>\\n<size:small>215 C</size>",
+                "plain_text": "Blue PLA\n215 C"
+              },
+              {
+                "type": "button",
+                "label": "Select",
+                "gcode": "_SELECT_SPOOL",
+                "style": "primary"
+              }
+            ]
+          }
+        ],
+        "footer_buttons": []
+      },
+      "fallback_expected": {
+        "children_render_in_source_order_as_normal_items": true
+      }
+    },
+    {
+      "id": "target-touch-only",
+      "level": "optional",
+      "extension": "targeting",
+      "description": "Target filter applies to the next prompt and target-aware frontends hide non-matching prompts.",
+      "events": [
+        "// action:prompt_target klipperscreen,touch",
+        "// action:prompt_begin Touch Prompt",
+        "// action:prompt_text Use the touchscreen to continue.",
+        "// action:prompt_show"
+      ],
+      "expected_by_frontend": {
+        "klipperscreen": {
+          "visible": true,
+          "targets": [
+            "klipperscreen",
+            "touch"
+          ],
+          "title": "Touch Prompt",
+          "items": [
+            {
+              "type": "text",
+              "text": "Use the touchscreen to continue."
+            }
+          ],
+          "footer_buttons": []
+        },
+        "mainsail": {
+          "visible": false
+        },
+        "fluidd": {
+          "visible": false
+        }
+      },
+      "legacy_behavior": {
+        "target_unaware_frontends_may_show_prompt": true
+      }
+    },
+    {
+      "id": "target-last-wins",
+      "level": "optional",
+      "extension": "targeting",
+      "description": "Repeated prompt_target commands before prompt_begin use the last target list.",
+      "events": [
+        "// action:prompt_target web",
+        "// action:prompt_target fluidd",
+        "// action:prompt_begin Fluidd Only",
+        "// action:prompt_text This should only match Fluidd.",
+        "// action:prompt_show"
+      ],
+      "expected_by_frontend": {
+        "klipperscreen": {
+          "visible": false
+        },
+        "mainsail": {
+          "visible": false
+        },
+        "fluidd": {
+          "visible": true,
+          "targets": [
+            "fluidd"
+          ],
+          "title": "Fluidd Only",
+          "items": [
+            {
+              "type": "text",
+              "text": "This should only match Fluidd."
+            }
+          ],
+          "footer_buttons": []
+        }
+      },
+      "legacy_behavior": {
+        "target_unaware_frontends_may_show_prompt": true
+      }
+    },
+    {
+      "id": "size-full-screen",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "The full-screen size requests a viewport-filling dialog and is distinct from the text-size ladder.",
+      "events": [
+        "// action:prompt_size full-screen",
+        "// action:prompt_begin Kiosk Prompt",
+        "// action:prompt_text Take the whole screen.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Kiosk Prompt",
+        "size": "full-screen",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Take the whole screen."
+          }
+        ],
+        "footer_buttons": []
+      },
+      "fallback_expected": {
+        "if_size_unsupported_render_at_frontend_default": true,
+        "if_full_screen_unsupported_may_render_at_largest_available_size": true
+      }
+    },
+    {
+      "id": "size-empty-uses-frontend-default",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "An empty prompt_size argument clears any explicit size hint and uses the frontend default.",
+      "events": [
+        "// action:prompt_size",
+        "// action:prompt_begin Empty Size",
+        "// action:prompt_text Normalized.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Empty Size",
+        "size": null,
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Normalized."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "size-unknown-token-uses-frontend-default",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "An unknown prompt_size token clears any explicit size hint and uses the frontend default.",
+      "events": [
+        "// action:prompt_size jumbo",
+        "// action:prompt_begin Unknown Size",
+        "// action:prompt_text Normalized.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Unknown Size",
+        "size": null,
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Normalized."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "size-case-normalizes",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "prompt_size values are matched case-insensitively; uppercase LARGE becomes large.",
+      "events": [
+        "// action:prompt_size LARGE",
+        "// action:prompt_begin Case Insensitive",
+        "// action:prompt_text Mixed case.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Case Insensitive",
+        "size": "large",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Mixed case."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "size-last-wins-before-begin",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "Multiple prompt_size commands before prompt_begin use the last value.",
+      "events": [
+        "// action:prompt_size small",
+        "// action:prompt_size large",
+        "// action:prompt_size x-large",
+        "// action:prompt_begin Last Wins",
+        "// action:prompt_text Sized x-large.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Last Wins",
+        "size": "x-large",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Sized x-large."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "size-applies-to-next-begin-not-current",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "A prompt_size emitted during an active prompt applies only to the next prompt_begin, not the current one.",
+      "events": [
+        "// action:prompt_begin First",
+        "// action:prompt_text First was sized normal at begin.",
+        "// action:prompt_show",
+        "// action:prompt_size x-large",
+        "// action:prompt_begin Second",
+        "// action:prompt_text Pending size carried across to Second.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Second",
+        "size": "x-large",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Pending size carried across to Second."
+          }
+        ],
+        "footer_buttons": []
+      },
+      "notes": [
+        "First prompt opened at the default 'normal' size; the prompt_size x-large emitted during First's lifetime did not affect First's size. The Second prompt replaces First and consumes the pending x-large value."
+      ]
+    },
+    {
+      "id": "size-end-clears-pending",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "prompt_end clears a pending prompt_size before the next prompt begins.",
+      "events": [
+        "// action:prompt_size x-large",
+        "// action:prompt_end",
+        "// action:prompt_begin Clean Baseline",
+        "// action:prompt_text No pending size survived prompt_end.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Clean Baseline",
+        "size": null,
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "No pending size survived prompt_end."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "size-consumed-when-target-suppressed",
+      "level": "optional",
+      "extension": "prompt_size",
+      "description": "A pending prompt_size is consumed by the next prompt_begin even when that prompt is suppressed by prompt_target.",
+      "events": [
+        "// action:prompt_target klipperscreen",
+        "// action:prompt_size x-large",
+        "// action:prompt_begin Hidden From Fluidd",
+        "// action:prompt_text This prompt is target-suppressed for Fluidd.",
+        "// action:prompt_show",
+        "// action:prompt_begin Visible Default",
+        "// action:prompt_text The suppressed prompt consumed the pending size.",
+        "// action:prompt_show"
+      ],
+      "expected_by_frontend": {
+        "fluidd": {
+          "visible": true,
+          "title": "Visible Default",
+          "size": null,
+          "targets": [
+            "all"
+          ],
+          "items": [
+            {
+              "type": "text",
+              "text": "The suppressed prompt consumed the pending size."
+            }
+          ],
+          "footer_buttons": []
+        },
+        "klipperscreen": {
+          "visible": true,
+          "title": "Visible Default",
+          "size": null,
+          "targets": [
+            "all"
+          ],
+          "items": [
+            {
+              "type": "text",
+              "text": "The suppressed prompt consumed the pending size."
+            }
+          ],
+          "footer_buttons": []
+        }
+      }
+    },
+    {
+      "id": "unknown-commands-ignored",
+      "level": "core",
+      "description": "Unknown prompt commands are ignored without breaking recognized prompt content.",
+      "events": [
+        "// action:prompt_begin Unknown Commands",
+        "// action:prompt_confetti on",
+        "// action:prompt_text Known text survives.",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Unknown Commands",
+        "targets": [
+          "all"
+        ],
+        "items": [
+          {
+            "type": "text",
+            "text": "Known text survives."
+          }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "end-clears-prompt",
+      "level": "core",
+      "description": "prompt_end closes and clears the active prompt.",
+      "events": [
+        "// action:prompt_begin Close Me",
+        "// action:prompt_text This prompt closes.",
+        "// action:prompt_show",
+        "// action:prompt_end"
+      ],
+      "expected": {
+        "visible": false,
+        "title": "",
+        "targets": [
+          "all"
+        ],
+        "items": [],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "disconnect-clears-active-prompt",
+      "level": "core",
+      "description": "A disconnect event clears the shown prompt and pending metadata.",
+      "events": [
+        "// action:prompt_size large",
+        "// action:prompt_begin Working",
+        "// action:prompt_text Heating",
+        "// action:prompt_show",
+        "__disconnect__"
+      ],
+      "expected": {
+        "visible": false,
+        "title": "",
+        "targets": ["all"],
+        "items": [],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "stray-row-end-ignored",
+      "level": "core",
+      "description": "A row_end with no open row is ignored; content still renders in order.",
+      "events": [
+        "// action:prompt_begin Stray",
+        "// action:prompt_text One",
+        "// action:prompt_row_end",
+        "// action:prompt_text Two",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Stray",
+        "targets": ["all"],
+        "items": [
+          { "type": "text", "text": "One" },
+          { "type": "text", "text": "Two" }
+        ],
+        "footer_buttons": []
+      }
+    },
+    {
+      "id": "alignment-left-applies-to-subsequent-items",
+      "level": "optional",
+      "extension": "alignment",
+      "description": "prompt_align left stamps subsequent top-level items with align:left; center items omit the field.",
+      "events": [
+        "// action:prompt_begin Alignment Test",
+        "// action:prompt_align left",
+        "// action:prompt_text Left-aligned line",
+        "// action:prompt_markup <b>Also left</b>",
+        "// action:prompt_align center",
+        "// action:prompt_text Back to center",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Alignment Test",
+        "targets": ["all"],
+        "items": [
+          { "type": "text", "text": "Left-aligned line", "align": "left" },
+          { "type": "markup", "markup": "<b>Also left</b>", "plain_text": "Also left", "align": "left" },
+          { "type": "text", "text": "Back to center" }
+        ],
+        "footer_buttons": []
+      },
+      "notes": [
+        "Items with align:left carry the optional align field. Items at center alignment omit the field (center is the default). This keeps the extension additive: existing fixtures using toMatchObject remain valid.",
+        "This is how the Fluidd and Mainsail implementations apply prompt_align."
+      ]
+    },
+    {
+      "id": "alignment-resets-at-begin",
+      "level": "optional",
+      "extension": "alignment",
+      "description": "prompt_align state resets to center at each prompt_begin; align from a prior prompt does not bleed through.",
+      "events": [
+        "// action:prompt_begin First Prompt",
+        "// action:prompt_align right",
+        "// action:prompt_text Right-aligned",
+        "// action:prompt_show",
+        "// action:prompt_begin Second Prompt",
+        "// action:prompt_text Should be center",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Second Prompt",
+        "targets": ["all"],
+        "items": [
+          { "type": "text", "text": "Should be center" }
+        ],
+        "footer_buttons": []
+      },
+      "notes": [
+        "The second prompt's item has no align field because alignment resets to center at prompt_begin.",
+        "This is how the Fluidd and Mainsail implementations apply prompt_align."
+      ]
+    },
+    {
+      "id": "alignment-unknown-ignored",
+      "level": "optional",
+      "extension": "alignment",
+      "description": "Unknown prompt_align values are silently ignored; the current alignment is preserved.",
+      "events": [
+        "// action:prompt_begin Unknown Align",
+        "// action:prompt_align right",
+        "// action:prompt_align justify",
+        "// action:prompt_text Still right",
+        "// action:prompt_align",
+        "// action:prompt_text Also still right",
+        "// action:prompt_show"
+      ],
+      "expected": {
+        "visible": true,
+        "title": "Unknown Align",
+        "targets": ["all"],
+        "items": [
+          { "type": "text", "text": "Still right", "align": "right" },
+          { "type": "text", "text": "Also still right", "align": "right" }
+        ],
+        "footer_buttons": []
+      },
+      "notes": [
+        "Both an unknown keyword ('justify') and an empty argument leave the current alignment unchanged.",
+        "This is how the Fluidd and Mainsail implementations apply prompt_align."
+      ]
+    }
+  ]
+}
