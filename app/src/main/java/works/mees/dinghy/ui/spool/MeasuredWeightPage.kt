@@ -178,8 +178,8 @@ private fun SpoolWeightHeader(spool: SpoolmanSpool, t: ThemeTokens) {
             fontSize = fsSp(26f, t.fs).sp,
             maxLines = 1,
         )
-        WeightStat("Spool weight", tare, t)
-        WeightStat("Spoolman thinks total", believedTotal, t)
+        WeightStat("Spool weight (empty)", tare, t)
+        WeightStat("Current total (spool + filament)", believedTotal, t)
         Text(
             text = "Spoolman subtracts the spool weight from your weighed total to get filament remaining.",
             color = t.text2,
