@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T02:48:11.076Z"
+last_updated: "2026-06-04T03:03:38.803Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 15
   completed_phases: 10
   total_plans: 73
-  completed_plans: 68
+  completed_plans: 69
   percent: 67
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 10 (webcam-streaming) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -132,6 +132,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 10 P01 | 25 | 2 tasks | 17 files |
 | Phase 10 P02 | 12 | 2 tasks | 5 files |
 | Phase 10 P03 | 22 | 2 tasks | 11 files |
+| Phase 10 P04 | ~11min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -229,6 +230,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 10 (10-01): synthetic MJPEG golden byte-streams ARE the authoritative decode proof (E5/E3 both webrtc-mediamtx, no live MJPEG); SessionTestHarness gained a webcams.list reply + per-method hit-counter as the observable cadence seam
 - [Phase ?]: [Phase 10/10-02]: rungFor takes NO service param — D-02 Content-Type-as-truth enforced by signature (T-10-06); stream 401/403/404+snapshot → Rung.Snapshot, Unsupported only when no snapshot; parseWebcamsList drops bad entries but fails safe to empty (V5); resolveWebcamUrl = HttpUrl.resolve + loopback rewrite preserving ?token=, redactWebcamUrl mirrors redactWsUrl (V7). 3 scaffolds GREEN, 5 stay RED.
 - [Phase ?]: [Phase 10/10-03]: Webcam enumeration wired the cadence-compliant Decision-B way — CommandRegistry.webcamsList one-shot (NO availability predicate, D-08) forwarded as SpineHandle.webcams by a service-owned WebcamsHolder fired on the connectionState rising edge into Connected (once per handshake edge, NOT a subscribe/poll). AppContainer.webcamCount derives the D-08 gating + D-10 default-pick signal. WebcamEnumerationCadenceTest GREEN proves once-per-edge (1→2) + no-poll + no-webcam-in-subscribe via the harness hit-counter (public behavior, not V1_SUBSCRIBE_CORE).
+- [Phase ?]: Plan 10-04 (Wave 3, webcam decode I/O) COMPLETE 2026-06-04 (f6d7c1b probe + c2f5565 decoder + 838b747 poller/clients): WebcamProbe (D-02 GET-not-HEAD sniff → Mjpeg/Snapshot/Unsupported, 401/403/404 terminal-no-spin A4, IOException folds typed), MjpegStreamDecoder<T> (lean Okio multipart scanner: CL + no-CL boundary/EOI scan + split-JPEG reassembly, drop-behind Channel DROP_OLDEST conflated D-06/SC-1, hostile-frame OOM reject MAX_PART_BYTES T-10-02; bitmaps() inBitmap reuse + Pitfall-5), SnapshotPoller<T> (~2fps finite-timeout loop, 401/403 terminal 1-GET no spin T-10-10, transient→10s capped backoff), WebcamClients (two Pitfall-4 postures stream readTimeout(0)/snapshot finite 5s off ONE client via newBuilder()). KEY: decoder/poller GENERIC over T with injectable decode(jpeg) seam → byte-scanner host-provable on JVM (NO Robolectric), BitmapFactory in production factories only. MjpegDecodePolicy holds A1/A2 tunables for 10-08. 1 auto-fix (Rule 1): Content-Type header-only read mis-routed multipart→Snapshot → fall back to body.contentType(). Replaced 3 RED scaffolds + added WebcamProbeTest; full suite 461/1-failed = ONLY 10-06 WebcamReconnectStateTest RED-by-design. No new dep. CAM-01 open (closes 10-06..10-08).
 
 ### Pending Todos
 
@@ -260,6 +262,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T02:47:51.733Z
+Last session: 2026-06-04T03:03:01.573Z
 Stopped at: Phase 10 context gathered
 Resume file: None
