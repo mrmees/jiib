@@ -1,8 +1,10 @@
 package works.mees.dinghy.designsystem.control
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -67,7 +69,10 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  * @param onClick invoked on tap.
  * @param intent  the semantic color role (default [Intent.Neutral]).
  * @param symbol  optional leading Material-Symbol ligature (design spec: gutter buttons keep icon+label).
+ * @param onLongClick optional long-press action (e.g. Load-spool's long-press → unload); when set the
+ *   control uses `combinedClickable` so a tap fires [onClick] and a hold fires [onLongClick].
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OutlinedControl(
     label: String,
@@ -75,15 +80,21 @@ fun OutlinedControl(
     modifier: Modifier = Modifier,
     intent: Intent = Intent.Neutral,
     symbol: String? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
+    val clickMod = if (onLongClick != null) {
+        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    } else {
+        Modifier.clickable(onClick = onClick)
+    }
     Box(
         modifier = modifier
             .heightIn(min = 64.dp) // ≥64dp touch floor (UI-02) — a sanctioned fixed value.
             .clip(shape)
             .border(BorderStroke(2.dp, intent.outlineColor(t)), shape)
-            .clickable(onClick = onClick),
+            .then(clickMod),
         contentAlignment = Alignment.Center,
     ) {
         if (symbol != null) {

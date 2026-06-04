@@ -109,7 +109,6 @@ fun SpoolScreen(
                     SpoolDetailFocus(
                         spool = selected,
                         isActive = selected?.id == state.activeStatus?.activeSpoolId,
-                        onUnload = { holder.clearActiveSpool(dispatcher) },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -160,6 +159,13 @@ fun SpoolScreen(
                                 holder.setActiveSpool(dispatcher, id)
                             }
                         },
+                        // Long-press UNLOADS whatever spool is currently loaded (D-13 → post_spool_id {}),
+                        // Matthew 2026-06-04. No-op when nothing is loaded.
+                        onLongClick = {
+                            if (state.activeStatus?.activeSpoolId != null) {
+                                holder.clearActiveSpool(dispatcher)
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Go, // green accept/commit.
                         symbol = "check_circle",
@@ -202,7 +208,6 @@ fun SpoolScreen(
 private fun SpoolDetailFocus(
     spool: SpoolmanSpool?,
     isActive: Boolean,
-    onUnload: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -296,17 +301,6 @@ private fun SpoolDetailFocus(
             }
             if (spool.archived) {
                 DetailBadge("archive", "Archived — verify before loading", t.heat, t)
-            }
-            // When THIS spool is the one loaded, offer Unload here in the detail (D-13 → post_spool_id {}).
-            // Red Danger intent (clear/unload is the destructive-ish action), Matthew 2026-06-04.
-            if (isActive) {
-                OutlinedControl(
-                    label = "Unload spool",
-                    onClick = onUnload,
-                    modifier = Modifier.fillMaxWidth(),
-                    intent = Intent.Danger,
-                    symbol = "eject",
-                )
             }
         }
     }
