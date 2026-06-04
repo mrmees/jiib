@@ -18,8 +18,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -61,6 +66,11 @@ import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
+import works.mees.dinghy.ui.webcam.WebcamHolder
+import works.mees.dinghy.ui.webcam.WebcamScreen
+import works.mees.dinghy.ui.webcam.webcamBitmapHolder
+import works.mees.dinghy.config.ConnectionConfig
+import android.graphics.Bitmap
 
 /**
  * The running shell host (SHELL-01) — it renders the active [Dest] FULL-BLEED with NO persistent
@@ -154,6 +164,65 @@ fun AppShell(
         FileBrowserHolder(scope = scope, client = fileBrowser, printerState = printerStateFlow)
     }
     val printerState by printerStateFlow.collectAsStateWithLifecycle()
+
+    // ---- Webcam holder (10-07) ---------------------------------------------------------------------
+    // The D-08 runtime greyed-gating signal: the drawer Webcam tile is LIVE only when the CURRENT
+    // session enumerated ≥1 cam (0 while idle). Collected here and threaded into AppDrawer below.
+    val webcamCount by container.webcamCount.collectAsStateWithLifecycle(initialValue = 0)
+    val webcamEnabled = webcamCount > 0
+    // The live per-session cam enumeration + the persisted connection config (host/port → the D-09
+    // URL-resolution base + the per-printer preferred-cam key). An idle fallback keeps the holder
+    // constructible while no session/config exists (it simply enumerates no cams → never drives a feed).
+    val webcams = spine?.webcams ?: remember { MutableStateFlow(emptyList<works.mees.dinghy.state.Webcam>()) }
+    val cfg by container.connectionStore.config.collectAsStateWithLifecycle(initialValue = null)
+    val activeCfg = cfg ?: ConnectionConfig(host = "")
+    // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
+    // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val viewWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }.toInt().coerceAtLeast(1)
+    val viewHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }.toInt().coerceAtLeast(1)
+    // Build the Bitmap-bound webcam holder re-keyed on the live per-session store (the MoveHolder
+    // precedent) AND the connection host (a printer swap re-resolves URLs + the preferred-cam key). The
+    // holder owns the long-lived decode/poll/retry loops; the shell binds page-visibility (below) and
+    // cancels on spine rebuild (the WR-01 leak-cancel — a reconnect MUST tear down the old loops or they
+    // leak + keep streaming after the session swapped). Process-scoped client/prefs survive reconnects.
+    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, viewWidthPx, viewHeightPx) {
+        webcamBitmapHolder(
+            scope = scope,
+            webcams = webcams,
+            webcamPrefs = container.webcamPrefs,
+            cfg = activeCfg,
+            sharedClient = container.webcamHttpClient,
+            viewWidthPx = viewWidthPx,
+            viewHeightPx = viewHeightPx,
+        )
+    }
+    // WR-01 leak-cancel: when `remember(...)` swaps the holder on a spine rebuild (reconnect) or a config
+    // change, fully tear down the old holder's decode/poll/retry loops — otherwise they leak + keep
+    // streaming after the session swapped (this project's frozen-feed-after-restart history makes this
+    // load-bearing). onDispose fires when [webcamHolder] re-keys. (start/stop is page-level, below; this
+    // cancel is holder-death-level — the screen's own DisposableEffect handles the page-visible surface.)
+    DisposableEffect(webcamHolder) { onDispose { webcamHolder.cancel() } }
+    // Page-visible lifecycle (SC-3/D-13): the decode/poll/retry loops run ONLY while the Webcam page is
+    // the active dest AND the process is foreground (STARTED). repeatOnLifecycle(STARTED) covers the
+    // screen-off/home-button case (auto-cancel on STOPPED); keying the effect on [dest] means nav-AWAY
+    // (dest leaves Dest.Webcam) cancels the effect → stop(). No background decode, no leaked stream.
+    // (The screen's own DisposableEffect also starts/stops; this shell binding is the authoritative
+    // foreground gate — both compose cleanly: a stop() is idempotent.)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    androidx.compose.runtime.LaunchedEffect(webcamHolder, dest, lifecycleOwner) {
+        if (dest == Dest.Webcam) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                webcamHolder.start()
+                try {
+                    kotlinx.coroutines.awaitCancellation()
+                } finally {
+                    webcamHolder.stop()
+                }
+            }
+        }
+    }
 
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
@@ -279,7 +348,10 @@ fun AppShell(
                 // Calibration is suppressed too: BedMeshScreen's Load selector is a scrollable Field
                 // (the Files Views-in-Compose scroll lesson) — the hub + each page keeps an explicit
                 // green Back as the exit (D-05).
-                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration)) {
+                // Webcam joins the swipe-suppress set: the full-focus cam-cycle tap overlay wants the
+                // whole canvas (a full-canvas vertical-drag detector would fight that tap), and the
+                // explicit red Back gutter is the exit (D-05, PATTERNS.md recommends YES).
+                if (dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam)) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
@@ -403,6 +475,10 @@ fun AppShell(
                     )
                 }
             }
+            Dest.Webcam -> WebcamScreen(
+                holder = webcamHolder,
+                onBack = { goBack() },
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },
@@ -436,6 +512,7 @@ fun AppShell(
             AppDrawer(
                 onDestination = { navigateTo(it) },
                 onDismiss = { drawerOpen = false },
+                webcamEnabled = webcamEnabled,
             )
         }
     }

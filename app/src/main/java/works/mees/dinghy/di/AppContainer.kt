@@ -87,6 +87,19 @@ class AppContainer(
      */
     val webcamPrefs: WebcamPrefs = WebcamPrefs(webcamDataStore)
 
+    /**
+     * The shared OkHttp client the webcam decode/poll layer derives its two postures off (CLAUDE.md
+     * networking law: ONE pool/TLS config). The per-session websocket client lives in the SERVICE and is
+     * not reachable from the UI; the webcam stream/snapshot HTTP is its OWN connection (the cadence
+     * contract exempts it from the single-subscribe ws) and is process-scoped + connection-independent
+     * (it survives reconnects/printer swaps, like [webcamPrefs]). [WebcamClients] derives the stream
+     * (readTimeout 0) and snapshot (finite readTimeout) postures off this single client. Lazy so no pool
+     * is allocated until the first Webcam page open. Mirrors [net.MoonrakerSocket.defaultClient]'s posture.
+     */
+    val webcamHttpClient: okhttp3.OkHttpClient by lazy {
+        works.mees.dinghy.net.MoonrakerSocket.defaultClient()
+    }
+
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */
     val themeResolver: ThemeResolver = ThemeResolver()
 
