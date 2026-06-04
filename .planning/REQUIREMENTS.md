@@ -221,13 +221,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CALIB-06 (files-delete scoping D-15) | Phase 9 | Planned |
 | CAM-01 | Phase 10 | Complete |
 | SPOOL-01 | Phase 11 | Complete |
-| SPOOL-02 (active-spool Status card; ⊂ SPOOL-01) | Phase 11 | Planned |
-| SPOOL-03 (picker + filters in Dest.Spool; ⊂ SPOOL-01) | Phase 11 | Planned |
-| SPOOL-04 (set/clear/change active via Moonraker JSON-RPC; ⊂ SPOOL-01) | Phase 11 | Planned |
+| SPOOL-02 (active-spool Status card; ⊂ SPOOL-01) | Phase 11 | Complete |
+| SPOOL-03 (picker + filters in Dest.Spool; ⊂ SPOOL-01) | Phase 11 | Complete |
+| SPOOL-04 (set/clear/change active via Moonraker JSON-RPC; ⊂ SPOOL-01) | Phase 11 | Complete |
 | SPOOL-05 (QR scan-to-assign, ZXing GMS-free; SC-2/SC-4) | Phase 11 | Complete |
 | SPOOL-06 (camera permission + no-camera degrade; SC-3) | Phase 11 | Complete |
-| SPOOL-07 (print-start warn-only gate in Files; D-01) | Phase 11 | Planned |
-| SPOOL-08 (external-change reconciliation + notify routing + pending-report staleness; D-10/D-11) | Phase 11 | Planned |
+| SPOOL-07 (print-start warn-only gate in Files; D-01) | Phase 11 | Complete |
+| SPOOL-08 (external-change reconciliation + notify routing + pending-report staleness; D-10/D-11) | Phase 11 | Complete |
 | SPOOL-09 (measured-weight correction + nice-to-haves: gcode prefilter, location shortcuts, archived warning; D-04) | Phase 11 | Complete |
 | PROMPT-01 | Phase 12 | Pending |
 | PKG-01 | Phase 14 | Pending |

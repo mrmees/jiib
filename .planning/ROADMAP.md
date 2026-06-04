@@ -60,7 +60,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate (completed 2026-06-02)
 - [x] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser (completed 2026-06-03; on-device UAT passed on flox + live Ender 3. One cross-cutting reliability defect — SAVE_CONFIG re-handshake live-feed freeze — deferred to Phase 13, now promoted to run next)
 - [x] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred (completed 2026-06-04)
-- [ ] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig
+- [x] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig (completed 2026-06-04)
 - [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
 - [ ] **Phase 14: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
@@ -477,7 +477,7 @@ Plans:
 - [x] 11-06-PLAN.md — Wave 4: Dest.Spool + greyed tile + active-spool Status card + Files-style picker/holder
 - [x] 11-07-PLAN.md — Wave 4: scan surface (CameraX+release) + permission glue + confirm-first + measured-weight
 - [x] 11-08-PLAN.md — Wave 5: warn-only gate hook + gcode-aware prefilter + change-during-print
-- [ ] 11-09-PLAN.md — Wave 6: on-device end-to-end UAT (scan→flip) + degrade + save→change→restore (BLOCKING)
+- [x] 11-09-PLAN.md — Wave 6: on-device end-to-end UAT (scan→flip) + degrade + save→change→restore (BLOCKING)
 **UI hint**: yes
 **Research note**: DEEPER — Moonraker Spoolman API surface (`/server/spoolman/*`, active-spool set), Spoolman QR label payload format (`web+spoolman:s-<id>`), CameraX + ZXing on API 23 without GMS, and camera-permission flow.
 
@@ -570,7 +570,7 @@ existing "Phase 13" references valid).
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
-| 11. Spool Management — Spoolman + Camera QR | 8/9 | In Progress|  |
+| 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
