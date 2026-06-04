@@ -427,7 +427,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 10-01-PLAN.md — Wave 0: verbatim E5+E3 /server/webcams/list goldens + labeled synthetic MJPEG fixtures + hardened fakes + RED scaffolds (mock-vs-reality gate)
+- [x] 10-01-PLAN.md — Wave 0: verbatim E5+E3 /server/webcams/list goldens + labeled synthetic MJPEG fixtures + hardened fakes + RED scaffolds (mock-vs-reality gate)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -558,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 0/8 | ▶ NEXT (Phase 13 done) | - |
+| 10. Webcam Streaming | 1/8 | In Progress|  |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |

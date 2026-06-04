@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T01:55:37.315Z"
-last_activity: 2026-06-04 -- Phase 10 planning complete
+last_updated: "2026-06-04T02:25:09.782Z"
+last_activity: 2026-06-04
 progress:
   total_phases: 15
   completed_phases: 10
   total_plans: 73
-  completed_plans: 65
+  completed_plans: 66
   percent: 67
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 10 — Webcam Streaming (next per the promoted execution order, after Phase 13)
+**Current focus:** Phase 10 — webcam-streaming
 
 ## Current Position
 
-Phase: 10 (next — not started)
-Plan: Not started
+Phase: 10 (webcam-streaming) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -41,7 +41,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-04 -- Phase 10 planning complete
+Last activity: 2026-06-04
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -129,6 +129,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 13 P02 | ~35min | 2 tasks | 3 files |
 | Phase 13 P04 | on-device gate | 2 tasks | 1 file |
 | Phase 13 P05 | gap-closure | 4 tasks | 8 files |
+| Phase 10 P01 | 25 | 2 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -222,6 +223,8 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-03: request-cadence contract committed as the phases-10-12 guardrail; oneshotToken flagged declared-not-live (REST path, no websocket call site)
 - [Phase 13]: 13-03: redundant refreshProbeZOffset configfile re-query removed end-to-end, gated GREEN by ProbeZOffsetFreshnessTest (Pitfall 3)
 - [Phase 13][13-05 Tasks 1-3, D-05 DEPARTURE 2026-06-03]: Socket ConnectionState NOW routes the recovery Splash (supersedes the original D-05 'socket state is chrome, never routes'). derive() arm order (load-bearing): !cfg→Connect ; klippy!=Ready→Splash ; connection !is Connected→Splash ; else→Shell. SAFE only because shell nav state (dest+backStack+calibrationRoutine) was HOISTED into RootController above the Splash/Shell switch (new ShellNavState) so the recovery splash no longer bounces the user to Home (G-A1); macroPopupFor reset on return, macroShowSystem preserved. G-B1a: OkHttp pingInterval(10s) keepalive on defaultClient() so a half-open WiFi drop → onFailure → SocketEvent.Closed → reconnect (the 4th mock-vs-reality strike pinned by MoonrakerSocketClientTest). RootController-owned ~600ms min-dwell latch makes a fast recovery splash perceptible on BOTH the klippy-restart and socket-reconnect paths (delays HIDING only, never the recovery). docs/ui_design/CLAUDE.md synced. Tasks 1-3 committed 404e00e/5451638/777a74d, full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded), signed APK installed on flox. Task 4 = BLOCKING on-device dual-printer dual-scenario UAT (Matthew) — 13-05-SUMMARY.md NOT written, plan/phase NOT complete until it passes.
+- [Phase ?]: Phase 10 Wave 0 (10-01): compiling runtime-RED scaffold pattern keeps the whole test source set compiling while each scaffold fails RED at runtime; owning wave replaces the body with typed assertions
+- [Phase ?]: Phase 10 (10-01): synthetic MJPEG golden byte-streams ARE the authoritative decode proof (E5/E3 both webrtc-mediamtx, no live MJPEG); SessionTestHarness gained a webcams.list reply + per-method hit-counter as the observable cadence seam
 
 ### Pending Todos
 
@@ -253,6 +256,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T01:11:46.573Z
+Last session: 2026-06-04T02:24:49.151Z
 Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-webcam-streaming/10-CONTEXT.md
+Resume file: None
