@@ -82,8 +82,8 @@ class MoonrakerSpoolmanClient(private val rpc: JsonRpcClient) : SpoolmanClient {
         proxy("GET", "/v1/location")
 
     /**
-     * D-04 measured gross weight: PUT /v1/spool/{id}/measure carrying the gross grams in the query
-     * (the Moonraker proxy forwards the query to Spoolman). `remaining`/`used` are server-recomputed
+     * D-04 measured gross weight: PUT /v1/spool/{id}/measure carrying the gross grams in the request body
+     * (the Moonraker proxy forwards the body to Spoolman). `remaining`/`used` are server-recomputed
      * from `gross − spool_weight`; the caller re-reads the spool to reflect the update.
      */
     override suspend fun measureSpool(id: Int, grossGrams: Double): JsonElement? =
