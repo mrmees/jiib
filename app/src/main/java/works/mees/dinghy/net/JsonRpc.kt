@@ -119,6 +119,10 @@ object JsonRpcMethods {
     // estimated_time; fetched ONCE per active print filename for the Status home derived cells.
     const val FILES_METADATA = "server.files.metadata"
 
+    // One-shot webcam enumeration (Phase 10 CAM-01). Edge-driven ONCE per handshake (NOT subscribed,
+    // NOT polled — cadence contract Rule 3); forwarded off the session as SpineHandle.webcams.
+    const val WEBCAMS_LIST = "server.webcams.list"
+
     // Phase-7 file browser and core print-loop JSON-RPC commands.
     const val FILES_GET_DIRECTORY = "server.files.get_directory"
     const val FILES_THUMBNAILS = "server.files.thumbnails"

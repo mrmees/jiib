@@ -218,6 +218,16 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ComponentPresent("history"),
     )
 
+    val webcamsList: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-server.webcams.list",
+        method = JsonRpcMethods.WEBCAMS_LIST,
+        key = { "webcams_list" },
+        params = { null },
+        // NO availability predicate (D-08): the Moonraker `webcam` component is universal on E5/E3 — the
+        // TILE is greyed on cam-count==0 (AppContainer.webcamCount), the command is never object-gated.
+        // One-shot edge-driven read (cadence contract): NOT in V1_SUBSCRIBE_CORE, NOT polled.
+    )
+
     val emergencyStop: CommandSpec<Unit> = jsonRpc(
         catalogId = "MR-printer.emergency_stop",
         method = JsonRpcMethods.EMERGENCY_STOP,
@@ -453,6 +463,7 @@ object CommandRegistry {
         printResume,
         printCancel,
         historyList,
+        webcamsList,
         emergencyStop,
         firmwareRestart,
         restart,

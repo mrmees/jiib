@@ -8819,21 +8819,19 @@
       "rest_endpoint": null,
       "http_method": null,
       "availability": {
-        "type": "component_present",
-        "name": "webcam"
+        "type": "always"
       },
       "predicate": {
-        "type": "component_present",
-        "name": "webcam"
+        "type": "always"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered (Phase 10, plan 10-03) as CommandRegistry.webcamsList — a paramless one-shot edge-driven enumeration fetched once per handshake. NO availability predicate (D-08): the webcam component is universal on E5/E3, so the command is unconditional and the drawer tile is greyed on cam-count==0 instead of being command-gated."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "The spine forwards the enumeration as SpineHandle.webcams; a rejected/absent read leaves the list empty (greyed tile), never crashes."
     },
     {
       "id": "MR-server.webcams.post_item",

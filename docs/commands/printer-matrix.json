@@ -1541,6 +1541,31 @@
       ]
     },
     {
+      "catalog_id": "MR-server.webcams.list",
+      "name": "server.webcams.list",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate (D-08): the webcam component is universal on E5/E3, so the command is unconditional and the drawer TILE is greyed on cam-count==0 instead. One-shot edge-driven enumeration (server.webcams.list returned 1 cam on the live E5 capture).",
+          "caveat": "Gated by cam-count at the UI, not by an availability predicate."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry has no runtime availability predicate (D-08): the webcam component is universal on E5/E3, so the command is unconditional and the drawer TILE is greyed on cam-count==0 instead. One-shot edge-driven enumeration (server.webcams.list returned cams on the live E3 capture).",
+          "caveat": "Gated by cam-count at the UI, not by an availability predicate."
+        }
+      ]
+    },
+    {
       "catalog_id": "MR-printer.emergency_stop",
       "name": "printer.emergency_stop",
       "source_api": "moonraker",
