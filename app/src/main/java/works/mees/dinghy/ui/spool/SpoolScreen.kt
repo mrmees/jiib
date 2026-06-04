@@ -17,7 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,6 +82,8 @@ fun SpoolScreen(
     val state by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val selected = state.selected
+    // Which filter category's full-screen selector is open (null = none) — Matthew 2026-06-04.
+    var openFilter by remember { mutableStateOf<SpoolFilterCategory?>(null) }
 
     LaunchedEffect(holder) { holder.load() }
     // D-04: apply the gcode-aware prefilter seed ONCE (keyed on the seed identity), then clear it so a
@@ -107,11 +112,8 @@ fun SpoolScreen(
                 }
                 SpoolFilterControls(
                     state = state,
-                    onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
-                    onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
-                    onToggleLocation = { scope.launch { holder.toggleLocation(it) } },
-                    onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
                     onSelectSort = { scope.launch { holder.applySort(it) } },
+                    onOpenFilter = { openFilter = it },
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                 )
             },
@@ -162,6 +164,28 @@ fun SpoolScreen(
                 }
             },
         )
+
+        // The full-screen filter selector overlays the whole screen when a category button is tapped.
+        openFilter?.let { category ->
+            SpoolFilterPickerOverlay(
+                category = category,
+                state = state,
+                onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
+                onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
+                onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
+                onClear = {
+                    scope.launch {
+                        when (category) {
+                            SpoolFilterCategory.TYPE -> holder.clearMaterialFamilies()
+                            SpoolFilterCategory.COLOR -> holder.clearColor()
+                            SpoolFilterCategory.MFG -> holder.clearVendor()
+                        }
+                    }
+                },
+                onDone = { openFilter = null },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -179,10 +203,14 @@ private fun SpoolDetailFocus(
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCard)
+    // Match the detail window's border to the selected spool's own color (Matthew 2026-06-04): the first
+    // valid swatch, falling back to the accent line (valid spool, unknown color) or the hair (no spool).
+    val spoolColor = spool?.filament?.colorSwatches?.firstNotNullOfOrNull { parseNormalizedHex(it) }
+    val borderColor = spoolColor ?: if (spool != null) t.accentLine else t.hair
     Box(
         modifier
             .clip(shape)
-            .border(BorderStroke(2.dp, if (spool != null) t.accentLine else t.hair), shape)
+            .border(BorderStroke(3.dp, borderColor), shape)
             .background(t.surface)
             .padding(16.dp),
     ) {

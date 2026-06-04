@@ -4,12 +4,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.theme.Geist
@@ -56,10 +60,22 @@ private val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
 )
 
 /**
+ * The three filter CATEGORIES surfaced as buttons in the second filter row (Matthew, 2026-06-04). Each
+ * opens a full-screen touch selector ([SpoolFilterPickerOverlay]) rather than an inline chip strip.
+ *  - [TYPE] — fuzzy material families (D-05; multi-select).
+ *  - [COLOR] — the palette swatches (D-06; single-select, slow two-step on tap).
+ *  - [MFG] — manufacturer / vendor (single-select).
+ */
+enum class SpoolFilterCategory(val label: String) {
+    TYPE("Type"),
+    COLOR("Color"),
+    MFG("MFG"),
+}
+
+/**
  * The Spool-picker FIELD (SPOOL-03): JUST the dense scrollable spool list, so it gets the WHOLE Field
- * height (the filter/sort chips now live at the bottom of the Focus — Matthew, 2026-06-04 — see
- * [SpoolFilterControls]). Mirrors the Files dense-list grammar; a Compose [LazyColumn], so the
- * Views-in-Compose pinned-height scroll lesson is moot. All color via [LocalTokens] (THEME-01).
+ * height (the filter/sort controls live at the bottom of the Focus — [SpoolFilterControls]). Mirrors the
+ * Files dense-list grammar; a Compose [LazyColumn]. All color via [LocalTokens] (THEME-01).
  *
  * Font scale matches the FilesScreen rows (D-16): row primary 17–18sp, metadata floor 15sp, remaining
  * tabular value 18sp — never smaller. Every row shows the spool's ACTUAL swatch (D-06). Row actions are
@@ -106,79 +122,207 @@ fun SpoolPicker(
 }
 
 /**
- * The filter / sort chip rows (SPOOL-03), rendered at the BOTTOM of the Focus pane so the Field can be a
- * pure scrolling list (Matthew, 2026-06-04). Sort toggle (Name / Date / Remaining, re-tap flips direction)
- * + fuzzy material-family chips (D-05) + color palette (D-06) + vendor / location (D-04). Chips 15sp (floor).
- *
- * @param state the picker state (applied filters/sort + the vendor/location chip universes).
- * @param onToggleMaterial/[onToggleVendor]/[onToggleLocation]/[onTapSwatch]/[onSelectSort] chip actions.
+ * The filter / sort controls (SPOOL-03), TWO rows of button-style controls at the bottom of the Focus
+ * (Matthew, 2026-06-04 — buttons, not pills):
+ *  - Row 1 — Name / Date / Remaining sort. Tapping re-sorts the list; re-tapping the active key flips
+ *    direction (↑ asc / ↓ desc), and the active button reads accent.
+ *  - Row 2 — Type / Color / MFG. Each opens a full-screen touch selector ([onOpenFilter]); the button
+ *    reads accent (and Type shows a count) when that category has an active filter.
  */
 @Composable
 fun SpoolFilterControls(
     state: SpoolPickerState,
+    onSelectSort: (SpoolSortKey) -> Unit,
+    onOpenFilter: (SpoolFilterCategory) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Row 1 — sort (Name / Date / Remaining); active button shows direction arrow + accent outline.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SpoolSortKey.entries.forEach { key ->
+                val active = key == state.sortKey
+                val arrow = if (active) (if (state.sortAscending) " ↑" else " ↓") else ""
+                OutlinedControl(
+                    label = key.label + arrow,
+                    onClick = { onSelectSort(key) },
+                    modifier = Modifier.weight(1f),
+                    intent = if (active) Intent.Accent else Intent.Neutral,
+                )
+            }
+        }
+        // Row 2 — filter categories (Type / Color / MFG); accent outline when that category is filtered.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val typeCount = state.filters.materialFamilies.size
+            CategoryButton(
+                label = if (typeCount > 0) "${SpoolFilterCategory.TYPE.label} ($typeCount)" else SpoolFilterCategory.TYPE.label,
+                active = typeCount > 0,
+                onClick = { onOpenFilter(SpoolFilterCategory.TYPE) },
+                modifier = Modifier.weight(1f),
+            )
+            CategoryButton(
+                label = SpoolFilterCategory.COLOR.label,
+                active = state.filters.colorSwatchHex != null,
+                onClick = { onOpenFilter(SpoolFilterCategory.COLOR) },
+                modifier = Modifier.weight(1f),
+            )
+            CategoryButton(
+                label = SpoolFilterCategory.MFG.label,
+                active = state.filters.vendor != null,
+                onClick = { onOpenFilter(SpoolFilterCategory.MFG) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** One filter-category button (Row 2) — accent outline when its category has an active filter. */
+@Composable
+private fun CategoryButton(label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    OutlinedControl(
+        label = label,
+        onClick = onClick,
+        modifier = modifier,
+        intent = if (active) Intent.Accent else Intent.Neutral,
+    )
+}
+
+/**
+ * The full-screen touch selector for one [SpoolFilterCategory] (Matthew, 2026-06-04). A scrollable list of
+ * big selectable option buttons (≥64dp), a category-scoped Clear, and a green Done. Type is multi-select
+ * (D-05 families), Color single-select (D-06 swatch — the slow two-step fires on tap), MFG single-select.
+ * All color via [LocalTokens]; option text floor 18sp (D-16).
+ */
+@Composable
+fun SpoolFilterPickerOverlay(
+    category: SpoolFilterCategory,
+    state: SpoolPickerState,
     onToggleMaterial: (String) -> Unit,
     onToggleVendor: (String) -> Unit,
-    onToggleLocation: (String) -> Unit,
     onTapSwatch: (String) -> Unit,
-    onSelectSort: (SpoolSortKey) -> Unit,
+    onClear: () -> Unit,
+    onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        // Sort toggle — Name / Date / Remaining; the active chip shows its direction arrow.
-        SortRow(activeKey = state.sortKey, ascending = state.sortAscending, onSelect = onSelectSort, t = t)
-
-        // Fuzzy material-FAMILY chips (D-05) — fixed families, comma-multi-select (PLA catches PLA+, …).
-        ChipRow {
-            MATERIAL_FAMILIES.forEach { (label, _) ->
-                FilterChip(
-                    label = label,
-                    selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
-                    onClick = { onToggleMaterial(label) },
-                    t = t,
-                )
-            }
-        }
-
-        // Color palette swatches (D-06) — the two-step fires ONLY on tap.
-        ChipRow {
-            PALETTE_SWATCHES.forEach { (name, hex) ->
-                SwatchChip(
-                    name = name,
-                    hex = hex,
-                    selected = state.filters.colorSwatchHex.equals(hex, ignoreCase = true),
-                    onClick = { onTapSwatch(hex) },
-                    t = t,
-                )
-            }
-        }
-
-        // Vendor + location chips (D-04). "No location" is the LOCATION_NONE sentinel.
-        if (state.vendors.isNotEmpty() || state.locations.isNotEmpty()) {
-            ChipRow {
-                state.vendors.forEach { vendor ->
-                    FilterChip(
-                        label = vendor,
-                        selected = state.filters.vendor.equals(vendor, ignoreCase = true),
-                        onClick = { onToggleVendor(vendor) },
+    Column(
+        modifier.fillMaxSize().background(t.bg).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Filter — ${category.label}",
+            color = t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(22f, t.fs).sp,
+        )
+        Column(
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            when (category) {
+                SpoolFilterCategory.TYPE -> MATERIAL_FAMILIES.forEach { (label, _) ->
+                    OptionButton(
+                        label = label,
+                        selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
+                        swatchHex = null,
+                        onClick = { onToggleMaterial(label) },
                         t = t,
                     )
                 }
-                state.locations.forEach { location ->
-                    FilterChip(
-                        label = location,
-                        selected = state.filters.location == location,
-                        onClick = { onToggleLocation(location) },
+
+                SpoolFilterCategory.COLOR -> PALETTE_SWATCHES.forEach { (name, hex) ->
+                    OptionButton(
+                        label = name,
+                        selected = state.filters.colorSwatchHex.equals(hex, ignoreCase = true),
+                        swatchHex = hex,
+                        onClick = { onTapSwatch(hex) },
                         t = t,
                     )
                 }
-                FilterChip(
-                    label = "No location",
-                    selected = state.filters.location == SpoolFilters.LOCATION_NONE,
-                    onClick = { onToggleLocation(SpoolFilters.LOCATION_NONE) },
-                    t = t,
-                )
+
+                SpoolFilterCategory.MFG -> {
+                    if (state.vendors.isEmpty()) {
+                        Text(
+                            text = "No manufacturers found.",
+                            color = t.text2,
+                            fontFamily = Geist,
+                            fontSize = fsSp(17f, t.fs).sp,
+                            modifier = Modifier.padding(8.dp),
+                        )
+                    }
+                    state.vendors.forEach { vendor ->
+                        OptionButton(
+                            label = vendor,
+                            selected = state.filters.vendor.equals(vendor, ignoreCase = true),
+                            swatchHex = null,
+                            onClick = { onToggleVendor(vendor) },
+                            t = t,
+                        )
+                    }
+                }
             }
+        }
+        // Gutter — category-scoped Clear (red) + Done (green).
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedControl(
+                label = "Clear",
+                onClick = onClear,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Danger,
+                symbol = "close",
+            )
+            OutlinedControl(
+                label = "Done",
+                onClick = onDone,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Go,
+                symbol = "check",
+            )
+        }
+    }
+}
+
+/** One selectable option button (≥64dp; accent outline + soft fill + check when selected). */
+@Composable
+private fun OptionButton(
+    label: String,
+    selected: Boolean,
+    swatchHex: String?,
+    onClick: () -> Unit,
+    t: ThemeTokens,
+) {
+    val shape = RoundedCornerShape(t.rCtrl)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
+            .background(if (selected) t.accentSoft else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (swatchHex != null) {
+            Box(
+                Modifier.size(fsSp(24f, t.fs).dp).clip(CircleShape)
+                    .background(parseNormalizedHex(swatchHex) ?: t.surface2)
+                    .border(BorderStroke(1.dp, t.hair), CircleShape),
+            )
+        }
+        Text(
+            text = label,
+            color = if (selected) t.accent2 else t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            MaterialSymbol("check", tint = t.accent2, sizeSp = fsSp(20f, t.fs))
         }
     }
 }
@@ -269,90 +413,6 @@ private fun RowSwatch(swatches: List<String>, t: ThemeTokens) {
                     .border(BorderStroke(1.dp, t.hair), CircleShape),
             )
         }
-    }
-}
-
-/**
- * The Name / Date / Remaining sort toggle. The ACTIVE key's chip shows a direction arrow (↑ asc / ↓ desc);
- * tapping the active key again flips direction (Matthew, 2026-06-04).
- */
-@Composable
-private fun SortRow(
-    activeKey: SpoolSortKey,
-    ascending: Boolean,
-    onSelect: (SpoolSortKey) -> Unit,
-    t: ThemeTokens,
-) {
-    ChipRow {
-        SpoolSortKey.entries.forEach { key ->
-            val active = key == activeKey
-            val label = if (active) "${key.label} ${if (ascending) "↑" else "↓"}" else key.label
-            FilterChip(label, active, { onSelect(key) }, t)
-        }
-    }
-}
-
-/** A horizontally-scrollable chip strip (the chip rows can overflow on a narrow Field). */
-@Composable
-private fun ChipRow(content: @Composable () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        content()
-    }
-}
-
-/** One outline-led filter chip (selected = accent outline + accent text; metadata floor 15sp). */
-@Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, t: ThemeTokens) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(t.rPill))
-            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), RoundedCornerShape(t.rPill))
-            .background(if (selected) t.accentSoft else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) t.accent2 else t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(15f, t.fs).sp,
-            maxLines = 1,
-        )
-    }
-}
-
-/** A color-palette swatch chip (D-06) — the swatch circle + name; selected = accent outline. */
-@Composable
-private fun SwatchChip(name: String, hex: String, selected: Boolean, onClick: () -> Unit, t: ThemeTokens) {
-    Row(
-        Modifier
-            .clip(RoundedCornerShape(t.rPill))
-            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), RoundedCornerShape(t.rPill))
-            .background(if (selected) t.accentSoft else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier.size(fsSp(16f, t.fs).dp).clip(CircleShape)
-                .background(parseNormalizedHex(hex) ?: t.surface2)
-                .border(BorderStroke(1.dp, t.hair), CircleShape),
-        )
-        Text(
-            text = name,
-            color = if (selected) t.accent2 else t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(15f, t.fs).sp,
-            maxLines = 1,
-        )
     }
 }
 
