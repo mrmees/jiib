@@ -530,9 +530,9 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |
-| 11. Spool Management — Spoolman + Camera QR | 0/TBD | Deferred (after 13) | - |
-| 12. Macro Prompt Protocol | 0/TBD | Deferred (after 13) | - |
+| 10. Webcam Streaming | 0/TBD | ▶ NEXT (Phase 13 done) | - |
+| 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
+| 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
