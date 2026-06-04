@@ -414,7 +414,7 @@ Plans:
 
 **Goal**: View the printer's webcam on the tablet without a browser. Decode the common Klipper MJPEG case (`ustreamer`/`crowsnest`/`mjpg-streamer`) — enumerate cams via Moonraker `/server/webcams/list`, stream the `multipart/x-mixed-replace` feed, and decode frames **hard-downscaled** to the display size (reuse-a-bitmap, `inSampleSize`) because full-res MJPEG decode will OOM/jank the Adreno-320 / 2GB floor. WebRTC (`camera-streamer`/`go2rtc`) is explicitly deferred past MJPEG.
 **Depends on**: Phase 9
-**Requirements**: *(CAM-* family — map the existing future CAM REQ-ID(s) + define the rest at phase discuss)*
+**Requirements**: CAM-01
 **Success Criteria** (what must be TRUE):
 
   1. The app enumerates configured webcams (`/server/webcams/list`) and streams the selected MJPEG feed, rendering live frames
@@ -422,7 +422,35 @@ Plans:
   3. The stream pauses/stops cleanly when the page is backgrounded (no wasted decode/bandwidth), and a missing/unreachable cam degrades gracefully
   4. WebRTC is documented as explicitly deferred (MJPEG-only this phase)
 
-**Plans**: TBD
+**Plans**: 8 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 10-01-PLAN.md — Wave 0: verbatim E5+E3 /server/webcams/list goldens + labeled synthetic MJPEG fixtures + hardened fakes + RED scaffolds (mock-vs-reality gate)
+
+**Wave 2** *(blocked on Wave 1; parallel — disjoint files)*
+
+- [ ] 10-02-PLAN.md — Pure core: tolerant Webcam models + D-09 URL resolver/rewriter + D-02 rung selection
+- [ ] 10-03-PLAN.md — Enumeration spine wiring: server.webcams.list one-shot spec + SpineHandle.webcams StateFlow + AppContainer webcamCount (cadence-compliant, edge-driven)
+
+**Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
+
+- [ ] 10-04-PLAN.md — Decode I/O: Content-Type probe + lean Okio MJPEG decoder (drop-behind, inBitmap) + ~2fps snapshot poller (two derived OkHttp postures)
+- [ ] 10-05-PLAN.md — Render surface: WebcamView (ThemeableView, pixel-square never-stretch + rounded cutout + token chrome) + WebcamViewHost
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 10-06-PLAN.md — Orchestration: WebcamHolder (rung select + decoder/poller lifecycle + D-11 reconnect + D-12 backoff + cancel) + WebcamScreen (single-focus/aspect-aware Field/Back gutter) + per-printer WebcamPrefs
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 10-07-PLAN.md — Nav wiring: Dest.Webcam + runtime-greyed drawer tile (D-08) + AppShell arm + page-visible lifecycle + WR-01 DisposableEffect cancel + instrumented gating/lifecycle/dead-end tests
+
+**Wave 6** *(blocked on Wave 5; on-device gate)*
+
+- [ ] 10-08-PLAN.md — On-device flox perf pin (A1/A2 fps/inSampleSize, gfxinfo 0-frozen) + snapshot-ladder UAT (E3) + rung-3 card (E5/WebRTC) + WebRTC-deferred doc (BLOCKING human-verify)
+
 **UI hint**: yes
 **Research note**: STANDARD — MJPEG multipart decode pattern is in the stack doc (CLAUDE.md camera note); `niqdev/ipcam-view` / `perthcpe23/android-mjpeg-view` as reference (reimplement lean in Kotlin).
 
@@ -530,7 +558,7 @@ existing "Phase 13" references valid).
 | 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
-| 10. Webcam Streaming | 0/TBD | ▶ NEXT (Phase 13 done) | - |
+| 10. Webcam Streaming | 0/8 | ▶ NEXT (Phase 13 done) | - |
 | 11. Spool Management — Spoolman + Camera QR | 0/TBD | Queued (after 10) | - |
 | 12. Macro Prompt Protocol | 0/TBD | Queued (after 11) | - |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
