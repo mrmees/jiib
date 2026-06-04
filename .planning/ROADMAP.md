@@ -61,7 +61,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser (completed 2026-06-03; on-device UAT passed on flox + live Ender 3. One cross-cutting reliability defect — SAVE_CONFIG re-handshake live-feed freeze — deferred to Phase 13, now promoted to run next)
 - [x] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred (completed 2026-06-04)
 - [x] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig (completed 2026-06-04)
-- [ ] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive
+- [x] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive (completed 2026-06-04)
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
 - [ ] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware
 - [ ] **Phase 15: Fine-Tune / Live-Adjust Panel** - Wire the stubbed Tune button into a real mid-print live-adjust surface: Z babystep, speed (M220), flow (M221), fan, and pressure advance where present — capability-gated, keyboard-free
@@ -519,7 +519,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
-- [ ] 12-05-PLAN.md — AppShell wiring (engine construct + overlay hoist + button/close dispatch + drawer suppress) + the D-03 UI-LAW carve-out docs + on-device live-macro UAT (SC-4 wizard, close echo, disconnect-no-prompt_end) (PROMPT-02/03/04)
+- [x] 12-05-PLAN.md — AppShell wiring (engine construct + overlay hoist + button/close dispatch + drawer suppress) + the D-03 UI-LAW carve-out docs + on-device live-macro UAT (SC-4 wizard, close echo, disconnect-no-prompt_end) (PROMPT-02/03/04)
 
 **UI hint**: yes
 **Research note**: STANDARD — the protocol is specced (klipper-macro-prompt-protocol); reuses the Phase-8 gcode-response bus and Phase-3 dialog primitive.
@@ -728,7 +728,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
-| 12. Macro Prompt Protocol | 4/5 | In Progress|  |
+| 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 0/TBD | Not started | - |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |

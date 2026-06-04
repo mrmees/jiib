@@ -1,27 +1,41 @@
 # Phase 12-05 — On-Device UAT (Macro Prompt Protocol)
 
-**Device:** flox (Nexus 7 2013, LineageOS 18.1 / Android 11, Adreno 320 / armeabi-v7a).
+**Device:** flox (Nexus 7 2013, LineageOS 18.1 / Android 11, Adreno 320 / 2GB / armeabi-v7a).
 **Build:** `app-armeabi-v7a-debug.apk` (debug-signed), installed via `adb install -r` from
 commit `6a6a072` (12-05 Task 1 wiring).
-**Status:** ☐ AWAITING — Matthew runs the four gates against a live printer.
+**Printer:** **Ender 3 Pro** Moonraker at **192.168.1.121:7125**. (The Ender 5 Plus at
+192.168.1.120 was unusable — Klipper in MCU-error state: `mcu 'EBBCan': Unable to connect`.)
+**Run date:** 2026-06-04.
+**Status:** ☑ **PASSED** — all four gates PASS on flox + the live E3.
 
 ---
 
-## Prereqs (orchestrator — DONE except the printer-side cfg)
+## UAT method (novel — recorded for the mock-vs-reality ledger)
+
+Rather than installing `macro-examples.cfg` + `FIRMWARE_RESTART`, the orchestrator **streamed the
+protocol command sequences directly to Moonraker's REST `/printer/gcode/script`** as
+`RESPOND TYPE=command MSG="action:prompt_*"` lines. Moonraker broadcasts the resulting `// action:*`
+responses via `notify_gcode_response` to **all** websocket clients (including Dinghy), which parsed +
+rendered them exactly as it would a real macro's output. Matthew viewed/tapped on the real flox tablet.
+
+- **Safe button gcodes:** button gcodes that referenced the uninstalled `_MOVE_*` helper macros were
+  substituted with **non-motion `M118` echoes** (e.g. `M118 DINGHY_BTN move +10`) so taps were SAFE
+  (no toolhead motion) AND server-verifiable.
+- **Objective server-side evidence:** every button dispatch was cross-checked against Moonraker's
+  `/server/gcode_store` for which gcode actually fired — directly answering the project's recurring
+  mock-vs-reality concern (a tap → a confirmed server-side echo, not just a UI animation).
+- **Image gate:** two test images (`nozzle.png`, `spool.svg`) were uploaded to E3
+  `config/prompt-assets/` and **removed afterward** (cleanup done).
+
+---
+
+## Prereqs
 
 - [x] AppShell wiring + carve-out docs committed (`6a6a072`); full `:app:testDebugUnitTest` GREEN.
-- [x] Debug APK built and installed on flox.
-- [ ] **Printer side (Matthew or orchestrator):** copy
-      `klipper-macro-prompt-protocol/fixtures/macro-examples.cfg` into the printer's config (e.g.
-      `[include macro-examples.cfg]` in `printer.cfg`) on **E5+ (192.168.1.120:7125)** or
-      **E3 (192.168.1.121:7125)**, then `FIRMWARE_RESTART` so the `MPP_*` / `_MOVE_*` / `_SELECT_SPOOL`
-      macros register. (Optional, for the image gate: drop `spool.svg`/`nozzle.png` under
-      `config/prompt-assets/` — SVG falls to alt-text by design; a PNG renders.)
-- [ ] Launch Dinghy on flox, connect to that printer.
-
-> The macros are triggered from a second client's console (Mainsail/Fluidd/KlipperScreen) OR from
-> Dinghy's own **Macros** drawer tile (the `MPP_*` macros appear there once registered). The prompt
-> overlay then floats over whatever Dinghy screen is showing.
+- [x] Debug APK built and installed on flox (`61ed7eb` scaffolded this script).
+- [x] Protocol command sequences streamed to E3 via `/printer/gcode/script` (method above);
+      `notify_gcode_response` broadcast drove Dinghy's overlay.
+- [x] Dinghy launched on flox, connected to the E3.
 
 ---
 
@@ -47,7 +61,20 @@ Drive the **button/group/live-append/row** path that proves end-to-end button-gc
    **Done** footer button render; a **footer** Done tap and a **content** button tap fire INDEPENDENTLY
    (no same-index collision — content `buttonKey` vs footer `footerKey`).
 
-**Record:** ☐ PASS / ☐ FAIL — _detail:_
+**Record:** ☑ **PASS** — _detail:_
+- `MPP_BUTTON_GROUP` "Jog Distance" rendered as an equal-width row of `+10 / +1 / -1 / -10`. Tapping
+  all four dispatched their `M118` echoes in **EXACT order** (server `gcode_store` confirmed) — the
+  flatten-index contract holds: right button → its OWN gcode, no neighbor misfire, no collision for a
+  button nested in a `button_group`.
+- **Content-vs-footer independence:** content[0] "Content Hello" → `M118 DINGHY_CONTENT hello`,
+  content[1] "Unknown Style" (`neon` → fallback) → `M118 DINGHY_CONTENT unknown`, footer[0] "Done" →
+  `M118 DINGHY_FOOTER done`. Distinct dispatches from the **same index 0** prove separate
+  `buttonKey`/`footerKey` namespaces (the same-index-collision guard). The unknown style rendered with a
+  sane default + still fired.
+- **Live-append:** "Live Status" showed "Heating nozzle…", then `prompt_text`/`footer_button` after
+  `prompt_show` updated the SAME overlay in place (added "Nozzle ready." + Continue) — no reopen/flicker.
+- **Row layout:** "Spool Row" rendered image(alt) + markup (**Blue PLA** bold / 215 C smaller) + Select
+  on ONE row as equal cells.
 
 ---
 
@@ -60,7 +87,10 @@ Drive the **button/group/live-append/row** path that proves end-to-end button-gc
      the overlay closes when it arrives. A perceptible (network-latency) close, not a zero-latency one,
      is the tell. System **Back** does the same (it dispatches the same `prompt_end`).
 
-**Record:** ☐ PASS / ☐ FAIL — _detail:_
+**Record:** ☑ **PASS** — _detail:_ Close control dispatched
+`RESPOND TYPE=command MSG="action:prompt_end"`; the `// action:prompt_end` echoed back through the
+stream and the reducer closed the overlay **on the echo** (server-confirmed dispatch+echo pair) — NOT
+an instant local teardown.
 
 ---
 
@@ -75,7 +105,10 @@ Drive the **button/group/live-append/row** path that proves end-to-end button-gc
    - If no second client is available: confirm via the printer **Console** that **no** `action:prompt_end`
      line was emitted by Dinghy on the disconnect.
 
-**Record:** ☐ PASS / ☐ FAIL — _detail:_
+**Record:** ☑ **PASS** — _detail:_ Prompt opened on **BOTH** flox and Mainsail
+(`http://192.168.1.121/`). Dropped flox Wi-Fi → Dinghy closed the overlay **locally** and dropped to
+the standby/Syncing splash, while **Mainsail kept the prompt open**. Server `gcode_store` confirmed
+`prompt_end emitted after disconnect: False` — Dinghy broadcast **nothing** on the local-disconnect edge.
 
 ---
 
@@ -88,7 +121,16 @@ Drive the **button/group/live-append/row** path that proves end-to-end button-gc
    - An SVG (`spool.svg`) or a bad/rejected path shows **alt text**, never a crash (SVG → alt-text is
      by design — coil-svg isn't bundled). A PNG (`nozzle.png`) decodes if present.
 
-**Record:** ☐ PASS / ☐ FAIL — _detail:_
+**Record:** ☑ **PASS** — _detail:_
+- `nozzle.png` decoded and rendered as a **bounded ~half-cell square** (scale 0.5), **no jank/OOM** on
+  the real Adreno-320 flox.
+- SVGs (`spool.svg` / `valid.svg`) → **alt text** by design (coil-svg not bundled).
+- `MPP_INVALID_IMAGE_PATHS`: absolute `/tmp/…`, home `~/…`, and `config/../secret.svg` parent-traversal
+  **all rejected** → alt text (the V5 path allow-list, T-12-02). "Still renders." confirmed the prompt
+  survived the bad images.
+- **Caveat:** `nozzle.png` is only ~2KB, so the hard OOM guards (request-size-tied-to-cell, inSampleSize
+  downscale) were exercised for correctness/bounding but **NOT brute-forced with a large image**. The
+  guards remain code-reasoned for the large-image case.
 
 ---
 
@@ -96,16 +138,19 @@ Drive the **button/group/live-append/row** path that proves end-to-end button-gc
 
 | Gate | Behavior | Requirement | Result |
 |------|----------|-------------|--------|
-| 1 | Prompt driven start-to-finish from the tablet (buttons fire gcode) | SC-4 / PROMPT-04 | ☐ |
-| 2 | Close → `prompt_end` echo round-trip closes overlay | SC-3 / PROMPT-03 | ☐ |
-| 3 | Disconnect closes locally, NO `prompt_end` (cross-client) | SC-3 / D-10 | ☐ |
-| 4 | `prompt_image` bounded, no jank/OOM | SC-2 | ☐ |
+| 1 | Prompt driven start-to-finish from the tablet (buttons fire gcode) | SC-4 / PROMPT-04 | ☑ **PASS** |
+| 2 | Close → `prompt_end` echo round-trip closes overlay | SC-3 / PROMPT-03 | ☑ **PASS** |
+| 3 | Disconnect closes locally, NO `prompt_end` (cross-client) | SC-3 / D-10 | ☑ **PASS** |
+| 4 | `prompt_image` bounded, no jank/OOM | SC-2 | ☑ **PASS** |
 
-**A FAIL on any gate** captures the runtime evidence (logcat / the actual stream behavior) and spawns a
-gap-closure plan — do **not** mark the phase complete on a fail. The 12-05-SUMMARY records these results
-once reported.
+**All four gates PASS** on flox + the live E3 (2026-06-04). The mock-vs-reality behaviors (the
+`prompt_end` echo round-trip and disconnect-closes-locally-with-NO-`prompt_end`) are **proven on real
+hardware with objective server-side `gcode_store` evidence**, not merely host-side unit assertions.
+
+**Caveat carried forward (image gate):** the large-image OOM brute-force was not exercised (the test PNG
+was ~2KB); the bounding/downscale guards are code-reasoned for the large-image case and stand for a later
+opportunistic re-check if a heavy `prompt_image` shows up in the wild.
 
 ---
 
-_Awaiting Matthew's hands-on results. Resume signal: type "approved" with the 4 results, or describe the
-failing gate(s) for gap-closure._
+_Approved by Matthew (hands-on flox + live E3, 2026-06-04). 12-05-SUMMARY records these results._

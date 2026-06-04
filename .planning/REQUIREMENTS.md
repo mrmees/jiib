@@ -114,7 +114,7 @@ Deferred to future release. Tracked but not in the current roadmap.
 - ~~**BEDM-01**: Bed mesh view/calibrate/profiles~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance)**
 - ~~**BEDL-01**: Bed level / screws tilt adjust~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance; `SCREWS_TILT_CALCULATE`/`Z_TILT_ADJUST`)**
 - ~~**ZCAL-01**: Z calibrate workflow~~ — **promoted (2026-06-01) → Phase 9 (Calibration & Maintenance)**
-- **PROMPT-01** *(new, active)*: Render interactive macro dialogs from `// action:prompt_*` lines (klipper-macro-prompt-protocol) → **Phase 12 (Macro Prompt Protocol)**
+- ~~**PROMPT-01**: Render interactive macro dialogs from `// action:prompt_*` lines (klipper-macro-prompt-protocol)~~ — **COMPLETE → Phase 12 (Macro Prompt Protocol); on-device UAT PASSED 2026-06-04 (flox + live E3, all 4 gates)**
 - **SHAPER-01**: Input shaper auto/manual calibration
 - **FAN-01**: Fan control panel
 - **LED-01**: LED control panel
@@ -229,10 +229,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SPOOL-07 (print-start warn-only gate in Files; D-01) | Phase 11 | Complete |
 | SPOOL-08 (external-change reconciliation + notify routing + pending-report staleness; D-10/D-11) | Phase 11 | Complete |
 | SPOOL-09 (measured-weight correction + nice-to-haves: gcode prefilter, location shortcuts, archived warning; D-04) | Phase 11 | Complete |
-| PROMPT-01 | Phase 12 | Pending (umbrella; stays Pending until the Phase-12 on-device UAT closes) |
-| PROMPT-02 (render dialog + buttons fire gcode; ⊂ PROMPT-01/SC-2) | Phase 12 | Planned |
-| PROMPT-03 (prompt_end/footer/re-entrancy + never-wedge Console; ⊂ PROMPT-01/SC-3) | Phase 12 | Planned |
-| PROMPT-04 (provable with a real macro-examples.cfg run; ⊂ PROMPT-01/SC-4) | Phase 12 | Planned |
+| PROMPT-01 | Phase 12 | Complete (umbrella; closed by the Phase-12 on-device UAT PASS — flox + live E3, 2026-06-04, all 4 gates) |
+| PROMPT-02 (render dialog + buttons fire gcode; ⊂ PROMPT-01/SC-2) | Phase 12 | Complete |
+| PROMPT-03 (prompt_end/footer/re-entrancy + never-wedge Console; ⊂ PROMPT-01/SC-3) | Phase 12 | Complete |
+| PROMPT-04 (provable with a real macro-examples.cfg run; ⊂ PROMPT-01/SC-4) | Phase 12 | Complete |
 | PKG-01 | Phase 22 | Pending |
 | PKG-03 | Phase 22 | Pending |
 
