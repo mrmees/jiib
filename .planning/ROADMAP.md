@@ -515,7 +515,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2; parallel — disjoint files)*
 
 - [x] 12-03-PLAN.md — PromptEngine spine holder: gcode-stream subscribe→reduce, disconnect-local-close-no-prompt_end (D-10), stable dispatch keys + Failure fold (PROMPT-01/03)
-- [ ] 12-04-PLAN.md — PromptDialog full-screen overlay + markup→AnnotatedString (D-03 author-hex carve-out) + 6-style→token resolver + Coil-bounded image + equal-width rows + degenerate states (PROMPT-02)
+- [x] 12-04-PLAN.md — PromptDialog full-screen overlay + markup→AnnotatedString (D-03 author-hex carve-out) + 6-style→token resolver + Coil-bounded image + equal-width rows + degenerate states (PROMPT-02)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
@@ -728,7 +728,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 8/8 | Complete    | 2026-06-04 |
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
-| 12. Macro Prompt Protocol | 3/5 | In Progress|  |
+| 12. Macro Prompt Protocol | 4/5 | In Progress|  |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 0/TBD | Not started | - |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |

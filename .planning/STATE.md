@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-04T22:45:50.073Z"
+last_updated: "2026-06-04T22:54:46.496Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 23
   completed_phases: 12
   total_plans: 87
-  completed_plans: 85
+  completed_plans: 86
   percent: 52
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 12 (macro-prompt-protocol) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -148,6 +148,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 12 P01 | 18 | 2 tasks | 9 files |
 | Phase 12 P02 | 5min | 2 tasks | 4 files |
 | Phase 12 P03 | 12min | 1 tasks | 2 files |
+| Phase 12 P04 | ~12min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -260,6 +261,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 11-08: gcode prefilter color is a HINT not a hard filter (nearest-palette swatch pre-selected, colorFilamentIds null, D-04/D-06); change-during-print via SpoolHolder.setActiveSpool with no print-state gating (D-10)
 - [Phase ?]: [Phase 12/12-01]: Macro Prompt Protocol pure spine ported verbatim from upstream TS — parseAction + sub-parsers + parseMarkup AST + PromptEvent model; 26-fixture corpus committed + corpusGuard GREEN; conformance gate RED-pending-reducer (12-02). PREFIX matched verbatim, NO // stripping (Pitfall 2); Markup.kt Compose-free for host-testability.
 - [Phase 12]: [12-02]: Native full-v1 prompt reducer landed (reduce/promptView/initialPromptState verbatim port of reducer.ts/view.ts); PromptItem is ONE immutable data class (not sealed) so items mirrors the JS array 1:1; immutability by construction replaces the deep-clone; 26-fixture conformance gate GREEN under Dinghy dinghy+[touch] identity. PROMPT-01/PROMPT-03 satisfied host-side.
+- [Phase ?]: 12-04: SVG prompt_image falls through to alt-text (coil-svg not in catalog); PNG/JPEG via Coil; flattenContentButtons() is the shared depth-first button-index contract for 12-05 dispatch
 
 ### Pending Todos
 
@@ -292,6 +294,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-04T22:45:37.093Z
-Stopped at: Completed 12-02-PLAN.md
-Resume file: None
+Last session: 2026-06-04T22:54:46.426Z
+Stopped at: Completed 12-04-PLAN.md
+Resume file: 
