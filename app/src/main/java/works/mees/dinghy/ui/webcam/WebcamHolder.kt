@@ -331,7 +331,9 @@ fun bitmapFeed(
         }
         WebcamProbe.ProbeResult.Snapshot -> {
             val url = resolvedSnapshot ?: return@WebcamFeed FeedOutcome.Terminal
-            val poller = snapshotBitmaps(snapshotClient, inSampleSize = 1)
+            // 10-08 pin: downsample the snapshot decode to the view px (two-pass) — NOT full-res. The
+            // old hardcoded inSampleSize=1 OOM'd the 2GB floor → null decodes → backoff → ~0.2fps.
+            val poller = snapshotBitmaps(snapshotClient, viewWidthPx = viewWidthPx, viewHeightPx = viewHeightPx)
             val outcome = kotlinx.coroutines.coroutineScope {
                 val collector = launch { poller.frames.collect { onFrame(it) } }
                 val r = poller.poll(url)

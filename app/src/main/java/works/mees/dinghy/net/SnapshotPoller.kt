@@ -132,19 +132,55 @@ class SnapshotPoller<T>(
  * Build a production [SnapshotPoller] that decodes each snapshot JPEG into a downsampled [Bitmap] (D-06).
  * Uses a fresh [BitmapFactory.Options] per snapshot (the snapshot path is ~2fps and request-per-image —
  * far below the MJPEG hot loop — so the one-reused-bitmap discipline isn't load-bearing here; correctness
- * over micro-optimisation). [inSampleSize] downsamples hard to the view px (no native-res OOM, T-10-02).
+ * over micro-optimisation).
+ *
+ * 10-08 PIN (on-device): the snapshot path holds the WHOLE JPEG in hand per fetch, so it does a proper
+ * TWO-PASS decode — a cheap `inJustDecodeBounds` pass to read the real frame size, then [MjpegDecodePolicy.
+ * computeInSampleSize] (the SAME policy + [MjpegDecodePolicy.MAX_SAMPLE_SIZE] cap as the MJPEG path — ONE
+ * source of truth) to downsample HARD to the view px before the real decode. This is the fix for the
+ * full-res `inSampleSize=1` OOM that intermittently nulled the decode → spurious [Fetch.Transient] →
+ * backoff, throttling the feed to ~0.2fps on the 2GB Adreno-320 floor (T-10-02). If the view isn't
+ * measured yet ([viewWidthPx]/[viewHeightPx] <= 0) we fall back to a conservative non-1 sample so a
+ * pre-measure frame still can't decode at full native res.
  */
 fun snapshotBitmaps(
     callFactory: Call.Factory,
-    inSampleSize: Int,
+    viewWidthPx: Int,
+    viewHeightPx: Int,
 ): SnapshotPoller<Bitmap> = SnapshotPoller(
     callFactory = callFactory,
     decode = { jpeg ->
+        // Pass 1: bounds only — read the real frame size WITHOUT allocating the pixel buffer.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
+
+        // Compute the downsample step from the real frame size vs the view px (reuses the MJPEG policy +
+        // its MAX_SAMPLE_SIZE cap — one source of truth). If the view isn't measured yet, fall back to a
+        // conservative non-1 sample (sized against a sane default) so we never decode at full native res.
+        val sample = if (viewWidthPx > 0 && viewHeightPx > 0) {
+            MjpegDecodePolicy.computeInSampleSize(
+                srcWidth = bounds.outWidth, srcHeight = bounds.outHeight,
+                reqWidth = viewWidthPx, reqHeight = viewHeightPx,
+            )
+        } else {
+            MjpegDecodePolicy.computeInSampleSize(
+                srcWidth = bounds.outWidth, srcHeight = bounds.outHeight,
+                reqWidth = PREMEASURE_FALLBACK_PX, reqHeight = PREMEASURE_FALLBACK_PX,
+            ).coerceAtLeast(2)
+        }
+
+        // Pass 2: real decode, downsampled to the view px.
         val options = BitmapFactory.Options().apply {
-            this.inSampleSize = inSampleSize.coerceAtLeast(1)
+            this.inSampleSize = sample.coerceAtLeast(1)
             inPreferredConfig =
                 if (MjpegDecodePolicy.PREFER_RGB_565) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
         }
         runCatching { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, options) }.getOrNull()
     },
 )
+
+/**
+ * Conservative target px used to size the snapshot downsample when the view hasn't been measured yet
+ * (a pre-measure frame). Keeps a pre-measure decode well clear of full native res on the 2GB floor.
+ */
+private const val PREMEASURE_FALLBACK_PX: Int = 640
