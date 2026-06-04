@@ -142,6 +142,27 @@ reporting (Moonraker already reports usage), drying/calibration `extra` badges
   offer a location-update tap (move old spool back to a shelf) — **optional,
   never automatic**. Location is inventory context, not active-printer truth.
 
+### Typography / Font Sizing (USER EMPHASIS — recurring issue)
+- **D-16:** **Do NOT pick small font sizes.** Matthew's standing feedback: Claude
+  consistently sizes Dinghy text too small everywhere. Every text size routes
+  through `fsSp(baseSp, t.fs)` (`theme/ThemeTokens.kt`, the SOLE text-size
+  authority — `--fs` S≈1.0/M≈1.15/L≈1.32, M is the larger default; NEVER hardcode
+  `.sp`). **Reuse the canonical base-sp scale already used by
+  `ui/printstatus/PrintStatusScreen.kt` + `ui/files/FilesScreen.kt` — do not invent
+  smaller values:**
+  - **Smallest allowed (de-emphasized metadata / captions / chips): 15sp** — the
+    floor is 15, NOT 12–13.
+  - Body / list-row label+value: **17–18sp**.
+  - Card titles / primary labels: **20–22sp**.
+  - Tabular stat numbers (Geist Mono live data — remaining g, weights): **26sp**.
+  - Focus / headline values: **30sp+**.
+  - Section / empty-state icons (`MaterialSymbol(sizeSp = fsSp(…))`): 32–64sp.
+  For each new surface, size against its closest analog: active-spool card →
+  Status cards / `LastJobCard` (titles 20–22, stat numbers 26, labels 18);
+  picker rows → `FilesScreen` rows (name 17–18, meta 15). Live/numeric data uses
+  **Geist Mono tabular numerals**. Mirror the existing Row/Column + `fsSp`
+  alignment patterns — do not re-derive layout/typography from scratch.
+
 ### Camera / Scanner
 - **D-14:** **ZXing (pure-Java, GMS-free)** decoder — the Nexus 7 floor has no
   Play Services for ML Kit. **CameraX** for the preview/analysis pipeline (verify
