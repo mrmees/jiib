@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-last_updated: 2026-06-04T00:10:55.944Z
+last_updated: 2026-06-04T00:39:01.170Z
 last_activity: 2026-06-03
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 65
-  completed_plans: 64
+  completed_plans: 65
   percent: 53
-stopped_at: Phase 13 complete (5/5) — ready to discuss Phase 14
+stopped_at: Phase 6 complete (5/5) — ready to discuss Phase 07
 ---
 
 # Project State
@@ -21,11 +21,11 @@ stopped_at: Phase 13 complete (5/5) — ready to discuss Phase 14
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 14 — release hardening & ship — always on, lifecycle & signed apk
+**Current focus:** Phase 07 — files print control core print loop gate
 
 ## Current Position
 
-Phase: 14
+Phase: 07
 Plan: Not started
 Status: Ready to plan
   → Plans 13-04 + 13-05 FINALIZED 2026-06-03. The binding D-09 on-device UAT (dual-printer dual-scenario on flox + live E5/E3) is SATISFIED. Sequence: 13-04 Task 1 built/signed/installed the release APK on flox + scaffolded 13-UAT.md (commit b07a511); 13-04 Task 2 (the binding human-verify gate) FAILED on the 1st run (commit 07402c2), catching two on-hardware-only defects the GREEN unit suite missed — G-A1 (recovery bounced the app to Home) + G-B1 (a silent mid-print WiFi half-open drop was never detected, the feed just froze; code-confirmed root cause = no OkHttp pingInterval → onFailure never fires → SocketEvent.Closed never emitted → reconnect supervisor never runs; the 4th mock-vs-reality strike, FakeWebSocket synthesizes Closed while real OkHttp never does without keepalive). Per the plan's rule a FAIL spawned the 13-05 gap-closure, NOT a phase-complete mark (13-04 was held SUMMARY-less until the re-run passed). 13-05 fixed all three: G-B1a OkHttp pingInterval(~10s) keepalive on defaultClient() + MoonrakerSocketClientTest pinning pingIntervalMillis>0 (404e00e); G-A1 hoisted the shell nav state (dest+backStack+calibrationRoutine) into a root-scoped ShellNavState above the RootController Splash/Shell switch — macroPopupFor reset on return, macroShowSystem preserved (5451638); G-B1b derive() now routes the FULL Syncing splash on socket reconnect in the Codex-reviewed arm order (!cfg→Connect ; klippy!=Ready→Splash ; connection!is Connected→Splash ; else→Shell) + a RootController-owned ~600ms min-dwell latch making the recovery splash perceptible on BOTH the klippy-restart and socket-reconnect paths + docs/ui_design synced (777a74d). D-05 DEPARTURE (Matthew 2026-06-03): socket ConnectionState NOW routes the recovery Splash (supersedes the original 'socket state is chrome, never routes') — SAFE only because nav was hoisted (no Home bounce). Codex must-fix applied = the explicit sub-nav enumeration. Full :app:testReleaseUnitTest GREEN + :app:assembleRelease SUCCESSFUL (guarded), signed APK on flox. The RE-RUN binding UAT PASSED (Matthew: "Both pass") — 13-UAT.md = PASSED (Run #2): SAVE_CONFIG→visible Syncing splash→feed resumes→print registers→stays on screen; mid-print WiFi drop→full Syncing splash (keepalive-detected)→resync; D-03 splash perceptible every recovery; Probe z_offset fresh; Temp/Move/Files behavior-preserving. Phase 13's reliability work is complete pending the verifier. Next: phase verification (orchestrator).
@@ -47,7 +47,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 43
+- Total plans completed: 54
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -61,6 +61,8 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 05 | 11 | - | - |
 | 08 | 7 | - | - |
 | 13 | 5 | - | - |
+| 7 | 6 | - | - |
+| 6 | 5 | - | - |
 
 **Recent Trend:**
 

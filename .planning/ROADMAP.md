@@ -55,8 +55,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Design System & Theming Foundation** - The reusable UI substrate per `docs/ui_design/`: semantic-token theming (dark/light/custom) + S/M/L text size, the Focus/Field/Gutter responsive grammar (portrait + landscape), the outline-led control language, and the core components (Confirm guard, single-setting scrubber page, severity toast, progress-ring + line-graph render primitives) every later screen inherits (completed 2026-05-31)
 - [x] **Phase 4: Service, Shell, Settings & Print-Status Home** - Foreground service owning the spine, the Settings screen (connection config + theme + text size + feature toggles), klippy-state-driven splash/home/job routing, swipe-up App Drawer navigation, the Print Status home (render/throttle in anger) with a Stop→Confirm-guard control, and the shared command-dispatch primitive (completed 2026-06-01)
 - [x] **Phase 5: Core Print-Control Panels — Temperature, Move, Extrude** - Manual printer control with capability gating, the confirm policy, the shared command-dispatch primitive, and the full temperature graph (extending the Phase-3 line-graph primitive) — preheat, jog, and extrude on real hardware (completed 2026-06-01)
-- [ ] **Phase 6: Command Reference & Capability Matrix** - Done FIRST of the remaining work (moved to top 2026-06-01) because it gates everything after it. Three layers: a **command/function catalog read from the authoritative Klipper G-Code/config, Moonraker API (JSON-RPC + REST), and Spoolman docs** (the universe + what each does + error/acceptance semantics); a canonical single-source-of-truth **in-code command registry** for the commands the app actually sends; and a committed per-printer (Ender 5 Plus / Ender 3) **availability matrix** cross-referencing the catalog against live introspection — so later pages can capability-gate. Matrix knocked out early
-- [ ] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment)
+- [x] **Phase 6: Command Reference & Capability Matrix** - Done FIRST of the remaining work (moved to top 2026-06-01) because it gates everything after it. Three layers: a **command/function catalog read from the authoritative Klipper G-Code/config, Moonraker API (JSON-RPC + REST), and Spoolman docs** (the universe + what each does + error/acceptance semantics); a canonical single-source-of-truth **in-code command registry** for the commands the app actually sends; and a committed per-printer (Ender 5 Plus / Ender 3) **availability matrix** cross-referencing the catalog against live introspection — so later pages can capability-gate. Matrix knocked out early (completed 2026-06-04)
+- [x] **Phase 7: Files & Print Control — Core Print-Loop Gate** - Browse gcode files/folders with off-thread decoded thumbnails, start a print from a confirm guard, delete files, AND wire the state-adaptive print-control actions (pause/resume/cancel/restart) onto the existing Print Status home — completing the core print loop as a user-drivable capability: drive a real print start-to-finish without the browser (absorbs the print-control half of the old "Job Status" phase, whose live-monitoring half was already delivered by the Phase-4 Status home + Status quick-task enrichment) (completed 2026-06-04)
 - [x] **Phase 8: Macros & Console — Functional-Core Complete** - Run gcode_macros with parameter entry and send/inspect raw G-code with severity-colored history (pragmatic backend — raw response display + basic severity color), closing the functional-core-complete gate (completed 2026-06-02)
 - [x] **Phase 9: Calibration & Maintenance** - Touch pages for the high-use, semi-regular calibration routines (`SCREWS_TILT_CALCULATE`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, `QUAD_GANTRY_LEVEL` where present) — each capability-gated by the Phase-6 matrix, running the gcode and parsing/displaying its result (screw turns, mesh, tilt) without a browser (completed 2026-06-03; on-device UAT passed on flox + live Ender 3. One cross-cutting reliability defect — SAVE_CONFIG re-handshake live-feed freeze — deferred to Phase 13, now promoted to run next)
 - [ ] **Phase 10: Webcam Streaming** - View the printer's webcam(s) on-device — decode the MJPEG stream (Moonraker `/server/webcams/list`), hard-downscaled for the Adreno-320 fill-rate floor; WebRTC deferred
@@ -314,15 +314,15 @@ Plans:
 
 **Wave 3**
 
-- [ ] 07-04-PLAN.md - Live Files route, ConfirmGuard safe-dismiss labels, and hybrid RecyclerView Files screen
+- [x] 07-04-PLAN.md - Live Files route, ConfirmGuard safe-dismiss labels, and hybrid RecyclerView Files screen
 
 **Wave 4**
 
-- [ ] 07-05-PLAN.md - State-adaptive Print Status pause/resume/cancel/restart/Files gutter controls
+- [x] 07-05-PLAN.md - State-adaptive Print Status pause/resume/cancel/restart/Files gutter controls
 
 **Wave 5**
 
-- [ ] 07-06-PLAN.md - Automated release verification and Ender 5 Plus core print-loop UAT
+- [x] 07-06-PLAN.md - Automated release verification and Ender 5 Plus core print-loop UAT
 
 **UI hint**: yes
 **Research note**: STANDARD — Moonraker file API + thumbnail URL resolution (already proven by the Status quick-tasks) and the `print_stats`-driven pause/resume/cancel/restart command set verified against official docs.
@@ -526,8 +526,8 @@ existing "Phase 13" references valid).
 | 3. Design System & Theming Foundation | 8/8 | Complete   | 2026-06-01 |
 | 4. Service, Shell, Settings & Print-Status Home | 8/8 | Complete   | 2026-06-01 |
 | 5. Core Print-Control Panels — Temperature, Move, Extrude | 11/11 | Complete    | 2026-06-01 |
-| 6. Command Reference & Capability Matrix | 4/5 | In Progress|  |
-| 7. Files & Print Control — Core Print-Loop Gate | 3/6 | In Progress|  |
+| 6. Command Reference & Capability Matrix | 5/5 | Complete    | 2026-06-04 |
+| 7. Files & Print Control — Core Print-Loop Gate | 6/6 | Complete    | 2026-06-04 |
 | 8. Macros & Console — Functional-Core Complete | 7/7 | Complete    | 2026-06-02 |
 | 9. Calibration & Maintenance | 7/7 | Complete    | 2026-06-03 |
 | 10. Webcam Streaming | 0/TBD | Deferred (after 13) | - |

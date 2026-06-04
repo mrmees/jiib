@@ -80,8 +80,8 @@ Requirements for the initial release: the functional print-control core, testabl
 
 ### Job Status
 
-- [ ] **JOB-01**: User sees live print progress (filename, percent, thumbnail, elapsed/remaining time)
-- [ ] **JOB-02**: User sees live temperatures, speed/flow, and Z while printing
+- [x] **JOB-01**: User sees live print progress (filename, percent, thumbnail, elapsed/remaining time)
+- [x] **JOB-02**: User sees live temperatures, speed/flow, and Z while printing
 - [x] **JOB-03**: User can pause and resume the active print
 - [x] **JOB-04**: User can cancel the active print (with confirmation)
 - [x] **JOB-05**: Job Status button set adapts to print state (printing / paused / complete / error)
@@ -200,8 +200,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FILE-02 | Phase 7 | Complete |
 | FILE-03 | Phase 7 | Complete |
 | FILE-04 | Phase 7 | Complete |
-| JOB-01 | Phase 7 | Pending |
-| JOB-02 | Phase 7 | Pending |
+| JOB-01 | Phase 7 | Complete |
+| JOB-02 | Phase 7 | Complete |
 | JOB-03 | Phase 7 | Complete |
 | JOB-04 | Phase 7 | Complete |
 | JOB-05 | Phase 7 | Complete |
