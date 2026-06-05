@@ -26,12 +26,17 @@
 - **Structured blocks over loose pills.** Prefer structured, aligned blocks of information to
   scattered chips.
 - **Button intent = color, by SAFETY of the action** (esp. the gutter). Green = safe /
-  non-destructive (accept, done, **Back** — backing out changes nothing) · Blue/accent = ordinary
-  physical command, no special hazard (home, unload, fan) · Amber(yellow) = proceed at peril /
-  caution (toolhead jog motion, load/heat filament, reset, undo, unexpected live change) · Red =
-  destructive or dangerous (stop/e-stop, disable steppers [loses homing], force-move armed, host
-  interruption) · White = basic setting adjustment. Overridable per case. See THEMING.md for the
-  full spectrum + worked examples.
+  non-destructive (accept, done, commit) · Blue/accent = ordinary physical command, no special hazard
+  (home, unload, fan) · Amber(yellow) = proceed at peril / caution (toolhead jog motion, load/heat
+  filament, reset, undo, unexpected live change) · Red = destructive or dangerous (stop/e-stop, disable
+  steppers [loses homing], force-move armed, host interruption) · White/neutral = basic setting
+  adjustment AND plain navigation. Overridable per case. See THEMING.md for the full spectrum + worked
+  examples.
+- **Back = NEUTRAL / outline (D-10), NOT red and NOT green.** Plain navigation changes no printer state,
+  so it spends no safety color — Back is `--text` on `--outline`. Its gutter POSITION must be consistent
+  app-wide (right-aligned/centered, never varying screen to screen). 15.1 applies this on the Move screen
+  only; the **app-wide Back inventory/sweep is DEFERRED to Phase 15.2's conformance audit** — do NOT
+  assume Back is already app-wide neutral. See THEMING.md → "Back = NEUTRAL / outline" for the full rule.
 - **Icons: never the same glyph twice on one screen.** If you'd repeat one, use a 1–3 letter
   text label instead (e.g. "XY"/"Z" homes vs. arrows; chevrons for Z vs. arrows for the XY pad).
 - **Square the smallest buttons.** When a Field stacks multiple button rows, the shortest row's
@@ -103,7 +108,10 @@
 
 ## Hi-fi visual language
 - Type: Geist + Geist Mono (tabular numerals for live data).
-- Accent: cool blue (signature). Heat: amber (nozzle/bed). Go/Stop: green/red.
-- Shape: soft — 22px cards, 16px controls, pill chips.
-- Motion: alive — progress fills + sheen, status dot breathes, ring draws on.
+- Accent: seed-generated signature color (the user's). Heat = the CAUTION color (D-13), no longer a
+  nozzle/bed identity — temperature identity rides `directional.temperature` (= accent) + the data pool.
+  Go/Stop: green/red (user-overridable; shape carries safety). Surfaces are pure-neutral (D-16).
+- Shape: soft — 22px cards, 16px controls, pill chips; status safety carried by SHAPE (octagon=stop,
+  triangle=caution; go is shapeless). See THEMING.md.
+- Motion: alive — progress fills + sheen, ring draws on (static glow; no continuous breathing — Adreno-320 budget).
 - Files: `hifi.css` (tokens + components), `Print Status Hi-Fi.html` (design canvas).
