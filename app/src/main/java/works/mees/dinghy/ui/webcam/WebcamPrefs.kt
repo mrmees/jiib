@@ -23,10 +23,16 @@ import java.io.IOException
  * MacroPrefs it is PROCESS-SCOPED + CONNECTION-INDEPENDENT — the saved preference survives reconnects
  * and printer swaps.
  *
- * PER-PRINTER KEY (D-10 "keyed by printer/connection") — the [works.mees.dinghy.theme.ThemePrefs]
- * dynamic-string-key idiom: the preferred-cam value is stored under `preferred_cam_<host>`, derived from
- * the active [works.mees.dinghy.config.ConnectionConfig.host]. Two printers therefore keep INDEPENDENT
- * preferred cams; switching printers reads that printer's own saved cam (or none → first-in-list).
+ * PER-PRINTER KEY (D-06 "re-key on the profile id, not host") — the [works.mees.dinghy.theme.ThemePrefs]
+ * dynamic-string-key idiom: the preferred-cam value is stored under `preferred_cam_<profileId>`, derived
+ * from the ACTIVE PROFILE'S stable UUID (`Profile.id`), NOT the host. Keying on the profile id (not the
+ * host) means two profiles that share a host (same box, different port/key) keep INDEPENDENT preferred
+ * cams, and the preference survives a host edit on a profile. Switching printers reads that profile's own
+ * saved cam (or none → first-in-list).
+ *
+ * NO MIGRATION (D-07 — fresh start): old host-keyed `preferred_cam_<host>` entries are simply ORPHANED
+ * (never read or copied forward). On the first visit after the re-key a profile has no saved cam → it
+ * falls to first-in-list, exactly as a brand-new profile would.
  *
  * FAIL-SAFE READ CONTRACT (D-10/T-10-13, mirrors MacroPrefs/ConnectionStore): a read [IOException]
  * (corrupt/partial blob) recovers by emitting empty prefs → NO preference (null → the holder falls to
@@ -42,24 +48,24 @@ class WebcamPrefs(
     private val dataStore: DataStore<Preferences>,
 ) {
     /**
-     * The preferred (last-viewed) cam identity for [host], or `null` when none is saved (→ first-in-list).
+     * The preferred (last-viewed) cam identity for [profileId], or `null` when none is saved (→ first-in-list).
      * Fail-safe: a read error yields `null`, never throws.
      */
-    fun preferredCam(host: String): Flow<String?> =
+    fun preferredCam(profileId: String): Flow<String?> =
         dataStore.data
             .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
-            .map { prefs -> prefs[preferredCamKey(host)] }
+            .map { prefs -> prefs[preferredCamKey(profileId)] }
 
     /**
-     * Persist [camId] as the preferred (last-viewed) cam for [host] (D-10). Called by the holder when a
-     * cam is selected/cycled — the only writer (there is no separate "set as default" UI).
+     * Persist [camId] as the preferred (last-viewed) cam for [profileId] (D-06). Called by the holder when
+     * a cam is selected/cycled — the only writer (there is no separate "set as default" UI).
      */
-    suspend fun setPreferredCam(host: String, camId: String) {
-        dataStore.edit { prefs -> prefs[preferredCamKey(host)] = camId }
+    suspend fun setPreferredCam(profileId: String, camId: String) {
+        dataStore.edit { prefs -> prefs[preferredCamKey(profileId)] = camId }
     }
 
     companion object {
-        /** The per-printer dynamic key (D-10) — `preferred_cam_<host>` (the ThemePrefs dynamic-key idiom). */
-        fun preferredCamKey(host: String) = stringPreferencesKey("preferred_cam_$host")
+        /** The per-profile dynamic key (D-06) — `preferred_cam_<profileId>` (the ThemePrefs dynamic-key idiom). */
+        fun preferredCamKey(profileId: String) = stringPreferencesKey("preferred_cam_$profileId")
     }
 }

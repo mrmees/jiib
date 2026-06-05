@@ -76,7 +76,7 @@ class WebcamLifecycleTest {
             scope = testScope,
             webcams = MutableStateFlow(listOf(Webcam(name = "cam1", uid = "cam1"))),
             webcamPrefs = works.mees.dinghy.ui.webcam.WebcamPrefs(FakeDataStore()),
-            host = "10.255.255.1",
+            profileId = "10.255.255.1",
             feed = feed,
         )
 

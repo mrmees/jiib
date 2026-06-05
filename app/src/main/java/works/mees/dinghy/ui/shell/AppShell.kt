@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import works.mees.dinghy.calibration.BedMeshHolder
@@ -185,6 +186,11 @@ fun AppShell(
     val webcams = spine?.webcams ?: remember { MutableStateFlow(emptyList<works.mees.dinghy.state.Webcam>()) }
     val cfg by container.connectionStore.config.collectAsStateWithLifecycle(initialValue = null)
     val activeCfg = cfg ?: ConnectionConfig(host = "")
+    // D-06: the per-printer preferred-cam pref keys on the ACTIVE PROFILE ID (not the host) so two
+    // same-host profiles keep distinct preferred cams. The feed URLs still resolve off `activeCfg`;
+    // only the pref KEY moves to the profile id. Empty string when no active profile (the webcam
+    // surface is only reachable with an active printer, so the empty-suffixed key is rarely hit).
+    val activeProfileId by container.activeProfile.map { it?.id }.collectAsStateWithLifecycle(initialValue = null)
     // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
     // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
     val density = LocalDensity.current
@@ -196,12 +202,13 @@ fun AppShell(
     // holder owns the long-lived decode/poll/retry loops; the shell binds page-visibility (below) and
     // cancels on spine rebuild (the WR-01 leak-cancel — a reconnect MUST tear down the old loops or they
     // leak + keep streaming after the session swapped). Process-scoped client/prefs survive reconnects.
-    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, viewWidthPx, viewHeightPx) {
+    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId, viewWidthPx, viewHeightPx) {
         webcamBitmapHolder(
             scope = scope,
             webcams = webcams,
             webcamPrefs = container.webcamPrefs,
             cfg = activeCfg,
+            profileId = activeProfileId ?: "",
             sharedClient = container.webcamHttpClient,
             viewWidthPx = viewWidthPx,
             viewHeightPx = viewHeightPx,

@@ -66,8 +66,10 @@ import kotlin.time.Duration.Companion.seconds
  *
  * @param scope the lifecycle scope the driver runs on (the shell supplies a session/page scope).
  * @param webcams the live enumeration ([works.mees.dinghy.di.AppContainer.webcams]); selection re-derives on change.
- * @param webcamPrefs the per-printer preferred-cam store (D-10).
- * @param host the active printer host (the per-printer preferred-cam key + the loopback-rewrite host).
+ * @param webcamPrefs the per-printer preferred-cam store (D-06).
+ * @param profileId the ACTIVE PROFILE'S id (D-06) — the per-printer preferred-cam KEY. NOT the host: the
+ *   loopback-rewrite host for the FEED lives on `cfg` inside [bitmapFeed]; only the per-printer pref key
+ *   moves to the stable profile id (so two same-host profiles keep distinct preferred cams).
  * @param feed the rung-select + active-loop driver (injected for host-testability; production = [bitmapFeed]).
  * @param backoffRng deterministic RNG for the retry backoff in tests (default real RNG).
  * @param driverContext the dispatcher the blocking decode/probe/poll driver runs on. PRODUCTION passes
@@ -80,7 +82,7 @@ class WebcamHolder<T>(
     private val scope: CoroutineScope,
     private val webcams: StateFlow<List<Webcam>>,
     private val webcamPrefs: WebcamPrefs,
-    private val host: String,
+    private val profileId: String,
     private val feed: WebcamFeed<T>,
     private val backoffRng: Random = Random.Default,
     private val driverContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
@@ -179,7 +181,7 @@ class WebcamHolder<T>(
     /** Select a specific cam by identity (uid/name) and persist it as the last-viewed (D-10). */
     fun selectCam(camId: String) {
         selectedId.value = camId
-        holderScope.launch { webcamPrefs.setPreferredCam(host, camId) }
+        holderScope.launch { webcamPrefs.setPreferredCam(profileId, camId) }
         start() // re-drive the new selection
     }
 
@@ -245,7 +247,7 @@ class WebcamHolder<T>(
         if (cams.isEmpty()) return null
 
         val explicit = selectedId.value?.let { id -> cams.firstOrNull { camIdOf(it) == id } }
-        val preferredId = webcamPrefs.preferredCam(host).first()
+        val preferredId = webcamPrefs.preferredCam(profileId).first()
         val preferred = preferredId?.let { id -> cams.firstOrNull { camIdOf(it) == id } }
         val cam = explicit ?: preferred ?: cams.first()
 
@@ -391,6 +393,7 @@ fun webcamBitmapHolder(
     webcams: StateFlow<List<Webcam>>,
     webcamPrefs: WebcamPrefs,
     cfg: ConnectionConfig,
+    profileId: String,
     sharedClient: okhttp3.OkHttpClient,
     viewWidthPx: Int,
     viewHeightPx: Int,
@@ -398,7 +401,7 @@ fun webcamBitmapHolder(
     scope = scope,
     webcams = webcams,
     webcamPrefs = webcamPrefs,
-    host = cfg.host,
+    profileId = profileId,
     feed = bitmapFeed(cfg, sharedClient, viewWidthPx, viewHeightPx),
     // The blocking probe/decode/poll MUST run off the main thread (the shell builds the holder on a
     // main-thread Compose scope) — a main-thread HTTP probe throws NetworkOnMainThreadException.

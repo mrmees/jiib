@@ -69,7 +69,7 @@ class WebcamUnsupportedCardTest {
             scope = testScope,
             webcams = MutableStateFlow(listOf(webrtcCam)),
             webcamPrefs = works.mees.dinghy.ui.webcam.WebcamPrefs(FakeDataStore()),
-            host = "10.255.255.1",
+            profileId = "10.255.255.1",
             feed = terminalFeed,
         )
 

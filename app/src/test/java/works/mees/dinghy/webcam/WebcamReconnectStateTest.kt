@@ -79,7 +79,7 @@ class WebcamReconnectStateTest {
             scope = scope,
             webcams = webcams,
             webcamPrefs = prefs(scope),
-            host = "192.168.1.120",
+            profileId = "192.168.1.120",
             feed = feed,
             backoffRng = Random(0),
         )
@@ -121,7 +121,7 @@ class WebcamReconnectStateTest {
 
         val holder = WebcamHolder(
             scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
-            host = "192.168.1.120", feed = feed, backoffRng = Random(0),
+            profileId = "192.168.1.120", feed = feed, backoffRng = Random(0),
         )
         holder.start()
         testScheduler.advanceTimeBy(30_000)
@@ -149,7 +149,7 @@ class WebcamReconnectStateTest {
         }
         val holder = WebcamHolder(
             scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
-            host = "192.168.1.120", feed = feed, backoffRng = Random(0),
+            profileId = "192.168.1.120", feed = feed, backoffRng = Random(0),
         )
         holder.start()
         testScheduler.advanceTimeBy(5_000)
@@ -214,7 +214,7 @@ class WebcamReconnectStateTest {
 
         val holder = WebcamHolder(
             scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
-            host = "h", feed = feed, backoffRng = Random(0),
+            profileId = "h", feed = feed, backoffRng = Random(0),
         )
         holder.start() // drives "alpha" (the default pick)
         testScheduler.advanceTimeBy(100)
@@ -253,7 +253,7 @@ class WebcamReconnectStateTest {
 
         val holder = WebcamHolder(
             scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
-            host = "192.168.1.120", feed = feed, backoffRng = Random(0),
+            profileId = "192.168.1.120", feed = feed, backoffRng = Random(0),
         )
         // Let the init collector wire up + mirror the initial list into the VM.
         testScheduler.advanceTimeBy(10)
@@ -291,7 +291,7 @@ class WebcamReconnectStateTest {
         }
         val holder = WebcamHolder(
             scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
-            host = "h", feed = feed, backoffRng = Random(0),
+            profileId = "h", feed = feed, backoffRng = Random(0),
         )
         holder.start()
         testScheduler.advanceTimeBy(100)
