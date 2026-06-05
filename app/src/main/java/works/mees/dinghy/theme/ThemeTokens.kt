@@ -18,8 +18,12 @@ import androidx.compose.ui.unit.Dp
  * Compose runtime can skip recomposition — it is a stability hint, not toolkit coupling; classic
  * Views read the same fields via `.toArgb()`.
  *
- * Custom-theme scope (D-01): only `accent`/`heat`/`go`/`stop`/`bg` are user-overridable; every other
- * role inherits the chosen base. The full field set is present so a resolved theme is always complete.
+ * Theme model (D-04): the WHOLE chrome — accent / surfaces / text — derives from a single user seed
+ * (the generator's [Palette.generate] output, baked through [TokenBridge]). There is no hand-picked
+ * per-role override of the chrome; the seed drives everything. The independently-editable surface is
+ * the contrast-ranked DATA [pool] (D-09): each pool slot can be overridden at its index via a sparse
+ * `poolOverrides` map applied in the bridge, leaving every other slot seed-derived. The full field
+ * set is present so a resolved theme is always complete.
  */
 @Immutable
 data class ThemeTokens(
@@ -55,18 +59,30 @@ data class ThemeTokens(
     val accentLine: Color,
     /** `--accent-glow` accent glow (alpha-bearing). */
     val accentGlow: Color,
-    /** `--heat` nozzle/bed amber (USER-OVERRIDABLE, D-01). */
+    /**
+     * `--heat` CAUTION color (D-13): proceed-at-peril / caution, NOT a heater-identity color any
+     * more. Maps from the generator's `status.caution` slot. Heater/temperature IDENTITY is now
+     * carried by the data [pool] / [directional] temperature, never this token.
+     */
     val heat: Color,
     /** `--heat-soft` heat tint (alpha-bearing). */
     val heatSoft: Color,
     /** `--heat-glow` heat glow (alpha-bearing). */
     val heatGlow: Color,
     /**
-     * `--violet` third sensor trace (chamber/generic) — RESEARCH Open Q2; nozzle=heat, bed=accent,
-     * chamber=violet per README §9. The multi-trace GraphView (05-04) reads this via the token,
-     * never a raw hex (THEME-01). Not user-overridable (inherits the base, D-01).
+     * Generated contrast-ranked DATA pool (D-13). Consumers wrap `pool[i % pool.size]` (D-14).
+     * Sensor traces, data readouts, and any "Nth distinct data color" need read from this list —
+     * never a raw hex (THEME-01). Carried as a plain `List<Color>`: the enclosing [@Immutable]
+     * annotation covers the field so Compose treats it as stable (RESEARCH A3 — no
+     * `kotlinx-collections-immutable` dependency added).
      */
-    val violet: Color,
+    val pool: List<Color>,
+    /**
+     * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors. Movement
+     * controls wear their plane's color (the jog-pad XY outline, the Z-row outline) instead of the
+     * theme accent; temperature surfaces wear [Directional.temperature].
+     */
+    val directional: Directional,
     /** `--go` success/confirm green (USER-OVERRIDABLE, D-01). */
     val go: Color,
     /** `--go-soft` go tint (alpha-bearing). */
@@ -95,6 +111,39 @@ data class ThemeTokens(
      * `fontScale` is neutralised at the Compose root so this never double-applies.
      */
     val fs: Float,
+) {
+    /**
+     * TRANSITIONAL SHIM — retired token, deleted in plan 15-07.
+     *
+     * Was `--violet` (the third sensor trace / chamber color). The third data trace now reads from
+     * the contrast-ranked [pool] like every other data color (D-13/D-14). This `@Deprecated`
+     * get-only computed property keeps the two remaining callers (`GraphView`,
+     * `TemperatureScreen`) compiling across THIS wave boundary; 15-07 deletes this shim and
+     * migrates those reads to `pool[2 % pool.size]`. It is NOT a constructor parameter — a computed
+     * property — so [BakedTokens] must not pass a `violet = …` named argument.
+     */
+    @Deprecated(
+        "retired — use pool[2 % pool.size]; this shim is deleted in 15-07",
+        ReplaceWith("pool[2 % pool.size]"),
+    )
+    val violet: Color
+        get() = if (pool.isEmpty()) accent else pool[2 % pool.size]
+}
+
+/**
+ * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors derived from
+ * the generator's top-three contrast-ranked hues, re-tagged by warmth. Movement controls wear their
+ * plane's color instead of the theme accent. A small [@Immutable] value type that mirrors the JS
+ * `directional` shape (cleaner than three flat fields).
+ */
+@Immutable
+data class Directional(
+    /** Temperature / heater identity color (warmest of the top-three pool hues). */
+    val temperature: Color,
+    /** XY-plane motion color (the jog-pad outline). */
+    val xy: Color,
+    /** Z-plane motion color (the Z-row outline). */
+    val z: Color,
 )
 
 /** The two built-in theme bases. A user-custom theme is one of these plus a [TokenDelta] (D-02). */

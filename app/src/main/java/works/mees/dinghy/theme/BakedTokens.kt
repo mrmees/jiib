@@ -50,7 +50,20 @@ val TokensDark: ThemeTokens = ThemeTokens(
     heat = Color(0xFFF3A958),  // nozzle/bed (amber)
     heatSoft = Color(0x29F3A958),  // heat tint
     heatGlow = Color(0x61F3A958),  // heat glow
-    violet = Color(0xFFAE84F2),  // third sensor trace (chamber)
+    // Data pool (D-13) — fail-safe default set. The runtime path produces this from the seed via
+    // TokenBridge; this baked snapshot keeps the legacy nozzle/bed/chamber trace identities so the
+    // default theme renders before the generator runs. pool[2] is the old --violet chamber color
+    // (the @Deprecated ThemeTokens.violet shim reads pool[2 % size]).
+    pool = listOf(
+        Color(0xFFF3A958),  // [0] temperature (was --heat amber)
+        Color(0xFF4C94EC),  // [1] xy (was --accent blue)
+        Color(0xFFAE84F2),  // [2] z / chamber trace (was --violet)
+    ),
+    directional = Directional(
+        temperature = Color(0xFFF3A958),
+        xy = Color(0xFF4C94EC),
+        z = Color(0xFFAE84F2),
+    ),
     go = Color(0xFF5AC576),  // success/confirm (green)
     goSoft = Color(0x295AC576),  // go tint
     goGlow = Color(0x665AC576),  // go glow
@@ -83,7 +96,17 @@ val TokensLight: ThemeTokens = ThemeTokens(
     heat = Color(0xFFCE6400),  // nozzle/bed (amber)
     heatSoft = Color(0x24CE6400),  // heat tint
     heatGlow = Color(0x38CE6400),  // heat glow
-    violet = Color(0xFF7B47BF),  // third sensor trace (chamber)
+    // Data pool (D-13) — light fail-safe default set (legacy nozzle/bed/chamber trace identities).
+    pool = listOf(
+        Color(0xFFCE6400),  // [0] temperature (was --heat amber)
+        Color(0xFF106ED7),  // [1] xy (was --accent blue)
+        Color(0xFF7B47BF),  // [2] z / chamber trace (was --violet)
+    ),
+    directional = Directional(
+        temperature = Color(0xFFCE6400),
+        xy = Color(0xFF106ED7),
+        z = Color(0xFF7B47BF),
+    ),
     go = Color(0xFF008C3F),  // success/confirm (green)
     goSoft = Color(0x24008C3F),  // go tint
     goGlow = Color(0x38008C3F),  // go glow
