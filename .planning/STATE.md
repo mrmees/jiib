@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T01:26:40.786Z"
+last_updated: "2026-06-05T01:33:18.391Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 23
   completed_phases: 13
   total_plans: 93
-  completed_plans: 88
+  completed_plans: 89
   percent: 57
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 14 (multi-printer-switching) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
   → **Phase 12 (Macro Prompt Protocol) COMPLETE 2026-06-04** — 5/5 plans. Final plan 12-05 wired PromptEngine + PromptDialog into AppShell (per-session remember(store); overlay hoisted over any screen; content→flattenContentButtons()[i] @ buttonKey, footer→footer_buttons[i] @ the SEPARATE footerKey namespace, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + prompt_end BackHandler suppressed while visible) + documented the D-03 author-hex carve-out in the UI LAW. **On-device UAT 4/4 PASS on flox + live E3** (E5 was MCU-down: `mcu 'EBBCan': Unable to connect`) via a NOVEL method — streamed `RESPOND TYPE=command MSG=action:prompt_*` to `/printer/gcode/script`, Moonraker's `notify_gcode_response` broadcast drove the overlay, and EVERY tap was cross-checked against `/server/gcode_store` for objective server-side evidence (directly answering the recurring mock-vs-reality concern). Gates: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place; SC-3 close prompt_end echo round-trip; D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission); SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. ONE caveat carried: the large-image OOM brute-force was not run (test PNG ~2KB; guards stay code-reasoned). PROMPT-01/02/03/04 closed. Next: phase verification (orchestrator).
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
@@ -152,6 +152,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 12 P04 | ~12min | 2 tasks | 7 files |
 | Phase 12 P12-05 | 25 | 2 tasks | 4 files |
 | Phase 14 P01 | 20 | 2 tasks | 6 files |
+| Phase 14 P02 | ~3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -266,6 +267,8 @@ Recent decisions affecting current work:
 - [Phase 12]: [12-02]: Native full-v1 prompt reducer landed (reduce/promptView/initialPromptState verbatim port of reducer.ts/view.ts); PromptItem is ONE immutable data class (not sealed) so items mirrors the JS array 1:1; immutability by construction replaces the deep-clone; 26-fixture conformance gate GREEN under Dinghy dinghy+[touch] identity. PROMPT-01/PROMPT-03 satisfied host-side.
 - [Phase ?]: 12-04: SVG prompt_image falls through to alt-text (coil-svg not in catalog); PNG/JPEG via Coil; flattenContentButtons() is the shared depth-first button-index contract for 12-05 dispatch
 - [Phase 12]: [12-05]: Macro Prompt Protocol COMPLETE — PromptEngine + PromptDialog wired into AppShell (per-session remember(store); overlay hoisted OUTSIDE when(dest) over any screen; content→flattenContentButtons()[i] @ buttonKey(i), footer→footer_buttons[i] @ the SEPARATE footerKey(i) namespace so same-index content/footer never debounce-collide, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + a prompt_end BackHandler suppressed while visible). D-03 author-hex carve-out documented in docs/ui_design (markup text runs ONLY; chrome stays token-routed) for the Phase-21 auditor. ON-DEVICE UAT 4/4 PASS on flox + live E3 (E5 was MCU-down) via a novel stream-to-/printer/gcode/script method (RESPOND TYPE=command MSG=action:prompt_* → notify_gcode_response broadcast drives the overlay) cross-checked against /server/gcode_store for objective server-side evidence: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place, SC-3 close prompt_end echo round-trip, D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission), SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. Caveat: image OOM brute-force not exercised (test PNG ~2KB). PROMPT-01/02/03/04 closed. The mock-vs-reality echo + disconnect behaviors are real-hardware-proven.
+- [Phase ?]: 14-02: activeConfig (distinctUntilChanged) drives the spine via the unchanged runConfigLoop seam; name/theme-only edits suppressed (T-14-04/T-14-05)
+- [Phase ?]: 14-02: per-profile theme re-seed via flatMapLatest(activeProfile.toThemeResolved()); themePrefs retained as new-profile/idle default (D-08)
 
 ### Pending Todos
 
@@ -298,7 +301,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T01:26:35.521Z
+Last session: 2026-06-05T01:32:56.801Z
 Stopped at: Phase 14 UI-SPEC approved
 Resume file: 
 None

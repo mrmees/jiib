@@ -580,7 +580,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0)*
 
-- [ ] 14-02-PLAN.md — AppContainer active-config derivation (combine→pick→map→distinctUntilChanged, the load-bearing no-churn guard) + per-printer theme re-seed (D-08) + hasConfig→"has active profile" + DinghyApp profiles.preferences_pb DataStore + the ONE-line MoonrakerService config-source swap
+- [x] 14-02-PLAN.md — AppContainer active-config derivation (combine→pick→map→distinctUntilChanged, the load-bearing no-churn guard) + per-printer theme re-seed (D-08) + hasConfig→"has active profile" + DinghyApp profiles.preferences_pb DataStore + the ONE-line MoonrakerService config-source swap
 
 **Wave 2** *(blocked on Wave 1; parallel — disjoint files)*
 
@@ -753,7 +753,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
-| 14. Multi-Printer Switching | 1/6 | In Progress|  |
+| 14. Multi-Printer Switching | 2/6 | In Progress|  |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 17. WebRTC Camera Streaming | 0/TBD | Not started | - |
