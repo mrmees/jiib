@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T19:35:31.470Z"
-last_activity: 2026-06-05 -- Phase 15.1 planning complete
+last_updated: "2026-06-05T19:43:12.409Z"
+last_activity: 2026-06-05
 progress:
   total_phases: 24
   completed_phases: 15
   total_plans: 108
-  completed_plans: 100
+  completed_plans: 101
   percent: 63
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 15.1 — Shape-Coded Status & Semantic Color (semantic + safety layer, split from Phase 15)
+**Current focus:** Phase 15.1 — shape-coded-status-semantic-color
 
 ## Current Position
 
-Phase: 15.1
-Plan: Not started
+Phase: 15.1 (shape-coded-status-semantic-color) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
   → **Plan 15-07 (Wave 6: pool-wired data surfaces — the payoff) EXECUTED + COMPLETE & flox-UAT APPROVED 6/6 2026-06-05** (commits `9e0499a` refactor + `bcc7102` refactor + `9ec26b9` SUMMARY). The three real pool consumers are wired: **GraphView** traces → `pool[i % size]`, under-fill → `pool[0]` (the violet/heat/accent per-trace identities retired); **heater READOUTS by canonical sensor index** — `TemperatureScreen.traceColor` → `pool[index % size]`, `PrintStatusScreen` nozzle/bed/chamber cells → matching pool index (nozzle=`pool[0]`=`directional.temperature`, bed=`pool[1]`, chamber=`pool[2]`), so a sensor is the SAME color across graph/Print-Status/Temperature (same-sensor-same-color identity — heaters now read as heaters by color+label, NOT by amber); **Move** XY jog-pad (`JogCell`) outline → `directional.xy`, Z-row (`JogTall`) → `directional.z` (Home + active distance-step stay `accentLine`; homed/unhomed status color + force-move lock-shape DEFERRED to the shape-status follow-on). The **`@Deprecated violet` shim DELETED grep-clean** (`grep -rn "\.violet\|val violet"` returns nothing; stale KDoc dropped from BakedTokens too). **Heat-semantic split honored EXACTLY: raw `.heat` 66 → 61** — only the named heater-readout sites migrated; the ~26-file caution/Warn-intent `.heat` set (Console WARNING, ConfirmGuard, OutlinedControl, AppDrawer, Files, Spool, Prompt, Move's own 5 control uses, etc.) is UNTOUCHED (heat = caution). `MAX_TRACES=3` unchanged; consumers wrap `pool[i % size]` so the cap can't crash a draw (T-15-07-01). **On-device flox UAT APPROVED 6/6** (live printer): (1) traces visually distinct; (2) same-sensor-same-color across graph/Print-Status/Temperature; (3) reseed stability; (4) palette modes Simple-mono / High-Contrast-stoplight / Colorful-full-pool; (5) Move directional outlines "looks good for now"; (6) pure-neutral + caution intact "looks decent". 0 deviations. **OPEN/DEFERRED (noted, NOT implemented):** owner flagged a future user-guided whole-app conformance pass once the theme framework is fully done — that is the already-planned conformance sweep in the **theming follow-on phase + Ship**, not new scope. Phase-15 execution COMPLETE (7/7); orchestrator runs phase verification next (do NOT mark the phase complete here).
   → **Plan 15-06 (Wave 5: Settings hybrid hub + theme-editor sub-page) EXECUTED + COMPLETE & flox-UAT APPROVED 2026-06-05** (commits `2c410b9` feat + `3e86a88` refactor + `e490103` UAT-fix + `58abf8b` SUMMARY). Built the hybrid Settings hub (Printers · Connection · Appearance · Feature toggles · System — accent picker REMOVED; palette-mode chip row Colorful/Simple/High-contrast + an "Edit theme…" forward-entry; greyed Coming-soon for Output/WebRTC/Fine-tune; System=version+build only, D-10/11/12/15) + a pushed `ThemeEditorScreen` (color wheel + preset swatches + generated-swatch-strip preview + per-slot pool-override grid + Randomize(Warn)/Reset(Danger,ConfirmGuard)/Done(Go), D-06/08/09) + `ColorWheel.kt` — a Compose Canvas hue-ring with ONE awaitEachGesture, cached `sweepGradient`, `onHandleMove` repaint-only + `onSettle` single regen-on-pointer-up (D-07, Adreno-320 budget). **Editor open-state OWNED inside SettingsScreen** (rememberSaveable+BackHandler) so BOTH the AppShell Dest.Settings route AND the RootController first-run/escape render reach it (T-15-06-04). **D-04 two-step retirement COMPLETE:** TokenDelta/Role/setBase/setDeltas + the top-level resolve() shim DELETED from ThemeResolver; Profile.themeBase/themeDeltaArgb + toThemeResolved DELETED; ThemePrefs.Resolved/sanitize legacy keys DELETED; GalleryScreen re-pointed to setDark/setSeed; tests reworked; full `:app:testDebugUnitTest` GREEN + `:app:assembleDebug` OK; zero LIVE references to the retired symbols remain (the only residual hits are KDoc + a deliberate JSON-fixture fresh-start decode guard). **On-device flox UAT APPROVED after 4 fixes** (Nth mock-vs-reality strike — green suite passed, real device caught all four): F1 redundant Printers section removed (Devices owns CRUD); F2 wheel hue rotated 90° to match the engine's generated color ("wheel color matches now"); F3 wheel given layout breathing room + scroll buffer ("enough space to scroll around it"); F4 Appearance made palette-mode-reactive (visible retheme per mode). Step-8 first-run/escape path confirmed live ("killed wifi, got to connection settings, edit theme button is available"). **TWO design items DEFERRED by owner to the follow-on theming/conformance phase** (tracked todos at `17d90f1`, NOT implemented in 15-06): (1) Settings-vs-Devices boundary / possible "printer settings page" reframe — `.planning/todos/pending/2026-06-05-settings-vs-devices-boundary.md`; (2) pool-color semantic-role assignment policy — `.planning/todos/pending/2026-06-05-pool-color-semantic-assignment.md`. Next: **15-07** (the final phase-15 plan).
@@ -47,7 +47,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-05 -- Phase 15.1 planning complete
+Last activity: 2026-06-05
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -171,6 +171,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15 P05 | 14 | 2 tasks | 6 files |
 | Phase 15 P06 | live-uat-session | 2 tasks | 15 files |
 | Phase 15 P07 | 40min | 3 tasks | 6 files |
+| Phase 15.1 P01 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,8 @@ Recent decisions affecting current work:
 - [Phase 15]: 15-07: same-sensor-same-color invariant — a sensor's GraphView trace index == its Print-Status/Temperature readout index == its pool color, everywhere (canonical nozzle/bed/chamber)
 - [Phase 15]: 15-07: pool consumers wrap pool[i % size] (D-14, no arbitrary cap); MAX_TRACES=3 stays an internal boundary (no current printer shows >3 graph traces)
 - [Phase 15]: 15-07: Move homed/unhomed status color + force-move lock-shape deferred to the shape-status follow-on; only directional-plane outlines (xy/z) migrate this phase
+- [Phase ?]: ThemeTuple status overrides: separate statusOverrides Map<String,Long> field, one persisted wire map (15.1-01; plans 02/04 depend)
+- [Phase ?]: Bed-mesh OKLCH ramp locked: 32 stops, inclusive endpoints, blue/teal/yellow CPs, piecewise-linear split at stop 15 (15.1-01)
 
 ### Pending Todos
 
@@ -336,7 +339,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T18:25:58.619Z
-Stopped at: Phase 15.1 context gathered
+Last session: 2026-06-05T19:43:12.323Z
+Stopped at: Completed 15.1-01-PLAN.md
 Resume file: 
-.planning/phases/15.1-shape-coded-status-semantic-color/15.1-CONTEXT.md
+None
