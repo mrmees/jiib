@@ -73,6 +73,7 @@ import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.scan.ScanSurface
+import works.mees.dinghy.ui.screen.DevicesScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
@@ -191,6 +192,9 @@ fun AppShell(
     // only the pref KEY moves to the profile id. Empty string when no active profile (the webcam
     // surface is only reachable with an active printer, so the empty-suffixed key is rarely hit).
     val activeProfileId by container.activeProfile.map { it?.id }.collectAsStateWithLifecycle(initialValue = null)
+    // D-03 active-printer indicator: the active profile's display name → the Devices drawer-tile subtitle.
+    // The SAME collect-and-thread shape webcamEnabled/spoolEnabled use; null when no active profile.
+    val activeName by container.activeProfile.map { it?.displayName() }.collectAsStateWithLifecycle(initialValue = null)
     // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
     // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
     val density = LocalDensity.current
@@ -424,7 +428,7 @@ fun AppShell(
                 // so a content scroll must never trigger nav while the prompt is up. The prompt's
                 // always-present close control is the exit (D-05 exit-in-overlay).
                 if (!promptView.visible &&
-                    dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool)
+                    dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool, Dest.Devices)
                 ) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
@@ -584,11 +588,17 @@ fun AppShell(
                 prefilter = nav.spoolPrefilter,
                 onPrefilterConsumed = { nav.spoolPrefilter = null },
             )
-            // Dest.Devices (D-01): the printer switcher. Wave 2 only REGISTERS the route (14-03) so the
-            // `when (dest)` stays exhaustive + compile-clean; plan 05 (wave 3) replaces this placeholder
-            // with the real Field-of-printers DevicesScreen. Rendering nothing here is harmless — the
-            // drawer Devices tile is not wired live until plan 05, so this arm is unreachable in wave 2.
-            Dest.Devices -> Box(Modifier.fillMaxSize())
+            // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
+            // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
+            // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
+            // dest to PrintStatus on the tap makes the shell re-compose on the NEW printer's Status. NO rebind/
+            // disconnect logic here — only the nav; the runConfigLoop seam does the teardown+rebind (T-14-11).
+            Dest.Devices -> DevicesScreen(
+                container = container,
+                onAddPrinter = { navigateTo(Dest.Settings) },
+                onSwitched = { navigateTo(Dest.PrintStatus) },
+                onBack = { goBack() },
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },
@@ -698,6 +708,7 @@ fun AppShell(
                 onDismiss = { drawerOpen = false },
                 webcamEnabled = webcamEnabled,
                 spoolEnabled = spoolEnabled,
+                activeName = activeName,
             )
         }
     }

@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -70,6 +71,9 @@ import works.mees.dinghy.ui.route.Dest
  * @param spoolEnabled  D-02 capability gate: the Spool tile is LIVE only when the connected printer has
  *   the Moonraker `spoolman` component (`AppContainer.spoolmanPresent`). The SAME runtime-greying shape as
  *   [webcamEnabled] — greyed (hairline) when the component is absent, accent-outline live when present.
+ * @param activeName D-03 active-printer indicator: the active profile's display name, rendered as a 15sp
+ *   `t.text2` ellipsized subtitle under the **Devices** tile label (the ONLY tile that gains a subtitle).
+ *   Null when no active profile (0 profiles → no subtitle; the tile routes through the same Connect flow).
  */
 @Composable
 fun AppDrawer(
@@ -78,6 +82,7 @@ fun AppDrawer(
     modifier: Modifier = Modifier,
     webcamEnabled: Boolean = false,
     spoolEnabled: Boolean = false,
+    activeName: String? = null,
 ) {
     val t = LocalTokens.current
     Dialog(
@@ -98,6 +103,8 @@ fun AppDrawer(
                     tile = tile,
                     webcamEnabled = webcamEnabled,
                     spoolEnabled = spoolEnabled,
+                    // D-03: only the Devices tile carries a subtitle (the active printer's name).
+                    subtitle = if (tile.dest == Dest.Devices) activeName else null,
                     onClick = {
                         // Only LIVE tiles navigate; greyed tiles are no-op (their dest is null).
                         tile.dest?.let {
@@ -164,7 +171,10 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // `inventory_2` is unique among DRAWER_TILES glyphs (icon-no-repeat law). No `beta = true` — Spool is
     // not a development flag (the camera feed is).
     DrawerTileSpec(label = "Spool", symbol = "inventory_2", dest = Dest.Spool),
-    DrawerTileSpec(label = "Devices", symbol = "cable", dest = null),
+    // Devices (D-01) is LIVE — the printer switcher (Dest.Devices, plan 05). `cable` is unique among
+    // DRAWER_TILES glyphs (icon-no-repeat law). It is the ONLY tile that gains a subtitle: the active
+    // printer's name (D-03), threaded in as `activeName` and rendered under the 16sp label.
+    DrawerTileSpec(label = "Devices", symbol = "cable", dest = Dest.Devices),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
@@ -180,6 +190,7 @@ private fun DrawerTile(
     tile: DrawerTileSpec,
     webcamEnabled: Boolean,
     spoolEnabled: Boolean,
+    subtitle: String?,
     onClick: () -> Unit,
 ) {
     val t = LocalTokens.current
@@ -238,6 +249,20 @@ private fun DrawerTile(
                 fontSize = fsSp(16f, t.fs).sp,
                 textAlign = TextAlign.Center,
             )
+            // D-03 active-printer indicator: the ONLY tile with a subtitle (the Devices tile, when an
+            // active printer exists). 15sp metadata floor, Regular `t.text2`, single-line ellipsized.
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = t.text2,
+                    fontFamily = Geist,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = fsSp(15f, t.fs).sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
