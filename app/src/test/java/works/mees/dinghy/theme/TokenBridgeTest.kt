@@ -74,7 +74,49 @@ class TokenBridgeTest {
         assertEquals("heat = caution", bake(g.status.caution), tok.heat)
         assertEquals("go", bake(g.status.go), tok.go)
         assertEquals("stop", bake(g.status.stop), tok.stop)
-        assertEquals("directional.xy", bake(g.directional.xy), tok.directional.xy)
+        // D-07: directional is RE-DERIVED accent-led — NOT bake(gen.directional.*) anymore.
+        assertEquals("directional.temperature == accent", tok.accent, tok.directional.temperature)
+        assertEquals("directional.xy == pool[0]", tok.pool[0], tok.directional.xy)
+        assertEquals("directional.z == pool[1]", tok.pool[1], tok.directional.z)
+    }
+
+    @Test
+    fun directional_isAccentLed_perD07() {
+        val tok = TokenBridge.build(gen(), emptyMap(), fs = 1.0f)
+        assertEquals("temperature = accent", tok.accent, tok.directional.temperature)
+        assertEquals("xy = pool[0]", tok.pool[0], tok.directional.xy)
+        assertEquals("z = pool[1]", tok.pool[1], tok.directional.z)
+    }
+
+    @Test
+    fun directionalTemperature_staysAccent_inSimpleAndHighContrast() {
+        val simple = Palette.generate(
+            seedHex = "#3f78ff", dark = true, maxItems = 3, poolShift = 0,
+            statusFromPool = true, simple = true,
+        )
+        val hc = Palette.generate(
+            seedHex = "#3f78ff", dark = true, maxItems = 3, poolShift = 0,
+            statusFromPool = true, highContrast = true,
+        )
+        val simpleTok = TokenBridge.build(simple, emptyMap(), fs = 1.0f)
+        val hcTok = TokenBridge.build(hc, emptyMap(), fs = 1.0f)
+        // accent survives all modes — temperature must NOT collapse to text.
+        assertEquals("Simple temperature = accent", simpleTok.accent, simpleTok.directional.temperature)
+        assertNotEquals("Simple temperature != text", simpleTok.text, simpleTok.directional.temperature)
+        assertEquals("HighContrast temperature = accent", hcTok.accent, hcTok.directional.temperature)
+        assertNotEquals("HighContrast temperature != text", hcTok.text, hcTok.directional.temperature)
+    }
+
+    @Test
+    fun directionalOverridesFollowPool() {
+        // A pool override at index 0/1 shifts directional.xy/.z with it (same-identity re-derivation).
+        val xy = Color(0xFF010203)
+        val z = Color(0xFF040506)
+        val tok = TokenBridge.build(gen(), overrides = mapOf(0 to xy, 1 to z), fs = 1.0f)
+        assertEquals("xy follows pool[0] override", xy, tok.directional.xy)
+        assertEquals("z follows pool[1] override", z, tok.directional.z)
+        // temperature is accent, untouched by pool overrides.
+        assertEquals("temperature unaffected", tok.accent, tok.directional.temperature)
     }
 
     @Test

@@ -70,7 +70,6 @@ object TokenBridge {
         val s = gen.surfaces
         val t = gen.theme
         val st = gen.status
-        val dr = gen.directional
 
         // --- pool: bake the generated hexes, then apply sparse overrides at-index (D-09). ---
         val basePool = gen.pool.map { bake(it) }
@@ -80,6 +79,17 @@ object TokenBridge {
             } else {
                 basePool.mapIndexed { i, c -> overrides[i] ?: c }  // out-of-range keys never match
             }
+
+        // --- directional (D-07): accent LEADS — temperature = accent, xy = pool[0], z = pool[1].
+        // This SUPERSEDES Phase-15's gen.directional (nozzle=pool[0] / directional.temperature) — the
+        // ONE re-derivation point so Move (directional.xy/.z, D-08) and PrintStatus (directional.temperature)
+        // consumers shift values WITHOUT shape change. accent survives all palette modes (D-05) so
+        // temperature never collapses to text in Simple/HighContrast. Bed shares xy's pool[0], chamber
+        // shares z's pool[1] (dual-tag preserved, shifted down one — never co-occur on screen).
+        // Empty-pool guard (CR-02): pool[0]/pool[1] fall back to accent rather than index-crash. ---
+        val accent = bake(t.primary)
+        val dirXy = pool.getOrElse(0) { accent }
+        val dirZ = pool.getOrElse(1) { accent }
 
         return ThemeTokens(
             // --- surfaces: neutral, polarity-flipped (D-16). bg verbatim (no tint); the rest derived. ---
@@ -95,7 +105,7 @@ object TokenBridge {
             outline = bake(s.divider),
             outline2 = lShift(s.divider, if (d) 0.11 else -0.12),
             // --- theme accent = the seed primary (one identity hue). ---
-            accent = bake(t.primary),
+            accent = accent,
             accent2 = lShift(t.primary, if (d) 0.08 else -0.05),
             accentSoft = rgbaOf(t.primary, if (d) 0.16 else 0.12),
             accentLine = rgbaOf(t.primary, if (d) 0.55 else 0.50),
@@ -106,9 +116,9 @@ object TokenBridge {
             heatGlow = rgbaOf(st.caution, if (d) 0.38 else 0.22),
             pool = pool,
             directional = Directional(
-                temperature = bake(dr.temperature),
-                xy = bake(dr.xy),
-                z = bake(dr.z),
+                temperature = accent, // D-07: accent leads (supersedes gen.directional.temperature)
+                xy = dirXy,           // D-07: pool[0] (empty-pool → accent)
+                z = dirZ,             // D-07: pool[1] (empty-pool → accent)
             ),
             go = bake(st.go),
             goSoft = rgbaOf(st.go, if (d) 0.16 else 0.14),

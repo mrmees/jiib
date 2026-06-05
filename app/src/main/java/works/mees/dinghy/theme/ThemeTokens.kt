@@ -78,9 +78,12 @@ data class ThemeTokens(
      */
     val pool: List<Color>,
     /**
-     * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors. Movement
-     * controls wear their plane's color (the jog-pad XY outline, the Z-row outline) instead of the
-     * theme accent; temperature surfaces wear [Directional.temperature].
+     * Directional standards (D-07): the temperature / XY-plane / Z-plane identity colors. ACCENT
+     * LEADS — `temperature == accent`, `xy == pool[0]`, `z == pool[1]` (re-derived in [TokenBridge.build];
+     * supersedes the Phase-15 D-2/D-13 warmth-tagged derivation). Movement controls wear their plane's
+     * color (the jog-pad XY outline, the Z-row outline); temperature surfaces wear [Directional.temperature]
+     * (= the theme accent). The values shift but the shape is unchanged, so consumers reading
+     * `directional.*` move with the re-derivation without code change.
      */
     val directional: Directional,
     /** `--go` success/confirm green (USER-OVERRIDABLE, D-01). */
@@ -152,18 +155,22 @@ enum class PaletteMode {
 }
 
 /**
- * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors derived from
- * the generator's top-three contrast-ranked hues, re-tagged by warmth. Movement controls wear their
- * plane's color instead of the theme accent. A small [@Immutable] value type that mirrors the JS
- * `directional` shape (cleaner than three flat fields).
+ * Directional standards (D-07): the temperature / XY-plane / Z-plane identity colors, now ACCENT-LED.
+ * The accent-leads reconception SUPERSEDES Phase-15's D-2/D-13 warmth-tagged derivation from the
+ * generator's top-three hues. Re-derived in ONE place ([TokenBridge.build]): `temperature = accent`,
+ * `xy = pool[0]`, `z = pool[1]` (bed shares xy's pool[0], chamber shares z's pool[1] — they never
+ * co-occur on screen). accent survives ALL palette modes (D-05), so `temperature` never collapses to
+ * text in Simple/HighContrast. Movement controls wear their plane's color instead of a bare accent;
+ * the jog-pad XY outline reads [xy], the Z-row reads [z] (D-08). A small [@Immutable] value type that
+ * mirrors the JS `directional` shape (cleaner than three flat fields).
  */
 @Immutable
 data class Directional(
-    /** Temperature / heater identity color (warmest of the top-three pool hues). */
+    /** Temperature / heater identity color — the theme accent (D-07 accent-leads). */
     val temperature: Color,
-    /** XY-plane motion color (the jog-pad outline). */
+    /** XY-plane motion color (the jog-pad outline) — `pool[0]` (D-07). */
     val xy: Color,
-    /** Z-plane motion color (the Z-row outline). */
+    /** Z-plane motion color (the Z-row outline) — `pool[1]` (D-07). */
     val z: Color,
 )
 
