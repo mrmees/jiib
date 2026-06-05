@@ -677,14 +677,29 @@ Plans:
 **Requirements**: *(refines THEME-* / UI-* / SET-* — conformance audit + Settings IA; finer set at discuss)*
 **Depends on:** Phase 15.1
 **Plans:** 6 plans (waves 1–6, sequential; cyclers-first per D-09)
-
 Plans:
+**Wave 1**
 
 - [ ] 15.2-01-PLAN.md — Wave 1: transient theme-override layer (effectiveTokens, no-persist) + dev-enable boolean + Wave-0 RED scaffold + AUDIT.md scorecard scaffold (D-06/D-08/D-09/D-12)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 15.2-02-PLAN.md — Wave 2: the two floating cycler widgets (style 6-combo + size S/M/L) wired as an AppShell overlay, dev-enable-gated; on-device cycler-walk (D-06/D-07/D-08/D-09)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 15.2-03-PLAN.md — Wave 3: Printers (= Devices renamed) absorbs Connection editing + per-profile feature-toggle field on Profile (D-02/D-04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 15.2-04-PLAN.md — Wave 4: 4-tile IA split (Printers · Theme · Settings · About) + Dest/DRAWER_TILES/when(dest) routing + About dev-enable toggle (D-01/D-03/D-04/D-05)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 15.2-05-PLAN.md — Wave 5: app-wide Back-intent sweep to Neutral + D-10 guided core-screen review → harden THEMING.md + AUDIT checklist (D-10/D-13)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 15.2-06-PLAN.md — Wave 6: app-wide AUDIT.md scorecard across all ~30 surfaces + long-tail mechanical conformance fixes + judgment-call gate (D-11/D-12/D-13)
 
 ### Phase 16: Home / Print-Status Redesign
