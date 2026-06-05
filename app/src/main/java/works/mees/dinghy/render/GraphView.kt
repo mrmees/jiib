@@ -184,7 +184,10 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * (`pool[0]`) at low alpha. (15-07: retired the old heat/accent/violet trace identities.)
      */
     override fun applyTokens(t: ThemeTokens) {
-        val pool = t.pool
+        // CR-02: guard an empty pool — `i % pool.size` (and the bare `pool[0]` below) divide-by-zero /
+        // index-crash on a zero-length pool. The baked fallback always has slots, but a manually-built
+        // ThemeTokens could be empty; fall back to accent rather than crash the render surface.
+        val pool = if (t.pool.isNotEmpty()) t.pool else listOf(t.accent)
         for (i in 0 until MAX_TRACES) {
             linePaints[i].color = pool[i % pool.size].toArgb()
         }

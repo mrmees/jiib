@@ -450,7 +450,8 @@ private fun PresetSelector(
  * identity). Retired the old heat/accent/violet switch — heater identity is the pool, not `heat`
  * (which is now caution-only).
  */
-private fun traceColor(index: Int, t: ThemeTokens): Color = t.pool[index % t.pool.size]
+private fun traceColor(index: Int, t: ThemeTokens): Color =
+    if (t.pool.isNotEmpty()) t.pool[index % t.pool.size] else t.accent // CR-02: guard empty pool (no div-by-zero)
 
 /**
  * Per-sensor scrubber ceiling (°C). Bed-class heaters top out far lower than a nozzle, so the scrubber

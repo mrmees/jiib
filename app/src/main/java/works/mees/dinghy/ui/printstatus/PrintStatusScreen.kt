@@ -463,8 +463,11 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
             // GraphView trace / Temperature readout (15-07, D-13/D-14): nozzle = pool[0], bed = pool[1]
             // (% size wrap). Stable identity — same sensor = same color everywhere. NOT `t.heat`
             // (which is now caution-only); heater identity is the pool.
-            val nozzleColor = t.pool[0 % t.pool.size]
-            val bedColor = t.pool[1 % t.pool.size]
+            // CR-02: guard an empty pool — `i % pool.size` divides by zero on a zero-length pool. The baked
+            // fallback always has 3 slots so this never fires today, but a manually-built ThemeTokens could;
+            // fall back to accent rather than crash the printer surface.
+            val nozzleColor = if (t.pool.isNotEmpty()) t.pool[0 % t.pool.size] else t.accent
+            val bedColor = if (t.pool.isNotEmpty()) t.pool[1 % t.pool.size] else t.accent
             IconTwoRowCell(
                 icon = { sp -> DrawableIcon(R.drawable.nozzle, nozzleColor, sp) },
                 active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = nozzleColor,
