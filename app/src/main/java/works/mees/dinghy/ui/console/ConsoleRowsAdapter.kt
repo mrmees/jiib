@@ -4,7 +4,9 @@ import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.dinghy.R
 
@@ -165,6 +167,46 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
                 },
             )
         }
+        // D-01/D-02 shape-coded safety layer: ERROR → octagon (tinted stop/red), WARNING → triangle
+        // (tinted caution/amber); ALL other severities → no glyph. The shape silhouette is the
+        // redundant non-color signal so the tier reads in grayscale/CVD (the safety mechanism).
+        applySeverityGlyph(line.severity, p)
+    }
+
+    /**
+     * Attach the leading shape glyph for ERROR/WARNING (clear it otherwise so recycled rows don't keep
+     * a stale glyph). CRITICAL (Item 6 — the row-height fix): the plan-01 vectors carry a 96dp intrinsic
+     * size, so the glyph is given EXPLICIT [fsSp]-scaled pixel bounds via [android.graphics.drawable.Drawable.setBounds]
+     * and attached with [setCompoundDrawables] (the variant that RESPECTS the bounds we set) — NEVER
+     * `…WithIntrinsicBounds`, which would inject a 96dp glyph and blow up the row height. The tint comes
+     * from the resolved [ConsoleRowPalette] ARGB ints (never a raw status hex — THEME-01).
+     */
+    private fun applySeverityGlyph(severity: ConsoleSeverity, palette: ConsoleRowPalette?) {
+        val resId: Int
+        val tint: Int
+        when (severity) {
+            ConsoleSeverity.ERROR -> {
+                resId = R.drawable.ic_status_octagon
+                tint = palette?.error ?: currentTextColor
+            }
+            ConsoleSeverity.WARNING -> {
+                resId = R.drawable.ic_status_triangle
+                tint = palette?.warning ?: currentTextColor
+            }
+            else -> {
+                // No glyph for NORMAL/ACTION/DEBUG/success — clear any stale compound drawable.
+                setCompoundDrawables(null, null, null, null)
+                return
+            }
+        }
+        val d = AppCompatResources.getDrawable(context, resId)!!.mutate()
+        DrawableCompat.setTint(d, tint)
+        // Size the glyph to the fsSp-scaled row text size (square box), dp→px via display density. This
+        // tracks the S/M/L --fs setting that scales the row textSize the same way.
+        val px = (textSize).toInt().coerceAtLeast(1)
+        d.setBounds(0, 0, px, px)
+        compoundDrawablePadding = dp(6)
+        setCompoundDrawables(d, null, null, null)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
