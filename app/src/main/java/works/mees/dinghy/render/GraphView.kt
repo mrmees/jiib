@@ -42,9 +42,10 @@ import works.mees.dinghy.theme.views.ThemeableView
  * contract is a CURRENT-setpoint line, not a target series).
  *
  * Theming (D-06): implements [ThemeableView]. The [GraphViewHost] PUSHES the active tokens via
- * [applyTokens], which recolors each trace from its role token — nozzle=`heat`, bed=`accent`,
- * chamber=`violet` (added 05-02) — then `invalidate()`s, so a dark/light/custom flip recolors all
- * traces with NO view recreation. No raw hex literal lives here (THEME-01).
+ * [applyTokens], which recolors each trace from the contrast-ranked data [pool][ThemeTokens.pool] —
+ * trace `i` = `pool[i % pool.size]` (15-07, D-13/D-14; retired the old heat/accent/violet identities)
+ * — then `invalidate()`s, so a dark/light/custom flip recolors all traces with NO view recreation.
+ * No raw hex literal lives here (THEME-01).
  *
  * Allocation-free draw (Pitfall 4): [MAX_TRACES] reusable [Path]s + [Paint]s, ONE fill [Path]/[Paint]
  * (primary trace only — fill cost is the Adreno-320 fill-rate suspect, so it is bounded to one trace),
@@ -175,17 +176,20 @@ class GraphView(context: Context) : View(context), ThemeableView {
         }
 
     /**
-     * Push the active tokens (D-06): recolor each pre-allocated trace paint from its role token and
-     * repaint. No raw color literal — trace 0 (nozzle) = `heat`, trace 1 (bed) = `accent`,
-     * trace 2 (chamber) = `violet` (added 05-02). The fill takes the PRIMARY trace's color at low alpha.
+     * Push the active tokens (D-06): recolor each pre-allocated trace paint from the contrast-ranked
+     * data [pool][ThemeTokens.pool] and repaint. No raw color literal — trace `i` reads
+     * `pool[i % pool.size]` (D-13/D-14 wrap, so an index never exceeds the pool), giving each sensor a
+     * STABLE color by canonical order (same sensor = same color everywhere; this index MUST match the
+     * Print-Status / Temperature heater-readout index). The fill takes the PRIMARY trace's color
+     * (`pool[0]`) at low alpha. (15-07: retired the old heat/accent/violet trace identities.)
      */
     override fun applyTokens(t: ThemeTokens) {
-        val nozzle = t.heat.toArgb()
-        linePaints[0].color = nozzle
-        linePaints[1].color = t.accent.toArgb()
-        linePaints[2].color = t.violet.toArgb()
-        // Translucent fill under the primary trace — its hue at a low alpha (cheap single fill, Pitfall 4).
-        fillPaint.color = nozzle
+        val pool = t.pool
+        for (i in 0 until MAX_TRACES) {
+            linePaints[i].color = pool[i % pool.size].toArgb()
+        }
+        // Translucent fill under the primary trace — pool[0]'s hue at a low alpha (cheap single fill, Pitfall 4).
+        fillPaint.color = pool[0].toArgb()
         fillPaint.alpha = FILL_ALPHA
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
         labelPaint.textSize = fsSp(LABEL_BASE_SP, t.fs) * density // match the --fs-scaled button text size

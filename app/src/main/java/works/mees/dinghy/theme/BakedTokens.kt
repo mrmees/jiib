@@ -60,7 +60,7 @@ val TokensDark: ThemeTokens = ThemeTokens(
     // Data pool (D-13) — fail-safe default set. The runtime path produces this from the seed via
     // TokenBridge; this baked snapshot keeps the legacy nozzle/bed/chamber trace identities so the
     // default theme renders before the generator runs. pool[2] is the old --violet chamber color
-    // (the @Deprecated ThemeTokens.violet shim reads pool[2 % size]).
+    // (the violet shim was deleted in 15-07; the third trace now reads pool[2 % size] directly).
     pool = listOf(
         Color(0xFFF3A958),  // [0] temperature (was --heat amber)
         Color(0xFF4C94EC),  // [1] xy (was --accent blue)

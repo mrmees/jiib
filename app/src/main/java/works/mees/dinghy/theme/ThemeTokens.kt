@@ -111,24 +111,7 @@ data class ThemeTokens(
      * `fontScale` is neutralised at the Compose root so this never double-applies.
      */
     val fs: Float,
-) {
-    /**
-     * TRANSITIONAL SHIM — retired token, deleted in plan 15-07.
-     *
-     * Was `--violet` (the third sensor trace / chamber color). The third data trace now reads from
-     * the contrast-ranked [pool] like every other data color (D-13/D-14). This `@Deprecated`
-     * get-only computed property keeps the two remaining callers (`GraphView`,
-     * `TemperatureScreen`) compiling across THIS wave boundary; 15-07 deletes this shim and
-     * migrates those reads to `pool[2 % pool.size]`. It is NOT a constructor parameter — a computed
-     * property — so [BakedTokens] must not pass a `violet = …` named argument.
-     */
-    @Deprecated(
-        "retired — use pool[2 % pool.size]; this shim is deleted in 15-07",
-        ReplaceWith("pool[2 % pool.size]"),
-    )
-    val violet: Color
-        get() = if (pool.isEmpty()) accent else pool[2 % pool.size]
-}
+)
 
 /**
  * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors derived from

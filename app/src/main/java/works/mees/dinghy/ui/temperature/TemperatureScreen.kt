@@ -443,12 +443,14 @@ private fun PresetSelector(
     }
 }
 
-/** Trace palette (mockup §9): index 0 = nozzle (heat), 1 = bed (accent), 2 = chamber (violet). */
-private fun traceColor(index: Int, t: ThemeTokens): Color = when (index) {
-    0 -> t.heat
-    1 -> t.accent
-    else -> t.violet
-}
+/**
+ * Trace color = the contrast-ranked data [pool][ThemeTokens.pool] at the sensor's canonical index
+ * (15-07, D-13/D-14): `pool[index % pool.size]`. This index MUST equal the GraphView trace index and
+ * the Print-Status heater-readout index so the SAME sensor wears the SAME color everywhere (stable
+ * identity). Retired the old heat/accent/violet switch — heater identity is the pool, not `heat`
+ * (which is now caution-only).
+ */
+private fun traceColor(index: Int, t: ThemeTokens): Color = t.pool[index % t.pool.size]
 
 /**
  * Per-sensor scrubber ceiling (°C). Bed-class heaters top out far lower than a nozzle, so the scrubber

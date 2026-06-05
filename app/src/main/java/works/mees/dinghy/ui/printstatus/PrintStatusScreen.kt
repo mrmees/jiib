@@ -459,14 +459,20 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
             )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Heater READOUTS read the contrast-ranked data pool at the SAME canonical index as the
+            // GraphView trace / Temperature readout (15-07, D-13/D-14): nozzle = pool[0], bed = pool[1]
+            // (% size wrap). Stable identity — same sensor = same color everywhere. NOT `t.heat`
+            // (which is now caution-only); heater identity is the pool.
+            val nozzleColor = t.pool[0 % t.pool.size]
+            val bedColor = t.pool[1 % t.pool.size]
             IconTwoRowCell(
-                icon = { sp -> DrawableIcon(R.drawable.nozzle, t.heat, sp) },
-                active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = t.heat,
+                icon = { sp -> DrawableIcon(R.drawable.nozzle, nozzleColor, sp) },
+                active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = nozzleColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
-                icon = { sp -> DrawableIcon(R.drawable.heat_bed, t.heat, sp) },
-                active = tempActive(bed), inactive = tempInactive(bed), activeColor = t.heat,
+                icon = { sp -> DrawableIcon(R.drawable.heat_bed, bedColor, sp) },
+                active = tempActive(bed), inactive = tempInactive(bed), activeColor = bedColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
