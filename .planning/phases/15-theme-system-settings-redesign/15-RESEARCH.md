@@ -445,11 +445,14 @@ node -e 'const P=require("../../../theme_theory/app/color.js");
 | A3 | `kotlinx-collections-immutable` is acceptable (or `@Immutable` on the data class suffices) for `pool: List<Color>` stability | Token Bridge | LOW — both work; the `@Immutable`-covers-the-field route adds zero deps and is the existing pattern. |
 | A4 | `GraphView.MAX_TRACES` stays at 3 this phase (no printer shows >3 graph traces) | Pool Wiring | LOW — flagged for the planner; bumping it is a small, optional follow-up. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Default seed value (A1).** The validated default seed is the out-of-box look and the "Reset" target (COLOR-SYSTEM.md §12 requires a validated one). `#3f78ff` is the generator/sandbox default. Recommendation: ship `#3f78ff` unless the owner picks another during UAT — it's a single constant.
+   RESOLVED: ship #3f78ff as the validated default seed (plans 15-04/15-05).
 2. **`GraphView.MAX_TRACES` cap vs D-14 "cycle infinitely."** The generator caps `pool` to `maxItems`; consumers wrap `pool[i % size]`. The graph has a hard 3-trace cap. Recommendation: keep 3 traces this phase (no printer exceeds it), wrap in readout consumers, flag the cap. A true >3-trace graph is a separate, optional task.
+   RESOLVED: keep MAX_TRACES=3; consumers wrap pool[i % size] (plan 15-07).
 3. **Where the in-between-tier derivation lives.** `dinghy.js` derives tiers in the bridge; an alternative is teaching the Kotlin `Palette` to emit them. Recommendation: derive in the Kotlin token-bridge (port `tokensFromPalette`) — keeps `Palette.generate` a faithful 1:1 of `color.js` (so golden tests stay clean), and the bridge is dinghy-specific anyway. (Per CONTEXT.md this is explicitly the researcher/planner's discretion.)
+   RESOLVED: derive the tiers in the Kotlin TokenBridge, keeping Palette.generate a 1:1 of color.js (plan 15-03).
 
 ## Environment Availability
 
