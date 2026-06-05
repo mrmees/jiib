@@ -64,14 +64,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive (completed 2026-06-04)
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
 - [x] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware (completed 2026-06-05)
-- [ ] **Phase 15: Fine-Tune / Live-Adjust Panel** - Wire the stubbed Tune button into a real mid-print live-adjust surface: Z babystep, speed (M220), flow (M221), fan, and pressure advance where present — capability-gated, keyboard-free
-- [ ] **Phase 16: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
-- [ ] **Phase 17: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
-- [ ] **Phase 18: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
-- [ ] **Phase 19: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form now that the full capability set exists, without regressing the proven render/throttle primitives
-- [ ] **Phase 20: Settings Redesign** - Reorganize Settings into coherent sections that scale to multi-printer profiles + the new feature toggles + system/about
-- [ ] **Phase 21: Final Theme / UI Conformance Pass** - Whole-app sweep against `docs/ui_design/` LAW + the token theme system (token purity, intent colors, grammar, `fsSp` scale) immediately before ship
-- [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
+- [ ] **Phase 15: Theme System & Settings Redesign** - Establish the full semantic-token theme system (dark/light/user-custom + S/M/L) as the visual foundation and rebuild Settings to host it (merges the former Settings-Redesign + Final-Conformance phases); pulled to the front because the parallel theme work needs the new Settings UI to test against; also conformance-sweeps existing surfaces
+- [ ] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives
+- [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - Wire the stubbed Tune button into a real mid-print live-adjust surface: Z babystep, speed (M220), flow (M221), fan, and pressure advance where present — capability-gated, keyboard-free
+- [ ] **Phase 18: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
+- [ ] **Phase 19: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
+- [ ] **Phase 20: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
+- [ ] **Phase 21: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
 
@@ -297,7 +296,7 @@ Plans:
 
 ### Phase 7: Files & Print Control — Core Print-Loop Gate
 
-**Goal**: The **core print-loop gate** — drive a real print start-to-finish without the browser. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files; the same phase wires the **state-adaptive print-control actions (pause / resume / cancel / restart)** onto the existing Print Status home (the currently-stubbed gutter Pause/Resume + Tune buttons), so starting AND controlling a print is one complete user capability. The live-monitoring half of the old "Job Status" phase (progress/temps/Z) was already delivered by the Phase-4 Print Status home + the Status quick-task enrichment (Inc 1–3), so this phase verifies it end-to-end against a real print rather than rebuilding it. Reuses the already-built `PrintMetadataHolder` / `thumbnailUrl()` / Coil wiring / `LastJobHolder` primitives and registers its commands into the Phase-6 command registry. The deep robustness (reconnect print-state resync, process-death recovery) is deferred to the ship phase (Phase 22).
+**Goal**: The **core print-loop gate** — drive a real print start-to-finish without the browser. The Files panel lets a user browse their gcode library, inspect thumbnails and metadata, start a print, and delete files; the same phase wires the **state-adaptive print-control actions (pause / resume / cancel / restart)** onto the existing Print Status home (the currently-stubbed gutter Pause/Resume + Tune buttons), so starting AND controlling a print is one complete user capability. The live-monitoring half of the old "Job Status" phase (progress/temps/Z) was already delivered by the Phase-4 Print Status home + the Status quick-task enrichment (Inc 1–3), so this phase verifies it end-to-end against a real print rather than rebuilding it. Reuses the already-built `PrintMetadataHolder` / `thumbnailUrl()` / Coil wiring / `LastJobHolder` primitives and registers its commands into the Phase-6 command registry. The deep robustness (reconnect print-state resync, process-death recovery) is deferred to the ship phase (Phase 21).
 **Depends on**: Phase 6
 **Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, JOB-01, JOB-02, JOB-03, JOB-04, JOB-05
 **Success Criteria** (what must be TRUE):
@@ -598,10 +597,43 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — reuses the Phase-2 spine + Phase-4 service/Settings/DataStore; the work is profile management + a clean spine rebind, not new protocol. The one net-new wrinkle is per-printer theme re-seeding (D-08), which reuses ThemeResolver.apply.
 
-### Phase 15: Fine-Tune / Live-Adjust Panel
+### Phase 15: Theme System & Settings Redesign
 
-**Goal**: Wire the currently-stubbed "Tune" button into a real mid-print live-adjustment surface — the things a user reaches for while a print runs without touching the browser: Z babystepping (live Z offset), speed factor (M220), extrusion/flow factor (M221), fan speed, and pressure advance where present. Capability-gated by the Phase-6 matrix; each control dispatches through the shared command primitive, reflects the resulting `gcode_move`/`fan`/`print_stats` state flip, and uses the keyboard-free scrubber/stepper primitives from Phase 3.
+**Goal**: Establish the full semantic-token theme system as the app's visual foundation and rebuild the Settings screen to host it (merges the former Settings-Redesign + Final-Theme/UI-Conformance phases). Integrates the theme work developed in a parallel session (token system, dark/light/user-custom themes, S/M/L text size) and gives it a real test/config surface: Settings is reorganized into coherent sections — printers/profiles (Phase 14), connection, appearance/theme + text size, feature toggles (webcam/WebRTC, outputs, fine-tune), and system/about — the one conventional keyboard-allowed screen, scaled to the full v1 feature set. Also sweeps the EXISTING surfaces for token/grammar conformance so the theme system lands clean across what's already built. Pulled to the FRONT because the active parallel theme work needs the new Settings UI to test against; a light whole-app conformance re-check of late surfaces folds into Phase 21 (Ship).
 **Depends on**: Phase 14
+**Requirements**: *(refines SET-* / THEME-* / UI-* — UX + conformance rework, no new functional REQ-IDs; finer set at discuss)*
+**Success Criteria** (what must be TRUE):
+
+  1. The full semantic-token theme system (dark, light, user-custom) renders correctly across the app, configurable from the redesigned Settings, with the S/M/L text-size setting + the established `fsSp` font-size scale applied consistently (no too-small fonts — the recurring lesson)
+  2. Settings is reorganized into clear sections (printers/profiles, connection, appearance/theme + text size, features/toggles, system/about) that scale to the full v1 feature set; multi-printer profile management (Phase 14) stays first-class and all existing settings persist via DataStore
+  3. Existing surfaces pass a token-purity / button-intent / Focus-Field-Gutter / touch-target conformance check against `docs/ui_design/` LAW (no raw colors), in dark + light + custom
+  4. Conforms to the design system; verified on-device on flox in portrait + landscape
+  5. Later phases (16–20) build their new surfaces theme-conformant by construction; the final whole-app conformance re-sweep is folded into Phase 21 (Ship)
+
+**Plans**: TBD
+**UI hint**: yes
+**Research note**: STANDARD — integrates the parallel theme work + UI reorganization on the existing DataStore-backed Settings; audit/polish against the existing UI LAW + `reference/hifi.css`; no new backend.
+
+### Phase 16: Home / Print-Status Redesign
+
+**Goal**: Rework the home / Print-Status surface into its definitive form as the visual FOUNDATION for the remaining feature phases — built right after the theme system + Settings (Phase 15) so the later features (fine-tune, outputs, system info, webcam) slot into the final design instead of forcing a later redesign (the "avoid future rework" sequencing). The original home was built early against `docs/ui_design/`; rework the information hierarchy, quick-actions, and at-a-glance layout into the definitive home, leaving forward entry points (greyed/capability-gated tiles, the established pattern) for features built in Phases 17–20 — without regressing the proven Views-based render/throttle primitives or the core monitor loop.
+**Depends on**: Phase 15
+**Requirements**: *(refines SHELL-* / JOB-* — UX rework, no new functional REQ-IDs; finer set at discuss)*
+**Success Criteria** (what must be TRUE):
+
+  1. The redesigned home presents a clear hierarchy (live print monitoring primary; quick actions to the high-use surfaces) per an updated `docs/ui_design/` contract, with forward entry points for the not-yet-built features (greyed/capability-gated until present)
+  2. Portrait + landscape both honored via the Focus/Field/Gutter grammar; sacred aspect ratios + ratio-only sizing preserved
+  3. The high-churn render surfaces (temp sparkline/graph, status) keep their measured Adreno-320 performance — no regression vs the current home
+  4. Behavior-preserving for the core monitor loop, verified on-device
+
+**Plans**: TBD
+**UI hint**: yes
+**Research note**: STANDARD — design rework against the existing UI LAW (now sitting on the Phase-15 theme system); no new backend.
+
+### Phase 17: Fine-Tune / Live-Adjust Panel
+
+**Goal**: Wire the currently-stubbed "Tune" button into a real mid-print live-adjustment surface — the things a user reaches for while a print runs without touching the browser: Z babystepping (live Z offset), speed factor (M220), extrusion/flow factor (M221), fan speed, and pressure advance where present. Capability-gated by the Phase-6 matrix; each control dispatches through the shared command primitive, reflects the resulting `gcode_move`/`fan`/`print_stats` state flip, and uses the keyboard-free scrubber/stepper primitives from Phase 3. Built into the redesigned home/status surface from Phase 16.
+**Depends on**: Phase 16
 **Requirements**: *(new TUNE-* family — defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -614,10 +646,10 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — SET_GCODE_OFFSET / babystep / M220 / M221 / SET_PRESSURE_ADVANCE verified against Klipper docs; reuses the scrubber + command primitives.
 
-### Phase 16: Output Controls — Fans, Lights & Generic Pins
+### Phase 18: Output Controls — Fans, Lights & Generic Pins
 
-**Goal**: A dedicated page to control the printer's auxiliary outputs without the browser — `[fan_generic]` aux/part fans, `[output_pin]` switches (enclosure power, chamber-heater enable, etc.), and `[led]`/`[neopixel]` lighting where present. Capability-gated by the Phase-6 matrix; each output's current value comes from the central subscribe and is set through the shared command primitive.
-**Depends on**: Phase 15
+**Goal**: A dedicated page to control the printer's auxiliary outputs without the browser — `[fan_generic]` aux/part fans, `[output_pin]` switches (enclosure power, chamber-heater enable, etc.), and `[led]`/`[neopixel]` lighting where present. Capability-gated by the Phase-6 matrix; each output's current value comes from the central subscribe and is set through the shared command primitive. Slots into the redesigned home/Settings from Phases 15–16.
+**Depends on**: Phase 17
 **Requirements**: *(new OUT-* family — defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -630,26 +662,10 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — SET_FAN_SPEED / SET_PIN / SET_LED + the corresponding status objects verified against the Klipper config reference.
 
-### Phase 17: WebRTC Camera Streaming
-
-**Goal**: Real camera support for the project's OWN hardware. Both target printers expose WebRTC-only camera stacks (go2rtc / camera-streamer / MediaMTX), so Phase 10's MJPEG path — though correct and fixture-proven — never renders a live frame on them. This phase adds a WebRTC client (negotiated via the camera's WHEP/go2rtc endpoint, enumerated through Moonraker `/server/webcams/list`) and presents the low-latency stream on-device, EXTENDING Phase 10's webcam plumbing/rung-ladder rather than replacing it. Mindful of the Adreno-320 floor: hardware-accelerated decode where available, and the feature stays amber-flagged/perf-gated like the existing camera BETA.
-**Depends on**: Phase 16
-**Requirements**: *(CAM-* WebRTC extension — defined at phase discuss; continues the CAM-01 lineage)*
-**Success Criteria** (what must be TRUE):
-
-  1. The app negotiates and renders a WebRTC camera stream from a go2rtc/camera-streamer source enumerated via Moonraker, reusing the Phase-10 webcam selection/rung-ladder
-  2. Live low-latency video shows on-device with correct aspect and no frozen frames, falling back to the existing MJPEG/snapshot rungs when WebRTC isn't offered
-  3. The decode respects the Adreno-320 floor (hardware decode where possible; perf-gated/amber-flagged) and releases cleanly on screen exit (no leaked PeerConnection/codec)
-  4. Proven live on the real Ender 5 Plus and/or Ender 3 WebRTC camera that the MJPEG path could not display
-
-**Plans**: TBD
-**UI hint**: yes
-**Research note**: DEEPER — WebRTC on API-23 / Adreno-320 is heavy (the `org.webrtc`/libwebrtc footprint, WHEP/go2rtc signaling, hardware-decoder selection); the decode path + library size MUST be validated against the floor before committing (this is exactly why it was deferred from Phase 10).
-
-### Phase 18: System Information Page
+### Phase 19: System Information Page
 
 **Goal**: A read-only, at-a-glance page for the printer host + Klipper/Moonraker system state — `machine.system_info` / `machine.proc_stats` / `server.info` / version info: host CPU/memory, CPU temp + throttle, uptime, distro, Klipper/Moonraker versions, network, and disk usage. No control surface — a diagnostics/health view that reuses the central subscribe and the existing data-table/render primitives.
-**Depends on**: Phase 17
+**Depends on**: Phase 18
 **Requirements**: *(new SYS-* family — defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
@@ -662,69 +678,39 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — machine.system_info / proc_stats / server.info shapes partly captured already in `docs/moonraker-capabilities.md`; confirm fields against the Moonraker API.
 
-### Phase 19: Home / Print-Status Redesign
+### Phase 20: WebRTC Camera Streaming
 
-**Goal**: Revisit the home / Print-Status surface now that the FULL feature set exists (calibration, webcam, spool, prompts, fine-tune, outputs, multi-printer, system info). The original home was built early against `docs/ui_design/`; with every capability now present, rework the information hierarchy, quick-actions, and at-a-glance layout into the definitive home — without regressing the proven Views-based render/throttle primitives or the core monitor loop.
-**Depends on**: Phase 18
-**Requirements**: *(refines SHELL-* / JOB-* — UX rework, no new functional REQ-IDs; finer set at discuss)*
-**Success Criteria** (what must be TRUE):
-
-  1. The redesigned home presents the now-complete capability set with a clear hierarchy (live print monitoring primary; quick actions to the high-use surfaces) per an updated `docs/ui_design/` contract
-  2. Portrait + landscape both honored via the Focus/Field/Gutter grammar; sacred aspect ratios + ratio-only sizing preserved
-  3. The high-churn render surfaces (temp sparkline/graph, status) keep their measured Adreno-320 performance — no regression vs the current home
-  4. Behavior-preserving for the core monitor loop, verified on-device
-
-**Plans**: TBD
-**UI hint**: yes
-**Research note**: STANDARD — design rework against the existing UI LAW; no new backend.
-
-### Phase 20: Settings Redesign
-
-**Goal**: Rework the Settings screen now that it must hold materially more than the original connection/theme/text-size set — multi-printer profiles (Phase 14), the new feature toggles (webcam/WebRTC, outputs, fine-tune), and system/diagnostics entry points. Keep it the one conventional keyboard-allowed screen, reorganized into coherent sections so it doesn't creak under the added scope.
+**Goal**: Real camera support for the project's OWN hardware. Both target printers expose WebRTC-only camera stacks (go2rtc / camera-streamer / MediaMTX), so Phase 10's MJPEG path — though correct and fixture-proven — never renders a live frame on them. This phase adds a WebRTC client (negotiated via the camera's WHEP/go2rtc endpoint, enumerated through Moonraker `/server/webcams/list`) and presents the low-latency stream on-device, EXTENDING Phase 10's webcam plumbing/rung-ladder rather than replacing it. Mindful of the Adreno-320 floor: hardware-accelerated decode where available, and the feature stays amber-flagged/perf-gated like the existing camera BETA.
 **Depends on**: Phase 19
-**Requirements**: *(refines SET-* / connection reqs — UX rework, no new functional REQ-IDs; finer set at discuss)*
+**Requirements**: *(CAM-* WebRTC extension — defined at phase discuss; continues the CAM-01 lineage)*
 **Success Criteria** (what must be TRUE):
 
-  1. Settings is reorganized into clear sections (printers/profiles, connection, appearance/theme + text size, features/toggles, system/about) that scale to the full v1 feature set
-  2. Multi-printer profile management (add/edit/remove/select) is first-class within Settings and consistent with Phase 14
-  3. All existing settings (host/port/key, theme dark/light/custom, S/M/L text size, feature toggles) are preserved and continue to persist via DataStore
-  4. Conforms to the design system; verified on-device in portrait + landscape
+  1. The app negotiates and renders a WebRTC camera stream from a go2rtc/camera-streamer source enumerated via Moonraker, reusing the Phase-10 webcam selection/rung-ladder
+  2. Live low-latency video shows on-device with correct aspect and no frozen frames, falling back to the existing MJPEG/snapshot rungs when WebRTC isn't offered
+  3. The decode respects the Adreno-320 floor (hardware decode where possible; perf-gated/amber-flagged) and releases cleanly on screen exit (no leaked PeerConnection/codec)
+  4. Proven live on the real Ender 5 Plus and/or Ender 3 WebRTC camera that the MJPEG path could not display
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — UI reorganization on the existing DataStore-backed Settings; no new backend.
+**Research note**: DEEPER — WebRTC on API-23 / Adreno-320 is heavy (the `org.webrtc`/libwebrtc footprint, WHEP/go2rtc signaling, hardware-decoder selection); the decode path + library size MUST be validated against the floor before committing (this is exactly why it was deferred from Phase 10).
 
-### Phase 21: Final Theme / UI Conformance Pass
+### Phase 21: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
 
-**Goal**: A whole-app sweep against the canonical `docs/ui_design/` LAW and the semantic-token theme system, immediately before ship. Every screen (including the late additions) audited for token purity (no raw colors), button-intent color correctness, Focus/Field/Gutter compliance, sacred aspect ratios + ratio-only sizing, S/M/L text-size behavior, dark/light/custom theme correctness, touch-target sizes, and the established `fsSp` font-size scale — catching the drift that accumulates across many phases. Quality/polish phase, no new features.
+**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), a LIGHT final whole-app UI-conformance re-sweep of the late surfaces against `docs/ui_design/` LAW (the conformance net moved to Phase 15 for the existing surfaces; this catches drift in 16–20's new screens), the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
 **Depends on**: Phase 20
-**Requirements**: *(enforces THEME-* / UI-* conformance — no new functional REQ-IDs)*
-**Success Criteria** (what must be TRUE):
-
-  1. Every screen routes through semantic role tokens (no raw colors), with dark, light, and a user-custom theme all rendering correctly across the whole app
-  2. Button-intent colors, ≥64px touch targets, outline-led controls, and the Focus/Field/Gutter grammar (portrait + landscape, sacred aspect ratios, ratio-only sizing) are consistent on every screen
-  3. The S/M/L text-size setting and the established `fsSp` font-size scale are applied consistently (no too-small fonts — the recurring lesson), tabular numerals on live data
-  4. A documented per-screen conformance checklist passes on-device on flox in both orientations
-
-**Plans**: TBD
-**UI hint**: yes
-**Research note**: STANDARD — audit/polish against the existing UI LAW + `reference/hifi.css`; no new backend.
-
-### Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
-
-**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
-**Depends on**: Phase 21
 **Requirements**: PKG-01, PKG-03
 **Success Criteria** (what must be TRUE):
 
   1. **Print-loop robustness (deferred from Job Status):** yank Wi-Fi mid-print and restore it, and the print surface restores correct (non-stale) state from a fresh `objects.query` rather than lying about a finished/paused print (reconnect resync, re-exercising CONN-04 against a live print); relaunching the app mid-print restores the correct state from a fresh query (process-death recovery, PKG-03)
   2. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), and `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake
   3. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
-  4. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
-  5. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
+  4. **Light final UI-conformance sweep:** the late surfaces (Phases 16–20) pass the per-screen conformance checklist against `docs/ui_design/` LAW + the Phase-15 theme system (token purity / button-intent / Focus-Field-Gutter / ≥64px targets / `fsSp` scale / dark-light-custom) on flox in both orientations — no whole-app re-audit, just the screens added after Phase 15
+  5. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
+  6. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
 
 **Plans**: TBD
-**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented.
+**UI hint**: yes
+**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented; the conformance re-sweep audits against the existing UI LAW + `reference/hifi.css`.
 
 ## Progress
 
@@ -733,10 +719,16 @@ Originally numeric 1 → … → 14. **Revised 2026-06-03 (reliability promotion
 the remaining feature phases — 1 → … → 9 → **13 (PROMOTED)** → 10 → 11 → 12 — so the connection/data-model
 standardization + session-layer reliability fixes landed before more screens were built on the pragmatic
 backend. **Expanded 2026-06-04 (8 new phases):** with Phases 1–11 + 13 done, eight phases were added before
-ship — 12 → 14 (Multi-Printer) → 15 (Fine-Tune) → 16 (Output Controls) → 17 (WebRTC) → 18 (System Info) →
-19 (Home redesign) → 20 (Settings redesign) → 21 (UI conformance) → **22 (Release & Ship — runs LAST)**.
-Ship was renumbered 14 → 22 so it remains the final phase; the handful of "Phase 14" references (PKG-01/03,
-Phase 7's deferral note) were updated to Phase 22.
+ship (12 → 14 Multi-Printer → Fine-Tune → Output → WebRTC → System Info → Home redesign → Settings redesign →
+UI conformance → Release). **Reordered + renumbered 2026-06-05 (design-foundation-first):** with Phases 1–14
+done, the back half was resequenced so the visual foundation (theme system + Settings, then Home) is locked
+BEFORE the remaining feature surfaces — so features slot into the final design instead of forcing a later
+redesign (avoid-future-rework). The old Settings-Redesign (20) + Final-Conformance (21) MERGED into the new
+**Phase 15 (Theme System & Settings Redesign)** since the parallel theme work needs the new Settings UI to
+test against; the final conformance net folds a LIGHT late-surface sweep into Ship. Phases renumbered cleanly
+(no future phase dirs existed yet): **15 Theme+Settings → 16 Home redesign → 17 Fine-Tune → 18 Output →
+19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. 8 phases → 7 (22 → 21 total). Old→new map:
+21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. PKG-01/03 remapped 22 → 21.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -754,18 +746,17 @@ Phase 7's deferral note) were updated to Phase 22.
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
-| 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
-| 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
-| 17. WebRTC Camera Streaming | 0/TBD | Not started | - |
-| 18. System Information Page | 0/TBD | Not started | - |
-| 19. Home / Print-Status Redesign | 0/TBD | Not started | - |
-| 20. Settings Redesign | 0/TBD | Not started | - |
-| 21. Final Theme / UI Conformance Pass | 0/TBD | Not started | - |
-| 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
+| 15. Theme System & Settings Redesign | 0/TBD | Not started | - |
+| 16. Home / Print-Status Redesign | 0/TBD | Not started | - |
+| 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
+| 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
+| 19. System Information Page | 0/TBD | Not started | - |
+| 20. WebRTC Camera Streaming | 0/TBD | Not started | - |
+| 21. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
 
-The 22 phases above are the **v1 milestone** (ships once at Phase 22). Subsequent milestones are seeded
+The 21 phases above are the **v1 milestone** (ships once at Phase 21). Subsequent milestones are seeded
 here and formalized via `/gsd-new-milestone` when v1 ships — not planned in detail yet.
 
 ### v2 — Beyond the Functional Core

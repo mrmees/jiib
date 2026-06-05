@@ -2,7 +2,7 @@
 created: 2026-06-04T19:59:06Z
 title: Phase 11 spool feature robustness hardening (Codex review)
 area: ui
-target_phase: 22
+target_phase: 21
 files:
   - app/src/main/java/works/mees/dinghy/spool/ActiveSpoolFacade.kt:91
   - app/src/main/java/works/mees/dinghy/ui/spool/SpoolHolder.kt:275

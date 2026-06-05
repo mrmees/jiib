@@ -131,6 +131,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | **Nexus 7 2013 = support FLOOR, not the only target** (2026-05-31) | Keeps the cheap-old-hardware soul as the worst-case perf budget while serving modern devices | — Pending |
 | **`docs/ui_design/` is the canonical UI law** (2026-05-31) | A full hi-fi design system authored by Matthew; supersedes per-phase UI specs | — Pending |
 | **App nav = swipe-up App Drawer; Settings screen owns text entry; no keyboard in printer controls** (2026-05-31) | Per design system; numeric via single-setting pages, text triaged per-control | — Pending |
+| **Back-half reordered + renumbered design-foundation-first; 22 → 21 phases** (2026-06-05) | Lock the visual foundation (theme system + Settings, then Home redesign) BEFORE the remaining feature surfaces so features slot into the final design instead of forcing a later redesign (avoid future rework). Old Settings-Redesign + Final-Conformance MERGED → Phase 15 (the parallel theme work needs the new Settings UI to test against); final conformance net folds a light late-surface sweep into Ship. New order: 15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 SysInfo → 20 WebRTC → 21 Ship. | — Active (next: Phase 15) |
 
 ## Evolution
 
