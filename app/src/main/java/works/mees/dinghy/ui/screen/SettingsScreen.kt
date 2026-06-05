@@ -159,7 +159,9 @@ fun SettingsScreen(
             cancelLabel = "Keep",
             onConfirm = {
                 // D-12 auto-pick (select another active / clear if last) fires in the store writer.
-                scope.launch { profileStore.delete(victim.id) }
+                // Durable container scope: dismissing the guard + a delete-of-active that re-routes can
+                // tear this composition down before the write lands (see AppContainer.writeScope).
+                container.deleteProfile(victim.id)
                 pendingDelete = null
                 editing = null
             },
@@ -302,7 +304,7 @@ fun SettingsScreen(
                             // Re-save the existing profile WITHOUT a key (explicit removal). Preserves
                             // the profile id + theme; only the key is dropped.
                             existing?.let { e ->
-                                scope.launch { profileStore.upsert(e.copy(apiKey = null)) }
+                                container.saveProfile(e.copy(apiKey = null))
                             }
                             apiKey = ""
                             keyAlreadySaved = false
@@ -377,14 +379,14 @@ fun SettingsScreen(
                                     themeDeltaArgb = seedDelta,
                                 )
                             }
-                        scope.launch {
-                            // Persist → MoonrakerService.collectLatest rebuilds the spine on the active
-                            // config (D-02/D-03). ProfileStore.upsert auto-selects the FIRST profile
-                            // active (D-11), so a first-ever add flips hasConfig true and routes into
-                            // the Shell. Do NOT start the service from here, and do NOT call setActive —
-                            // the writer owns active-id (a later add never steals active).
-                            profileStore.upsert(profile)
-                        }
+                        // Persist on the DURABLE container scope → MoonrakerService.collectLatest rebuilds
+                        // the spine on the active config (D-02/D-03). ProfileStore.upsert auto-selects the
+                        // FIRST profile active (D-11), so a first-ever add flips hasConfig true and routes
+                        // into the Shell. onConnectionSaved() navigates away in the same frame, so this MUST
+                        // NOT be a rememberCoroutineScope().launch (it would be cancelled mid-write — the
+                        // first printer would silently never persist). Do NOT start the service from here,
+                        // and do NOT call setActive — the writer owns active-id (a later add never steals it).
+                        container.saveProfile(profile)
                         editing = null
                         apiKey = ""
                         onConnectionSaved()
@@ -521,12 +523,11 @@ private fun persistBase(
     active: Profile?,
     next: ThemeBase,
 ) {
-    scope.launch {
-        if (active != null) {
-            container.profileStore.upsert(active.copy(themeBase = next.name))
-        } else {
-            container.themePrefs.setBase(next)
-        }
+    if (active != null) {
+        // Durable: persist the active profile's theme on the container scope (survives leaving Settings).
+        container.saveProfile(active.copy(themeBase = next.name))
+    } else {
+        scope.launch { container.themePrefs.setBase(next) }
     }
 }
 
@@ -537,12 +538,10 @@ private fun persistFs(
     active: Profile?,
     next: FontScale,
 ) {
-    scope.launch {
-        if (active != null) {
-            container.profileStore.upsert(active.copy(fsChoice = next.name))
-        } else {
-            container.themePrefs.setFs(next)
-        }
+    if (active != null) {
+        container.saveProfile(active.copy(fsChoice = next.name))
+    } else {
+        scope.launch { container.themePrefs.setFs(next) }
     }
 }
 
@@ -556,12 +555,10 @@ private fun persistDeltas(
     active: Profile?,
     delta: TokenDelta,
 ) {
-    scope.launch {
-        if (active != null) {
-            container.profileStore.upsert(active.copy(themeDeltaArgb = delta.toPersistedArgb()))
-        } else {
-            container.themePrefs.setDeltas(delta)
-        }
+    if (active != null) {
+        container.saveProfile(active.copy(themeDeltaArgb = delta.toPersistedArgb()))
+    } else {
+        scope.launch { container.themePrefs.setDeltas(delta) }
     }
 }
 

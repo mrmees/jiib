@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +27,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.control.Intent
@@ -81,7 +79,6 @@ fun DevicesScreen(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val scope = rememberCoroutineScope()
     val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeId by container.profileStore.activeId.collectAsStateWithLifecycle(null)
 
@@ -106,7 +103,14 @@ fun DevicesScreen(
                                 // RootController's recovery Splash. NO confirm guard, NO disconnect/
                                 // publishSpine/manual rebind here (T-14-11) — the seam does it. onSwitched()
                                 // is the explicit D-02 nav hook (→ Dest.PrintStatus in AppShell).
-                                scope.launch { container.profileStore.setActive(profile.id) }
+                                //
+                                // The write goes through the container's PROCESS-scoped writeScope, NOT a
+                                // rememberCoroutineScope(): onSwitched() navigates away in the SAME frame, so
+                                // a composition-scoped write would be cancelled mid-`.tmp`→rename and the
+                                // active-id would silently never persist (the "switch reverts to the old
+                                // printer / Devices marker doesn't update" bug). setActiveProfile() outlives
+                                // this composition.
+                                container.setActiveProfile(profile.id)
                                 onSwitched()
                             },
                         )

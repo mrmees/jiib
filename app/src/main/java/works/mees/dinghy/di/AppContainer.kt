@@ -3,7 +3,9 @@ package works.mees.dinghy.di
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,6 +91,33 @@ class AppContainer(
      * [connectionStore] field is left in place (D-07 — dead but retained until the phase is verified).
      */
     val profileStore: ProfileStore = ProfileStore(profileDataStore)
+
+    /**
+     * Process-lifetime scope for fire-and-forget PERSISTENCE writes (active-profile switch + profile
+     * CRUD). These MUST outlive the calling composition: a `rememberCoroutineScope()` write is cancelled
+     * the instant its screen leaves the composition — and the Devices switch + Settings save/delete all
+     * navigate away in the SAME frame as the write. On a slow Nexus-7 flash the DataStore `.tmp`→rename
+     * loses that race, silently dropping the write → the Phase-14 "switch sometimes reverts to the old
+     * printer / active selection doesn't update" bug. This scope is owned by the process-scoped container
+     * so a write always runs to completion regardless of UI lifecycle. Use [setActiveProfile] /
+     * [saveProfile] / [deleteProfile] from the UI — NEVER `rememberCoroutineScope().launch { profileStore… }`.
+     */
+    private val writeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Switch the active profile (D-02), durably — survives the Devices screen navigating away. */
+    fun setActiveProfile(id: String) {
+        writeScope.launch { profileStore.setActive(id) }
+    }
+
+    /** Insert/replace a profile (Settings save + theme persist), durably — survives navigation. */
+    fun saveProfile(profile: Profile) {
+        writeScope.launch { profileStore.upsert(profile) }
+    }
+
+    /** Delete a profile (Settings delete; D-12 auto-pick lives in the writer), durably. */
+    fun deleteProfile(id: String) {
+        writeScope.launch { profileStore.delete(id) }
+    }
 
     /**
      * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
