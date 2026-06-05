@@ -384,7 +384,7 @@ This project has a **documented history of green-unit-suite bugs that only on-de
 2. **The actual rebind / no-stale-state is only fully real on-device.** `runConfigLoop` is unit-proven for *cancellation ordering*, but "every screen reflects the NEW printer, capability detection re-runs, command registry rebinds" emerges from the real `SpineHandle` republish against a live Moonraker (capabilities are server-derived). A fake session that publishes a canned handle won't catch a stale-capability bug. → **live two-printer UAT is mandatory** (success criterion 4).
 3. **`distinctUntilChanged` suppression vs a real flow.** A fake that emits configs synchronously may mask a subtle re-emit; verify on-device that editing the active theme does NOT reconnect (Pitfall 1) — eyeball: no Splash on an accent change.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Devices list live per-printer status (CONTEXT discretion).**
    - What we know: the spine only knows the ACTIVE printer's `ConnectionState`. Showing connected/last-seen for INACTIVE printers needs background probing (a deferred idea).
