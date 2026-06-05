@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T00:56:49.702Z"
-last_activity: 2026-06-05 -- Phase 14 planning complete
+last_updated: "2026-06-05T01:26:40.786Z"
+last_activity: 2026-06-05
 progress:
   total_phases: 23
   completed_phases: 13
   total_plans: 93
-  completed_plans: 87
+  completed_plans: 88
   percent: 57
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 12 — macro-prompt-protocol
+**Current focus:** Phase 14 — multi-printer-switching
 
 ## Current Position
 
-Phase: 12 — COMPLETE
-Plan: 5 of 5 — ALL COMPLETE
+Phase: 14 (multi-printer-switching) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
   → **Phase 12 (Macro Prompt Protocol) COMPLETE 2026-06-04** — 5/5 plans. Final plan 12-05 wired PromptEngine + PromptDialog into AppShell (per-session remember(store); overlay hoisted over any screen; content→flattenContentButtons()[i] @ buttonKey, footer→footer_buttons[i] @ the SEPARATE footerKey namespace, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + prompt_end BackHandler suppressed while visible) + documented the D-03 author-hex carve-out in the UI LAW. **On-device UAT 4/4 PASS on flox + live E3** (E5 was MCU-down: `mcu 'EBBCan': Unable to connect`) via a NOVEL method — streamed `RESPOND TYPE=command MSG=action:prompt_*` to `/printer/gcode/script`, Moonraker's `notify_gcode_response` broadcast drove the overlay, and EVERY tap was cross-checked against `/server/gcode_store` for objective server-side evidence (directly answering the recurring mock-vs-reality concern). Gates: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place; SC-3 close prompt_end echo round-trip; D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission); SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. ONE caveat carried: the large-image OOM brute-force was not run (test PNG ~2KB; guards stay code-reasoned). PROMPT-01/02/03/04 closed. Next: phase verification (orchestrator).
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
@@ -42,7 +42,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-05 -- Phase 14 planning complete
+Last activity: 2026-06-05
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -151,6 +151,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 12 P03 | 12min | 1 tasks | 2 files |
 | Phase 12 P04 | ~12min | 2 tasks | 7 files |
 | Phase 12 P12-05 | 25 | 2 tasks | 4 files |
+| Phase 14 P01 | 20 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -297,7 +298,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T00:20:54.557Z
+Last session: 2026-06-05T01:26:35.521Z
 Stopped at: Phase 14 UI-SPEC approved
 Resume file: 
-.planning/phases/14-multi-printer-switching/14-UI-SPEC.md
+None

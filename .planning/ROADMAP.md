@@ -576,7 +576,7 @@ Plans:
 
 **Wave 0**
 
-- [ ] 14-01-PLAN.md — Profile/PersistedProfile model + ProfileStore (mirror ConnectionStore verbatim; UUID identity D-05, redacting toString V7, D-12 auto-pick in the delete writer) + 4 Wave-0 RED test scaffolds (compile day-one)
+- [x] 14-01-PLAN.md — Profile/PersistedProfile model + ProfileStore (mirror ConnectionStore verbatim; UUID identity D-05, redacting toString V7, D-12 auto-pick in the delete writer) + 4 Wave-0 RED test scaffolds (compile day-one)
 
 **Wave 1** *(blocked on Wave 0)*
 
@@ -753,7 +753,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
-| 14. Multi-Printer Switching | 0/TBD | Not started | - |
+| 14. Multi-Printer Switching | 1/6 | In Progress|  |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 17. WebRTC Camera Streaming | 0/TBD | Not started | - |
