@@ -8,13 +8,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.ConnectionStore
 import works.mees.dinghy.config.MoonrakerDiscovery
+import works.mees.dinghy.config.Profile
+import works.mees.dinghy.config.ProfileStore
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.LastJob
@@ -54,6 +60,14 @@ class AppContainer(
     macroDataStore: DataStore<Preferences>,
     webcamDataStore: DataStore<Preferences>,
     /**
+     * The FIFTH, INDEPENDENT file: profiles.preferences_pb (MULTI-01, Phase 14). Backs the managed
+     * PROFILE SET + active-profile selection ([ProfileStore]) — the Phase-14 generalization of the
+     * single [ConnectionStore]. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore
+     * single-writer invariant) and injected here. Inserted before [discovery] so [discovery] stays the
+     * last (non-DataStore) ctor param.
+     */
+    profileDataStore: DataStore<Preferences>,
+    /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
      * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
@@ -67,6 +81,35 @@ class AppContainer(
 
     /** Connection persistence (CONN-01) — the SEPARATE connection.preferences_pb-backed store. */
     val connectionStore: ConnectionStore = ConnectionStore(connectionDataStore)
+
+    /**
+     * Managed-profile persistence (MULTI-01, Phase 14) — the profiles.preferences_pb-backed store of the
+     * printer SET + active-profile id, the Phase-14 generalization of [connectionStore]. The source of
+     * [activeProfile] / [activeConfig] below and the per-profile theme re-seed (D-08). The single
+     * [connectionStore] field is left in place (D-07 — dead but retained until the phase is verified).
+     */
+    val profileStore: ProfileStore = ProfileStore(profileDataStore)
+
+    /**
+     * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
+     * A PURE pick: combine the sanitized profile set with the writer-owned active-id and pick by id
+     * (RESEARCH Pattern 2). The D-12 auto-pick on delete lives in the [ProfileStore] writer, NOT here —
+     * a dangling id resolves cleanly to null → the Connect prompt (D-11/D-12).
+     */
+    val activeProfile: Flow<Profile?> =
+        combine(profileStore.profiles, profileStore.activeId) { list, id ->
+            list.firstOrNull { it.id == id }
+        }
+
+    /**
+     * The active profile's connection projection (host/port/apiKey ONLY) — the value the service rebind
+     * seam consumes. The [distinctUntilChanged] is LOAD-BEARING (RESEARCH Pitfall 1 / T-14-04): a
+     * name-only or theme-only edit on the active profile yields a STRUCTURALLY-EQUAL [ConnectionConfig]
+     * (data-class equality over host/port/apiKey), so it is suppressed and does NOT churn the spine — no
+     * spurious reconnect Splash. A host/port/key change DOES re-emit, driving exactly one rebind.
+     */
+    val activeConfig: Flow<ConnectionConfig?> =
+        activeProfile.map { it?.toConnectionConfig() }.distinctUntilChanged()
 
     /**
      * Macro visibility persistence (MACRO-03 / 08-07 B1) — the SEPARATE macros.preferences_pb-backed
@@ -186,8 +229,12 @@ class AppContainer(
     /** The current session's REST base for thumbnail URLs; "" when idle (260601-sip Inc 2). */
     val httpBase: Flow<String> = spine.map { it?.httpBase ?: "" }
 
-    /** True once a usable persisted connection exists (drives routing off the Connect prompt, D-11). */
-    val hasConfig: Flow<Boolean> = connectionStore.config.map { it != null }
+    /**
+     * True once there is an ACTIVE PROFILE (D-11 generalization of "has a usable persisted connection"):
+     * 0 profiles (or a dangling active-id) → false → the existing Connect prompt; ≥1 with an active id →
+     * true → the Shell. Derived off [activeConfig] so it shares the same null-when-idle semantics.
+     */
+    val hasConfig: Flow<Boolean> = activeConfig.map { it != null }
 
     // ---- SessionControl (review #1) ----------------------------------------------------------------
 
@@ -218,14 +265,22 @@ class AppContainer(
     }
 
     /**
-     * Seed the resolver once from persisted theme prefs (mirrors GalleryActivity's seed). Call from the
-     * Application on a long-lived scope; the first emission applies (base, deltas, fs) in one re-emit.
+     * Re-seed the resolver per ACTIVE PROFILE (D-08, RESEARCH Pattern 3). Each time the active profile
+     * changes, apply ITS persisted theme triple `(base, deltas, fs)` in ONE [ThemeResolver.apply] call
+     * (one re-emit — no 3-call flicker, no stale theme). When there is NO active profile (idle/Connect
+     * prompt), fall back to the GLOBAL [themePrefs] (which is ALSO the new-profile default look) and
+     * finally [ThemePrefs.DEFAULT]. [themePrefs] is therefore RETAINED — it is the no-active-profile idle
+     * theme + the new-profile seed, not dead code. Call from the Application on a long-lived scope.
      */
     fun seedTheme(scope: CoroutineScope) {
         scope.launch {
-            themePrefs.flow.collect { resolved ->
-                themeResolver.apply(resolved.base, resolved.deltas, resolved.fs)
-            }
+            activeProfile
+                .flatMapLatest { p ->
+                    flowOf(p?.toThemeResolved() ?: themePrefs.flow.firstOrNull() ?: ThemePrefs.DEFAULT)
+                }
+                .collect { resolved ->
+                    themeResolver.apply(resolved.base, resolved.deltas, resolved.fs)
+                }
         }
     }
 }

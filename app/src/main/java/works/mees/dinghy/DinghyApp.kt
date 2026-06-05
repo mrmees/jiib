@@ -62,12 +62,23 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("webcam.preferences_pb") },
         )
+        // A FIFTH, INDEPENDENT file: profiles.preferences_pb (MULTI-01, Phase 14). It DOES carry the
+        // per-profile API key, so it inherits the same redaction discipline as connection.preferences_pb
+        // (Profile/PersistedProfile.toString() mask the key). Kept on its own file/lifecycle per the
+        // separate-file discipline — it backs the managed profile SET + active-profile id (ProfileStore),
+        // the Phase-14 generalization of the single connection store. Created ONCE here (the single-writer
+        // invariant DataStore needs — RESEARCH Pitfall 3) and never elsewhere.
+        val profileDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("profiles.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
             connectionDataStore = connectionDataStore,
             macroDataStore = macroDataStore,
             webcamDataStore = webcamDataStore,
+            profileDataStore = profileDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.
