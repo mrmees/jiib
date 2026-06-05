@@ -563,7 +563,7 @@ Plans:
 
 **Goal**: Turn the single hardcoded-via-config connection into a managed set of printer profiles, so a user with more than one Klipper machine (the dev's own Ender 5 Plus + Ender 3 Pro) can register each printer once and switch the active connection without re-entering host/port/key. The foreground service rebinds the Moonraker spine to the selected profile; capability detection, the command registry, and every screen follow the active printer. Placed FIRST in the new block because it is cross-cutting — building the later new per-printer surfaces (fine-tune, output controls, webcam, system info) multi-printer-aware up front beats retrofitting them.
 **Depends on**: Phase 13 (connection/state spine + foreground service + Settings/DataStore)
-**Requirements**: *(new MULTI-* family — defined at phase discuss)*
+**Requirements**: MULTI-01
 **Success Criteria** (what must be TRUE):
 
   1. User can save multiple printer profiles (name + host/port/API key) in Settings, persisted via DataStore, and choose which is active
@@ -571,9 +571,32 @@ Plans:
   3. An active-printer indicator/switcher is reachable from the shell (e.g. the App Drawer), and the choice survives app restart and process death
   4. Proven live by switching between the real Ender 5 Plus and Ender 3 Pro and driving each (connect → monitor → a control action) without re-entering connection details
 
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+
+**Wave 0**
+
+- [ ] 14-01-PLAN.md — Profile/PersistedProfile model + ProfileStore (mirror ConnectionStore verbatim; UUID identity D-05, redacting toString V7, D-12 auto-pick in the delete writer) + 4 Wave-0 RED test scaffolds (compile day-one)
+
+**Wave 1** *(blocked on Wave 0)*
+
+- [ ] 14-02-PLAN.md — AppContainer active-config derivation (combine→pick→map→distinctUntilChanged, the load-bearing no-churn guard) + per-printer theme re-seed (D-08) + hasConfig→"has active profile" + DinghyApp profiles.preferences_pb DataStore + the ONE-line MoonrakerService config-source swap
+
+**Wave 2** *(blocked on Wave 1; parallel — disjoint files)*
+
+- [ ] 14-03-PLAN.md — Webcam pref re-key host→profileId (D-06, both touch points: WebcamPrefs + WebcamHolder caller) + Dest.Devices route enum
+- [ ] 14-04-PLAN.md — Settings restructure: Connection→profile list CRUD (add/edit, D-13) + delete behind ConfirmGuard (D-14) + Appearance section retargeted to the active profile's theme (D-09)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 14-05-PLAN.md — New DevicesScreen switcher (field-of-printers, tap=setActive→seam rebind, no confirm D-02) + Devices drawer tile LIVE + active-name subtitle (D-01/D-03) + AppShell host/swipe-suppress + thread active profile id into the webcam holder
+
+**Wave 4** *(blocked on Wave 3; on-device gate)*
+
+- [ ] 14-06-PLAN.md — Fill the instrumented ProfileSurvivesRestartTest (real DataStore cold re-read) + the BLOCKING live two-printer hands-on UAT on flox + live E5/E3 (SC-4)
+
 **UI hint**: yes
-**Research note**: STANDARD — reuses the Phase-2 spine + Phase-4 service/Settings/DataStore; the work is profile management + a clean spine rebind, not new protocol.
+**Research note**: STANDARD — reuses the Phase-2 spine + Phase-4 service/Settings/DataStore; the work is profile management + a clean spine rebind, not new protocol. The one net-new wrinkle is per-printer theme re-seeding (D-08), which reuses ThemeResolver.apply.
 
 ### Phase 15: Fine-Tune / Live-Adjust Panel
 
