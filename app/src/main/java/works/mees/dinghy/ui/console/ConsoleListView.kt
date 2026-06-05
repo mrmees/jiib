@@ -46,6 +46,7 @@ fun ConsoleListView(
         normal = t.text.toArgb(),
         success = t.go.toArgb(),
         dimmed = t.text3.toArgb(),
+        fs = t.fs,
     )
     val adapter = remember { ConsoleRowsAdapter(scrollbackCap = ConsoleScrollback.DEFAULT_CAPACITY) }
     adapter.setPalette(palette)

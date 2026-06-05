@@ -9,6 +9,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.dinghy.R
+import works.mees.dinghy.theme.fsSp
 
 /**
  * The View-side severity color palette for console rows. The Composable resolves role tokens
@@ -28,6 +29,12 @@ data class ConsoleRowPalette(
     val normal: Int,
     val success: Int,
     val dimmed: Int,
+    /**
+     * The active S/M/L text-size multiplier (`ThemeTokens.fs`), bridged down so the View-side row text
+     * and its safety glyph honor `--fs` exactly like every Compose surface (WR-04 fix — the row was
+     * previously pinned at 14sp, below the 15sp floor and blind to the S/M/L setting).
+     */
+    val fs: Float,
 )
 
 /**
@@ -148,7 +155,8 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the same res/font the
         // Compose GeistMono FontFamily uses; falls back to platform monospace if unavailable.
         typeface = ResourcesCompat.getFont(context, R.font.geist_mono_medium) ?: Typeface.MONOSPACE
-        textSize = 14f
+        // 15sp floor as the unbound fallback; bind() rescales to the active --fs from the palette (WR-04).
+        textSize = 15f
         setTextIsSelectable(false)
     }
 
@@ -156,6 +164,9 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         text = displayText(line.rawMessage)
         val p = palette
         if (p != null) {
+            // Honor the active S/M/L --fs (WR-04): 15sp base * fs, matching fsSp() on Compose surfaces.
+            // The glyph below is sized off this scaled textSize, so it tracks --fs too.
+            textSize = fsSp(15f, p.fs)
             setBackgroundColor(p.background)
             setTextColor(
                 when (line.severity) {
