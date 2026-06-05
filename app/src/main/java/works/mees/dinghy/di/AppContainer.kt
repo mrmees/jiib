@@ -120,6 +120,16 @@ class AppContainer(
     }
 
     /**
+     * Atomically mutate the active profile's persisted fields (the Settings theme persists), durably and
+     * lost-update-safe (WR-01): the read-modify-write happens inside ProfileStore's single `edit`, so two
+     * fast Appearance taps don't each re-encode a stale snapshot and drop one change. Pass a field-level
+     * transform, e.g. `mutateActiveProfile { it.copy(themeBase = base.name) }`.
+     */
+    fun mutateActiveProfile(transform: (Profile) -> Profile) {
+        writeScope.launch { profileStore.mutateActive(transform) }
+    }
+
+    /**
      * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
      * A PURE pick: combine the sanitized profile set with the writer-owned active-id and pick by id
      * (RESEARCH Pattern 2). The D-12 auto-pick on delete lives in the [ProfileStore] writer, NOT here —

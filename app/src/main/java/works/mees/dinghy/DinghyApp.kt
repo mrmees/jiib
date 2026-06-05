@@ -17,10 +17,11 @@ import works.mees.dinghy.di.AppContainer
  * The process [Application] — the ONE owner of the [AppContainer] service-locator and the real
  * DataStore files (D-02, NO Hilt). Registered as `android:name=".DinghyApp"` (04-03 manifest).
  *
- * THREE SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
- * and `macros.preferences_pb`. Keeping the API-key-bearing connection store in its own file gives a
- * cleaner redaction boundary (T-04-01-I); the macro-prefs file is independent so bookmarks/revealHidden
- * settle on their own connection-independent lifecycle (08-07 B1). Each file is created ONCE here via
+ * FIVE SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
+ * `macros.preferences_pb`, `webcam.preferences_pb`, and (Phase-14) `profiles.preferences_pb`. Keeping the
+ * API-key-bearing stores (connection + profiles) in their own files gives a cleaner redaction boundary
+ * (T-04-01-I); the macro/webcam files are independent so their prefs settle on their own
+ * connection-independent lifecycle (08-07 B1 / 10-06 D-10). Each file is created ONCE here via
  * [PreferenceDataStoreFactory.create] (one instance per process — the single-writer invariant DataStore
  * needs) on its own IO-backed scope.
  */

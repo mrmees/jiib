@@ -97,6 +97,26 @@ class ProfileStore(
         }
     }
 
+    /**
+     * Atomically read-modify-write the ACTIVE profile in ONE `edit` (WR-01). [transform] runs against the
+     * CURRENT persisted active profile read INSIDE the edit block — NOT a stale caller-held composition
+     * snapshot — so rapid back-to-back single-field edits (e.g. two Appearance taps, base then accent) each
+     * compose on the LATEST value instead of both re-encoding the pre-tap profile and silently dropping one
+     * change (a classic lost update; the per-`edit` atomicity of a plain [upsert] does NOT save you when the
+     * stale full object is what gets written). A null/dangling active-id is a no-op; the active-id key is
+     * never touched. Used by the Settings theme persists (D-09).
+     */
+    suspend fun mutateActive(transform: (Profile) -> Profile) {
+        dataStore.edit { prefs ->
+            val list = decode(prefs[KEY_PROFILES])
+            val idx = list.indexOfFirst { it.id == prefs[KEY_ACTIVE_ID] }
+            if (idx < 0) return@edit
+            val next = list.toMutableList()
+                .also { it[idx] = transform(Profile.fromPersisted(list[idx])).toPersisted() }
+            prefs[KEY_PROFILES] = json.encodeToString(PROFILE_LIST_SERIALIZER, next)
+        }
+    }
+
     companion object {
         private val KEY_PROFILES = stringPreferencesKey("profiles")
         private val KEY_ACTIVE_ID = stringPreferencesKey("active_id")

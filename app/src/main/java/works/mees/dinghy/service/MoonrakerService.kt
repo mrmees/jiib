@@ -53,9 +53,11 @@ import java.util.concurrent.atomic.AtomicLong
  * (rotation), config change, and screen-off. It is STARTED, not bound — [onBind] returns null and all
  * app state is process-held in the [AppContainer] the Activity collects (D-02).
  *
- * ## Config-driven rebuild (D-03, review #6/#12)
- * The service collects [ConnectionStore.config][works.mees.dinghy.config.ConnectionStore.config] via
- * `collectLatest`. On every config emission it `cancelAndJoin()`s the prior session job BEFORE building
+ * ## Config-driven rebuild (D-03, review #6/#12; Phase-14 MULTI-01)
+ * The service collects [AppContainer.activeConfig] (the active PROFILE's connection projection,
+ * `distinctUntilChanged`) via `collectLatest` — the Phase-14 generalization of the single
+ * `ConnectionStore.config`, so a profile switch is just "activeConfig emits a different value" and the
+ * same loop does the teardown + atomic rebind. On every config emission it `cancelAndJoin()`s the prior session job BEFORE building
  * the new one (no socket/scope leak — the clean teardown seam), then either:
  *  - cfg == null → publishes an idle spine (`publishSpine(null)`) and shows a "set up printer" notice
  *    (review #12 — a cleared config idles the spine, no leaked connection); or

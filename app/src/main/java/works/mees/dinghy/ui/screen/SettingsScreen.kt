@@ -524,8 +524,9 @@ private fun persistBase(
     next: ThemeBase,
 ) {
     if (active != null) {
-        // Durable: persist the active profile's theme on the container scope (survives leaving Settings).
-        container.saveProfile(active.copy(themeBase = next.name))
+        // Durable + lost-update-safe (WR-01): atomic read-modify-write of just this field inside the
+        // store's single edit, so a fast base-then-accent tap pair doesn't drop one change.
+        container.mutateActiveProfile { it.copy(themeBase = next.name) }
     } else {
         scope.launch { container.themePrefs.setBase(next) }
     }
@@ -539,7 +540,7 @@ private fun persistFs(
     next: FontScale,
 ) {
     if (active != null) {
-        container.saveProfile(active.copy(fsChoice = next.name))
+        container.mutateActiveProfile { it.copy(fsChoice = next.name) }
     } else {
         scope.launch { container.themePrefs.setFs(next) }
     }
@@ -556,7 +557,7 @@ private fun persistDeltas(
     delta: TokenDelta,
 ) {
     if (active != null) {
-        container.saveProfile(active.copy(themeDeltaArgb = delta.toPersistedArgb()))
+        container.mutateActiveProfile { it.copy(themeDeltaArgb = delta.toPersistedArgb()) }
     } else {
         scope.launch { container.themePrefs.setDeltas(delta) }
     }
