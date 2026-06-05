@@ -349,14 +349,15 @@ private fun JogCell(
 
 /**
  * A home button cell (MOVE-02): a Material-Symbol home-state icon — `in_home_mode` when [homed],
- * `wifi_home` when it still needs homing (green/amber status-as-color). Used for BOTH the center XY
- * home and the Z home (D-redesign 2026-06-01); tapping issues the home command.
+ * `wifi_home` when it still needs homing (green/amber status-as-color). The outline wears the XY-plane
+ * directional color ([ThemeTokens.directional]`.xy`) so the XY home reads as part of the XY group; the
+ * icon color is the ONLY state carrier (go/heat). Tapping issues the home command.
  */
 @Composable
 private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     PadCell(
-        outline = if (disabled) t.hair else t.accentLine,
+        outline = if (disabled) t.hair else t.directional.xy,
         onClick = onHome,
         disabled = disabled,
         modifier = modifier,
@@ -514,10 +515,12 @@ private fun ZRow(
         // Force-move mode lifts the homed gate (its purpose); otherwise Z jog needs Z homed.
         val disabled = "jog_Z" in inFlight || (!forceMove && !zHomed)
         JogTall("expand", { onJogZ(distance) }, disabled, forceMove, Modifier.weight(1f))
-        // Center: the Z HOME button, filling the tall row height (not the square PadCell).
+        // Center: the Z HOME button, filling the tall row height (not the square PadCell). The outline
+        // wears the Z-plane directional color (t.directional.z) so the Z home reads as part of the Z
+        // group, matching the JogTall arrows; the icon color is the ONLY state carrier (go/heat).
         val homeDisabled = "home_Z" in inFlight
         var homeBox = Modifier.weight(1f).fillMaxSize().clip(shape)
-            .border(BorderStroke(2.dp, if (homeDisabled) t.hair else t.accentLine), shape)
+            .border(BorderStroke(2.dp, if (homeDisabled) t.hair else t.directional.z), shape)
         if (!homeDisabled) homeBox = homeBox.clickable(onClick = onHomeZ)
         Box(homeBox, contentAlignment = Alignment.Center) {
             MaterialSymbol(
