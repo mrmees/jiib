@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "oracle": "tools/oklch-ramp-oracle.mjs",
+    "command": "node tools/oklch-ramp-oracle.mjs",
+    "controlPoints": {
+      "low": {
+        "L": 0.45,
+        "C": 0.12,
+        "H": 255
+      },
+      "mid": {
+        "L": 0.65,
+        "C": 0.13,
+        "H": 150
+      },
+      "high": {
+        "L": 0.85,
+        "C": 0.15,
+        "H": 95
+      }
+    },
+    "stops": 32,
+    "midIndex": 15,
+    "interpolation": "piecewise-linear in OKLCH, two segments split at midIndex (low->mid over stops 0..15, mid->high over stops 15..31); hue along shorter arc per segment; L and C linear",
+    "hexFormat": "#rrggbb",
+    "endpointsInclusive": true
+  },
+  "ramp": [
+    "#1f5596",
+    "#095c98",
+    "#006395",
+    "#006991",
+    "#006e8f",
+    "#00748d",
+    "#00798c",
+    "#007f8a",
+    "#008488",
+    "#008986",
+    "#008f83",
+    "#00947f",
+    "#009a79",
+    "#149f72",
+    "#35a26b",
+    "#4ca563",
+    "#57a861",
+    "#61ab5e",
+    "#6cae5c",
+    "#76b159",
+    "#80b457",
+    "#8ab754",
+    "#94b951",
+    "#9ebc4f",
+    "#a8be4c",
+    "#b2c04a",
+    "#bcc349",
+    "#c6c547",
+    "#d0c746",
+    "#d9c846",
+    "#e3ca47",
+    "#edcc48"
+  ]
+}
