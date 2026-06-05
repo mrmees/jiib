@@ -585,7 +585,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1; parallel — disjoint files)*
 
 - [x] 14-03-PLAN.md — Webcam pref re-key host→profileId (D-06, both touch points: WebcamPrefs + WebcamHolder caller) + Dest.Devices route enum
-- [ ] 14-04-PLAN.md — Settings restructure: Connection→profile list CRUD (add/edit, D-13) + delete behind ConfirmGuard (D-14) + Appearance section retargeted to the active profile's theme (D-09)
+- [x] 14-04-PLAN.md — Settings restructure: Connection→profile list CRUD (add/edit, D-13) + delete behind ConfirmGuard (D-14) + Appearance section retargeted to the active profile's theme (D-09)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -753,7 +753,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
-| 14. Multi-Printer Switching | 3/6 | In Progress|  |
+| 14. Multi-Printer Switching | 4/6 | In Progress|  |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 17. WebRTC Camera Streaming | 0/TBD | Not started | - |

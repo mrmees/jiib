@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T01:41:09.747Z"
+last_updated: "2026-06-05T01:48:09.716Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 23
   completed_phases: 13
   total_plans: 93
-  completed_plans: 90
+  completed_plans: 91
   percent: 57
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 14 (multi-printer-switching) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
   → **Phase 12 (Macro Prompt Protocol) COMPLETE 2026-06-04** — 5/5 plans. Final plan 12-05 wired PromptEngine + PromptDialog into AppShell (per-session remember(store); overlay hoisted over any screen; content→flattenContentButtons()[i] @ buttonKey, footer→footer_buttons[i] @ the SEPARATE footerKey namespace, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + prompt_end BackHandler suppressed while visible) + documented the D-03 author-hex carve-out in the UI LAW. **On-device UAT 4/4 PASS on flox + live E3** (E5 was MCU-down: `mcu 'EBBCan': Unable to connect`) via a NOVEL method — streamed `RESPOND TYPE=command MSG=action:prompt_*` to `/printer/gcode/script`, Moonraker's `notify_gcode_response` broadcast drove the overlay, and EVERY tap was cross-checked against `/server/gcode_store` for objective server-side evidence (directly answering the recurring mock-vs-reality concern). Gates: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place; SC-3 close prompt_end echo round-trip; D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission); SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. ONE caveat carried: the large-image OOM brute-force was not run (test PNG ~2KB; guards stay code-reasoned). PROMPT-01/02/03/04 closed. Next: phase verification (orchestrator).
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
@@ -154,6 +154,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 14 P01 | 20 | 2 tasks | 6 files |
 | Phase 14 P02 | ~3min | 2 tasks | 5 files |
 | Phase 14 P03 | 6min | 2 tasks | 7 files |
+| Phase 14 P04 | 12 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -304,7 +305,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T01:40:32.187Z
+Last session: 2026-06-05T01:48:09.646Z
 Stopped at: Phase 14 UI-SPEC approved
 Resume file: 
 None
