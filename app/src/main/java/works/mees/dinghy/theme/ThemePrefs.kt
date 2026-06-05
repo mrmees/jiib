@@ -131,7 +131,9 @@ class ThemePrefs(
         const val DEFAULT_MAX_ITEMS: Int = 4
         private val VALID_MODES = setOf("Colorful", "Simple", "HighContrast")
         private val HEX_SEED = Regex("^#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$")
-        private val SHIFT_RANGE = 0..360
+        // WR-04: 0..359, not 0..360 — a shift of 360 wraps to 0 (`(seedH + shift) % 360`), so 360 is a
+        // duplicate of 0. Bound the validation to the 360 meaningfully-distinct hue rotations.
+        private val SHIFT_RANGE = 0..359
         private val MAX_ITEMS_RANGE = 1..64
 
         /** The fail-safe default TUPLE: default seed, dark, Colorful, no shift, 4 items, no overrides, M fs. */

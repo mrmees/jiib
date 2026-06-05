@@ -225,7 +225,8 @@ fun ThemeEditorScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedControl(
                 label = "Randomize",
-                onClick = { container.setActiveShift(hasActive, Random.nextInt(0, 361)) },
+                // WR-04: exclusive upper bound → [0,359], matching SHIFT_RANGE (360 ≡ 0 is a duplicate hue).
+                onClick = { container.setActiveShift(hasActive, Random.nextInt(0, 360)) },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Warn, // an unexpected live palette change — proceed-at-peril (amber).
             )
