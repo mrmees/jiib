@@ -57,6 +57,7 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.seriesColor
 
 /** The fixed shared graph Y-range (°C) — 0..350 covers the [PrinterCommands] setHeater clamp ceiling. */
 private val Y_RANGE = 0f..350f
@@ -444,14 +445,15 @@ private fun PresetSelector(
 }
 
 /**
- * Trace color = the contrast-ranked data [pool][ThemeTokens.pool] at the sensor's canonical index
- * (15-07, D-13/D-14): `pool[index % pool.size]`. This index MUST equal the GraphView trace index and
- * the Print-Status heater-readout index so the SAME sensor wears the SAME color everywhere (stable
- * identity). Retired the old heat/accent/violet switch — heater identity is the pool, not `heat`
- * (which is now caution-only).
+ * Trace color = the accent-led N-series rule [seriesColor][ThemeTokens.seriesColor] at the sensor's
+ * canonical index (D-05/D-06): `t.seriesColor(index)`. trace 0 (nozzle) = ACCENT in every palette mode,
+ * trace 1 = pool[0] (bed), trace 2 = pool[1] (chamber), wrapping infinitely past the pool (D-09). This
+ * index MUST equal the GraphView trace index and the Print-Status nozzle-readout index so the SAME
+ * sensor wears the SAME color everywhere (cross-screen identity — the legend row directly under the
+ * GraphView line shares its hue). D-06 supersession of the Phase-15-07 D-13/D-14 `pool[index % size]`
+ * binding — the lead trace is now accent, not pool[0]. `seriesColor` carries its own empty-pool guard.
  */
-private fun traceColor(index: Int, t: ThemeTokens): Color =
-    if (t.pool.isNotEmpty()) t.pool[index % t.pool.size] else t.accent // CR-02: guard empty pool (no div-by-zero)
+private fun traceColor(index: Int, t: ThemeTokens): Color = t.seriesColor(index)
 
 /**
  * Per-sensor scrubber ceiling (°C). Bed-class heaters top out far lower than a nozzle, so the scrubber

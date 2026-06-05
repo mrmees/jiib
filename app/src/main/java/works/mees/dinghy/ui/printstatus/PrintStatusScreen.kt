@@ -75,6 +75,7 @@ import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.seriesColor
 
 /**
  * The Print Status home (SHELL-04) — the primary monitor surface (≈90% of interaction). Built on
@@ -459,15 +460,14 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
             )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Heater READOUTS read the contrast-ranked data pool at the SAME canonical index as the
-            // GraphView trace / Temperature readout (15-07, D-13/D-14): nozzle = pool[0], bed = pool[1]
-            // (% size wrap). Stable identity — same sensor = same color everywhere. NOT `t.heat`
-            // (which is now caution-only); heater identity is the pool.
-            // CR-02: guard an empty pool — `i % pool.size` divides by zero on a zero-length pool. The baked
-            // fallback always has 3 slots so this never fires today, but a manually-built ThemeTokens could;
-            // fall back to accent rather than crash the printer surface.
-            val nozzleColor = if (t.pool.isNotEmpty()) t.pool[0 % t.pool.size] else t.accent
-            val bedColor = if (t.pool.isNotEmpty()) t.pool[1 % t.pool.size] else t.accent
+            // Heater READOUTS read the accent-led N-series rule at the SAME canonical index as the
+            // GraphView trace / Temperature legend (D-05/D-06): nozzle = seriesColor(0) = ACCENT (in all
+            // modes), bed = seriesColor(1) = pool[0]. Cross-screen identity — same sensor = same color
+            // everywhere; the nozzle readout shares one hue with the GraphView trace 0 and the Temperature
+            // legend trace-0. D-06 supersession of the Phase-15-07 `nozzle = pool[0]` binding — the nozzle
+            // is now accent, not pool[0]. NOT `t.heat` (now caution-only); `seriesColor` guards empty pool.
+            val nozzleColor = t.seriesColor(0)
+            val bedColor = t.seriesColor(1)
             IconTwoRowCell(
                 icon = { sp -> DrawableIcon(R.drawable.nozzle, nozzleColor, sp) },
                 active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = nozzleColor,
@@ -836,7 +836,15 @@ private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier
             .combinedClickable(onClick = onTap, onLongClick = onHold),
         contentAlignment = Alignment.Center,
     ) {
-        MaterialSymbol("crisis_alert", tint = t.stop, sizeSp = fsSp(32f, t.fs))
+        // D-01/D-02: the octagon stop-status silhouette (a redundant non-color cue for the stop state).
+        // Explicit fsSp-scaled size — do NOT rely on the 96dp intrinsic. [[dinghy-font-sizes-too-small]]:
+        // the glyph tracks adjacent control text via fsSp(baseSp, t.fs).
+        Icon(
+            painter = painterResource(R.drawable.ic_status_octagon),
+            contentDescription = "stop",
+            tint = t.stop,
+            modifier = Modifier.size(fsSp(32f, t.fs).dp),
+        )
     }
 }
 
