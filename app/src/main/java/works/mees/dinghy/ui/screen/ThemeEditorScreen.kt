@@ -1,0 +1,411 @@
+package works.mees.dinghy.ui.screen
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.designsystem.ColorWheel
+import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.fsSp
+import kotlin.random.Random
+
+/**
+ * The pushed theme-editor sub-page (D-06…D-10) — the one screen with no mockup, authored against
+ * `docs/ui_design/` LAW (FFG-exempt, like Settings): a plain token-themed `Column.verticalScroll`.
+ * It is reached from BOTH Settings entry paths because [SettingsScreen] OWNS the open-state and renders
+ * this when open (so the AppShell `Dest.Settings` route AND the RootController first-run/escape render
+ * both reach it — there is no AppShell-level editor flag).
+ *
+ * ## Sections (top→bottom, 15-UI-SPEC §"New surface")
+ *  1. **Seed color** — the [ColorWheel] (settle-regen): `onSettle` → [AppContainer.setActiveSeed].
+ *  2. **Presets** — curated preset seed swatches; tap lands a seed (settle semantics); active = accent ring.
+ *  3. **Preview** — the generated swatch strip (accent · pool[0..n] · status), each its actual color.
+ *  4. **Pool colors** — the per-slot data-pool override grid (D-09); tap → a hue picker → setActiveOverride.
+ *  5. **Actions** — Randomize (amber Warn) · Reset (red Danger, ConfirmGuard) · Done (green Go).
+ *
+ * ## Durable writes (T-15-06-02, [[dinghy-compose-write-scope-cancellation]])
+ * EVERY theme write routes through the [AppContainer] intent helpers (writeScope + mutateActiveProfile,
+ * or the global idle theme) — NEVER a `rememberCoroutineScope()`. A reseed must not churn the connection
+ * spine (theme is excluded from ConnectionConfig, 15-05).
+ *
+ * ## Carve-outs (precedented)
+ * The wheel/handle, the preset seed swatches, the preview strip, and the pool-override swatches render
+ * their LITERAL generated/seed/overridden color (theme DATA being previewed — like AccentSwatch / the
+ * Spoolman spool-color border / the PromptMarkup author-hex). ALL chrome routes through [LocalTokens].
+ *
+ * @param container the process-scoped service-locator (constructs nothing here).
+ * @param onBack invoked when the user exits the editor (Done/Back) — the screen owner pops to the hub.
+ */
+@Composable
+fun ThemeEditorScreen(
+    container: AppContainer,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    // Whether a profile is active drives the durable write TARGET (active profile vs global idle theme).
+    val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
+    val hasActive = activeProfile != null
+
+    // The hue the wheel handle shows. Seeded from the live seed; tracks the finger mid-drag (cheap), and
+    // commits on settle. The settle write rethemes the whole app (the editor sits inside DinghyTheme).
+    var hue by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(activeProfile?.id) {
+        hue = seedHexToHue(activeProfile?.seedHex)
+    }
+
+    // The Reset confirm guard (D-09) — hoisted over the whole editor, mirrors the Settings delete guard.
+    var pendingReset by remember { mutableStateOf(false) }
+    // The pool slot whose override picker is open (null = none). The picker reuses the ColorWheel.
+    var editingSlot by remember { mutableStateOf<Int?>(null) }
+
+    if (pendingReset) {
+        ConfirmGuard(
+            title = "Reset theme?",
+            message = "This clears your custom pool colors and randomize back to the default.",
+            confirmLabel = "Reset",
+            cancelLabel = "Keep",
+            onConfirm = {
+                container.resetActiveTheme(hasActive)
+                pendingReset = false
+            },
+            onCancel = { pendingReset = false },
+            destructive = true,
+        )
+        return
+    }
+
+    // Per-slot override picker — a full-screen hue wheel that writes ONE pool slot on settle (D-09).
+    val slot = editingSlot
+    if (slot != null) {
+        var slotHue by remember(slot) { mutableFloatStateOf(0f) }
+        Column(
+            modifier
+                .fillMaxSize()
+                .background(t.bg)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            ScreenTitle("Pool color ${slot + 1}")
+            SectionLabel("Pick a color")
+            ColorWheel(
+                hue = slotHue,
+                onHandleMove = { slotHue = it },
+                onSettle = { settled ->
+                    container.setActiveOverride(hasActive, slot, hueToArgbLong(settled))
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(
+                    label = "Clear",
+                    onClick = {
+                        container.setActiveOverride(hasActive, slot, null)
+                        editingSlot = null
+                    },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Warn,
+                )
+                OutlinedControl(
+                    label = "Done",
+                    onClick = { editingSlot = null },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Go,
+                )
+            }
+            Box(Modifier.height(24.dp))
+        }
+        return
+    }
+
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(t.bg)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        ScreenTitle("Edit theme")
+
+        // ---- 1. SEED COLOR — the wheel (settle-regen, D-07) ----------------------------------------
+        SectionLabel("Seed color")
+        SubLabel("Pick a color or tap a preset")
+        ColorWheel(
+            hue = hue,
+            onHandleMove = { hue = it }, // cheap: handle-only repaint, NO regen (D-07).
+            onSettle = { settled ->
+                hue = settled
+                container.setActiveSeed(hasActive, hueToHex(settled)) // regen + retheme + persist ONCE.
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // ---- 2. PRESETS — curated seed swatches (tap lands seed) ------------------------------------
+        SectionLabel("Presets")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (presetHex in PRESET_SEEDS) {
+                val presetHue = seedHexToHue(presetHex)
+                SeedSwatch(
+                    fill = Color(parseHex(presetHex)),
+                    selected = approxSameHue(hue, presetHue),
+                    onClick = {
+                        hue = presetHue
+                        container.setActiveSeed(hasActive, presetHex)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // ---- 3. PREVIEW — the generated swatch strip (live; the carve-out) --------------------------
+        SectionLabel("Preview")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // accent + the first few pool colors + the three status colors, each its actual color.
+            DataSwatch(t.accent, Modifier.weight(1f))
+            for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
+            DataSwatch(t.stop, Modifier.weight(1f))
+            DataSwatch(t.heat, Modifier.weight(1f))
+            DataSwatch(t.go, Modifier.weight(1f))
+        }
+
+        // ---- 4. POOL COLORS — per-slot override grid (D-09) ----------------------------------------
+        SectionLabel("Pool colors")
+        SubLabel("Tap a color to customize")
+        val overrides = activeProfile?.poolOverrides ?: emptyMap()
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            t.pool.take(4).forEachIndexed { i, c ->
+                PoolSlotSwatch(
+                    fill = c,
+                    overridden = overrides.containsKey(i.toString()),
+                    onClick = { editingSlot = i },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // ---- 5. ACTIONS — Randomize / Reset / Done -------------------------------------------------
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedControl(
+                label = "Randomize",
+                onClick = { container.setActiveShift(hasActive, Random.nextInt(0, 361)) },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Warn, // an unexpected live palette change — proceed-at-peril (amber).
+            )
+            OutlinedControl(
+                label = "Reset",
+                onClick = { pendingReset = true },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Danger, // clears the user's overrides — destructive, guarded.
+            )
+        }
+        OutlinedControl(
+            label = "Done",
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
+            intent = Intent.Go, // backing out is non-destructive (changes already persisted live).
+        )
+
+        Box(Modifier.height(24.dp))
+    }
+}
+
+/** Curated preset seed swatches (D-06) — validated seeds covering the 90% case. Theme DATA (the seed being chosen). */
+private val PRESET_SEEDS: List<String> = listOf(
+    "#3f78ff", // signature blue (default)
+    "#22c3a6", // teal
+    "#8b5cf6", // violet
+    "#ff8a3d", // warm orange
+    "#e0457b", // magenta
+    "#34d399", // green
+)
+
+/** A preset seed swatch — renders its literal seed color (carve-out); the selection ring is chromed (THEME-01). */
+@Composable
+private fun SeedSwatch(
+    fill: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rPill)
+    Box(
+        modifier
+            .height(64.dp) // ≥64dp touch floor (UI-02).
+            .clip(shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(if (selected) 6.dp else 0.dp)
+                .clip(shape)
+                .background(fill),
+        )
+        if (selected) {
+            Box(Modifier.fillMaxSize().border(BorderStroke(3.dp, t.accentLine), shape))
+        }
+    }
+}
+
+/** A preview swatch — renders its actual generated color (carve-out). Display-only, no touch target. */
+@Composable
+private fun DataSwatch(fill: Color, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .height(40.dp)
+            .clip(shape)
+            .background(fill)
+            .border(BorderStroke(2.dp, t.outline), shape),
+    )
+}
+
+/** A per-slot pool override swatch (≥64dp, D-09) — its actual/overridden color; overridden = accent marker. */
+@Composable
+private fun PoolSlotSwatch(
+    fill: Color,
+    overridden: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .height(64.dp) // ≥64dp touch floor (UI-02).
+            .clip(shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(shape)
+                .background(fill)
+                .border(BorderStroke(2.dp, t.outline), shape),
+        )
+        if (overridden) {
+            // The override-applied marker — an accent dot (NOT a glyph that repeats elsewhere on screen).
+            Box(
+                Modifier
+                    .padding(6.dp)
+                    .size(14.dp)
+                    .clip(RoundedCornerShape(t.rPill))
+                    .background(t.accent),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScreenTitle(text: String) {
+    val t = LocalTokens.current
+    Text(
+        text = text,
+        color = t.text,
+        fontFamily = Geist,
+        fontWeight = FontWeight.Bold,
+        fontSize = fsSp(22f, t.fs).sp,
+    )
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    val t = LocalTokens.current
+    Text(
+        text = text,
+        color = t.text2,
+        fontFamily = Geist,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = fsSp(20f, t.fs).sp,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+@Composable
+private fun SubLabel(text: String) {
+    val t = LocalTokens.current
+    Text(
+        text = text,
+        color = t.text3,
+        fontFamily = Geist,
+        fontSize = fsSp(15f, t.fs).sp,
+    )
+}
+
+// ---- pure hue/hex helpers (host-trivial; the wheel picks HUE, the generator normalizes L/C) ----------
+
+/** Hue (0..360) → a vivid seed hex "#RRGGBB" (full sat/value; the generator cusp-normalizes L/C). */
+internal fun hueToHex(hue: Float): String {
+    val argb = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f).toArgb()
+    return "#%06X".format(argb and 0xFFFFFF)
+}
+
+/** Hue (0..360) → an opaque unsigned-32 ARGB Long (for a pool override). */
+internal fun hueToArgbLong(hue: Float): Long {
+    val argb = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f).toArgb()
+    return argb.toLong() and 0xFFFFFFFFL
+}
+
+/** Parse a "#RRGGBB"/"RRGGBB"(/+alpha) hex into an opaque ARGB Int; junk → opaque black (never throws). */
+internal fun parseHex(hex: String?): Int {
+    if (hex == null) return 0xFF000000.toInt()
+    val s = hex.removePrefix("#")
+    val rgb = s.take(6).toIntOrNull(16) ?: return 0xFF000000.toInt()
+    return 0xFF000000.toInt() or rgb
+}
+
+/** A seed hex → its hue (0..360) for positioning the wheel handle. Junk → 0. */
+internal fun seedHexToHue(hex: String?): Float {
+    val argb = parseHex(hex)
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(argb, hsv)
+    return hsv[0]
+}
+
+/** Two hues are "the same preset" within ~8°. */
+private fun approxSameHue(a: Float, b: Float): Boolean {
+    val d = kotlin.math.abs(((a - b + 540f) % 360f) - 180f)
+    return d <= 8f
+}
