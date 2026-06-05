@@ -649,7 +649,7 @@ Plans:
 **Goal**: Build the load-bearing semantic + safety half of the theme system that Phase 15 scoped out (engine-first), BEFORE the Home/Status redesign so every remaining surface is built against the final model. Deliver: shape-coded status (octagon=stop / triangle=caution / circle=go) + icon + position across every status signal so color is never the sole safety cue (COLOR-SYSTEM.md §7/§D — the load-bearing mechanism); status-from-pool visual recolor; High-Contrast mode's stoplight-RYG *status* rendering; resolve whether status slots are user-editable (open from Phase-15 D-09); the app-wide pool→role semantic assignment ("what gets assigned where"); the color-doctrine decisions D-5 (back-button color, one app-wide rule), D-6 (bed-mesh dedicated perceptually-uniform OKLCH sequential ramp — render/BedMeshHeatmapView.kt), D-8 (force-move toggle color); Move's homed/unhomed status-color + force-move lock-shape (the status/shape parts deferred from Phase 15); and reconcile/rewrite docs/ui_design/THEMING.md against the sibling ../theme_theory/COLOR-SYSTEM.md to canonicalize the new model (status no longer fixed RYG, surfaces pure-neutral, pool added). Source: 15-CONTEXT.md ⟨deferred⟩ + COLOR-SYSTEM.md.
 **Requirements**: *(refines THEME-* / UI-* — semantic + safety layer; finer set at discuss)*
 **Depends on:** Phase 15
-**Plans:** 3/8 plans executed
+**Plans:** 4/8 plans executed
 Plans:
 **Wave 1**
 
@@ -659,7 +659,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 15.1-04-PLAN.md — Wave 2: status-slot override persistence + TokenBridge application + fail-safe (D-03)
+- [x] 15.1-04-PLAN.md — Wave 2: status-slot override persistence + TokenBridge application + fail-safe (D-03)
 - [ ] 15.1-05-PLAN.md — Wave 2: GraphView N-series rewire + PrintStatus nozzle=accent (D-06) + Stop octagon glyph
 
 **Wave 3** *(blocked on Wave 2 completion)*

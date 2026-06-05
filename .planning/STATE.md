@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T20:29:34.310Z"
+last_updated: "2026-06-05T20:41:01.135Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 24
   completed_phases: 15
   total_plans: 108
-  completed_plans: 103
+  completed_plans: 104
   percent: 63
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15.1 (shape-coded-status-semantic-color) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
   → **Plan 15.1-03 (Wave 1: OKLCH bed-mesh ramp) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (commits `6f60f96` feat baker + `c17ff9f` feat rewire + `a4dd5b0` SUMMARY). Replaced `BedMeshHeatmapView`'s `accent→surface2→stop` sRGB red/green lerp with a dedicated host-pure **OKLCH sequential ramp** (`theme/OklchRamp.kt`, D-11) — a perceptually-uniform viridis blue(LOW)→teal→yellow(HIGH) kept deliberately OFF pure red/green so a tall spot reads as "tall," NOT "FAILED." The ramp is LOCKED to plan 15.1-01's golden fixture (`oklch-ramp-golden.json` `_meta`): THREE control points `low oklch(0.45 0.12 255)` → `mid oklch(0.65 0.13 150)` → `high oklch(0.85 0.15 95)`, 32 stops, piecewise-linear over two segments split at stop 15 (endpoints inclusive, hue along the shorter arc). The baker **delegates all OKLCH math to `Palette.oklchToHex`** (golden-tested OKLab matrices reused VERBATIM, never re-ported — avoids golden drift on the Nexus-7 floor); `OklchRampTest` turned GREEN bit-for-bit against the fixture (no epsilon), and the fixture is regenerated ONLY from the independent oracle `tools/oklch-ramp-oracle.mjs`, never from the Kotlin. API = a zero-arg `OklchRamp.bedMeshRampStops(): List<Int>` (chose over the inconsistent two-endpoint `bakeRamp(low, high, stops)` form). `BedMeshHeatmapView` rewired to **bake-once / read-cheap**: ramp baked into `private val rampStops` in `applyTokens`; `onDraw` is a pure baked-array index + `lerpArgb` — NO OKLCH math per cell per frame (Adreno-320 fill-rate floor, RESEARCH Pitfall 5; T-15.1-03-01 mitigated). The `t.stop`/`t.surface2`/`t.accent` ramp endpoints are GONE (negative grep clean); the `deviationToRamp`/`endpoints` scale-mode math + probe-dot overlay are UNCHANGED. **On-device flox UAT PASSED** (LineageOS API 30, genuine Adreno 320 — Matthew confirmed): the ramp reads as a height scale (viridis off red/green) with acceptable perf, satisfying the `autonomous:false` manual gate. 0 deviations. Next: **15.1-04** (status-override token bridge + remaining shape-coded-status work).
   → **Plan 15-07 (Wave 6: pool-wired data surfaces — the payoff) EXECUTED + COMPLETE & flox-UAT APPROVED 6/6 2026-06-05** (commits `9e0499a` refactor + `bcc7102` refactor + `9ec26b9` SUMMARY). The three real pool consumers are wired: **GraphView** traces → `pool[i % size]`, under-fill → `pool[0]` (the violet/heat/accent per-trace identities retired); **heater READOUTS by canonical sensor index** — `TemperatureScreen.traceColor` → `pool[index % size]`, `PrintStatusScreen` nozzle/bed/chamber cells → matching pool index (nozzle=`pool[0]`=`directional.temperature`, bed=`pool[1]`, chamber=`pool[2]`), so a sensor is the SAME color across graph/Print-Status/Temperature (same-sensor-same-color identity — heaters now read as heaters by color+label, NOT by amber); **Move** XY jog-pad (`JogCell`) outline → `directional.xy`, Z-row (`JogTall`) → `directional.z` (Home + active distance-step stay `accentLine`; homed/unhomed status color + force-move lock-shape DEFERRED to the shape-status follow-on). The **`@Deprecated violet` shim DELETED grep-clean** (`grep -rn "\.violet\|val violet"` returns nothing; stale KDoc dropped from BakedTokens too). **Heat-semantic split honored EXACTLY: raw `.heat` 66 → 61** — only the named heater-readout sites migrated; the ~26-file caution/Warn-intent `.heat` set (Console WARNING, ConfirmGuard, OutlinedControl, AppDrawer, Files, Spool, Prompt, Move's own 5 control uses, etc.) is UNTOUCHED (heat = caution). `MAX_TRACES=3` unchanged; consumers wrap `pool[i % size]` so the cap can't crash a draw (T-15-07-01). **On-device flox UAT APPROVED 6/6** (live printer): (1) traces visually distinct; (2) same-sensor-same-color across graph/Print-Status/Temperature; (3) reseed stability; (4) palette modes Simple-mono / High-Contrast-stoplight / Colorful-full-pool; (5) Move directional outlines "looks good for now"; (6) pure-neutral + caution intact "looks decent". 0 deviations. **OPEN/DEFERRED (noted, NOT implemented):** owner flagged a future user-guided whole-app conformance pass once the theme framework is fully done — that is the already-planned conformance sweep in the **theming follow-on phase + Ship**, not new scope. Phase-15 execution COMPLETE (7/7); orchestrator runs phase verification next (do NOT mark the phase complete here).
@@ -175,6 +175,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15.1 P01 | 3 | 2 tasks | 7 files |
 | Phase 15.1 P02 | 6 | 2 tasks | 5 files |
 | Phase 15.1 P15.1-03 | 11 | 2 tasks | 3 files |
+| Phase 15.1 P15.1-04 | 12min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -313,6 +314,7 @@ Recent decisions affecting current work:
 - [Phase 15.1]: PaletteMode carried as a resolved enum on ThemeTokens (default Colorful); seriesColor is a pure read; MODE_-to-enum mapping in one place (PaletteMode.fromFlags at TokenBridge.build)
 - [Phase 15.1]: D-07 Directional re-derived accent-led (temperature=accent, xy=pool[0], z=pool[1]) from the resolved post-override pool in TokenBridge.build; negative seriesColor index rejected via require
 - [Phase ?]: 15.1-03: bed-mesh heatmap now uses a host-pure OKLCH viridis ramp (blue to teal to yellow, off red/green, D-11) baked once and read cheap; on-device flox UAT PASSED (reads as height, acceptable Adreno-320 perf, 0 deviations)
+- [Phase ?]: 15.1-04: status overrides ride the existing String-keyed poolOverrides wire map; typed split in sanitizeTuple (no Profile schema change). Mode-gated — applied in Colorful only, Simple=text, High-Contrast=fixed RYG (D-03/D-04). Writes via writeScope.setActiveStatusOverride.
 
 ### Pending Todos
 
@@ -345,7 +347,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T19:50:58.331Z
+Last session: 2026-06-05T20:40:55.619Z
 Stopped at: Completed 15.1-02-PLAN.md
 Resume file: 
 None
