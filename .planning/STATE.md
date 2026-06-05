@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T14:29:28.115Z"
+last_updated: "2026-06-05T16:00:00.000Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 100
-  completed_plans: 98
-  percent: 64
+  completed_plans: 99
+  percent: 65
 ---
 
 # Project State
@@ -25,8 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15 (theme-system-settings-redesign) — EXECUTING
-Plan: 6 of 7
-Status: Ready to execute
+Plan: 7 of 7
+Status: Ready to execute (15-06 COMPLETE + flox-UAT APPROVED; 15-07 remains)
+  → **Plan 15-06 (Wave 5: Settings hybrid hub + theme-editor sub-page) EXECUTED + COMPLETE & flox-UAT APPROVED 2026-06-05** (commits `2c410b9` feat + `3e86a88` refactor + `58abf8b` SUMMARY). Built the hybrid Settings hub (Printers · Connection · Appearance · Feature toggles · System — accent picker REMOVED; palette-mode chip row Colorful/Simple/High-contrast + an "Edit theme…" forward-entry; greyed Coming-soon for Output/WebRTC/Fine-tune; System=version+build only, D-10/11/12/15) + a pushed `ThemeEditorScreen` (color wheel + preset swatches + generated-swatch-strip preview + per-slot pool-override grid + Randomize(Warn)/Reset(Danger,ConfirmGuard)/Done(Go), D-06/08/09) + `ColorWheel.kt` — a Compose Canvas hue-ring with ONE awaitEachGesture, cached `sweepGradient`, `onHandleMove` repaint-only + `onSettle` single regen-on-pointer-up (D-07, Adreno-320 budget). **Editor open-state OWNED inside SettingsScreen** (rememberSaveable+BackHandler) so BOTH the AppShell Dest.Settings route AND the RootController first-run/escape render reach it (T-15-06-04). **D-04 two-step retirement COMPLETE:** TokenDelta/Role/setBase/setDeltas + the top-level resolve() shim DELETED from ThemeResolver; Profile.themeBase/themeDeltaArgb + toThemeResolved DELETED; ThemePrefs.Resolved/sanitize legacy keys DELETED; GalleryScreen re-pointed to setDark/setSeed; tests reworked; full `:app:testDebugUnitTest` GREEN + `:app:assembleDebug` OK; zero LIVE references to the retired symbols remain (the only residual hits are KDoc + a deliberate JSON-fixture fresh-start decode guard). **On-device flox UAT APPROVED after 4 fixes** (Nth mock-vs-reality strike — green suite passed, real device caught all four): F1 redundant Printers section removed (Devices owns CRUD); F2 wheel hue rotated 90° to match the engine's generated color ("wheel color matches now"); F3 wheel given layout breathing room + scroll buffer ("enough space to scroll around it"); F4 Appearance made palette-mode-reactive (visible retheme per mode). Step-8 first-run/escape path confirmed live ("killed wifi, got to connection settings, edit theme button is available"). **TWO design items DEFERRED by owner to the follow-on theming/conformance phase** (tracked todos at `17d90f1`, NOT implemented in 15-06): (1) Settings-vs-Devices boundary / possible "printer settings page" reframe — `.planning/todos/pending/2026-06-05-settings-vs-devices-boundary.md`; (2) pool-color semantic-role assignment policy — `.planning/todos/pending/2026-06-05-pool-color-semantic-assignment.md`. Next: **15-07** (the final phase-15 plan).
   → **ROADMAP REORDERED + RENUMBERED 2026-06-05 (design-foundation-first; 22 → 21 phases):** with Phase 14 done, Matthew resequenced the back half so the visual foundation is locked before the remaining feature surfaces (avoid-future-rework). Old Settings-Redesign (20) + Final-Conformance (21) MERGED → new **Phase 15 Theme System & Settings Redesign** (pulled to FRONT — parallel-session theme work needs the new Settings UI to test against). Home redesign moved to **16** (foundation-first, before features). New run order = **15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. Old→new: 21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. Final conformance net folds a LIGHT late-surface sweep into Ship (21). PKG-01/03 remapped 22→21. Clean renumber was free — no future phase dirs existed yet. **Next: `/gsd-discuss-phase 15`.**
   → **Phase 14 (Multi-Printer Switching) COMPLETE & verified 2026-06-05** — 6/6 plans, gsd-verifier 9/9 must-haves, MULTI-01 validated. One open item: UAT item 4 mid-print switch (D-04) left OPEN by owner choice (tracked todo; 14-VERIFICATION human_needed).
   → **Phase 14 plan 14-06 (the binding gates) COMPLETE 2026-06-04** — Task 1 instrumented `ProfileSurvivesRestartTest` GREEN on flox (real DataStore cold re-read, active-id survives process death, SC-3; 1/0, `7bb52dc`). Task 2 binding live two-printer UAT on flox + live E5+ (192.168.1.120:7125) + E3 (192.168.1.121:7125): **5 PASS + 1 owner-deferred (item 4 mid-print switch, not blocking) + 0 FAIL → gate PASSED** (`14-UAT.md`). The headline SC-4 switch initially FAILED (intermittent revert to the old printer, ⚡ marker didn't move — logcat showed ~4 taps → only 1 rebind); root cause = every profile-persistence write ran on a `rememberCoroutineScope()` cancelled mid-write by the same-frame navigation, so the Nexus-7 slow flash lost the DataStore `.tmp→rename` race and silently dropped the active-id write → `activeConfig` never emitted → no spine rebind (Nth mock-vs-reality strike — green units + fast hardware hide it). FIX `781277f`: `AppContainer` owns a process-lifetime `writeScope` (SupervisorJob + Dispatchers.IO) + `setActiveProfile`/`saveProfile`/`deleteProfile`; all nav-racing UI write call-sites (DevicesScreen switch; Settings save/delete/clear-key/active-theme-persist) converted; mDNS scan + idle global-theme stay composition-scoped. Re-UAT PASS ("switch works as fast as I can navigate the screens to do it"). Phase 14 execution complete; **orchestrator runs phase verification next** (do NOT mark the phase complete here).
@@ -166,6 +167,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15 P03 | 9 | 2 tasks | 4 files |
 | Phase 15 P04 | 16 | 2 tasks | 4 files |
 | Phase 15 P05 | 14 | 2 tasks | 6 files |
+| Phase 15 P06 | live-uat-session | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -289,6 +291,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 15-02: Palette is a host-pure 1:1 port of color.js; 15-03 bridge consumes the internal hexToOklch/oklchToHex helpers (chose internal-exposure over moved tier-derivation). poolHues asserted via 1e-9 epsilon; rendered hexes/minHueGap exact.
 - [Phase ?]: [15-03] TokenBridge.build(gen,overrides,fs) is the SECOND sanctioned ThemeTokens producer — derives in-between tiers via Palette internal OKLCH helpers (lShift, no re-ported math), applies sparse pool overrides at-index (out-of-range dropped), pure-neutral surfaces (D-16); ThemeTokens extended pool[]/Directional; violet retired to @Deprecated shim (pool[2%size]) deleted in 15-07.
 - [Phase ?]: [15-04] ThemeResolver rewired to generate-and-cache (Palette.generate + TokenBridge.build) on the UNCHANGED StateFlow<ThemeTokens> boundary; old TokenDelta API kept as @Deprecated shims, deleted 15-06 (D-04 two-step)
+- [Phase 15]: [15-06] Settings is the hybrid hub (Printers·Connection·Appearance·Feature-toggles·System; accent picker GONE; palette-mode chip row + "Edit theme…" forward-entry; greyed Coming-soon; version-only System) + a pushed ThemeEditorScreen (wheel/presets/preview-strip/pool-override-grid/Randomize-Reset-Done). ColorWheel = Compose Canvas hue-ring, ONE awaitEachGesture, cached sweepGradient, onSettle-only regen (D-07, Adreno-320). Editor open-state OWNED in SettingsScreen (rememberSaveable+BackHandler) so BOTH the AppShell Dest.Settings route AND the RootController first-run/escape render reach it (T-15-06-04). D-04 two-step retirement COMPLETE: TokenDelta/Role/setBase/setDeltas + top-level resolve() + Profile.themeBase/themeDeltaArgb + ThemePrefs.Resolved/sanitize all DELETED; GalleryScreen re-pointed to setDark/setSeed; full :app:testDebugUnitTest GREEN + assembleDebug OK; zero LIVE retired-symbol refs. flox UAT APPROVED after 4 device-only fixes (F1 redundant Printers section removed; F2 wheel hue +90° to match the engine color; F3 wheel scroll/space; F4 Appearance made palette-mode-reactive) — Nth mock-vs-reality strike. TWO design items DEFERRED by owner to the follow-on theming phase (todos at 17d90f1): Settings-vs-Devices boundary + pool-color semantic-role assignment.
 
 ### Pending Todos
 
@@ -321,7 +324,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T14:29:22.871Z
-Stopped at: Phase 15 UI-SPEC approved
+Last session: 2026-06-05T16:00:00.000Z
+Stopped at: Completed 15-06-PLAN.md (Settings hub + theme editor; D-04 retired; flox-UAT approved) — 15-07 remains
 Resume file: 
 None
