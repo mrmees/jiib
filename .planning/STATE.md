@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T14:20:13.727Z"
+last_updated: "2026-06-05T14:29:28.115Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 100
-  completed_plans: 97
+  completed_plans: 98
   percent: 64
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15 (theme-system-settings-redesign) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
   → **ROADMAP REORDERED + RENUMBERED 2026-06-05 (design-foundation-first; 22 → 21 phases):** with Phase 14 done, Matthew resequenced the back half so the visual foundation is locked before the remaining feature surfaces (avoid-future-rework). Old Settings-Redesign (20) + Final-Conformance (21) MERGED → new **Phase 15 Theme System & Settings Redesign** (pulled to FRONT — parallel-session theme work needs the new Settings UI to test against). Home redesign moved to **16** (foundation-first, before features). New run order = **15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. Old→new: 21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. Final conformance net folds a LIGHT late-surface sweep into Ship (21). PKG-01/03 remapped 22→21. Clean renumber was free — no future phase dirs existed yet. **Next: `/gsd-discuss-phase 15`.**
   → **Phase 14 (Multi-Printer Switching) COMPLETE & verified 2026-06-05** — 6/6 plans, gsd-verifier 9/9 must-haves, MULTI-01 validated. One open item: UAT item 4 mid-print switch (D-04) left OPEN by owner choice (tracked todo; 14-VERIFICATION human_needed).
@@ -165,6 +165,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15 P02 | 12 | 1 tasks | 3 files |
 | Phase 15 P03 | 9 | 2 tasks | 4 files |
 | Phase 15 P04 | 16 | 2 tasks | 4 files |
+| Phase 15 P05 | 14 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -320,7 +321,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T14:20:07.878Z
+Last session: 2026-06-05T14:29:22.871Z
 Stopped at: Phase 15 UI-SPEC approved
 Resume file: 
 None

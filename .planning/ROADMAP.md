@@ -629,7 +629,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 15-05-PLAN.md — Per-profile theme-tuple persistence (fresh-start sanitize) + AppContainer seedTheme WR-02 reactive fix
+- [x] 15-05-PLAN.md — Per-profile theme-tuple persistence (fresh-start sanitize) + AppContainer seedTheme WR-02 reactive fix
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -775,7 +775,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
-| 15. Theme System & Settings Redesign | 4/7 | In Progress|  |
+| 15. Theme System & Settings Redesign | 5/7 | In Progress|  |
 | 16. Home / Print-Status Redesign | 0/TBD | Not started | - |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
