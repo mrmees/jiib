@@ -85,8 +85,7 @@ completed: 2026-06-05
 
 1. **Task 1: ColorWheel + theme-editor sub-page; editor open-state in SettingsScreen** — `2c410b9` (feat)
 2. **Task 2: rebuild SettingsScreen hybrid hub + COMPLETE the D-04 retirement** — `3e86a88` (refactor)
-   - *(The on-device fixes F1–F4 below were folded into the Task-1/Task-2 surfaces during the UAT loop and are carried in these two commits; the SettingsScreen rebuild that removed the Printers section, the wheel hue alignment, the wheel layout breathing room, and the palette-reactive Appearance are all part of `2c410b9`/`3e86a88` as the screens that own them.)*
-3. **Task 3: on-device flox UAT** — PASS (re-verification APPROVED; no code commit — gate only)
+3. **Task 3: on-device flox UAT + remediation** — `e490103` (fix) — the four device-only fixes F1–F4 (wheel hue +90° drop, wheel size/scroll gate, Printers-section removal, palette-reactive Appearance), re-verified APPROVED on flox. `:app:assembleDebug` SUCCESSFUL with the fixes in place.
 
 **Deferred-items capture (separate, pre-existing):** `17d90f1` (docs: the two deferred UAT design items — NOT part of this plan's code, do not re-touch)
 
@@ -117,28 +116,28 @@ The four on-device fixes (F1–F4) and the in-screen editor-state hosting decisi
 - **Found during:** Task 3 (on-device flox UAT, item F2)
 - **Issue:** A hue picked on the wheel did not match the color the generative engine actually produced — the ring's `sweepGradient` origin / `hueAt()` readback were offset 90° from the palette engine's hue convention.
 - **Fix:** Rotated the wheel's hue mapping so the ring and the readback align with the engine; a tapped/dragged hue now matches the live retheme.
-- **Files modified:** `designsystem/ColorWheel.kt` (folded into `2c410b9`)
+- **Files modified:** `designsystem/ColorWheel.kt` (committed in `e490103`)
 - **Verification:** flox re-verification — Matthew: "wheel color matches now, great job."
 
 **2. [Rule 1 — Bug] Wheel too cramped — the page swallowed the drag gesture**
 - **Found during:** Task 3 (UAT item F3)
 - **Issue:** Insufficient layout space around the wheel meant the surrounding scroll consumed the circular drag, so the handle couldn't be moved around the full circumference.
 - **Fix:** Gave the wheel more breathing room + a scroll buffer so the gesture stays with the wheel.
-- **Files modified:** `ui/screen/ThemeEditorScreen.kt` (folded into `2c410b9`)
+- **Files modified:** `designsystem/ColorWheel.kt` (the wheel is bounded to 200dp + centered, and its gesture is ring-annulus-gated so the parent scroll keeps a hole/outside touch) (committed in `e490103`)
 - **Verification:** flox re-verification — Matthew: "enough space to scroll around it now."
 
 **3. [Rule 2 — Missing Critical] Appearance palette-mode row produced no visible change**
 - **Found during:** Task 3 (UAT item F4)
 - **Issue:** Switching Colorful/Simple/High-contrast did not visibly retheme — the Appearance surface wasn't observing the mode change reactively, defeating the point of the mode selector.
-- **Fix:** Made the Appearance section palette-mode-reactive so a mode switch rethemes on the spot.
-- **Files modified:** `ui/screen/SettingsScreen.kt`
+- **Fix:** Made the Appearance section palette-mode-reactive — a live accent+pool preview swatch row and pool-filled S/M/L segments that re-paint instantly off `LocalTokens` when the mode flips.
+- **Files modified:** `ui/screen/SettingsScreen.kt` (committed in `e490103`)
 - **Verification:** flox re-verification — mode switches confirmed live (visible difference per mode).
 
 **4. [Rule 4-adjacent — owner decision] Removed the redundant Printers section from Settings**
 - **Found during:** Task 3 (UAT item F1)
 - **Issue:** The "Printers" section duplicated profile CRUD that the Devices screen already owns.
 - **Fix (this plan):** Removed the Printers section from Settings on-device. The broader "should Connection become a printer-settings page / Settings-vs-Devices boundary" reframe was an owner decision to DEFER — captured as a tracked todo, NOT implemented here.
-- **Files modified:** `ui/screen/SettingsScreen.kt`
+- **Files modified:** `ui/screen/SettingsScreen.kt` (committed in `e490103`)
 - **Verification:** flox re-verification — Settings reads cleanly without the duplicate section.
 
 ---
@@ -184,6 +183,7 @@ None. The greyed "Coming soon" entries (Output controls / Camera-WebRTC / Fine-t
 - FOUND: app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt
 - FOUND: commit 2c410b9 (Task 1: ColorWheel + theme-editor + in-screen open-state)
 - FOUND: commit 3e86a88 (Task 2: hybrid hub + D-04 retirement complete)
+- FOUND: commit e490103 (Task 3: flox-UAT remediation — F1/F2/F3/F4)
 - VERIFIED: D-04 retirement — `.setBase(`/`.setDeltas(` = 0 across app/src; the remaining `TokenDelta`/`themeBase`/`themeDeltaArgb` hits are KDoc comments + a deliberate JSON-fixture regression guard, zero LIVE references
 - VERIFIED: full `:app:testDebugUnitTest` GREEN + `:app:assembleDebug` SUCCEEDS (Task-2 verify)
 - VERIFIED: on-device flox UAT APPROVED — F2 wheel color match PASS, F3 wheel size/scroll PASS, F4 palette-mode visible change PASS, Step-8 first-run/escape-path editor reachable PASS
