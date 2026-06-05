@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -394,11 +393,14 @@ class AppContainer(
                 p.copy(poolOverrides = next)
             }
         } else {
+            // WR-02: do the read-modify-write inside ThemePrefs' single edit so two fast slot edits can't
+            // each re-encode a stale snapshot and drop one (the same lost-update fix mutateActive applies).
             writeScope.launch {
-                val current = themePrefs.tupleFlow.firstOrNull()?.poolOverrides ?: emptyMap()
-                val next = current.mapKeys { it.key.toString() }.toMutableMap()
-                if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
-                themePrefs.setOverrides(next)
+                themePrefs.mutateOverrides { current ->
+                    val next = current.toMutableMap()
+                    if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
+                    next
+                }
             }
         }
     }

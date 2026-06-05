@@ -80,13 +80,21 @@ class ThemePrefs(
     /** Persist the sparse pool overrides: one ARGB long per pool-index-as-string. Replaces the whole set. */
     suspend fun setOverrides(overrides: Map<String, Long>) {
         dataStore.edit { prefs ->
-            prefs[KEY_OVERRIDE_KEYS]?.forEach { k ->
-                prefs.remove(longPreferencesKey(overrideArgbKey(k)))
-            }
-            prefs[KEY_OVERRIDE_KEYS] = overrides.keys.toSet()
-            for ((k, argb) in overrides) {
-                prefs[longPreferencesKey(overrideArgbKey(k))] = argb and 0xFFFFFFFFL
-            }
+            writeOverrides(prefs, overrides)
+        }
+    }
+
+    /**
+     * Atomically read-modify-write the sparse pool overrides inside ONE [dataStore.edit] (WR-02). The
+     * read (current overrides), the [transform], and the write all happen under the single edit, so two
+     * fast per-slot edits cannot each re-encode a stale snapshot and drop one change — the same
+     * lost-update fix `ProfileStore.mutateActive` applies to the active-profile path
+     * ([[dinghy-compose-write-scope-cancellation]] / Phase-14 mutateActive lesson).
+     */
+    suspend fun mutateOverrides(transform: (Map<String, Long>) -> Map<String, Long>) {
+        dataStore.edit { prefs ->
+            val current = readOverrides(prefs)
+            writeOverrides(prefs, transform(current))
         }
     }
 
@@ -146,6 +154,17 @@ class ThemePrefs(
             poolOverrides = emptyMap(),
             fs = FontScale.M.multiplier,
         )
+
+        /** Write the sparse String→Long pool overrides into a mutable Preferences (replaces the whole set). */
+        private fun writeOverrides(prefs: androidx.datastore.preferences.core.MutablePreferences, overrides: Map<String, Long>) {
+            prefs[KEY_OVERRIDE_KEYS]?.forEach { k ->
+                prefs.remove(longPreferencesKey(overrideArgbKey(k)))
+            }
+            prefs[KEY_OVERRIDE_KEYS] = overrides.keys.toSet()
+            for ((k, argb) in overrides) {
+                prefs[longPreferencesKey(overrideArgbKey(k))] = argb and 0xFFFFFFFFL
+            }
+        }
 
         /** Read the sparse String→Long pool overrides off a Preferences snapshot. */
         private fun readOverrides(prefs: Preferences): Map<String, Long> {
