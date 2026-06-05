@@ -610,7 +610,16 @@ Plans:
   4. Conforms to the design system; verified on-device on flox in portrait + landscape
   5. Later phases (16–20) build their new surfaces theme-conformant by construction; the final whole-app conformance re-sweep is folded into Phase 21 (Ship)
 
-**Plans**: TBD
+**Plans**: 7 plans (waves 0-6, design-foundation-first: engine → bridge → substrate → persistence → UI → pool wiring)
+
+Plans:
+- [ ] 15-01-PLAN.md — Wave-0 RED scaffolds + Node golden oracle (color.js) dump + pinned fixture
+- [ ] 15-02-PLAN.md — Port color.js → pure Kotlin Palette generator; GREEN golden + math tests
+- [ ] 15-03-PLAN.md — TokenBridge (tokensFromPalette) + extend ThemeTokens (pool/directional, retire violet); GREEN bridge test
+- [ ] 15-04-PLAN.md — Rewire ThemeResolver to generate-and-cache; retire TokenDelta; demote BakedTokens to fail-safe
+- [ ] 15-05-PLAN.md — Per-profile theme-tuple persistence (fresh-start sanitize) + AppContainer seedTheme WR-02 reactive fix
+- [ ] 15-06-PLAN.md — Settings hybrid hub + pushed theme-editor sub-page (color wheel settle-regen) + on-device UAT
+- [ ] 15-07-PLAN.md — Pool wiring: GraphView/Temp/Print-Status readouts + Move directional outlines + on-device UAT
 **UI hint**: yes
 **Research note**: STANDARD — integrates the parallel theme work + UI reorganization on the existing DataStore-backed Settings; audit/polish against the existing UI LAW + `reference/hifi.css`; no new backend.
 
