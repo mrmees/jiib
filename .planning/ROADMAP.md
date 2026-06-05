@@ -589,7 +589,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 14-05-PLAN.md — New DevicesScreen switcher (field-of-printers, tap=setActive→seam rebind, no confirm D-02) + Devices drawer tile LIVE + active-name subtitle (D-01/D-03) + AppShell host/swipe-suppress + thread active profile id into the webcam holder
+- [x] 14-05-PLAN.md — New DevicesScreen switcher (field-of-printers, tap=setActive→seam rebind, no confirm D-02) + Devices drawer tile LIVE + active-name subtitle (D-01/D-03) + AppShell host/swipe-suppress + thread active profile id into the webcam holder
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
@@ -753,7 +753,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
-| 14. Multi-Printer Switching | 4/6 | In Progress|  |
+| 14. Multi-Printer Switching | 5/6 | In Progress|  |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 17. WebRTC Camera Streaming | 0/TBD | Not started | - |
