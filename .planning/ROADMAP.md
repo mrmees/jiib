@@ -649,10 +649,17 @@ Plans:
 **Goal**: Build the load-bearing semantic + safety half of the theme system that Phase 15 scoped out (engine-first), BEFORE the Home/Status redesign so every remaining surface is built against the final model. Deliver: shape-coded status (octagon=stop / triangle=caution / circle=go) + icon + position across every status signal so color is never the sole safety cue (COLOR-SYSTEM.md §7/§D — the load-bearing mechanism); status-from-pool visual recolor; High-Contrast mode's stoplight-RYG *status* rendering; resolve whether status slots are user-editable (open from Phase-15 D-09); the app-wide pool→role semantic assignment ("what gets assigned where"); the color-doctrine decisions D-5 (back-button color, one app-wide rule), D-6 (bed-mesh dedicated perceptually-uniform OKLCH sequential ramp — render/BedMeshHeatmapView.kt), D-8 (force-move toggle color); Move's homed/unhomed status-color + force-move lock-shape (the status/shape parts deferred from Phase 15); and reconcile/rewrite docs/ui_design/THEMING.md against the sibling ../theme_theory/COLOR-SYSTEM.md to canonicalize the new model (status no longer fixed RYG, surfaces pure-neutral, pool added). Source: 15-CONTEXT.md ⟨deferred⟩ + COLOR-SYSTEM.md.
 **Requirements**: *(refines THEME-* / UI-* — semantic + safety layer; finer set at discuss)*
 **Depends on:** Phase 15
-**Plans:** 0 plans (run /gsd-discuss-phase 15.1 then /gsd-plan-phase 15.1)
+**Plans:** 8 plans (4 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 15.1 to break down)
+- [ ] 15.1-01-PLAN.md — Wave 0: type-decision lock (statusOverrides typing) + shape-glyph assets + compile-clean RED scaffolds + golden fixture
+- [ ] 15.1-02-PLAN.md — Wave 1: N-series seriesColor helper + PaletteMode field (D-05/D-09) + D-07 directional re-derivation
+- [ ] 15.1-03-PLAN.md — Wave 1: OKLCH bed-mesh sequential ramp off red/green (D-11) + golden test
+- [ ] 15.1-04-PLAN.md — Wave 2: status-slot override persistence + TokenBridge application + fail-safe (D-03)
+- [ ] 15.1-05-PLAN.md — Wave 2: GraphView N-series rewire + PrintStatus nozzle=accent (D-06) + Stop octagon glyph
+- [ ] 15.1-06-PLAN.md — Wave 3: Console ERROR/WARNING glyphs + Move unhomed caution/force-move lock-shape + neutral Back (D-01/D-02/D-12/D-10)
+- [ ] 15.1-07-PLAN.md — Wave 3: Theme Editor status-slot editing + shape-decorated preview (D-03)
+- [ ] 15.1-08-PLAN.md — Wave 4: rewrite docs/ui_design/THEMING.md as canonical token-law + reconcile CLAUDE.md back-color (D-13)
 
 ### Phase 15.2: Theme Conformance Sweep & Settings IA (INSERTED)
 
