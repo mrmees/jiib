@@ -584,6 +584,11 @@ fun AppShell(
                 prefilter = nav.spoolPrefilter,
                 onPrefilterConsumed = { nav.spoolPrefilter = null },
             )
+            // Dest.Devices (D-01): the printer switcher. Wave 2 only REGISTERS the route (14-03) so the
+            // `when (dest)` stays exhaustive + compile-clean; plan 05 (wave 3) replaces this placeholder
+            // with the real Field-of-printers DevicesScreen. Rendering nothing here is harmless — the
+            // drawer Devices tile is not wired live until plan 05, so this arm is unreachable in wave 2.
+            Dest.Devices -> Box(Modifier.fillMaxSize())
             Dest.Settings -> SettingsScreen(
                 container = container,
                 onConnectionSaved = { navigateTo(Dest.PrintStatus) },
