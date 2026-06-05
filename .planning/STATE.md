@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-06-05T06:01:59.866Z"
-last_activity: 2026-06-05
+status: executing
+last_updated: "2026-06-05T07:07:57.451Z"
+last_activity: 2026-06-05 -- Phase 15 planning complete
 progress:
   total_phases: 22
   completed_phases: 14
-  total_plans: 93
+  total_plans: 100
   completed_plans: 93
   percent: 64
 ---
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 15
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
   → **ROADMAP REORDERED + RENUMBERED 2026-06-05 (design-foundation-first; 22 → 21 phases):** with Phase 14 done, Matthew resequenced the back half so the visual foundation is locked before the remaining feature surfaces (avoid-future-rework). Old Settings-Redesign (20) + Final-Conformance (21) MERGED → new **Phase 15 Theme System & Settings Redesign** (pulled to FRONT — parallel-session theme work needs the new Settings UI to test against). Home redesign moved to **16** (foundation-first, before features). New run order = **15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. Old→new: 21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. Final conformance net folds a LIGHT late-surface sweep into Ship (21). PKG-01/03 remapped 22→21. Clean renumber was free — no future phase dirs existed yet. **Next: `/gsd-discuss-phase 15`.**
   → **Phase 14 (Multi-Printer Switching) COMPLETE & verified 2026-06-05** — 6/6 plans, gsd-verifier 9/9 must-haves, MULTI-01 validated. One open item: UAT item 4 mid-print switch (D-04) left OPEN by owner choice (tracked todo; 14-VERIFICATION human_needed).
   → **Phase 14 plan 14-06 (the binding gates) COMPLETE 2026-06-04** — Task 1 instrumented `ProfileSurvivesRestartTest` GREEN on flox (real DataStore cold re-read, active-id survives process death, SC-3; 1/0, `7bb52dc`). Task 2 binding live two-printer UAT on flox + live E5+ (192.168.1.120:7125) + E3 (192.168.1.121:7125): **5 PASS + 1 owner-deferred (item 4 mid-print switch, not blocking) + 0 FAIL → gate PASSED** (`14-UAT.md`). The headline SC-4 switch initially FAILED (intermittent revert to the old printer, ⚡ marker didn't move — logcat showed ~4 taps → only 1 rebind); root cause = every profile-persistence write ran on a `rememberCoroutineScope()` cancelled mid-write by the same-frame navigation, so the Nexus-7 slow flash lost the DataStore `.tmp→rename` race and silently dropped the active-id write → `activeConfig` never emitted → no spine rebind (Nth mock-vs-reality strike — green units + fast hardware hide it). FIX `781277f`: `AppContainer` owns a process-lifetime `writeScope` (SupervisorJob + Dispatchers.IO) + `setActiveProfile`/`saveProfile`/`deleteProfile`; all nav-racing UI write call-sites (DevicesScreen switch; Settings save/delete/clear-key/active-theme-persist) converted; mDNS scan + idle global-theme stay composition-scoped. Re-UAT PASS ("switch works as fast as I can navigate the screens to do it"). Phase 14 execution complete; **orchestrator runs phase verification next** (do NOT mark the phase complete here).
@@ -45,7 +45,7 @@ Status: Ready to plan
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-05
+Last activity: 2026-06-05 -- Phase 15 planning complete
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -312,7 +312,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T06:01:59.783Z
-Stopped at: Phase 15 context gathered
+Last session: 2026-06-05T06:28:55.896Z
+Stopped at: Phase 15 UI-SPEC approved
 Resume file: 
-.planning/phases/15-theme-system-settings-redesign/15-CONTEXT.md
+.planning/phases/15-theme-system-settings-redesign/15-UI-SPEC.md

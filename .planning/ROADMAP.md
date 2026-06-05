@@ -476,6 +476,7 @@ Plans:
 **Plans**: 9 plans
 
 Plans:
+
 - [x] 11-01-PLAN.md — Wave 0: live fixtures→goldens, hardened fakes, compile-clean RED scaffolds, catalog gap
 - [x] 11-02-PLAN.md — Wave 1: null-safe Spoolman models/parsers (proxy-v2 envelope) + FilePreviewMetadata filament arrays
 - [x] 11-03-PLAN.md — Wave 1: QR payload parser (D-12), warn-only print-start gate (D-01), scan state machine (D-15)
@@ -485,6 +486,7 @@ Plans:
 - [x] 11-07-PLAN.md — Wave 4: scan surface (CameraX+release) + permission glue + confirm-first + measured-weight
 - [x] 11-08-PLAN.md — Wave 5: warn-only gate hook + gcode-aware prefilter + change-during-print
 - [x] 11-09-PLAN.md — Wave 6: on-device end-to-end UAT (scan→flip) + degrade + save→change→restore (BLOCKING)
+
 **UI hint**: yes
 **Research note**: DEEPER — Moonraker Spoolman API surface (`/server/spoolman/*`, active-spool set), Spoolman QR label payload format (`web+spoolman:s-<id>`), CameraX + ZXing on API 23 without GMS, and camera-permission flow.
 
@@ -611,15 +613,32 @@ Plans:
   5. Later phases (16–20) build their new surfaces theme-conformant by construction; the final whole-app conformance re-sweep is folded into Phase 21 (Ship)
 
 **Plans**: 7 plans (waves 0-6, design-foundation-first: engine → bridge → substrate → persistence → UI → pool wiring)
-
 Plans:
+**Wave 1**
+
 - [ ] 15-01-PLAN.md — Wave-0 RED scaffolds + Node golden oracle (color.js) dump + pinned fixture
 - [ ] 15-02-PLAN.md — Port color.js → pure Kotlin Palette generator; GREEN golden + math tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 15-03-PLAN.md — TokenBridge (tokensFromPalette) + extend ThemeTokens (pool/directional, retire violet); GREEN bridge test
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 15-04-PLAN.md — Rewire ThemeResolver to generate-and-cache; retire TokenDelta; demote BakedTokens to fail-safe
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 15-05-PLAN.md — Per-profile theme-tuple persistence (fresh-start sanitize) + AppContainer seedTheme WR-02 reactive fix
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 15-06-PLAN.md — Settings hybrid hub + pushed theme-editor sub-page (color wheel settle-regen) + on-device UAT
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 15-07-PLAN.md — Pool wiring: GraphView/Temp/Print-Status readouts + Move directional outlines + on-device UAT
+
 **UI hint**: yes
 **Research note**: STANDARD — integrates the parallel theme work + UI reorganization on the existing DataStore-backed Settings; audit/polish against the existing UI LAW + `reference/hifi.css`; no new backend.
 
