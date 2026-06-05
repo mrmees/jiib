@@ -38,10 +38,17 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.R
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.PaletteMode
+import works.mees.dinghy.theme.StatusSlot
+import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.toComposeColor
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import kotlin.random.Random
 
 /**
@@ -94,6 +101,8 @@ fun ThemeEditorScreen(
     var pendingReset by remember { mutableStateOf(false) }
     // The pool slot whose override picker is open (null = none). The picker reuses the ColorWheel.
     var editingSlot by remember { mutableStateOf<Int?>(null) }
+    // The STATUS slot whose override picker is open (null = none). Parallel to editingSlot (D-03).
+    var editingStatusSlot by remember { mutableStateOf<StatusSlot?>(null) }
 
     if (pendingReset) {
         ConfirmGuard(
@@ -149,6 +158,71 @@ fun ThemeEditorScreen(
                 OutlinedControl(
                     label = "Done",
                     onClick = { editingSlot = null },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Go,
+                )
+            }
+            Box(Modifier.height(24.dp))
+        }
+        return
+    }
+
+    // Per-status-slot override picker (D-03) — mirrors the pool picker, writes via the durable
+    // setActiveStatusOverride intent (writeScope), NEVER a rememberCoroutineScope (see the KDoc above).
+    val statusSlot = editingStatusSlot
+    if (statusSlot != null) {
+        // The EFFECTIVE rendered color for this slot (mode-gated — Simple/High-Contrast ignore the override).
+        val effective = effectiveStatusColor(t, statusSlot)
+        // The STORED override (the user's pick, if any) — read from the active profile's wire map. In the
+        // idle/no-profile case the stored override is not surfaced (mirrors the pool grid's limitation).
+        val storedArgb = activeProfile?.poolOverrides?.get(statusSlot.key)
+        var slotHue by remember(statusSlot) {
+            mutableFloatStateOf(colorToHue(storedArgb?.toComposeColor() ?: effective))
+        }
+        // Whether the live override actually changes what the app renders in the CURRENT mode (Colorful only).
+        val overrideTakesEffect = t.mode == PaletteMode.Colorful
+        Column(
+            modifier
+                .fillMaxSize()
+                .background(t.bg)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            ScreenTitle("Status color — ${statusSlot.label()}")
+            // Mode-awareness (D-04): tell the truth about whether the edit changes the rendered status now.
+            if (overrideTakesEffect) {
+                SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
+            } else {
+                SubLabel(
+                    "Saved for Colorful mode. This mode (" + t.mode.label() +
+                        ") renders status from its fixed safety palette, so the picked color won't show here.",
+                )
+            }
+            SectionLabel("Pick a color")
+            ColorWheel(
+                hue = slotHue,
+                onHandleMove = { slotHue = it },
+                onSettle = { settled ->
+                    // [[dinghy-compose-write-scope-cancellation]] — durable intent on writeScope, NOT a
+                    // composition scope. No editability guard on status (D-03 — shape carries safety).
+                    container.setActiveStatusOverride(hasActive, statusSlot, hueToArgbLong(settled))
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(
+                    label = "Clear",
+                    onClick = {
+                        container.setActiveStatusOverride(hasActive, statusSlot, null)
+                        editingStatusSlot = null
+                    },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Warn,
+                )
+                OutlinedControl(
+                    label = "Done",
+                    onClick = { editingStatusSlot = null },
                     modifier = Modifier.weight(1f),
                     intent = Intent.Go,
                 )
@@ -219,6 +293,26 @@ fun ThemeEditorScreen(
                     fill = c,
                     overridden = overrides.containsKey(i.toString()),
                     onClick = { editingSlot = i },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // ---- 4b. STATUS COLORS — per-slot status override (D-03) -----------------------------------
+        SectionLabel("Status colors")
+        if (t.mode == PaletteMode.Colorful) {
+            SubLabel("Tap to customize — shape carries the meaning, so color is yours")
+        } else {
+            SubLabel("Tap to customize (applies in Colorful; this mode shows the fixed safety palette)")
+        }
+        val statusOverrides = activeProfile?.poolOverrides ?: emptyMap()
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (s in StatusSlot.entries) {
+                StatusSlotSwatch(
+                    fill = effectiveStatusColor(t, s),
+                    slot = s,
+                    overridden = statusOverrides.containsKey(s.key),
+                    onClick = { editingStatusSlot = s },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -340,6 +434,89 @@ private fun PoolSlotSwatch(
             )
         }
     }
+}
+
+/**
+ * A per-status-slot swatch (≥64dp, D-03) — renders the EFFECTIVE status color WITH its safety shape
+ * overlaid (octagon = stop, triangle = caution; go is shapeless per D-02), so the editor previews that
+ * color is REDUNDANT to shape. `overridden` = the user has set a custom color → accent dot marker.
+ */
+@Composable
+private fun StatusSlotSwatch(
+    fill: Color,
+    slot: StatusSlot,
+    overridden: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .height(64.dp) // ≥64dp touch floor (UI-02).
+            .clip(shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(shape)
+                .background(fill)
+                .border(BorderStroke(2.dp, t.outline), shape),
+        )
+        // The safety SHAPE overlay (D-01/D-02) — explicit size (NOT the 96dp vector intrinsic). Tinted to
+        // the contrasting background so the glyph reads on top of its own status color.
+        val glyph = when (slot) {
+            StatusSlot.Stop -> R.drawable.ic_status_octagon
+            StatusSlot.Caution -> R.drawable.ic_status_triangle
+            StatusSlot.Go -> null // go is shapeless (D-02).
+        }
+        if (glyph != null) {
+            Icon(
+                painter = painterResource(glyph),
+                contentDescription = null,
+                tint = t.bg,
+                modifier = Modifier.size(fsSp(28f, t.fs).dp),
+            )
+        }
+        if (overridden) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(14.dp)
+                    .clip(RoundedCornerShape(t.rPill))
+                    .background(t.accent),
+            )
+        }
+    }
+}
+
+/**
+ * The EFFECTIVE rendered status color for a slot — the resolved token (already mode-gated by the bridge:
+ * a user override only changes these in Colorful; Simple collapses status to text and High-Contrast forces
+ * fixed RYG). [Caution] maps to the `heat` token (D-13: dinghy `heat` IS caution).
+ */
+private fun effectiveStatusColor(t: ThemeTokens, slot: StatusSlot): Color =
+    when (slot) {
+        StatusSlot.Stop -> t.stop
+        StatusSlot.Caution -> t.heat
+        StatusSlot.Go -> t.go
+    }
+
+/** A human label for a status slot (titles/sub-labels). */
+private fun StatusSlot.label(): String = when (this) {
+    StatusSlot.Stop -> "Stop"
+    StatusSlot.Caution -> "Caution"
+    StatusSlot.Go -> "Go"
+}
+
+/** A human label for a palette mode (mode-awareness messaging). */
+private fun PaletteMode.label(): String = when (this) {
+    PaletteMode.Colorful -> "Colorful"
+    PaletteMode.Simple -> "Simple"
+    PaletteMode.HighContrast -> "High-contrast"
 }
 
 @Composable
