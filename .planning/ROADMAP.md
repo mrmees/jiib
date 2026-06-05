@@ -63,7 +63,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 11: Spool Management — Spoolman + Camera QR** - Spoolman integration (list/select the active spool, filament remaining/usage) plus the headline feature: a tablet-camera **QR-scan-to-assign** flow (ZXing, GMS-free for the Nexus 7) reading Spoolman's `web+spoolman:s-<id>` labels — load a spool, scan it, done; no ESP32/NFC rig (completed 2026-06-04)
 - [x] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive (completed 2026-06-04)
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
-- [ ] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware
+- [x] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware (completed 2026-06-05)
 - [ ] **Phase 15: Fine-Tune / Live-Adjust Panel** - Wire the stubbed Tune button into a real mid-print live-adjust surface: Z babystep, speed (M220), flow (M221), fan, and pressure advance where present — capability-gated, keyboard-free
 - [ ] **Phase 16: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 17: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
@@ -593,7 +593,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
-- [ ] 14-06-PLAN.md — Fill the instrumented ProfileSurvivesRestartTest (real DataStore cold re-read) + the BLOCKING live two-printer hands-on UAT on flox + live E5/E3 (SC-4)
+- [x] 14-06-PLAN.md — Fill the instrumented ProfileSurvivesRestartTest (real DataStore cold re-read) + the BLOCKING live two-printer hands-on UAT on flox + live E5/E3 (SC-4)
 
 **UI hint**: yes
 **Research note**: STANDARD — reuses the Phase-2 spine + Phase-4 service/Settings/DataStore; the work is profile management + a clean spine rebind, not new protocol. The one net-new wrinkle is per-printer theme re-seeding (D-08), which reuses ThemeResolver.apply.
@@ -753,7 +753,7 @@ Phase 7's deferral note) were updated to Phase 22.
 | 11. Spool Management — Spoolman + Camera QR | 9/9 | Complete   | 2026-06-04 |
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
-| 14. Multi-Printer Switching | 5/6 | In Progress|  |
+| 14. Multi-Printer Switching | 6/6 | Complete   | 2026-06-05 |
 | 15. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 16. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 17. WebRTC Camera Streaming | 0/TBD | Not started | - |

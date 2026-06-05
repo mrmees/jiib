@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-05T01:55:32.186Z"
+status: verifying
+last_updated: "2026-06-05T02:33:38.185Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 23
-  completed_phases: 13
+  completed_phases: 14
   total_plans: 93
-  completed_plans: 92
-  percent: 57
+  completed_plans: 93
+  percent: 61
 ---
 
 # Project State
@@ -24,9 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 ## Current Position
 
-Phase: 14 (multi-printer-switching) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute
+Phase: 14 (multi-printer-switching) — EXECUTION COMPLETE (awaiting orchestrator phase verification)
+Plan: 6 of 6 — COMPLETE
+Status: Phase complete — ready for verification
+  → **Phase 14 plan 14-06 (the binding gates) COMPLETE 2026-06-04** — Task 1 instrumented `ProfileSurvivesRestartTest` GREEN on flox (real DataStore cold re-read, active-id survives process death, SC-3; 1/0, `7bb52dc`). Task 2 binding live two-printer UAT on flox + live E5+ (192.168.1.120:7125) + E3 (192.168.1.121:7125): **5 PASS + 1 owner-deferred (item 4 mid-print switch, not blocking) + 0 FAIL → gate PASSED** (`14-UAT.md`). The headline SC-4 switch initially FAILED (intermittent revert to the old printer, ⚡ marker didn't move — logcat showed ~4 taps → only 1 rebind); root cause = every profile-persistence write ran on a `rememberCoroutineScope()` cancelled mid-write by the same-frame navigation, so the Nexus-7 slow flash lost the DataStore `.tmp→rename` race and silently dropped the active-id write → `activeConfig` never emitted → no spine rebind (Nth mock-vs-reality strike — green units + fast hardware hide it). FIX `781277f`: `AppContainer` owns a process-lifetime `writeScope` (SupervisorJob + Dispatchers.IO) + `setActiveProfile`/`saveProfile`/`deleteProfile`; all nav-racing UI write call-sites (DevicesScreen switch; Settings save/delete/clear-key/active-theme-persist) converted; mDNS scan + idle global-theme stay composition-scoped. Re-UAT PASS ("switch works as fast as I can navigate the screens to do it"). Phase 14 execution complete; **orchestrator runs phase verification next** (do NOT mark the phase complete here).
   → **Phase 12 (Macro Prompt Protocol) COMPLETE 2026-06-04** — 5/5 plans. Final plan 12-05 wired PromptEngine + PromptDialog into AppShell (per-session remember(store); overlay hoisted over any screen; content→flattenContentButtons()[i] @ buttonKey, footer→footer_buttons[i] @ the SEPARATE footerKey namespace, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + prompt_end BackHandler suppressed while visible) + documented the D-03 author-hex carve-out in the UI LAW. **On-device UAT 4/4 PASS on flox + live E3** (E5 was MCU-down: `mcu 'EBBCan': Unable to connect`) via a NOVEL method — streamed `RESPOND TYPE=command MSG=action:prompt_*` to `/printer/gcode/script`, Moonraker's `notify_gcode_response` broadcast drove the overlay, and EVERY tap was cross-checked against `/server/gcode_store` for objective server-side evidence (directly answering the recurring mock-vs-reality concern). Gates: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place; SC-3 close prompt_end echo round-trip; D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission); SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. ONE caveat carried: the large-image OOM brute-force was not run (test PNG ~2KB; guards stay code-reasoned). PROMPT-01/02/03/04 closed. Next: phase verification (orchestrator).
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
   → **Phase 13 (Optimization/Reliability) COMPLETE & VERIFIED 2026-06-04** — 5/5 plans, verification 4/4, on-device UAT PASSED on flox + live E5 AND E3, code review 0 critical (3 warnings fixed). The SAVE_CONFIG re-handshake freeze AND a newly-found silent mid-print WiFi-drop freeze are both dead (pingInterval keepalive + visible self-healing recovery + nav-hoist + reconnect Splash). Headline reliability todo closed.
@@ -156,6 +157,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 14 P03 | 6min | 2 tasks | 7 files |
 | Phase 14 P04 | 12 | 2 tasks | 1 files |
 | Phase 14 P05 | ~12min | 2 tasks | 3 files |
+| Phase 14 P14-06 | live-uat-session | 2 tasks tasks | 3 files files |
 
 ## Accumulated Context
 
@@ -274,6 +276,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 14-02: per-profile theme re-seed via flatMapLatest(activeProfile.toThemeResolved()); themePrefs retained as new-profile/idle default (D-08)
 - [Phase 14]: 14-03: preferred-webcam pref re-keyed on profile id (D-06) at all 3 touch points (WebcamPrefs/WebcamHolder/AppShell); old host-keyed entries orphaned (D-07, no migration)
 - [Phase 14]: 14-03: added Dest.Devices placeholder arm (Box) to AppShell exhaustive when(dest) to stay compile-clean; plan 05 replaces with the real switcher screen
+- [Phase ?]: [Phase 14][14-06 gap-closure 781277f]: profile writes that race a same-frame navigation MUST run on AppContainer.writeScope (process-lifetime SupervisorJob+Dispatchers.IO), never rememberCoroutineScope() — composition teardown cancels the write and the Nexus-7 slow flash loses the DataStore .tmp->rename race (silent dropped active-id → no spine rebind). Caught only by the live UAT (item 2 revert).
 
 ### Pending Todos
 
@@ -306,7 +309,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T01:55:27.015Z
+Last session: 2026-06-05T02:33:28.153Z
 Stopped at: Phase 14 UI-SPEC approved
 Resume file: 
 None
