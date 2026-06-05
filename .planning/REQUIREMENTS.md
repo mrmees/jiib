@@ -131,7 +131,7 @@ Deferred to future release. Tracked but not in the current roadmap.
 
 ### Multi-Printer & Platform
 
-- **MULTI-01**: Configure and switch between multiple Moonraker printers
+- **MULTI-01**: Configure and switch between multiple Moonraker printers — ✅ **validated in Phase 14 (Multi-Printer Switching), 2026-06-05** (managed DataStore-persisted profiles + Settings CRUD + Devices switcher; clean `activeConfig`→service spine rebind on switch; instrumented process-death survival test + live two-printer UAT on flox + E5/E3 PASSED)
 - ~~**PORT-01**: Portrait-optimized layout~~ — **promoted to v1** (2026-05-31) as UI-01 (portrait + landscape responsive grammar)
 - **UPD-01**: Moonraker-backed update manager view (where API exposes it)
 - **SYS-01**: System telemetry view from Moonraker `machine/system_info`
@@ -255,7 +255,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Phase 11 (Spool Management): SPOOL-01 (promoted; + the camera-QR-scan flow, finer SPOOL-* TBD at discuss)
 - Phase 12 (Macro Prompt Protocol): PROMPT-01 (new; finer PROMPT-* TBD at discuss)
 - Phase 13 (Optimization, Network Efficiency & Reliability): 0 functional reqs — quality/refactor phase (request-cadence audit + reliability; non-functional)
-- Phase 14 (Multi-Printer Switching): new MULTI-* family — TBD at discuss
+- Phase 14 (Multi-Printer Switching): MULTI-01 validated 2026-06-05 (managed profiles + switcher + spine rebind; live two-printer UAT PASSED). No additional MULTI-* sub-reqs were needed — MULTI-01 covered the phase scope.
 - Phase 15 (Fine-Tune / Live-Adjust Panel): new TUNE-* family — TBD at discuss
 - Phase 16 (Output Controls — Fans, Lights & Generic Pins): new OUT-* family — TBD at discuss
 - Phase 17 (WebRTC Camera Streaming): CAM-* WebRTC extension — TBD at discuss (continues CAM-01)

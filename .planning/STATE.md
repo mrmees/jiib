@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-05T02:33:38.185Z"
+status: ready_to_plan
+last_updated: 2026-06-05T02:53:36.178Z
 last_activity: 2026-06-05
 progress:
   total_phases: 23
@@ -11,6 +11,7 @@ progress:
   total_plans: 93
   completed_plans: 93
   percent: 61
+stopped_at: Phase 14 complete (6/6) — ready to discuss Phase 15
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 14 — multi-printer-switching
+**Current focus:** Phase 15 — fine tune / live adjust panel
 
 ## Current Position
 
-Phase: 14 (multi-printer-switching) — EXECUTION COMPLETE (awaiting orchestrator phase verification)
-Plan: 6 of 6 — COMPLETE
-Status: Phase complete — ready for verification
+Phase: 15
+Plan: Not started
+Status: Ready to plan
   → **Phase 14 plan 14-06 (the binding gates) COMPLETE 2026-06-04** — Task 1 instrumented `ProfileSurvivesRestartTest` GREEN on flox (real DataStore cold re-read, active-id survives process death, SC-3; 1/0, `7bb52dc`). Task 2 binding live two-printer UAT on flox + live E5+ (192.168.1.120:7125) + E3 (192.168.1.121:7125): **5 PASS + 1 owner-deferred (item 4 mid-print switch, not blocking) + 0 FAIL → gate PASSED** (`14-UAT.md`). The headline SC-4 switch initially FAILED (intermittent revert to the old printer, ⚡ marker didn't move — logcat showed ~4 taps → only 1 rebind); root cause = every profile-persistence write ran on a `rememberCoroutineScope()` cancelled mid-write by the same-frame navigation, so the Nexus-7 slow flash lost the DataStore `.tmp→rename` race and silently dropped the active-id write → `activeConfig` never emitted → no spine rebind (Nth mock-vs-reality strike — green units + fast hardware hide it). FIX `781277f`: `AppContainer` owns a process-lifetime `writeScope` (SupervisorJob + Dispatchers.IO) + `setActiveProfile`/`saveProfile`/`deleteProfile`; all nav-racing UI write call-sites (DevicesScreen switch; Settings save/delete/clear-key/active-theme-persist) converted; mDNS scan + idle global-theme stay composition-scoped. Re-UAT PASS ("switch works as fast as I can navigate the screens to do it"). Phase 14 execution complete; **orchestrator runs phase verification next** (do NOT mark the phase complete here).
   → **Phase 12 (Macro Prompt Protocol) COMPLETE 2026-06-04** — 5/5 plans. Final plan 12-05 wired PromptEngine + PromptDialog into AppShell (per-session remember(store); overlay hoisted over any screen; content→flattenContentButtons()[i] @ buttonKey, footer→footer_buttons[i] @ the SEPARATE footerKey namespace, close→action:prompt_end @ closeKey; buttons don't auto-close per D-11; drawer + prompt_end BackHandler suppressed while visible) + documented the D-03 author-hex carve-out in the UI LAW. **On-device UAT 4/4 PASS on flox + live E3** (E5 was MCU-down: `mcu 'EBBCan': Unable to connect`) via a NOVEL method — streamed `RESPOND TYPE=command MSG=action:prompt_*` to `/printer/gcode/script`, Moonraker's `notify_gcode_response` broadcast drove the overlay, and EVERY tap was cross-checked against `/server/gcode_store` for objective server-side evidence (directly answering the recurring mock-vs-reality concern). Gates: SC-4 flatten-index ordering + content/footer namespace independence + live-append-in-place; SC-3 close prompt_end echo round-trip; D-10 disconnect-closes-locally-with-NO-prompt_end (Mainsail kept the prompt; gcode_store confirmed no emission); SC-2 image bounded no-jank/OOM + path allow-list rejects (abs/home/parent-traversal)→alt-text. ONE caveat carried: the large-image OOM brute-force was not run (test PNG ~2KB; guards stay code-reasoned). PROMPT-01/02/03/04 closed. Next: phase verification (orchestrator).
   → **EXECUTION ORDER (revised 2026-06-03):** …→ 9 → **13 (promoted)** → **10** → 11 → 12 → 14. After Phase 13, the next phase is **Phase 10 (Webcam Streaming)**, NOT Phase 14. (The SDK `phase.complete` reports next_phase numerically and does not know the promotion; ignore its "14"/"07" — the ROADMAP Execution Order line is authoritative.)
@@ -51,7 +52,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 62
+- Total plans completed: 68
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -68,6 +69,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 7 | 6 | - | - |
 | 6 | 5 | - | - |
 | 10 | 8 | - | - |
+| 14 | 6 | - | - |
 
 **Recent Trend:**
 
