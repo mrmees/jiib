@@ -61,15 +61,41 @@ object TokenBridge {
 
     /**
      * Map a generated palette onto a complete [ThemeTokens], deriving the in-between surface/outline
-     * tiers and the alpha variants, applying sparse pool [overrides], and threading the text-size
-     * [fs] through. `gen.dark` selects the dark/light lShift/alpha constants (mirrors `dinghy.js`'s
-     * `d = P.dark`).
+     * tiers and the alpha variants, applying sparse pool [overrides] + the mode-gated status
+     * [statusOverrides], and threading the text-size [fs] through. `gen.dark` selects the dark/light
+     * lShift/alpha constants (mirrors `dinghy.js`'s `d = P.dark`).
+     *
+     * STATUS OVERRIDES ARE MODE-GATED (D-03/D-04 — the safety-correctness gap from review):
+     *  - Colorful: a user `stop`/`caution`/`go` override is APPLIED over the generated status color
+     *    (absent key → generated; clearing the key reverts to generated). Safe because shape + icon +
+     *    position carry the status meaning, not hue.
+     *  - Simple: status was already collapsed to the text color by [Palette.generate]; overrides are
+     *    IGNORED so Simple stays near-monochrome.
+     *  - High-Contrast: status was already forced to the fixed RYG safety palette by [Palette.generate];
+     *    overrides are IGNORED so the accessibility/CVD escape hatch CANNOT be defeated by a stored value.
+     * The status keys are split out BEFORE the integer-pool `mapIndexed` (they are String-keyed via
+     * [StatusSlot.key] and never reach `key.toInt()`).
      */
-    fun build(gen: Palette.Generated, overrides: Map<Int, Color>, fs: Float): ThemeTokens {
+    fun build(
+        gen: Palette.Generated,
+        overrides: Map<Int, Color>,
+        fs: Float,
+        statusOverrides: Map<String, Color> = emptyMap(),
+    ): ThemeTokens {
         val d = gen.dark
         val s = gen.surfaces
         val t = gen.theme
         val st = gen.status
+
+        // --- status (D-03/D-04): apply user overrides ONLY in Colorful. In Simple/High-Contrast the
+        // generator already collapsed status to text / forced the RYG palette, so an override must NOT
+        // re-colorize it. Keyed by StatusSlot.key — split out here, never hitting key.toInt(). ---
+        val colorful = !gen.simple && !gen.highContrast
+        fun statusColor(slot: StatusSlot, generated: String): Color =
+            (if (colorful) statusOverrides[slot.key] else null) ?: bake(generated)
+        val stopColor = statusColor(StatusSlot.Stop, st.stop)
+        val cautionColor = statusColor(StatusSlot.Caution, st.caution)
+        val goColor = statusColor(StatusSlot.Go, st.go)
 
         // --- pool: bake the generated hexes, then apply sparse overrides at-index (D-09). ---
         val basePool = gen.pool.map { bake(it) }
@@ -110,22 +136,24 @@ object TokenBridge {
             accentSoft = rgbaOf(t.primary, if (d) 0.16 else 0.12),
             accentLine = rgbaOf(t.primary, if (d) 0.55 else 0.50),
             accentGlow = rgbaOf(t.primary, if (d) 0.35 else 0.20),
-            // --- status = 3 dedicated pool slots. dinghy's `heat` IS the caution color (D-13). ---
-            heat = bake(st.caution),
-            heatSoft = rgbaOf(st.caution, if (d) 0.16 else 0.14),
-            heatGlow = rgbaOf(st.caution, if (d) 0.38 else 0.22),
+            // --- status = 3 dedicated pool slots, MODE-GATED user overrides applied above (D-03/D-04).
+            // dinghy's `heat` IS the caution color (D-13). The soft/glow alpha variants derive from the
+            // RESOLVED status color (so an override drives its halo too), not the raw generated hex. ---
+            heat = cautionColor,
+            heatSoft = cautionColor.copy(alpha = if (d) 0.16f else 0.14f),
+            heatGlow = cautionColor.copy(alpha = if (d) 0.38f else 0.22f),
             pool = pool,
             directional = Directional(
                 temperature = accent, // D-07: accent leads (supersedes gen.directional.temperature)
                 xy = dirXy,           // D-07: pool[0] (empty-pool → accent)
                 z = dirZ,             // D-07: pool[1] (empty-pool → accent)
             ),
-            go = bake(st.go),
-            goSoft = rgbaOf(st.go, if (d) 0.16 else 0.14),
-            goGlow = rgbaOf(st.go, if (d) 0.40 else 0.22),
-            stop = bake(st.stop),
-            stopSoft = rgbaOf(st.stop, if (d) 0.15 else 0.12),
-            stopGlow = rgbaOf(st.stop, if (d) 0.42 else 0.22),
+            go = goColor,
+            goSoft = goColor.copy(alpha = if (d) 0.16f else 0.14f),
+            goGlow = goColor.copy(alpha = if (d) 0.40f else 0.22f),
+            stop = stopColor,
+            stopSoft = stopColor.copy(alpha = if (d) 0.15f else 0.12f),
+            stopGlow = stopColor.copy(alpha = if (d) 0.42f else 0.22f),
             edgeGlow = rgbaOf(s.muted, if (d) 0.24 else 0.12),
             rScreen = 30.dp,
             rCard = 22.dp,

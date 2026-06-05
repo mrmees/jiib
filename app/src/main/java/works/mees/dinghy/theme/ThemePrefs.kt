@@ -131,6 +131,10 @@ class ThemePrefs(
         val poolShift: Int,
         val maxItems: Int,
         val poolOverrides: Map<Int, Long>,
+        // The 3 status-slot overrides (D-03), split out of the SAME String→Long wire map as
+        // [poolOverrides] (the Int-keyed map cannot hold "stop"/"caution"/"go"). Keyed by the canonical
+        // [StatusSlot.key]; per-entry fail-safe sanitized exactly like the pool overrides.
+        val statusOverrides: Map<String, Long> = emptyMap(),
         val fs: Float,
     )
 
@@ -203,6 +207,10 @@ class ThemePrefs(
          *   • poolOverrides: parse each String key → Int index, validate the ARGB; DROP only the bad
          *     entry, KEEP the good ones (kotlinx ignoreUnknownKeys does NOT cover malformed VALUES, so a
          *     String→Long map + this PER-ENTRY parse is what keeps one bad slot from nuking the whole map).
+         *   • statusOverrides (D-03): the SAME wire map also carries the reserved status keys
+         *     "stop"/"caution"/"go"; route a key matching [StatusSlot.fromKey] into the String-keyed
+         *     statusOverrides (validating the ARGB per-entry). A key that is NEITHER an integer-string NOR
+         *     a valid status key is DROPPED — it never reaches `key.toInt()` (malformed-key safety).
          */
         fun sanitizeTuple(
             rawSeed: String?,
@@ -221,13 +229,28 @@ class ThemePrefs(
             val fs = (enumValuesOrNull<FontScale>(rawFs) ?: FontScale.M).multiplier
 
             val overrides = mutableMapOf<Int, Long>()
+            val statusOverrides = mutableMapOf<String, Long>()
             for ((rawKey, argb) in rawOverrides.orEmpty()) {
-                val idx = rawKey.toIntOrNull() ?: continue   // non-numeric key → drop just this entry
-                if (idx < 0) continue                         // negative pool index → drop just this entry
                 if (!argb.isValidArgb()) continue             // garbage ARGB → drop just this entry
+                val slot = StatusSlot.fromKey(rawKey)
+                if (slot != null) {                           // reserved status key (D-03)
+                    statusOverrides[slot.key] = argb
+                    continue
+                }
+                val idx = rawKey.toIntOrNull() ?: continue    // non-numeric, non-status key → drop (never key.toInt() crash)
+                if (idx < 0) continue                          // negative pool index → drop just this entry
                 overrides[idx] = argb
             }
-            return ThemeTuple(seed, dark, mode, shift, maxItems, overrides, fs)
+            return ThemeTuple(
+                seedHex = seed,
+                dark = dark,
+                paletteMode = mode,
+                poolShift = shift,
+                maxItems = maxItems,
+                poolOverrides = overrides,
+                statusOverrides = statusOverrides,
+                fs = fs,
+            )
         }
 
         /** Case-exact enum lookup that returns null instead of throwing on an unknown/null name. */

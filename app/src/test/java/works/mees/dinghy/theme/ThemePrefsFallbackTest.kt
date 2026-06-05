@@ -130,6 +130,30 @@ class ThemePrefsFallbackTest {
         assertTrue(t.poolOverrides.isEmpty())
     }
 
+    // ---- status-key overrides (D-03) ride the SAME wire map; junk fails safe -----------------------
+
+    @Test
+    fun goodStatusOverride_isKept_inStatusMap_notPoolMap() {
+        val t = sanitize(overrides = mapOf("stop" to 0xFFAB12CDL, "1" to 0xFF112233L))
+        assertEquals("status map carries the status key", 0xFFAB12CDL, t.statusOverrides["stop"])
+        assertEquals("pool map carries the int key", 0xFF112233L, t.poolOverrides[1])
+        assertFalse("status key is NOT in the pool map", t.poolOverrides.containsKey(0))
+    }
+
+    @Test
+    fun junkStatusOverrideValue_isDropped_neverThrows() {
+        // An out-of-range ARGB on a valid status key drops just that status entry (fail-safe → generated).
+        val t = sanitize(
+            overrides = mapOf(
+                "stop" to 0x7_FFFF_FFFFL,   // out-of-range ARGB → drop just this status entry
+                "go" to 0xFF445566L,        // GOOD status entry survives
+            ),
+        )
+        assertFalse("junk stop dropped", t.statusOverrides.containsKey("stop"))
+        assertEquals("good go kept", 0xFF445566L, t.statusOverrides["go"])
+        assertFullyUsable(t)
+    }
+
     // ---- everything corrupt at once still yields the full default tuple -----------------------------
 
     @Test

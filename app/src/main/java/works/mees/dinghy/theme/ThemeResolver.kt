@@ -35,6 +35,9 @@ class ThemeResolver(
     private var poolShift: Int = 0,
     private var maxItems: Int = DEFAULT_POOL_MAX_ITEMS,
     private var poolOverrides: Map<Int, Color> = emptyMap(),
+    // The 3 status-slot overrides (D-03), keyed by [StatusSlot.key]. Applied MODE-GATED in
+    // [TokenBridge.build] — honored in Colorful, IGNORED in Simple/High-Contrast (D-04).
+    private var statusOverrides: Map<String, Color> = emptyMap(),
     private var fs: Float = FontScale.M.multiplier,
 ) {
 
@@ -83,6 +86,20 @@ class ThemeResolver(
         recompute()
     }
 
+    /**
+     * Edit ONE status-slot override (D-03 — Stop/Caution/Go). A non-null [argb] sets that status color;
+     * `null` clears it back to the generated color. Applied MODE-GATED in [TokenBridge.build] (honored
+     * only in Colorful; Simple collapses to text, High-Contrast forces RYG — D-04). Recomputes.
+     */
+    fun setStatusOverride(slot: StatusSlot, argb: Color?) = synchronized(this) {
+        statusOverrides = if (argb == null) {
+            statusOverrides - slot.key
+        } else {
+            statusOverrides + (slot.key to argb)
+        }
+        recompute()
+    }
+
     /** Swap dark/light polarity (chrome stays seed-derived); recomputes + re-emits. */
     fun setDark(next: Boolean) = synchronized(this) {
         dark = next
@@ -102,6 +119,7 @@ class ThemeResolver(
         maxItems: Int,
         overrides: Map<Int, Color>,
         fs: Float,
+        statusOverrides: Map<String, Color> = emptyMap(),
     ) = synchronized(this) {
         this.seedHex = seedHex
         this.dark = dark
@@ -109,6 +127,7 @@ class ThemeResolver(
         this.poolShift = poolShift
         this.maxItems = maxItems
         this.poolOverrides = overrides
+        this.statusOverrides = statusOverrides
         this.fs = fs
         recompute()
     }
@@ -143,7 +162,7 @@ class ThemeResolver(
                 simple = simple,
                 highContrast = highContrast,
             )
-            TokenBridge.build(generated, poolOverrides, fs)
+            TokenBridge.build(generated, poolOverrides, fs, statusOverrides)
         } catch (_: Throwable) {
             // Fail-safe: a complete, usable default theme — the load-bearing Phase-3 contract.
             (if (dark) TokensDark else TokensLight).copy(fs = fs)
