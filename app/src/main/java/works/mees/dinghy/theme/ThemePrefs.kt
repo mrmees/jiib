@@ -103,6 +103,23 @@ class ThemePrefs(
     }
 
     /**
+     * Reset the whole theme tuple (seed/dark/mode/shift/maxItems/overrides) to the validated out-of-box
+     * defaults in ONE [dataStore.edit] (WR-03). fsChoice is a SEPARATE setting and is deliberately NOT
+     * reset here. Doing all writes in a single edit means [tupleFlow] emits ONCE — the old six sequential
+     * `set*()` edits each re-emitted, producing up to six partial-reset theme repaints (RESEARCH Pitfall 3).
+     */
+    suspend fun resetToDefaults() {
+        dataStore.edit { prefs ->
+            prefs[KEY_SEED] = DEFAULT_SEED
+            prefs[KEY_DARK] = true
+            prefs[KEY_MODE] = DEFAULT_MODE
+            prefs[KEY_SHIFT] = DEFAULT_SHIFT
+            prefs[KEY_MAX_ITEMS] = DEFAULT_MAX_ITEMS
+            writeOverrides(prefs, emptyMap())
+        }
+    }
+
+    /**
      * The complete, validated theme TUPLE (D-03/15-05) — the generate-and-cache inputs the
      * [ThemeResolver] applies. `poolOverrides` is Int-keyed/[Color]-valued here (the sanitized runtime
      * form); persistence stores the String→Long wire form. NEVER carries a baked [ThemeTokens].

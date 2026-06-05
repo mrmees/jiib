@@ -422,14 +422,9 @@ class AppContainer(
                 )
             }
         } else {
-            writeScope.launch {
-                themePrefs.setSeed(ThemePrefs.DEFAULT_SEED)
-                themePrefs.setDark(true)
-                themePrefs.setMode(ThemePrefs.DEFAULT_MODE)
-                themePrefs.setShift(ThemePrefs.DEFAULT_SHIFT)
-                themePrefs.setMaxItems(ThemePrefs.DEFAULT_MAX_ITEMS)
-                themePrefs.setOverrides(emptyMap())
-            }
+            // WR-03: ONE atomic edit (not six sequential ones) so tupleFlow emits once — no partial-reset
+            // flicker as the idle theme re-themes through intermediate half-reset tuples.
+            writeScope.launch { themePrefs.resetToDefaults() }
         }
     }
 }
