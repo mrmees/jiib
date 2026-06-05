@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T14:04:39.890Z"
+last_updated: "2026-06-05T14:11:33.387Z"
 last_activity: 2026-06-05
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 100
-  completed_plans: 95
+  completed_plans: 96
   percent: 64
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15 (theme-system-settings-redesign) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
   → **ROADMAP REORDERED + RENUMBERED 2026-06-05 (design-foundation-first; 22 → 21 phases):** with Phase 14 done, Matthew resequenced the back half so the visual foundation is locked before the remaining feature surfaces (avoid-future-rework). Old Settings-Redesign (20) + Final-Conformance (21) MERGED → new **Phase 15 Theme System & Settings Redesign** (pulled to FRONT — parallel-session theme work needs the new Settings UI to test against). Home redesign moved to **16** (foundation-first, before features). New run order = **15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. Old→new: 21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. Final conformance net folds a LIGHT late-surface sweep into Ship (21). PKG-01/03 remapped 22→21. Clean renumber was free — no future phase dirs existed yet. **Next: `/gsd-discuss-phase 15`.**
   → **Phase 14 (Multi-Printer Switching) COMPLETE & verified 2026-06-05** — 6/6 plans, gsd-verifier 9/9 must-haves, MULTI-01 validated. One open item: UAT item 4 mid-print switch (D-04) left OPEN by owner choice (tracked todo; 14-VERIFICATION human_needed).
@@ -163,6 +163,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 14 P14-06 | live-uat-session | 2 tasks tasks | 3 files files |
 | Phase 15 P01 | 8min | 2 tasks | 5 files |
 | Phase 15 P02 | 12 | 1 tasks | 3 files |
+| Phase 15 P03 | 9 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -284,6 +285,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 14][14-06 gap-closure 781277f]: profile writes that race a same-frame navigation MUST run on AppContainer.writeScope (process-lifetime SupervisorJob+Dispatchers.IO), never rememberCoroutineScope() — composition teardown cancels the write and the Nexus-7 slow flash loses the DataStore .tmp->rename race (silent dropped active-id → no spine rebind). Caught only by the live UAT (item 2 revert).
 - [Phase ?]: Phase 15 Wave-0 golden foundation committed (color-golden.json oracle + 3 RED scaffolds)
 - [Phase ?]: 15-02: Palette is a host-pure 1:1 port of color.js; 15-03 bridge consumes the internal hexToOklch/oklchToHex helpers (chose internal-exposure over moved tier-derivation). poolHues asserted via 1e-9 epsilon; rendered hexes/minHueGap exact.
+- [Phase ?]: [15-03] TokenBridge.build(gen,overrides,fs) is the SECOND sanctioned ThemeTokens producer — derives in-between tiers via Palette internal OKLCH helpers (lShift, no re-ported math), applies sparse pool overrides at-index (out-of-range dropped), pure-neutral surfaces (D-16); ThemeTokens extended pool[]/Directional; violet retired to @Deprecated shim (pool[2%size]) deleted in 15-07.
 
 ### Pending Todos
 
@@ -316,7 +318,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T14:04:32.670Z
+Last session: 2026-06-05T14:11:33.306Z
 Stopped at: Phase 15 UI-SPEC approved
 Resume file: 
 None
