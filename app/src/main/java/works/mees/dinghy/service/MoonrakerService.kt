@@ -91,7 +91,12 @@ class MoonrakerService : Service() {
 
         serviceScope.launch {
             runConfigLoop(
-                configFlow = container.connectionStore.config,
+                // Phase 14 (MULTI-01): the config source is now the ACTIVE PROFILE's connection
+                // (AppContainer.activeConfig, distinctUntilChanged) instead of the single connectionStore.
+                // This is the ONLY service edit — runConfigLoop's cancel-before-rebuild seam is unchanged,
+                // so a profile switch is just "activeConfig emits a different value" and the existing loop
+                // does the teardown + atomic SpineHandle republish for free (no second rebind path).
+                configFlow = container.activeConfig,
                 buildAndPublish = { cfg -> buildSpineAndLaunch(cfg) },
                 publishIdle = {
                     container.bindSessionControl(null)

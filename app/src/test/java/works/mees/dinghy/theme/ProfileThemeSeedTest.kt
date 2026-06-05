@@ -62,4 +62,33 @@ class ProfileThemeSeedTest {
     fun fullyDefaultPrimitives_resolveToThemePrefsDefault() {
         assertEquals(ThemePrefs.DEFAULT, profile().toThemeResolved())
     }
+
+    /**
+     * The SWITCH contract (D-08, RESEARCH Pattern 3): plan 02's `AppContainer.seedTheme` re-applies the
+     * ACTIVE profile's `toThemeResolved()` triple on every switch. Proven here at the pipeline level —
+     * two distinct active profiles resolve to two DISTINCT theme triples, so a switch genuinely changes
+     * the resolved tokens the resolver would `apply`. (The container-routed re-seed effect itself needs a
+     * real DataStore flow, exercised on-device in the instrumented test; the triple contract is here.)
+     */
+    @Test
+    fun switchingActiveProfile_yieldsTheNewProfilesThemeTriple() {
+        val accentA = Color(0xFF112233).toArgb().toLong() and 0xFFFFFFFFL
+        val a = profile(base = "Dark", fs = "M", deltaArgb = mapOf("Accent" to accentA)).toThemeResolved()
+        val b = profile(base = "Light", fs = "L").toThemeResolved()
+
+        // Profile A's triple resolves A's accent on a Dark base; profile B's is a Light base, no override.
+        assertEquals(ThemeBase.Dark, a.base)
+        assertEquals(Color(0xFF112233), resolve(a.base, a.deltas, a.fs).accent)
+        assertEquals(ThemeBase.Light, b.base)
+        assertEquals(FontScale.L.multiplier, b.fs)
+        // The two switches produce genuinely DIFFERENT resolved token sets (the re-seed is observable).
+        assertEquals(false, resolve(a.base, a.deltas, a.fs) == resolve(b.base, b.deltas, b.fs))
+    }
+
+    /** Corrupt-everything profile → the global [ThemePrefs.DEFAULT] (the no-active-profile fallback). */
+    @Test
+    fun corruptPrimitivesProfile_failsSafeToThemePrefsDefault() {
+        val r = profile(base = "Banana", fs = "XXL", deltaArgb = mapOf("Banana" to 0x1L)).toThemeResolved()
+        assertEquals(ThemePrefs.DEFAULT, r)
+    }
 }
