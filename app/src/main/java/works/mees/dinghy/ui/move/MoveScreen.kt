@@ -311,8 +311,10 @@ private fun jogIconTint(t: ThemeTokens, disabled: Boolean, forceMove: Boolean): 
 }
 
 /**
- * A directional jog arrow (Material Symbol). The outline is always the blue accent; the icon color
- * signals state via [jogIconTint] (gray/yellow/red). Disabled cells ignore taps.
+ * A directional jog arrow (Material Symbol). The outline wears the XY-plane directional color
+ * ([ThemeTokens.directional]`.xy`, 15-07 / D-13) — the jog arrows identify the XY motion plane, so
+ * they carry the plane color rather than the theme accent. The icon color signals state via
+ * [jogIconTint] (gray/yellow/red). Disabled cells ignore taps.
  */
 @Composable
 private fun JogCell(
@@ -324,7 +326,7 @@ private fun JogCell(
 ) {
     val t = LocalTokens.current
     PadCell(
-        outline = t.accentLine,
+        outline = t.directional.xy,
         onClick = onClick,
         disabled = disabled,
         modifier = modifier,
@@ -484,8 +486,10 @@ private fun ZRow(
 }
 
 /**
- * A full-height Z jog button (Material Symbol; fills the Z-row height — a tall column per mockup). Blue
- * accent outline; the icon color signals state via [jogIconTint] (gray/yellow/red), matching [JogCell].
+ * A full-height Z jog button (Material Symbol; fills the Z-row height — a tall column per mockup). The
+ * outline wears the Z-plane directional color ([ThemeTokens.directional]`.z`, 15-07 / D-13) — the Z
+ * jog buttons identify the Z motion plane. The icon color signals state via [jogIconTint]
+ * (gray/yellow/red), matching [JogCell].
  */
 @Composable
 private fun JogTall(
@@ -498,7 +502,7 @@ private fun JogTall(
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     var box = modifier.fillMaxSize().clip(shape)
-        .border(BorderStroke(2.dp, t.accentLine), shape)
+        .border(BorderStroke(2.dp, t.directional.z), shape)
     if (!disabled) box = box.clickable(onClick = onClick)
     Box(box, contentAlignment = Alignment.Center) {
         MaterialSymbol(
