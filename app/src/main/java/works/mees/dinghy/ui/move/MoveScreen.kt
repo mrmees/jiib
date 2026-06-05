@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,9 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -89,7 +92,8 @@ private val DISTANCES = listOf(0.1, 1.0, 10.0, 25.0, 50.0, 100.0)
  *  - Home ([Intent.Accent]) → `homeAll()` (G28, all axes).
  *  - Disable ([Intent.Warn], amber) → raises the full-screen [ConfirmGuard] (`destructive=false` →
  *    amber proceed-at-peril); confirming dispatches `DISABLE_STEPPERS` (M84).
- *  - Back ([Intent.Danger], red) → [onBack].
+ *  - Back ([Intent.Neutral], outline) → [onBack] (D-10: plain nav spends no safety color; Move only
+ *    this phase, app-wide Back sweep deferred to 15.2).
  *
  * Every action dispatches a registry gcode entry via the per-session
  * [works.mees.dinghy.command.CommandDispatcher], never a raw rpc request. A control whose dispatch key
@@ -220,7 +224,11 @@ fun MoveScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Go, // plain back-nav is non-destructive (overrides LAW's red=back).
+                        // D-10: plain nav spends NO safety color — Back is NEUTRAL/outline, not red and
+                        // not green, in a consistent gutter slot (right-aligned, the last tile). This is
+                        // the D-10 rule established ON MOVE this phase; the app-wide Back sweep is
+                        // deferred to Phase 15.2's conformance audit (plan 08).
+                        intent = Intent.Neutral,
                     )
                 }
             },
@@ -365,6 +373,11 @@ private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modi
  * An axis readout cell: the axis letter (green=homed / amber=unhomed) stacked OVER the live value,
  * both large and readable (GeistMono). Tapping homes that axis (MOVE-02). The letter+value are stacked
  * (not overlaid) so neither is obscured (2026-06-01 fix to the old value-on-glyph collision).
+ *
+ * D-01/D-02 shape-coded safety layer: an UNHOMED axis additionally shows the caution-triangle shape
+ * glyph (tinted [ThemeTokens.heat]) so the unhomed state reads without relying on the amber color
+ * (survives grayscale/CVD). The HOMED state stays color-only — go/green needs no shape (D-02: shapes
+ * mark only the safety-critical not-yet-safe state, never the all-good state).
  */
 @Composable
 private fun AxisCorner(
@@ -387,13 +400,27 @@ private fun AxisCorner(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = axis,
-                color = glyphColor,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(34f, t.fs).sp,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = axis,
+                    color = glyphColor,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(34f, t.fs).sp,
+                )
+                if (!homed) {
+                    // Unhomed caution shape (D-01/D-02) — the redundant non-color signal for the
+                    // not-yet-homed state; sized via fsSp, NOT the 96dp vector intrinsic.
+                    StatusShape(
+                        resId = R.drawable.ic_status_triangle,
+                        tint = t.heat,
+                        sizeSp = fsSp(20f, t.fs),
+                    )
+                }
+            }
             Text(
                 text = value?.let { fmt(it) } ?: "—",
                 color = t.text,
@@ -406,10 +433,28 @@ private fun AxisCorner(
 }
 
 /**
- * The force-move toggle (replaces the old Override cell, 2026-06-01). A latching lock: GREEN + `lock`
- * when OFF (normal G1 jog, homing enforced), RED + `lock_open_right` when ON (jog issues FORCE_MOVE —
- * moves a stepper with NO homing/limit checks, the deliberate proceed-at-peril unhomed escape; requires
- * `enable_force_move` in the printer config). Tapping toggles the mode.
+ * Render a status SHAPE drawable (ic_status_triangle / ic_lock_open / ic_lock_closed …) tinted from a
+ * role token at an EXPLICIT fsSp size (NOT the 96dp vector intrinsic — Item 6). The shape silhouette
+ * is the D-01/D-02/D-12 redundant non-color safety signal; the [tint] is the matching status color.
+ */
+@Composable
+private fun StatusShape(resId: Int, tint: Color, sizeSp: Float, modifier: Modifier = Modifier) {
+    Icon(
+        painter = painterResource(resId),
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier.size(sizeSp.dp),
+    )
+}
+
+/**
+ * The force-move toggle (replaces the old Override cell, 2026-06-01). A latching lock with the D-12
+ * shape-coded safety layer: when OFF (SAFE — normal G1 jog, homing enforced) it shows the GREEN
+ * CLOSED padlock ([R.drawable.ic_lock_closed]); when ON (ARMED — jog issues FORCE_MOVE, moving a
+ * stepper with NO homing/limit checks, the deliberate proceed-at-peril unhomed escape; requires
+ * `enable_force_move` in the printer config) it shows the RED OPEN padlock ([R.drawable.ic_lock_open]).
+ * The LOCK OPEN/CLOSED silhouette is the redundant non-color signal (D-12) so the armed/safe state
+ * reads without relying on color. Tapping toggles the mode.
  */
 @Composable
 private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
@@ -421,8 +466,8 @@ private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modi
         disabled = false,
         modifier = modifier,
     ) {
-        MaterialSymbol(
-            name = if (enabled) "lock_open_right" else "lock",
+        StatusShape(
+            resId = if (enabled) R.drawable.ic_lock_open else R.drawable.ic_lock_closed,
             tint = color,
             sizeSp = fsSp(40f, t.fs),
         )

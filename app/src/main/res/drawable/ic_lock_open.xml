@@ -1,0 +1,39 @@
+<!--
+  Open-padlock glyph for the force-move ARMED state (D-12 redundant non-color signal). The OPEN
+  silhouette = the shackle has SWUNG UP AND LEFT so its right leg is LIFTED CLEAR of the body (the
+  loop is broken open), distinct at a glance from ic_lock_closed (both legs engaged). Geometry only —
+  strokes drawn white and recolored at the call site via Compose ColorFilter.tint(t.stop) (THEME-01);
+  NEVER a status hex baked in. Same white-stroke-tinted-at-call-site convention as nozzle.xml.
+
+  Body = the same rounded rectangle as ic_lock_closed (so the OPEN vs CLOSED difference reads in the
+  SHACKLE, which is the doctrine signal). Shackle = an arch rotated open, only its LEFT leg lands on
+  the body; the right leg ends in the air above-right of the body.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Lock body (identical to closed) -->
+    <path
+        android:pathData="M26,46h44c2.2,0,4,1.8,4,4v26c0,2.2-1.8,4-4,4H26c-2.2,0-4-1.8-4-4V50c0-2.2,1.8-4,4-4Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Shackle: swung OPEN — left leg engages the body top, the arch lifts up and the free
+         (right) leg ends in the air above-right, clear of the body (the loop is broken). -->
+    <path
+        android:pathData="M34,46V32c0,-7.7,6.3,-14,14,-14c6.4,0,11.8,4.3,13.5,10.1"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Keyhole -->
+    <path
+        android:pathData="M48,60L48,60"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
