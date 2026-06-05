@@ -64,7 +64,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: Macro Prompt Protocol** - Render interactive dialogs from user macros that emit `// action:prompt_*` lines in the gcode-response stream (per the klipper-macro-prompt-protocol), reusing the Console stream + dialog primitive (completed 2026-06-04)
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
 - [x] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware (completed 2026-06-05)
-- [ ] **Phase 15: Theme System & Settings Redesign** - Establish the full semantic-token theme system (dark/light/user-custom + S/M/L) as the visual foundation and rebuild Settings to host it (merges the former Settings-Redesign + Final-Conformance phases); pulled to the front because the parallel theme work needs the new Settings UI to test against; also conformance-sweeps existing surfaces
+- [x] **Phase 15: Theme System & Settings Redesign** - Establish the full semantic-token theme system (dark/light/user-custom + S/M/L) as the visual foundation and rebuild Settings to host it (merges the former Settings-Redesign + Final-Conformance phases); pulled to the front because the parallel theme work needs the new Settings UI to test against; also conformance-sweeps existing surfaces (completed 2026-06-05)
 - [ ] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune)
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [ ] **Phase 18: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
@@ -637,7 +637,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 15-07-PLAN.md — Pool wiring: GraphView/Temp/Print-Status readouts + Move directional outlines + on-device UAT
+- [x] 15-07-PLAN.md — Pool wiring: GraphView/Temp/Print-Status readouts + Move directional outlines + on-device UAT
 
 **UI hint**: yes
 **Research note**: STANDARD — integrates the parallel theme work + UI reorganization on the existing DataStore-backed Settings; audit/polish against the existing UI LAW + `reference/hifi.css`; no new backend.
@@ -775,7 +775,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 12. Macro Prompt Protocol | 5/5 | Complete   | 2026-06-04 |
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
-| 15. Theme System & Settings Redesign | 6/7 | In Progress|  |
+| 15. Theme System & Settings Redesign | 7/7 | Complete   | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 0/TBD | Not started | - |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
