@@ -44,21 +44,28 @@ class ThemeResolver(
     val tokens: StateFlow<ThemeTokens> = _tokens.asStateFlow()
 
     // ---------- the NEW live API: seed / mode / pool ----------
+    //
+    // WR-01 (thread safety): the input fields are written from TWO sites — the Compose UI thread
+    // (these set*() calls from Settings/Gallery/the editor) and a background dispatcher (the
+    // `seedTheme` collector → [apply], which `flatMapLatest` runs off `Dispatchers.Default`). Each
+    // mutator + the [compute] snapshot it triggers run under `synchronized(this)` so a UI-thread
+    // single-field write can never tear a concurrent multi-field [apply] into a garbage intermediate
+    // theme. The `_tokens` StateFlow `value` setter is itself atomic; the lock guards the FIELDS feeding it.
 
     /** Replace the seed hex; recomputes + re-emits once. */
-    fun setSeed(next: String) {
+    fun setSeed(next: String) = synchronized(this) {
         seedHex = next
         recompute()
     }
 
     /** Replace the palette mode ([MODE_COLORFUL]/[MODE_SIMPLE]/[MODE_HIGH_CONTRAST]); recomputes + re-emits. */
-    fun setMode(next: String) {
+    fun setMode(next: String) = synchronized(this) {
         paletteMode = next
         recompute()
     }
 
     /** Replace the pool-shift (hue rotation of the data pool); recomputes + re-emits. */
-    fun setShift(next: Int) {
+    fun setShift(next: Int) = synchronized(this) {
         poolShift = next
         recompute()
     }
@@ -67,7 +74,7 @@ class ThemeResolver(
      * Edit ONE data-pool override slot (D-09 — the data-pool is the only editable surface now). A
      * non-null [argb] sets `pool[i]`; a `null` clears the slot back to the seed-derived color. Recomputes.
      */
-    fun setOverride(i: Int, argb: Color?) {
+    fun setOverride(i: Int, argb: Color?) = synchronized(this) {
         poolOverrides = if (argb == null) {
             poolOverrides - i
         } else {
@@ -77,7 +84,7 @@ class ThemeResolver(
     }
 
     /** Swap dark/light polarity (chrome stays seed-derived); recomputes + re-emits. */
-    fun setDark(next: Boolean) {
+    fun setDark(next: Boolean) = synchronized(this) {
         dark = next
         recompute()
     }
@@ -95,7 +102,7 @@ class ThemeResolver(
         maxItems: Int,
         overrides: Map<Int, Color>,
         fs: Float,
-    ) {
+    ) = synchronized(this) {
         this.seedHex = seedHex
         this.dark = dark
         this.paletteMode = paletteMode
@@ -107,7 +114,7 @@ class ThemeResolver(
     }
 
     /** Set the text-size multiplier (S/M/L → 1.0/1.15/1.32); recomputes + re-emits. fs is unchanged this phase. */
-    fun setFs(next: Float) {
+    fun setFs(next: Float) = synchronized(this) {
         fs = next
         recompute()
     }
