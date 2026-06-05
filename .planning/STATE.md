@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T07:07:57.451Z"
-last_activity: 2026-06-05 -- Phase 15 planning complete
+last_updated: "2026-06-05T13:57:50.353Z"
+last_activity: 2026-06-05
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 100
-  completed_plans: 93
+  completed_plans: 94
   percent: 64
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 15 — Theme System & Settings Redesign (NEXT)
+**Current focus:** Phase 15 — theme-system-settings-redesign
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
+Phase: 15 (theme-system-settings-redesign) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
   → **ROADMAP REORDERED + RENUMBERED 2026-06-05 (design-foundation-first; 22 → 21 phases):** with Phase 14 done, Matthew resequenced the back half so the visual foundation is locked before the remaining feature surfaces (avoid-future-rework). Old Settings-Redesign (20) + Final-Conformance (21) MERGED → new **Phase 15 Theme System & Settings Redesign** (pulled to FRONT — parallel-session theme work needs the new Settings UI to test against). Home redesign moved to **16** (foundation-first, before features). New run order = **15 Theme+Settings → 16 Home → 17 Fine-Tune → 18 Output → 19 System Info → 20 WebRTC → 21 Release & Ship (LAST)**. Old→new: 21+20→15, 19→16, 15→17, 16→18, 18→19, 17→20, 22→21. Final conformance net folds a LIGHT late-surface sweep into Ship (21). PKG-01/03 remapped 22→21. Clean renumber was free — no future phase dirs existed yet. **Next: `/gsd-discuss-phase 15`.**
   → **Phase 14 (Multi-Printer Switching) COMPLETE & verified 2026-06-05** — 6/6 plans, gsd-verifier 9/9 must-haves, MULTI-01 validated. One open item: UAT item 4 mid-print switch (D-04) left OPEN by owner choice (tracked todo; 14-VERIFICATION human_needed).
@@ -45,7 +45,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-05 -- Phase 15 planning complete
+Last activity: 2026-06-05
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -161,6 +161,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 14 P04 | 12 | 2 tasks | 1 files |
 | Phase 14 P05 | ~12min | 2 tasks | 3 files |
 | Phase 14 P14-06 | live-uat-session | 2 tasks tasks | 3 files files |
+| Phase 15 P01 | 8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -280,6 +281,7 @@ Recent decisions affecting current work:
 - [Phase 14]: 14-03: preferred-webcam pref re-keyed on profile id (D-06) at all 3 touch points (WebcamPrefs/WebcamHolder/AppShell); old host-keyed entries orphaned (D-07, no migration)
 - [Phase 14]: 14-03: added Dest.Devices placeholder arm (Box) to AppShell exhaustive when(dest) to stay compile-clean; plan 05 replaces with the real switcher screen
 - [Phase ?]: [Phase 14][14-06 gap-closure 781277f]: profile writes that race a same-frame navigation MUST run on AppContainer.writeScope (process-lifetime SupervisorJob+Dispatchers.IO), never rememberCoroutineScope() — composition teardown cancels the write and the Nexus-7 slow flash loses the DataStore .tmp->rename race (silent dropped active-id → no spine rebind). Caught only by the live UAT (item 2 revert).
+- [Phase ?]: Phase 15 Wave-0 golden foundation committed (color-golden.json oracle + 3 RED scaffolds)
 
 ### Pending Todos
 
@@ -312,7 +314,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T06:28:55.896Z
+Last session: 2026-06-05T13:57:38.623Z
 Stopped at: Phase 15 UI-SPEC approved
 Resume file: 
-.planning/phases/15-theme-system-settings-redesign/15-UI-SPEC.md
+None
