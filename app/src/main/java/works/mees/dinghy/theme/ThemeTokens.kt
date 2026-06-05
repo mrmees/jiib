@@ -111,7 +111,45 @@ data class ThemeTokens(
      * `fontScale` is neutralised at the Compose root so this never double-applies.
      */
     val fs: Float,
+    /**
+     * The active [PaletteMode] (D-05). Carried as a resolved ENUM (never a string) so the N-series
+     * helper [seriesColor] is a PURE READ — it branches on this field with no string parsing and no
+     * extra inputs. The resolver already knows the mode; threading it onto the token set makes the
+     * data-series rule a property of the theme. Defaults to [PaletteMode.Colorful] (D-15 default)
+     * so every existing [ThemeTokens] constructor site (baked fallbacks, previews, test builders)
+     * stays source-compatible.
+     */
+    val mode: PaletteMode = PaletteMode.Colorful,
 )
+
+/**
+ * The three data-coloring modes (D-05/D-15). Drives the [ThemeTokens.seriesColor] N-series sequence:
+ *  - [Colorful]:     accent-led, then wraps the data [ThemeTokens.pool] (full-color data).
+ *  - [Simple]:       accent / text alternation (near-monochrome data).
+ *  - [HighContrast]: accent / stop / caution(=heat) / go / text cycle (stoplight-coded data).
+ *
+ * An enum (not a string) so the series rule is a pure, exhaustive `when` with no lookup. Maps from
+ * the resolver's `MODE_*` string constants — see [PaletteMode.fromFlags]. [Colorful] is the D-15 default.
+ */
+enum class PaletteMode {
+    Colorful,
+    Simple,
+    HighContrast;
+
+    companion object {
+        /**
+         * Map the generator's two boolean mode flags (the [Palette.Generated.simple] /
+         * [Palette.Generated.highContrast] pair the resolver derives from its `MODE_*` string) onto
+         * the resolved enum — the ONE place the string/flag world becomes a [PaletteMode].
+         * High-contrast wins if both are set (defensive; the resolver never sets both).
+         */
+        fun fromFlags(simple: Boolean, highContrast: Boolean): PaletteMode = when {
+            highContrast -> HighContrast
+            simple -> Simple
+            else -> Colorful
+        }
+    }
+}
 
 /**
  * Directional standards (D-13): the temperature / XY-plane / Z-plane identity colors derived from

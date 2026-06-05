@@ -122,6 +122,10 @@ object TokenBridge {
             rCtrl = 16.dp,
             rPill = 999.dp,
             fs = fs,
+            // The active palette mode, resolved from the generator's flags in ONE place (D-05) so
+            // ThemeTokens.seriesColor is a pure enum read. The resolver maps its MODE_* string →
+            // gen.simple/highContrast → this enum.
+            mode = PaletteMode.fromFlags(gen.simple, gen.highContrast),
         )
     }
 }
