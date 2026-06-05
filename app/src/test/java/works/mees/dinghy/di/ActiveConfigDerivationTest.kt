@@ -37,8 +37,8 @@ class ActiveConfigDerivationTest {
     @Test
     fun nameOrThemeEditDoesNotChurnConfig() = runTest {
         // Two emissions of the active profile that differ ONLY in name + theme — same host/port/key.
-        val v1 = Profile(id = "a", name = "Ender 5 Plus", host = "192.168.1.120", port = 7125, themeBase = "Dark")
-        val v2 = v1.copy(name = "Big Printer", themeBase = "Light")
+        val v1 = Profile(id = "a", name = "Ender 5 Plus", host = "192.168.1.120", port = 7125, seedHex = "#3f78ff")
+        val v2 = v1.copy(name = "Big Printer", seedHex = "#8b5cf6")
 
         val emitted = activeConfig(profiles = listOf(listOf(v1), listOf(v2)), activeId = "a").toList()
 

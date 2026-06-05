@@ -7,8 +7,8 @@ import androidx.compose.ui.unit.Dp
 /**
  * The toolkit-agnostic, immutable, fully-RESOLVED token set — the single source of truth every
  * later UI surface (Compose AND classic Views, ADR 0001 hybrid) consumes. A "theme" in this app
- * is nothing more than one of these: pick a base (Dark/Light), apply any user [TokenDelta]
- * overrides, set the text-size multiplier, and you have a complete usable theme (THEME-01/D-05).
+ * is nothing more than one of these: a seed-generated palette (chrome) plus the contrast-ranked data
+ * pool (D-04), at the active dark/light polarity and text-size multiplier — a complete usable theme.
  *
  * Mirrors the [works.mees.dinghy.state.PrinterState] discipline — a plain value type with KDoc per
  * field tying each back to its design-law role token (docs/ui_design/THEMING.md). It carries
@@ -146,7 +146,10 @@ data class Directional(
     val z: Color,
 )
 
-/** The two built-in theme bases. A user-custom theme is one of these plus a [TokenDelta] (D-02). */
+/**
+ * The two theme polarities. Retained as the dark/light vocabulary the generator's `dark` flag maps onto;
+ * the per-role override model that once paired with it was retired (D-04, seed-only chrome).
+ */
 enum class ThemeBase { Dark, Light }
 
 /**

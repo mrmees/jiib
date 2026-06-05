@@ -9,11 +9,11 @@ import works.mees.dinghy.config.PersistedProfile
 import works.mees.dinghy.config.Profile
 
 /**
- * Profile theme PERSISTENCE shape (15-05 rework — the old per-role TokenDelta round-trip contract is
- * RETIRED). Two cases:
- *  1. FRESH-START decode (D-05, no migration): an OLD-shape blob that only carries `themeBase`/
- *     `themeDeltaArgb` decodes cleanly — those map onto the @Deprecated (ignored) fields and the NEW
- *     tuple fields take their defaults. No crash, no migration.
+ * Profile theme PERSISTENCE shape (15-06: the old per-role TokenDelta round-trip AND the deprecated
+ * `themeBase`/`themeDeltaArgb` fields are now fully DELETED). Two cases:
+ *  1. FRESH-START decode (D-05, no migration): an OLD-shape blob that still carries the now-DELETED
+ *     `themeBase`/`themeDeltaArgb` keys decodes cleanly — `ignoreUnknownKeys` SKIPS those keys and the
+ *     NEW tuple fields take their defaults. No crash, no migration, no leak into the runtime tuple.
  *  2. New-shape tuple ROUND-TRIP: a [PersistedProfile] carrying the full tuple (incl. a 2-entry
  *     `poolOverrides`) re-encodes/decodes byte-stable.
  *
@@ -25,10 +25,9 @@ class TokenDeltaSerializationTest {
     private val json = Json { ignoreUnknownKeys = true }
     private val serializer = ListSerializer(PersistedProfile.serializer())
 
-    @Suppress("DEPRECATION")
     @Test
-    fun oldShapeBlob_decodesFreshStart_legacyFieldsIgnored_tupleDefaults() {
-        // A pre-15-05 blob: only id/host + the RETIRED themeBase/themeDeltaArgb (no tuple keys present).
+    fun oldShapeBlob_decodesFreshStart_legacyKeysSkipped_tupleDefaults() {
+        // A pre-15-05 blob: only id/host + the DELETED themeBase/themeDeltaArgb keys (no tuple keys).
         val oldBlob = """
             [{"id":"a","host":"192.168.1.120","themeBase":"Light",
               "themeDeltaArgb":{"Accent":4278203955}}]
@@ -38,7 +37,8 @@ class TokenDeltaSerializationTest {
         assertEquals(1, decoded.size)
         val p = decoded[0]
 
-        // The NEW tuple fields default (D-05 fresh-start — old theme is NOT migrated).
+        // The NEW tuple fields default (D-05 fresh-start — old theme is NOT migrated); the now-unknown
+        // themeBase/themeDeltaArgb keys are silently skipped by ignoreUnknownKeys (no crash).
         assertEquals("#3f78ff", p.seedHex)
         assertTrue(p.dark)
         assertEquals("Colorful", p.paletteMode)
@@ -46,8 +46,6 @@ class TokenDeltaSerializationTest {
         assertEquals(4, p.maxItems)
         assertTrue(p.poolOverrides.isEmpty())
 
-        // The legacy fields decoded (they exist) but are IGNORED by the runtime tuple.
-        assertEquals("Light", p.themeBase)
         val tuple = Profile.fromPersisted(p).toThemeTuple()
         assertEquals(ThemePrefs.TUPLE_DEFAULT, tuple) // legacy "Light"/Accent did NOT leak into the tuple
     }

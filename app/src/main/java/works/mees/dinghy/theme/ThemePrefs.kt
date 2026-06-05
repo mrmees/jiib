@@ -13,44 +13,27 @@ import kotlinx.coroutines.flow.map
 import java.io.IOException
 
 /**
- * DataStore(Preferences) persistence of the theme (THEME-02/D-02) — the FIRST DataStore in the repo,
- * and the mechanism that lands BEFORE any editor UI (the editor is Phase 4 SET-01). Persists three
- * things: the theme base (Dark/Light), the S/M/L `--fs` choice, and the sparse custom [TokenDelta]
- * (overridden roles → packed ARGB longs, D-02).
+ * DataStore(Preferences) persistence of the theme (THEME-02/D-02) — the FIRST DataStore in the repo.
+ * Persists the generate-and-cache theme TUPLE (seed, dark, paletteMode, poolShift, maxItems, the sparse
+ * per-pool-slot overrides) + the S/M/L `--fs` choice. The OLD per-role TokenDelta chrome-override
+ * persistence was RETIRED in 15-06 (D-04): chrome is fully seed-derived; only the data-pool is editable.
  *
- * DETERMINISTIC FAIL-SAFE CONTRACT (D-02, threat T-03-01): because persistence exists before any
+ * DETERMINISTIC FAIL-SAFE CONTRACT (D-02/D-03, threat T-15-05-01): because persistence exists before any
  * validating editor, a corrupt/partial blob MUST NEVER crash or black-screen the printer display.
- * The read path ([sanitize]) ALWAYS resolves to a complete, usable ([ThemeBase], [TokenDelta], Float)
- * triple and never throws:
- *   • unknown/unparseable base       → fall back to the default base (Dark)
- *   • unknown/unparseable fs choice   → fall back to the default M (1.15f)
- *   • a malformed/partial delta map   → keep the valid entries, silently drop the junk ones
- *   • an out-of-range/garbage role/ARGB → drop just that override (inherit the base token)
+ * The read path ([sanitizeTuple]) ALWAYS resolves to a complete, usable [ThemeTuple] and never throws:
+ *   • unparseable seed (not 6/8-hex)             → default seed
+ *   • bad mode (∉ Colorful|Simple|HighContrast)  → Colorful
+ *   • out-of-range poolShift / maxItems          → defaults
+ *   • a malformed pool override                  → drop ONLY that slot, keep the good ones (per-entry)
  *
- * The sanitization is a PURE function over the stored primitives ([sanitize]) so it is unit-testable
- * host-side with no DataStore I/O (ThemePrefsFallbackTest stays host-pure). [flow] reads DataStore,
- * maps each [Preferences] snapshot through [sanitize], and (per DataStore guidance) recovers from a
- * read [IOException] by emitting empty prefs — which [sanitize] turns into the full default theme.
+ * The sanitization is a PURE function over the stored primitives ([sanitizeTuple]) so it is unit-testable
+ * host-side with no DataStore I/O (ThemePrefsFallbackTest stays host-pure). [tupleFlow] reads DataStore,
+ * maps each [Preferences] snapshot through [sanitizeTuple], and (per DataStore guidance) recovers from a
+ * read [IOException] by emitting empty prefs — which [sanitizeTuple] turns into the full default tuple.
  */
 class ThemePrefs(
     private val dataStore: DataStore<Preferences>,
 ) {
-    /** Sanitized theme read — never throws; always a complete, usable theme (D-02). */
-    val flow: Flow<Resolved> =
-        dataStore.data
-            .catch { e ->
-                // A corrupt store / read error is a fail-safe case, not a crash (D-02).
-                if (e is IOException) emit(emptyPreferences()) else throw e
-            }
-            .map { prefs ->
-                sanitize(
-                    rawBase = prefs[KEY_BASE],
-                    rawFs = prefs[KEY_FS],
-                    rawRoleKeys = prefs[KEY_DELTA_ROLES],
-                    readArgb = { role -> prefs[longPreferencesKey(deltaArgbKey(role))] },
-                )
-            }
-
     /**
      * The GLOBAL theme TUPLE (D-03/D-09) — the no-active-profile idle theme AND the new-profile default
      * look. Never throws: a corrupt/partial blob fails safe per-entry through [sanitizeTuple] to a
@@ -107,30 +90,8 @@ class ThemePrefs(
         }
     }
 
-    @Deprecated("Retired — use setDark(Boolean) (seed-only chrome, D-04); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    suspend fun setBase(base: ThemeBase) {
-        dataStore.edit { it[KEY_BASE] = base.name }
-    }
-
     suspend fun setFs(choice: FontScale) {
         dataStore.edit { it[KEY_FS] = choice.name }
-    }
-
-    /** Persist the sparse delta: store the set of overridden role names + one ARGB long per role. */
-    @Deprecated("Retired — per-role chrome override is gone (seed owns chrome, D-04); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    @Suppress("DEPRECATION")
-    suspend fun setDeltas(delta: TokenDelta) {
-        dataStore.edit { prefs ->
-            // Clear any previously-persisted per-role ARGB values first.
-            prefs[KEY_DELTA_ROLES]?.forEach { roleName ->
-                prefs.remove(longPreferencesKey(deltaArgbKey(roleName)))
-            }
-            prefs[KEY_DELTA_ROLES] = delta.overrides.keys.map { it.name }.toSet()
-            for ((role, argb) in delta.overrides) {
-                // Persist the unsigned 32-bit ARGB form (TokenDelta normalizes, masked here for safety).
-                prefs[longPreferencesKey(deltaArgbKey(role.name))] = argb and 0xFFFFFFFFL
-            }
-        }
     }
 
     /**
@@ -148,18 +109,6 @@ class ThemePrefs(
         val fs: Float,
     )
 
-    /**
-     * @deprecated (D-04) — the old per-role resolved triple. Kept so the still-standing SettingsScreen +
-     * the legacy theme tests compile at THIS wave; deleted in 15-06. [resolve] turns it into [ThemeTokens].
-     */
-    @Deprecated("Retired — use ThemeTuple (the generate-and-cache model); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    @Suppress("DEPRECATION")
-    data class Resolved(
-        val base: ThemeBase,
-        val deltas: TokenDelta,
-        val fs: Float,
-    )
-
     companion object {
         // Tuple keys (15-05) — the live persisted theme.
         private val KEY_SEED = stringPreferencesKey("theme_seed")
@@ -170,11 +119,8 @@ class ThemePrefs(
         private val KEY_OVERRIDE_KEYS = stringSetPreferencesKey("pool_override_keys")
         private fun overrideArgbKey(idxName: String) = "pool_override_argb_$idxName"
 
-        // Legacy keys (retained for the deprecated base/delta path; deleted in 15-06).
-        private val KEY_BASE = stringPreferencesKey("theme_base")
+        // The S/M/L text-size key (a SEPARATE setting, D-05) — read by tupleFlow + written by setFs.
         private val KEY_FS = stringPreferencesKey("fs_choice")
-        private val KEY_DELTA_ROLES = stringSetPreferencesKey("delta_roles")
-        private fun deltaArgbKey(roleName: String) = "delta_argb_$roleName"
 
         // ---- Tuple defaults + validation (the fail-safe contract, V5/T-15-05-01) ---------------------
 
@@ -244,46 +190,6 @@ class ThemePrefs(
                 overrides[idx] = argb
             }
             return ThemeTuple(seed, dark, mode, shift, maxItems, overrides, fs)
-        }
-
-        /** The fail-safe default theme: Dark base, no overrides, M text size (LEGACY; deleted in 15-06). */
-        @Deprecated("Retired — use TUPLE_DEFAULT; deleted in 15-06.", level = DeprecationLevel.WARNING)
-        @Suppress("DEPRECATION")
-        val DEFAULT = Resolved(ThemeBase.Dark, TokenDelta.EMPTY, FontScale.M.multiplier)
-
-        /**
-         * PURE fail-safe sanitizer (D-02) — the heart of the fail-safe contract, deliberately free of
-         * DataStore so it is host-pure-testable. Given the raw persisted primitives (any of which may
-         * be null/garbage), returns a complete, usable [Resolved]. NEVER throws.
-         *
-         * @param rawBase    persisted base name (or null)
-         * @param rawFs      persisted fs choice name (or null)
-         * @param rawRoleKeys persisted set of overridden role names (or null)
-         * @param readArgb   reads the ARGB long for a given role name (null when absent)
-         */
-        @Deprecated("Retired — use sanitizeTuple; deleted in 15-06.", level = DeprecationLevel.WARNING)
-        @Suppress("DEPRECATION")
-        fun sanitize(
-            rawBase: String?,
-            rawFs: String?,
-            rawRoleKeys: Set<String>?,
-            readArgb: (String) -> Long?,
-        ): Resolved {
-            // base: unknown/unparseable → Dark default.
-            val base = enumValuesOrNull<ThemeBase>(rawBase) ?: ThemeBase.Dark
-
-            // fs: unknown/unparseable → M default.
-            val fs = (enumValuesOrNull<FontScale>(rawFs) ?: FontScale.M).multiplier
-
-            // deltas: keep valid role+ARGB pairs, silently drop every junk entry.
-            val valid = mutableMapOf<TokenDelta.Role, Long>()
-            for (roleName in rawRoleKeys.orEmpty()) {
-                val role = enumValuesOrNull<TokenDelta.Role>(roleName) ?: continue // unknown role → drop
-                val argb = readArgb(roleName) ?: continue                          // missing value → drop
-                if (!argb.isValidArgb()) continue                                  // garbage ARGB → drop just this
-                valid[role] = argb
-            }
-            return Resolved(base, TokenDelta(valid), fs)
         }
 
         /** Case-exact enum lookup that returns null instead of throwing on an unknown/null name. */

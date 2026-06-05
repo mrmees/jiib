@@ -2,7 +2,6 @@ package works.mees.dinghy.config
 
 import kotlinx.serialization.Serializable
 import works.mees.dinghy.theme.ThemePrefs
-import works.mees.dinghy.theme.TokenDelta
 import java.util.UUID
 
 /**
@@ -12,7 +11,7 @@ import java.util.UUID
  * prefs (D-05/D-06), an optional display [name] defaulting to its host (D-10), and a FULL per-printer
  * theme (D-08) persisted as PRIMITIVES (never a baked [works.mees.dinghy.theme.ThemeTokens]).
  *
- * Two shapes, mirroring [ThemePrefs.Resolved]-vs-persisted-keys:
+ * Two shapes, the runtime value vs. its persisted wire form:
  *  - [PersistedProfile] — the `@Serializable` on-disk wire form (the JSON blob `ProfileStore` stores).
  *  - [Profile] — the runtime value the rest of the app consumes; produced by sanitizing the persisted
  *    form, so a malformed entry never reaches the spine.
@@ -41,19 +40,14 @@ data class PersistedProfile(
     val maxItems: Int = 4,
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M", // FontScale.name — a SEPARATE setting (D-05), NOT folded into the theme tuple.
-    // RETIRED theme primitives (D-05 fresh-start, NO migration). Kept as @Deprecated DECODED-BUT-UNUSED fields
-    // so the still-standing SettingsScreen + ProfileStoreTest/ActiveConfigDerivationTest compile at THIS wave;
-    // the runtime ignores them (the tuple above is the source of truth). DELETED in 15-06.
-    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    val themeBase: String = "Dark",
-    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    val themeDeltaArgb: Map<String, Long> = emptyMap(),
+    // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
+    // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
+    // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
 ) {
     /**
      * Redacts the API key (V7, T-14-01) — never let the key reach a log line, mirrors ConnectionConfig.kt:26.
      * The theme tuple carries NO secrets, so it is NOT redaction surface (V7 — do not widen the masking).
      */
-    @Suppress("DEPRECATION")
     override fun toString(): String =
         "PersistedProfile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
@@ -81,11 +75,6 @@ data class Profile(
     val maxItems: Int = 4,
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M",
-    // RETIRED (D-05 fresh-start) — @Deprecated decoded-but-unused; deleted in 15-06.
-    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    val themeBase: String = "Dark",
-    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    val themeDeltaArgb: Map<String, Long> = emptyMap(),
 ) {
     /**
      * The connection projection — host/port/apiKey ONLY. This is the value `distinctUntilChanged` keys
@@ -114,23 +103,7 @@ data class Profile(
             rawOverrides = poolOverrides,
         )
 
-    /**
-     * LEGACY (deleted in 15-06) — the OLD per-role [ThemePrefs.Resolved] derivation off the deprecated
-     * `themeBase`/`themeDeltaArgb` fields. Kept so the still-standing SettingsScreen + ProfileThemeSeedTest
-     * compile at THIS wave; the runtime theme is now driven by [toThemeTuple]. DELETED in 15-06.
-     */
-    @Deprecated("Retired — use toThemeTuple() (the tuple model); deleted in 15-06.", level = DeprecationLevel.WARNING)
-    @Suppress("DEPRECATION")
-    fun toThemeResolved(): ThemePrefs.Resolved =
-        ThemePrefs.sanitize(
-            rawBase = themeBase,
-            rawFs = fsChoice,
-            rawRoleKeys = themeDeltaArgb.keys,
-            readArgb = { role -> themeDeltaArgb[role] },
-        )
-
     /** The wire form — for re-encoding when [ProfileStore] writes the blob. */
-    @Suppress("DEPRECATION")
     fun toPersisted(): PersistedProfile =
         PersistedProfile(
             id = id,
@@ -145,8 +118,6 @@ data class Profile(
             maxItems = maxItems,
             poolOverrides = poolOverrides,
             fsChoice = fsChoice,
-            themeBase = themeBase,
-            themeDeltaArgb = themeDeltaArgb,
         )
 
     override fun toString(): String =
@@ -160,7 +131,6 @@ data class Profile(
         fun newId(): String = UUID.randomUUID().toString()
 
         /** Lift a sanitized [PersistedProfile] into its runtime [Profile]. */
-        @Suppress("DEPRECATION")
         fun fromPersisted(p: PersistedProfile): Profile =
             Profile(
                 id = p.id,
@@ -175,8 +145,6 @@ data class Profile(
                 maxItems = p.maxItems,
                 poolOverrides = p.poolOverrides,
                 fsChoice = p.fsChoice,
-                themeBase = p.themeBase,
-                themeDeltaArgb = p.themeDeltaArgb,
             )
     }
 }

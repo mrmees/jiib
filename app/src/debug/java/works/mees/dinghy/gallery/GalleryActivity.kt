@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import works.mees.dinghy.state.PrinterStateStore
-import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.compose.DinghyTheme
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -27,7 +26,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
  *
  * ## Sole assembler of GalleryScreen's dependencies
  * GalleryScreen constructs NONE of its deps; this Activity is the ONE place that assembles them:
- *  - a [ThemeResolver] seeded from [ThemePrefs.DEFAULT] (Dark / no overrides / M) — the gallery's
+ *  - a [ThemeResolver] generate-and-cache default (default seed / dark / Colorful / M) — the gallery's
  *    own theme controls then drive it live;
  *  - a [PrinterStateStore] passed as the NULLABLE live spine (D-14). It is constructed here with the
  *    [lifecycleScope] for its internal sampler. CRUCIALLY this opens NO Moonraker connection — no
@@ -49,12 +48,9 @@ class GalleryActivity : ComponentActivity() {
         // Stay awake for the on-device perf run + manual matrix sign-off (bench idiom).
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // SOLE ASSEMBLER: build the deps the gallery only consumes.
-        val resolver = ThemeResolver(
-            base = ThemePrefs.DEFAULT.base,
-            deltas = ThemePrefs.DEFAULT.deltas,
-            fs = ThemePrefs.DEFAULT.fs,
-        )
+        // SOLE ASSEMBLER: build the deps the gallery only consumes. The no-arg resolver generates the
+        // default-seed palette (D-02); the gallery's own theme controls then drive it live.
+        val resolver = ThemeResolver()
         // The live spine (D-14) — an in-process store with NO connection opened. The gallery reads
         // its StateFlow only; it never constructs a socket/transport here (Phase-4 boundary).
         val printerStateStore = PrinterStateStore(scope = lifecycleScope)

@@ -26,7 +26,15 @@ class FontScaleTest {
 
     @Test
     fun fs_landsInResolvedThemeTokens() {
-        assertEquals(1.0f, resolve(ThemeBase.Dark, TokenDelta.EMPTY, FontScale.S.multiplier).fs)
-        assertEquals(1.32f, resolve(ThemeBase.Light, TokenDelta.EMPTY, FontScale.L.multiplier).fs)
+        // The fs multiplier flows through the generate-and-cache resolver into the emitted tokens (D-04).
+        val small = ThemeResolver(fs = FontScale.S.multiplier)
+        assertEquals(1.0f, small.tokens.value.fs)
+
+        val large = ThemeResolver(dark = false, fs = FontScale.L.multiplier)
+        assertEquals(1.32f, large.tokens.value.fs)
+
+        // setFs re-emits with the new multiplier.
+        small.setFs(FontScale.L.multiplier)
+        assertEquals(1.32f, small.tokens.value.fs)
     }
 }

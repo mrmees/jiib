@@ -36,12 +36,11 @@ import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.render.RingBuffer
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.theme.DEFAULT_SEED_HEX
 import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
-import works.mees.dinghy.theme.ThemeBase
 import works.mees.dinghy.theme.ThemeResolver
-import works.mees.dinghy.theme.TokenDelta
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -89,8 +88,8 @@ fun GalleryScreen(
     val tokens = LocalTokens.current
 
     // ---- theme-control state mirrored locally so the toggles can show the current pick ----------
-    var base by remember { mutableStateOf(ThemeBase.Dark) }
-    var custom by remember { mutableStateOf(false) }
+    var dark by remember { mutableStateOf(true) }
+    var altSeed by remember { mutableStateOf(false) }
     var fsChoice by remember { mutableStateOf(FontScale.M) }
 
     // ---- the ONE ring buffer both render primitives draw from, fed by the selected source -------
@@ -138,24 +137,27 @@ fun GalleryScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedControl(
                 label = "Dark",
-                onClick = { base = ThemeBase.Dark; resolver.setBase(ThemeBase.Dark) },
+                onClick = { dark = true; resolver.setDark(true) },
                 modifier = Modifier.weight(1f),
-                intent = if (base == ThemeBase.Dark) Intent.Accent else Intent.Neutral,
+                intent = if (dark) Intent.Accent else Intent.Neutral,
             )
             OutlinedControl(
                 label = "Light",
-                onClick = { base = ThemeBase.Light; resolver.setBase(ThemeBase.Light) },
+                onClick = { dark = false; resolver.setDark(false) },
                 modifier = Modifier.weight(1f),
-                intent = if (base == ThemeBase.Light) Intent.Accent else Intent.Neutral,
+                intent = if (!dark) Intent.Accent else Intent.Neutral,
             )
+            // D-04: chrome is seed-derived now (no per-role override). The "Seed" toggle flips between
+            // the default seed and a sample alternate seed so the whole generated palette re-themes —
+            // proving the generate-and-cache seed model (replaces the retired custom-delta toggle).
             OutlinedControl(
-                label = if (custom) "Custom ✓" else "Custom",
+                label = if (altSeed) "Seed ✓" else "Seed",
                 onClick = {
-                    custom = !custom
-                    resolver.setDeltas(if (custom) SAMPLE_CUSTOM_DELTA else TokenDelta.EMPTY)
+                    altSeed = !altSeed
+                    resolver.setSeed(if (altSeed) SAMPLE_ALT_SEED else DEFAULT_SEED_HEX)
                 },
                 modifier = Modifier.weight(1f),
-                intent = if (custom) Intent.Go else Intent.Neutral,
+                intent = if (altSeed) Intent.Go else Intent.Neutral,
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -303,13 +305,8 @@ fun GalleryScreen(
     }
 }
 
-/** A sample custom-theme delta (D-01) recoloring the four signature roles + bg so "Custom" is obvious. */
-private val SAMPLE_CUSTOM_DELTA: TokenDelta = TokenDelta.of(
-    TokenDelta.Role.Accent to 0xFF8B5CF6.toInt(), // violet
-    TokenDelta.Role.Heat to 0xFFFB923C.toInt(),   // warm orange
-    TokenDelta.Role.Go to 0xFF34D399.toInt(),     // teal-green
-    TokenDelta.Role.Stop to 0xFFF472B6.toInt(),   // pink-red
-)
+/** A sample ALTERNATE seed (D-04) — a vivid violet so the "Seed" toggle visibly re-themes the whole palette. */
+private const val SAMPLE_ALT_SEED: String = "#8b5cf6"
 
 @Composable
 private fun SectionHeader(text: String) {

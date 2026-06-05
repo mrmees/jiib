@@ -67,8 +67,8 @@ class ProfileStoreTest {
         port: Int = 7125,
         name: String? = null,
         apiKey: String? = null,
-        themeBase: String = "Dark",
-    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, themeBase = themeBase)
+        seedHex: String = "#3f78ff",
+    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, seedHex = seedHex)
 
     private fun blob(vararg persisted: PersistedProfile): String =
         json.encodeToString(ListSerializer(PersistedProfile.serializer()), persisted.toList())
@@ -150,8 +150,8 @@ class ProfileStoreTest {
 
     @Test
     fun toConnectionConfig_projectsHostPortKeyOnly_nameThemeAbsent() {
-        val a = profile(id = "a", name = "Ender 5 Plus", themeBase = "Dark")
-        val b = profile(id = "b", name = "Different Name", themeBase = "Light")
+        val a = profile(id = "a", name = "Ender 5 Plus", seedHex = "#3f78ff")
+        val b = profile(id = "b", name = "Different Name", seedHex = "#8b5cf6")
         // Same host/port/key but different name+theme → EQUAL ConnectionConfig (distinctUntilChanged anchor).
         assertEquals(a.toConnectionConfig(), b.toConnectionConfig())
         assertEquals(ConnectionConfig("192.168.1.120", 7125, null), a.toConnectionConfig())

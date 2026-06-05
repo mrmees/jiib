@@ -2,9 +2,8 @@ package works.mees.dinghy.prompt
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import works.mees.dinghy.theme.ThemeBase
-import works.mees.dinghy.theme.TokenDelta
-import works.mees.dinghy.theme.resolve
+import works.mees.dinghy.theme.FontScale
+import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.prompt.promptStyleColor
 
 /**
@@ -24,8 +23,10 @@ import works.mees.dinghy.ui.prompt.promptStyleColor
  */
 class PromptStyleColorsTest {
 
-    // A complete, resolved Dark theme at fs=1.0 — the source of the expected token colors.
-    private val t = resolve(ThemeBase.Dark, TokenDelta.EMPTY, 1.0f)
+    // A complete, generated default-seed Dark theme at fs=1.0 — the source of the expected token colors.
+    // The promptStyleColor → token mapping contract is unchanged; only the token-source construction
+    // moved from the retired baked resolve() to the live generate-and-cache resolver (D-04).
+    private val t = ThemeResolver(dark = true, fs = FontScale.S.multiplier).tokens.value
 
     @Test
     fun primary_resolves_to_accentLine() {
