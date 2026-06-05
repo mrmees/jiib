@@ -278,8 +278,10 @@ fun ThemeEditorScreen(
             // accent + the first few pool colors + the three status colors, each its actual color.
             DataSwatch(t.accent, Modifier.weight(1f))
             for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
-            DataSwatch(t.stop, Modifier.weight(1f))
-            DataSwatch(t.heat, Modifier.weight(1f))
+            // Status swatches preview the status color WITH its safety shape (D-01/D-02) — octagon on
+            // stop, triangle on caution; go stays shapeless. Makes "color is redundant to shape" visible.
+            DataSwatch(t.stop, Modifier.weight(1f), glyph = R.drawable.ic_status_octagon)
+            DataSwatch(t.heat, Modifier.weight(1f), glyph = R.drawable.ic_status_triangle)
             DataSwatch(t.go, Modifier.weight(1f))
         }
 
@@ -385,9 +387,17 @@ private fun SeedSwatch(
     }
 }
 
-/** A preview swatch — renders its actual generated color (carve-out). Display-only, no touch target. */
+/**
+ * A preview swatch — renders its actual generated color (carve-out). Display-only, no touch target.
+ * An optional [glyph] overlays a status safety shape (octagon/triangle) so the preview shows the status
+ * color WITH its shape (D-01/D-02); the glyph is tinted to the background for contrast.
+ */
 @Composable
-private fun DataSwatch(fill: Color, modifier: Modifier = Modifier) {
+private fun DataSwatch(
+    fill: Color,
+    modifier: Modifier = Modifier,
+    @androidx.annotation.DrawableRes glyph: Int? = null,
+) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     Box(
@@ -396,7 +406,17 @@ private fun DataSwatch(fill: Color, modifier: Modifier = Modifier) {
             .clip(shape)
             .background(fill)
             .border(BorderStroke(2.dp, t.outline), shape),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        if (glyph != null) {
+            Icon(
+                painter = painterResource(glyph),
+                contentDescription = null,
+                tint = t.bg,
+                modifier = Modifier.size(fsSp(20f, t.fs).dp),
+            )
+        }
+    }
 }
 
 /** A per-slot pool override swatch (≥64dp, D-09) — its actual/overridden color; overridden = accent marker. */
