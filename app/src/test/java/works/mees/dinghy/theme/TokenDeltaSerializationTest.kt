@@ -1,66 +1,80 @@
 package works.mees.dinghy.theme
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.config.PersistedProfile
+import works.mees.dinghy.config.Profile
 
 /**
- * D-02 delta persistence shape: the sparse custom theme serializes to (a set of overridden role
- * names) + (one packed ARGB long per role), and the PURE read-path sanitizer round-trips it back to
- * the exact same [TokenDelta]. This locks the persisted format the DataStore wrapper writes/reads so
- * a refactor can't silently change it. (Host-pure: it drives [ThemePrefs.sanitize] directly, no I/O.)
+ * Profile theme PERSISTENCE shape (15-05 rework — the old per-role TokenDelta round-trip contract is
+ * RETIRED). Two cases:
+ *  1. FRESH-START decode (D-05, no migration): an OLD-shape blob that only carries `themeBase`/
+ *     `themeDeltaArgb` decodes cleanly — those map onto the @Deprecated (ignored) fields and the NEW
+ *     tuple fields take their defaults. No crash, no migration.
+ *  2. New-shape tuple ROUND-TRIP: a [PersistedProfile] carrying the full tuple (incl. a 2-entry
+ *     `poolOverrides`) re-encodes/decodes byte-stable.
+ *
+ * Host-pure: drives kotlinx JSON directly (the exact serializer [works.mees.dinghy.config.ProfileStore]
+ * uses), with `ignoreUnknownKeys = true` mirroring the store's lenient decode.
  */
 class TokenDeltaSerializationTest {
 
-    /** Simulate the persisted store as a plain map, mirroring exactly what ThemePrefs writes. */
-    private fun roundTrip(delta: TokenDelta): TokenDelta {
-        val roleNames = delta.overrides.keys.map { it.name }.toSet()
-        val argbByName = delta.overrides.mapKeys { it.key.name }
-        val resolved = ThemePrefs.sanitize(
-            rawBase = ThemeBase.Dark.name,
-            rawFs = FontScale.M.name,
-            rawRoleKeys = roleNames,
-            readArgb = { argbByName[it] },
+    private val json = Json { ignoreUnknownKeys = true }
+    private val serializer = ListSerializer(PersistedProfile.serializer())
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun oldShapeBlob_decodesFreshStart_legacyFieldsIgnored_tupleDefaults() {
+        // A pre-15-05 blob: only id/host + the RETIRED themeBase/themeDeltaArgb (no tuple keys present).
+        val oldBlob = """
+            [{"id":"a","host":"192.168.1.120","themeBase":"Light",
+              "themeDeltaArgb":{"Accent":4278203955}}]
+        """.trimIndent()
+
+        val decoded = json.decodeFromString(serializer, oldBlob)
+        assertEquals(1, decoded.size)
+        val p = decoded[0]
+
+        // The NEW tuple fields default (D-05 fresh-start — old theme is NOT migrated).
+        assertEquals("#3f78ff", p.seedHex)
+        assertTrue(p.dark)
+        assertEquals("Colorful", p.paletteMode)
+        assertEquals(0, p.poolShift)
+        assertEquals(4, p.maxItems)
+        assertTrue(p.poolOverrides.isEmpty())
+
+        // The legacy fields decoded (they exist) but are IGNORED by the runtime tuple.
+        assertEquals("Light", p.themeBase)
+        val tuple = Profile.fromPersisted(p).toThemeTuple()
+        assertEquals(ThemePrefs.TUPLE_DEFAULT, tuple) // legacy "Light"/Accent did NOT leak into the tuple
+    }
+
+    @Test
+    fun newShapeTuple_roundTripsExactly_inclPoolOverrides() {
+        val original = PersistedProfile(
+            id = "b",
+            host = "192.168.1.121",
+            seedHex = "#abcdef",
+            dark = false,
+            paletteMode = "Simple",
+            poolShift = 90,
+            maxItems = 6,
+            poolOverrides = mapOf("1" to 0xFF112233L, "3" to 0xFF445566L),
+            fsChoice = "L",
         )
-        return resolved.deltas
-    }
+        val blob = json.encodeToString(serializer, listOf(original))
+        val back = json.decodeFromString(serializer, blob).single()
 
-    @Test
-    fun emptyDelta_roundTrips() {
-        assertEquals(TokenDelta.EMPTY, roundTrip(TokenDelta.EMPTY))
-    }
-
-    @Test
-    fun fullCustomScope_roundTripsExactly() {
-        val delta = TokenDelta.of(
-            TokenDelta.Role.Accent to Color(0xFF112233).toArgb(),
-            TokenDelta.Role.Heat to Color(0xFF445566).toArgb(),
-            TokenDelta.Role.Go to Color(0xFF778899).toArgb(),
-            TokenDelta.Role.Stop to Color(0xFFAABBCC).toArgb(),
-            TokenDelta.Role.Bg to Color(0xFFDDEEFF).toArgb(),
-        )
-        assertEquals(delta, roundTrip(delta))
-    }
-
-    @Test
-    fun partialCustom_roundTripsOnlyTheOverriddenRoles() {
-        val delta = TokenDelta.of(TokenDelta.Role.Accent to Color(0xFF010203).toArgb())
-        val back = roundTrip(delta)
-        assertEquals(1, back.overrides.size)
-        assertEquals(delta, back)
-    }
-
-    @Test
-    fun argbValue_isPreservedBitExact_includingAlpha() {
-        // A fully-opaque ARGB (0xFF......) packs into 0xFFRRGGBB which exceeds Int range when read
-        // as a signed Long unless masked — assert the value survives the long round-trip exactly.
-        val argb = Color(0xFF4C94EC).toArgb().toLong() and 0xFFFFFFFFL
-        val delta = TokenDelta.of(TokenDelta.Role.Accent to Color(0xFF4C94EC).toArgb())
-        val back = roundTrip(delta)
-        assertEquals(argb, back.overrides[TokenDelta.Role.Accent])
-        // And resolving it reproduces the original Color.
-        val resolved = resolve(ThemeBase.Dark, back, FontScale.M.multiplier)
-        assertEquals(Color(0xFF4C94EC), resolved.accent)
+        assertEquals("#abcdef", back.seedHex)
+        assertEquals(false, back.dark)
+        assertEquals("Simple", back.paletteMode)
+        assertEquals(90, back.poolShift)
+        assertEquals(6, back.maxItems)
+        assertEquals(mapOf("1" to 0xFF112233L, "3" to 0xFF445566L), back.poolOverrides)
+        assertEquals("L", back.fsChoice)
+        assertEquals(original, back)
     }
 }

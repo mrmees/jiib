@@ -1,94 +1,145 @@
 package works.mees.dinghy.theme
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.config.Profile
 
 /**
- * Wave-0 scaffold for the per-printer theme triple derivation (MULTI-01, D-08, RESEARCH Pattern 3).
+ * Per-printer theme TUPLE derivation (D-03/D-08, RESEARCH Pattern 3) — the 15-05 rework.
  *
- * Exercises [Profile.toThemeResolved] (real, Task 1) — a profile's persisted theme PRIMITIVES
- * (`themeBase`/`fsChoice`/`themeDeltaArgb`) resolve to the correct [ThemePrefs.Resolved], reusing
- * [ThemePrefs.sanitize] parity so corrupt primitives fail safe to the defaults (NEVER throw). Fully
- * exercisable now (no AppContainer dependency — the container re-seed wiring lands in plan 02).
+ * Exercises [Profile.toThemeTuple] (real, Task 1): a profile's persisted theme PRIMITIVES
+ * (`seedHex`/`dark`/`paletteMode`/`poolShift`/`maxItems`/`poolOverrides`) resolve to the correct
+ * [ThemePrefs.ThemeTuple], reusing [ThemePrefs.sanitizeTuple] so corrupt primitives fail safe to the
+ * defaults PER ENTRY and NEVER throw (V5/T-15-05-01). Host-pure: no AppContainer/DataStore dependency.
  */
 class ProfileThemeSeedTest {
 
     private fun profile(
-        base: String = "Dark",
+        seedHex: String = "#3f78ff",
+        dark: Boolean = true,
+        mode: String = "Colorful",
+        shift: Int = 0,
+        maxItems: Int = 4,
         fs: String = "M",
-        deltaArgb: Map<String, Long> = emptyMap(),
-    ) = Profile(id = "a", host = "192.168.1.120", themeBase = base, fsChoice = fs, themeDeltaArgb = deltaArgb)
+        overrides: Map<String, Long> = emptyMap(),
+    ) = Profile(
+        id = "a",
+        host = "192.168.1.120",
+        seedHex = seedHex,
+        dark = dark,
+        paletteMode = mode,
+        poolShift = shift,
+        maxItems = maxItems,
+        fsChoice = fs,
+        poolOverrides = overrides,
+    )
 
     @Test
-    fun mapsBaseAndFsToResolved() {
-        val r = profile(base = "Light", fs = "L").toThemeResolved()
-        assertEquals(ThemeBase.Light, r.base)
-        assertEquals(FontScale.L.multiplier, r.fs)
+    fun mapsTuplePrimitivesToResolved() {
+        val t = profile(seedHex = "#abcdef", dark = false, mode = "Simple", shift = 90, maxItems = 6, fs = "L").toThemeTuple()
+        assertEquals("#abcdef", t.seedHex)
+        assertFalse(t.dark)
+        assertEquals("Simple", t.paletteMode)
+        assertEquals(90, t.poolShift)
+        assertEquals(6, t.maxItems)
+        assertEquals(FontScale.L.multiplier, t.fs)
     }
 
     @Test
-    fun appliesValidDeltaOverride() {
-        val accent = Color(0xFF112233).toArgb().toLong() and 0xFFFFFFFFL
-        val r = profile(deltaArgb = mapOf("Accent" to accent)).toThemeResolved()
-        assertTrue(r.deltas.overrides.containsKey(TokenDelta.Role.Accent))
-        assertEquals(accent, r.deltas.overrides[TokenDelta.Role.Accent])
-        // And it resolves into a complete token set (fail-safe, fully usable).
-        assertEquals(Color(0xFF112233), resolve(r.base, r.deltas, r.fs).accent)
+    fun appliesValidPoolOverride() {
+        val argb = 0xFF112233L
+        val t = profile(overrides = mapOf("1" to argb)).toThemeTuple()
+        assertEquals(argb, t.poolOverrides[1])
     }
 
     @Test
-    fun corruptBasePrimitive_failsSafeToDefaultBase() {
-        val r = profile(base = "Banana").toThemeResolved()
-        assertEquals(ThemePrefs.DEFAULT.base, r.base) // unknown base → Dark default, never a throw
+    fun fullyDefaultPrimitives_resolveToTupleDefault() {
+        assertEquals(ThemePrefs.TUPLE_DEFAULT, profile().toThemeTuple())
+    }
+
+    // ---- Corrupt-primitive table: every junk input sanitizes to a default, NEVER throws (V5) ----
+
+    @Test
+    fun junkSeed_failsSafeToDefaultSeed() {
+        assertEquals(ThemePrefs.DEFAULT_SEED, profile(seedHex = "not-a-hex").toThemeTuple().seedHex)
+        assertEquals(ThemePrefs.DEFAULT_SEED, profile(seedHex = "#12345").toThemeTuple().seedHex) // 5 digits
+        assertEquals(ThemePrefs.DEFAULT_SEED, profile(seedHex = "").toThemeTuple().seedHex)
     }
 
     @Test
-    fun corruptFsPrimitive_failsSafeToDefaultFs() {
-        val r = profile(fs = "XXL").toThemeResolved()
-        assertEquals(ThemePrefs.DEFAULT.fs, r.fs)
+    fun badMode_failsSafeToColorful() {
+        assertEquals(ThemePrefs.DEFAULT_MODE, profile(mode = "Banana").toThemeTuple().paletteMode)
+        assertEquals(ThemePrefs.DEFAULT_MODE, profile(mode = "colorful").toThemeTuple().paletteMode) // case-exact
     }
 
     @Test
-    fun junkDeltaRole_isDropped() {
-        val r = profile(deltaArgb = mapOf("Banana" to 0x123L)).toThemeResolved()
-        assertTrue("an unknown role must be dropped, never thrown", r.deltas.isEmpty)
+    fun outOfRangeShift_failsSafeToDefault() {
+        assertEquals(ThemePrefs.DEFAULT_SHIFT, profile(shift = -1).toThemeTuple().poolShift)
+        assertEquals(ThemePrefs.DEFAULT_SHIFT, profile(shift = 999).toThemeTuple().poolShift)
+        assertEquals(180, profile(shift = 180).toThemeTuple().poolShift) // in-range honoured
     }
 
     @Test
-    fun fullyDefaultPrimitives_resolveToThemePrefsDefault() {
-        assertEquals(ThemePrefs.DEFAULT, profile().toThemeResolved())
+    fun outOfRangeMaxItems_failsSafeToDefault() {
+        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, profile(maxItems = 0).toThemeTuple().maxItems)
+        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, profile(maxItems = 100).toThemeTuple().maxItems)
+        assertEquals(8, profile(maxItems = 8).toThemeTuple().maxItems) // in-range honoured
+    }
+
+    @Test
+    fun badFs_failsSafeToM() {
+        assertEquals(FontScale.M.multiplier, profile(fs = "XXL").toThemeTuple().fs)
     }
 
     /**
-     * The SWITCH contract (D-08, RESEARCH Pattern 3): plan 02's `AppContainer.seedTheme` re-applies the
-     * ACTIVE profile's `toThemeResolved()` triple on every switch. Proven here at the pipeline level —
-     * two distinct active profiles resolve to two DISTINCT theme triples, so a switch genuinely changes
-     * the resolved tokens the resolver would `apply`. (The container-routed re-seed effect itself needs a
-     * real DataStore flow, exercised on-device in the instrumented test; the triple contract is here.)
+     * The PER-ENTRY tolerance contract (T-15-05-01, CONFIRMED Codex finding): the poolOverrides map is
+     * String-keyed so ONE malformed entry drops in isolation while the GOOD entries survive — a Map<Int,..>
+     * could fail the whole decode on a single bad value.
      */
     @Test
-    fun switchingActiveProfile_yieldsTheNewProfilesThemeTriple() {
-        val accentA = Color(0xFF112233).toArgb().toLong() and 0xFFFFFFFFL
-        val a = profile(base = "Dark", fs = "M", deltaArgb = mapOf("Accent" to accentA)).toThemeResolved()
-        val b = profile(base = "Light", fs = "L").toThemeResolved()
-
-        // Profile A's triple resolves A's accent on a Dark base; profile B's is a Light base, no override.
-        assertEquals(ThemeBase.Dark, a.base)
-        assertEquals(Color(0xFF112233), resolve(a.base, a.deltas, a.fs).accent)
-        assertEquals(ThemeBase.Light, b.base)
-        assertEquals(FontScale.L.multiplier, b.fs)
-        // The two switches produce genuinely DIFFERENT resolved token sets (the re-seed is observable).
-        assertEquals(false, resolve(a.base, a.deltas, a.fs) == resolve(b.base, b.deltas, b.fs))
+    fun poolOverrides_oneBadEntryDropped_goodEntriesSurvive() {
+        val good = 0xFF445566L
+        val t = profile(
+            overrides = mapOf(
+                "2" to good,                    // GOOD
+                "banana" to 0xFF000000L,        // non-numeric key → drop just this
+                "-1" to 0xFF111111L,            // negative index → drop just this
+                "3" to 0x1_FFFF_FFFFL,          // out-of-range ARGB → drop just this
+            ),
+        ).toThemeTuple()
+        assertEquals("only the good entry survives", 1, t.poolOverrides.size)
+        assertEquals(good, t.poolOverrides[2])
+        assertFalse(t.poolOverrides.containsKey(-1))
+        assertFalse(t.poolOverrides.containsKey(3))
     }
 
-    /** Corrupt-everything profile → the global [ThemePrefs.DEFAULT] (the no-active-profile fallback). */
     @Test
-    fun corruptPrimitivesProfile_failsSafeToThemePrefsDefault() {
-        val r = profile(base = "Banana", fs = "XXL", deltaArgb = mapOf("Banana" to 0x1L)).toThemeResolved()
-        assertEquals(ThemePrefs.DEFAULT, r)
+    fun corruptEverything_failsSafeToTupleDefault_neverThrows() {
+        val t = profile(
+            seedHex = "###",
+            mode = "Nope",
+            shift = -50,
+            maxItems = 999,
+            fs = "???",
+            overrides = mapOf("x" to 0x1_FFFF_FFFFL),
+        ).toThemeTuple()
+        // dark default(true) + every other field defaulted + no surviving overrides == the full default tuple.
+        assertEquals(ThemePrefs.TUPLE_DEFAULT, t)
+        assertTrue(t.poolOverrides.isEmpty())
+    }
+
+    /**
+     * The SWITCH contract (D-08): two distinct active profiles resolve to two DISTINCT tuples, so a
+     * switch genuinely changes the resolved tokens `AppContainer.seedTheme` would apply.
+     */
+    @Test
+    fun switchingActiveProfile_yieldsTheNewProfilesTuple() {
+        val a = profile(seedHex = "#aa1122", dark = true, mode = "Colorful").toThemeTuple()
+        val b = profile(seedHex = "#22ccdd", dark = false, mode = "Simple").toThemeTuple()
+        assertEquals("#aa1122", a.seedHex)
+        assertEquals("#22ccdd", b.seedHex)
+        assertFalse(a == b)
     }
 }

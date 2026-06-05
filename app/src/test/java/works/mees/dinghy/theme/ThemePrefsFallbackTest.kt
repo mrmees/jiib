@@ -1,147 +1,148 @@
 package works.mees.dinghy.theme
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * D-02 / threat T-03-01 — the DETERMINISTIC FAIL-SAFE contract. This phase introduces persistence
- * BEFORE any validating editor (the editor is Phase 4 SET-01), so a corrupt/partial persisted blob
- * must NEVER crash or black-screen the printer display: the read path must always resolve to a
- * COMPLETE, fully-usable theme with NO exception.
+ * D-03 / threat T-15-05-01 — the DETERMINISTIC FAIL-SAFE contract for the theme TUPLE (15-05 rework).
+ * Persistence exists BEFORE any validating editor, so a corrupt/partial blob must NEVER crash or
+ * black-screen the printer display: [ThemePrefs.sanitizeTuple] ALWAYS resolves to a complete, usable
+ * [ThemePrefs.ThemeTuple] with NO exception, validating PER-ENTRY.
  *
- * Host-pure: drives [ThemePrefs.sanitize] directly (a pure function over the stored primitives), so
- * no DataStore I/O / Robolectric is needed. Each case asserts (1) no throw, (2) a complete usable
- * theme after [resolve].
+ * Host-pure: drives [ThemePrefs.sanitizeTuple] directly (a pure function over the stored primitives),
+ * no DataStore I/O.
  */
 class ThemePrefsFallbackTest {
 
     private fun sanitize(
-        base: String? = ThemeBase.Dark.name,
+        seed: String? = "#3f78ff",
+        dark: Boolean? = true,
+        mode: String? = "Colorful",
+        shift: Int? = 0,
+        maxItems: Int? = 4,
         fs: String? = FontScale.M.name,
-        roleKeys: Set<String>? = emptySet(),
-        argb: Map<String, Long> = emptyMap(),
-    ) = ThemePrefs.sanitize(base, fs, roleKeys) { argb[it] }
+        overrides: Map<String, Long> = emptyMap(),
+    ) = ThemePrefs.sanitizeTuple(seed, dark, mode, shift, maxItems, fs, overrides)
 
-    /** A resolved theme is "fully usable" if resolve() produces a complete token set without throwing. */
-    private fun assertFullyUsable(r: ThemePrefs.Resolved) {
-        val tokens = resolve(r.base, r.deltas, r.fs)
-        // A complete set: spot-check that a representative token from every group is present + opaque
-        // where it should be (the data class guarantees all 30 fields are non-null by construction).
-        assertEquals(0xFF, tokens.bg.toArgb() ushr 24 and 0xFF)
-        assertEquals(0xFF, tokens.text.toArgb() ushr 24 and 0xFF)
-        assertTrue(tokens.fs > 0f)
+    /** A tuple is "fully usable" if every field is a sane, in-range value (the resolver can generate). */
+    private fun assertFullyUsable(t: ThemePrefs.ThemeTuple) {
+        assertTrue("seed is a valid hex", Regex("^#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$").matches(t.seedHex))
+        assertTrue(t.paletteMode in setOf("Colorful", "Simple", "HighContrast"))
+        assertTrue(t.poolShift in 0..360)
+        assertTrue(t.maxItems in 1..64)
+        assertTrue(t.fs > 0f)
     }
 
-    // ---- Case 1: invalid base → Dark ------------------------------------------------------------
+    // ---- seed --------------------------------------------------------------------------------------
 
     @Test
-    fun invalidBase_fallsBackToDark_neverThrows() {
-        val r = sanitize(base = "Chartreuse")
-        assertEquals(ThemeBase.Dark, r.base)
-        assertFullyUsable(r)
+    fun invalidSeed_fallsBackToDefault_neverThrows() {
+        val t = sanitize(seed = "chartreuse")
+        assertEquals(ThemePrefs.DEFAULT_SEED, t.seedHex)
+        assertFullyUsable(t)
     }
 
     @Test
-    fun nullBase_fallsBackToDark() {
-        assertEquals(ThemeBase.Dark, sanitize(base = null).base)
+    fun nullSeed_fallsBackToDefault() {
+        assertEquals(ThemePrefs.DEFAULT_SEED, sanitize(seed = null).seedHex)
     }
 
     @Test
-    fun caseMismatchBase_isTreatedAsInvalid_fallsBackToDark() {
-        // Persisted enum names are case-exact; "dark" (lowercase) is NOT a valid name → Dark default.
-        assertEquals(ThemeBase.Dark, sanitize(base = "dark").base)
-        // Sanity: an exact valid Light name IS honoured.
-        assertEquals(ThemeBase.Light, sanitize(base = "Light").base)
+    fun validSeed_withAndWithoutHash_andAlpha_honoured() {
+        assertEquals("#abcdef", sanitize(seed = "#abcdef").seedHex)
+        assertEquals("abcdef", sanitize(seed = "abcdef").seedHex)       // no leading #
+        assertEquals("#abcdefAB", sanitize(seed = "#abcdefAB").seedHex) // 8-digit (alpha)
     }
 
-    // ---- Case 2: invalid fs → M (1.15) ----------------------------------------------------------
+    // ---- mode --------------------------------------------------------------------------------------
+
+    @Test
+    fun invalidMode_fallsBackToColorful_neverThrows() {
+        val t = sanitize(mode = "Plaid")
+        assertEquals(ThemePrefs.DEFAULT_MODE, t.paletteMode)
+        assertFullyUsable(t)
+    }
+
+    @Test
+    fun caseMismatchMode_isInvalid_fallsBackToColorful() {
+        assertEquals(ThemePrefs.DEFAULT_MODE, sanitize(mode = "simple").paletteMode)
+        assertEquals("HighContrast", sanitize(mode = "HighContrast").paletteMode) // exact name honoured
+    }
+
+    // ---- shift / maxItems --------------------------------------------------------------------------
+
+    @Test
+    fun outOfRangeShift_fallsBackToDefault() {
+        assertEquals(ThemePrefs.DEFAULT_SHIFT, sanitize(shift = -10).poolShift)
+        assertEquals(ThemePrefs.DEFAULT_SHIFT, sanitize(shift = 400).poolShift)
+        assertEquals(120, sanitize(shift = 120).poolShift)
+    }
+
+    @Test
+    fun outOfRangeMaxItems_fallsBackToDefault() {
+        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, sanitize(maxItems = 0).maxItems)
+        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, sanitize(maxItems = 65).maxItems)
+        assertEquals(12, sanitize(maxItems = 12).maxItems)
+    }
+
+    // ---- fs ----------------------------------------------------------------------------------------
 
     @Test
     fun invalidFs_fallsBackToM_neverThrows() {
-        val r = sanitize(fs = "XL")
-        assertEquals(FontScale.M.multiplier, r.fs)
-        assertFullyUsable(r)
+        val t = sanitize(fs = "XL")
+        assertEquals(FontScale.M.multiplier, t.fs)
+        assertFullyUsable(t)
+    }
+
+    // ---- poolOverrides PER-ENTRY tolerance (the load-bearing fail-safe) -----------------------------
+
+    @Test
+    fun goodOverrides_areKept() {
+        val t = sanitize(overrides = mapOf("0" to 0xFF112233L, "2" to 0xFF445566L))
+        assertEquals(2, t.poolOverrides.size)
+        assertEquals(0xFF112233L, t.poolOverrides[0])
+        assertEquals(0xFF445566L, t.poolOverrides[2])
     }
 
     @Test
-    fun nullFs_fallsBackToM() {
-        assertEquals(FontScale.M.multiplier, sanitize(fs = null).fs)
-    }
-
-    // ---- Case 3: malformed/partial delta map → keep valid, drop junk ----------------------------
-
-    @Test
-    fun partialDeltaMap_keepsValidEntries_dropsJunkRoles_neverThrows() {
-        val good = Color(0xFF112233).toArgb().toLong() and 0xFFFFFFFFL
-        val r = sanitize(
-            roleKeys = setOf("Accent", "Banana", "Go"), // "Banana" is not a Role → dropped
-            argb = mapOf(
-                "Accent" to good,
-                "Banana" to 0x123L,        // junk role's value is irrelevant
-                "Go" to (Color(0xFF445566).toArgb().toLong() and 0xFFFFFFFFL),
+    fun oneBadOverrideEntry_isDropped_goodEntriesSurvive_neverThrows() {
+        val good = 0xFF112233L
+        val t = sanitize(
+            overrides = mapOf(
+                "1" to good,                 // GOOD
+                "nope" to 0xFF000000L,       // non-numeric key → drop just this
+                "5" to 0x7_FFFF_FFFFL,       // out-of-range ARGB → drop just this
+                "-3" to 0xFF999999L,         // negative index → drop just this
             ),
         )
-        assertEquals(2, r.deltas.overrides.size)
-        assertTrue(r.deltas.overrides.containsKey(TokenDelta.Role.Accent))
-        assertTrue(r.deltas.overrides.containsKey(TokenDelta.Role.Go))
-        assertFullyUsable(r)
-    }
-
-    @Test
-    fun roleKeyWithMissingArgbValue_isDropped() {
-        // The role is in the key-set but no ARGB long was stored for it → drop it (inherit base).
-        val r = sanitize(roleKeys = setOf("Stop"), argb = emptyMap())
-        assertTrue(r.deltas.isEmpty)
-        // The resolved Stop token therefore inherits the base.
-        assertEquals(TokensDark.stop, resolve(r.base, r.deltas, r.fs).stop)
-    }
-
-    // ---- Case 4: garbage ARGB for one role → drop just that override ----------------------------
-
-    @Test
-    fun garbageArgbForOneRole_dropsOnlyThatOverride_keepsRest_neverThrows() {
-        val goodAccent = Color(0xFF112233).toArgb().toLong() and 0xFFFFFFFFL
-        val r = sanitize(
-            roleKeys = setOf("Accent", "Stop"),
-            argb = mapOf(
-                "Accent" to goodAccent,
-                "Stop" to 0x7_FFFF_FFFFL, // out of [0, 0xFFFFFFFF] → garbage → drop just Stop
-            ),
-        )
-        assertEquals(1, r.deltas.overrides.size)
-        assertEquals(goodAccent, r.deltas.overrides[TokenDelta.Role.Accent])
-        assertFalse(r.deltas.overrides.containsKey(TokenDelta.Role.Stop))
-
-        val tokens = resolve(r.base, r.deltas, r.fs)
-        assertEquals(Color(0xFF112233), tokens.accent)   // valid override applied
-        assertEquals(TokensDark.stop, tokens.stop)        // garbage override → inherited base
-        assertFullyUsable(r)
+        assertEquals("only the good entry survives", 1, t.poolOverrides.size)
+        assertEquals(good, t.poolOverrides[1])
+        assertFalse(t.poolOverrides.containsKey(5))
+        assertFalse(t.poolOverrides.containsKey(-3))
+        assertFullyUsable(t)
     }
 
     @Test
     fun negativeArgb_isGarbage_dropped() {
-        val r = sanitize(roleKeys = setOf("Bg"), argb = mapOf("Bg" to -1L))
-        assertTrue(r.deltas.isEmpty)
+        val t = sanitize(overrides = mapOf("0" to -1L))
+        assertTrue(t.poolOverrides.isEmpty())
     }
 
-    // ---- Everything corrupt at once still yields the full default theme -------------------------
+    // ---- everything corrupt at once still yields the full default tuple -----------------------------
 
     @Test
-    fun fullyCorruptBlob_resolvesToCompleteDefaultTheme() {
-        val r = sanitize(
-            base = "???",
+    fun fullyCorruptBlob_resolvesToCompleteDefaultTuple() {
+        val t = sanitize(
+            seed = "???",
+            mode = "???",
+            shift = -999,
+            maxItems = 9999,
             fs = "???",
-            roleKeys = setOf("Nope", "Accent"),
-            argb = mapOf("Accent" to 0xDEAD_BEEF_DEADL), // garbage
+            overrides = mapOf("Nope" to 0xDEAD_BEEF_DEADL),
         )
-        assertEquals(ThemeBase.Dark, r.base)
-        assertEquals(FontScale.M.multiplier, r.fs)
-        assertTrue(r.deltas.isEmpty)
-        assertEquals(ThemePrefs.DEFAULT, r)
-        assertFullyUsable(r)
+        assertEquals(ThemePrefs.TUPLE_DEFAULT, t)
+        assertFullyUsable(t)
     }
 }

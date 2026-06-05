@@ -1,5 +1,6 @@
 package works.mees.dinghy.di
 
+import androidx.compose.ui.graphics.Color
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
@@ -29,9 +30,6 @@ import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.Webcam
-import works.mees.dinghy.theme.DEFAULT_POOL_MAX_ITEMS
-import works.mees.dinghy.theme.DEFAULT_SEED_HEX
-import works.mees.dinghy.theme.ThemeBase
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
@@ -307,34 +305,117 @@ class AppContainer(
     }
 
     /**
-     * Re-seed the resolver per ACTIVE PROFILE (D-08, RESEARCH Pattern 3). Each time the active profile
-     * changes, apply ITS persisted theme triple `(base, deltas, fs)` in ONE [ThemeResolver.apply] call
-     * (one re-emit — no 3-call flicker, no stale theme). When there is NO active profile (idle/Connect
-     * prompt), fall back to the GLOBAL [themePrefs] (which is ALSO the new-profile default look) and
-     * finally [ThemePrefs.DEFAULT]. [themePrefs] is therefore RETAINED — it is the no-active-profile idle
-     * theme + the new-profile seed, not dead code. Call from the Application on a long-lived scope.
+     * Re-seed the resolver per ACTIVE PROFILE (D-03/D-08, RESEARCH Pattern 3). Each time the active
+     * profile changes, apply ITS persisted theme TUPLE `(seedHex, dark, paletteMode, poolShift, maxItems,
+     * poolOverrides, fs)` in ONE [ThemeResolver.apply] call (one re-emit — no flicker, no stale theme).
+     *
+     * When there is NO active profile (idle/Connect prompt), fall back REACTIVELY to the GLOBAL
+     * [ThemePrefs.tupleFlow] (which is ALSO the new-profile default look) — WR-02 fix: a global-default
+     * edit while idle now re-emits (the old one-shot `firstOrNull()` would have frozen the idle theme on
+     * the first read). `flatMapLatest` mirrors the active branch so both paths stay live. [themePrefs] is
+     * therefore RETAINED — it is the no-active-profile idle theme + the new-profile seed, not dead code.
+     * Call from the Application on a long-lived scope.
      */
     fun seedTheme(scope: CoroutineScope) {
         scope.launch {
             activeProfile
                 .flatMapLatest { p ->
-                    flowOf(p?.toThemeResolved() ?: themePrefs.flow.firstOrNull() ?: ThemePrefs.DEFAULT)
+                    // WR-02: idle path collects the global tuple flow REACTIVELY, not a one-shot read.
+                    if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
                 }
-                .collect { resolved ->
-                    // 15-04 (D-02/D-04): the resolver is generate-and-cache now. Feed the new tuple
-                    // (seed-only chrome — the per-role deltas are retired) with the default seed and
-                    // the persisted dark/light polarity + fs. 15-05 replaces this with the persisted
-                    // seed/mode/pool tuple.
+                .collect { tuple ->
+                    // 15-05 (D-03): apply the PERSISTED tuple in ONE re-emit. The sanitize layer already
+                    // validated it; the resolver's compute() try/catch is the last-resort fail-safe.
                     themeResolver.apply(
-                        seedHex = DEFAULT_SEED_HEX,
-                        dark = resolved.base == ThemeBase.Dark,
-                        paletteMode = ThemeResolver.MODE_COLORFUL,
-                        poolShift = 0,
-                        maxItems = DEFAULT_POOL_MAX_ITEMS,
-                        overrides = emptyMap(),
-                        fs = resolved.fs,
+                        seedHex = tuple.seedHex,
+                        dark = tuple.dark,
+                        paletteMode = tuple.paletteMode,
+                        poolShift = tuple.poolShift,
+                        maxItems = tuple.maxItems,
+                        overrides = tuple.poolOverrides.mapValues { Color(it.value.toInt()) },
+                        fs = tuple.fs,
                     )
                 }
+        }
+    }
+
+    // ---- Theme-edit intent helpers (15-06 editor calls these) --------------------------------------
+    //
+    // The DURABLE write surface (T-15-05-04, [[dinghy-compose-write-scope-cancellation]]): every theme
+    // write routes through the process-lifetime [writeScope] + an atomic [ProfileStore.mutateActive]
+    // read-modify-write (active) OR [ThemePrefs] (idle global). NEVER a composition `rememberCoroutineScope()`.
+
+    /** Persist the seed hex — active profile (durable, lost-update-safe), else the global idle theme. */
+    fun setActiveSeed(active: Boolean, seedHex: String) {
+        if (active) mutateActiveProfile { it.copy(seedHex = seedHex) }
+        else writeScope.launch { themePrefs.setSeed(seedHex) }
+    }
+
+    /** Persist the palette mode — active profile, else global. */
+    fun setActiveMode(active: Boolean, mode: String) {
+        if (active) mutateActiveProfile { it.copy(paletteMode = mode) }
+        else writeScope.launch { themePrefs.setMode(mode) }
+    }
+
+    /** Persist the pool hue-shift — active profile, else global. */
+    fun setActiveShift(active: Boolean, shift: Int) {
+        if (active) mutateActiveProfile { it.copy(poolShift = shift) }
+        else writeScope.launch { themePrefs.setShift(shift) }
+    }
+
+    /** Persist dark/light polarity — active profile, else global. */
+    fun setActiveDark(active: Boolean, dark: Boolean) {
+        if (active) mutateActiveProfile { it.copy(dark = dark) }
+        else writeScope.launch { themePrefs.setDark(dark) }
+    }
+
+    /**
+     * Edit ONE pool override slot (poolIndex → unsigned-32 ARGB, or null to clear) — active profile, else
+     * global. Read-modify-write of the sparse [Profile.poolOverrides] map inside the durable [mutateActiveProfile].
+     */
+    fun setActiveOverride(active: Boolean, index: Int, argb: Long?) {
+        val key = index.toString()
+        if (active) {
+            mutateActiveProfile { p ->
+                val next = p.poolOverrides.toMutableMap()
+                if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
+                p.copy(poolOverrides = next)
+            }
+        } else {
+            writeScope.launch {
+                val current = themePrefs.tupleFlow.firstOrNull()?.poolOverrides ?: emptyMap()
+                val next = current.mapKeys { it.key.toString() }.toMutableMap()
+                if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
+                themePrefs.setOverrides(next)
+            }
+        }
+    }
+
+    /**
+     * Reset the theme to the validated defaults (D-09) — clears seed/mode/shift/maxItems/overrides back to
+     * the out-of-box tuple. Active profile, else global. fsChoice is a SEPARATE setting and is NOT reset.
+     */
+    fun resetActiveTheme(active: Boolean) {
+        if (active) {
+            mutateActiveProfile {
+                it.copy(
+                    seedHex = ThemePrefs.DEFAULT_SEED,
+                    dark = true,
+                    paletteMode = ThemePrefs.DEFAULT_MODE,
+                    poolShift = ThemePrefs.DEFAULT_SHIFT,
+                    maxItems = ThemePrefs.DEFAULT_MAX_ITEMS,
+                    poolOverrides = emptyMap(),
+                )
+            }
+        } else {
+            writeScope.launch {
+                themePrefs.setSeed(ThemePrefs.DEFAULT_SEED)
+                themePrefs.setDark(true)
+                themePrefs.setMode(ThemePrefs.DEFAULT_MODE)
+                themePrefs.setShift(ThemePrefs.DEFAULT_SHIFT)
+                themePrefs.setMaxItems(ThemePrefs.DEFAULT_MAX_ITEMS)
+                themePrefs.setOverrides(emptyMap())
+            }
         }
     }
 }
