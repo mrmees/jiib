@@ -29,6 +29,9 @@ import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.theme.DEFAULT_POOL_MAX_ITEMS
+import works.mees.dinghy.theme.DEFAULT_SEED_HEX
+import works.mees.dinghy.theme.ThemeBase
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
@@ -318,7 +321,19 @@ class AppContainer(
                     flowOf(p?.toThemeResolved() ?: themePrefs.flow.firstOrNull() ?: ThemePrefs.DEFAULT)
                 }
                 .collect { resolved ->
-                    themeResolver.apply(resolved.base, resolved.deltas, resolved.fs)
+                    // 15-04 (D-02/D-04): the resolver is generate-and-cache now. Feed the new tuple
+                    // (seed-only chrome — the per-role deltas are retired) with the default seed and
+                    // the persisted dark/light polarity + fs. 15-05 replaces this with the persisted
+                    // seed/mode/pool tuple.
+                    themeResolver.apply(
+                        seedHex = DEFAULT_SEED_HEX,
+                        dark = resolved.base == ThemeBase.Dark,
+                        paletteMode = ThemeResolver.MODE_COLORFUL,
+                        poolShift = 0,
+                        maxItems = DEFAULT_POOL_MAX_ITEMS,
+                        overrides = emptyMap(),
+                        fs = resolved.fs,
+                    )
                 }
         }
     }

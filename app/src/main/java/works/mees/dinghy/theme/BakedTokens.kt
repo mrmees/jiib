@@ -6,6 +6,13 @@ import androidx.compose.ui.unit.dp
 /**
  * GENERATED — do not edit by hand. Re-bake with `python tools/oklch-bake/bake_tokens.py --write`.
  *
+ * DEMOTED (15-04, D-02): as of the generate-and-cache rewire, these baked tables are NO LONGER the
+ * live source of truth — [ThemeResolver] generates the active theme at runtime via [Palette.generate]
+ * + [TokenBridge.build]. [TokensDark]/[TokensLight] are now the validated default-seed FAIL-SAFE
+ * snapshot used only when generation ever throws (it should not — the math is total — but the printer
+ * surface must never go dark, T-15-04-01). The literal-sRGB header law below still governs the
+ * generator's output policy (every emitted value is a baked sRGB Color, never an Oklab-space Color).
+ *
  * The checked-in oklch->sRGB token table (D-03 / THEME-01). The design law
  * (docs/ui_design/THEMING.md + reference/hifi.css) authors every role token in CSS Color 4
  * `oklch()`. On Android API < 26 a non-sRGB (Oklab) Compose Color SILENTLY renders as sRGB at
