@@ -650,15 +650,25 @@ Plans:
 **Requirements**: *(refines THEME-* / UI-* — semantic + safety layer; finer set at discuss)*
 **Depends on:** Phase 15
 **Plans:** 8 plans (4 waves)
-
 Plans:
+**Wave 1**
+
 - [ ] 15.1-01-PLAN.md — Wave 0: type-decision lock (statusOverrides typing) + shape-glyph assets + compile-clean RED scaffolds + golden fixture
 - [ ] 15.1-02-PLAN.md — Wave 1: N-series seriesColor helper + PaletteMode field (D-05/D-09) + D-07 directional re-derivation
 - [ ] 15.1-03-PLAN.md — Wave 1: OKLCH bed-mesh sequential ramp off red/green (D-11) + golden test
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 15.1-04-PLAN.md — Wave 2: status-slot override persistence + TokenBridge application + fail-safe (D-03)
 - [ ] 15.1-05-PLAN.md — Wave 2: GraphView N-series rewire + PrintStatus nozzle=accent (D-06) + Stop octagon glyph
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 15.1-06-PLAN.md — Wave 3: Console ERROR/WARNING glyphs + Move unhomed caution/force-move lock-shape + neutral Back (D-01/D-02/D-12/D-10)
 - [ ] 15.1-07-PLAN.md — Wave 3: Theme Editor status-slot editing + shape-decorated preview (D-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 15.1-08-PLAN.md — Wave 4: rewrite docs/ui_design/THEMING.md as canonical token-law + reconcile CLAUDE.md back-color (D-13)
 
 ### Phase 15.2: Theme Conformance Sweep & Settings IA (INSERTED)
@@ -669,6 +679,7 @@ Plans:
 **Plans:** 0 plans (run /gsd-discuss-phase 15.2 then /gsd-plan-phase 15.2)
 
 Plans:
+
 - [ ] TBD (run /gsd-plan-phase 15.2 to break down)
 
 ### Phase 16: Home / Print-Status Redesign
