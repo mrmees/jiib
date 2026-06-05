@@ -1,0 +1,419 @@
+{
+  "calls": [
+    {
+      "elapsed_s": 0.0036,
+      "label": "server.connection.identify",
+      "request": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "server.connection.identify",
+        "params": {
+          "client_name": "Dinghy Display Spoolman Probe",
+          "type": "display",
+          "url": "https://mees.works/dinghy-display",
+          "version": "0.1.0"
+        }
+      },
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "connection_id": 281473055203088
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0041,
+      "label": "server.info",
+      "request": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "server.info"
+      },
+      "response": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": {
+          "api_version": [
+            1,
+            5,
+            0
+          ],
+          "api_version_string": "1.5.0",
+          "components": [
+            "secrets",
+            "template",
+            "klippy_connection",
+            "jsonrpc",
+            "internal_transport",
+            "application",
+            "websockets",
+            "database",
+            "dbus_manager",
+            "file_manager",
+            "authorization",
+            "klippy_apis",
+            "shell_command",
+            "machine",
+            "data_store",
+            "proc_stats",
+            "job_state",
+            "job_queue",
+            "history",
+            "http_client",
+            "announcements",
+            "webcam",
+            "extensions",
+            "update_manager",
+            "analysis",
+            "octoprint_compat",
+            "spoolman"
+          ],
+          "failed_components": [],
+          "klippy_connected": true,
+          "klippy_state": "ready",
+          "missing_klippy_requirements": [],
+          "moonraker_version": "v0.10.0-20-g9008485",
+          "registered_directories": [
+            "config",
+            "logs",
+            "gcodes",
+            "config_examples",
+            "docs"
+          ],
+          "warnings": [],
+          "websocket_count": 7
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0026,
+      "label": "server.spoolman.status",
+      "request": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.status"
+      },
+      "response": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "result": {
+          "pending_reports": [],
+          "spool_id": 12,
+          "spoolman_connected": true
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0026,
+      "label": "server.spoolman.get_spool_id",
+      "request": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.get_spool_id"
+      },
+      "response": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "result": {
+          "spool_id": 12
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0232,
+      "label": "server.spoolman.proxy.list",
+      "request": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.proxy",
+        "params": {
+          "path": "/v1/spool",
+          "query": "allow_archived=false&limit=5",
+          "request_method": "GET",
+          "use_v2_response": true
+        }
+      },
+      "response": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "result": {
+          "error": null,
+          "response": [
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "64794b",
+                "density": 1.25,
+                "diameter": 1.75,
+                "external_id": "",
+                "extra": {},
+                "id": 1,
+                "material": "PLA High Speed Matte",
+                "name": "Olive Green",
+                "price": 11.0,
+                "registered": "2025-12-22T23:37:51Z",
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2025-12-22T06:00:00Z",
+              "id": 1,
+              "initial_weight": 1203.0,
+              "last_used": "2026-06-04T00:31:33Z",
+              "location": "Ender 5",
+              "price": 11.0,
+              "registered": "2025-12-22T23:37:51Z",
+              "remaining_length": 286426.0363951572,
+              "remaining_weight": 861.169192481593,
+              "spool_weight": 168.0,
+              "used_length": 113693.38820994341,
+              "used_weight": 341.83080751840697
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "5dc0f0",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_petg_highspeedmattepetg-skyblue_1000_175_p",
+                "extra": {},
+                "id": 2,
+                "material": "PLA High Speed Matte",
+                "name": "Sky Blue",
+                "registered": "2025-12-23T17:19:38Z",
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2025-12-23T06:00:00Z",
+              "id": 2,
+              "initial_weight": 1000.0,
+              "last_used": "2025-12-24T15:53:58Z",
+              "registered": "2025-12-23T17:19:38Z",
+              "remaining_length": 168897.59365680642,
+              "remaining_weight": 503.74543781950547,
+              "spool_weight": 196.0,
+              "used_length": 166386.025759958,
+              "used_weight": 496.25456218049453
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "F6FA00",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_yellow_1000_175_p",
+                "extra": {},
+                "id": 3,
+                "material": "PLA+ 2.0",
+                "name": "CMYK Yellow",
+                "registered": "2025-12-27T12:10:58Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "id": 3,
+              "initial_weight": 1000.0,
+              "registered": "2025-12-27T12:10:58Z",
+              "remaining_length": 194129.2156423066,
+              "remaining_weight": 579.0,
+              "spool_weight": 210.0,
+              "used_length": 141154.4037744578,
+              "used_weight": 421.0
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "000000",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_black_1000_175_p",
+                "extra": {},
+                "id": 4,
+                "material": "PLA+ 2.0",
+                "name": "Black",
+                "registered": "2025-12-27T12:15:58Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2026-01-24T02:25:35Z",
+              "id": 4,
+              "initial_weight": 1000.0,
+              "last_used": "2026-01-24T23:12:49Z",
+              "registered": "2025-12-27T12:15:58Z",
+              "remaining_length": 204529.8744772005,
+              "remaining_weight": 610.0204800729191,
+              "spool_weight": 210.0,
+              "used_length": 130753.7449395639,
+              "used_weight": 389.97951992708096
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "E63034",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_cherryred_1000_175_p",
+                "extra": {},
+                "id": 5,
+                "material": "PLA High Speed Matte",
+                "name": "Cherry Red",
+                "registered": "2025-12-28T16:26:16Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 130.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2026-05-30T17:15:21Z",
+              "id": 5,
+              "initial_weight": 1000.0,
+              "last_used": "2026-05-30T23:35:44Z",
+              "registered": "2025-12-28T16:26:16Z",
+              "remaining_length": 285400.3376962397,
+              "remaining_weight": 851.2206417739759,
+              "spool_weight": 210.0,
+              "used_length": 49883.28172052473,
+              "used_weight": 148.7793582260241
+            }
+          ],
+          "response_headers": {
+            "Connection": "close",
+            "Content-Length": "878",
+            "Content-Type": "application/json",
+            "Date": "Thu, 04 Jun 2026 18:36:11 GMT",
+            "Server": "uvicorn",
+            "Vary": "Accept-Encoding",
+            "X-Consumed-Content-Encoding": "gzip",
+            "X-Total-Count": "14"
+          }
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0122,
+      "label": "server.spoolman.proxy.detail",
+      "request": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.proxy",
+        "params": {
+          "path": "/v1/spool/12",
+          "request_method": "GET",
+          "use_v2_response": true
+        }
+      },
+      "response": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "result": {
+          "error": null,
+          "response": {
+            "archived": false,
+            "extra": {},
+            "filament": {
+              "color_hex": "F57517",
+              "density": 1.12,
+              "diameter": 1.75,
+              "external_id": "polymaker_abs_polyliteabsorange_1000_175_c",
+              "extra": {},
+              "id": 17,
+              "material": "ABS",
+              "name": "PolyLite\u2122\u00a0ABS Orange",
+              "registered": "2026-01-03T18:19:15Z",
+              "spool_weight": 140.0,
+              "vendor": {
+                "external_id": "Polymaker",
+                "extra": {},
+                "id": 7,
+                "name": "Polymaker",
+                "registered": "2026-01-03T18:19:15Z"
+              },
+              "weight": 1000.0
+            },
+            "first_used": "2026-01-03T18:23:35Z",
+            "id": 12,
+            "initial_weight": 1000.0,
+            "last_used": "2026-01-05T17:11:30Z",
+            "registered": "2026-01-03T18:19:15Z",
+            "remaining_length": 81102.29941854981,
+            "remaining_weight": 218.48275774649164,
+            "spool_weight": 140.0,
+            "used_length": 290104.564935725,
+            "used_weight": 781.5172422535084
+          },
+          "response_headers": {
+            "Connection": "close",
+            "Content-Length": "366",
+            "Content-Type": "application/json",
+            "Date": "Thu, 04 Jun 2026 18:36:11 GMT",
+            "Server": "uvicorn",
+            "Vary": "Accept-Encoding",
+            "X-Consumed-Content-Encoding": "gzip"
+          }
+        }
+      }
+    }
+  ],
+  "meta": {
+    "api_key": null,
+    "host": "192.168.1.121",
+    "port": 7125,
+    "read_only": true,
+    "started_at_utc": "2026-06-04T18:36:11Z",
+    "tool": "tools/spoolman-probe.py"
+  },
+  "notifications": [],
+  "summary": {
+    "active_spool_id": 12,
+    "has_spoolman_component": true,
+    "pending_reports_count": 0,
+    "proxy_v2_error": null,
+    "proxy_v2_has_response_key": true,
+    "sample_spool_count": 5,
+    "spoolman_connected": true,
+    "spoolman_notifications_seen": []
+  },
+  "transport": "websocket-jsonrpc"
+}

@@ -1,0 +1,1186 @@
+{
+  "calls": [
+    {
+      "elapsed_s": 0.0017,
+      "label": "server.connection.identify",
+      "request": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "server.connection.identify",
+        "params": {
+          "client_name": "Dinghy Display Spoolman Probe",
+          "type": "display",
+          "url": "https://mees.works/dinghy-display",
+          "version": "0.1.0"
+        }
+      },
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "connection_id": 547909321552
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0018,
+      "label": "server.info",
+      "request": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "server.info"
+      },
+      "response": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": {
+          "api_version": [
+            1,
+            5,
+            0
+          ],
+          "api_version_string": "1.5.0",
+          "components": [
+            "secrets",
+            "template",
+            "klippy_connection",
+            "jsonrpc",
+            "internal_transport",
+            "application",
+            "websockets",
+            "database",
+            "dbus_manager",
+            "file_manager",
+            "authorization",
+            "klippy_apis",
+            "shell_command",
+            "machine",
+            "data_store",
+            "proc_stats",
+            "job_state",
+            "job_queue",
+            "history",
+            "http_client",
+            "announcements",
+            "webcam",
+            "extensions",
+            "timelapse",
+            "update_manager",
+            "spoolman",
+            "octoprint_compat",
+            "mqtt"
+          ],
+          "failed_components": [],
+          "klippy_connected": true,
+          "klippy_state": "ready",
+          "missing_klippy_requirements": [],
+          "moonraker_version": "v0.10.0-20-g9008485",
+          "registered_directories": [
+            "config",
+            "logs",
+            "gcodes",
+            "timelapse",
+            "timelapse_frames",
+            "config_examples",
+            "docs"
+          ],
+          "warnings": [],
+          "websocket_count": 4
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0014,
+      "label": "server.spoolman.status",
+      "request": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.status"
+      },
+      "response": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "result": {
+          "pending_reports": [],
+          "spool_id": 5,
+          "spoolman_connected": true
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0008,
+      "label": "server.spoolman.get_spool_id",
+      "request": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.get_spool_id"
+      },
+      "response": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "result": {
+          "spool_id": 5
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0092,
+      "label": "server.spoolman.proxy.list",
+      "request": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.proxy",
+        "params": {
+          "path": "/v1/spool",
+          "query": "allow_archived=false&limit=5",
+          "request_method": "GET",
+          "use_v2_response": true
+        }
+      },
+      "response": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "result": {
+          "error": null,
+          "response": [
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "64794b",
+                "density": 1.25,
+                "diameter": 1.75,
+                "external_id": "",
+                "extra": {},
+                "id": 1,
+                "material": "PLA High Speed Matte",
+                "name": "Olive Green",
+                "price": 11.0,
+                "registered": "2025-12-22T23:37:51Z",
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2025-12-22T06:00:00Z",
+              "id": 1,
+              "initial_weight": 1203.0,
+              "last_used": "2026-06-04T00:31:33Z",
+              "location": "Ender 5",
+              "price": 11.0,
+              "registered": "2025-12-22T23:37:51Z",
+              "remaining_length": 286426.0363951572,
+              "remaining_weight": 861.169192481593,
+              "spool_weight": 168.0,
+              "used_length": 113693.38820994341,
+              "used_weight": 341.83080751840697
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "5dc0f0",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_petg_highspeedmattepetg-skyblue_1000_175_p",
+                "extra": {},
+                "id": 2,
+                "material": "PLA High Speed Matte",
+                "name": "Sky Blue",
+                "registered": "2025-12-23T17:19:38Z",
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2025-12-23T06:00:00Z",
+              "id": 2,
+              "initial_weight": 1000.0,
+              "last_used": "2025-12-24T15:53:58Z",
+              "registered": "2025-12-23T17:19:38Z",
+              "remaining_length": 168897.59365680642,
+              "remaining_weight": 503.74543781950547,
+              "spool_weight": 196.0,
+              "used_length": 166386.025759958,
+              "used_weight": 496.25456218049453
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "F6FA00",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_yellow_1000_175_p",
+                "extra": {},
+                "id": 3,
+                "material": "PLA+ 2.0",
+                "name": "CMYK Yellow",
+                "registered": "2025-12-27T12:10:58Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "id": 3,
+              "initial_weight": 1000.0,
+              "registered": "2025-12-27T12:10:58Z",
+              "remaining_length": 194129.2156423066,
+              "remaining_weight": 579.0,
+              "spool_weight": 210.0,
+              "used_length": 141154.4037744578,
+              "used_weight": 421.0
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "000000",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_black_1000_175_p",
+                "extra": {},
+                "id": 4,
+                "material": "PLA+ 2.0",
+                "name": "Black",
+                "registered": "2025-12-27T12:15:58Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 210.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2026-01-24T02:25:35Z",
+              "id": 4,
+              "initial_weight": 1000.0,
+              "last_used": "2026-01-24T23:12:49Z",
+              "registered": "2025-12-27T12:15:58Z",
+              "remaining_length": 204529.8744772005,
+              "remaining_weight": 610.0204800729191,
+              "spool_weight": 210.0,
+              "used_length": 130753.7449395639,
+              "used_weight": 389.97951992708096
+            },
+            {
+              "archived": false,
+              "extra": {},
+              "filament": {
+                "color_hex": "E63034",
+                "density": 1.24,
+                "diameter": 1.75,
+                "external_id": "sunlu_pla+_cherryred_1000_175_p",
+                "extra": {},
+                "id": 5,
+                "material": "PLA High Speed Matte",
+                "name": "Cherry Red",
+                "registered": "2025-12-28T16:26:16Z",
+                "settings_bed_temp": 60,
+                "settings_extruder_temp": 210,
+                "spool_weight": 130.0,
+                "vendor": {
+                  "external_id": "Sunlu",
+                  "extra": {},
+                  "id": 1,
+                  "name": "Sunlu",
+                  "registered": "2025-12-22T23:37:51Z"
+                },
+                "weight": 1000.0
+              },
+              "first_used": "2026-05-30T17:15:21Z",
+              "id": 5,
+              "initial_weight": 1000.0,
+              "last_used": "2026-05-30T23:35:44Z",
+              "registered": "2025-12-28T16:26:16Z",
+              "remaining_length": 285400.3376962397,
+              "remaining_weight": 851.2206417739759,
+              "spool_weight": 210.0,
+              "used_length": 49883.28172052473,
+              "used_weight": 148.7793582260241
+            }
+          ],
+          "response_headers": {
+            "Connection": "close",
+            "Content-Length": "878",
+            "Content-Type": "application/json",
+            "Date": "Thu, 04 Jun 2026 03:56:43 GMT",
+            "Server": "uvicorn",
+            "Vary": "Accept-Encoding",
+            "X-Consumed-Content-Encoding": "gzip",
+            "X-Total-Count": "14"
+          }
+        }
+      }
+    },
+    {
+      "elapsed_s": 0.0089,
+      "label": "server.spoolman.proxy.detail",
+      "request": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "method": "server.spoolman.proxy",
+        "params": {
+          "path": "/v1/spool/5",
+          "request_method": "GET",
+          "use_v2_response": true
+        }
+      },
+      "response": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "result": {
+          "error": null,
+          "response": {
+            "archived": false,
+            "extra": {},
+            "filament": {
+              "color_hex": "E63034",
+              "density": 1.24,
+              "diameter": 1.75,
+              "external_id": "sunlu_pla+_cherryred_1000_175_p",
+              "extra": {},
+              "id": 5,
+              "material": "PLA High Speed Matte",
+              "name": "Cherry Red",
+              "registered": "2025-12-28T16:26:16Z",
+              "settings_bed_temp": 60,
+              "settings_extruder_temp": 210,
+              "spool_weight": 130.0,
+              "vendor": {
+                "external_id": "Sunlu",
+                "extra": {},
+                "id": 1,
+                "name": "Sunlu",
+                "registered": "2025-12-22T23:37:51Z"
+              },
+              "weight": 1000.0
+            },
+            "first_used": "2026-05-30T17:15:21Z",
+            "id": 5,
+            "initial_weight": 1000.0,
+            "last_used": "2026-05-30T23:35:44Z",
+            "registered": "2025-12-28T16:26:16Z",
+            "remaining_length": 285400.3376962397,
+            "remaining_weight": 851.2206417739759,
+            "spool_weight": 210.0,
+            "used_length": 49883.28172052473,
+            "used_weight": 148.7793582260241
+          },
+          "response_headers": {
+            "Connection": "close",
+            "Content-Length": "397",
+            "Content-Type": "application/json",
+            "Date": "Thu, 04 Jun 2026 03:56:43 GMT",
+            "Server": "uvicorn",
+            "Vary": "Accept-Encoding",
+            "X-Consumed-Content-Encoding": "gzip"
+          }
+        }
+      }
+    }
+  ],
+  "meta": {
+    "api_key": null,
+    "host": "192.168.1.120",
+    "port": 7125,
+    "read_only": true,
+    "started_at_utc": "2026-06-04T03:56:44Z",
+    "tool": "tools/spoolman-probe.py"
+  },
+  "notifications": [
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 62.322,
+          "moonraker_stats": {
+            "cpu_usage": 2.73,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545405.2099009
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 130.87,
+              "rx_bytes": 113319797,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732134,
+              "tx_bytes": 56105888,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679422
+            },
+            "eth0": {
+              "bandwidth": 20324.68,
+              "rx_bytes": 2033994755,
+              "rx_drop": 116532,
+              "rx_errs": 0,
+              "rx_packets": 21915866,
+              "tx_bytes": 43047597585,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431766
+            },
+            "lo": {
+              "bandwidth": 358427.57,
+              "rx_bytes": 159200059409,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155241784,
+              "tx_bytes": 159200059409,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155241784
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 27.01,
+            "cpu0": 24.47,
+            "cpu1": 24.49,
+            "cpu2": 36.73,
+            "cpu3": 22.92
+          },
+          "system_memory": {
+            "available": 7074088,
+            "total": 8007452,
+            "used": 933364
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 63.296,
+          "moonraker_stats": {
+            "cpu_usage": 2.14,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545406.2104158
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 131.0,
+              "rx_bytes": 113319916,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732150,
+              "tx_bytes": 56105900,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679424
+            },
+            "eth0": {
+              "bandwidth": 9640.0,
+              "rx_bytes": 2033996356,
+              "rx_drop": 116532,
+              "rx_errs": 0,
+              "rx_packets": 21915888,
+              "tx_bytes": 43047605624,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431779
+            },
+            "lo": {
+              "bandwidth": 391478.0,
+              "rx_bytes": 159200255148,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155241956,
+              "tx_bytes": 159200255148,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155241956
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 30.1,
+            "cpu0": 30.93,
+            "cpu1": 24.74,
+            "cpu2": 34.34,
+            "cpu3": 30.3
+          },
+          "system_memory": {
+            "available": 7073844,
+            "total": 8007452,
+            "used": 933608
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 62.322,
+          "moonraker_stats": {
+            "cpu_usage": 1.06,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545407.211094
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 159.84,
+              "rx_bytes": 113320064,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732170,
+              "tx_bytes": 56105912,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679426
+            },
+            "eth0": {
+              "bandwidth": 8670.33,
+              "rx_bytes": 2033997297,
+              "rx_drop": 116532,
+              "rx_errs": 0,
+              "rx_packets": 21915902,
+              "tx_bytes": 43047613362,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431790
+            },
+            "lo": {
+              "bandwidth": 364109.89,
+              "rx_bytes": 159200437385,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242124,
+              "tx_bytes": 159200437385,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242124
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 26.92,
+            "cpu0": 27.08,
+            "cpu1": 28.28,
+            "cpu2": 27.55,
+            "cpu3": 23.71
+          },
+          "system_memory": {
+            "available": 7074096,
+            "total": 8007452,
+            "used": 933356
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 64.27,
+          "moonraker_stats": {
+            "cpu_usage": 1.24,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545408.210967
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 145.0,
+              "rx_bytes": 113320197,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732188,
+              "tx_bytes": 56105924,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679428
+            },
+            "eth0": {
+              "bandwidth": 9458.0,
+              "rx_bytes": 2033998691,
+              "rx_drop": 116532,
+              "rx_errs": 0,
+              "rx_packets": 21915921,
+              "tx_bytes": 43047621426,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431801
+            },
+            "lo": {
+              "bandwidth": 386110.0,
+              "rx_bytes": 159200630440,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242290,
+              "tx_bytes": 159200630440,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242290
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 27.37,
+            "cpu0": 28.42,
+            "cpu1": 28.57,
+            "cpu2": 26.53,
+            "cpu3": 27.27
+          },
+          "system_memory": {
+            "available": 7074856,
+            "total": 8007452,
+            "used": 932596
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 63.296,
+          "moonraker_stats": {
+            "cpu_usage": 1.27,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545409.2118974
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 131.0,
+              "rx_bytes": 113320316,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732204,
+              "tx_bytes": 56105936,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679430
+            },
+            "eth0": {
+              "bandwidth": 9332.0,
+              "rx_bytes": 2034000131,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21915941,
+              "tx_bytes": 43047629318,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431814
+            },
+            "lo": {
+              "bandwidth": 361844.0,
+              "rx_bytes": 159200811362,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242466,
+              "tx_bytes": 159200811362,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242466
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 28.24,
+            "cpu0": 31.96,
+            "cpu1": 31.31,
+            "cpu2": 24.24,
+            "cpu3": 26.0
+          },
+          "system_memory": {
+            "available": 7074100,
+            "total": 8007452,
+            "used": 933352
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 63.296,
+          "moonraker_stats": {
+            "cpu_usage": 1.43,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545410.211458
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 160.0,
+              "rx_bytes": 113320464,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732224,
+              "tx_bytes": 56105948,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679432
+            },
+            "eth0": {
+              "bandwidth": 9383.0,
+              "rx_bytes": 2034001817,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21915963,
+              "tx_bytes": 43047637015,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431827
+            },
+            "lo": {
+              "bandwidth": 387982.0,
+              "rx_bytes": 159201005353,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242637,
+              "tx_bytes": 159201005353,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242637
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 26.87,
+            "cpu0": 26.88,
+            "cpu1": 23.47,
+            "cpu2": 24.24,
+            "cpu3": 31.96
+          },
+          "system_memory": {
+            "available": 7074352,
+            "total": 8007452,
+            "used": 933100
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 62.809,
+          "moonraker_stats": {
+            "cpu_usage": 1.41,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545411.2113395
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 131.0,
+              "rx_bytes": 113320583,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732240,
+              "tx_bytes": 56105960,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679434
+            },
+            "eth0": {
+              "bandwidth": 9512.0,
+              "rx_bytes": 2034003196,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21915982,
+              "tx_bytes": 43047645148,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431840
+            },
+            "lo": {
+              "bandwidth": 369634.0,
+              "rx_bytes": 159201190170,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242810,
+              "tx_bytes": 159201190170,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242810
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 30.3,
+            "cpu0": 30.11,
+            "cpu1": 29.59,
+            "cpu2": 36.0,
+            "cpu3": 25.49
+          },
+          "system_memory": {
+            "available": 7074856,
+            "total": 8007452,
+            "used": 932596
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 63.296,
+          "moonraker_stats": {
+            "cpu_usage": 1.14,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545412.2112002
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 131.0,
+              "rx_bytes": 113320702,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732256,
+              "tx_bytes": 56105972,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679436
+            },
+            "eth0": {
+              "bandwidth": 8981.0,
+              "rx_bytes": 2034004523,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21916000,
+              "tx_bytes": 43047652802,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431851
+            },
+            "lo": {
+              "bandwidth": 383814.0,
+              "rx_bytes": 159201382077,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155242978,
+              "tx_bytes": 159201382077,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155242978
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 27.69,
+            "cpu0": 28.87,
+            "cpu1": 24.24,
+            "cpu2": 34.0,
+            "cpu3": 24.74
+          },
+          "system_memory": {
+            "available": 7074352,
+            "total": 8007452,
+            "used": 933100
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 62.809,
+          "moonraker_stats": {
+            "cpu_usage": 0.99,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545413.211744
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 173.83,
+              "rx_bytes": 113320864,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732278,
+              "tx_bytes": 56105984,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679438
+            },
+            "eth0": {
+              "bandwidth": 9067.93,
+              "rx_bytes": 2034005857,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21916018,
+              "tx_bytes": 43047660545,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431862
+            },
+            "lo": {
+              "bandwidth": 377800.2,
+              "rx_bytes": 159201571166,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155243172,
+              "tx_bytes": 159201571166,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155243172
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 29.29,
+            "cpu0": 32.29,
+            "cpu1": 26.26,
+            "cpu2": 27.0,
+            "cpu3": 31.0
+          },
+          "system_memory": {
+            "available": 7074128,
+            "total": 8007452,
+            "used": 933324
+          },
+          "websocket_connections": 4
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_active_spool_set",
+      "params": [
+        {
+          "spool_id": 3
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_active_spool_set",
+      "params": [
+        {
+          "spool_id": 5
+        }
+      ]
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notify_proc_stat_update",
+      "params": [
+        {
+          "cpu_temp": 63.296,
+          "moonraker_stats": {
+            "cpu_usage": 5.59,
+            "mem_units": "kB",
+            "memory": 75100,
+            "time": 1780545414.2126353
+          },
+          "network": {
+            "can0": {
+              "bandwidth": 131.0,
+              "rx_bytes": 113320983,
+              "rx_drop": 328,
+              "rx_errs": 0,
+              "rx_packets": 15732294,
+              "tx_bytes": 56105996,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 7679440
+            },
+            "eth0": {
+              "bandwidth": 29164.0,
+              "rx_bytes": 2034016232,
+              "rx_drop": 116533,
+              "rx_errs": 0,
+              "rx_packets": 21916103,
+              "tx_bytes": 43047679334,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 51431934
+            },
+            "lo": {
+              "bandwidth": 392348.0,
+              "rx_bytes": 159201767340,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 155243350,
+              "tx_bytes": 159201767340,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 155243350
+            },
+            "wlan0": {
+              "bandwidth": 0.0,
+              "rx_bytes": 0,
+              "rx_drop": 0,
+              "rx_errs": 0,
+              "rx_packets": 0,
+              "tx_bytes": 0,
+              "tx_drop": 0,
+              "tx_errs": 0,
+              "tx_packets": 0
+            }
+          },
+          "system_cpu_usage": {
+            "cpu": 29.23,
+            "cpu0": 26.88,
+            "cpu1": 30.3,
+            "cpu2": 28.0,
+            "cpu3": 33.0
+          },
+          "system_memory": {
+            "available": 7074384,
+            "total": 8007452,
+            "used": 933068
+          },
+          "websocket_connections": 4
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "active_spool_id": 5,
+    "has_spoolman_component": true,
+    "pending_reports_count": 0,
+    "proxy_v2_error": null,
+    "proxy_v2_has_response_key": true,
+    "sample_spool_count": 5,
+    "spoolman_connected": true,
+    "spoolman_notifications_seen": [
+      "notify_active_spool_set",
+      "notify_active_spool_set"
+    ]
+  },
+  "transport": "websocket-jsonrpc"
+}
