@@ -6,8 +6,10 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -65,28 +67,40 @@ fun ColorWheel(
     // recomputed per move. 13 stops (0..360 in 30° steps) read as a continuous hue ring.
     val ringBrush = rememberHueSweep()
 
-    Box(modifier.aspectRatio(1f)) {
+    // F3: the wheel is a COMFORTABLE control, not a half-screen monster. It is sized to a bounded box and
+    // CENTERED inside the caller's slot (which may be full-width) so it no longer dominates the editor page
+    // nor steals the column's vertical scroll across its whole footprint.
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+      Box(Modifier.size(WHEEL_SIZE).aspectRatio(1f)) {
         Canvas(
             Modifier
                 .fillMaxSize()
                 // ONE coordinated gesture detector (WR-01 / ScrubberPage): set the hue from the DOWN
                 // position (so a pure tap lands a seed), track each still-pressed move via onHandleMove
                 // (cheap — NO regen), and regenerate+retheme on pointer-UP via onSettle ONLY (D-07).
+                //
+                // F3 (scroll-theft): the gesture only CLAIMS the pointer when the DOWN lands inside the hue
+                // RING annulus (between the inner hole and the outer edge). A touch in the center hole or
+                // outside the ring is left unconsumed so the surrounding `verticalScroll` Column still
+                // scrolls — the user can scroll PAST the wheel. Only a touch that clearly starts on the ring
+                // is owned by the wheel.
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        var current = hueAt(down.position, size.width.toFloat(), size.height.toFloat())
+                        val w = size.width.toFloat()
+                        val h = size.height.toFloat()
+                        if (!onRing(down.position, w, h)) {
+                            // Not on the ring band → don't consume; let the parent scroll own this gesture.
+                            return@awaitEachGesture
+                        }
+                        var current = hueAt(down.position, w, h)
                         onHandleMove(current)
                         down.consume()
                         do {
                             val event = awaitPointerEvent()
                             event.changes.forEach { change ->
                                 if (change.pressed && change.positionChanged()) {
-                                    current = hueAt(
-                                        change.position,
-                                        size.width.toFloat(),
-                                        size.height.toFloat(),
-                                    )
+                                    current = hueAt(change.position, w, h)
                                     onHandleMove(current)
                                     change.consume()
                                 }
@@ -113,7 +127,13 @@ fun ColorWheel(
 
             // The handle: a literal-hue dot at the current angle (the data-color carve-out), ringed by a
             // token-chromed outline (THEME-01). The handle hit area is ≥64dp via the overlaid Box below.
-            val rad = Math.toRadians((hue - 90f).toDouble())
+            //
+            // F2 angle convention: Compose `Brush.sweepGradient` starts at 3-o'clock (0°, +x) and sweeps
+            // CLOCKWISE. Screen-space y grows DOWNWARD, so the standard `atan2(dy, dx)` already increases
+            // clockwise — meaning hue == the raw screen angle with NO rotation offset. The handle must use
+            // the SAME mapping as the ring it sits on: hue 0 → 3 o'clock, 90 → 6 o'clock, 180 → 9 o'clock,
+            // 270 → 12 o'clock. (The previous `hue - 90` rotated the handle a quarter-turn off the ring.)
+            val rad = Math.toRadians(hue.toDouble())
             val hx = cx + (ringR * cos(rad)).toFloat()
             val hy = cy + (ringR * sin(rad)).toFloat()
             val handleR = thickness * 0.62f
@@ -126,11 +146,37 @@ fun ColorWheel(
                 style = Stroke(width = with(this) { 2.dp.toPx() }),
             )
         }
-
-        // A ≥64dp invisible touch-floor anchor so even a tiny rendered handle stays gloved-finger
-        // friendly (UI-02). The gesture itself reads the whole Canvas, so this is a sizing guarantee.
-        Box(Modifier.size(64.dp))
+      }
     }
+}
+
+/**
+ * The bounded wheel size (F3). A comfortable touch control — large enough that the hue ring band is a
+ * generous gloved-finger target (the band is ~30% of the radius on each side) but small enough that the
+ * wheel no longer dominates the editor page or swallows the column's vertical scroll across half the
+ * screen. The wheel is centered in its (possibly full-width) slot.
+ */
+private val WHEEL_SIZE = 200.dp
+
+/**
+ * F3 scroll-theft gate: true when [pos] lands inside the hue RING annulus — i.e. between the inner hole
+ * edge and the outer edge, using the SAME `outerR`/`thickness`/`ringR` geometry the Canvas draws with.
+ * A generous half-thickness tolerance on each side keeps the band finger-friendly. Touches in the center
+ * hole or outside the wheel return false → the gesture is NOT consumed → the parent scroll keeps it.
+ */
+private fun onRing(pos: Offset, w: Float, h: Float): Boolean {
+    val cx = w / 2f
+    val cy = h / 2f
+    val outerR = min(cx, cy)
+    val thickness = outerR * 0.30f
+    val ringR = outerR - thickness / 2f
+    val dx = pos.x - cx
+    val dy = pos.y - cy
+    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+    // Accept the full ring stroke plus a half-thickness pad inward and outward (a forgiving touch band).
+    val inner = ringR - thickness
+    val outer = ringR + thickness
+    return dist in inner..outer
 }
 
 /** Build the cached hue sweep-gradient (0..360 in 30° stops). Memoized so it is NOT recomputed per drag frame. */
@@ -141,14 +187,18 @@ private fun rememberHueSweep(): Brush =
         Brush.sweepGradient(*stops.toTypedArray())
     }
 
-/** The hue (0..360) at a touch position, measured as the angle from center (12-o'clock = 0°, clockwise). */
+/**
+ * The hue (0..360) at a touch position, measured as the angle from center using the SAME convention as
+ * the [Brush.sweepGradient] ring and the handle render (F2): 0° at 3-o'clock (+x), increasing CLOCKWISE.
+ * Because screen-space y grows downward, raw `atan2(dy, dx)` already sweeps clockwise — so there is NO
+ * rotation offset. 3 o'clock → hue 0, 6 o'clock → 90, 9 o'clock → 180, 12 o'clock → 270.
+ */
 private fun hueAt(pos: Offset, w: Float, h: Float): Float {
     val cx = w / 2f
     val cy = h / 2f
     val dx = pos.x - cx
     val dy = pos.y - cy
-    // atan2 with the +90° rotation so 12-o'clock reads as hue 0 (matches the handle render).
-    var deg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+    var deg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
     if (deg < 0f) deg += 360f
     return deg % 360f
 }

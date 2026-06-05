@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -55,12 +58,17 @@ import works.mees.dinghy.theme.fsSp
  * (D-15) and the ONLY place the system keyboard is allowed (PRIM-02). A plain
  * `Column.verticalScroll(rememberScrollState())` of token-themed sections (15-06 D-10/D-11).
  *
- * ## Section order (D-11)
- * **Printers** (Phase-14 profile CRUD) · **Connection** (host/port/key + mDNS form) · **Appearance**
- * (dark/light + S/M/L + the NEW palette-mode chip row + the **"Edit theme…"** forward-entry that pushes
- * the seed/pool editor) · **Feature toggles** (Webcam live; outputs/WebRTC/fine-tune greyed "Coming
- * soon") · **System** (app version + build only — D-12). The old single-accent picker is REMOVED
- * (D-04 retires per-role chrome overrides; accent now derives from the seed).
+ * ## Section order (F1 — Printers section REMOVED)
+ * **Connection** (host/port/key + mDNS form for the ACTIVE printer, with an "Add another printer" entry)
+ * · **Appearance** (dark/light + S/M/L + the NEW palette-mode chip row + a live palette-reactive preview +
+ * the **"Edit theme…"** forward-entry that pushes the seed/pool editor) · **Feature toggles** (Webcam
+ * live; outputs/WebRTC/fine-tune greyed "Coming soon") · **System** (app version + build only — D-12).
+ *
+ * The old **Printers** profile-list/CRUD section was REMOVED (F1): printer management is owned by the
+ * Devices switcher screen and the list was redundant here. The Connection form remains — it edits the
+ * ACTIVE profile's connection and can still create a printer (first run + the Devices "Add printer"
+ * jump), but the saved-profile LIST and its active markers no longer live in the Settings hub. The old
+ * single-accent picker is also gone (D-04 retires per-role chrome overrides; accent derives from the seed).
  *
  * ## The editor seam (D-10, CONFIRMED Codex finding — RootController dual-path)
  * The theme-editor open-state is hosted INSIDE this screen (a local [editorOpen] back-stack) — NOT at
@@ -93,9 +101,10 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val profileStore = container.profileStore
 
-    // ---- Profile set + active selection (the CRUD list source) -------------------------------
+    // ---- Profile set + active selection ------------------------------------------------------
+    // `profiles` is still needed to tell first-run (empty) from "add another printer" (F1); the active
+    // PROFILE drives the Connection form target + the Appearance theme mirror.
     val profiles by profileStore.profiles.collectAsStateWithLifecycle(emptyList())
-    val activeId by profileStore.activeId.collectAsStateWithLifecycle(null)
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val hasActive = activeProfile != null
 
@@ -107,11 +116,18 @@ fun SettingsScreen(
         return // The editor owns the whole screen while open.
     }
 
-    // ---- Editing state -----------------------------------------------------------------------
-    var editing by remember { mutableStateOf<EditTarget?>(null) }
+    // ---- Connection editing target (F1) ------------------------------------------------------
+    // The Connection form edits the ACTIVE profile by default. When the user taps "Add another printer"
+    // (or on first run with no profiles) it switches to a blank NEW-profile form. `null` while no active
+    // profile exists means an implicit first-run new-printer form.
+    var addingNew by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Profile?>(null) }
 
-    // ---- Connection form state (only meaningful while [editing] != null) ---------------------
+    // The profile the Connection form currently targets: the explicit "add" form (null profile) or the
+    // active profile. Re-derived as the active profile changes.
+    val connectionTarget: Profile? = if (addingNew) null else activeProfile
+
+    // ---- Connection form state ---------------------------------------------------------------
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("7125") }
     var apiKey by remember { mutableStateOf("") }
@@ -123,6 +139,20 @@ fun SettingsScreen(
     var scanning by remember { mutableStateOf(false) }
     var scanned by remember { mutableStateOf(false) }
     var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
+
+    // Seed the Connection form from the target profile whenever the target changes (active switch, or the
+    // user toggling "Add another printer"). A null target = a blank new-printer form.
+    LaunchedEffect(connectionTarget?.id, addingNew) {
+        val p = connectionTarget
+        host = p?.host ?: ""
+        port = p?.port?.toString() ?: "7125"
+        apiKey = ""
+        keyAlreadySaved = p?.apiKey != null
+        hostError = false
+        portError = false
+        scanned = false
+        discovered = emptyList()
+    }
 
     // ---- Appearance (theme) control mirror state ---------------------------------------------
     // Mirrors the persisted picks so the chips can show the current selection; the live resolver + the
@@ -153,7 +183,7 @@ fun SettingsScreen(
             onConfirm = {
                 container.deleteProfile(victim.id)
                 pendingDelete = null
-                editing = null
+                addingNew = false
             },
             onCancel = { pendingDelete = null },
             destructive = true,
@@ -170,47 +200,39 @@ fun SettingsScreen(
     ) {
         SectionHeader("Settings")
 
-        // ============================ PRINTERS ==============================================
-        SectionLabel("Printers")
+        // ============================ CONNECTION ============================================
+        // F1: the Printers profile-LIST/CRUD section was removed (Devices owns that). What remains is the
+        // host/port/key + mDNS form for the ACTIVE printer, plus an "Add another printer" entry that blanks
+        // the form into new-profile mode (so the Devices "Add printer" jump still has a place to land).
+        SectionLabel("Connection")
+        run {
+            val existing = connectionTarget // null = the explicit add / first-run new-printer form
 
-        val target = editing
-        if (target == null) {
-            // ---- LIST MODE: one row per saved profile + an "Add printer" row (D-13) ----------
-            for (profile in profiles) {
-                ProfileRow(
-                    profile = profile,
-                    active = profile.id == activeId,
-                    onClick = {
-                        editing = EditTarget.EditProfile(profile)
-                        host = profile.host
-                        port = profile.port.toString()
-                        apiKey = ""
-                        keyAlreadySaved = profile.apiKey != null
-                        hostError = false
-                        portError = false
-                        scanned = false
-                        discovered = emptyList()
-                    },
+            // Show whose connection is being edited (or that this is a new printer), so removing the list
+            // doesn't lose the "which printer" context. An accent "Add another printer" entry blanks the
+            // form; while adding, a way back to the active printer's form.
+            if (existing != null) {
+                Text(
+                    text = "Editing ${existing.displayName()}",
+                    color = t.text2,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+                ForwardEntryRow(
+                    label = "+ Add another printer",
+                    subLabel = "Set up a new Moonraker connection",
+                    enabled = true,
+                    onClick = { addingNew = true },
+                )
+            } else if (profiles.isNotEmpty()) {
+                Text(
+                    text = "New printer",
+                    color = t.accent,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = fsSp(15f, t.fs).sp,
                 )
             }
-            AddPrinterRow(
-                onClick = {
-                    editing = EditTarget.NewProfile
-                    host = ""
-                    port = "7125"
-                    apiKey = ""
-                    keyAlreadySaved = false
-                    hostError = false
-                    portError = false
-                    scanned = false
-                    discovered = emptyList()
-                },
-            )
-        } else {
-            // ============================ CONNECTION ========================================
-            SectionLabel("Connection")
-            // ---- FORM MODE: the existing host/port/key + mDNS form, reused 1:1 ----------------
-            val existing = (target as? EditTarget.EditProfile)?.profile
 
             TokenTextField(
                 value = host,
@@ -354,7 +376,7 @@ fun SettingsScreen(
                         // NOT use rememberCoroutineScope() here (it would be cancelled mid-write by the
                         // same-frame navigation, [[dinghy-compose-write-scope-cancellation]]).
                         container.saveProfile(profile)
-                        editing = null
+                        addingNew = false // a new printer just saved is now active → fall back to its form.
                         apiKey = ""
                         onConnectionSaved()
                     }
@@ -363,21 +385,23 @@ fun SettingsScreen(
                 intent = Intent.Go,
             )
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Secondary actions: while ADDING a new printer (and one already exists), allow backing out to
+            // the active printer's form. For the active printer, expose Delete (guarded). On first run
+            // (no profiles, implicit new form) there is nothing to cancel back to and nothing to delete.
+            if (addingNew && profiles.isNotEmpty()) {
                 OutlinedControl(
                     label = "Cancel",
-                    onClick = { editing = null },
-                    modifier = Modifier.weight(1f),
+                    onClick = { addingNew = false },
+                    modifier = Modifier.fillMaxWidth(),
                     intent = Intent.Neutral,
                 )
-                if (existing != null) {
-                    OutlinedControl(
-                        label = "Delete",
-                        onClick = { pendingDelete = existing },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
-                    )
-                }
+            } else if (existing != null) {
+                OutlinedControl(
+                    label = "Delete this printer",
+                    onClick = { pendingDelete = existing },
+                    modifier = Modifier.fillMaxWidth(),
+                    intent = Intent.Danger,
+                )
             }
         }
 
@@ -386,6 +410,19 @@ fun SettingsScreen(
         // (D-09): the ACTIVE profile when one exists, else the global ThemePrefs idle/new-profile look.
         // The seed/pool editor is the pushed "Edit theme…" sub-page (D-10).
         SectionLabel("Appearance")
+
+        // F4 — a PROMINENT live palette-reactive preview so switching Colorful/Simple/High-contrast is
+        // OBVIOUSLY different at a glance. The generated accent + the contrast-ranked pool strip render
+        // their LITERAL live colors (the same data-color carve-out as the theme editor's preview strip);
+        // because [LocalTokens] re-emits on every palette-mode/seed change, this row re-paints instantly
+        // when the mode flips. The accent swatch is wider (the headline of the palette).
+        Row(
+            Modifier.fillMaxWidth().height(48.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PaletteSwatch(t.accent, Modifier.weight(2f)) // the accent — the palette headline.
+            for (c in t.pool.take(6)) PaletteSwatch(c, Modifier.weight(1f))
+        }
 
         // Dark / Light — chrome derives from the seed; this only flips polarity.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -411,19 +448,24 @@ fun SettingsScreen(
             )
         }
 
-        // S / M / L text size (the --fs authority).
+        // S / M / L text size (the --fs authority). F4: each segment is filled with a POOL ("traffic-light")
+        // color from the active palette so the selector visibly reflects the current mode — S/M/L pick up
+        // pool[0]/pool[1]/pool[2] and recolor when the palette mode flips. The selected segment gets the
+        // accent ring + a soft accent backing; the fill itself stays the pool color (data carve-out).
         SectionLabel("Text size")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (choice in FontScale.entries) {
-                OutlinedControl(
+            FontScale.entries.forEachIndexed { i, choice ->
+                val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
+                PoolSizeSegment(
                     label = choice.name,
+                    fill = poolColor,
+                    selected = fsChoice == choice,
                     onClick = {
                         fsChoice = choice
                         container.themeResolver.setFs(choice.multiplier) // live
                         persistFs(scope, container, hasActive, choice) // durable
                     },
                     modifier = Modifier.weight(1f),
-                    intent = if (fsChoice == choice) Intent.Accent else Intent.Neutral,
                 )
             }
         }
@@ -494,15 +536,6 @@ fun SettingsScreen(
     }
 }
 
-/**
- * Which profile (if any) the Connection form is editing. [NewProfile] = the blank add form;
- * [EditProfile] = the form pre-filled from an existing saved profile (D-13).
- */
-private sealed interface EditTarget {
-    data object NewProfile : EditTarget
-    data class EditProfile(val profile: Profile) : EditTarget
-}
-
 /** The palette-mode chips (D-15) — `ThemeResolver` mode name → display label. Colorful is the default. */
 private val PALETTE_MODES: List<Pair<String, String>> = listOf(
     ThemeResolver.MODE_COLORFUL to "Colorful",
@@ -571,87 +604,6 @@ private fun ForwardEntryRow(
     }
 }
 
-/**
- * A saved-profile row (D-13) in the Printers list — name (20sp SemiBold Geist) + `host:port`
- * (17sp Geist Mono, muted). The ACTIVE profile's row gets the accent outline + an accent-soft fill
- * tint + an accent "ACTIVE" marker. Tapping opens the EDIT form (D-13).
- */
-@Composable
-private fun ProfileRow(
-    profile: Profile,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    val base = Modifier
-        .fillMaxWidth()
-        .clip(shape)
-        .background(if (active) t.accentSoft else t.surface)
-    val outlined = if (active) base.border(BorderStroke(2.dp, t.accentLine), shape) else base
-    Row(
-        outlined
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = profile.displayName(),
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(20f, t.fs).sp,
-            )
-            Text(
-                text = "${profile.host}:${profile.port}",
-                color = t.text2,
-                fontFamily = GeistMono,
-                fontSize = fsSp(17f, t.fs).sp,
-            )
-        }
-        if (active) {
-            Text(
-                text = "ACTIVE",
-                color = t.accent,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(15f, t.fs).sp,
-            )
-        }
-    }
-}
-
-/**
- * The "Add printer" row (D-13) — opens the host/port/key + mDNS form BLANK. A live accent-outlined row
- * distinct from the saved-profile rows; the `+` prefix reads as "add".
- */
-@Composable
-private fun AddPrinterRow(
-    onClick: () -> Unit,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.accentLine), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "+ Add printer",
-            color = t.accent,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp,
-        )
-    }
-}
-
 @Composable
 private fun DiscoveredPrinterRow(
     printer: DiscoveredPrinter,
@@ -680,6 +632,60 @@ private fun DiscoveredPrinterRow(
             color = t.text2,
             fontFamily = GeistMono,
             fontSize = fsSp(15f, t.fs).sp,
+        )
+    }
+}
+
+/**
+ * F4 — a live palette PREVIEW swatch (the accent + each pool color), rendering its LITERAL generated
+ * color (the data-color carve-out, like the theme editor's preview strip). Display-only; recolors when the
+ * palette mode/seed changes because [LocalTokens] re-emits. The chrome (the 2dp outline) routes through
+ * tokens (THEME-01).
+ */
+@Composable
+private fun PaletteSwatch(fill: Color, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .fillMaxHeight()
+            .clip(shape)
+            .background(fill)
+            .border(BorderStroke(2.dp, t.outline), shape),
+    )
+}
+
+/**
+ * F4 — a text-size segment whose FILL is a pool ("traffic-light") color from the active palette, so the
+ * S/M/L selector visibly reflects the current palette mode (and recolors when the mode flips). The fill is
+ * the literal pool color (data carve-out); the SELECTED segment gets an accent ring so the pick is still
+ * unambiguous. The label color is contrast-picked against the fill (white on dark fills, ink on light).
+ */
+@Composable
+private fun PoolSizeSegment(
+    label: String,
+    fill: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val ink = if (fill.luminance() > 0.5f) Color(0xFF101010) else Color(0xFFF5F5F5)
+    val base = modifier
+        .height(64.dp) // ≥64dp touch floor (UI-02).
+        .clip(shape)
+        .background(fill)
+    val outlined =
+        if (selected) base.border(BorderStroke(3.dp, t.accentLine), shape)
+        else base.border(BorderStroke(2.dp, t.outline), shape)
+    Box(outlined.clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(
+            text = label,
+            color = ink,
+            fontFamily = Geist,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
         )
     }
 }
