@@ -30,6 +30,7 @@ import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.files.FileBrowserClient
@@ -367,6 +368,17 @@ class AppContainer(
     fun setActiveDark(active: Boolean, dark: Boolean) {
         if (active) mutateActiveProfile { it.copy(dark = dark) }
         else writeScope.launch { themePrefs.setDark(dark) }
+    }
+
+    /**
+     * Persist the S/M/L font-size choice (D-09) — active profile (durable, lost-update-safe), else the
+     * global idle theme. CR-01: the idle branch MUST route through the process-lifetime [writeScope], never
+     * a composition `rememberCoroutineScope()` ([[dinghy-compose-write-scope-cancellation]]) — the S/M/L
+     * chip tap can navigate away in the same frame, and a slow Nexus-7 flash drops the cancelled write.
+     */
+    fun setActiveFs(active: Boolean, choice: FontScale) {
+        if (active) mutateActiveProfile { it.copy(fsChoice = choice.name) }
+        else writeScope.launch { themePrefs.setFs(choice) }
     }
 
     /**

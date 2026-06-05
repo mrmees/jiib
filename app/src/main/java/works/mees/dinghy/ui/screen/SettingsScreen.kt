@@ -463,7 +463,7 @@ fun SettingsScreen(
                     onClick = {
                         fsChoice = choice
                         container.themeResolver.setFs(choice.multiplier) // live
-                        persistFs(scope, container, hasActive, choice) // durable
+                        container.setActiveFs(hasActive, choice) // durable (CR-01: process-lifetime writeScope)
                     },
                     modifier = Modifier.weight(1f),
                 )
@@ -542,20 +542,6 @@ private val PALETTE_MODES: List<Pair<String, String>> = listOf(
     ThemeResolver.MODE_SIMPLE to "Simple",
     ThemeResolver.MODE_HIGH_CONTRAST to "High contrast",
 )
-
-/** Persist a text-size pick (D-09) — active profile's fsChoice, else global themePrefs. Durable. */
-private fun persistFs(
-    scope: kotlinx.coroutines.CoroutineScope,
-    container: AppContainer,
-    hasActive: Boolean,
-    next: FontScale,
-) {
-    if (hasActive) {
-        container.mutateActiveProfile { it.copy(fsChoice = next.name) }
-    } else {
-        scope.launch { container.themePrefs.setFs(next) }
-    }
-}
 
 /** Bounded settle window for an mDNS scan — long enough to resolve LAN printers, short enough to end. */
 private const val SCAN_WINDOW_MS = 6000L
