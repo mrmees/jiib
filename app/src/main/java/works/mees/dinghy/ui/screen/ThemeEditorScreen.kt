@@ -114,7 +114,10 @@ fun ThemeEditorScreen(
     // Per-slot override picker — a full-screen hue wheel that writes ONE pool slot on settle (D-09).
     val slot = editingSlot
     if (slot != null) {
-        var slotHue by remember(slot) { mutableFloatStateOf(0f) }
+        // WR-06: seed the wheel from the CURRENT slot color (override or base generated), not hue 0 (red).
+        // Re-opening a slot the user set to teal must show the handle at teal, not make them drag from scratch.
+        val currentSlotColor = if (t.pool.isNotEmpty()) t.pool[slot % t.pool.size] else t.accent
+        var slotHue by remember(slot) { mutableFloatStateOf(colorToHue(currentSlotColor)) }
         Column(
             modifier
                 .fillMaxSize()
@@ -397,6 +400,13 @@ internal fun parseHex(hex: String?): Int {
     val s = hex.removePrefix("#")
     val rgb = s.take(6).toIntOrNull(16) ?: return 0xFF000000.toInt()
     return 0xFF000000.toInt() or rgb
+}
+
+/** A Compose [Color] → its hue (0..360) for positioning the wheel handle (WR-06: seed picker from current). */
+internal fun colorToHue(color: Color): Float {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    return hsv[0]
 }
 
 /** A seed hex → its hue (0..360) for positioning the wheel handle. Junk → 0. */
