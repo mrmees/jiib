@@ -29,17 +29,36 @@ data class PersistedProfile(
     val host: String,
     val port: Int = 7125,
     val apiKey: String? = null,
-    // FULL theme (D-08) as PERSISTED PRIMITIVES — the exact shape ThemePrefs persists (ThemePrefs.kt:84-91),
-    // NEVER a resolved ThemeTokens (RESEARCH Pitfall 2 / Anti-Pattern):
-    val themeBase: String = "Dark", // ThemeBase.name
-    val fsChoice: String = "M", // FontScale.name
-    val themeDeltaArgb: Map<String, Long> = emptyMap(), // TokenDelta.Role.name -> unsigned-32 ARGB
+    // FULL theme (D-03/D-08) as PERSISTED PRIMITIVES — the generate-and-cache TUPLE (15-04/15-05), NEVER a
+    // resolved ThemeTokens (RESEARCH Pitfall 2 / Anti-Pattern). poolOverrides is String-keyed (poolIndex AS
+    // STRING → unsigned-32 ARGB) ON PURPOSE: kotlinx `ignoreUnknownKeys` tolerates unknown KEYS, not malformed
+    // VALUES — an Int-typed map would fail the WHOLE decode on a single bad entry; a String→Long map lets the
+    // PER-ENTRY sanitize (ThemePrefs.sanitizeTuple) drop one bad slot while the good ones survive (V5).
+    val seedHex: String = "#3f78ff",
+    val dark: Boolean = true,
+    val paletteMode: String = "Colorful",
+    val poolShift: Int = 0,
+    val maxItems: Int = 4,
+    val poolOverrides: Map<String, Long> = emptyMap(),
+    val fsChoice: String = "M", // FontScale.name — a SEPARATE setting (D-05), NOT folded into the theme tuple.
+    // RETIRED theme primitives (D-05 fresh-start, NO migration). Kept as @Deprecated DECODED-BUT-UNUSED fields
+    // so the still-standing SettingsScreen + ProfileStoreTest/ActiveConfigDerivationTest compile at THIS wave;
+    // the runtime ignores them (the tuple above is the source of truth). DELETED in 15-06.
+    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
+    val themeBase: String = "Dark",
+    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
+    val themeDeltaArgb: Map<String, Long> = emptyMap(),
 ) {
-    /** Redacts the API key (V7, T-14-01) — never let the key reach a log line, mirrors ConnectionConfig.kt:26. */
+    /**
+     * Redacts the API key (V7, T-14-01) — never let the key reach a log line, mirrors ConnectionConfig.kt:26.
+     * The theme tuple carries NO secrets, so it is NOT redaction surface (V7 — do not widen the masking).
+     */
+    @Suppress("DEPRECATION")
     override fun toString(): String =
         "PersistedProfile(id=$id, name=$name, host=$host, port=$port, " +
-            "apiKey=${if (apiKey != null) "***" else "null"}, themeBase=$themeBase, fsChoice=$fsChoice, " +
-            "themeDeltaArgb=${themeDeltaArgb.keys})"
+            "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
+            "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
+            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice)"
 }
 
 /**
@@ -54,8 +73,18 @@ data class Profile(
     val host: String,
     val port: Int = 7125,
     val apiKey: String? = null,
-    val themeBase: String = "Dark",
+    // The generate-and-cache theme TUPLE (D-03, 15-05) — String-keyed poolOverrides for per-entry tolerance.
+    val seedHex: String = "#3f78ff",
+    val dark: Boolean = true,
+    val paletteMode: String = "Colorful",
+    val poolShift: Int = 0,
+    val maxItems: Int = 4,
+    val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M",
+    // RETIRED (D-05 fresh-start) — @Deprecated decoded-but-unused; deleted in 15-06.
+    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
+    val themeBase: String = "Dark",
+    @Deprecated("Retired — fresh-start, no migration (D-05); deleted in 15-06.", level = DeprecationLevel.WARNING)
     val themeDeltaArgb: Map<String, Long> = emptyMap(),
 ) {
     /**
@@ -69,10 +98,29 @@ data class Profile(
     fun displayName(): String = name ?: host
 
     /**
-     * Resolve this profile's FULL theme (D-08) from its persisted primitives, reusing [ThemePrefs.sanitize]
-     * parity so corrupt theme data fails safe to the defaults (unknown base → Dark, unknown fs → M, junk
-     * delta entries dropped). NEVER throws, NEVER bakes a [works.mees.dinghy.theme.ThemeTokens].
+     * Resolve this profile's FULL theme (D-03) from its persisted TUPLE primitives, reusing
+     * [ThemePrefs.sanitizeTuple] so corrupt theme data fails safe to the defaults (junk seed → default seed,
+     * bad mode → Colorful, out-of-range shift/maxItems → defaults, one malformed pool override dropped
+     * per-entry). NEVER throws, NEVER bakes a [works.mees.dinghy.theme.ThemeTokens].
      */
+    fun toThemeTuple(): ThemePrefs.ThemeTuple =
+        ThemePrefs.sanitizeTuple(
+            rawSeed = seedHex,
+            rawDark = dark,
+            rawMode = paletteMode,
+            rawShift = poolShift,
+            rawMaxItems = maxItems,
+            rawFs = fsChoice,
+            rawOverrides = poolOverrides,
+        )
+
+    /**
+     * LEGACY (deleted in 15-06) — the OLD per-role [ThemePrefs.Resolved] derivation off the deprecated
+     * `themeBase`/`themeDeltaArgb` fields. Kept so the still-standing SettingsScreen + ProfileThemeSeedTest
+     * compile at THIS wave; the runtime theme is now driven by [toThemeTuple]. DELETED in 15-06.
+     */
+    @Deprecated("Retired — use toThemeTuple() (the tuple model); deleted in 15-06.", level = DeprecationLevel.WARNING)
+    @Suppress("DEPRECATION")
     fun toThemeResolved(): ThemePrefs.Resolved =
         ThemePrefs.sanitize(
             rawBase = themeBase,
@@ -82,6 +130,7 @@ data class Profile(
         )
 
     /** The wire form — for re-encoding when [ProfileStore] writes the blob. */
+    @Suppress("DEPRECATION")
     fun toPersisted(): PersistedProfile =
         PersistedProfile(
             id = id,
@@ -89,21 +138,29 @@ data class Profile(
             host = host,
             port = port,
             apiKey = apiKey,
-            themeBase = themeBase,
+            seedHex = seedHex,
+            dark = dark,
+            paletteMode = paletteMode,
+            poolShift = poolShift,
+            maxItems = maxItems,
+            poolOverrides = poolOverrides,
             fsChoice = fsChoice,
+            themeBase = themeBase,
             themeDeltaArgb = themeDeltaArgb,
         )
 
     override fun toString(): String =
         "Profile(id=$id, name=$name, host=$host, port=$port, " +
-            "apiKey=${if (apiKey != null) "***" else "null"}, themeBase=$themeBase, fsChoice=$fsChoice, " +
-            "themeDeltaArgb=${themeDeltaArgb.keys})"
+            "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
+            "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
+            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice)"
 
     companion object {
         /** A stable, collision-safe profile identity (D-05). UUID is available since API 1. */
         fun newId(): String = UUID.randomUUID().toString()
 
         /** Lift a sanitized [PersistedProfile] into its runtime [Profile]. */
+        @Suppress("DEPRECATION")
         fun fromPersisted(p: PersistedProfile): Profile =
             Profile(
                 id = p.id,
@@ -111,8 +168,14 @@ data class Profile(
                 host = p.host,
                 port = p.port,
                 apiKey = p.apiKey,
-                themeBase = p.themeBase,
+                seedHex = p.seedHex,
+                dark = p.dark,
+                paletteMode = p.paletteMode,
+                poolShift = p.poolShift,
+                maxItems = p.maxItems,
+                poolOverrides = p.poolOverrides,
                 fsChoice = p.fsChoice,
+                themeBase = p.themeBase,
                 themeDeltaArgb = p.themeDeltaArgb,
             )
     }
