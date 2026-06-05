@@ -1,6 +1,5 @@
 package works.mees.dinghy.di
 
-import androidx.compose.ui.graphics.Color
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
@@ -30,8 +29,10 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.theme.FontScale
+import works.mees.dinghy.theme.StatusSlot
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
+import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
@@ -332,7 +333,11 @@ class AppContainer(
                         paletteMode = tuple.paletteMode,
                         poolShift = tuple.poolShift,
                         maxItems = tuple.maxItems,
-                        overrides = tuple.poolOverrides.mapValues { Color(it.value.toInt()) },
+                        // Shared ARGB-Long → Color helper (StatusSlot.kt) — the proven `.toInt()`-based
+                        // conversion, never Color(longArgb). Status overrides are applied MODE-GATED in
+                        // TokenBridge (Colorful only), so this resolution path honors D-04 too.
+                        overrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
+                        statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
                         fs = tuple.fs,
                     )
                 }
@@ -395,6 +400,38 @@ class AppContainer(
         } else {
             // WR-02: do the read-modify-write inside ThemePrefs' single edit so two fast slot edits can't
             // each re-encode a stale snapshot and drop one (the same lost-update fix mutateActive applies).
+            writeScope.launch {
+                themePrefs.mutateOverrides { current ->
+                    val next = current.toMutableMap()
+                    if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
+                    next
+                }
+            }
+        }
+    }
+
+    /**
+     * Edit ONE status-slot override (D-03 — Stop/Caution/Go → unsigned-32 ARGB, or null to clear) —
+     * active profile, else global. The status keys ride the SAME String-keyed override map as the pool
+     * indices (reserved [StatusSlot.key] strings cannot collide with "0".."63"), so this mirrors
+     * [setActiveOverride] exactly — a read-modify-write of [Profile.poolOverrides] (active) / the
+     * [ThemePrefs] global map (idle) inside ONE durable edit.
+     *
+     * MANDATORY [[dinghy-compose-write-scope-cancellation]]: routes through the process-lifetime
+     * [writeScope] + [mutateActiveProfile]/[ThemePrefs.mutateOverrides] ONLY — NEVER a composition
+     * `rememberCoroutineScope()` (a same-frame nav cancels the write on slow flash → silently dropped).
+     * The edit re-emits through [seedTheme]'s single [ThemeResolver.apply], where the override is applied
+     * MODE-GATED (it only changes the rendered status color in Colorful — D-04).
+     */
+    fun setActiveStatusOverride(active: Boolean, slot: StatusSlot, argb: Long?) {
+        val key = slot.key
+        if (active) {
+            mutateActiveProfile { p ->
+                val next = p.poolOverrides.toMutableMap()
+                if (argb == null) next.remove(key) else next[key] = argb and 0xFFFFFFFFL
+                p.copy(poolOverrides = next)
+            }
+        } else {
             writeScope.launch {
                 themePrefs.mutateOverrides { current ->
                     val next = current.toMutableMap()
