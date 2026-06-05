@@ -379,7 +379,9 @@ private fun SubLabel(text: String) {
 /** Hue (0..360) → a vivid seed hex "#RRGGBB" (full sat/value; the generator cusp-normalizes L/C). */
 internal fun hueToHex(hue: Float): String {
     val argb = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f).toArgb()
-    return "#%06X".format(argb and 0xFFFFFF)
+    // CR-03: pin Locale.US — a non-Latin-digit locale (e.g. Persian/Arabic) would emit non-ASCII digits
+    // that fail the HEX_SEED regex in ThemePrefs, silently dropping the user's seed on next launch.
+    return "#%06X".format(java.util.Locale.US, argb and 0xFFFFFF)
 }
 
 /** Hue (0..360) → an opaque unsigned-32 ARGB Long (for a pool override). */
