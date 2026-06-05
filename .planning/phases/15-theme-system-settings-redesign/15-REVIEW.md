@@ -26,7 +26,12 @@ findings:
   warning: 6
   info: 3
   total: 12
-status: issues_found
+status: fixes_applied
+fixes_applied:
+  fixed: [CR-01, CR-02, CR-03, WR-01, WR-02, WR-03, WR-04, WR-06]
+  skipped: [WR-05]
+  out_of_scope: [IN-01, IN-02, IN-03]
+  fixed_at: 2026-06-05
 ---
 
 # Phase 15: Code Review Report
@@ -56,6 +61,8 @@ No structural pre-pass was provided for this review.
 
 ### CR-01: `persistFs` uses `rememberCoroutineScope()` for DataStore write — violates Phase-14 lesson
 
+> **RESOLVED** (commit `e01861b`): Added `AppContainer.setActiveFs(active, choice)` intent helper (mirrors `setActiveDark`/`setActiveMode`) routing the idle branch through the process-lifetime `writeScope`; removed `persistFs` and its composition-scope parameter, SettingsScreen now calls `container.setActiveFs(hasActive, choice)`. Closes IN-02 (chose the intent-helper form, did not widen `writeScope` visibility).
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/screen/SettingsScreen.kt:548-558`
 
 **Issue:** The `persistFs` helper is called from the S/M/L font-size chip `onClick` (line 464) with the `scope` parameter that was obtained from `rememberCoroutineScope()` at line 101. The function signature on line 548 accepts a plain `CoroutineScope` and launches `themePrefs.setFs(next)` (a DataStore write) on it in the `else` (idle/no-active-profile) branch. `rememberCoroutineScope()` is a composition scope — it is cancelled the moment the composable leaves composition. The Phase-14 lesson (MEMORY.md, `[[dinghy-compose-write-scope-cancellation]]`) was burned specifically because a DataStore write raced against navigation-triggered composition teardown and was silently dropped on slow Nexus-7 flash. This reproduces the exact same bug for the font-size setting when no active profile exists. The ACTIVE-profile path (`mutateActiveProfile`) correctly routes through `AppContainer.writeScope`, but the idle-path line 557 `scope.launch { container.themePrefs.setFs(next) }` does not.
@@ -84,6 +91,8 @@ private fun persistFs(
 
 ### CR-02: Hard-coded `pool[0]` and `pool[1]` reads without size guard in `PrintStatusScreen`
 
+> **RESOLVED** (commit `9b74fcd`): Guarded the absolute-index pool reads with `if (t.pool.isNotEmpty()) … else t.accent` in PrintStatusScreen (nozzle/bed). Audited the other index reads: TemperatureScreen.traceColor and GraphView.applyTokens had the same latent div-by-zero on an empty pool — both guarded too (GraphView falls back to `listOf(t.accent)`). SettingsScreen already guarded.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusScreen.kt:466-467`
 
 **Issue:** Lines 466-467 read:
@@ -109,6 +118,8 @@ Or, since the baked fallback is the last resort, assert non-emptiness once in `T
 ---
 
 ### CR-03: `hueToHex` can produce a 5-character RGB hex string, breaking `sanitizeTuple`'s `HEX_SEED` regex
+
+> **RESOLVED** (commit `c87484e`): Pinned `Locale.US` — `"#%06X".format(java.util.Locale.US, argb and 0xFFFFFF)`. Audited the other format/hex sites: ColorWheel.kt has none (it uses `Color.hsv` directly, no `String.format`); ThemeEditorScreen had only this one site. (The "5-character" framing in the title is a red herring — `%06X` always zero-pads to 6; the real bug is the non-ASCII-digit locale, which this fixes.)
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt:380-383`
 
@@ -139,6 +150,8 @@ internal fun hueToHex(hue: Float): String {
 ## Warnings
 
 ### WR-01: `ThemeResolver` mutates shared fields from multiple threads without synchronization
+
+> **RESOLVED** (commit `0a8f294`): Wrapped every mutator (`setSeed`/`setMode`/`setShift`/`setOverride`/`setDark`/`setFs`/`apply`) and its `compute()` snapshot in `synchronized(this)` so a single-field UI-thread write can't tear a concurrent multi-field `apply()` into a garbage intermediate theme. The constructor's initial `compute()` runs before the object escapes, so it needs no lock.
 
 **File:** `app/src/main/java/works/mees/dinghy/theme/ThemeResolver.kt:32-107`
 
@@ -193,6 +206,8 @@ This is already the code as written — it correctly gates on `change.pressed`. 
 
 ### WR-02 (renumbered): `setActiveOverride` in the idle branch reads `tupleFlow.firstOrNull()` inside `writeScope` — race with concurrent edits
 
+> **RESOLVED** (commit `d523cad`): Added `ThemePrefs.mutateOverrides { … }` doing the read-modify-write inside ONE `dataStore.edit` (mirrors `ProfileStore.mutateActive`); the idle branch of `setActiveOverride` now routes through it. Extracted a shared `writeOverrides` helper. Side benefit: the old code re-stringified sanitized Int keys (`mapKeys { it.key.toString() }`), which could drop non-numeric raw keys; the RMW now operates on the raw String-keyed wire map directly. (The earlier WR-02 about the ColorWheel gesture was reclassified to INFO by the reviewer — no action.)
+
 **File:** `app/src/main/java/works/mees/dinghy/di/AppContainer.kt:376-391`
 
 **Issue:** In `setActiveOverride`, when there is no active profile (idle path, lines 384-391), the function launches a coroutine on `writeScope` that does:
@@ -228,6 +243,8 @@ suspend fun mutateOverrides(transform: (Map<String, Long>) -> Map<String, Long>)
 
 ### WR-03: `resetActiveTheme` idle branch issues multiple independent DataStore `edit` calls — not atomic
 
+> **RESOLVED** (commit `53ab5f3`): Added `ThemePrefs.resetToDefaults()` doing all 6 writes (seed/dark/mode/shift/maxItems/overrides) in ONE `dataStore.edit`; the idle branch now calls it, so `tupleFlow` emits once instead of up to 6 partial-reset repaints. `fsChoice` is deliberately not reset (separate setting, matches the active-profile path).
+
 **File:** `app/src/main/java/works/mees/dinghy/di/AppContainer.kt:411-419`
 
 **Issue:** In `resetActiveTheme` when `active == false`, the idle path launches 6 sequential `themePrefs.set*()` calls each inside their own `dataStore.edit { }`. DataStore guarantees that each individual `edit` is atomic, but 6 sequential edits are NOT atomic as a group. Between edits, `tupleFlow` emits intermediate partial-reset states: e.g. after `setSeed` fires, the flow emits a tuple with the default seed but the OLD mode/shift/overrides. This is observable in `AppContainer.seedTheme` which collects `themePrefs.tupleFlow` reactively — each intermediate emit triggers a partial re-theme, causing up to 6 successive theme repaints (the "multiple flicker" antipattern from RESEARCH Pitfall 3 / ThemeResolver comments).
@@ -254,6 +271,8 @@ suspend fun resetToDefaults() {
 
 ### WR-04: `SHIFT_RANGE` allows `poolShift = 360`, but a shift of exactly 360 is semantically identical to 0 and produces an off-by-one in the hue range
 
+> **RESOLVED** (commit `0b25588`): `SHIFT_RANGE = 0..359` and `Random.nextInt(0, 360)` (exclusive upper) in Randomize, bounding both validation and generation to the 360 meaningfully-distinct hue rotations. Test-checked: `ThemePrefsFallbackTest`'s `assertTrue(t.poolShift in 0..360)` (default tuple, shift 0) and the -10/400/120 cases still pass.
+
 **File:** `app/src/main/java/works/mees/dinghy/theme/ThemePrefs.kt:134`
 
 **Issue:** `SHIFT_RANGE = 0..360` allows `poolShift = 360`, which passes sanitization. In `Palette.spreadHues`, the seed hue is `(seedH + poolShift) % 360.0`. A shift of 360 is `% 360 = 0`, identical to a shift of 0. This is NOT a bug in the math — it degenerates gracefully. The problem is that `Randomize` in `ThemeEditorScreen` (line 229) calls `Random.nextInt(0, 361)` which produces a value in `[0, 360]` inclusive, so `360` is a possible result that gets persisted and passes sanitization. When the user sees "shift = 360" they are actually seeing the same palette as "shift = 0" — the randomize is misleading. Additionally, the sanitize range `0..360` admits 361 distinct values where only 360 are meaningfully distinct (hues wrap at 360).
@@ -263,6 +282,8 @@ suspend fun resetToDefaults() {
 ---
 
 ### WR-05: `minHueGap` in `Palette.generate` computes on `poolHues` (the user-visible items) but ignores the status-slot hues appended to `ranked`
+
+> **SKIPPED — not a bug (faithful port confirmed against the oracle).** The sibling JS oracle (`../theme_theory/app/color.js:310`) computes `Math.round(minHueGap(poolHues))` over `poolHues` (the diagnostics field), NOT the full ranked list. The Kotlin `minHueGap(poolHues)` at `Palette.kt:465` matches it exactly, and `PaletteGoldenTest` pins this field bit-for-bit. Changing the Kotlin to compute over the full ranked list would break golden conformance for no real-world gain (the field is display-only diagnostics). Per the finding's own instruction ("if it matches, document the intentional discrepancy"), this is the intentional, oracle-faithful behavior — left as-is.
 
 **File:** `app/src/main/java/works/mees/dinghy/theme/Palette.kt:465`
 
@@ -275,6 +296,8 @@ This is also a faithful-port note: if `color.js` computes `minHueGap(poolHues)` 
 ---
 
 ### WR-06: `ThemeEditorScreen` — the per-slot hue picker does not seed the wheel from the CURRENT override color
+
+> **RESOLVED** (commit `d5f84d5`): `slotHue` now initialises from the current slot color (`t.pool[slot % size]`, fallback `t.accent`) via a new `colorToHue(Color)` helper (`android.graphics.Color.colorToHSV`), instead of always 0f (red). Re-opening a customised slot shows the handle at its actual color.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt:117`
 
