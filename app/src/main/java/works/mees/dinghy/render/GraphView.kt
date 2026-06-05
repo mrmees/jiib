@@ -13,6 +13,7 @@ import kotlin.math.roundToInt
 import works.mees.dinghy.R
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.theme.views.ThemeableView
 
 /**
@@ -41,9 +42,10 @@ import works.mees.dinghy.theme.views.ThemeableView
  * Historical target stepping is intentionally NOT rendered (a deliberate fill-budget narrowing — the
  * contract is a CURRENT-setpoint line, not a target series).
  *
- * Theming (D-06): implements [ThemeableView]. The [GraphViewHost] PUSHES the active tokens via
- * [applyTokens], which recolors each trace from the contrast-ranked data [pool][ThemeTokens.pool] —
- * trace `i` = `pool[i % pool.size]` (15-07, D-13/D-14; retired the old heat/accent/violet identities)
+ * Theming (D-05/D-06): implements [ThemeableView]. The [GraphViewHost] PUSHES the active tokens via
+ * [applyTokens], which recolors each trace from the accent-led N-series rule
+ * [seriesColor][ThemeTokens.seriesColor] — trace `i` = `seriesColor(i)`, so trace 0 (nozzle) is ACCENT
+ * in every mode, trace 1 = pool[0], trace 2 = pool[1] (supersedes the Phase-15 `pool[i % size]` binding)
  * — then `invalidate()`s, so a dark/light/custom flip recolors all traces with NO view recreation.
  * No raw hex literal lives here (THEME-01).
  *
@@ -176,23 +178,25 @@ class GraphView(context: Context) : View(context), ThemeableView {
         }
 
     /**
-     * Push the active tokens (D-06): recolor each pre-allocated trace paint from the contrast-ranked
-     * data [pool][ThemeTokens.pool] and repaint. No raw color literal — trace `i` reads
-     * `pool[i % pool.size]` (D-13/D-14 wrap, so an index never exceeds the pool), giving each sensor a
-     * STABLE color by canonical order (same sensor = same color everywhere; this index MUST match the
-     * Print-Status / Temperature heater-readout index). The fill takes the PRIMARY trace's color
-     * (`pool[0]`) at low alpha. (15-07: retired the old heat/accent/violet trace identities.)
+     * Push the active tokens (D-05/D-06): recolor each pre-allocated trace paint from the accent-led
+     * N-series rule [seriesColor][ThemeTokens.seriesColor] and repaint. No raw color literal — trace `i`
+     * reads `t.seriesColor(i)`, so trace 0 (the primary/nozzle channel) is ACCENT in every palette mode,
+     * trace 1 = pool[0] (bed), trace 2 = pool[1] (chamber), wrapping infinitely past the pool (D-09).
+     * This gives each sensor a STABLE color by canonical order (same sensor = same color everywhere; this
+     * index MUST match the Print-Status nozzle readout and the Temperature legend trace index). The fill
+     * takes the PRIMARY trace's color (`seriesColor(0)` = accent) at low alpha.
+     *
+     * D-06 supersession: this replaces the Phase-15 `pool[i % size]` trace binding (and its `pool[0]`
+     * fill) — the lead trace is now accent, not pool[0], so it stays put across a mode switch and shares
+     * one hue with both the Print-Status nozzle readout and the Temperature legend trace-0 (supersedes
+     * Phase-15 D-2/D-13). `seriesColor` carries its own empty-pool guard (falls back to accent).
      */
     override fun applyTokens(t: ThemeTokens) {
-        // CR-02: guard an empty pool — `i % pool.size` (and the bare `pool[0]` below) divide-by-zero /
-        // index-crash on a zero-length pool. The baked fallback always has slots, but a manually-built
-        // ThemeTokens could be empty; fall back to accent rather than crash the render surface.
-        val pool = if (t.pool.isNotEmpty()) t.pool else listOf(t.accent)
         for (i in 0 until MAX_TRACES) {
-            linePaints[i].color = pool[i % pool.size].toArgb()
+            linePaints[i].color = t.seriesColor(i).toArgb()
         }
-        // Translucent fill under the primary trace — pool[0]'s hue at a low alpha (cheap single fill, Pitfall 4).
-        fillPaint.color = pool[0].toArgb()
+        // Translucent fill under the primary trace — seriesColor(0) (accent) at a low alpha (cheap single fill, Pitfall 4).
+        fillPaint.color = t.seriesColor(0).toArgb()
         fillPaint.alpha = FILL_ALPHA
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
         labelPaint.textSize = fsSp(LABEL_BASE_SP, t.fs) * density // match the --fs-scaled button text size
