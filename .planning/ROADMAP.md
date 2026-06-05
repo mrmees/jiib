@@ -65,8 +65,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 13: Optimization, Network Efficiency & End-to-End Reliability** — **⏩ PROMOTED 2026-06-03: executes NEXT, immediately after Phase 9 (before Phases 10–12).** Phase 9 UAT surfaced a core-loop reliability bug (the `SAVE_CONFIG` re-handshake freezes the live feed until app restart — `05-10` G2 fix not holding on the E3); owner pulled this phase forward to standardize the connection/data models and fix the session-layer reliability class before stacking three more feature phases on it. Phase number unchanged (stable references); only execution order moved. — Now that EVERY screen exists, the driven backend pass: a request-cadence audit (one-shot vs subscribe per object, coalesce/throttle to display cadence, no per-screen polling outside the central single-subscribe handshake) so the app stops spamming the wireless LAN, plus end-to-end reliability hardening. A refactor/quality phase, not a new-screen phase (all 5 plans complete + on-device UAT PASSED 2026-06-03 — awaiting phase verification) (completed 2026-06-04)
 - [x] **Phase 14: Multi-Printer Switching** - Managed printer profiles (name + host/port/key, DataStore-persisted) with a clean service spine rebind on switch, so the E5 Plus and E3 Pro are both first-class — foundational, so later new per-printer surfaces are built multi-printer-aware (completed 2026-06-05)
 - [ ] **Phase 15: Theme System & Settings Redesign** - Establish the full semantic-token theme system (dark/light/user-custom + S/M/L) as the visual foundation and rebuild Settings to host it (merges the former Settings-Redesign + Final-Conformance phases); pulled to the front because the parallel theme work needs the new Settings UI to test against; also conformance-sweeps existing surfaces
-- [ ] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives
-- [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - Wire the stubbed Tune button into a real mid-print live-adjust surface: Z babystep, speed (M220), flow (M221), fan, and pressure advance where present — capability-gated, keyboard-free
+- [ ] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune)
+- [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [ ] **Phase 18: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 19: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
 - [ ] **Phase 20: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
@@ -616,7 +616,7 @@ Plans:
 
 ### Phase 16: Home / Print-Status Redesign
 
-**Goal**: Rework the home / Print-Status surface into its definitive form as the visual FOUNDATION for the remaining feature phases — built right after the theme system + Settings (Phase 15) so the later features (fine-tune, outputs, system info, webcam) slot into the final design instead of forcing a later redesign (the "avoid future rework" sequencing). The original home was built early against `docs/ui_design/`; rework the information hierarchy, quick-actions, and at-a-glance layout into the definitive home, leaving forward entry points (greyed/capability-gated tiles, the established pattern) for features built in Phases 17–20 — without regressing the proven Views-based render/throttle primitives or the core monitor loop.
+**Goal**: Rework the home / Print-Status surface into its definitive form as the visual FOUNDATION for the remaining feature phases — built right after the theme system + Settings (Phase 15) so the later features (fine-tune, outputs, system info, webcam) slot into the final design instead of forcing a later redesign (the "avoid future rework" sequencing). The original home was built early against `docs/ui_design/`; rework the information hierarchy, quick-actions, and at-a-glance layout into the definitive home, leaving forward entry points (greyed/capability-gated tiles, the established pattern) for features built in Phases 17–20 — without regressing the proven Views-based render/throttle primitives or the core monitor loop. **Includes the Z-babystep control (moved from Fine-Tune, 17-CONTEXT):** a conditional live-Z-offset control surfaced on Print-Status that auto-appears only during the early first-layer window (~first 10 layers) and hides after — `SET_GCODE_OFFSET Z_ADJUST=±n MOVE=1` ↔ `gcode_move.homing_origin[2]`, incremental 0.01/0.05 steps, "nozzle closer/away" labels, live applied-offset readout, session-only (saving to config stays a Calibration action).
 **Depends on**: Phase 15
 **Requirements**: *(refines SHELL-* / JOB-* — UX rework, no new functional REQ-IDs; finer set at discuss)*
 **Success Criteria** (what must be TRUE):
@@ -625,6 +625,7 @@ Plans:
   2. Portrait + landscape both honored via the Focus/Field/Gutter grammar; sacred aspect ratios + ratio-only sizing preserved
   3. The high-churn render surfaces (temp sparkline/graph, status) keep their measured Adreno-320 performance — no regression vs the current home
   4. Behavior-preserving for the core monitor loop, verified on-device
+  5. Z-babystep conditional control: appears on Print-Status only during the early first-layer window (~first 10 layers), nudges live Z offset (closer/away) confirmed by the `homing_origin[2]` flip, and is session-only; proven on a real first layer on the Ender 5 Plus
 
 **Plans**: TBD
 **UI hint**: yes
@@ -632,19 +633,19 @@ Plans:
 
 ### Phase 17: Fine-Tune / Live-Adjust Panel
 
-**Goal**: Wire the currently-stubbed "Tune" button into a real mid-print live-adjustment surface — the things a user reaches for while a print runs without touching the browser: Z babystepping (live Z offset), speed factor (M220), extrusion/flow factor (M221), fan speed, and pressure advance where present. Capability-gated by the Phase-6 matrix; each control dispatches through the shared command primitive, reflects the resulting `gcode_move`/`fan`/`print_stats` state flip, and uses the keyboard-free scrubber/stepper primitives from Phase 3. Built into the redesigned home/status surface from Phase 16.
+**Goal**: Wire the currently-stubbed "Tune" button into a real live-adjustment surface — the things a user reaches for to rescue/tune a print without touching the browser — organized by **failure-mode** into two categories (the user's mental model, 17-CONTEXT D-01): **Motion** (speed factor M220; acceleration M204/SET_VELOCITY_LIMIT; max velocity; square-corner-velocity) and **Extrusion** (flow/extrusion factor M221; pressure advance SET_PRESSURE_ADVANCE; firmware retraction SET_RETRACTION where `[firmware_retraction]` exists; part-cooling fan M106). Capability-gated by the Phase-6 matrix; each control is a keyboard-free scrubber (Phase-3 primitive) that dispatches through the shared command primitive and reflects the resulting `gcode_move`/`toolhead`/`extruder`/`fan` state flip (the Move/Extrude model, no ConfirmGuard). Always-available (not print-gated); per-control reset (speed/flow→100%, limits+PA→config default). Temps/layer/progress are clickable readouts (temps jump to the Temp panel); Z babystep and Pause/Resume live elsewhere. The exact on-screen layout + entry affordance ride on the Phase-15 theme system + Phase-16 home redesign.
 **Depends on**: Phase 16
-**Requirements**: *(new TUNE-* family — defined at phase discuss)*
+**Requirements**: *(new TUNE-* family — defined at phase planning)*
 **Success Criteria** (what must be TRUE):
 
-  1. From an active print, the user can live-adjust Z offset (babystep), speed factor, flow/extrusion factor, and fan speed — each via the keyboard-free scrubber/stepper — with the change confirmed by the resulting printer-object state flip, not a bare ack
-  2. Pressure advance (and any other capability-gated tunables) appear only when the printer exposes them; absent tunables degrade gracefully
-  3. Controls are safe and bounded (clamped ranges, no raw keyboard) and reachable from the Print Status Tune entry point
-  4. Proven on a real in-progress print on the Ender 5 Plus: babystep Z and change speed/flow mid-print and observe the effect
+  1. The user can live-adjust the Motion set (speed factor; and the motion limits accel/max-velocity/SCV) and the Extrusion set (flow factor; pressure advance; part-cooling fan) — each via the keyboard-free scrubber — with the change confirmed by the resulting printer-object state flip, not a bare ack
+  2. Every control is capability-gated: it appears only when the active printer exposes its object (e.g. firmware retraction only with `[firmware_retraction]`, fan only with a part-cooling `fan`); absent tunables are hidden, not shown disabled
+  3. Controls are safe and bounded (clamped ranges — flow 50–150%, speed 25–200%, etc.; no raw keyboard), always-available, with per-control reset, reachable from the Print-Status Tune entry point
+  4. Proven on a real in-progress print on the Ender 5 Plus: change speed/flow (and a motion-limit + pressure advance) mid-print and observe the effect
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — SET_GCODE_OFFSET / babystep / M220 / M221 / SET_PRESSURE_ADVANCE verified against Klipper docs; reuses the scrubber + command primitives.
+**Research note**: STANDARD — M220 / M221 / M204 / SET_VELOCITY_LIMIT / SET_PRESSURE_ADVANCE / SET_RETRACTION / SET_FAN_SPEED verified against Klipper docs; reuses the scrubber + command primitives; speed_factor/extrude_factor already in PrinterState, the rest (pressure_advance, fan.speed, toolhead limits, firmware_retraction) are new reducer fields. See 17-CONTEXT.md.
 
 ### Phase 18: Output Controls — Fans, Lights & Generic Pins
 
@@ -769,6 +770,13 @@ here and formalized via `/gsd-new-milestone` when v1 ships — not planned in de
   Scope (panel-in-Dinghy vs Dinghy-state-to-HA vs both), auth, and discovery to be decided at v2 kickoff.
   *(Matthew is deep in Home Assistant — see the home-automation context in CLAUDE.md.)*
 
+- **Mid-print object exclusion (`EXCLUDE_OBJECT` / cancel current object)** *(wishlist, deferred from Phase 17
+  discuss 2026-06-05)* — cancel one failed part on a multi-object plate and let the rest finish. Destructive;
+  needs a distinct UI (object picker / plate map + confirm guard) and depends on `[exclude_object]` plus the
+  slicer emitting labeled objects (`exclude_object.objects/current_object/excluded_objects`). It's a "print
+  action," not a tune — so it sits outside the Fine-Tune scrubber model and was parked here rather than v1.
+
 *(WebRTC camera, the fine-tune panel, and multi-printer switching were PROMOTED into the v1 roadmap on
-2026-06-04 — Phases 17, 15, and 14 respectively — so they are no longer v2 backlog. Remaining v2 phases —
-e.g. the remaining v2 reqs in REQUIREMENTS.md — to be added as the v2 milestone is scoped.)*
+2026-06-04 — now Phases 20, 17, and 14 respectively after the 2026-06-05 reorder — so they are no longer v2
+backlog. Remaining v2 phases — e.g. the remaining v2 reqs in REQUIREMENTS.md — to be added as the v2
+milestone is scoped.)*
