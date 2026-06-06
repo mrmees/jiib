@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T17:22:37.365Z"
+last_updated: "2026-06-06T17:34:55.428Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 18
   total_plans: 128
-  completed_plans: 126
+  completed_plans: 127
   percent: 75
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 17 (fine-tune-live-adjust-panel) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
   → **Plan 16-07 (Wave 4: Documentation Merge — four-state Print-Status UI LAW) EXECUTED + COMPLETE 2026-06-06** — folded the as-built four-state model into the UI LAW so docs match the as-built home + lock the foundation for Phases 17–20. Commits `d62b3dd` (docs — README Print Status section replaced with the four-state `PrintStatusMode` model: classifier [`standby→Standby` even with a stale filename; klippy shutdown/error is NOT terminal] + each state's Focus/Field/Gutter layout [Standby launcher+glance; Printing cockpit+stats+shortcut/babystep row; Paused dimmed; Terminal hero+stats-frame+≤3 error lines]; accent-temperature resolution noted — nozzle/bed = `directional.temperature` = accent, the amber `03-print-status.png` SUPERSEDED) + `a4bb616` (docs — LAYOUT.md gains the **interactive-grid flexible-tile rule as HARD LAW**, scoped EXACTLY to interaction-surface grids ONLY [never stat grids/text lists/graphs/info frames]; named the P16 flexible tiles Standby launcher→Drawer + active shortcut grid→Tune; **babystep horizontal-3-cell-row recorded as a documented C3 exception**). **THEMING.md deliberately untouched** (`git diff --quiet` verified — no color/shape-status rule changes this phase). **Task 3 (owner-side manual artboard gate) RESOLVED = DEFERRED** (resume signal "artboards deferred"): the Print-Status hi-fi artboards in `docs/ui_design/images/` (`03-print-status.png` + the absent per-state Standby/Paused/Terminal boards) are DEFERRED to a later visual/conformance design pass — hand-authored hi-fi mockups rendered from `reference/hifi.css`, regenerable anytime. The README four-state section + LAYOUT flexible-tile law are now THE WRITTEN AUTHORITY for the four-state model + accent-temperature identity until the boards are regenerated; **`03-print-status.png` is STALE (old single-state amber cockpit) and is SUPERSEDED by the prose**. NO PNG under `docs/ui_design/images/` was modified — explicit deferral, not silent omission (satisfies the plan must_have that the artboard status be explicitly resolved). The runtime Standby brand app-icon is a SEPARATE already-built element, NOT affected. 0 deviations. SUMMARY `16-07-SUMMARY.md`. SC-1 closed. **Phase 16 execution: 7/8 plans complete (only 16-08 = on-device SC gates remains); do NOT mark the phase complete here.**
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
@@ -201,6 +201,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 17 P04 | 4 | 1 tasks | 11 files |
 | Phase 17 P17-02 | 12min | 2 tasks | 6 files |
 | Phase 17 P03 | ~6 min | 2 tasks | 6 files |
+| Phase 17 P05 | 9 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -394,7 +395,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T17:19:48.887Z
+Last session: 2026-06-06T17:34:50.481Z
 Stopped at: Phase 17 context revised (staging fold-in)
 Resume file: 
 None

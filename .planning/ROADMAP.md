@@ -774,7 +774,7 @@ Plans:
 
 **Wave 2** *(blocked on 17-02/03/04)*
 
-- [ ] 17-05-PLAN.md — UI: FineTuneHolder/Vm (display-scaling/gates/baselines/busy) + shared value tile (tap-inert, long-press-reset, accent ±) + Hub/Motion/Extrusion/FwRetraction screens (capability-gated, whole-group busy-lock, state-flip) (TUNE-02/03/04/05/06)
+- [x] 17-05-PLAN.md — UI: FineTuneHolder/Vm (display-scaling/gates/baselines/busy) + shared value tile (tap-inert, long-press-reset, accent ±) + Hub/Motion/Extrusion/FwRetraction screens (capability-gated, whole-group busy-lock, state-flip) (TUNE-02/03/04/05/06)
 
 **Wave 3** *(blocked on 17-05; on-device gate)*
 
@@ -885,7 +885,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
-| 17. Fine-Tune / Live-Adjust Panel | 4/6 | In Progress|  |
+| 17. Fine-Tune / Live-Adjust Panel | 5/6 | In Progress|  |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |
 | 20. WebRTC Camera Streaming | 0/TBD | Not started | - |
