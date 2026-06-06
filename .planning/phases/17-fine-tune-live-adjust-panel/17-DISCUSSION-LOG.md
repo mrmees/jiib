@@ -124,8 +124,8 @@ icons/increments/reset, and a firmware-retraction mini-screen — reconciled aga
 | Per-icon drawables (established pattern) | Export Material Symbols to res/drawable; reuse add/remove for ± | ✓ |
 | Text/label-only | No tile icons | |
 
-**User's choice:** Per-icon drawables — and (follow-up) **`img/material-icon-bucket.json` is the canonical/primary icon source**; missing icons get added to the bucket by the owner, never invented. Generic ± = add Material Symbols `add`/`remove` to the bucket.
-**Notes:** Verified the 2026-06-06 bucket export is MISSING max-velocity/accel/cruise-ratio/SCV/PA/smooth-time/**fan**/plain-±. Tracked as todo `2026-06-06-phase-17-fine-tune-icons-bucket.md` (owner asset task before execute). `img/spool.svg` recorded as the project-wide filament-roll graphic (D-17b).
+**User's choice:** Per-icon drawables — and (follow-up) **`img/material-icon-bucket.json` is the canonical icon registry going forward**; for any NEW need, ask the owner rather than inventing.
+**Notes:** CORRECTION — the owner had ALREADY chosen a per-control glyph for every Fine-Tune control in the staging note §Icons (Speed→`speed`, max-vel→`arrow_shape_up_stack_2`, accel→`sprint`, cruise→`directions_boat`, SCV→`rounded_corner`, flow→`output_circle`, PA→`text_select_move_forward`, smooth→`avg_time`, fan→`mode_fan`, FW-retract→`input_circle`). Claude initially mis-flagged these as bucket "gaps"; they are authoritative choices that just need folding into the bucket. Generic ± = `add`/`remove`. Open: fold chosen glyphs into bucket; verify two unusual ligatures (`arrow_shape_up_stack_2`, `text_select_move_forward`); reconcile bucket's `sprint` note (bucket=speed, staging=accel). Tracked as todo `2026-06-06-phase-17-fine-tune-icons-bucket.md`. `img/spool.svg` recorded as the project-wide filament-roll graphic (D-17b).
 
 ---
 

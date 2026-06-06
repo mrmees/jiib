@@ -103,24 +103,27 @@ shared-component / Move-screen rework (→ deferred todos, see below).
     where the baseline lives — see Claude's Discretion).
 
 ### Icons
-- **D-17:** **`img/material-icon-bucket.json` is the canonical / primary icon source** (owner-maintained; 73
-  bookmarked *Material Symbols Outlined* with per-icon usage notes + Google Fonts export axes). Render via the
-  established **per-icon vector-drawable pattern** (`res/drawable/*.xml` + `painterResource`) — the app uses
-  individual vector drawables, **NOT the Material Symbols font**, so no font dependency and no Adreno-320
-  concern. **If a needed icon isn't in the bucket, STOP and ask the owner to add it — do NOT invent a
-  ligature** (the staging note's earlier guesses like `arrow_shape_up_stack_2`/`directions_boat`/
-  `text_select_move_forward` are SUPERSEDED by the bucket).
-  - **Bucket-confirmed for this phase:** Speed % → `sprint` ("generic speed fields"); Flow % → `output_circle`
-    ("extrude icon"); Firmware-retraction entry → `input_circle` ("retract icon"); Back → `keyboard_return`.
-  - **Generic ± nudge:** add Material Symbols **`add`** (+) and **`remove`** (−) to the bucket as the canonical
-    generic increment/decrement glyphs (every tile shares them). *(Plain +/− chosen over up/down arrows — +
-    means more, − means less reads correctly for flow/PA/etc.)*
-  - **Gaps the owner must add to the bucket before/at plan time** (verified absent in the 2026-06-06 export —
-    planner must not proceed on these without an owner-added entry): max velocity, max acceleration, minimum
-    cruise ratio, square-corner velocity, pressure advance, smooth time, **part-cooling fan** (no fan icon in
-    the bucket at all), and the FW-retraction sub-controls (retract length/speed, unretract extra length/speed
-    — may reuse `input_circle`/`output_circle`/`sprint` if the owner prefers). *(Owner asset task — track and
-    fill before 17 execute.)*
+- **D-17:** **Per-control glyphs are CHOSEN in the staging note** (`phase-17-fine-tune-staging.md` §Icons) —
+  these are authoritative, NOT gaps to re-ask. Render via the established **per-icon vector-drawable pattern**
+  (`res/drawable/*.xml` + `painterResource`); the app uses individual vector drawables, **NOT the Material
+  Symbols font**, so no font dependency / no Adreno-320 concern. **`img/material-icon-bucket.json` is the
+  canonical icon registry going forward** — fold these chosen glyphs into it; for any NEW need not already
+  chosen, ask the owner rather than inventing.
+  - **Motion:** Speed % → `speed` · Max velocity → `arrow_shape_up_stack_2` · Max acceleration → `sprint` ·
+    Minimum cruise ratio → `directions_boat` · Square-corner velocity → `rounded_corner`.
+  - **Extrusion:** Flow % → `output_circle` · Pressure advance → `text_select_move_forward` ·
+    Smooth time → `avg_time` · Part-cooling fan → `mode_fan` · Firmware-retraction entry → `input_circle`.
+  - **Generic ± nudge:** `add` (+) / `remove` (−) — every tile shares them (staging said "generic add/subtract
+    icons" without naming; plain +/− chosen over up/down arrows). · **Back** → `keyboard_return`.
+  - **FW-retraction sub-controls** (retract length/speed, unretract extra length/speed): not separately named
+    in staging — planner may reuse `input_circle`/`output_circle`/`sprint`, owner confirms if they want
+    distinct glyphs.
+  - **Planner verification (per staging's own instruction):** confirm the two unusual ligatures
+    **`arrow_shape_up_stack_2`** and **`text_select_move_forward`** are real Material Symbols Outlined names;
+    fall back to a near equivalent only if a name doesn't exist.
+  - **Bucket note conflict to reconcile:** the bucket currently notes `sprint` = "generic speed fields," but
+    staging uses `speed` for Speed % and `sprint` for Max acceleration. Staging per-field assignment wins;
+    the bucket's `sprint` note should be tidied.
 - **D-17b:** **`img/spool.svg`** (black spool + red filament path) is the **canonical filament-roll graphic
   going forward**, tinted to each spool's color (the committed red = an example color). Primarily a Spoolman
   surface concern; recorded here so it isn't lost. Not a Fine-Tune tile, but it's the project-wide spool glyph.
