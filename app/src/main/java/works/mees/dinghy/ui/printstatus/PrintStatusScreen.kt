@@ -923,34 +923,37 @@ private fun LauncherGrid(
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2 columns (portrait-stable, touch-friendly ≥64px). The Drawer tile (always last) GROWS to fill any
-    // leftover cell on its row — the flexible tile.
+    // 2 columns (portrait-stable, touch-friendly ≥64px). The Drawer tile (always last) participates in
+    // the row flow and ABSORBS any leftover cell: an ODD nonDrawer count → Drawer fills the single
+    // leftover slot next to the last item (grid stays tight, no gap); an EVEN count → Drawer lands alone
+    // on a fresh final row and GROWS to full width (the flexible tile, interactive-grid rule).
     val columns = 2
     val nonDrawer = dests.filter { it != LauncherDest.Drawer }
-    val rows = nonDrawer.chunked(columns)
+    val ordered = nonDrawer + LauncherDest.Drawer
+    val rows = ordered.chunked(columns)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { rowItems ->
+            // The Drawer alone on the final row (even nonDrawer count) → grow to full width.
+            val drawerLone = rowItems.size == 1 && rowItems.first() == LauncherDest.Drawer
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rowItems.forEach { d ->
-                    LauncherTile(
-                        dest = d,
-                        onClick = { launcherDestTarget(d)?.let(onNavigate) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
-                }
-                // A leftover odd cell on this row — the Drawer (flexible) absorbs it below; pad here only
-                // if this is NOT the last row (the last row hosts the Drawer tile).
-                if (rowItems.size < columns) {
-                    Box(Modifier.weight((columns - rowItems.size).toFloat()).fillMaxHeight())
+                    val cellWeight = if (drawerLone) columns.toFloat() else 1f
+                    if (d == LauncherDest.Drawer) {
+                        LauncherTile(
+                            dest = LauncherDest.Drawer,
+                            onClick = onOpenDrawer,
+                            modifier = Modifier.weight(cellWeight).fillMaxHeight(),
+                        )
+                    } else {
+                        LauncherTile(
+                            dest = d,
+                            onClick = { launcherDestTarget(d)?.let(onNavigate) },
+                            modifier = Modifier.weight(cellWeight).fillMaxHeight(),
+                        )
+                    }
                 }
             }
         }
-        // The always-present flexible Drawer tile — a full-width growing row (interactive-grid rule).
-        LauncherTile(
-            dest = LauncherDest.Drawer,
-            onClick = onOpenDrawer,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
     }
 }
 
