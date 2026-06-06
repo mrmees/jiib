@@ -36,6 +36,15 @@ data class PrinterState(
     /** Per-heater readings keyed by object name (`heater_bed`, `extruder`, `extruder1`, ...). */
     val heaters: Map<String, HeaterState> = emptyMap(),
 
+    /**
+     * Retained `temperature_sensor <name>` → temperature (°C) map, for the Standby glance metric
+     * (Phase 16). Accumulated across partial diffs — update-on-present, RETAIN-on-absent: a
+     * `notify_status_update` that omits a sensor object keeps that sensor's prior value rather than
+     * dropping it. The preferred glance sensor is derived from THIS map by a pure stable selector
+     * (`selectGlanceSensor`), never from the raw current diff — that is the partial-diff-flip fix.
+     */
+    val temperatureSensors: Map<String, Double> = emptyMap(),
+
     /** Toolhead position `[x, y, z, e]` (mm); null until first snapshot. */
     val toolheadPosition: List<Double>? = null,
 

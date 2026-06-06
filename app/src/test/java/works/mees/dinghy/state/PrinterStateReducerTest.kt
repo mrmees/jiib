@@ -8,7 +8,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.GoldenFixtures
 import works.mees.dinghy.net.MoonrakerJson
@@ -198,6 +197,53 @@ class PrinterStateReducerTest {
         assertNotNull(state)
         // A short (<3) homing_origin array -> getOrNull(2) == null; no index-out-of-bounds crash.
         assertNull("short homing_origin yields null gcodeZOffset", state.gcodeZOffset)
+    }
+
+    /**
+     * Phase 16 Standby glance: temperature_sensor readings accumulate into a RETAINED map. The
+     * partial-diff fix — a later diff that OMITS a sensor object must KEEP that sensor's prior value,
+     * not drop it (the map is never rebuilt from the current diff alone).
+     */
+    @Test
+    fun temperatureSensorRetainsPriorValueWhenAbsentFromLaterDiff() {
+        val first = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "temperature_sensor mcu": { "temperature": 45.0 } }""",
+            ).jsonObject,
+        )
+        assertEquals(45.0, first.temperatureSensors["temperature_sensor mcu"]!!, 0.0001)
+
+        // A subsequent diff that omits the sensor entirely must NOT drop its prior value.
+        val second = reduceDiff(
+            first,
+            MoonrakerJson.parseToJsonElement(
+                """{ "extruder": { "temperature": 200.0 } }""",
+            ).jsonObject,
+        )
+        assertEquals(
+            "absent sensor retains prior value",
+            45.0,
+            second.temperatureSensors["temperature_sensor mcu"]!!,
+            0.0001,
+        )
+    }
+
+    @Test
+    fun temperatureSensorUpdatesOnPresent() {
+        val first = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "temperature_sensor mcu": { "temperature": 45.0 } }""",
+            ).jsonObject,
+        )
+        val second = reduceDiff(
+            first,
+            MoonrakerJson.parseToJsonElement(
+                """{ "temperature_sensor mcu": { "temperature": 46.5 } }""",
+            ).jsonObject,
+        )
+        assertEquals(46.5, second.temperatureSensors["temperature_sensor mcu"]!!, 0.0001)
     }
 
     @Test

@@ -91,6 +91,8 @@ fun deriveSubscribeSet(objects: List<String>): Set<String> {
                 name.startsWith("heater_fan ") ||
                 name.startsWith("controller_fan ") -> result += name
             name.startsWith("heater_generic ") -> result += name
+            // Phase 16: temperature_sensor objects (chamber/mcu/host probes) for the Standby glance metric.
+            name.startsWith("temperature_sensor ") -> result += name
         }
     }
 

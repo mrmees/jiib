@@ -209,6 +209,20 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         s = s.copy(heaters = s.heaters + heaterUpdates)
     }
 
+    // temperature_sensor objects (Phase 16 Standby glance). SEPARATE from the heater loop —
+    // isHeaterObject() excludes temperature_sensor. UPDATE-ON-PRESENT merge onto the retained map:
+    // only sensors PRESENT in this diff with a numeric `temperature` are touched, so an absent
+    // sensor RETAINS its prior value (never rebuilt from the current diff alone — the flip fix).
+    val sensorUpdates = mutableMapOf<String, Double>()
+    for ((key, value) in status) {
+        if (!key.startsWith("temperature_sensor ")) continue
+        val obj = (value as? JsonObject) ?: continue
+        obj.doubleOrNullAt("temperature")?.let { sensorUpdates[key] = it }
+    }
+    if (sensorUpdates.isNotEmpty()) {
+        s = s.copy(temperatureSensors = s.temperatureSensors + sensorUpdates)
+    }
+
     return s
 }
 

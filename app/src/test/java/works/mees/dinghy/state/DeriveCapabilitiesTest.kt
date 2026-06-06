@@ -149,6 +149,16 @@ class DeriveCapabilitiesTest {
         assertFalse("probe omitted (absent)", "probe" in set)
     }
 
+    // --- Phase-16: temperature_sensor objects join the dynamic subscribe set (Standby glance) ---
+
+    @Test
+    fun subscribeSetIncludesTemperatureSensorObjects() {
+        val objects = minimal + listOf("temperature_sensor mcu", "temperature_sensor chamber")
+        val set = deriveSubscribeSet(objects)
+        assertTrue("temperature_sensor mcu subscribed", "temperature_sensor mcu" in set)
+        assertTrue("temperature_sensor chamber subscribed", "temperature_sensor chamber" in set)
+    }
+
     @Test
     fun liveComponentsAreRetainedAndHasComponentWorks() {
         val caps = deriveCapabilities(
