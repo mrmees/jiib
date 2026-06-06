@@ -110,20 +110,21 @@ to the Phase-5 baseline (48.64 ms), **~4 ms higher** for the richer four-state f
 
 ### SC-4 — Core monitor loop preserved (flox + live printer)
 
-- [x] **RESULT: PASS (core)** · one sub-item **DEFERRED** (Terminal end-state visual) — owner-verified 2026-06-06.
+- [x] **RESULT: PASS (full)** — including the Terminal end-state, now live-verified 2026-06-06.
 
 **Result (core — PASS):** On flox + the live E5 Plus: **connect → temps / progress / Z-offset / layer all
 update live**; **Pause → Resume round-trips correctly**; the four states **classify correctly off real
 printer state** (Standby on connect, Printing, Paused). The connect → monitor → drive-a-print loop is
 **behavior-preserving** — the project's core value holds with no regression vs the prior home.
 
-**DEFERRED sub-item (owner choice, NOT a failure):** the **Terminal end-state VISUAL** (clean hero +
-Dismiss/Reprint passively; Terminal(Error) ≤3 error lines) was **NOT eyeballed on-device** because it
-requires ending a print, and the owner declined to burn the running print (mirrors the Phase-14
-mid-print-switch deferral). **Mitigation:** the Terminal MODE logic IS covered by host unit tests
-(`PrintStatusUiModelTest` — Terminal-mode controls / launcher / error-flag). **ACTION:** eyeball
-opportunistically when a print next ends naturally. **This does NOT block phase completion** — tracked as an
-open/`human_needed` item below.
+**Terminal end-state (PASS — owner cancelled a live print, 2026-06-06):** Home correctly classified to
+**Terminal (Cancelled)** with the hero + **Dismiss / Reprint** rendering passively. Also confirmed the
+**Standby-stays-Standby** behavior live: an **emergency stop** produced a Klippy shutdown that the
+classifier correctly kept as **Standby** (NOT a fake Terminal on a stale filename) — the headline P16
+behavior change, proven on hardware. Two Terminal-state polish gaps were caught + fixed live (commit
+`f61d5e5`): the focus showed the app icon instead of the print's gcode thumbnail (metadata was nulled on
+print-end → now retained through terminal states), and the field reused the live cockpit grid (→ replaced
+with a finished-print stats list: File / Print time / Filament / Layers, roomier padding, marquee filename).
 
 **Steps:**
 1. On flox + a live printer, run the core loop: **connect → monitor** live progress/temps/Z on the Status
@@ -151,15 +152,16 @@ already committed** — recorded here for traceability (do NOT re-commit):
 | 4 | Paused pause overlay fixed-sp / cropped | Ring-relative Paused pause overlay (no crop) | `cc2c6d4` |
 | 5 | Standby brand image didn't fill focus; launcher glyphs generic | Benchy crop-FILLS focus both orientations + launcher glyph swaps (Files=print_connect, Extrude=output_circle, Drawer=more_horiz) | `6815424` |
 | 6 | Paused status label clipped + dimmed; ring shaved by dim layer; pause glyph capped | Status label rendered outside the alpha dim layer (full + readable); ProgressRing arcs inset by half-stroke; pause-circle glyph un-boxed | `e7b0126` |
+| 7 | Terminal focus showed app icon, not the print's thumbnail | PrintMetadataHolder retains metadata through terminal states (clears only on Standby) + retention unit test | `f61d5e5` |
+| 8 | Terminal field reused the live cockpit grid | TerminalStatsList finished-print summary (File/Print time/Filament/Layers) + padding + marquee filename | `f61d5e5` |
 
 These six commits are production code already in git from the live UAT loop — they are listed for the
 audit trail, not staged again by this finalization.
 
 ## Phase-completion bar
 
-- [x] **SC-5 PASS** · [x] **SC-3 PASS** · [x] **SC-4 PASS (core)** *(Terminal end-state VISUAL deferred — `human_needed`, non-blocking)*
+- [x] **SC-5 PASS** · [x] **SC-3 PASS** · [x] **SC-4 PASS (full)** *(Terminal end-state live-verified on a real cancel, 2026-06-06)*
 - All binding gates PASS → `16-08-SUMMARY.md` written, STATE advanced, plan complete.
-- **No FAIL** → no gap-closure spawned. The one deferred Terminal-visual eyeball is tracked as an open
-  item to close opportunistically when a print next ends naturally; it does **NOT** block phase completion
-  (mode logic is host-unit-tested via `PrintStatusUiModelTest`).
+- **No FAIL** → no gap-closure spawned. The previously-deferred Terminal end-state visual was
+  subsequently eyeballed on a live cancel and PASSED (with two polish fixes folded in, commit `f61d5e5`).
 - Orchestrator owns phase verification + `phase.complete` after this plan returns.
