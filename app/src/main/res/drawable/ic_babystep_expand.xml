@@ -1,0 +1,34 @@
+<!--
+  Babystep EXPAND glyph (nozzle moves FARTHER from the bed). Silhouette: an upward chevron pair lifting
+  AWAY from a baseline (the bed) at the bottom — the "open gap larger / nozzle up" cue. DISTINCT from
+  ic_babystep_compress (which points DOWN toward the baseline) — icon-never-twice rule.
+
+  Geometry only — strokes drawn white and recolored at the call site via Compose Icon(tint =
+  t.accentLine) (THEME-01); NEVER a status/accent hex baked in. Same white-stroke-tinted-at-call-site
+  convention as ic_status_octagon.xml / nozzle.xml.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Baseline (the bed) at the bottom. -->
+    <path
+        android:pathData="M20,78L76,78"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <!-- Two stacked upward chevrons lifting away from the baseline. -->
+    <path
+        android:pathData="M30,42L48,24L66,42"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M30,64L48,46L66,64"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

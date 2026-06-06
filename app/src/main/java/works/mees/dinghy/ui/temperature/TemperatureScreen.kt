@@ -402,8 +402,10 @@ private fun iconFor(name: String): Int? = when {
  * The fixed material-preset selector (TEMP-03) — a full-screen scrim of keyboard-free preset tiles
  * ([PrinterCommands.MATERIAL_PRESETS]) plus a Cancel. Each tile dispatches `applyPreset(nozzle,bed)`.
  */
+// `internal` (not `private`) so the Print-Status Preheat OpenSelector fallback (16-06) reuses the SAME
+// keyboard-free preset chooser — one PresetSelector across both surfaces. Signature/behavior unchanged.
 @Composable
-private fun PresetSelector(
+internal fun PresetSelector(
     inFlight: Set<String>,
     onPreset: (PrinterCommands.Preset) -> Unit,
     onDismiss: () -> Unit,
