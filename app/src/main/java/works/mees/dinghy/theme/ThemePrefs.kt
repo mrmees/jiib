@@ -108,20 +108,18 @@ class ThemePrefs(
      * must be reachable in a release build via this RUNTIME flag, never the build type. Defaults FALSE so
      * a normal user never sees the dev widgets.
      *
-     * TEMP(15.2-02): plan 02's pre-About on-device walk needs the cyclers visible in the release APK
-     * BEFORE the durable About toggle (D-05) lands in 15.2-04 — for that plan ONLY, the default below is
-     * flipped to `true`, then REVERTED to `false` in 15.2-04 Task 1 once About is the durable control.
-     * The canonical end-state default is `false` (built here).
+     * The durable enable path is the **About** screen's "Developer" dev-enable toggle (D-05/D-08, wired in
+     * 15.2-04): turning it ON lights the cyclers, turning it OFF hides them AND clears any active override
+     * ([AppContainer.setDevCyclerEnabled], HIGH-5). The default is FALSE so the cyclers never ship
+     * on-by-default in release. (15.2-02 temporarily flipped this true for its pre-About on-device walk;
+     * that TEMP flip was REVERTED here in 15.2-04 Task 1 once About became the durable control, MEDIUM-3.)
      */
     val devEnableFlow: Flow<Boolean> =
         dataStore.data
             .catch { e ->
                 if (e is IOException) emit(emptyPreferences()) else throw e
             }
-            // TEMP(15.2-02): default true so the cyclers appear in the RELEASE APK for the pre-About
-            // on-device walk; REVERTED to false in 15.2-04 Task 1 (the About toggle from D-05 becomes the
-            // durable control). Canonical end-state default is FALSE.
-            .map { it[KEY_DEV_ENABLE] ?: true }
+            .map { it[KEY_DEV_ENABLE] ?: false }
 
     /** Persist the app-global dev-widget enable boolean. */
     suspend fun setDevEnable(on: Boolean) {

@@ -12,7 +12,7 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.ui.route.TopRoute
 import works.mees.dinghy.ui.route.derive
-import works.mees.dinghy.ui.screen.SettingsScreen
+import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.SplashScreen
 
 /**
@@ -99,12 +99,19 @@ fun RootController(container: AppContainer) {
     }
 
     when {
-        // First run (no config) OR an active escape → the ONE Settings destination, owned here. This
-        // BYPASSES the Splash dwell (a first-run/auth-edit escape must never be floored behind a splash).
+        // First run (no config) OR an active escape → the ONE connection-editing destination, owned here.
+        // After the 15.2 IA dissolve, CONNECTION editing lives on the Printers screen (15.2-03 D-02) — not
+        // the (now toggle-only) Settings screen — so the controlled escape lands there: a first-run user
+        // gets the Add-printer tile, an "Edit connection" escape gets the printer grid + per-tile editor.
+        // This BYPASSES the Splash dwell (a first-run/auth-edit escape must never be floored behind a
+        // splash). A successful add/save flips `hasConfig` (derive moves off Connect); switching/backing
+        // out clears the escape.
         rawRoute is TopRoute.Connect || settingsEscape -> {
-            SettingsScreen(
+            PrintersScreen(
                 container = container,
-                onConnectionSaved = { settingsEscape = false },
+                onAddPrinter = { },
+                onSwitched = { settingsEscape = false },
+                onBack = { settingsEscape = false },
             )
         }
 

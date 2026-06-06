@@ -601,7 +601,6 @@ fun AppShell(
             )
             Dest.Settings -> SettingsScreen(
                 container = container,
-                onConnectionSaved = { navigateTo(Dest.PrintStatus) },
             )
         }
 
