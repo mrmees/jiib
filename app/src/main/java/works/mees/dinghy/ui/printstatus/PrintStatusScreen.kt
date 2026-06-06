@@ -873,17 +873,18 @@ private fun StandbyFocus(
     BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
         val iconSize = minOf(maxWidth, maxHeight) * 0.9f
         Box(Modifier.size(iconSize), contentAlignment = Alignment.Center) {
-            // App-icon base (faint) — the future per-printer user image slots in here (staging note).
+            // App-icon base (faint backdrop) — the future per-printer user image slots in here. Enlarged
+            // to fill the focus (2026-06-06 UAT: "large and in charge"); stays faint under the glance list.
             Icon(
                 painter = painterResource(R.drawable.ic_launcher_foreground),
                 contentDescription = null,
                 tint = t.accent2,
-                modifier = Modifier.fillMaxSize(0.7f).alpha(0.5f).align(Alignment.Center),
+                modifier = Modifier.fillMaxSize(0.9f).alpha(0.45f).align(Alignment.Center),
             )
             // The centered glance list overlaid on the icon.
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 GlanceRow("nozzle-temp", "Nozzle", tempActive(nozzle), t.seriesColor(0))
                 GlanceRow("heat-bed", "Bed", tempActive(bed), t.seriesColor(1))
@@ -896,13 +897,13 @@ private fun StandbyFocus(
     }
 }
 
-/** One glance line: dim caption + GeistMono value (Body role). */
+/** One glance line: dim caption + GeistMono value (focus-tier — "large and in charge", 2026-06-06 UAT). */
 @Composable
 private fun GlanceRow(key: String, label: String, value: String, valueColor: Color) {
     val t = LocalTokens.current
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
-        Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(18f, t.fs).sp)
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(23f, t.fs).sp)
+        Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(34f, t.fs).sp)
     }
 }
 
