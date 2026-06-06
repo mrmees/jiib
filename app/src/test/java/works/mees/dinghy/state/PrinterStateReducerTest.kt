@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.GoldenFixtures
 import works.mees.dinghy.net.MoonrakerJson
@@ -573,6 +574,49 @@ class PrinterStateReducerTest {
             MoonrakerJson.parseToJsonElement("""{ "extruder": { "temperature": 205.0 } }""").jsonObject,
         )
         assertEquals("adaptive-7FA0AB1C50", afterHeater.bedMesh!!.profileName)
+    }
+
+    // --- Phase-17 Fine-Tune reducer additions (RED — implemented in 17-03) ------------------------
+    //
+    // [[dinghy-wave0-red-scaffold-compile]]: the new PrinterState fields (maxVelocity / maxAccel /
+    // minimumCruiseRatio / squareCornerVelocity / pressureAdvance / smoothTime / partFanSpeed /
+    // firmwareRetraction) and the FirmwareRetractionObject model do NOT exist yet — they land in 17-03.
+    // These stubs compile against ONLY existing symbols and carry the field+value target in fail().
+
+    @Test
+    fun reduces_toolhead_motion_limits() {
+        // Target (17-03): a synthetic `toolhead` diff with max_velocity / max_accel / minimum_cruise_ratio /
+        //   square_corner_velocity reduces into the four new state fields (RAW, no scaling in the reducer):
+        //   maxVelocity=300.0, maxAccel=3000.0, minimumCruiseRatio=0.5, squareCornerVelocity=5.0.
+        fail("RED — 17-03: toolhead diff -> maxVelocity=300.0, maxAccel=3000.0, minimumCruiseRatio=0.5, squareCornerVelocity=5.0")
+    }
+
+    @Test
+    fun reduces_extruder_pa_and_smoothtime() {
+        // Target (17-03): extruder.pressure_advance + extruder.smooth_time read from a SEPARATE extruder
+        //   walk (NOT the per-heater merge loop) -> pressureAdvance=0.045, smoothTime=0.04.
+        fail("RED — 17-03: extruder diff -> pressureAdvance=0.045, smoothTime=0.04 (separate extruder walk, not heater loop)")
+    }
+
+    @Test
+    fun reduces_fan_speed() {
+        // Target (17-03): fan.speed 0.6 -> partFanSpeed=0.6 (RAW 0..1 ratio, NO scaling in the reducer).
+        fail("RED — 17-03: fan.speed 0.6 -> partFanSpeed=0.6 (raw ratio, no scaling)")
+    }
+
+    @Test
+    fun reduces_firmware_retraction_synthetic() {
+        // Target (17-03): a SYNTHETIC `firmware_retraction` object (the only way to test build-blind, since
+        //   neither dev printer has the object) reduces into firmwareRetraction: FirmwareRetractionObject with
+        //   retract_length / retract_speed / unretract_extra_length / unretract_speed populated.
+        fail("RED — 17-03: synthetic firmware_retraction object -> FirmwareRetractionObject (build-blind coverage)")
+    }
+
+    @Test
+    fun diffMerge_retains_omitted_finetune_fields() {
+        // Target (17-03): a partial diff that OMITS a Fine-Tune field retains the prior value (merge-not-replace),
+        //   e.g. after seeding maxVelocity=300.0, a toolhead diff carrying only max_accel keeps maxVelocity=300.0.
+        fail("RED — 17-03: partial diff omitting a finetune field retains the prior value (merge-not-replace)")
     }
 
     /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */
