@@ -76,3 +76,78 @@
 - Mid-print object exclusion (EXCLUDE_OBJECT) → v2 wishlist.
 - Layout + entry point → planner / Phase 15+16.
 - Temp setters → Phase 5 Temp panel; generic fans/LEDs/pins → Phase 18; Pause/Resume → Phase 7 gutter.
+
+---
+---
+
+# Revision — 2026-06-06 (staging fold-in)
+
+**Date:** 2026-06-06
+**Areas discussed:** Interaction model, Move-rework scope, Icons, Control set + reset
+**Trigger:** `/gsd-discuss-phase 17 review phase-17-fine-tune-staging.md`. Phase 16 is now COMPLETE, so the
+previously-LOOSE layout/entry point could be locked. The staging note (`../parallel_dinghy/phase-17-fine-tune-staging.md`,
+newer than the 2026-06-05 discussion) introduced value-tile interaction, `minimum_cruise_ratio` + `smooth_time`,
+icons/increments/reset, and a firmware-retraction mini-screen — reconciled against the original CONTEXT.md below.
+
+---
+
+## Interaction model (resolves the original ScrubberPage D-09 conflict)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Pure nudge (arrows only) | −/+ step the fixed increment; tap inert; long-press = reset. Big sweeps = many taps (accepted). | ✓ |
+| Nudge + tap-to-scrub | Tapping the value opens ScrubberPage for big moves | |
+| Nudge + coarse/fine toggle | Tap cycles the increment (C2 mode-a) | |
+
+**User's choice:** Pure nudge — arrows only.
+**Notes:** Value tiles replace per-control ScrubberPage. Tile is a C2-*derived* 3-cell (arrows do the action, tap inert, long-press = reset) — intentionally diverges from C2 mode-(b)'s "tap = adjust".
+
+---
+
+## Move-rework scope
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Component + Move retrofit + Z rework | Build shared C2 picker, retrofit Move, do Move-Z vertical rework | |
+| Component + Move retrofit, defer Z | Build C2, retrofit Move, defer C3 | |
+| Fine-Tune only | Build tile shared-ready, wire only in Fine-Tune; C2/C3 stay deferred todos | ✓ |
+
+**User's choice:** Fine-Tune only.
+**Notes:** Todos `2026-06-05-increment-picker-3cell-component.md` (C2) and `2026-06-05-move-z-vertical-layout-rework.md` (C3) reviewed, NOT folded — remain deferred.
+
+---
+
+## Icons
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Per-icon drawables (established pattern) | Export Material Symbols to res/drawable; reuse add/remove for ± | ✓ |
+| Text/label-only | No tile icons | |
+
+**User's choice:** Per-icon drawables — and (follow-up) **`img/material-icon-bucket.json` is the canonical/primary icon source**; missing icons get added to the bucket by the owner, never invented. Generic ± = add Material Symbols `add`/`remove` to the bucket.
+**Notes:** Verified the 2026-06-06 bucket export is MISSING max-velocity/accel/cruise-ratio/SCV/PA/smooth-time/**fan**/plain-±. Tracked as todo `2026-06-06-phase-17-fine-tune-icons-bucket.md` (owner asset task before execute). `img/spool.svg` recorded as the project-wide filament-roll graphic (D-17b).
+
+---
+
+## Control set + reset (ratified from staging)
+
+| Item | Decision | Selected |
+|------|----------|----------|
+| `minimum_cruise_ratio` | Add to Motion (`SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO`, step 5pp) | ✓ |
+| `smooth_time` | Separate Extrusion control (`SET_PRESSURE_ADVANCE SMOOTH_TIME`, step 0.01s) | ✓ |
+| Firmware retraction | Own mini-screen (4 controls, no Z-hop), gated on `[firmware_retraction]` | ✓ |
+| Reset | Long-press value → immediate, no prompt, config baseline (speed/flow→100%) | ✓ |
+| Busy model | **Busy whole group** while a command confirms (vs per-tile / optimistic) | ✓ |
+
+**User's choice:** All ratified; busy-the-whole-group chosen for simplicity + no race (serialized rapid nudging accepted).
+**Notes:** Part-fan reset baseline is genuinely fuzzy (Klipper `fan` has no persistent runtime configured-speed) → planner discretion; intent = "never assumed off".
+
+## Claude's Discretion (revision additions)
+- Exact ranges/clamping per tuner; exact `configfile.settings.*` baseline paths; part-fan reset-baseline resolution.
+- Motion-limit group expanded vs "advanced" disclosure; 5-tile touch-friendliness in portrait AND landscape.
+- Group-screen readout strip placement (light, links-not-setters); Material Symbols ligature resolution from the bucket.
+
+## Deferred Ideas (revision additions)
+- C2 shared 3-cell increment-picker full build + Move retrofit → todo `2026-06-05-increment-picker-3cell-component.md`.
+- Move-Z vertical-layout rework (C3) → todo `2026-06-05-move-z-vertical-layout-rework.md`.
+- User-customizable tuner increments → future Settings section.
