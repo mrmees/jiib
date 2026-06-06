@@ -1,8 +1,24 @@
+---
+status: partial
+phase: 17-fine-tune-live-adjust-panel
+plan: 17-06
+deferred: true
+deferred_by: owner
+deferred_on: 2026-06-06
+resume_when: "Matthew back at the computer with flox on a live printer (E5/E3)"
+updated: 2026-06-06
+---
+
 # Phase 17 — On-Device UAT (Fine-Tune / Live-Adjust)
 
 **Plan:** 17-06 (Task 2 — `checkpoint:human-verify`, blocking)
-**Status:** PENDING — awaiting Matthew on flox + a live printer
-**Build:** debug `app-armeabi-v7a-debug.apk` installed on flox (`0a64b42e`) from commit `2c4cbc4`
+**Status:** DEFERRED (owner) — all code + the landscape-clip fix are built and installed on flox; the
+hands-on functional checks (state-flip / reject / mid-print effect / perf) are intentionally deferred to a
+later session when Matthew is back in front of the device. NOT blocked, NOT failed — awaiting the human gate.
+Visual review of layout/entry/orientation already done remotely via screenshots (`uat-shots/`, incl. the
+`*b` set proving landscape clipping resolved).
+**Build:** debug `app-armeabi-v7a-debug.apk` installed on flox (`0a64b42e`) from commit `73296fd`
+(includes `fix(17-06)` label-less tiles / landscape clip fix on top of the `2c4cbc4` nav wiring)
 **Device:** flox (LineageOS 18.1 / API 30, genuine Adreno 320 / 2GB / 1920×1200, `armeabi-v7a`)
 **Printers (Moonraker):** Ender 5 Plus = `192.168.1.120:7125` · Ender 3 Pro = `192.168.1.121:7125`
 
