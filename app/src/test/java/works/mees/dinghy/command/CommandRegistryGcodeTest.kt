@@ -3,6 +3,7 @@ package works.mees.dinghy.command
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.JsonRpcMethods
 
@@ -78,6 +79,53 @@ class CommandRegistryGcodeTest {
         assertEquals("load", CommandRegistry.loadFilament.dispatchKey(Unit))
         assertEquals("unload", CommandRegistry.unloadFilament.dispatchKey(Unit))
         assertEquals("estop", CommandRegistry.emergencyStop.dispatchKey(Unit))
+    }
+
+    // --- Phase-17 Fine-Tune specs (RED — implemented in 17-02) ------------------------------------
+    //
+    // [[dinghy-wave0-red-scaffold-compile]]: the new CommandRegistry specs (speedFactor / flowFactor /
+    // setVelocityLimit×fields / setPressureAdvance / setFan / setRetraction) do NOT exist yet — they land
+    // in 17-02. These stubs compile against ONLY existing symbols and carry the exact membership +
+    // availability target in the fail() message. 17-02 converts them to real assertions.
+
+    @Test
+    fun speedFactorAndFlowFactor_inAll_withGcodeMoveAvailability() {
+        // Target (17-02): CommandRegistry.speedFactor and .flowFactor are in CommandRegistry.all, each with
+        //   availability == AvailabilityPredicate.ObjectPresent("gcode_move").
+        fail("RED — 17-02: speedFactor + flowFactor in .all, availability=ObjectPresent(\"gcode_move\")")
+    }
+
+    @Test
+    fun setVelocityLimit_perField_inAll_withToolheadAvailability() {
+        // Target (17-02): each motion-limit spec (velocity/accel/minCruiseRatio/scv) is in CommandRegistry.all
+        //   with availability == AvailabilityPredicate.ObjectPresent("toolhead").
+        fail("RED — 17-02: setVelocityLimit (×fields) in .all, availability=ObjectPresent(\"toolhead\")")
+    }
+
+    @Test
+    fun setPressureAdvance_inAll_withExtruderAvailability() {
+        // Target (17-02): CommandRegistry.setPressureAdvance in .all, availability=ObjectPresent("extruder").
+        fail("RED — 17-02: setPressureAdvance in .all, availability=ObjectPresent(\"extruder\")")
+    }
+
+    @Test
+    fun setFan_inAll_withFanAvailability() {
+        // Target (17-02): CommandRegistry.setFan in .all, availability=ObjectPresent("fan").
+        fail("RED — 17-02: setFan in .all, availability=ObjectPresent(\"fan\")")
+    }
+
+    @Test
+    fun setRetraction_inAll_withFirmwareRetractionAvailability() {
+        // Target (17-02): CommandRegistry.setRetraction in .all, availability=ObjectPresent("firmware_retraction").
+        fail("RED — 17-02: setRetraction in .all, availability=ObjectPresent(\"firmware_retraction\")")
+    }
+
+    @Test
+    fun motionLimitSpecs_useDistinctDispatchKeysPerField() {
+        // Pitfall 4 (17-02): the four motion-limit fields must NOT share a single "set_vel_limit" dispatchKey —
+        //   each field's dispatchKey is DISTINCT (e.g. "set_vel_velocity", "set_vel_accel", "set_vel_minCruiseRatio",
+        //   "set_vel_scv") so an in-flight velocity tweak never busy-locks an accel tweak by key-collision.
+        fail("RED — 17-02: motion-limit specs use DISTINCT per-field dispatchKeys (not a shared set_vel_limit)")
     }
 
     private fun <P> assertRegistryScript(

@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.MoonrakerJson
 
@@ -229,6 +230,94 @@ class PrinterCommandsTest {
     @Test
     fun sdcardResetFile_constIsExactLiteral() {
         assertEquals("SDCARD_RESET_FILE", PrinterCommands.SDCARD_RESET_FILE)
+    }
+
+    // --- Phase-17 Fine-Tune builders (RED — implemented in 17-02) ---------------------------------
+    //
+    // [[dinghy-wave0-red-scaffold-compile]]: the new PrinterCommands builders (speedFactor / flowFactor /
+    // setVelocityLimit / setPressureAdvance / setFan / setRetraction) do NOT exist yet — they land in 17-02.
+    // These stubs MUST compile today, so they reference ONLY symbols that exist now and carry the EXACT
+    // target gcode string in the fail() message. 17-02 converts each fail() to a real assertEquals.
+
+    @Test
+    fun speedFactor_clampsAndFormats() {
+        // Target (17-02): PrinterCommands.speedFactor(105) == "M220 S105"; clamp pct to 25..300.
+        //   speedFactor(105) -> "M220 S105"; speedFactor(9999) -> "M220 S300"; speedFactor(0) -> "M220 S25"
+        fail("RED — 17-02: speedFactor(105)==\"M220 S105\"; clamp 25..300 (9999->S300, 0->S25)")
+    }
+
+    @Test
+    fun flowFactor_clampsAndFormats() {
+        // Target (17-02): PrinterCommands.flowFactor(100) == "M221 S100"; clamp pct to 50..150.
+        //   flowFactor(100) -> "M221 S100"; flowFactor(9999) -> "M221 S150"; flowFactor(0) -> "M221 S50"
+        fail("RED — 17-02: flowFactor(100)==\"M221 S100\"; clamp 50..150 (9999->S150, 0->S50)")
+    }
+
+    @Test
+    fun setVelocityLimit_singleField_velocity() {
+        // Target (17-02): one field per call. setVelocityLimit(velocity=200.0) -> "SET_VELOCITY_LIMIT VELOCITY=200"
+        fail("RED — 17-02: setVelocityLimit(velocity=200.0)==\"SET_VELOCITY_LIMIT VELOCITY=200\" (one field per call)")
+    }
+
+    @Test
+    fun setVelocityLimit_singleField_accel() {
+        // Target (17-02): setVelocityLimit(accel=3000.0) -> "SET_VELOCITY_LIMIT ACCEL=3000"
+        fail("RED — 17-02: setVelocityLimit(accel=3000.0)==\"SET_VELOCITY_LIMIT ACCEL=3000\"")
+    }
+
+    @Test
+    fun setVelocityLimit_singleField_minCruiseRatio_clamped() {
+        // Target (17-02): setVelocityLimit(minCruiseRatio=...) -> "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=<v>",
+        //   ratio clamped 0.0..1.0 (e.g. 1.5 -> MINIMUM_CRUISE_RATIO=1, -0.5 -> MINIMUM_CRUISE_RATIO=0).
+        fail("RED — 17-02: setVelocityLimit(minCruiseRatio=...) clamps ratio 0.0..1.0; \"SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=<v>\"")
+    }
+
+    @Test
+    fun setVelocityLimit_singleField_squareCornerVelocity() {
+        // Target (17-02): setVelocityLimit(scv=5.0) -> "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5"
+        fail("RED — 17-02: setVelocityLimit(scv=5.0)==\"SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5\"")
+    }
+
+    @Test
+    fun setVelocityLimit_minCruiseRatio_percentDisplayRatioWire() {
+        // REVIEW #9 — DISPLAY-vs-WIRE: a live ratio 0.5 DISPLAYS as 50%; one +tap of the fixed 5-percentage-
+        // point step adds 0.05 to the RATIO -> the wire string is MINIMUM_CRUISE_RATIO=0.55 (ratio on the
+        // wire, percent on screen). The wire value for a +tap from 0.5 is EXACTLY 0.55.
+        fail("RED — 17-02: +tap from 0.5 -> \"SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0.55\" (ratio wire / percent screen)")
+    }
+
+    @Test
+    fun setPressureAdvance_advance_upTo3dp() {
+        // Target (17-02): setPressureAdvance(advance=0.045) -> "SET_PRESSURE_ADVANCE ADVANCE=0.045" (up to 3dp)
+        fail("RED — 17-02: setPressureAdvance(advance=0.045)==\"SET_PRESSURE_ADVANCE ADVANCE=0.045\" (3dp)")
+    }
+
+    @Test
+    fun setPressureAdvance_smoothTime_2dp() {
+        // Target (17-02): setPressureAdvance(smoothTime=0.04) -> "SET_PRESSURE_ADVANCE SMOOTH_TIME=0.04" (2dp)
+        fail("RED — 17-02: setPressureAdvance(smoothTime=0.04)==\"SET_PRESSURE_ADVANCE SMOOTH_TIME=0.04\" (2dp)")
+    }
+
+    @Test
+    fun setFan_pctToPwm() {
+        // Target (17-02): part-fan percent -> 0..255 PWM, computed from the DISPLAYED % each tap (no
+        // rounding accumulation): setFan(60) -> "M106 S153"; setFan(100) -> "M106 S255"; setFan(0) -> "M106 S0".
+        fail("RED — 17-02: setFan(60)==\"M106 S153\", setFan(100)==\"M106 S255\", setFan(0)==\"M106 S0\" (pct->0..255 each tap)")
+    }
+
+    @Test
+    fun setRetraction_fourFields() {
+        // Target (17-02): setRetraction(length, speed, extraLength, unretractSpeed) ->
+        //   "SET_RETRACTION RETRACT_LENGTH=<l> RETRACT_SPEED=<s> UNRETRACT_EXTRA_LENGTH=<e> UNRETRACT_SPEED=<u>"
+        //   with NO Z_HOP field anywhere in the string.
+        fail("RED — 17-02: setRetraction(...) == \"SET_RETRACTION RETRACT_LENGTH= RETRACT_SPEED= UNRETRACT_EXTRA_LENGTH= UNRETRACT_SPEED=\" — NO Z_HOP")
+    }
+
+    @Test
+    fun localeUS_noCommaInDouble() {
+        // Target (17-02): every Double-formatting builder uses Locale.US so a value like 0.05 NEVER emits a
+        // comma (0,05) into the gcode — assert no ',' reaches any of the new SET_* strings.
+        fail("RED — 17-02: no comma in any formatted Double (Locale.US) — e.g. ADVANCE=0.05 never \"0,05\"")
     }
 
     // --- scriptParams serialization ---------------------------------------------------------------
