@@ -11,7 +11,7 @@ progress:
   total_plans: 114
   completed_plans: 114
   percent: 71
-stopped_at: Phase 15.2 complete (6/6) — ready to discuss Phase 17
+stopped_at: Phase 15.2 complete (6/6) — ready to discuss Phase 16 (Home / Print-Status Redesign)
 ---
 
 # Project State
@@ -21,11 +21,11 @@ stopped_at: Phase 15.2 complete (6/6) — ready to discuss Phase 17
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 17 — fine tune live adjust panel
+**Current focus:** Phase 16 — Home / Print-Status Redesign (next per ROADMAP; phase.complete auto-advanced to 17 only because Phase 16 has no directory/plans yet — corrected to 16)
 
 ## Current Position
 
-Phase: 17
+Phase: 16
 Plan: Not started
 Status: Ready to plan
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
