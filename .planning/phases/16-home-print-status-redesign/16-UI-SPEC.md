@@ -74,18 +74,39 @@ permitted fixed values are: hairline borders, the **≥64px touch-target floor**
 
 ## Typography
 
+> **This project uses a fixed, design-system-defined type ramp — the `fsSp` scale — NOT ad-hoc
+> per-screen size choices.** The ramp below is LAW-locked exactly as this project's spacing is a
+> ratio-only system and its color is a semantic-token system. It is the project's canonical,
+> pre-existing type scale (`docs/ui_design/THEMING.md` → `--fs` / `fsSp`), not a set of free choices
+> made in this phase. **This phase introduces ZERO new font sizes — every size used is a *role* on the
+> existing locked ramp.**
+>
+> **On the generic "5 tiers > max 4 sizes" heuristic — not applicable here.** The same checker
+> correctly waived the 60/30/10 color heuristic (this project uses a semantic-token system) and the
+> multiples-of-4 spacing heuristic (this project uses ratio-only sizing). A design-system-defined type
+> scale is the **same category**: a LAW-locked scale, not a per-phase free choice. The ramp has **five
+> roles by design**. The two smallest roles (Body 17–18sp + Metadata floor 15sp) are kept distinct
+> *deliberately* because of the standing project lesson [[dinghy-font-sizes-too-small]] (Claude
+> repeatedly sizes Dinghy fonts too small). Collapsing Body into Metadata — or dropping any tier to
+> satisfy a "max 4" rule — would **violate the LAW** and re-introduce the exact too-small-font failure
+> the ramp exists to prevent. **Authority for five roles:** THEMING.md `fsSp` scale +
+> [[dinghy-font-sizes-too-small]]. The tier count stays at five.
+
 Font sizing is the `fsSp(baseSp, t.fs)` scale ONLY — never a bare `.sp`. Honor the
 [[dinghy-font-sizes-too-small]] floors. These are the **base** sizes (before the user `--fs` S/M/L
 multiplier; M≈1.15 is the default).
 
-| Role | Base size | Weight | Usage on this surface |
-|------|-----------|--------|------------------------|
-| Focus value (display) | **30sp+** | Geist Mono | Time-remaining hero, terminal result figure |
-| Tabular stat | **26sp** | Geist Mono | Stat-grid values (layer, filament, nozzle/bed, elapsed, finish-by, current Z, applied offset) |
-| Title | **20–22sp** | Geist | Filename (Geist Mono — a filename is a data value), result label |
-| Body | **17–18sp** | Geist | Glance-list rows, launcher tile labels, gutter button labels |
-| Metadata floor | **15sp (hard floor)** | Geist | Stat-row captions (LAYER / NOZZLE / BED…), printer subtitle |
+| Role | Base size | Weight | Line height | Usage on this surface |
+|------|-----------|--------|-------------|------------------------|
+| Focus value (display) | **30sp+** | Geist Mono | 1.1× (tight — single-line hero) | Time-remaining hero, terminal result figure |
+| Tabular stat | **26sp** | Geist Mono | 1.1× (tight — single-line value) | Stat-grid values (layer, filament, nozzle/bed, elapsed, finish-by, current Z, applied offset) |
+| Title | **20–22sp** | Geist | 1.2× | Filename (Geist Mono — a filename is a data value), result label |
+| Body | **17–18sp** | Geist | **1.4×** | Glance-list rows, launcher tile labels, gutter button labels |
+| Metadata floor | **15sp (hard floor)** | Geist | **1.4×** | Stat-row captions (LAYER / NOZZLE / BED…), printer subtitle |
 
+- **Body / Metadata line height = 1.4×** — declared so multi-line stat captions and glance-list rows
+  wrap predictably without implementer guessing. Single-line numeric roles (Focus value, Tabular stat)
+  stay tight (1.1×) so the hero/stat figures don't gain dead vertical space; Title is 1.2×.
 - **Dense-cell label-drop rule:** at ≥3 columns (portrait) / ≥6 (landscape), interactive cells show a
   single icon or ≤3-char value at ~75% of the constraining dimension — no text labels (Gutter is exempt:
   it keeps icon + label).
@@ -150,6 +171,26 @@ color by safety (THEMING "Button intent = color" + C1/C5).
 
 ---
 
+## Accessibility (contentDescription contract)
+
+Icon-only controls on this surface MUST carry an explicit `contentDescription` for TalkBack — no
+implementer gaps. (Labelled gutter buttons already announce via their visible text label.)
+
+| Icon-only element | `contentDescription` (verbatim contract) |
+|-------------------|-------------------------------------------|
+| **Babystep Compress** | `"Compress — move nozzle closer to bed"` |
+| **Babystep Expand** | `"Expand — move nozzle farther from bed"` |
+| Babystep step-size center cell | `"Babystep step size, {value} millimeters — tap to change"` (e.g. `"Babystep step size, 0.05 millimeters — tap to change"`) |
+| E-Stop octagon glyph | inherits the button's `"Stop"` label (button is labelled) — glyph is decorative (`null`) |
+| Pause-icon overlay (Paused Focus) | `"Print paused"` (state announcement on the Focus, not a control) |
+
+- The babystep Compress/Expand cells stay **icon-only visually** (no on-screen text labels — the
+  glyphs carry direction). The strings above are the accessibility/TalkBack contract only.
+- The two babystep glyphs MUST be distinct silhouettes (icon-never-twice rule) AND carry the distinct
+  descriptions above so non-visual users can tell direction apart.
+
+---
+
 ## Per-state interaction contract
 
 ### Standby
@@ -201,6 +242,7 @@ color by safety (THEMING "Button intent = color" + C1/C5).
   concern — explicitly allowed here): `[ Compress ]  [ step-size value ]  [ Expand ]`.
   - **Compress** = drop / decrease gap / nozzle CLOSER to bed. **Expand** = raise / nozzle FARTHER.
     Icons only — **no text labels**; the two glyphs must be distinct silhouettes (icon-never-twice rule).
+    Each carries its `contentDescription` from the Accessibility section.
   - Center cell shows the **step size only**; tapping it cycles `.02 → .05 → .10 → .15 → .20`.
   - The **current applied Z offset** lives in the **print-stats frame**, NOT in the babystep row.
 - Intent: Compress/Expand = **accent** (expected physical action, C1); icon carries the action direction.
@@ -314,7 +356,7 @@ the state layouts + merge direction:
 - [ ] Dimension 1 Copywriting: PASS
 - [ ] Dimension 2 Visuals (Focus/Field/Gutter conformance, sacred aspect ratios): PASS
 - [ ] Dimension 3 Color (semantic tokens only, intent-by-safety, status-by-shape): PASS
-- [ ] Dimension 4 Typography (`fsSp` scale, font floors honored): PASS
+- [ ] Dimension 4 Typography (`fsSp` design-system ramp — 5 LAW-locked roles, font floors honored, body line height declared): PASS
 - [ ] Dimension 5 Layout (ratio-only sizing, ≥64px touch floor, flexible-tile rule scoped): PASS
 - [ ] Dimension 6 Registry Safety: PASS (n/a)
 
