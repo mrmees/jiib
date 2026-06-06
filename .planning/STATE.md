@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T05:26:37.463Z"
-last_activity: 2026-06-06 -- Phase 16 planning complete
+last_updated: "2026-06-06T11:12:34.469Z"
+last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 17
   total_plans: 122
-  completed_plans: 114
+  completed_plans: 115
   percent: 71
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 16 — Home / Print-Status Redesign (next per ROADMAP; phase.complete auto-advanced to 17 only because Phase 16 has no directory/plans yet — corrected to 16)
+**Current focus:** Phase 16 — home-print-status-redesign
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
+Phase: 16 (home-print-status-redesign) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
   → **Plan 15.2-02 (Wave 2: Dev Theme Cycler overlay — the conformance accelerant) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (continuation close-out; checkpoint approved by owner). Commits `495af95` (feat — `DevThemeCyclerOverlay.kt`: two small >=64px floating cycler widgets, every color via `LocalTokens.current` so the chrome themes WITH the app, STATIC per the Adreno-320 motion LAW; + the pure `nextStyleOverride`/`nextSizeOverride` steppers + StyleCyclerTest/TextSizeCyclerTest GREEN incl. the two HIGH-4 preserve-other-axis tests) + `f679120` (feat — wired into `AppShell` as a `devCyclerEnabled`-gated overlay Box drawn ABOVE `when(dest)` so it floats over every Dest; + the TEMP `devEnableFlow` default-true flip). **HIGH-4 merge-onto-current:** `nextStyleOverride` preserves the active `fs`, `nextSizeOverride` preserves the active `dark`/`paletteMode` — the two axes are runtime-INDEPENDENT, tapping one never reverts the other. **MEDIUM atomic stepping:** taps route through `container.updateThemeOverride { next*Override(it) }` (reads live `_themeOverride`, not a captured Compose snapshot) so rapid taps drop no axis; dismiss = `setThemeOverride(null)`. **D-06:** cyclers carry NO seedHex — the user's real per-profile accent/seed falls through (steps only the 6 `{dark,light}x{Colorful,Simple,HighContrast}` combos + S/M/L). **MEDIUM-3 release-visibility:** the cyclers are reachable in the RELEASE APK via a TEMP `ThemePrefs.devEnableFlow` default-true flip tagged `// TEMP(15.2-02)` (NOT a `BuildConfig.DEBUG` hook — doesn't run in release — nor an adb DataStore poke); **INTENTIONALLY left in place, reverted in 15.2-04 Task 1** when the durable About dev-enable toggle (D-05) becomes the control. **On-device cycler-walk on flox + live printer PASSED ("approved"):** whole app flipped across all 6 styles INCLUDING the classic-Views surfaces (GraphView, bed-mesh heatmap, webcam border), seed/accent preserved, S/M/L independent (neither axis reverted the other, rapid taps dropped nothing), restored cleanly on dismiss, static with no jank. 0 deviations (SUMMARY `15.2-02-SUMMARY.md`). THEME-01/02 closed. This is the conformance accelerant the rest of the phase rides on (D-09): one device walk per combo instead of six rebuilds. Next: **15.2-04** (durable About dev-enable toggle from D-05 — REVERTS the TEMP default flip — + remaining sweep work).
@@ -52,7 +52,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-06 -- Phase 16 planning complete
+Last activity: 2026-06-06
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -188,6 +188,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15.2 P03 | 8min | 2 tasks | 6 files |
 | Phase 15.2 P15.2-04 | 120min | 3 tasks tasks | 8 files files |
 | Phase 15.2 P15.2-05 | 10 | 3 tasks | 12 files |
+| Phase 16 P01 | 10 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -369,7 +370,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T04:13:18.579Z
+Last session: 2026-06-06T11:12:29.203Z
 Stopped at: Phase 16 UI-SPEC approved
 Resume file: 
-.planning/phases/16-home-print-status-redesign/16-UI-SPEC.md
+None
