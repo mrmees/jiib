@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T16:44:06.672Z"
-last_activity: 2026-06-06 -- Phase 17 planning complete
+last_updated: "2026-06-06T16:59:52.660Z"
+last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 18
   total_plans: 128
-  completed_plans: 122
+  completed_plans: 123
   percent: 75
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 17 — fine tune live adjust panel
+**Current focus:** Phase 17 — fine-tune-live-adjust-panel
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 17 (fine-tune-live-adjust-panel) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
   → **Plan 16-07 (Wave 4: Documentation Merge — four-state Print-Status UI LAW) EXECUTED + COMPLETE 2026-06-06** — folded the as-built four-state model into the UI LAW so docs match the as-built home + lock the foundation for Phases 17–20. Commits `d62b3dd` (docs — README Print Status section replaced with the four-state `PrintStatusMode` model: classifier [`standby→Standby` even with a stale filename; klippy shutdown/error is NOT terminal] + each state's Focus/Field/Gutter layout [Standby launcher+glance; Printing cockpit+stats+shortcut/babystep row; Paused dimmed; Terminal hero+stats-frame+≤3 error lines]; accent-temperature resolution noted — nozzle/bed = `directional.temperature` = accent, the amber `03-print-status.png` SUPERSEDED) + `a4bb616` (docs — LAYOUT.md gains the **interactive-grid flexible-tile rule as HARD LAW**, scoped EXACTLY to interaction-surface grids ONLY [never stat grids/text lists/graphs/info frames]; named the P16 flexible tiles Standby launcher→Drawer + active shortcut grid→Tune; **babystep horizontal-3-cell-row recorded as a documented C3 exception**). **THEMING.md deliberately untouched** (`git diff --quiet` verified — no color/shape-status rule changes this phase). **Task 3 (owner-side manual artboard gate) RESOLVED = DEFERRED** (resume signal "artboards deferred"): the Print-Status hi-fi artboards in `docs/ui_design/images/` (`03-print-status.png` + the absent per-state Standby/Paused/Terminal boards) are DEFERRED to a later visual/conformance design pass — hand-authored hi-fi mockups rendered from `reference/hifi.css`, regenerable anytime. The README four-state section + LAYOUT flexible-tile law are now THE WRITTEN AUTHORITY for the four-state model + accent-temperature identity until the boards are regenerated; **`03-print-status.png` is STALE (old single-state amber cockpit) and is SUPERSEDED by the prose**. NO PNG under `docs/ui_design/images/` was modified — explicit deferral, not silent omission (satisfies the plan must_have that the artboard status be explicitly resolved). The runtime Standby brand app-icon is a SEPARATE already-built element, NOT affected. 0 deviations. SUMMARY `16-07-SUMMARY.md`. SC-1 closed. **Phase 16 execution: 7/8 plans complete (only 16-08 = on-device SC gates remains); do NOT mark the phase complete here.**
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
@@ -53,7 +53,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-06 -- Phase 17 planning complete
+Last activity: 2026-06-06
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -197,6 +197,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 16 P02 | ~25 min | 3 tasks | 7 files |
 | Phase 16 P6 | 50 | 4 tasks | 7 files |
 | Phase 16 P08 | 10 | 3 tasks tasks | 1 file files |
+| Phase 17 P01 | 5 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -354,6 +355,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 16-02: ONE pure classifyPrintStatus(PrinterState)->PrintStatusMode (printState-only); Standby ALWAYS Standby — masquerade branch deleted (behavior change vs derivePrintStatusControls)
 - [Phase ?]: 16-02: pure selectPreheatPath per-temp guard (missing temp stays null, never 0); per-mode gutters set now (Paused no E-Stop, Terminal Dismiss+Reprint) so 16-06 reuses correct sets
 - [Phase ?]: 16-06: four-state Print-Status home routed off classifyPrintStatus via pure PrintStatusUiModel; spool-aware capability-gated Preheat + babystep row + Terminal Dismiss/Reprint with AppShell-projected error lines
+- [Phase ?]: 17-01: Wave-0 Fine-Tune RED scaffolds are fail()-stubs referencing only existing symbols; whole unit+androidTest sourcesets compile, 31 new methods RED until 17-02/03/05/06 convert them GREEN.
+- [Phase ?]: 17-01: RED stubs carry exact target strings/values (M220 S105, M106 S153, MINIMUM_CRUISE_RATIO=0.55, ObjectPresent predicates, D-15 busy=inFlight||pendingStateFlip) so each is converted to a typed assertion against a fixed target; requirements TUNE-01..07 stay Pending until on-device UAT.
 
 ### Pending Todos
 
@@ -386,7 +389,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T15:15:16.460Z
+Last session: 2026-06-06T16:59:24.672Z
 Stopped at: Phase 17 context revised (staging fold-in)
 Resume file: 
-.planning/phases/17-fine-tune-live-adjust-panel/17-CONTEXT.md
+None
