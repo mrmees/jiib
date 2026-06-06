@@ -552,15 +552,23 @@ private fun PrintStatusFocus(
                 )
                 } // end dim wrapper
                 // Static pause overlay (NOT dimmed) centered on the ring — the Focus carries the paused
-                // state (UI-SPEC Accessibility: contentDescription "Print paused").
+                // state (UI-SPEC Accessibility: contentDescription "Print paused"). RING-RELATIVE (sized
+                // from ringSize, not a fixed sp) so it scales with the focus and can NEVER crop, in any
+                // orientation (2026-06-06 UAT: fixed glyph grew/cropped strangely). The glyph fills a
+                // bounded box at 40% of the ring; the font size tracks that box's dp.
                 if (paused) {
-                    MaterialSymbol(
-                        "pause_circle",
-                        tint = t.text,
-                        sizeSp = fsSp(64f, t.fs),
-                        modifier = Modifier.align(Alignment.Center)
+                    val pauseBox = ringSize * 0.4f
+                    Box(
+                        Modifier.size(pauseBox).align(Alignment.Center)
                             .semantics { contentDescription = "Print paused" },
-                    )
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MaterialSymbol(
+                            "pause_circle",
+                            tint = t.text,
+                            sizeSp = pauseBox.value,
+                        )
+                    }
                 }
             }
             // Nothing below the ring — the ONLY focus readout is the %/READY on the ring itself.
