@@ -54,6 +54,13 @@ data class TestZArgs(val step: Double)
 /** Bed-mesh profile name arg (D-10) — [name] is allowlist-validated by [PrinterCommands.sanitizeProfileName]. */
 data class BedMeshProfileArgs(val name: String)
 
+/**
+ * Z-babystep nudge arg (SC-5, Phase 16). [deltaMm] is canonicalized against the fixed
+ * [PrinterCommands.BABYSTEP_STEPS] set (sign preserved) by [PrinterCommands.setGcodeOffsetZAdjust] —
+ * NEGATIVE compresses (nozzle closer), POSITIVE expands.
+ */
+data class BabystepArgs(val deltaMm: Double)
+
 object CommandRegistry {
     private val jsonRpcSemantics = CommandSemantics(
         success = "JSON-RPC result acknowledges the request.",
@@ -509,6 +516,31 @@ object CommandRegistry {
         availability = AvailabilityPredicate.Always,
     )
 
+    // --- Phase-16 Print-Status: Z-babystep (SC-5) + Terminal Dismiss (D-05). ---
+
+    /**
+     * `SET_GCODE_OFFSET Z_ADJUST=<signed step> MOVE=1` — the session-only Z-babystep nudge (SC-5). Gated
+     * on `gcode_move` (which carries `homing_origin[2]`, the running offset the Print-Status reads back).
+     * The signed step is canonicalized against the fixed BABYSTEP_STEPS set by the pure builder (V5).
+     */
+    val babystepZ: CommandSpec<BabystepArgs> = gcode(
+        catalogId = "KGC-SET_GCODE_OFFSET",
+        key = { "babystep" },
+        gcode = { PrinterCommands.setGcodeOffsetZAdjust(it.deltaMm) },
+        availability = AvailabilityPredicate.ObjectPresent("gcode_move"),
+    )
+
+    /**
+     * `SDCARD_RESET_FILE` — clear the loaded file after a Terminal print (D-05). Fixed const gcode, no
+     * params; gated on `virtual_sdcard` (mirrors [printStart]).
+     */
+    val dismissPrint: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-SDCARD_RESET_FILE",
+        key = { "dismiss_print" },
+        gcode = { PrinterCommands.SDCARD_RESET_FILE },
+        availability = AvailabilityPredicate.ObjectPresent("virtual_sdcard"),
+    )
+
     val all: List<CommandSpec<*>> = listOf(
         identify,
         oneshotToken,
@@ -562,6 +594,8 @@ object CommandRegistry {
         accept,
         abort,
         saveConfig,
+        babystepZ,
+        dismissPrint,
     )
 
     private fun objectsParam(objects: Set<String>): JsonElement = buildJsonObject {

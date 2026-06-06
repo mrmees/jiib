@@ -2579,6 +2579,58 @@
           "caveat": "Not executed during the read-only capture."
         }
       ]
+    },
+    {
+      "catalog_id": "KGC-SET_GCODE_OFFSET",
+      "name": "SET_GCODE_OFFSET",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "gcode_move"
+      },
+      "predicate_key": "object_present:gcode_move",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "gcode_move present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "gcode_move present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SDCARD_RESET_FILE",
+      "name": "SDCARD_RESET_FILE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "virtual_sdcard"
+      },
+      "predicate_key": "object_present:virtual_sdcard",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "virtual_sdcard present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "virtual_sdcard present in printer.objects.list (2026-06-02 capture).",
+          "caveat": "Live objects.list capture; re-derived every reconnect."
+        }
+      ]
     }
   ],
   "not_on_printers": [

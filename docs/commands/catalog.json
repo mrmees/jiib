@@ -3542,13 +3542,13 @@
         "name": "virtual_sdcard"
       },
       "runtime_registry": {
-        "status": "planned_v1",
-        "registered": false,
-        "notes": "Planned v1 operation; later phases register runtime sends when implemented."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 16 Print-Status Terminal Dismiss, 16-03)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-SET_DIGIPOT",
@@ -3759,13 +3759,13 @@
         "name": "SET_GCODE_OFFSET"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 16 Print-Status babystep, 16-03)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
     },
     {
       "id": "KGC-SET_GCODE_VARIABLE",
