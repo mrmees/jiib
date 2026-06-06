@@ -4,7 +4,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.MoonrakerJson
 
@@ -232,92 +231,138 @@ class PrinterCommandsTest {
         assertEquals("SDCARD_RESET_FILE", PrinterCommands.SDCARD_RESET_FILE)
     }
 
-    // --- Phase-17 Fine-Tune builders (RED — implemented in 17-02) ---------------------------------
+    // --- Phase-17 Fine-Tune builders (GREEN — landed in 17-02) ------------------------------------
     //
-    // [[dinghy-wave0-red-scaffold-compile]]: the new PrinterCommands builders (speedFactor / flowFactor /
-    // setVelocityLimit / setPressureAdvance / setFan / setRetraction) do NOT exist yet — they land in 17-02.
-    // These stubs MUST compile today, so they reference ONLY symbols that exist now and carry the EXACT
-    // target gcode string in the fail() message. 17-02 converts each fail() to a real assertEquals.
+    // Each live-adjust gcode string is built clamp-before-format, Locale.US, with display-vs-wire scaling
+    // correct (M220/M221 percent; SET_VELOCITY_LIMIT incl. MINIMUM_CRUISE_RATIO ratio-on-wire; M106 0..255;
+    // SET_PRESSURE_ADVANCE / SET_RETRACTION exact params, no Z_HOP).
 
     @Test
     fun speedFactor_clampsAndFormats() {
-        // Target (17-02): PrinterCommands.speedFactor(105) == "M220 S105"; clamp pct to 25..300.
-        //   speedFactor(105) -> "M220 S105"; speedFactor(9999) -> "M220 S300"; speedFactor(0) -> "M220 S25"
-        fail("RED — 17-02: speedFactor(105)==\"M220 S105\"; clamp 25..300 (9999->S300, 0->S25)")
+        assertEquals("M220 S105", PrinterCommands.speedFactor(105))
+        assertEquals("M220 S300", PrinterCommands.speedFactor(9999)) // clamp to SPEED_PCT_MAX
+        assertEquals("M220 S25", PrinterCommands.speedFactor(0)) // clamp to SPEED_PCT_MIN
     }
 
     @Test
     fun flowFactor_clampsAndFormats() {
-        // Target (17-02): PrinterCommands.flowFactor(100) == "M221 S100"; clamp pct to 50..150.
-        //   flowFactor(100) -> "M221 S100"; flowFactor(9999) -> "M221 S150"; flowFactor(0) -> "M221 S50"
-        fail("RED — 17-02: flowFactor(100)==\"M221 S100\"; clamp 50..150 (9999->S150, 0->S50)")
+        assertEquals("M221 S100", PrinterCommands.flowFactor(100))
+        assertEquals("M221 S101", PrinterCommands.flowFactor(101))
+        assertEquals("M221 S150", PrinterCommands.flowFactor(9999)) // clamp to FLOW_PCT_MAX
+        assertEquals("M221 S50", PrinterCommands.flowFactor(0)) // clamp to FLOW_PCT_MIN
     }
 
     @Test
     fun setVelocityLimit_singleField_velocity() {
-        // Target (17-02): one field per call. setVelocityLimit(velocity=200.0) -> "SET_VELOCITY_LIMIT VELOCITY=200"
-        fail("RED — 17-02: setVelocityLimit(velocity=200.0)==\"SET_VELOCITY_LIMIT VELOCITY=200\" (one field per call)")
+        assertEquals(
+            "SET_VELOCITY_LIMIT VELOCITY=250",
+            PrinterCommands.setVelocityLimit(velocity = 250.0),
+        )
+        assertEquals(
+            "SET_VELOCITY_LIMIT VELOCITY=200",
+            PrinterCommands.setVelocityLimit(velocity = 200.0),
+        )
     }
 
     @Test
     fun setVelocityLimit_singleField_accel() {
-        // Target (17-02): setVelocityLimit(accel=3000.0) -> "SET_VELOCITY_LIMIT ACCEL=3000"
-        fail("RED — 17-02: setVelocityLimit(accel=3000.0)==\"SET_VELOCITY_LIMIT ACCEL=3000\"")
+        assertEquals(
+            "SET_VELOCITY_LIMIT ACCEL=3000",
+            PrinterCommands.setVelocityLimit(accel = 3000.0),
+        )
     }
 
     @Test
     fun setVelocityLimit_singleField_minCruiseRatio_clamped() {
-        // Target (17-02): setVelocityLimit(minCruiseRatio=...) -> "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=<v>",
-        //   ratio clamped 0.0..1.0 (e.g. 1.5 -> MINIMUM_CRUISE_RATIO=1, -0.5 -> MINIMUM_CRUISE_RATIO=0).
-        fail("RED — 17-02: setVelocityLimit(minCruiseRatio=...) clamps ratio 0.0..1.0; \"SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=<v>\"")
+        assertEquals(
+            "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=1",
+            PrinterCommands.setVelocityLimit(minCruiseRatio = 1.5), // clamp to 1.0
+        )
+        assertEquals(
+            "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0",
+            PrinterCommands.setVelocityLimit(minCruiseRatio = -0.5), // clamp to 0.0
+        )
     }
 
     @Test
     fun setVelocityLimit_singleField_squareCornerVelocity() {
-        // Target (17-02): setVelocityLimit(scv=5.0) -> "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5"
-        fail("RED — 17-02: setVelocityLimit(scv=5.0)==\"SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5\"")
+        assertEquals(
+            "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5",
+            PrinterCommands.setVelocityLimit(scv = 5.0),
+        )
+        assertEquals(
+            "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=8",
+            PrinterCommands.setVelocityLimit(scv = 8.0),
+        )
     }
 
     @Test
     fun setVelocityLimit_minCruiseRatio_percentDisplayRatioWire() {
         // REVIEW #9 — DISPLAY-vs-WIRE: a live ratio 0.5 DISPLAYS as 50%; one +tap of the fixed 5-percentage-
         // point step adds 0.05 to the RATIO -> the wire string is MINIMUM_CRUISE_RATIO=0.55 (ratio on the
-        // wire, percent on screen). The wire value for a +tap from 0.5 is EXACTLY 0.55.
-        fail("RED — 17-02: +tap from 0.5 -> \"SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0.55\" (ratio wire / percent screen)")
+        // wire, percent on screen). The builder receives the ratio and formats it verbatim.
+        assertEquals(
+            "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0.55",
+            PrinterCommands.setVelocityLimit(minCruiseRatio = 0.55),
+        )
     }
 
     @Test
     fun setPressureAdvance_advance_upTo3dp() {
-        // Target (17-02): setPressureAdvance(advance=0.045) -> "SET_PRESSURE_ADVANCE ADVANCE=0.045" (up to 3dp)
-        fail("RED — 17-02: setPressureAdvance(advance=0.045)==\"SET_PRESSURE_ADVANCE ADVANCE=0.045\" (3dp)")
+        assertEquals(
+            "SET_PRESSURE_ADVANCE ADVANCE=0.045",
+            PrinterCommands.setPressureAdvance(advance = 0.045),
+        )
+        // No EXTRUDER= param (single-extruder v1, D-09).
+        assertTrue(!PrinterCommands.setPressureAdvance(advance = 0.045).contains("EXTRUDER"))
     }
 
     @Test
     fun setPressureAdvance_smoothTime_2dp() {
-        // Target (17-02): setPressureAdvance(smoothTime=0.04) -> "SET_PRESSURE_ADVANCE SMOOTH_TIME=0.04" (2dp)
-        fail("RED — 17-02: setPressureAdvance(smoothTime=0.04)==\"SET_PRESSURE_ADVANCE SMOOTH_TIME=0.04\" (2dp)")
+        assertEquals(
+            "SET_PRESSURE_ADVANCE SMOOTH_TIME=0.04",
+            PrinterCommands.setPressureAdvance(smoothTime = 0.04),
+        )
     }
 
     @Test
     fun setFan_pctToPwm() {
-        // Target (17-02): part-fan percent -> 0..255 PWM, computed from the DISPLAYED % each tap (no
-        // rounding accumulation): setFan(60) -> "M106 S153"; setFan(100) -> "M106 S255"; setFan(0) -> "M106 S0".
-        fail("RED — 17-02: setFan(60)==\"M106 S153\", setFan(100)==\"M106 S255\", setFan(0)==\"M106 S0\" (pct->0..255 each tap)")
+        // round(pct/100*255), computed from the displayed % (no accumulation). Clamp 0..100.
+        assertEquals("M106 S153", PrinterCommands.setFan(60))
+        assertEquals("M106 S255", PrinterCommands.setFan(100))
+        assertEquals("M106 S0", PrinterCommands.setFan(0))
     }
 
     @Test
     fun setRetraction_fourFields() {
-        // Target (17-02): setRetraction(length, speed, extraLength, unretractSpeed) ->
-        //   "SET_RETRACTION RETRACT_LENGTH=<l> RETRACT_SPEED=<s> UNRETRACT_EXTRA_LENGTH=<e> UNRETRACT_SPEED=<u>"
-        //   with NO Z_HOP field anywhere in the string.
-        fail("RED — 17-02: setRetraction(...) == \"SET_RETRACTION RETRACT_LENGTH= RETRACT_SPEED= UNRETRACT_EXTRA_LENGTH= UNRETRACT_SPEED=\" — NO Z_HOP")
+        assertEquals(
+            "SET_RETRACTION RETRACT_LENGTH=0.5 RETRACT_SPEED=35 UNRETRACT_EXTRA_LENGTH=0 UNRETRACT_SPEED=35",
+            PrinterCommands.setRetraction(
+                retractLength = 0.5,
+                unretractExtraLength = 0.0,
+                retractSpeed = 35,
+                unretractSpeed = 35,
+            ),
+        )
+        // NO Z_HOP field anywhere (it does not exist — confirmed).
+        assertTrue(
+            !PrinterCommands.setRetraction(0.5, 0.0, 35, 35).contains("Z_HOP"),
+        )
     }
 
     @Test
     fun localeUS_noCommaInDouble() {
-        // Target (17-02): every Double-formatting builder uses Locale.US so a value like 0.05 NEVER emits a
-        // comma (0,05) into the gcode — assert no ',' reaches any of the new SET_* strings.
-        fail("RED — 17-02: no comma in any formatted Double (Locale.US) — e.g. ADVANCE=0.05 never \"0,05\"")
+        // Every Double-formatting builder uses Locale.US so a value like 0.05 NEVER emits a comma (0,05).
+        val strings = listOf(
+            PrinterCommands.setVelocityLimit(minCruiseRatio = 0.55),
+            PrinterCommands.setVelocityLimit(scv = 8.0),
+            PrinterCommands.setPressureAdvance(advance = 0.05),
+            PrinterCommands.setPressureAdvance(smoothTime = 0.04),
+            PrinterCommands.setRetraction(0.5, -0.5, 35, 35),
+        )
+        for (s in strings) {
+            assertTrue("no comma in formatted Double: $s", !s.contains(','))
+        }
     }
 
     // --- scriptParams serialization ---------------------------------------------------------------

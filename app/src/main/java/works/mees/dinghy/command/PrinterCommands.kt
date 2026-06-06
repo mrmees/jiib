@@ -5,6 +5,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.sign
 
 /**
@@ -57,6 +58,58 @@ object PrinterCommands {
 
     /** Max bed-mesh profile-name length accepted by [sanitizeProfileName] (defensive upper bound). */
     const val MAX_PROFILE_NAME_LEN = 64
+
+    // --- Fine-Tune live-adjust clamp bounds (Phase 17, RESEARCH § Suggested ranges) ----------------
+    // UI-side guard rails ONLY — Klipper enforces its own config maxima and rejects out-of-range as a
+    // non-fatal toast. Every Fine-Tune builder clamps BEFORE formatting (ASVS V5, T-17-02-01).
+
+    /** Speed-override percent (M220 S) bounds — D-03. */
+    const val SPEED_PCT_MIN = 25
+    const val SPEED_PCT_MAX = 300
+
+    /** Flow/extrude-factor percent (M221 S) bounds — D-08 (WIDE). */
+    const val FLOW_PCT_MIN = 50
+    const val FLOW_PCT_MAX = 150
+
+    /** Max-velocity bounds (mm/s) — D-04. */
+    const val VEL_MIN = 1.0
+    const val VEL_MAX = 1000.0
+
+    /** Max-accel bounds (mm/s²) — D-05. */
+    const val ACCEL_MIN = 100.0
+    const val ACCEL_MAX = 50_000.0
+
+    /** Square-corner-velocity bounds (mm/s) — D-07. */
+    const val SCV_MIN = 0.1
+    const val SCV_MAX = 20.0
+
+    /** Minimum-cruise-ratio bounds (ratio 0.0..1.0; displayed as percent) — D-06. */
+    const val MIN_CRUISE_RATIO_MIN = 0.0
+    const val MIN_CRUISE_RATIO_MAX = 1.0
+
+    /** Pressure-advance bounds (s) — D-09. */
+    const val PA_MIN = 0.0
+    const val PA_MAX = 1.0
+
+    /** Smooth-time bounds (s) — D-10. */
+    const val SMOOTH_MIN = 0.0
+    const val SMOOTH_MAX = 0.2
+
+    /** Part-cooling-fan percent bounds (0..100% → 0..255 PWM) — D-11. */
+    const val FAN_PCT_MIN = 0
+    const val FAN_PCT_MAX = 100
+
+    /** Firmware-retraction retract-length bounds (mm) — D-12. */
+    const val RETRACT_LEN_MIN = 0.0
+    const val RETRACT_LEN_MAX = 10.0
+
+    /** Firmware-retraction unretract-extra-length bounds (mm) — D-12. */
+    const val UNRETRACT_EXTRA_MIN = -5.0
+    const val UNRETRACT_EXTRA_MAX = 5.0
+
+    /** Firmware-retraction retract/unretract-speed bounds (mm/s) — D-12. */
+    const val RETRACT_SPEED_MIN = 1
+    const val RETRACT_SPEED_MAX = 100
 
     // --- Constant action gcodes -------------------------------------------------------------------
     /** Turn off every heater (Temp-panel Cooldown). */
@@ -240,6 +293,91 @@ object PrinterCommands {
         return "SET_GCODE_OFFSET Z_ADJUST=${formatZ(canonical)} MOVE=1"
     }
 
+    // --- Phase-17 Fine-Tune live-adjust builders (D-03..D-12) -------------------------------------
+
+    /**
+     * `M220 S<percent>` — live speed-factor override (D-03). [pct] is the DISPLAYED percent (100 = no
+     * override); the reducer stores `gcode_move.speed_factor` as a RATIO (1.0), so the holder scales
+     * ×100 before calling this — the #1 off-by-100 trap (RESEARCH Scaling notes). Clamped to
+     * [SPEED_PCT_MIN]..[SPEED_PCT_MAX] before formatting (ASVS V5).
+     */
+    fun speedFactor(pct: Int): String = "M220 S${pct.coerceIn(SPEED_PCT_MIN, SPEED_PCT_MAX)}"
+
+    /**
+     * `M221 S<percent>` — live flow/extrude-factor override (D-08). [pct] is the DISPLAYED percent;
+     * `gcode_move.extrude_factor` is a ratio, scaled ×100 by the holder. Clamped to
+     * [FLOW_PCT_MIN]..[FLOW_PCT_MAX] (D-08 WIDE).
+     */
+    fun flowFactor(pct: Int): String = "M221 S${pct.coerceIn(FLOW_PCT_MIN, FLOW_PCT_MAX)}"
+
+    /**
+     * `SET_VELOCITY_LIMIT [VELOCITY=…] [ACCEL=…] [MINIMUM_CRUISE_RATIO=…] [SQUARE_CORNER_VELOCITY=…]` —
+     * the single coherent command for ALL four motion-limit fields (D-04/D-05/D-06/D-07). Each nudge sets
+     * exactly ONE field (the holder passes one non-null arg), so only the set field is appended; each is
+     * clamped before formatting.
+     *
+     * REVIEW #9 — [minCruiseRatio] is the RATIO ON THE WIRE (0.0..1.0). The UI displays it as a percent
+     * (0.5 ↔ 50%) and a +tap of the fixed 5-percentage-point step adds 0.05 to the ratio, so a +tap from a
+     * live 0.5 produces `MINIMUM_CRUISE_RATIO=0.55`. The display↔percent conversion lives in the holder; this
+     * builder never percent-scales — it formats the ratio verbatim.
+     */
+    fun setVelocityLimit(
+        velocity: Double? = null,
+        accel: Double? = null,
+        minCruiseRatio: Double? = null,
+        scv: Double? = null,
+    ): String = buildString {
+        append("SET_VELOCITY_LIMIT")
+        velocity?.let { append(" VELOCITY=${fmt(it.coerceIn(VEL_MIN, VEL_MAX), 0)}") }
+        accel?.let { append(" ACCEL=${fmt(it.coerceIn(ACCEL_MIN, ACCEL_MAX), 0)}") }
+        minCruiseRatio?.let {
+            append(" MINIMUM_CRUISE_RATIO=${fmt(it.coerceIn(MIN_CRUISE_RATIO_MIN, MIN_CRUISE_RATIO_MAX), 2)}")
+        }
+        scv?.let { append(" SQUARE_CORNER_VELOCITY=${fmt(it.coerceIn(SCV_MIN, SCV_MAX), 1)}") }
+    }
+
+    /**
+     * `SET_PRESSURE_ADVANCE [ADVANCE=…] [SMOOTH_TIME=…]` (D-09/D-10). Each nudge sets exactly ONE field
+     * (the holder passes one non-null arg). [advance] formats up to 3dp, [smoothTime] up to 2dp — both
+     * `Locale.US` trailing-zero-stripped. NO `EXTRUDER=` param (single-extruder v1, D-09). Clamped.
+     */
+    fun setPressureAdvance(advance: Double? = null, smoothTime: Double? = null): String = buildString {
+        append("SET_PRESSURE_ADVANCE")
+        advance?.let { append(" ADVANCE=${fmt(it.coerceIn(PA_MIN, PA_MAX), 3)}") }
+        smoothTime?.let { append(" SMOOTH_TIME=${fmt(it.coerceIn(SMOOTH_MIN, SMOOTH_MAX), 2)}") }
+    }
+
+    /**
+     * `M106 S<0..255>` — part-cooling fan (D-11). [pct] is the DISPLAYED percent; `fan.speed` is 0.0..1.0
+     * so the holder reads ×100 for display. The 0..100% target maps to a 0..255 PWM via
+     * `round(pct/100*255)` computed from the DISPLAYED % each tap (no rounding accumulation — RESEARCH
+     * Scaling notes / Pitfall 1). Clamped to [FAN_PCT_MIN]..[FAN_PCT_MAX].
+     */
+    fun setFan(pct: Int): String {
+        val clamped = pct.coerceIn(FAN_PCT_MIN, FAN_PCT_MAX)
+        val pwm = (clamped / 100.0 * 255).roundToInt()
+        return "M106 S$pwm"
+    }
+
+    /**
+     * `SET_RETRACTION RETRACT_LENGTH=… RETRACT_SPEED=… UNRETRACT_EXTRA_LENGTH=… UNRETRACT_SPEED=…` (D-12).
+     * Firmware-retraction four-field command — every nudge re-sends all four current values (the holder
+     * folds the changed field over the live readback). NO `Z_HOP` param (it does not exist — confirmed,
+     * RESEARCH). Lengths format 1dp; speeds are ints. All clamped before formatting.
+     */
+    fun setRetraction(
+        retractLength: Double,
+        unretractExtraLength: Double,
+        retractSpeed: Int,
+        unretractSpeed: Int,
+    ): String {
+        val rl = fmt(retractLength.coerceIn(RETRACT_LEN_MIN, RETRACT_LEN_MAX), 1)
+        val uel = fmt(unretractExtraLength.coerceIn(UNRETRACT_EXTRA_MIN, UNRETRACT_EXTRA_MAX), 1)
+        val rs = retractSpeed.coerceIn(RETRACT_SPEED_MIN, RETRACT_SPEED_MAX)
+        val us = unretractSpeed.coerceIn(RETRACT_SPEED_MIN, RETRACT_SPEED_MAX)
+        return "SET_RETRACTION RETRACT_LENGTH=$rl RETRACT_SPEED=$rs UNRETRACT_EXTRA_LENGTH=$uel UNRETRACT_SPEED=$us"
+    }
+
     /**
      * Strict allowlist validator for a bed-mesh profile NAME (T-09-02-02). The name DEFAULTS to the
      * app-generated `YY.MM.DD_HH.MM` timestamp (D-10) but is keyboard-EDITABLE per the UI-SPEC owner
@@ -297,8 +435,16 @@ object PrinterCommands {
      * input is always a (signed) [BABYSTEP_STEPS] member, so two decimals suffices: format to 2dp then
      * strip a trailing zero so `0.10 → "0.1"` while `0.05 → "0.05"` is preserved.
      */
-    private fun formatZ(v: Double): String {
-        var s = String.format(Locale.US, "%.2f", v)
+    private fun formatZ(v: Double): String = fmt(v, 2)
+
+    /**
+     * Format a Double cleanly with [Locale.US] to at most [decimals] places, stripping trailing-zero noise
+     * (and a bare trailing dot). LOCALE-SAFE: `0.05 → "0.05"`, never `"0,05"` (ASVS V5, T-17-02-03); `250.0`
+     * at 0dp → `"250"`; `8.0` at 1dp → `"8"`; `0.045` at 3dp → `"0.045"`. The single numeric-formatting
+     * chokepoint for every Fine-Tune builder so no `String.format` is ever inlined at a call site.
+     */
+    private fun fmt(v: Double, decimals: Int): String {
+        var s = String.format(Locale.US, "%.${decimals}f", v)
         if (s.contains('.')) s = s.trimEnd('0').trimEnd('.')
         return s
     }
