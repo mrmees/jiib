@@ -183,6 +183,13 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // About (15.2-04 D-05) — app-global items + the dev-enable toggle. `info` is unique among DRAWER_TILES
     // glyphs (icon-no-repeat law).
     DrawerTileSpec(label = "About", symbol = "info", dest = Dest.About),
+    // Forward-stub tiles (D-02 / SC-1, Phase 16): Output controls (P18) and System Info (P19) are GREYED,
+    // non-navigating placeholders (`dest = null`) — they appear in the drawer so the surfaces are
+    // discoverable but are inert until their phases wire them. Drawer ONLY (NOT the Standby launcher grid).
+    // `bolt` (Output: fans/lights/pins) and `memory` (System Info) are unique among DRAWER_TILES glyphs
+    // (icon-no-repeat law).
+    DrawerTileSpec(label = "Output", symbol = "bolt", dest = null),
+    DrawerTileSpec(label = "System Info", symbol = "memory", dest = null),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
 

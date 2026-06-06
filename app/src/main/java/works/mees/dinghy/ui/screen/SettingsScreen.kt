@@ -17,10 +17,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +79,15 @@ fun SettingsScreen(
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val webcamOn = activeProfile?.webcamEnabled ?: true
 
+    // Babystep app setting (D-06) — process-scoped, connection-INDEPENDENT (not per-profile). The persisted
+    // layer-count seeds a local editable field; writes route through the durable container intent helpers
+    // (writeScope), never a composition scope ([[dinghy-compose-write-scope-cancellation]]).
+    val babystepOn by container.babystepEnabled.collectAsStateWithLifecycle(true)
+    val babystepLayers by container.babystepLayers.collectAsStateWithLifecycle(5)
+    // The text field mirrors the persisted layer-count; re-seed the local buffer whenever the stored value
+    // changes (key = babystepLayers) so an external write reflects, while in-progress typing is preserved.
+    var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
+
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
             field = {
@@ -106,6 +119,46 @@ fun SettingsScreen(
                     ForwardEntryRow(label = "Output controls", subLabel = "Coming soon", enabled = false, onClick = { })
                     ForwardEntryRow(label = "Camera (WebRTC)", subLabel = "Coming soon", enabled = false, onClick = { })
                     ForwardEntryRow(label = "Fine-tune", subLabel = "Coming soon", enabled = false, onClick = { })
+
+                    // ============================ BABYSTEP (D-06) ======================================
+                    // The Print-Status Z-babystep first-layer offer: an enable toggle (default ON) + the
+                    // first-layer WINDOW in layers (default 5). Process-scoped, NOT per-profile — durable via
+                    // the container writeScope intent helpers, never a composition scope.
+                    SectionLabel("Z-Babystep (first layer)")
+
+                    ToggleRow(
+                        label = "Babystep adjust",
+                        subLabel = if (babystepOn) {
+                            "Offered during the first layers of a print"
+                        } else {
+                            "Hidden — no first-layer Z adjust"
+                        },
+                        checked = babystepOn,
+                        enabled = true, // app-global setting, always editable (not gated on an active profile)
+                        onToggle = { container.setBabystepEnabled(it) },
+                    )
+
+                    // Layer-count: the standard NUMERIC keyboard (Settings is keyboard-permitted, PRIM-02).
+                    // commit-on-edit: a valid positive int writes through the durable intent helper (which
+                    // also coerces >= 1); a blank/invalid buffer is allowed mid-typing and just isn't persisted.
+                    LabeledRow(
+                        label = "First-layer window (layers)",
+                        subLabel = "Show the babystep row for the first $babystepLayers layer(s)",
+                        enabled = babystepOn,
+                    ) {
+                        TokenTextField(
+                            value = layersField,
+                            onValueChange = { raw ->
+                                // Digits only — the numeric keyboard already restricts, this guards paste.
+                                val digits = raw.filter { it.isDigit() }
+                                layersField = digits
+                                digits.toIntOrNull()?.let { container.setBabystepLayers(it) }
+                            },
+                            label = "Layers",
+                            keyboardType = KeyboardType.Number,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
 
                     // Bottom breathing room so the last control clears the scroll edge.
                     Box(Modifier.height(24.dp))
@@ -227,6 +280,39 @@ private fun ForwardEntryRow(
                 )
             }
         }
+    }
+}
+
+/**
+ * A label + sub-label header above an arbitrary [content] control (e.g. a numeric field). When [enabled]
+ * is false the label reads greyed (the control is expected to disable itself / be ignored).
+ */
+@Composable
+private fun LabeledRow(
+    label: String,
+    subLabel: String?,
+    enabled: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val t = LocalTokens.current
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            color = if (enabled) t.text else t.text3,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(17f, t.fs).sp,
+        )
+        if (subLabel != null) {
+            Text(
+                text = subLabel,
+                color = t.text3,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+        content()
     }
 }
 

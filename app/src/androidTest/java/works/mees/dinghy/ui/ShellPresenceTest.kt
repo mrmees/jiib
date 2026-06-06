@@ -138,8 +138,10 @@ class ShellPresenceTest {
         // Tapping Settings navigates to the in-shell Settings destination and collapses the drawer.
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.waitForIdle()
-        // The Settings screen header is shown; the drawer's "Status" tile is gone (collapsed).
-        composeRule.onNodeWithText("Connection").assertIsDisplayed()
+        // The Settings screen is shown (its "Feature toggles" section header); the drawer's "Status" tile
+        // is gone (collapsed). (15.2-04 dissolved the inline "Connection" section out of Settings into the
+        // Printers destination, so the old "Connection" assertion no longer applies.)
+        composeRule.onNodeWithText("Feature toggles").assertIsDisplayed()
         composeRule.onNodeWithText("Status").assertDoesNotExist()
     }
 
@@ -153,13 +155,10 @@ class ShellPresenceTest {
         composeRule.onRoot().performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
-        // Devices remains a greyed tile (on-screen): present but NOT click-actionable (inert).
-        // (Move/Temp/Extrude went LIVE in Phase 5; Files in Phase 7; Macros/Console in Phase 8.)
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Devices"))
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Devices").assertIsDisplayed().assertHasNoClickAction()
-
         // Power is the last (red, greyed) tile — scroll the grid to it; it is inert (T-04-07-E).
+        // (The former greyed "Devices" tile went LIVE + was relabeled "Printers" in 15.2-04; the
+        // greyed-tile inertness contract is now proven by Power below + the Output/System-Info stubs
+        // in shellRoute_forwardStubTilesAreInert.)
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Power"))
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Power").assertIsDisplayed().assertHasNoClickAction()
@@ -169,6 +168,32 @@ class ShellPresenceTest {
         composeRule.onNodeWithText("Power").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Power").assertExists()
+    }
+
+    // (b2) Forward-stub tiles (16-05 D-02 / SC-1): Output + System Info are present but greyed/inert.
+    @Test
+    fun shellRoute_forwardStubTilesAreInert() {
+        seedRoute(KlippyState.Ready)
+        setContentRoot()
+        composeRule.waitForIdle()
+
+        composeRule.onRoot().performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+
+        // Output (P18) — greyed forward stub: present, NOT click-actionable (dest = null).
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Output"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Output").assertIsDisplayed().assertHasNoClickAction()
+
+        // System Info (P19) — greyed forward stub: present, NOT click-actionable (dest = null).
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("System Info"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("System Info").assertIsDisplayed().assertHasNoClickAction()
+
+        // Tapping a greyed stub does nothing — it stays composed (a navigating tile would collapse the drawer).
+        composeRule.onNodeWithText("System Info").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("System Info").assertExists()
     }
 
     // (c) Splash hard-override (D-06): the drawer is structurally absent — a swipe-up reveals no tiles.
