@@ -130,6 +130,60 @@ data class PrinterState(
 
     /** `manual_probe` (CALIB-05 / D-01): the interactive Z-calibrate session state. Null when never opened. */
     val manualProbe: ManualProbeObject? = null,
+
+    // --- Phase-17 Fine-Tune live readback fields (TUNE-02/03) ------------------------------------
+    // All NULLABLE (null = the printer has never reported the value in a diff/snapshot — D-20 readout
+    // honesty: never fabricate a 0). Surfaced VERBATIM/RAW from `notify_status_update` — the reducer
+    // stores the raw ratio/unit; scaling (ratio→percent, 0..1→percent) happens only at the display
+    // boundary in the holder (RESEARCH Pitfall 1), never here.
+
+    /** `toolhead.max_velocity` (mm/s) — D-04. Null until first reported. RAW unit, no scaling. */
+    val maxVelocity: Double? = null,
+
+    /** `toolhead.max_accel` (mm/s²) — D-05. Null until first reported. RAW unit, no scaling. */
+    val maxAccel: Double? = null,
+
+    /**
+     * `toolhead.minimum_cruise_ratio` — D-06. A RATIO 0.0..1.0 (the holder converts to a percentage
+     * for display and the +tap target back to a ratio for the wire, REVIEW #9). The reducer carries
+     * the RAW ratio (e.g. 0.5), never a percent. Null until first reported.
+     */
+    val minimumCruiseRatio: Double? = null,
+
+    /** `toolhead.square_corner_velocity` (mm/s) — D-07. Null until first reported. RAW unit. */
+    val squareCornerVelocity: Double? = null,
+
+    /** `extruder.pressure_advance` (PRIMARY extruder, single-extruder v1) — D-09. Null until reported. */
+    val pressureAdvance: Double? = null,
+
+    /**
+     * `extruder.smooth_time` (s) — D-10. NOTE: this is the live STATUS field `smooth_time`; the reset
+     * BASELINE is read from the DIFFERENT config key `pressure_advance_smooth_time` (Pitfall 2), wired
+     * in Task 2. Null until first reported.
+     */
+    val smoothTime: Double? = null,
+
+    /** `fan.speed` (part-cooling fan, RAW 0.0..1.0) — D-11. Null until first reported. NO scaling here. */
+    val partFanSpeed: Double? = null,
+
+    /**
+     * `firmware_retraction` (TUNE-04 / D-12) — build-blind on both dev printers (neither defines the
+     * object), so coverage is fixture/synthetic-only. Null when the object is absent. Field-by-field
+     * merge-onto-retained like bed_mesh/manual_probe (a partial diff retains omitted fields).
+     */
+    val firmwareRetraction: FirmwareRetractionObject? = null,
+)
+
+/**
+ * `firmware_retraction` live object (TUNE-04 / D-12). All fields NULLABLE (null = unreported). Four
+ * `SET_RETRACTION`-driven values — retract length/speed + unretract extra length/speed — explicitly
+ * NO Z-hop (RESEARCH D-12). Build-blind on the dev printers; proven via a synthetic fixture.
+ */
+data class FirmwareRetractionObject(
+    val retractLength: Double? = null,
+    val retractSpeed: Double? = null,
+    val unretractExtraLength: Double? = null,
+    val unretractSpeed: Double? = null,
 )
 
 /**

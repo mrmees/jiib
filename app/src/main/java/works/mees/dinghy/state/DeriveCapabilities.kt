@@ -65,6 +65,11 @@ private val V1_SUBSCRIBE_CORE: Set<String> = setOf(
     "bed_mesh",           // CALIB-04 mesh matrices / profiles
     "manual_probe",       // CALIB-05 is_active / z_position session state
     "probe",              // CALIB-05 probe-present gate (PROBE_CALIBRATE vs Z_ENDSTOP_CALIBRATE, A3)
+    // Phase-17 Fine-Tune (TUNE-04): firmware_retraction live values. Build-blind on both dev printers
+    // (object absent) — safe to request unconditionally; the intersect loop drops it when the printer
+    // does not define the object. toolhead/gcode_move/extruder/fan are already subscribed (fan via the
+    // dynamic `name == "fan"` clause), so only firmware_retraction is net-new here.
+    "firmware_retraction", // CALIB/TUNE-04 SET_RETRACTION readback (gated OFF when absent)
 )
 
 /**

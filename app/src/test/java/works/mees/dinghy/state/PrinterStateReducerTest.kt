@@ -8,7 +8,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.GoldenFixtures
 import works.mees.dinghy.net.MoonrakerJson
@@ -576,47 +575,110 @@ class PrinterStateReducerTest {
         assertEquals("adaptive-7FA0AB1C50", afterHeater.bedMesh!!.profileName)
     }
 
-    // --- Phase-17 Fine-Tune reducer additions (RED — implemented in 17-03) ------------------------
+    // --- Phase-17 Fine-Tune reducer additions (GREEN — implemented in 17-03) ----------------------
     //
-    // [[dinghy-wave0-red-scaffold-compile]]: the new PrinterState fields (maxVelocity / maxAccel /
-    // minimumCruiseRatio / squareCornerVelocity / pressureAdvance / smoothTime / partFanSpeed /
-    // firmwareRetraction) and the FirmwareRetractionObject model do NOT exist yet — they land in 17-03.
-    // These stubs compile against ONLY existing symbols and carry the field+value target in fail().
+    // The new PrinterState fields (maxVelocity / maxAccel / minimumCruiseRatio / squareCornerVelocity /
+    // pressureAdvance / smoothTime / partFanSpeed / firmwareRetraction) + the FirmwareRetractionObject
+    // model are reduced RAW (no scaling); diff-merge retains omitted fields (Pitfall 1).
 
     @Test
     fun reduces_toolhead_motion_limits() {
-        // Target (17-03): a synthetic `toolhead` diff with max_velocity / max_accel / minimum_cruise_ratio /
-        //   square_corner_velocity reduces into the four new state fields (RAW, no scaling in the reducer):
-        //   maxVelocity=300.0, maxAccel=3000.0, minimumCruiseRatio=0.5, squareCornerVelocity=5.0.
-        fail("RED — 17-03: toolhead diff -> maxVelocity=300.0, maxAccel=3000.0, minimumCruiseRatio=0.5, squareCornerVelocity=5.0")
+        // A synthetic `toolhead` diff with the four motion limits reduces RAW (no scaling in the reducer).
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "toolhead": { "max_velocity": 300.0, "max_accel": 3000.0,
+                       "minimum_cruise_ratio": 0.5, "square_corner_velocity": 5.0 } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(300.0, state.maxVelocity!!, 0.0001)
+        assertEquals(3000.0, state.maxAccel!!, 0.0001)
+        // minimum_cruise_ratio stays the RAW ratio (0.5), NOT a percent — the holder converts for display.
+        assertEquals(0.5, state.minimumCruiseRatio!!, 0.0001)
+        assertEquals(5.0, state.squareCornerVelocity!!, 0.0001)
     }
 
     @Test
     fun reduces_extruder_pa_and_smoothtime() {
-        // Target (17-03): extruder.pressure_advance + extruder.smooth_time read from a SEPARATE extruder
-        //   walk (NOT the per-heater merge loop) -> pressureAdvance=0.045, smoothTime=0.04.
-        fail("RED — 17-03: extruder diff -> pressureAdvance=0.045, smoothTime=0.04 (separate extruder walk, not heater loop)")
+        // extruder.pressure_advance + extruder.smooth_time read from a SEPARATE extruder walk (not the
+        // per-heater merge loop). A temp-only extruder diff must not crash and PA/smooth stay null there.
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "extruder": { "pressure_advance": 0.045, "smooth_time": 0.04 } }""",
+            ).jsonObject,
+        )
+
+        assertEquals(0.045, state.pressureAdvance!!, 0.0001)
+        assertEquals(0.04, state.smoothTime!!, 0.0001)
     }
 
     @Test
     fun reduces_fan_speed() {
-        // Target (17-03): fan.speed 0.6 -> partFanSpeed=0.6 (RAW 0..1 ratio, NO scaling in the reducer).
-        fail("RED — 17-03: fan.speed 0.6 -> partFanSpeed=0.6 (raw ratio, no scaling)")
+        // fan.speed 0.6 -> partFanSpeed=0.6 (RAW 0..1 ratio, NO scaling in the reducer).
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "fan": { "speed": 0.6 } }""").jsonObject,
+        )
+
+        assertEquals(0.6, state.partFanSpeed!!, 0.0001)
     }
 
     @Test
     fun reduces_firmware_retraction_synthetic() {
-        // Target (17-03): a SYNTHETIC `firmware_retraction` object (the only way to test build-blind, since
-        //   neither dev printer has the object) reduces into firmwareRetraction: FirmwareRetractionObject with
-        //   retract_length / retract_speed / unretract_extra_length / unretract_speed populated.
-        fail("RED — 17-03: synthetic firmware_retraction object -> FirmwareRetractionObject (build-blind coverage)")
+        // A SYNTHETIC firmware_retraction object (build-blind coverage — neither dev printer has it)
+        // reduces into a populated FirmwareRetractionObject.
+        val state = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "firmware_retraction": { "retract_length": 0.5, "retract_speed": 35.0,
+                       "unretract_extra_length": 0.0, "unretract_speed": 35.0 } }""",
+            ).jsonObject,
+        )
+
+        val fr = state.firmwareRetraction!!
+        assertEquals(0.5, fr.retractLength!!, 0.0001)
+        assertEquals(35.0, fr.retractSpeed!!, 0.0001)
+        assertEquals(0.0, fr.unretractExtraLength!!, 0.0001)
+        assertEquals(35.0, fr.unretractSpeed!!, 0.0001)
     }
 
     @Test
     fun diffMerge_retains_omitted_finetune_fields() {
-        // Target (17-03): a partial diff that OMITS a Fine-Tune field retains the prior value (merge-not-replace),
-        //   e.g. after seeding maxVelocity=300.0, a toolhead diff carrying only max_accel keeps maxVelocity=300.0.
-        fail("RED — 17-03: partial diff omitting a finetune field retains the prior value (merge-not-replace)")
+        // Seed maxVelocity, then a toolhead diff carrying only max_accel must KEEP maxVelocity (merge-
+        // not-replace). Same retention proven for a partial firmware_retraction delta.
+        val seeded = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement("""{ "toolhead": { "max_velocity": 300.0 } }""").jsonObject,
+        )
+        assertEquals(300.0, seeded.maxVelocity!!, 0.0001)
+
+        val afterAccelOnly = reduceDiff(
+            seeded,
+            MoonrakerJson.parseToJsonElement("""{ "toolhead": { "max_accel": 3000.0 } }""").jsonObject,
+        )
+        // max_velocity OMITTED from the second diff -> retained (not wiped to null).
+        assertEquals("maxVelocity retained across a partial toolhead diff", 300.0, afterAccelOnly.maxVelocity!!, 0.0001)
+        assertEquals(3000.0, afterAccelOnly.maxAccel!!, 0.0001)
+
+        // firmware_retraction field-by-field merge: seed all four, then a partial delta retains omitted.
+        val frSeed = reduceDiff(
+            PrinterState(),
+            MoonrakerJson.parseToJsonElement(
+                """{ "firmware_retraction": { "retract_length": 0.5, "retract_speed": 35.0,
+                       "unretract_extra_length": 0.0, "unretract_speed": 35.0 } }""",
+            ).jsonObject,
+        )
+        val frPartial = reduceDiff(
+            frSeed,
+            MoonrakerJson.parseToJsonElement(
+                """{ "firmware_retraction": { "retract_length": 0.8 } }""",
+            ).jsonObject,
+        )
+        assertEquals(0.8, frPartial.firmwareRetraction!!.retractLength!!, 0.0001)
+        // retract_speed OMITTED -> retained.
+        assertEquals(35.0, frPartial.firmwareRetraction!!.retractSpeed!!, 0.0001)
     }
 
     /** JSON-quote a string (escapes embedded quotes/backslashes) for inline fixture building. */

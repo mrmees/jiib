@@ -101,6 +101,13 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     status.objectOrNull("toolhead")?.let { th ->
         th.stringOrNull("homed_axes")?.let { s = s.copy(homedAxes = it) }
         th.doubleListOrNull("position")?.let { s = s.copy(toolheadPosition = it) }
+        // Phase-17 Fine-Tune motion limits (TUNE-02 / D-04..D-07) — RAW units/ratio, no scaling here
+        // (Pitfall 1: minimum_cruise_ratio stays the raw 0..1 ratio; the holder converts to percent for
+        // display). Each is null-safe + null-only-skips, so a partial toolhead diff retains omitted fields.
+        th.doubleOrNullAt("max_velocity")?.let { s = s.copy(maxVelocity = it) }
+        th.doubleOrNullAt("max_accel")?.let { s = s.copy(maxAccel = it) }
+        th.doubleOrNullAt("minimum_cruise_ratio")?.let { s = s.copy(minimumCruiseRatio = it) }
+        th.doubleOrNullAt("square_corner_velocity")?.let { s = s.copy(squareCornerVelocity = it) }
     }
 
     status.objectOrNull("gcode_move")?.let { gm ->
@@ -111,6 +118,35 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         // Phase 16 / SC-5: applied Z offset (live babystep) = homing_origin[2]. getOrNull(2) is null-safe
         // on a short/garbage array (the helper already null-guards non-numeric cells), so we never crash.
         gm.doubleListOrNull("homing_origin")?.let { s = s.copy(gcodeZOffset = it.getOrNull(2)) }
+    }
+
+    // Phase-17 Fine-Tune extruder tunables (TUNE-02 / D-09/D-10). Read in a SEPARATE extruder-keyed
+    // walk — NOT the per-heater merge loop below — because pressure_advance / smooth_time are NOT
+    // per-heater concepts (they belong to the PRIMARY extruder, single-extruder v1). Null-safe + null-
+    // only-skips so a temp-only extruder diff (handled by the heater loop) leaves these retained.
+    status.objectOrNull("extruder")?.let { ex ->
+        ex.doubleOrNullAt("pressure_advance")?.let { s = s.copy(pressureAdvance = it) }
+        ex.doubleOrNullAt("smooth_time")?.let { s = s.copy(smoothTime = it) }
+    }
+
+    // Phase-17 part-cooling fan (TUNE-02 / D-11). RAW 0.0..1.0 ratio — NO scaling in the reducer
+    // (Pitfall 1); the holder scales to a percentage at the display boundary. Part-cooling `fan` only.
+    status.objectOrNull("fan")?.doubleOrNullAt("speed")?.let { s = s.copy(partFanSpeed = it) }
+
+    // Phase-17 firmware_retraction (TUNE-04 / D-12). Field-by-field merge onto the RETAINED object
+    // (mirrors bed_mesh/manual_probe) so a partial diff retains omitted fields — never rebuild-from-
+    // delta. Build-blind on both dev printers (object absent → block skipped); proven via a synthetic
+    // fixture. NO Z-hop field (D-12).
+    status.objectOrNull("firmware_retraction")?.let { fr ->
+        val prev = s.firmwareRetraction ?: FirmwareRetractionObject()
+        s = s.copy(
+            firmwareRetraction = FirmwareRetractionObject(
+                retractLength = fr.doubleOrNullAt("retract_length") ?: prev.retractLength,
+                retractSpeed = fr.doubleOrNullAt("retract_speed") ?: prev.retractSpeed,
+                unretractExtraLength = fr.doubleOrNullAt("unretract_extra_length") ?: prev.unretractExtraLength,
+                unretractSpeed = fr.doubleOrNullAt("unretract_speed") ?: prev.unretractSpeed,
+            ),
+        )
     }
 
     // Progress can arrive on either virtual_sdcard or display_status; last writer wins per frame.
