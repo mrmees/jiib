@@ -1,0 +1,222 @@
+package works.mees.dinghy.ui.finetune
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.CommandSpec
+import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.SpeedFactorArgs
+import works.mees.dinghy.command.VelocityLimitArgs
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.Severity
+import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.di.AppContainer
+
+/**
+ * Fine-Tune **Motion** group (D-01: what moves the print head). Five capability-gated value tiles
+ * (D-03..D-07): Speed %, Max velocity, Max accel, Minimum cruise ratio, Square-corner velocity.
+ *
+ * ## State-flip whole-group busy lock (D-15 / REVIEW #2)
+ * `groupBusy = inFlight.isNotEmpty() || holder.pendingStateFlip != null`. DIVERGES from ExtrudeScreen's
+ * per-key check AND from a bare `inFlight.isNotEmpty()`: the group stays busy until the printer-object
+ * value actually flips, not on the bare RPC ack. Every tile `enabled = !groupBusy`. Each nudge computes
+ * the TARGET from the live `vm` value + the per-control step, marks the holder's pendingStateFlip, then
+ * dispatches ONE command (no optimistic local state — the readout flips only when the reducer reports).
+ *
+ * Absent tunables are HIDDEN, not disabled (SC-2): each tile renders only when its capability gate is on.
+ * A dispatcher [DispatchEvent.Failure] surfaces a non-fatal error [SeverityToast] (out-of-range
+ * rejections land here, G1 lesson) and clears the pending flip. Gutter Back = [Intent.Neutral].
+ */
+@Composable
+fun MotionScreen(
+    container: AppContainer,
+    holder: FineTuneHolder,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val vm by holder.vm.collectAsStateWithLifecycle()
+    var failureText by remember { mutableStateOf<String?>(null) }
+
+    // Feed the dispatcher's live in-flight set into the holder so the busy lock's first arm works (D-15).
+    LaunchedEffect(inFlight) { holder.setInFlight(inFlight) }
+
+    // STATE-FLIP whole-group busy (D-15): the vm already folds inFlight + pendingStateFlip into groupBusy.
+    val groupBusy = inFlight.isNotEmpty() || holder.pendingStateFlip != null || vm.groupBusy
+
+    LaunchedEffect(dispatcher) {
+        failureText = null
+        val d = dispatcher ?: return@LaunchedEffect
+        d.events.collect { event ->
+            when (event) {
+                is DispatchEvent.Failure -> {
+                    failureText = event.message
+                    holder.clearPending() // a failure clears the state-flip wait (T-17-05-02).
+                }
+            }
+        }
+    }
+    LaunchedEffect(failureText) {
+        if (failureText != null) { delay(4_000); failureText = null }
+    }
+
+    fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
+        if (command.dispatchKey(args) in inFlight) return
+        dispatcher?.dispatch(command, args)
+    }
+
+    Box(modifier.fillMaxSize()) {
+        ScreenScaffold(
+            field = {
+                Column(
+                    Modifier.fillMaxSize().padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // D-03 Speed % (step 5, M220, gate gcode_move). Reset = M220 S100 (protocol 100%,
+                    // always available — no baseline needed, D-16).
+                    if (vm.hasGcodeMove) {
+                        FineTuneTile(
+                            iconRes = R.drawable.speed,
+                            name = "Speed",
+                            valueText = vm.speedPct?.let { "$it%" } ?: DASH,
+                            onDecrement = {
+                                val cur = vm.speedPct ?: return@FineTuneTile
+                                val target = cur - SPEED_STEP
+                                holder.markPending(FineTuneTuner.SPEED, target.toDouble())
+                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(target))
+                            },
+                            onIncrement = {
+                                val cur = vm.speedPct ?: return@FineTuneTile
+                                val target = cur + SPEED_STEP
+                                holder.markPending(FineTuneTuner.SPEED, target.toDouble())
+                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(target))
+                            },
+                            onReset = {
+                                holder.markPending(FineTuneTuner.SPEED, 100.0)
+                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(100))
+                            },
+                            enabled = !groupBusy,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                    }
+                    // D-04 Max velocity (step 10, SET_VELOCITY_LIMIT VELOCITY, gate toolhead).
+                    if (vm.hasToolhead) {
+                        VelocityLimitTile(
+                            iconRes = R.drawable.arrow_shape_up_stack_2,
+                            name = "Max Vel",
+                            value = vm.maxVelocity,
+                            unit = " mm/s",
+                            step = VEL_STEP,
+                            field = VelocityLimitArgs.VELOCITY,
+                            tuner = FineTuneTuner.MAX_VELOCITY,
+                            baseline = vm.baselines.maxVelocity,
+                            holder = holder,
+                            dispatch = { spec, args -> dispatchCommand(spec, args) },
+                            enabled = !groupBusy,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                        // D-05 Max accel (step 100, SET_VELOCITY_LIMIT ACCEL).
+                        VelocityLimitTile(
+                            iconRes = R.drawable.sprint,
+                            name = "Max Accel",
+                            value = vm.maxAccel,
+                            unit = "",
+                            step = ACCEL_STEP,
+                            field = VelocityLimitArgs.ACCEL,
+                            tuner = FineTuneTuner.MAX_ACCEL,
+                            baseline = vm.baselines.maxAccel,
+                            holder = holder,
+                            dispatch = { spec, args -> dispatchCommand(spec, args) },
+                            enabled = !groupBusy,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                        // D-06 Minimum cruise ratio — DISPLAY percent, send ratio (REVIEW #9).
+                        // step 5 percentage points = 0.05 ratio.
+                        FineTuneTile(
+                            iconRes = R.drawable.directions_boat,
+                            name = "Min Cruise",
+                            valueText = vm.minCruisePct?.let { "$it%" } ?: DASH,
+                            onDecrement = {
+                                val cur = vm.minCruisePct ?: return@FineTuneTile
+                                val targetPct = (cur - MIN_CRUISE_STEP_PCT).coerceAtLeast(0)
+                                holder.markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
+                                dispatchCommand(
+                                    CommandRegistry.setVelocityLimit,
+                                    VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, targetPct / 100.0),
+                                )
+                            },
+                            onIncrement = {
+                                val cur = vm.minCruisePct ?: return@FineTuneTile
+                                val targetPct = (cur + MIN_CRUISE_STEP_PCT).coerceAtMost(100)
+                                holder.markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
+                                dispatchCommand(
+                                    CommandRegistry.setVelocityLimit,
+                                    VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, targetPct / 100.0),
+                                )
+                            },
+                            onReset = vm.baselines.minCruise?.let { base ->
+                                {
+                                    holder.markPending(FineTuneTuner.MIN_CRUISE, base * 100)
+                                    dispatchCommand(
+                                        CommandRegistry.setVelocityLimit,
+                                        VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, base),
+                                    )
+                                }
+                            },
+                            enabled = !groupBusy,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                        // D-07 Square-corner velocity (step 0.1, SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY).
+                        VelocityLimitTile(
+                            iconRes = R.drawable.rounded_corner,
+                            name = "SCV",
+                            value = vm.scv,
+                            unit = " mm/s",
+                            step = SCV_STEP,
+                            field = VelocityLimitArgs.SCV,
+                            tuner = FineTuneTuner.SCV,
+                            baseline = vm.baselines.scv,
+                            holder = holder,
+                            dispatch = { spec, args -> dispatchCommand(spec, args) },
+                            enabled = !groupBusy,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                    }
+                    failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+                }
+            },
+            gutter = {
+                Row(Modifier.fillMaxWidth().padding(8.dp)) {
+                    OutlinedControl(
+                        label = "Back",
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth(),
+                        intent = Intent.Neutral, // 15.2 C7: plain nav spends no safety color.
+                    )
+                }
+            },
+        )
+    }
+}
