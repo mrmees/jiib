@@ -1,10 +1,11 @@
 ---
 phase: 16
 slug: home-print-status-redesign
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-06
+reviewed: 2026-06-06
 ---
 
 # Phase 16 — UI Design Contract: Home / Print-Status Redesign
