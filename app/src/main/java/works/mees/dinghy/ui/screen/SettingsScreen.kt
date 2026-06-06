@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,17 +31,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.BuildConfig
-import works.mees.dinghy.config.DiscoveredPrinter
-import works.mees.dinghy.config.Profile
-import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
@@ -58,17 +51,17 @@ import works.mees.dinghy.theme.fsSp
  * (D-15) and the ONLY place the system keyboard is allowed (PRIM-02). A plain
  * `Column.verticalScroll(rememberScrollState())` of token-themed sections (15-06 D-10/D-11).
  *
- * ## Section order (F1 — Printers section REMOVED)
- * **Connection** (host/port/key + mDNS form for the ACTIVE printer, with an "Add another printer" entry)
- * · **Appearance** (dark/light + S/M/L + the NEW palette-mode chip row + a live palette-reactive preview +
+ * ## Section order (15.2-03 D-02 — Connection MOVED OUT to Printers)
+ * **Appearance** (dark/light + S/M/L + the palette-mode chip row + a live palette-reactive preview +
  * the **"Edit theme…"** forward-entry that pushes the seed/pool editor) · **Feature toggles** (Webcam
  * live; outputs/WebRTC/fine-tune greyed "Coming soon") · **System** (app version + build only — D-12).
  *
- * The old **Printers** profile-list/CRUD section was REMOVED (F1): printer management is owned by the
- * Devices switcher screen and the list was redundant here. The Connection form remains — it edits the
- * ACTIVE profile's connection and can still create a printer (first run + the Devices "Add printer"
- * jump), but the saved-profile LIST and its active markers no longer live in the Settings hub. The old
- * single-accent picker is also gone (D-04 retires per-role chrome overrides; accent derives from the seed).
+ * The **Connection** (host/port/key + mDNS) form was REMOVED in 15.2-03 (D-02): per-printer connection
+ * editing now lives on the **Printers** screen (the renamed/extended Devices switcher), which owns
+ * add / remove / switch AND connection — killing the Connection-redundant-with-Devices problem the owner
+ * flagged in Phase-15 UAT. The earlier F1 removal already dropped the redundant profile LIST/CRUD; this
+ * drops the last per-printer surface (Connection) so Settings is purely app-level (Appearance + toggles +
+ * System). Plan 04 splits Appearance → a Theme dest and adds About.
  *
  * ## The editor seam (D-10, CONFIRMED Codex finding — RootController dual-path)
  * The theme-editor open-state is hosted INSIDE this screen (a local [editorOpen] back-stack) — NOT at
@@ -98,13 +91,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val scope = rememberCoroutineScope()
-    val profileStore = container.profileStore
 
-    // ---- Profile set + active selection ------------------------------------------------------
-    // `profiles` is still needed to tell first-run (empty) from "add another printer" (F1); the active
-    // PROFILE drives the Connection form target + the Appearance theme mirror.
-    val profiles by profileStore.profiles.collectAsStateWithLifecycle(emptyList())
+    // ---- Active profile (drives the Appearance theme mirror only — Connection moved to Printers) --
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val hasActive = activeProfile != null
 
@@ -114,44 +102,6 @@ fun SettingsScreen(
     if (editorOpen) {
         ThemeEditorScreen(container = container, onBack = { editorOpen = false }, modifier = modifier)
         return // The editor owns the whole screen while open.
-    }
-
-    // ---- Connection editing target (F1) ------------------------------------------------------
-    // The Connection form edits the ACTIVE profile by default. When the user taps "Add another printer"
-    // (or on first run with no profiles) it switches to a blank NEW-profile form. `null` while no active
-    // profile exists means an implicit first-run new-printer form.
-    var addingNew by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf<Profile?>(null) }
-
-    // The profile the Connection form currently targets: the explicit "add" form (null profile) or the
-    // active profile. Re-derived as the active profile changes.
-    val connectionTarget: Profile? = if (addingNew) null else activeProfile
-
-    // ---- Connection form state ---------------------------------------------------------------
-    var host by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("7125") }
-    var apiKey by remember { mutableStateOf("") }
-    var keyAlreadySaved by remember { mutableStateOf(false) }
-    var hostError by remember { mutableStateOf(false) }
-    var portError by remember { mutableStateOf(false) }
-
-    // ---- mDNS scan state ---------------------------------------------------------------------
-    var scanning by remember { mutableStateOf(false) }
-    var scanned by remember { mutableStateOf(false) }
-    var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
-
-    // Seed the Connection form from the target profile whenever the target changes (active switch, or the
-    // user toggling "Add another printer"). A null target = a blank new-printer form.
-    LaunchedEffect(connectionTarget?.id, addingNew) {
-        val p = connectionTarget
-        host = p?.host ?: ""
-        port = p?.port?.toString() ?: "7125"
-        apiKey = ""
-        keyAlreadySaved = p?.apiKey != null
-        hostError = false
-        portError = false
-        scanned = false
-        discovered = emptyList()
     }
 
     // ---- Appearance (theme) control mirror state ---------------------------------------------
@@ -173,24 +123,6 @@ fun SettingsScreen(
         }
     }
 
-    // Full-screen Delete confirm guard (D-14) — hoisted over the whole screen, mirrors FilesScreen.
-    pendingDelete?.let { victim ->
-        ConfirmGuard(
-            title = "Delete printer?",
-            message = "This removes ${victim.displayName()} and its saved theme. This can't be undone.",
-            confirmLabel = "Delete",
-            cancelLabel = "Keep",
-            onConfirm = {
-                container.deleteProfile(victim.id)
-                pendingDelete = null
-                addingNew = false
-            },
-            onCancel = { pendingDelete = null },
-            destructive = true,
-        )
-        return
-    }
-
     Column(
         modifier
             .fillMaxSize()
@@ -200,210 +132,9 @@ fun SettingsScreen(
     ) {
         SectionHeader("Settings")
 
-        // ============================ CONNECTION ============================================
-        // F1: the Printers profile-LIST/CRUD section was removed (Devices owns that). What remains is the
-        // host/port/key + mDNS form for the ACTIVE printer, plus an "Add another printer" entry that blanks
-        // the form into new-profile mode (so the Devices "Add printer" jump still has a place to land).
-        SectionLabel("Connection")
-        run {
-            val existing = connectionTarget // null = the explicit add / first-run new-printer form
-
-            // Show whose connection is being edited (or that this is a new printer), so removing the list
-            // doesn't lose the "which printer" context. An accent "Add another printer" entry blanks the
-            // form; while adding, a way back to the active printer's form.
-            if (existing != null) {
-                Text(
-                    text = "Editing ${existing.displayName()}",
-                    color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-                ForwardEntryRow(
-                    label = "+ Add another printer",
-                    subLabel = "Set up a new Moonraker connection",
-                    enabled = true,
-                    onClick = { addingNew = true },
-                )
-            } else if (profiles.isNotEmpty()) {
-                Text(
-                    text = "New printer",
-                    color = t.accent,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-            }
-
-            TokenTextField(
-                value = host,
-                onValueChange = { host = it; hostError = false },
-                label = "Host (IP or hostname)",
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Text,
-                isError = hostError,
-            )
-            if (hostError) {
-                FieldError("Host is required.")
-            }
-
-            TokenTextField(
-                value = port,
-                onValueChange = { port = it; portError = false },
-                label = "Port",
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Number,
-                isError = portError,
-            )
-            if (portError) {
-                FieldError("Port must be 1–65535.")
-            }
-
-            TokenTextField(
-                value = apiKey,
-                onValueChange = { apiKey = it },
-                label = if (keyAlreadySaved) "API key (leave blank to keep saved key)" else "API key (optional)",
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Password,
-                isPassword = true,
-            )
-            if (keyAlreadySaved && apiKey.isBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Key saved",
-                        color = t.go,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(15f, t.fs).sp,
-                    )
-                }
-            }
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(
-                    label = if (scanning) "Scanning…" else "Scan (mDNS)",
-                    onClick = {
-                        if (!scanning) {
-                            scanning = true
-                            scanned = false
-                            discovered = emptyList()
-                            scope.launch {
-                                try {
-                                    withTimeoutOrNull(SCAN_WINDOW_MS) {
-                                        container.discovery.discover().collect { printer ->
-                                            if (discovered.none { it.host == printer.host && it.port == printer.port }) {
-                                                discovered = discovered + printer
-                                            }
-                                        }
-                                    }
-                                } finally {
-                                    scanning = false
-                                    scanned = true
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent,
-                )
-                if (keyAlreadySaved) {
-                    OutlinedControl(
-                        label = "Clear key",
-                        onClick = {
-                            existing?.let { e ->
-                                container.saveProfile(e.copy(apiKey = null))
-                            }
-                            apiKey = ""
-                            keyAlreadySaved = false
-                        },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
-                    )
-                }
-            }
-
-            if (scanned && discovered.isEmpty()) {
-                Text(
-                    text = "No printers found — enter the host manually.",
-                    color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-            }
-            for (printer in discovered) {
-                DiscoveredPrinterRow(
-                    printer = printer,
-                    onClick = {
-                        host = printer.host
-                        port = printer.port.toString()
-                        hostError = false
-                        portError = false
-                    },
-                )
-            }
-
-            OutlinedControl(
-                label = "Save",
-                onClick = {
-                    val portInt = port.trim().toIntOrNull()
-                    val blankHost = host.isBlank()
-                    val badPort = portInt == null || portInt !in 1..65535
-                    hostError = blankHost
-                    portError = badPort
-                    if (!blankHost && !badPort) {
-                        val typedKey = apiKey.takeIf { it.isNotBlank() }
-                        val preservedKey =
-                            if (typedKey == null && keyAlreadySaved) existing?.apiKey else typedKey
-                        val profile =
-                            if (existing != null) {
-                                // EDIT — preserve the stable id + theme tuple; change connection only.
-                                existing.copy(
-                                    host = host.trim(),
-                                    port = portInt!!,
-                                    apiKey = preservedKey,
-                                )
-                            } else {
-                                // NEW — a fresh printer starts at the validated default theme tuple
-                                // (D-05 fresh-start). The user tunes it later via Edit theme…
-                                Profile(
-                                    id = Profile.newId(),
-                                    name = null,
-                                    host = host.trim(),
-                                    port = portInt!!,
-                                    apiKey = preservedKey,
-                                )
-                            }
-                        // Durable container scope → MoonrakerService rebuilds the spine on the active
-                        // config. ProfileStore.upsert auto-selects the FIRST profile active (D-11). Do
-                        // NOT use rememberCoroutineScope() here (it would be cancelled mid-write by the
-                        // same-frame navigation, [[dinghy-compose-write-scope-cancellation]]).
-                        container.saveProfile(profile)
-                        addingNew = false // a new printer just saved is now active → fall back to its form.
-                        apiKey = ""
-                        onConnectionSaved()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Go,
-            )
-
-            // Secondary actions: while ADDING a new printer (and one already exists), allow backing out to
-            // the active printer's form. For the active printer, expose Delete (guarded). On first run
-            // (no profiles, implicit new form) there is nothing to cancel back to and nothing to delete.
-            if (addingNew && profiles.isNotEmpty()) {
-                OutlinedControl(
-                    label = "Cancel",
-                    onClick = { addingNew = false },
-                    modifier = Modifier.fillMaxWidth(),
-                    intent = Intent.Neutral,
-                )
-            } else if (existing != null) {
-                OutlinedControl(
-                    label = "Delete this printer",
-                    onClick = { pendingDelete = existing },
-                    modifier = Modifier.fillMaxWidth(),
-                    intent = Intent.Danger,
-                )
-            }
-        }
+        // Connection (host/port/key + mDNS) MOVED to the Printers screen in 15.2-03 (D-02) — Settings is
+        // now purely app-level. Per-printer connection editing lives on PrintersScreen (add/remove/switch
+        // AND connection in one place).
 
         // ============================ APPEARANCE ============================================
         // Each quick control drives the LIVE theme AND persists via the durable AppContainer intents
@@ -543,9 +274,6 @@ private val PALETTE_MODES: List<Pair<String, String>> = listOf(
     ThemeResolver.MODE_HIGH_CONTRAST to "High contrast",
 )
 
-/** Bounded settle window for an mDNS scan — long enough to resolve LAN printers, short enough to end. */
-private const val SCAN_WINDOW_MS = 6000L
-
 /**
  * A forward-entry row (D-11) — a tappable row with a label + optional sub-label that either opens a
  * sub-page (e.g. "Edit theme…") or, when [enabled] is false, reads as a greyed capability-gated
@@ -587,38 +315,6 @@ private fun ForwardEntryRow(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun DiscoveredPrinterRow(
-    printer: DiscoveredPrinter,
-    onClick: () -> Unit,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = printer.name,
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(17f, t.fs).sp,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "${printer.host}:${printer.port}",
-            color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
-        )
     }
 }
 
@@ -674,17 +370,6 @@ private fun PoolSizeSegment(
             fontSize = fsSp(18f, t.fs).sp,
         )
     }
-}
-
-@Composable
-private fun FieldError(text: String) {
-    val t = LocalTokens.current
-    Text(
-        text = text,
-        color = t.stop,
-        fontFamily = GeistMono,
-        fontSize = fsSp(15f, t.fs).sp,
-    )
 }
 
 @Composable

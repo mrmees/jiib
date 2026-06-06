@@ -73,7 +73,7 @@ import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.scan.ScanSurface
-import works.mees.dinghy.ui.screen.DevicesScreen
+import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
@@ -593,9 +593,9 @@ fun AppShell(
             // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
             // dest to PrintStatus on the tap makes the shell re-compose on the NEW printer's Status. NO rebind/
             // disconnect logic here — only the nav; the runConfigLoop seam does the teardown+rebind (T-14-11).
-            Dest.Devices -> DevicesScreen(
+            Dest.Devices -> PrintersScreen(
                 container = container,
-                onAddPrinter = { navigateTo(Dest.Settings) },
+                onAddPrinter = { navigateTo(Dest.Settings) }, // legacy fallback; Add-printer now opens the in-screen editor.
                 onSwitched = { navigateTo(Dest.PrintStatus) },
                 onBack = { goBack() },
             )
