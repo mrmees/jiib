@@ -66,6 +66,14 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // SC-3c (Phase 18): generate the en-XA (accented) + ar-XB (RTL+bracketed) pseudolocales
+            // on the DEBUG build only. Switching the device/emulator system locale to "English (XA)"
+            // renders every resource-sourced string accented+padded; any plain-English text that
+            // shows through is a still-hardcoded literal — the i18n completeness sweep. Build-time
+            // capability only (no translations shipped); the project has no resConfigs to trim.
+            isPseudoLocalesEnabled = true
+        }
     }
 
     buildFeatures {
@@ -100,6 +108,14 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
+    // SC-4a (Phase 18, RESEARCH Q1 — VERIFIED leave-as-is): the -preview artifact MUST stay
+    // `implementation`, NOT `debugImplementation`. The @Preview / @PreviewParameter annotations
+    // it provides are referenced by @Preview functions that live in the `main` sourceset
+    // (alongside the screens they document — there is no separate debug/ Kotlin sourceset),
+    // so the annotation symbols must be on main's compile classpath. Moving this to
+    // debugImplementation makes those @Preview references unresolved and breaks the module compile.
+    // It is an inert annotations-only jar (no runtime behavior) that R8 strips from release as
+    // unreachable, so "it ships in release" is harmless. DO NOT "optimize" this to debugImplementation.
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
