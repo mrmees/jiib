@@ -65,6 +65,46 @@ screen, *not* the raw canvas.
 
 ---
 
+## Interactive-grid flexible-tile rule (HARD LAW — 16 D-?)
+
+**Promoted to hard law in Phase 16** (the four-state Home / Print-Status redesign). This is a layout
+rule with a **strictly scoped** application — read the scope before you use it.
+
+> **When a grid OF USER-INTERACTION SURFACES has awkward leftover space, ONE explicitly chosen tile may
+> grow** so the remaining controls stay regular, touch-friendly, and predictable. A single deliberate
+> oversized tile is preferable to ragged, irregular, or undersized controls.
+
+**SCOPE — interactive grids ONLY.** This rule applies **only** to grids whose cells are
+user-interaction surfaces (launcher tiles, shortcut/action grids, jog-style control pads). It does **NOT**
+apply to:
+- **stat grids** (the print-stats frame — those stay tabular on the shared grid, NON-NEGOTIABLE 1),
+- **text lists** (Files, console scrollback),
+- **graphs** (temperature history, bed-mesh heatmap),
+- any **non-interactive info frame**.
+
+For those, the regular grid and NON-NEGOTIABLE 1 (everything tabular, balanced divisions) still govern —
+do **not** grow a stat/info cell to absorb leftover space.
+
+**The growing tile is named explicitly per screen — never implicit.** The Phase-16 flexible tiles:
+
+| Screen / grid | Flexible (growing) tile |
+|---|---|
+| Standby **launcher grid** | **Drawer** (always last; the swipe-up App Drawer's tap alternative) |
+| Active (Printing / Paused) **shortcut grid** | **Tune** (absorbs space when the shortcut row needs it) |
+
+### Babystep row — explicit C3 exception (recorded here with the rule)
+
+The **babystep control row** on the Printing/Paused Print-Status surface is a **fixed dedicated 3-cell
+row** — `[ Compress ] [ step-size ] [ Expand ]` — and is **EXEMPT** from the flexible-tile rule (no tile
+grows; it is not a flexible grid).
+
+It is also an **explicit, documented exception to C3** (below — "vertical adjustments use a vertical
+arrangement"). C3 would normally object that **Z** (a vertical quantity) sits in a **horizontal** row;
+the Phase-16 staging note **explicitly grants this exception** for the babystep row (the Compress/Expand
+direction is carried by distinct icon silhouettes, not a vertical spatial mapping). This is a sanctioned
+exception with staging-note authority — **not** a C3 violation to flag in a conformance sweep. (The
+*Move* screen's Z-row is a separate case still bound by C3 — see C3 / AUDIT R2 / Phase 17.)
+
 ## Conformance criteria — layout/density (15.2 D-10)
 
 Two of the 15.2 D-10 C-series criteria are layout/density rules (the full C-series lives in
