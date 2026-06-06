@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
@@ -30,6 +31,7 @@ import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.StatusSlot
+import works.mees.dinghy.theme.mergeOnto
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.toComposeColor
@@ -218,6 +220,18 @@ class AppContainer(
     }
 
     /**
+     * ATOMICALLY step the override (MEDIUM — rapid-tap-safe). The cyclers call this to flip ONE axis at a
+     * time (`{ (it ?: ThemeOverride()).copy(dark = …) }`). [MutableStateFlow.update] applies the transform
+     * to the LIVE current value, so two fast taps cannot each read the same Compose-captured snapshot and
+     * lose an axis (a style tap clobbering a just-applied size, or vice-versa). In-memory only — no persist.
+     */
+    fun updateThemeOverride(
+        transform: (works.mees.dinghy.theme.ThemeOverride?) -> works.mees.dinghy.theme.ThemeOverride?,
+    ) {
+        _themeOverride.update(transform)
+    }
+
+    /**
      * Toggle the app-global dev-widget enable (D-08). The boolean IS persisted, so the write routes
      * through the process-lifetime [writeScope] ([[dinghy-compose-write-scope-cancellation]]). Turning
      * OFF ALSO clears any active override (HIGH-5) so the app can never be stranded in an overridden look
@@ -347,24 +361,50 @@ class AppContainer(
     }
 
     /**
-     * Re-seed the resolver per ACTIVE PROFILE (D-03/D-08, RESEARCH Pattern 3). Each time the active
-     * profile changes, apply ITS persisted theme TUPLE `(seedHex, dark, paletteMode, poolShift, maxItems,
-     * poolOverrides, fs)` in ONE [ThemeResolver.apply] call (one re-emit — no flicker, no stale theme).
+     * The SINGLE canonical theme TUPLE source (HIGH-1) — the active profile's tuple, or REACTIVELY the
+     * GLOBAL idle [ThemePrefs.tupleFlow] when there is no active profile (the no-active idle theme + the
+     * new-profile default look; WR-02 — a global edit while idle re-emits, never a one-shot freeze). BOTH
+     * [seedTheme] (which applies it to [themeResolver]) AND [effectiveTokens] (which BAKES it) derive from
+     * THIS one flow, so the persisted theme and any transient override can never bake from a different
+     * profile/tuple than the one [seedTheme] applies — no idle-tuple omission, no profile skew.
+     */
+    val activeThemeTuple: Flow<ThemePrefs.ThemeTuple> =
+        activeProfile.flatMapLatest { p ->
+            if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
+        }
+
+    /**
+     * The override-aware EFFECTIVE token flow the single Compose [DinghyTheme] boundary collects — a PURE
+     * derivation of its combine inputs (HIGH-1, the foundational fix). It BAKES IN BOTH branches via the
+     * pure [ThemeResolver.bake] (HIGH-2 — no shared-mutable resolver to tear): the persisted/normal path
+     * returns `bake(base)`, the override path returns `bake(ov.mergeOnto(base))`.
      *
-     * When there is NO active profile (idle/Connect prompt), fall back REACTIVELY to the GLOBAL
-     * [ThemePrefs.tupleFlow] (which is ALSO the new-profile default look) — WR-02 fix: a global-default
-     * edit while idle now re-emits (the old one-shot `firstOrNull()` would have frozen the idle theme on
-     * the first read). `flatMapLatest` mirrors the active branch so both paths stay live. [themePrefs] is
-     * therefore RETAINED — it is the no-active-profile idle theme + the new-profile seed, not dead code.
-     * Call from the Application on a long-lived scope.
+     * CRITICAL — it NEVER reads `themeResolver.tokens` / `.tokens.value`: [seedTheme] applies to the
+     * resolver ASYNCHRONOUSLY after [activeThemeTuple] emits, so reading the resolver's `tokens.value`
+     * imperatively in the non-override branch could emit a STALE snapshot lagged behind the latest tuple
+     * and never self-correct under a profile/theme change. Baking the SAME canonical `base` tuple
+     * [seedTheme] applies makes this a pure function of its inputs that re-emits whenever the tuple changes.
+     *
+     * The override is BAKED only while [devCyclerEnabled] is true (HIGH-5 — the `!devOn` gate ignores a
+     * stranded override; [setDevCyclerEnabled] also CLEARS it). The Views hosts root in `LocalTokens`
+     * (PATTERNS FACT 2), so flipping this ONE collect re-themes the classic-Views surfaces too.
+     */
+    val effectiveTokens: Flow<works.mees.dinghy.theme.ThemeTokens> =
+        combine(activeThemeTuple, _themeOverride, devCyclerEnabled) { base, ov, devOn ->
+            val tuple = if (ov != null && devOn) ov.mergeOnto(base) else base
+            themeResolver.bake(tuple)
+        }
+
+    /**
+     * Re-seed the resolver per ACTIVE PROFILE (D-03/D-08, RESEARCH Pattern 3). Collects the single
+     * canonical [activeThemeTuple] and applies each tuple in ONE [ThemeResolver.apply] call (one re-emit —
+     * no flicker, no stale theme). The resolver's `tokens` flow still feeds any non-effectiveTokens
+     * consumer; [effectiveTokens] is the override-aware boundary the UI collects. Call from the Application
+     * on a long-lived scope.
      */
     fun seedTheme(scope: CoroutineScope) {
         scope.launch {
-            activeProfile
-                .flatMapLatest { p ->
-                    // WR-02: idle path collects the global tuple flow REACTIVELY, not a one-shot read.
-                    if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
-                }
+            activeThemeTuple
                 .collect { tuple ->
                     // 15-05 (D-03): apply the PERSISTED tuple in ONE re-emit. The sanitize layer already
                     // validated it; the resolver's compute() try/catch is the last-resort fail-safe.

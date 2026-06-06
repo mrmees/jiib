@@ -6,7 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.Flow
 import works.mees.dinghy.theme.ThemeResolver
+import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.TokensDark
 
 /**
  * The single Compose theme boundary (D-05): the one place that collects the headless
@@ -33,10 +36,12 @@ import works.mees.dinghy.theme.ThemeResolver
  */
 @Composable
 fun DinghyTheme(
-    resolver: ThemeResolver,
+    tokensFlow: Flow<ThemeTokens>,
     content: @Composable () -> Unit,
 ) {
-    val tokens by resolver.tokens.collectAsStateWithLifecycle()
+    // The override-aware effective-tokens flow (15.2-01 HIGH-1). The initial value is the baked default
+    // (TokensDark) until the first emission lands — the same Phase-3 fail-safe default the resolver uses.
+    val tokens by tokensFlow.collectAsStateWithLifecycle(initialValue = TokensDark)
     val baseDensity = LocalDensity.current
     CompositionLocalProvider(
         LocalTokens provides tokens,
@@ -44,3 +49,15 @@ fun DinghyTheme(
         content = content,
     )
 }
+
+/**
+ * Resolver-based overload (the original Phase-3 boundary): collects [ThemeResolver.tokens] directly. The
+ * app's production host (MainActivity) uses the [Flow]-based overload above with the override-aware
+ * `AppContainer.effectiveTokens`; this overload remains for benchmarks/instrumented tests that drive a
+ * bare [ThemeResolver] with no override layer. Both share the SAME `--fs` density authority.
+ */
+@Composable
+fun DinghyTheme(
+    resolver: ThemeResolver,
+    content: @Composable () -> Unit,
+) = DinghyTheme(tokensFlow = resolver.tokens, content = content)

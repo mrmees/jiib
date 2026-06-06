@@ -39,7 +39,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             // The ONE theme boundary (D-05) — every screen composes inside it and reads LocalTokens.
-            DinghyTheme(container.themeResolver) {
+            // Collects the override-aware effectiveTokens flow (15.2-01 HIGH-1): a transient dev override
+            // re-themes the whole app (Compose + Views) without persisting; the persisted path is a PURE
+            // bake of the canonical tuple (never the async-lagged themeResolver.tokens).
+            DinghyTheme(container.effectiveTokens) {
                 // G-1 hardening: explicit token bg instead of a bare Material3 Surface() (which
                 // defaults to the never-populated colorScheme.surface). Production screens each
                 // paint t.bg, but this removes the bare-Surface footgun at the root.
