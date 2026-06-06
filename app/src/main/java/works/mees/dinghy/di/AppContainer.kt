@@ -37,6 +37,7 @@ import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
+import works.mees.dinghy.ui.settings.BabystepPrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
 /**
@@ -73,6 +74,14 @@ class AppContainer(
      * last (non-DataStore) ctor param.
      */
     profileDataStore: DataStore<Preferences>,
+    /**
+     * The SIXTH, INDEPENDENT file: babystep.preferences_pb (D-06, Phase 16). Backs the process-scoped
+     * babystep app setting ([BabystepPrefs]: enable toggle + first-layer-window layer-count). Carries no
+     * secrets (like macros/webcam), kept on its own connection-independent lifecycle per the separate-file
+     * discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer invariant) and
+     * injected here.
+     */
+    babystepDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -172,6 +181,39 @@ class AppContainer(
      * focus cam (else first-in-list) and writes [WebcamPrefs.setPreferredCam] on a select/cycle.
      */
     val webcamPrefs: WebcamPrefs = WebcamPrefs(webcamDataStore)
+
+    /**
+     * Babystep app-setting persistence (D-06, Phase 16) — the SEPARATE babystep.preferences_pb-backed store
+     * holding the [BabystepPrefs.enabled] toggle (default true) + [BabystepPrefs.layerCount] first-layer
+     * window (default 5). Like [macroPrefs]/[webcamPrefs] it is PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT
+     * a field on [SpineHandle]): the setting survives reconnects and printer swaps. The Settings UI reads
+     * [babystepEnabled]/[babystepLayers] and writes through the durable [setBabystepEnabled]/[setBabystepLayers]
+     * intent helpers; the Wave-3 Print-Status babystep row gates its visibility on these flows.
+     */
+    val babystepPrefs: BabystepPrefs = BabystepPrefs(babystepDataStore)
+
+    /** Whether the Z-babystep row is offered (D-06) — default true; survives reconnects/printer swaps. */
+    val babystepEnabled: Flow<Boolean> = babystepPrefs.enabled
+
+    /** The first-layer babystep window in layers (D-06) — default 5; survives reconnects/printer swaps. */
+    val babystepLayers: Flow<Int> = babystepPrefs.layerCount
+
+    /**
+     * Persist the babystep enable toggle (D-06), durably. Routes through the process-lifetime [writeScope]
+     * ([[dinghy-compose-write-scope-cancellation]]) — the Settings toggle can navigate away in the same
+     * frame, and a slow Nexus-7 flash drops a composition-scoped write. NEVER `rememberCoroutineScope()`.
+     */
+    fun setBabystepEnabled(on: Boolean) {
+        writeScope.launch { babystepPrefs.setEnabled(on) }
+    }
+
+    /**
+     * Persist the babystep layer-count (D-06), durably + coerced `>= 1` in [BabystepPrefs.setLayerCount].
+     * Same write-scope discipline as [setBabystepEnabled] ([[dinghy-compose-write-scope-cancellation]]).
+     */
+    fun setBabystepLayers(n: Int) {
+        writeScope.launch { babystepPrefs.setLayerCount(n) }
+    }
 
     /**
      * The shared OkHttp client the webcam decode/poll layer derives its two postures off (CLAUDE.md

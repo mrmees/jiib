@@ -17,8 +17,9 @@ import works.mees.dinghy.di.AppContainer
  * The process [Application] — the ONE owner of the [AppContainer] service-locator and the real
  * DataStore files (D-02, NO Hilt). Registered as `android:name=".DinghyApp"` (04-03 manifest).
  *
- * FIVE SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
- * `macros.preferences_pb`, `webcam.preferences_pb`, and (Phase-14) `profiles.preferences_pb`. Keeping the
+ * SIX SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
+ * `macros.preferences_pb`, `webcam.preferences_pb`, (Phase-14) `profiles.preferences_pb`, and (Phase-16)
+ * `babystep.preferences_pb`. Keeping the
  * API-key-bearing stores (connection + profiles) in their own files gives a cleaner redaction boundary
  * (T-04-01-I); the macro/webcam files are independent so their prefs settle on their own
  * connection-independent lifecycle (08-07 B1 / 10-06 D-10). Each file is created ONCE here via
@@ -73,6 +74,15 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("profiles.preferences_pb") },
         )
+        // A SIXTH, INDEPENDENT file: babystep.preferences_pb (D-06, Phase 16). It carries no secrets (like
+        // macros/webcam), so it is kept on its own connection-independent lifecycle per the separate-file
+        // discipline — it backs the process-scoped babystep app setting (BabystepPrefs: enable toggle +
+        // first-layer-window layer-count). One instance per process (the single-writer invariant DataStore
+        // needs — RESEARCH Pitfall 3) and never elsewhere.
+        val babystepDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("babystep.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -80,6 +90,7 @@ class DinghyApp : Application() {
             macroDataStore = macroDataStore,
             webcamDataStore = webcamDataStore,
             profileDataStore = profileDataStore,
+            babystepDataStore = babystepDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

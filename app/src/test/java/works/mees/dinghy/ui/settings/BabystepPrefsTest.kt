@@ -7,10 +7,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.fail
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 /**
  * Wave-0 RED scaffold (16-01) — turned GREEN by 16-05 (`BabystepPrefs`).
@@ -59,43 +66,49 @@ class BabystepPrefsTest {
     }
 
     @Test
-    fun emptyStore_defaultsEnabledTrueLayersFive() {
+    fun emptyStore_defaultsEnabledTrueLayersFive() = runBlocking {
         val (dataStore, _) = newDataStore()
-        // Keep the harness load-bearing so the DataStore wiring compile-proves.
-        require(dataStore != null)
-        // EXPECT (16-05): BabystepPrefs(dataStore).enabled.first() == true
-        // EXPECT (16-05): BabystepPrefs(dataStore).layerCount.first() == 5
-        fail("not yet implemented — 16-05 BabystepPrefs (defaults enabled=true / layers=5)")
+        val prefs = BabystepPrefs(dataStore)
+        assertTrue("default enabled is true", prefs.enabled.first())
+        assertEquals("default layerCount is 5", 5, prefs.layerCount.first())
     }
 
     @Test
-    fun ioExceptionRead_failsSafeToDefaults() {
-        // EXPECT (16-05): a DataStore read that throws IOException is caught and yields the defaults
-        // (enabled=true / layers=5), NOT a propagated exception (the MacroPrefs fail-safe-read pattern).
-        fail("not yet implemented — 16-05 BabystepPrefs (IOException -> fail-safe defaults)")
+    fun ioExceptionRead_failsSafeToDefaults() = runBlocking {
+        // A DataStore whose read throws IOException — the MacroPrefs fail-safe-read pattern must catch it
+        // and yield the defaults (enabled=true / layers=5), NOT propagate the exception.
+        val throwing = object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flow { throw IOException("corrupt blob") }
+            override suspend fun updateData(
+                transform: suspend (t: Preferences) -> Preferences,
+            ): Preferences = throw IOException("corrupt blob")
+        }
+        val prefs = BabystepPrefs(throwing)
+        assertTrue("IOException read fails safe to enabled=true", prefs.enabled.first())
+        assertEquals("IOException read fails safe to layers=5", 5, prefs.layerCount.first())
     }
 
     @Test
-    fun setEnabledFalse_roundTrips() {
+    fun setEnabledFalse_roundTrips() = runBlocking {
         val (dataStore, _) = newDataStore()
-        require(dataStore != null)
-        // EXPECT (16-05): after setEnabled(false), enabled.first() == false
-        fail("not yet implemented — 16-05 BabystepPrefs (setEnabled write-through)")
+        val prefs = BabystepPrefs(dataStore)
+        prefs.setEnabled(false)
+        assertFalse("setEnabled(false) round-trips", prefs.enabled.first())
     }
 
     @Test
-    fun setLayerCount_roundTrips() {
+    fun setLayerCount_roundTrips() = runBlocking {
         val (dataStore, _) = newDataStore()
-        require(dataStore != null)
-        // EXPECT (16-05): after setLayerCount(3), layerCount.first() == 3
-        fail("not yet implemented — 16-05 BabystepPrefs (setLayerCount write-through)")
+        val prefs = BabystepPrefs(dataStore)
+        prefs.setLayerCount(3)
+        assertEquals("setLayerCount(3) round-trips", 3, prefs.layerCount.first())
     }
 
     @Test
-    fun setLayerCountZero_coercesToAtLeastOne() {
+    fun setLayerCountZero_coercesToAtLeastOne() = runBlocking {
         val (dataStore, _) = newDataStore()
-        require(dataStore != null)
-        // EXPECT (16-05): setLayerCount(0) coerces to >= 1 (never a zero-layer window).
-        fail("not yet implemented — 16-05 BabystepPrefs (setLayerCount coerce >= 1)")
+        val prefs = BabystepPrefs(dataStore)
+        prefs.setLayerCount(0)
+        assertEquals("setLayerCount(0) coerces to >= 1", 1, prefs.layerCount.first())
     }
 }
