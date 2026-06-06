@@ -758,9 +758,30 @@ Plans:
   3. Controls are safe and bounded (clamped ranges — flow 50–150%, speed 25–200%, etc.; no raw keyboard), always-available, with per-control reset, reachable from the Print-Status Tune entry point
   4. Proven on a real in-progress print on the Ender 5 Plus: change speed/flow (and a motion-limit + pressure advance) mid-print and observe the effect
 
-**Plans**: TBD
+**Requirements**: TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05, TUNE-06, TUNE-07 (new family coined at planning, mapped to the 4 Success Criteria + CONTEXT D-01..D-21)
+**Plans**: 6 plans
+Plans:
+
+**Wave 0**
+
+- [ ] 17-01-PLAN.md — RED test scaffolds (compile-clean): extend PrinterCommandsTest/CommandRegistryGcodeTest/PrinterStateReducerTest + new FineTuneHolderTest + instrumented FineTuneNavTest (TUNE-01..07)
+
+**Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
+
+- [ ] 17-02-PLAN.md — Pure command layer: PrinterCommands clamp-before-format builders + CommandRegistry gcode() specs (M220/M221/SET_VELOCITY_LIMIT/SET_PRESSURE_ADVANCE/M106/SET_RETRACTION), object-gated, distinct keys (TUNE-02/03/04/05)
+- [ ] 17-03-PLAN.md — State layer: new readback fields + null-safe reducer walks (toolhead/extruder/fan/firmware_retraction) + subscribe-set + config-baseline one-shot reads for reset (TUNE-02/03/05)
+- [ ] 17-04-PLAN.md — Export the 11 Fine-Tune vector drawables (D-17 glyphs, runtime-tintable; add/remove reused) (TUNE-07)
+
+**Wave 2** *(blocked on 17-02/03/04)*
+
+- [ ] 17-05-PLAN.md — UI: FineTuneHolder/Vm (display-scaling/gates/baselines/busy) + shared value tile (tap-inert, long-press-reset, accent ±) + Hub/Motion/Extrusion/FwRetraction screens (capability-gated, whole-group busy-lock, state-flip) (TUNE-02/03/04/05/06)
+
+**Wave 3** *(blocked on 17-05; on-device gate)*
+
+- [ ] 17-06-PLAN.md — Nav wiring (Dest.FineTune + AppShell hub→group sub-nav + drawer tile + Print-Status Tune entry) + instrumented nav test + on-device Motion/Extrusion state-flip + Adreno-320 perf UAT (autonomous:false; FW-retraction excluded — build-blind) (TUNE-01)
+
 **UI hint**: yes
-**Research note**: STANDARD — M220 / M221 / M204 / SET_VELOCITY_LIMIT / SET_PRESSURE_ADVANCE / SET_RETRACTION / SET_FAN_SPEED verified against Klipper docs; reuses the scrubber + command primitives; speed_factor/extrude_factor already in PrinterState, the rest (pressure_advance, fan.speed, toolhead limits, firmware_retraction) are new reducer fields. See 17-CONTEXT.md.
+**Research note**: STANDARD — M220 / M221 / M204 / SET_VELOCITY_LIMIT / SET_PRESSURE_ADVANCE / SET_RETRACTION / SET_FAN_SPEED verified against Klipper docs; reuses the command primitive + a new C2-derived value tile (NOT the scrubber); speed_factor/extrude_factor already in PrinterState, the rest (pressure_advance, fan.speed, toolhead limits, firmware_retraction) are new reducer fields. See 17-CONTEXT.md + 17-RESEARCH/PATTERNS/VALIDATION.
 
 ### Phase 18: Output Controls — Fans, Lights & Generic Pins
 
