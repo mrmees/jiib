@@ -833,18 +833,21 @@ private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier
     }
 }
 
-/** A greyed, disabled gutter placeholder (D-07) — neutral outline + faint label, no-op. */
+/** A greyed, disabled placeholder (D-07) — neutral outline + faint ICON-ONLY glyph, no-op. The [glyph]
+ *  is a Material-Symbol ligature; [label] is the TalkBack name (the tile is visually icon-only,
+ *  2026-06-06 UAT). */
 @Composable
-private fun DisabledTile(label: String, modifier: Modifier = Modifier) {
+private fun DisabledTile(label: String, glyph: String, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     Box(
         modifier
             .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(t.rCtrl))
-            .border(BorderStroke(2.dp, t.hair), RoundedCornerShape(t.rCtrl)),
+            .border(BorderStroke(2.dp, t.hair), RoundedCornerShape(t.rCtrl))
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(18f, t.fs).sp)
+        MaterialSymbol(glyph, tint = t.text3, sizeSp = fsSp(40f, t.fs))
     }
 }
 
@@ -964,30 +967,24 @@ private fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
     LauncherDest.Drawer -> null
 }
 
-/** One neutral-outline launcher tile (navigation intent = neutral, UI-SPEC). Icon + Body label. */
+/** One neutral-outline launcher tile (navigation intent = neutral, UI-SPEC). ICON-ONLY (the text label
+ *  was dropped on-device, 2026-06-06 UAT): the glyph fills the tile; [launcherLabel] now feeds a11y only. */
 @Composable
 private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
-    Column(
+    val label = launcherLabel(dest)
+    Box(
         modifier
             .heightIn(min = 64.dp)
             .clip(shape)
             .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
     ) {
-        MaterialSymbol(launcherGlyph(dest), tint = t.text2, sizeSp = fsSp(26f, t.fs))
-        Text(
-            launcherLabel(dest),
-            color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // Icon-only: the glyph owns the whole tile, enlarged to read across the room.
+        MaterialSymbol(launcherGlyph(dest), tint = t.text2, sizeSp = fsSp(40f, t.fs))
     }
 }
 
@@ -1039,7 +1036,7 @@ private fun ShortcutRow(
         // Tune = the flexible/growing tile (weight grows when the row is short — the "Tune grows" case).
         val tuneWeight = if (tail.size < 3) 2f else 1f
         Box(Modifier.weight(tuneWeight)) {
-            DisabledTile("Tune", Modifier.fillMaxWidth())
+            DisabledTile("Tune", glyph = "tune", modifier = Modifier.fillMaxWidth())
         }
         tail.forEach { d ->
             LauncherTile(dest = d, onClick = { launcherDestTarget(d)?.let(onNavigate) }, modifier = Modifier.weight(1f))
