@@ -737,7 +737,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3; owner doc-asset checkpoint)*
 
-- [ ] 16-07-PLAN.md — Documentation Merge: README four-state model + LAYOUT interactive-grid flexible-tile hard law + babystep C3 exception (THEMING untouched) + artboard regen (owner checkpoint)
+- [x] 16-07-PLAN.md — Documentation Merge: README four-state model + LAYOUT interactive-grid flexible-tile hard law + babystep C3 exception (THEMING untouched) + artboard regen (owner checkpoint)
 
 **Wave 5** *(blocked on Wave 4; on-device gates)*
 
@@ -863,7 +863,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
-| 16. Home / Print-Status Redesign | 6/8 | In Progress|  |
+| 16. Home / Print-Status Redesign | 7/8 | In Progress|  |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |
