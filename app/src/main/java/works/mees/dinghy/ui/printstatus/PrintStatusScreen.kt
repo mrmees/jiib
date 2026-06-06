@@ -65,7 +65,6 @@ import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.HeaterState
-import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -88,32 +87,27 @@ import works.mees.dinghy.ui.route.Dest
  * Data is read STRICTLY from fields confirmed present in docs/moonraker-capabilities.md (real Ender 5 +
  * Ender 3) — no assumed fields. Layer info is nullable (slicer/state-dependent) → "—" fallback.
  *
- * ## Inc 1 (this pass — on-the-wire data only, NO new networking)
- *  - **Focus** (printing): [ProgressRing] with the % centered, filename + state, and a Z-height / layer
- *    line. (idle → a "Ready" temp readout.)
- *  - **Field**: a 3×2 stat grid — LAYER (cur/total) · FILAMENT (used) · NOZZLE (cur/target) · BED
- *    (cur/target) · ELAPSED (print_duration) · REMAINING (— until Inc 2 brings the slicer ETA).
- *  - **Gutter**: Stop (wired e-stop + [ConfirmGuard]); Tune/Pause are disabled placeholders.
- *
- * ## Inc 2 (this pass — ONE cached `server.files.metadata` read, keyed on the active filename)
- *  - **Ring center**: the gcode thumbnail (Coil 3 [AsyncImage]) while printing; idle → Benchy.
- *  - **Layer**: total = live `print_stats.info.total_layer`, falling back to metadata `layer_count`.
- *  - **Z cell**: live Z stays the active value; metadata `object_height` is the inactive (final-height) line.
- *  - **Remaining**: slicer-file ETA = `estimated_time × (1 − progress)`, formatted H:MM, "—" when unknown.
- *
- * ## Inc 3 (this pass — the FIELD area is state-driven by `print_stats.state`)
- *  - **(A) printing/paused** → the existing [StatGrid] (UNCHANGED).
- *  - **(B) idle + a last job exists** → a [LastJobCard] (gcode thumbnail + stat list), fed by ONE
- *    one-shot `server.history.list?limit=1&order=desc` read fetched on entering a not-printing state
- *    (and refreshed when a print completes), never polled.
- *  - **(C) idle + no history** → a centered `file_copy_off` [LastJobEmpty].
- *  - Both idle surfaces are clickable nav seams with no-op `TODO(nav)` onClicks (destinations unbuilt).
- *
- * ## Deferred
- *  - tap a temp cell → its setting page; wire the mid-print Tune button; B → past-print detail and
- *    C → file browser destination screens.
+ * ## Four-state surface (Phase 16) — routed off [classifyPrintStatus]
+ * The screen renders FROM the pure [uiModel] ([PrintStatusUiModel]) per the classified
+ * [PrintStatusMode] (Standby / Printing / Paused / Terminal). Each mode renders its own
+ * Focus / Field / Gutter by RECOMPOSING the harvested primitives (ProgressRing, StatGrid, StopButton,
+ * PrintStatusControlTile, ConfirmGuard, PresetSelector):
+ *  - **Standby:** app-icon Focus + minimal glance overlay (Nozzle/Bed + [selectGlanceSensor] glance
+ *    temp + active-spool remaining) · the adaptive launcher grid (Drawer = flexible/growing tile, every
+ *    other tile dispatches a real [Dest] via [onNavigate]) · Preheat (spool-aware via [selectPreheatPath])
+ *    + inert Power gutter — no E-Stop.
+ *  - **Printing:** the 03-print-status composition ([PrintStatusFocus]) · ONE framed [StatGrid] (incl.
+ *    the Applied-Z-offset row) + the shortcut row OR the babystep 3-cell row (early-layer window) ·
+ *    Pause / Cancel / E-Stop.
+ *  - **Paused:** the Printing focus DIMMED + a pause overlay · same Field/toolset · Resume / Cancel.
+ *  - **Terminal:** a clean hero ([TerminalFocus], no ring/dim) · the stats frame (live-only fields →
+ *    "—") · Dismiss / Reprint; Terminal(Error) appends the AppShell-projected ≤3 [errorLines].
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
+ * @param onNavigate launcher/forward-nav seam — every Standby launcher tile dispatches a real [Dest].
+ * @param onOpenDrawer opens the swipe-up App Drawer (the flexible Drawer launcher tile).
+ * @param onScanSpool opens the QR scan surface (the active-spool card Scan action).
+ * @param errorLines the bounded ≤3 ERROR-line projection AppShell passes for Terminal(Error).
  */
 @Composable
 fun PrintStatusScreen(
@@ -663,187 +657,6 @@ private fun StatGrid(
                 )
             }
         }
-    }
-}
-
-/**
- * The idle "last completed job" card (Inc 3, mockup-grammar Field surface) — a clickable token surface
- * filling the field: the gcode thumbnail is the BACKGROUND (Coil 3 [AsyncImage], dimmed to 60% so text
- * reads; shown only when the source file still exists AND a thumbnail relative-path is known), with a
- * LEFT-ALIGNED paragraph of GeistMono stats overlaid on top. Every value reads from the [job] catalog
- * fields; an absent metadata field shows "—" (never fabricated). The whole surface is the ONE nav seam —
- * [onClick] is a one-liner to wire later (TODO(nav): past-print detail). All color via [LocalTokens].
- */
-@Composable
-private fun LastJobCard(
-    job: LastJob,
-    httpBase: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val context = LocalContext.current
-    val shape = RoundedCornerShape(t.rCard)
-    val showThumb = job.exists && httpBase.isNotBlank() && job.largestThumbRelPath != null
-    Box(
-        modifier
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick),
-    ) {
-        // BACKGROUND — the gcode thumbnail fills the whole card, dimmed to 60% so the overlaid text reads.
-        if (showThumb) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(thumbnailUrl(httpBase, job.filename, job.largestThumbRelPath!!))
-                    .build(),
-                contentDescription = null,
-                // Fit (not Crop): show the WHOLE preview, centered/letterboxed. Crop zoomed into a
-                // center strip in the tall, narrow landscape field pane (Matthew, 2026-06-02).
-                contentScale = ContentScale.Fit,
-                alpha = 0.3f, // fainter background so the (larger) overlaid text reads (Matthew)
-                modifier = Modifier.matchParentSize(),
-            )
-        }
-        // FOREGROUND — larger left-aligned text filling the FULL cell width, so marquee lines scroll
-        // across the whole card instead of stopping at the widest stat row's width (Matthew, 2026-06-02).
-        // Each metadata-derived row shows only when its field is present.
-        Column(
-            Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            // Filename — marquee-scrolls across the full cell width.
-            Text(
-                text = job.filename.substringAfterLast('/').ifBlank { "—" },
-                color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(22f, t.fs).sp,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.fillMaxWidth().basicMarquee(),
-            )
-            // Material — type · name + optional swatch; scrolls across the full cell width (if present).
-            if (job.filamentType != null || job.filamentName != null) {
-                LastJobScrollRow(
-                    symbol = "palette",
-                    text = listOfNotNull(job.filamentType, job.filamentName).joinToString(" · "),
-                    swatch = job.filamentColor?.let { parseHexColor(it) },
-                    widthModifier = Modifier.fillMaxWidth(),
-                )
-            }
-            // Metrics — the short stat rows.
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                LastJobStatRow("check_circle", "Status", job.status.ifBlank { "—" })
-                job.endTime?.let { LastJobStatRow("event_available", "Finished", fmtFinished(it)) }
-                LastJobStatRow("timer_arrow_up", "Elapsed", fmtDuration(job.printDuration))
-                LastJobStatRow(
-                    "hourglass_empty",
-                    "Est / actual",
-                    job.estimatedTime?.let { "${fmtDuration(it)} / ${fmtDuration(job.printDuration)}" } ?: "—",
-                )
-                LastJobStatRow(
-                    "straighten",
-                    "Filament",
-                    "${job.filamentUsed.roundToInt()} mm" +
-                        (job.filamentWeightTotal?.let { " · ${fmt(it)} g" }.orEmpty()),
-                )
-                LastJobStatRow("schedule", "Total", fmtDuration(job.totalDuration))
-                // Slicer provenance — shown only if present.
-                job.slicer?.let { s ->
-                    LastJobStatRow("build", "Slicer", s + (job.slicerVersion?.let { " $it" }.orEmpty()))
-                }
-            }
-        }
-    }
-}
-
-/**
- * One icon-led stat line in the last-job card: glyph + dim label + (optional color [swatch]) + GeistMono
- * value ("—" when absent). Wrap-content so the widest line sizes the card's text box; a value longer than
- * the card ellipsizes rather than overflowing.
- */
-@Composable
-private fun LastJobStatRow(symbol: String, label: String, value: String, swatch: Color? = null) {
-    val t = LocalTokens.current
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(20f, t.fs))
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(16f, t.fs).sp)
-        if (swatch != null) {
-            Box(
-                Modifier.size(fsSp(16f, t.fs).dp).clip(CircleShape)
-                    .background(swatch).border(BorderStroke(1.dp, t.hair), CircleShape),
-            )
-        }
-        Text(
-            value,
-            color = if (value == "—") t.text3 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/**
- * A scrolling header line in the last-job card (filename-style): glyph + optional color [swatch] + a
- * single marquee value, locked to the metrics-block [widthModifier] so a long line scrolls instead of
- * widening the card or capping the font size.
- */
-@Composable
-private fun LastJobScrollRow(symbol: String, text: String, swatch: Color?, widthModifier: Modifier) {
-    val t = LocalTokens.current
-    Row(
-        widthModifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(18f, t.fs))
-        if (swatch != null) {
-            Box(
-                Modifier.size(fsSp(16f, t.fs).dp).clip(CircleShape)
-                    .background(swatch).border(BorderStroke(1.dp, t.hair), CircleShape),
-            )
-        }
-        Text(
-            text,
-            color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.weight(1f).basicMarquee(),
-        )
-    }
-}
-
-/**
- * The idle "no print history" empty state (Inc 3) — a clickable token surface filling the field with a
- * centered `file_copy_off` Material Symbol sized by RATIO of the field's smaller dimension (no hardcoded
- * px). The whole surface is the nav seam — [onClick] is a one-liner to wire later (TODO(nav): file
- * browser). All color via [LocalTokens].
- */
-@Composable
-private fun LastJobEmpty(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    BoxWithConstraints(
-        modifier
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Glyph ≈ 40% of the smaller box dimension — scales with the field, never a fixed px.
-        val glyphSp = minOf(maxWidth, maxHeight).value * 0.4f
-        MaterialSymbol("file_copy_off", tint = t.text3, sizeSp = glyphSp)
     }
 }
 
@@ -1451,20 +1264,6 @@ private fun fmtSignedZ(v: Double): String {
 
 /** A babystep step size as a 2-decimal value (`0.05`) — matches the canonical BABYSTEP_STEPS members. */
 private fun fmtStep(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
-
-/** Format an epoch-seconds instant as a short local "Finished" stamp, e.g. "Jun 1, 9:48 PM" (java.time
- *  via core-library desugaring); "—" if the value is unparseable. */
-private fun fmtFinished(epochSeconds: Double): String =
-    runCatching {
-        java.time.Instant.ofEpochSecond(epochSeconds.toLong())
-            .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, h:mm a"))
-    }.getOrNull() ?: "—"
-
-/** Parse a "#RRGGBB"/"#AARRGGBB" hex color (the slicer's `filament_colors[]`) to a Compose [Color], or
- *  null when malformed — the swatch is then simply omitted. */
-private fun parseHexColor(hex: String): Color? =
-    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 
 /**
  * Decode the single-spool DETAIL from a `/v1/spool/{id}` proxy-v2 envelope (its `response` is a lone
