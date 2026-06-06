@@ -54,7 +54,6 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
-import works.mees.dinghy.theme.seriesColor
 
 /**
  * Fine TESTZ jog steps (mm), ascending — the +/- step selector walks this list. Selecting a step is a
@@ -427,11 +426,7 @@ private fun ProbeJogPad(
                 enabled = idx > 0,
             )
         }
-        // Z nudge column: ↑ raise on top, ↓ lower on bottom — the high/low HEIGHT affordances.
-        // Owner rule (15.2-06 closed-loop sweep): the height ends follow the theme — HIGH = accent,
-        // LOW = the generated data pool (seriesColor(1) == pool[0] in Colorful, the same source the
-        // temp graph / data series use). Token-only (THEME-01); pool is mode-aware (Colorful/Simple/
-        // High-Contrast all resolve through seriesColor), never a raw color and never a status color.
+        // Z nudge column: ↑ raise on top, ↓ lower on bottom — accent icons (a physical command), TESTZ(±step).
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ProbeIconButton(
                 painter = painterResource(R.drawable.arrow_upward),
@@ -439,7 +434,7 @@ private fun ProbeJogPad(
                 onClick = { onTestZ(step) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 intent = Intent.Accent,
-                iconTint = t.accent2, // HIGH end → accent.
+                iconTint = t.accent2,
                 enabled = enabled,
             )
             ProbeIconButton(
@@ -448,7 +443,7 @@ private fun ProbeJogPad(
                 onClick = { onTestZ(-step) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 intent = Intent.Accent,
-                iconTint = t.seriesColor(1), // LOW end → pool data color (pool[0] in Colorful).
+                iconTint = t.accent2,
                 enabled = enabled,
             )
         }
