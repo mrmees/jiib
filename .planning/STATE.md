@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T00:18:15.494Z"
+last_updated: "2026-06-06T00:29:34.759Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 16
   total_plans: 114
-  completed_plans: 109
+  completed_plans: 110
   percent: 67
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15.2 (theme-conformance-sweep-settings-ia) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
   → **Plan 15.1-07 (Wave 3: Theme Editor status swatches) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). Commits `bfd88d9` (status-slot swatches Stop/Caution/Go + writeScope-routed picker via `setActiveStatusOverride`, NO editability guard D-03 — shape carries safety not color; mode-aware STORED-vs-EFFECTIVE display so Simple/High-Contrast don't lie about an override that only renders in Colorful) + `c028f50` (shape-decorated preview strip: octagon on stop / triangle on caution / go shapeless D-02, at explicit fsSp glyph bounds; S/M/L preview samples confirmed sourced from `seriesColor(0)`+plain pool ONLY — never status / `seriesColor(1+)`, Open-Question-2). All writes route through the process-lifetime writeScope intent helper ([[dinghy-compose-write-scope-cancellation]]), never `rememberCoroutineScope()`. **flox UAT PASS 3/3** (autonomous:false gate): Colorful status-swatch edit persists across editor reopen; preview strip shows octagon-on-stop / triangle-on-caution / none-on-go; High-Contrast S/M/L samples are NOT the RYG status colors + the picker sub-label correctly states the override applies in Colorful only. 0 deviations (SUMMARY `15.1-07-SUMMARY.md`). THEME-statusedit + THEME-shape closed (design D-tokens, not REQUIREMENTS.md REQ-IDs). Next: **15.1-08** (app-wide Back sweep + THEMING.md canonicalization / conformance — the deferred 15.1-05/06 sweep work).
   → **Plans 15.1-05 + 15.1-06 EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). **15.1-05 (N-series color identity)** — commits `1a2f3db` (GraphView traces → accent-led `seriesColor(i)`: trace 0 = accent/nozzle, 1 = pool[0]/bed, 2 = pool[1]/chamber; under-fill = `seriesColor(0)`; supersedes Phase-15 `pool[i % size]`, D-05/D-06) + `c1621e0` (PrintStatus nozzle readout = `seriesColor(0)` / bed = `seriesColor(1)`; Temperature `traceColor()` = `seriesColor(index)`; Stop button gets `ic_status_octagon` tinted from `t.stop` at explicit fsSp; D-06/D-01/D-02). Cross-screen identity closed: nozzle trace == PrintStatus readout == Temperature legend trace-0 (same channel/same color). **flox UAT PASS 4/4**: trace+readout match, legend matches graph, reseed moves all together, Stop octagon distinct. 0 deviations (SUMMARY `a3170ac`). **15.1-06 (shape-glyph safety layer + Move)** — commits `cf8f1c6` (console ERROR=octagon / WARNING=triangle compound glyphs via `setCompoundDrawables` + EXPLICIT fsSp `setBounds` — NOT `...WithIntrinsicBounds` — so the 96dp vector intrinsic doesn't blow up row height; recycled-row clear; D-01/D-02; ConsoleSeverity.kt needed no change) + `14061d2` (Move unhomed-axis caution triangle from `t.heat` at explicit fsSp; force-move green-`ic_lock_closed` SAFE / red-`ic_lock_open` ARMED redundant lock shape D-12; new `ic_lock_*.xml` padlock drawables; Back → neutral/outline at consistent gutter position, D-10 Move-only) + `a7d435e` (**UAT deviation**: XY/Z home-button OUTLINES wear their group's directional color — XY → `directional.xy`, Z → `directional.z` — icon color stays the sole state carrier; reinforces D-08 grouping, re-confirmed PASS). **flox UAT PASS**: console glyphs distinct + row height fine, Move unhomed caution triangle, force-move lock open/closed flip, neutral Back. 1 UAT-driven deviation (SUMMARY `9a20c79`). App-wide Back sweep + THEMING.md canonicalization remain DEFERRED to Phase 15.2 plan 08 by design. Next: **15.1-07** (status editor UI consuming the accent-led series channel + status-slot overrides).
@@ -182,6 +182,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15.1 P15.1-07 | 15min | 2 tasks | 1 files |
 | Phase 15.1 P08 | 1m | 2 tasks | 2 files |
 | Phase 15.2 P01 | 40 | 4 tasks | 9 files |
+| Phase 15.2 P03 | 8min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -325,6 +326,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Back = neutral/outline app-wide rule (D-10) canonicalized in THEMING.md + CLAUDE.md; app-wide Back sweep deferred to Phase 15.2
 - [Phase ?]: 15.2-01: transient theme override = separate in-memory StateFlow baked by pure ThemeResolver.bake; never persists, never reads themeResolver.tokens (HIGH-1)
 - [Phase ?]: 15.2-01: dev-cycler enable = app-global release-readable DataStore boolean (NOT BuildConfig.DEBUG), default false; disabling clears the override (HIGH-5)
+- [Phase ?]: 15.2-03: Devices renamed to Printers in-place (no orphan); Dest.Devices enum kept for plan 04 IA
+- [Phase ?]: 15.2-03: per-profile webcamEnabled toggle gates Webcam tile via webcamTileEnabled; AppShell consumer repointed in plan 04
 
 ### Pending Todos
 
@@ -357,7 +360,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T00:18:15.421Z
+Last session: 2026-06-06T00:29:22.848Z
 Stopped at: Completed 15.2-01-PLAN.md
 Resume file: 
 None

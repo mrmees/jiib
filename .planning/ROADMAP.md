@@ -676,7 +676,7 @@ Plans:
 **Goal**: With the semantic/shape model finalized in 15.1, sweep every EXISTING surface for conformance to the reconciled theme LAW before new surfaces are built on top: token purity (all role tokens, zero raw colors), button-intent color correctness, Focus/Field/Gutter grammar, ≥64px touch targets, the fsSp font-size scale, and dark/light/custom correctness. Also resolve the Settings-vs-Devices information-architecture boundary deferred from Phase 15 — Connection feels redundant given the Devices screen; decide between a "printer settings page" reframe vs moving connection into a per-printer Devices editor, and implement it. The old "light final conformance re-sweep folds into Ship (Phase 21)" still holds for the LATE surfaces (16–20) built after this; 15.2 is the heavy sweep of everything that exists today. Tracked todos: .planning/todos/pending/2026-06-05-settings-vs-devices-boundary.md + 2026-06-05-pool-color-semantic-assignment.md (the latter's assignment is BUILT in 15.1; 15.2 verifies surfaces conform to it).
 **Requirements**: *(refines THEME-* / UI-* / SET-* — conformance audit + Settings IA; finer set at discuss)*
 **Depends on:** Phase 15.1
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 Plans:
 **Wave 1**
 
@@ -688,7 +688,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 15.2-03-PLAN.md — Wave 3: Printers (= Devices renamed) absorbs Connection editing + per-profile feature-toggle field on Profile (D-02/D-04)
+- [x] 15.2-03-PLAN.md — Wave 3: Printers (= Devices renamed) absorbs Connection editing + per-profile feature-toggle field on Profile (D-02/D-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
