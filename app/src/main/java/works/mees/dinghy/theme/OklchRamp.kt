@@ -1,15 +1,22 @@
 package works.mees.dinghy.theme
 
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The bed-mesh OKLCH sequential ramp baker (D-11) — a perceptually-uniform blue→teal→yellow ramp
- * kept deliberately OFF pure red/green so a tall bed-mesh spot reads as "tall," NOT as a "FAILED"
- * spot (a red/green ramp would falsely imply pass/fail on height data). Sequential height data is
- * its own sub-system, distinct from the categorical pool and from the status red/amber/green
- * language.
+ * The bed-mesh OKLCH sequential ramp baker (D-11) — a perceptually-uniform sequential ramp for the
+ * overhead heatmap. The ramp is now THEME-DERIVED ([themedRampStops]): it interpolates in OKLCH from
+ * a LOW endpoint = the active theme's first DATA-POOL color to a HIGH endpoint = the theme ACCENT, so
+ * the heatmap re-tints with the theme (dark/light/custom × Colorful/Simple/High-Contrast) instead of
+ * baking a fixed viridis sequence. The pool→accent direction keeps the height scale OFF the status
+ * red/amber/green language (height is its own sub-system, distinct from the categorical pool and the
+ * stoplight status colors), while still being a token-only, theme-following gradient (THEME-01).
+ *
+ * The original fixed viridis/cividis sequence is retained as [bedMeshRampStops] for the golden test +
+ * any consumer that still wants the locked sequence, but [works.mees.dinghy.render.BedMeshHeatmapView]
+ * now bakes [themedRampStops] from the CURRENT tokens in `applyTokens`.
  *
  * Host-pure (ZERO Android / Compose imports), mirroring [Palette]'s discipline — the output is a
  * baked `List<Int>` of opaque sRGB ARGB ints, ready for [works.mees.dinghy.render.BedMeshHeatmapView]
@@ -90,12 +97,43 @@ object OklchRamp {
         return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     }
 
+    /** Unpack the RGB channels of an opaque ARGB int into a `#rrggbb` hex (alpha discarded). */
+    private fun argbToHex(argb: Int): String {
+        val r = (argb ushr 16) and 0xFF
+        val g = (argb ushr 8) and 0xFF
+        val b = argb and 0xFF
+        return String.format(Locale.US, "#%02x%02x%02x", r, g, b)
+    }
+
     /**
      * Bake the LOCKED 32-stop viridis bed-mesh ramp as opaque ARGB ints (stop 0 = low/blue …
-     * stop 31 = high/yellow). Call ONCE (e.g. in `applyTokens`); index + lerp cheaply per cell.
+     * stop 31 = high/yellow). The locked sequence is retained for the golden test + any consumer that
+     * needs the fixed viridis ramp; the live heatmap now bakes [themedRampStops] instead so the ramp
+     * follows the theme. Call ONCE; index + lerp cheaply per cell.
      */
     fun bedMeshRampStops(): List<Int> = (0 until STOPS).map { hexToArgb(rampStopHex(it)) }
 
-    /** Stop count of [bedMeshRampStops] (32) — exposed so consumers needn't hardcode the magic number. */
+    /**
+     * Bake a THEME-DERIVED 32-stop sequential ramp as opaque ARGB ints, interpolated in OKLCH from a
+     * LOW endpoint [lowArgb] (the active theme's first DATA-POOL color) to a HIGH endpoint [highArgb]
+     * (the theme ACCENT). Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive);
+     * L and C lerp linearly, hue lerps along the SHORTER arc, mirroring [bedMeshRampStops]'s discipline
+     * but with run-time endpoints. Both endpoints are token-derived (THEME-01): no raw hex, no status
+     * color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes + lerps cheaply
+     * per cell per frame (Adreno-320 floor: NO OKLCH math in `onDraw`).
+     */
+    fun themedRampStops(lowArgb: Int, highArgb: Int): IntArray {
+        val lo = Palette.hexToOklch(argbToHex(lowArgb))
+        val hi = Palette.hexToOklch(argbToHex(highArgb))
+        return IntArray(STOPS) { i ->
+            val t = if (STOPS == 1) 0.0 else i.toDouble() / (STOPS - 1)
+            val L = lerp(lo.L, hi.L, t)
+            val C = lerp(lo.C, hi.C, t)
+            val H = lerpHueShortArc(lo.H, hi.H, t)
+            hexToArgb(Palette.oklchToHex(L, C, H))
+        }
+    }
+
+    /** Stop count of [bedMeshRampStops]/[themedRampStops] (32) — so consumers needn't hardcode it. */
     val stopCount: Int get() = STOPS
 }

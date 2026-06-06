@@ -55,4 +55,31 @@ class OklchRampTest {
         assertEquals("ramp stop 0 (low control point)", ramp.first(), baked.first())
         assertEquals("ramp stop 31 (high control point)", ramp.last(), baked.last())
     }
+
+    /** Per-channel near-equality (≤2/255) — OKLCH round-trip of an in-gamut sRGB color is near-exact. */
+    private fun assertArgbClose(msg: String, expected: Int, actual: Int) {
+        val er = (expected ushr 16) and 0xFF; val eg = (expected ushr 8) and 0xFF; val eb = expected and 0xFF
+        val ar = (actual ushr 16) and 0xFF; val ag = (actual ushr 8) and 0xFF; val ab = actual and 0xFF
+        val ok = Math.abs(er - ar) <= 2 && Math.abs(eg - ag) <= 2 && Math.abs(eb - ab) <= 2
+        org.junit.Assert.assertTrue("$msg: expected ${argbToHex(expected)} got ${argbToHex(actual)}", ok)
+    }
+
+    @Test
+    fun themedRamp_endpointsAreLowAndHigh_andCount() {
+        // 15.2-06: theme-derived ramp — LOW = a data-pool color, HIGH = the accent. Endpoints inclusive.
+        val low = 0xFF1E66F5.toInt()  // a saturated blue (in-gamut data-pool stand-in)
+        val high = 0xFFE6A817.toInt() // a saturated amber/gold (accent stand-in)
+        val baked = OklchRamp.themedRampStops(low, high)
+        assertEquals("themed ramp stop count", OklchRamp.stopCount, baked.size)
+        assertArgbClose("themed ramp stop 0 == LOW (pool)", low, baked.first())
+        assertArgbClose("themed ramp stop ${baked.lastIndex} == HIGH (accent)", high, baked.last())
+    }
+
+    @Test
+    fun themedRamp_reTintsWhenEndpointsChange() {
+        // Re-baking with different endpoints yields a different ramp (proves it follows the theme).
+        val a = OklchRamp.themedRampStops(0xFF1E66F5.toInt(), 0xFFE6A817.toInt())
+        val b = OklchRamp.themedRampStops(0xFF40A02B.toInt(), 0xFFD20F39.toInt())
+        org.junit.Assert.assertFalse("ramp must change when theme endpoints change", a.contentEquals(b))
+    }
 }

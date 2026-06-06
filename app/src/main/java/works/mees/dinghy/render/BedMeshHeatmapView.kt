@@ -11,6 +11,7 @@ import kotlin.math.max
 import works.mees.dinghy.calibration.BedMeshModel
 import works.mees.dinghy.theme.OklchRamp
 import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.theme.views.ThemeableView
 
 /**
@@ -27,21 +28,22 @@ import works.mees.dinghy.theme.views.ThemeableView
  *  - the repaint trigger is the imperative [setMesh] called on a NEW sample (D-13) — there is NO
  *    animation loop (no `ValueAnimator` / `postInvalidateOnAnimation`), honoring the CLAUDE.md motion
  *    rule (the Adreno-320 floor cannot spare a continuous-fill loop);
- *  - NO raw hex literal lives here (THEME-01) — the ramp is a baked OKLCH sequence (see below).
+ *  - NO raw hex literal lives here (THEME-01) — the ramp endpoints come from role tokens (see below).
  *
- * ## The color ramp (UI-SPEC §4 / D-11)
- * The interpolated `mesh_matrix` paints an overhead grid using a dedicated perceptually-uniform OKLCH
- * SEQUENTIAL ramp ([OklchRamp.bedMeshRampStops]) — viridis-style blue(LOW) → teal → yellow(HIGH), kept
- * deliberately OFF pure red/green so a tall spot reads as "tall," NOT as a "FAILED" spot (a red/green
- * ramp would falsely imply pass/fail on height data; height is its own sub-system, distinct from the
- * categorical pool and the status red/amber/green language). The ramp does NOT derive from any
- * status/surface/accent role token — it is baked ONCE in [applyTokens] into [rampStops] (32 opaque ARGB
- * ints) and `onDraw` only INDEXES + lerps between adjacent baked stops (NO OKLCH math per cell per
- * frame — the Adreno-320 fill-rate floor cannot spare a 20-iter gamut search per cell, RESEARCH Pitfall
- * 5). The ramp is theme-INDEPENDENT (the sequential height scale is the same under dark/light/custom);
- * `applyTokens` still pushes the dot/outline chrome from role tokens. The `probed_matrix` raw dots draw
- * on top in `--text-3` at low opacity, their radius SHRINKING with grid density (D-08, 3×3 large → 50×50
- * tiny) so a dense probe set doesn't smear.
+ * ## The color ramp (UI-SPEC §4 / D-11) — THEME-DERIVED (15.2-06)
+ * The interpolated `mesh_matrix` paints an overhead grid using a perceptually-uniform OKLCH SEQUENTIAL
+ * ramp that now FOLLOWS THE THEME: LOW = the active theme's first DATA-POOL color (`seriesColor(1)` —
+ * mode-aware, == `pool[0]` in Colorful; the same data-pool source the temp-graph series read), HIGH =
+ * the theme ACCENT (`seriesColor(0)`). The pool→accent gradient keeps the height scale OFF pure
+ * red/green so a tall spot reads as "tall," NOT as a "FAILED" spot — height is its own sub-system,
+ * distinct from the status red/amber/green language. Both endpoints are token-only (THEME-01); no raw
+ * hex, no status color. The 32-stop ramp is (re-)baked in [applyTokens] from the CURRENT tokens into
+ * [rampStops] via [OklchRamp.themedRampStops], so a dark/light/custom OR palette-mode flip RE-TINTS the
+ * heatmap with no view recreation. `onDraw` only INDEXES + lerps between adjacent baked stops (NO OKLCH
+ * math per cell per frame — the Adreno-320 fill-rate floor cannot spare a 20-iter gamut search per cell,
+ * RESEARCH Pitfall 5; the 32 OKLCH conversions run once per `applyTokens`, never per frame). The
+ * `probed_matrix` raw dots draw on top in `--text-3` at low opacity, their radius SHRINKING with grid
+ * density (D-08, 3×3 large → 50×50 tiny) so a dense probe set doesn't smear.
  *
  * ## Scale modes (UI-SPEC §4 — pure color-mapping, no re-probe)
  * The [setMesh] `scaleMode` selects the saturation ENDPOINTS the deviations map against — it only
@@ -80,27 +82,37 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     private val cellRect = RectF()
 
     /**
-     * The baked OKLCH sequential ramp (D-11): 32 opaque ARGB stops, blue(LOW)→teal→yellow(HIGH), OFF
-     * pure red/green. Baked ONCE here at construction via [OklchRamp.bedMeshRampStops] — the ramp is
-     * theme-INDEPENDENT (the sequential height scale is identical under dark/light/custom), so it does
-     * NOT derive from any status/surface/accent role token and is NOT re-baked in [applyTokens]. The
-     * 20-iter OKLCH gamut math runs exactly 32 times (here), never per cell per frame (RESEARCH Pitfall
-     * 5 — the Adreno-320 fill floor cannot spare a gamut search per cell). `onDraw` only INDEXES this
-     * array + [lerpArgb]s between adjacent stops.
+     * The baked OKLCH sequential ramp (D-11): 32 opaque ARGB stops, pool(LOW)→accent(HIGH), OFF the
+     * status red/amber/green language. (Re-)baked in [applyTokens] from the CURRENT tokens via
+     * [OklchRamp.themedRampStops] (LOW = `seriesColor(1)` data-pool color, HIGH = accent), so the ramp
+     * RE-TINTS on every theme / palette-mode change. Seeded here at construction with the locked viridis
+     * sequence ([OklchRamp.bedMeshRampStops]) purely as a pre-`applyTokens` placeholder — the host
+     * always pushes tokens in its `update` block before the first paint, so the placeholder is never the
+     * painted ramp in practice. The 20-iter OKLCH gamut math runs exactly 32 times per `applyTokens`,
+     * never per cell per frame (RESEARCH Pitfall 5 — the Adreno-320 fill floor cannot spare a gamut
+     * search per cell). `onDraw` only INDEXES this array + [lerpArgb]s between adjacent stops.
      */
-    private val rampStops: IntArray = OklchRamp.bedMeshRampStops().toIntArray()
+    private var rampStops: IntArray = OklchRamp.bedMeshRampStops().toIntArray()
 
     /** Current heatmap model (the interpolated grid + probe dots) and active scale mode. */
     private var model: BedMeshModel = BedMeshModel()
     private var scaleMode: ScaleMode = ScaleMode.RELATIVE
 
     /**
-     * Push the active tokens (D-06): the height ramp itself is theme-INDEPENDENT and baked once (see
-     * [rampStops]), so applyTokens only pushes the surrounding CHROME from role tokens — dots=`--text-3`
-     * at low opacity (D-08), the empty-state outline=`--outline`. No raw hex; the ramp no longer derives
-     * from any status/surface/accent token.
+     * Push the active tokens (D-06): RE-BAKE the height ramp from the CURRENT tokens so it follows the
+     * theme — LOW = `seriesColor(1)` (the first data-pool color; mode-aware, == `pool[0]` in Colorful),
+     * HIGH = `seriesColor(0)` (the accent). The 32 OKLCH conversions run here (once per token push), so a
+     * dark/light/custom OR palette-mode flip re-tints the heatmap with no view recreation; `onDraw` stays
+     * allocation-free (index + lerp only). Also pushes the surrounding CHROME from role tokens —
+     * dots=`--text-3` at low opacity (D-08), the empty-state outline=`--outline`. All endpoints are
+     * token-derived (THEME-01); no raw hex, no status color.
      */
     override fun applyTokens(t: ThemeTokens) {
+        // pool→accent gradient: LOW = first data-pool color (mode-aware), HIGH = accent.
+        rampStops = OklchRamp.themedRampStops(
+            lowArgb = t.seriesColor(1).toArgb(),
+            highArgb = t.seriesColor(0).toArgb(),
+        )
         dotPaint.color = t.text3.toArgb()
         dotPaint.alpha = DOT_ALPHA
         emptyPaint.color = t.outline.toArgb()
@@ -202,10 +214,10 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     }
 
     /**
-     * Look up the baked OKLCH ramp for a normalized [frac] in 0..1: 0 = LOW (blue) … 1 = HIGH (yellow),
-     * teal through the middle. Pure index + [lerpArgb] between the two adjacent baked stops — NO OKLCH
-     * math (that ran once at construction in [rampStops]; RESEARCH Pitfall 5). Returns a packed ARGB int
-     * (no Color object allocation).
+     * Look up the baked OKLCH ramp for a normalized [frac] in 0..1: 0 = LOW (the data-pool color) …
+     * 1 = HIGH (the accent), interpolated in OKLCH between. Pure index + [lerpArgb] between the two
+     * adjacent baked stops — NO OKLCH math (that ran once per `applyTokens` into [rampStops]; RESEARCH
+     * Pitfall 5). Returns a packed ARGB int (no Color object allocation).
      */
     private fun rampColor(frac: Float): Int {
         val n = rampStops.size
