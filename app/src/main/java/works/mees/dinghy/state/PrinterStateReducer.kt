@@ -108,6 +108,9 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         gm.doubleOrNullAt("extrude_factor")?.let { s = s.copy(extrudeFactor = it) }
         // MOVE-04 / Pitfall 1: gcode_position is the offsets-stripped user-facing X/Y/Z source — NOT toolhead.position.
         gm.doubleListOrNull("gcode_position")?.let { s = s.copy(gcodePosition = it) }
+        // Phase 16 / SC-5: applied Z offset (live babystep) = homing_origin[2]. getOrNull(2) is null-safe
+        // on a short/garbage array (the helper already null-guards non-numeric cells), so we never crash.
+        gm.doubleListOrNull("homing_origin")?.let { s = s.copy(gcodeZOffset = it.getOrNull(2)) }
     }
 
     // Progress can arrive on either virtual_sdcard or display_status; last writer wins per frame.

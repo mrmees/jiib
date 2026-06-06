@@ -55,6 +55,13 @@ data class PrinterState(
     /** `gcode_move.extrude_factor` (1.0 = 100%). */
     val extrudeFactor: Double = 1.0,
 
+    /**
+     * `gcode_move.homing_origin[2]` — the applied Z offset (live babystep / `SET_GCODE_OFFSET`),
+     * surfaced for the Print-Status babystep applied-offset readout (Phase 16 / SC-5). Null until
+     * first reported (or when a short/garbage `homing_origin` array is received — null-safe walk).
+     */
+    val gcodeZOffset: Double? = null,
+
     /** Currently printing filename from `print_stats.filename` (empty when idle). */
     val printFilename: String = "",
 

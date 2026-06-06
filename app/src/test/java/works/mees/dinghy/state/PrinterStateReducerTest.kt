@@ -6,6 +6,7 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -182,10 +183,10 @@ class PrinterStateReducerTest {
             """{ "gcode_move": { "homing_origin": [0.0, 0.0, 0.125, 0.0] } }""",
         ).jsonObject
         val state = reduceDiff(PrinterState(), diff)
-        // Keep the parsed state load-bearing so the fixture/helpers compile-prove.
         assertNotNull(state)
-        // EXPECT (16-04): state.gcodeZOffset == 0.125  (homing_origin index 2)
-        fail("not yet implemented — 16-04 PrinterState.gcodeZOffset from gcode_move.homing_origin[2]")
+        // homing_origin index 2 is the applied Z offset (SC-5).
+        assertNotNull("gcodeZOffset parsed", state.gcodeZOffset)
+        assertEquals(0.125, state.gcodeZOffset!!, 0.0001)
     }
 
     @Test
@@ -195,9 +196,8 @@ class PrinterStateReducerTest {
         ).jsonObject
         val state = reduceDiff(PrinterState(), diff)
         assertNotNull(state)
-        // EXPECT (16-04): a short (<3) homing_origin array -> state.gcodeZOffset == null (retains prior),
-        // never an index-out-of-bounds crash (double*ListOrNull null-safe walk).
-        fail("not yet implemented — 16-04 gcodeZOffset null-safe on short homing_origin")
+        // A short (<3) homing_origin array -> getOrNull(2) == null; no index-out-of-bounds crash.
+        assertNull("short homing_origin yields null gcodeZOffset", state.gcodeZOffset)
     }
 
     @Test
