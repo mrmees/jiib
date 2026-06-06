@@ -141,6 +141,53 @@ neither applies to plain navigation.)
 
 These are defaults, overridable per case, but keep them consistent — color *is* the affordance signal.
 
+### Conformance criteria — the C-series (15.2 D-10 guided core-screen review)
+
+> These criteria were surfaced by the **D-10 guided on-device review** of the core daily-driver
+> screens (15.2-05) and are now LAW. They sharpen the "Button intent = color" and Status rules into
+> **testable conformance checks** so the 15.2 app-wide sweep (and every future phase) audits against
+> them. Each maps to a column / finding in `.planning/phases/15.2-…/15.2-AUDIT.md`.
+
+- **C1 — Expected physical action is ACCENT, not caution/danger.** A button that performs a screen's
+  EXPECTED physical action uses the **accent** intent — not caution/amber, not danger/red. (Reinforces
+  "accent = an ordinary physical command with no special hazard": jogging an axis on the *Move* screen
+  is the expected action of that screen, so it is accent, NOT caution. Caution/danger are reserved for
+  genuinely hazardous or destructive taps, not the screen's own reason-to-exist.)
+- **C2 — The increment picker is a 3-cell pattern.** Any increment/step picker is `[decrement] [center
+  value display] [increment]` (three cells), with two interaction modes:
+  - **(a) SHARED increment** (multiple controls share one step value): the **+/- buttons step the
+    increment** through a predecided list, and **tapping the center value** scrolls up through the
+    selection list.
+  - **(b) SINGLE-MEASUREMENT increment** (the step applies to one value): **tapping the value performs
+    the adjustment** and the **arrows perform the action**.
+  *(The component to realise this is deferred — see AUDIT R1 / Phase 17.)*
+- **C3 — Vertical adjustments use a vertical arrangement when the orientation allows it.** A control for
+  a vertical quantity (e.g. **Z**) must NOT sit in a horizontal row when the active orientation
+  (landscape vs portrait) layout affords a vertical arrangement. (A layout/density rule — also recorded
+  in LAYOUT.md.)
+- **C4 — A control that ENABLES a catastrophic state is FILLED with the STOP color while active.** When
+  a control arms a dangerous/catastrophic mode (e.g. **force-move unlock**), its active state is **filled
+  with the stop color** (not merely outlined) — the filled stop-red is the unmistakable "you are now in a
+  dangerous mode" signal. (Complements the shape signal, e.g. the open-padlock silhouette.)
+- **C5 — The screen's NATURAL PRIMARY ACTION takes ACCENT, and may be context-dependent.** The single
+  action that is the reason the user came to the screen wears the **accent** intent, and which action
+  that *is* may depend on state. Examples: **Temperature** — *Presets* is the accent action when not
+  heating, but *Cooldown* becomes the active/accent action once heating; **Files** — *Print file* is the
+  accent action.
+- **C6 — Config/settings-type surfaces are EXEMPT from the ≥64px touch minimum and should be DENSIFIED.**
+  Settings-class surfaces (Settings, Theme editor, and similar config pages) are a deliberate
+  **close-interaction** use case — held in the hand, not read across the room — so they are **exempt from
+  the ≥64px "super-touch-friendly" minimum-target rule** and should be **densified**: tighter rows,
+  toggles / dropdowns / popups, fit-on-one-page. The **print-control surfaces remain fully bound by the
+  ≥64px touch-friendly rule** — C6 does not relax them. (A layout/density rule — also recorded in
+  LAYOUT.md.)
+- **C7 — BACK is Neutral ONLY for plain navigation; a discarding/rejecting Back stays RED.** Plain
+  navigational Back is **Neutral/outline** (D-10). But a Back/Cancel that **DISCARDS pending input** or
+  **REJECTS a pending result** is a cancel-with-loss and stays **Danger/red** (`stop`). (This is why the
+  Task-1 sweep correctly left `MeasuredWeightPage` and `ScanConfirmCard` Backs red — they discard a
+  pending measurement / reject a pending scan result. No code change needed; this documents the rule.)
+  See the `OutlinedControl`/`Intent` docstring for the matching code-level statement.
+
 **Worked examples (the v1 panels), as built:**
 - *Move gutter* — **All / home** (accent — the primary physical command) · **Disable** (red, un-homes)
   · **Back** (**neutral/outline**, D-10).

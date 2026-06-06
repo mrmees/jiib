@@ -65,6 +65,23 @@ screen, *not* the raw canvas.
 
 ---
 
+## Conformance criteria — layout/density (15.2 D-10)
+
+Two of the 15.2 D-10 C-series criteria are layout/density rules (the full C-series lives in
+THEMING.md → "Conformance criteria — the C-series"); they are restated here because they govern
+arrangement and target sizing:
+
+- **C3 — Vertical adjustments use a vertical arrangement when the orientation allows it.** A control
+  for a vertical quantity (e.g. **Z**) must NOT be placed in a horizontal row when the active
+  orientation (landscape vs portrait) layout affords a vertical arrangement. (The Z-row in *Move* is
+  the worked example — see AUDIT R2 / Phase 17 for the rework.)
+- **C6 — Config/settings-type surfaces are EXEMPT from the ≥64px touch minimum and should be
+  DENSIFIED.** Settings-class surfaces (Settings, Theme editor, and similar config pages) are a
+  deliberate **close-interaction** use case — held in the hand, not read across the room — so they are
+  **exempt from the ≥64px minimum-target floor** (NON-NEGOTIABLE 3's touch floor) and should be
+  **densified**: tighter rows, toggles / dropdowns / popups, fit-on-one-page. The **print-control
+  surfaces remain fully bound by the ≥64px floor** — C6 does not relax them.
+
 ## Orientation rules (mechanics)
 
 **Portrait** — stacked column, full-width regions. Gutter may grow to **two rows**;

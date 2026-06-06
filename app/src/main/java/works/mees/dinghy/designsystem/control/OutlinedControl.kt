@@ -37,7 +37,14 @@ import androidx.compose.material3.Text
  *  - [Go]      — accept / done / commit a positive action → `go` (green).
  *
  * Plain navigational Back spends NO safety color — it is [Neutral]/outline app-wide (15.1 D-10;
- * MoveScreen is the reference). Only a Back that DISCARDS pending input/result is [Danger].
+ * MoveScreen is the reference).
+ *
+ * **C7 (15.2 D-10) — a discarding/rejecting Back stays [Danger]/red.** Back is [Neutral] ONLY for
+ * plain navigation that changes nothing. A Back/Cancel that **DISCARDS pending input** or **REJECTS a
+ * pending result** is a cancel-with-loss and stays [Danger] (`stop`). This is why `MeasuredWeightPage`
+ * (discards a pending measurement) and `ScanConfirmCard` (rejects a pending scan result) keep red
+ * Backs — they are NOT plain navigation. See docs/ui_design/THEMING.md → "Conformance criteria — the
+ * C-series" → C7.
  */
 enum class Intent {
     Neutral,
