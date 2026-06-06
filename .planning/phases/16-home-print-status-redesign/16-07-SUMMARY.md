@@ -116,6 +116,14 @@ None - documentation-only plan, no external service configuration required.
   Terminal hero + stats-frame boards) and retire/replace the stale `03-print-status.png`. Prose is the
   authority until then.
 
+## Self-Check: PASSED
+
+- `16-07-SUMMARY.md` exists on disk.
+- Commits present: `d62b3dd` (Task 1), `a4bb616` (Task 2), `11e90c8` (metadata).
+- No PNG under `docs/ui_design/images/` modified by any 16-07 commit (explicit deferral honored).
+- `docs/ui_design/THEMING.md` untouched by any 16-07 commit.
+- Working tree clean.
+
 ---
 *Phase: 16-home-print-status-redesign*
 *Completed: 2026-06-06*
