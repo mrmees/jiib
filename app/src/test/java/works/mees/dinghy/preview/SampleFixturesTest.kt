@@ -1,64 +1,86 @@
 package works.mees.dinghy.preview
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.ui.finetune.FineTuneVm
 import works.mees.dinghy.ui.printstatus.PrintStatusMode
 import works.mees.dinghy.ui.printstatus.TerminalKind
+import works.mees.dinghy.ui.printstatus.classifyPrintStatus
 
 /**
- * Phase-18 Wave-0 **compile scaffold** for the preview/fixture module (SC-2).
+ * The LIVE preview/fixture-module test (SC-2) — converted from the 18-01 Wave-0 compile scaffold now
+ * that [SampleFixtures] exists. Asserts the reusable fixtures cover every PrintStatus state, expose
+ * the three FineTune capability variants (present / FW-retraction-absent / busy), and carry a
+ * non-empty spool list + temp series — the seed the exemplars (and the Phase-22 backfill) reuse.
  *
- * ⚠ This is a COMPILE SCAFFOLD, NOT a failing "RED" test. It MUST compile day-one and PASS today
- * by asserting CURRENT facts about EXISTING typed symbols ([PrintStatusMode], [TerminalKind],
- * [FineTuneVm]). Per [[dinghy-wave0-red-scaffold-compile.md]] the whole test sourceset is compiled
- * before the `--tests` filter runs, so a scaffold that referenced a not-yet-built symbol (the future
- * `works.mees.dinghy.preview.SampleFixtures`) as a LIVE Kotlin import would brick EVERY per-wave test
- * run. The future symbol is therefore referenced ONLY in a `// TODO(18-02):` comment below; plan 18-02
- * converts that comment to a live typed assertion when `SampleFixtures` exists.
+ * Still PURE: no Moonraker, no network, no coroutines (SampleFixtures is plain immutable data).
  */
 class SampleFixturesTest {
 
-    /**
-     * Current fact: the four Print-Status modes the preview fixtures must cover all exist and are
-     * distinct (the `@PreviewParameter` axis 18-02 will expose via `SampleFixtures.printStatusModes`).
-     */
     @Test
-    fun printStatusModes_existAndAreDistinct() {
-        val modes = listOf(
-            PrintStatusMode.Standby,
-            PrintStatusMode.Printing,
-            PrintStatusMode.Paused,
-            PrintStatusMode.Terminal(TerminalKind.Complete),
-            PrintStatusMode.Terminal(TerminalKind.Cancelled),
-            PrintStatusMode.Terminal(TerminalKind.Error),
-        )
-        // All six are distinct (Terminal carries its kind).
+    fun printStatusModes_coverAll4StatesAcrossTheTerminalKinds() {
+        val modes = SampleFixtures.printStatusModes
+        // All six entries are distinct (the 4 states, Terminal expanded to its three kinds).
         assertEquals(6, modes.toSet().size)
-        // The three terminal kinds are exactly the enum.
-        assertEquals(3, TerminalKind.entries.size)
-
-        // TODO(18-02): convert to a live assertion when works.mees.dinghy.preview.SampleFixtures exists —
-        //   assert SampleFixtures.printStatusModes covers all 4 PrintStatusMode states (Standby, Printing,
-        //   Paused, Terminal×kinds) so the @PreviewParameter provider renders every state. Do NOT import
-        //   SampleFixtures until it is built (compile-day-one rule).
+        // Every non-terminal state is present.
+        assertTrue("Standby present", modes.contains(PrintStatusMode.Standby))
+        assertTrue("Printing present", modes.contains(PrintStatusMode.Printing))
+        assertTrue("Paused present", modes.contains(PrintStatusMode.Paused))
+        // All three terminal kinds present.
+        val terminalKinds = modes.filterIsInstance<PrintStatusMode.Terminal>().map { it.kind }.toSet()
+        assertEquals("all 3 terminal kinds covered", TerminalKind.entries.toSet(), terminalKinds)
     }
 
-    /**
-     * Current fact: a default [FineTuneVm] constructs with all-absent capability gates and null values
-     * (the "absent" fixture variant 18-02 builds present/absent/busy stand-ins from).
-     */
     @Test
-    fun fineTuneVm_defaultIsAllAbsentAndEmpty() {
+    fun forMode_reproducesEachModesPrintState() {
+        // The inverse of classifyPrintStatus: a fixture built forMode(m) classifies back to m.
+        for (mode in SampleFixtures.printStatusModes) {
+            val state = SampleFixtures.forMode(mode)
+            assertEquals("forMode($mode) must classify back to $mode", mode, classifyPrintStatus(state))
+        }
+    }
+
+    @Test
+    fun fineTuneVariants_arePresentAbsentAndBusy() {
+        // Present: every capability gate true with non-null display-scaled values.
+        val present = SampleFixtures.fineTuneAllPresent
+        assertTrue("present sets all capability gates", present.hasGcodeMove && present.hasToolhead &&
+            present.hasExtruder && present.hasFan && present.hasFwRetraction)
+        assertNotNull("present has a non-null speedPct", present.speedPct)
+        assertNotNull("present has a non-null retractLength", present.retractLength)
+        assertTrue("present is not busy", !present.groupBusy)
+
+        // Absent (FW-retraction): the HIDDEN path — gate false + retraction sub-values null.
+        val absent = SampleFixtures.fineTuneNoFwRetraction
+        assertTrue("FW-retraction gate is false", !absent.hasFwRetraction)
+        assertEquals("retractLength null in the absent variant", null, absent.retractLength)
+        assertTrue("the other gates stay present", absent.hasGcodeMove && absent.hasExtruder)
+
+        // Busy: the whole-group lock.
+        assertTrue("busy variant sets groupBusy", SampleFixtures.fineTuneBusy.groupBusy)
+
+        assertEquals("three FineTune variants exposed", 3, SampleFixtures.fineTuneVariants.size)
+    }
+
+    @Test
+    fun spoolListAndTempSeries_areNonEmpty() {
+        assertTrue("dense spool list is non-empty", SampleFixtures.spoolList.isNotEmpty())
+        assertTrue("temp series is non-empty", SampleFixtures.tempSeries.isNotEmpty())
+        // At least one spool carries a multi-color filament (the split-swatch exemplar).
+        assertTrue(
+            "a multi-color spool exists",
+            SampleFixtures.spoolList.any { (it.filament?.multiColorHexes ?: "").contains(',') },
+        )
+    }
+
+    @Test
+    fun defaultFineTuneVm_isStillAllAbsent() {
+        // The contract the absent variant builds on: a bare FineTuneVm() is all-absent/null.
         val vm = FineTuneVm()
         assertTrue("default FineTuneVm has no capabilities", !vm.hasGcodeMove && !vm.hasToolhead &&
             !vm.hasExtruder && !vm.hasFan && !vm.hasFwRetraction)
-        assertTrue("default FineTuneVm is not group-busy", !vm.groupBusy)
         assertEquals("default speedPct is null (shows em-dash, never a fabricated 0)", null, vm.speedPct)
-
-        // TODO(18-02): convert to a live assertion when SampleFixtures exposes the FineTune present/absent/
-        //   busy fixture variants — assert the "present" fixture sets capability gates true with non-null
-        //   display-scaled values, and the "busy" fixture sets groupBusy = true.
     }
 }
