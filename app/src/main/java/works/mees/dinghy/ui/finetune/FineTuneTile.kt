@@ -5,12 +5,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +29,15 @@ import works.mees.dinghy.theme.fsSp
 
 /**
  * The shared Fine-Tune value tile (D-13/D-14/D-16/D-19) — a single live-adjust control:
- * `icon · name · live-value · − · +`.
+ * `icon · live-value · − · +`.
+ *
+ * ## No text label — the glyph identifies the tunable (17-06 polish)
+ * The tile carries **no name/title Text** in either orientation; the per-row [iconRes] glyph is the sole
+ * identity affordance (the design system's "dense cells drop labels" rule). [name] is retained as the
+ * icon's `contentDescription` for TalkBack and as the call-site's documented intent — it is never drawn.
+ * Dropping the stacked label is what frees the vertical room so the big tabular value can render fully
+ * (vertically centered) without clipping on the Adreno-320 / 1920×1200 floor; the value font is NOT
+ * shrunk to fit. The tile is now a single centered Row: `[glyph]  [big value]  [ − ] [ + ]`.
  *
  * ## Tap-inert value, long-press = reset (D-14 / D-16, REVIEW #3)
  * The value cell is NEVER `.clickable` for a tap-to-set — tapping it is INERT (D-14). [onReset] is
@@ -52,8 +56,8 @@ import works.mees.dinghy.theme.fsSp
  * Glyphs come from the 17-04 project-local vector drawables via [painterResource] + [Icon] tinting — NOT
  * the Material Symbols font (D-17, minSdk-23 / Adreno-320, no font dependency).
  *
- * @param iconRes    the 17-04 R.drawable glyph for this tuner.
- * @param name       the tuner label.
+ * @param iconRes    the 17-04 R.drawable glyph for this tuner (the sole on-screen identity).
+ * @param name       the tuner label — NOT drawn; used as the glyph's accessibility contentDescription.
  * @param valueText  the live, display-scaled value ("—" when unreported, never a fabricated 0).
  * @param onDecrement − nudge (one command per tap; confirmed by the reduced state flip).
  * @param onIncrement + nudge.
@@ -84,42 +88,35 @@ fun FineTuneTile(
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Identity: glyph + name (left).
+            // Identity = glyph only (no text label — 17-06; `name` rides as the contentDescription).
             Icon(
                 painter = painterResource(iconRes),
-                contentDescription = null,
+                contentDescription = name,
                 tint = if (enabled) t.text2 else t.text3,
                 modifier = Modifier.size(fsSp(34f, t.fs).dp),
             )
-            Column(
-                Modifier.weight(1f).padding(horizontal = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = name,
-                    color = if (enabled) t.text2 else t.text3,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = fsSp(18f, t.fs).sp,
-                    textAlign = TextAlign.Center,
-                )
-                // Tap-INERT value cell. Long-press resets ONLY when onReset != null (REVIEW #3).
-                val valueMod = if (enabled && onReset != null) {
-                    Modifier.pointerInput(onReset) { detectTapGestures(onLongPress = { onReset() }) }
-                } else {
-                    Modifier
+            // Tap-INERT value cell. Long-press resets ONLY when onReset != null (REVIEW #3).
+            // Vertically centered in the row + weight(1f) so the big value can never clip in either
+            // orientation; the value font is NOT shrunk (the dropped label is what buys the room).
+            val valueMod = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+                .let {
+                    if (enabled && onReset != null) {
+                        it.pointerInput(onReset) { detectTapGestures(onLongPress = { onReset() }) }
+                    } else {
+                        it
+                    }
                 }
-                Text(
-                    text = valueText,
-                    color = if (enabled) t.text else t.text3,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(48f, t.fs).sp,
-                    textAlign = TextAlign.Center,
-                    modifier = valueMod,
-                )
-            }
+            Text(
+                text = valueText,
+                color = if (enabled) t.text else t.text3,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(48f, t.fs).sp,
+                textAlign = TextAlign.Center,
+                modifier = valueMod,
+            )
             // ± nudge cells — the screen's expected physical action (accent, THEMING C5).
             NudgeCell(onDecrement, enabled, decrement = true)
             NudgeCell(onIncrement, enabled, decrement = false)
