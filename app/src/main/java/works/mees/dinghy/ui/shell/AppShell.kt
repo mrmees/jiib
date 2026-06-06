@@ -321,6 +321,20 @@ fun AppShell(
     // composition, compounding per reconnect (WR-01). onDispose fires when [consoleHolder] re-keys.
     DisposableEffect(consoleHolder) { onDispose { consoleHolder.cancel() } }
 
+    // FIX 6 (16-06): AppShell projects a BOUNDED ≤3 error-line list into the Print-Status home — the
+    // Terminal(Error) data path. The screen does NOT reach into the store itself; it renders these
+    // pre-projected strings as plain text (T-16-06-04 injection mitigation). Filter the raw console
+    // scrollback to ERROR severity, take the last 3, map to the raw message (the prefix-preserved line).
+    val errorLines by consoleHolder.state
+        .map { lines ->
+            lines.asSequence()
+                .filter { it.severity == works.mees.dinghy.ui.console.ConsoleSeverity.ERROR }
+                .map { it.rawMessage }
+                .toList()
+                .takeLast(3)
+        }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+
     // Macro bookmarks/revealHidden are PROCESS-scoped (container.macroPrefs from Task 1 B1) — they
     // survive reconnects, so they are stateIn'd ONCE on the shell scope (not re-keyed on the store).
     val bookmarksFlow = remember {
@@ -454,10 +468,14 @@ fun AppShell(
         when (dest) {
             Dest.PrintStatus -> PrintStatusScreen(
                 container = container,
-                onOpenFiles = { navigateTo(Dest.Files) },
-                onOpenSpool = { navigateTo(Dest.Spool) },
+                // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real Dest
+                // via onNavigate; the always-present flexible Drawer tile opens the swipe-up drawer.
+                onNavigate = { navigateTo(it) },
+                onOpenDrawer = { drawerOpen = true },
                 // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
                 onScanSpool = { nav.scanActive = true },
+                // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
+                errorLines = errorLines,
             )
             Dest.Temperature -> TemperatureScreen(
                 container = container,

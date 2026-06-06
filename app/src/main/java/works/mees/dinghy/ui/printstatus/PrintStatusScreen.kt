@@ -76,6 +76,7 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
+import works.mees.dinghy.ui.route.Dest
 
 /**
  * The Print Status home (SHELL-04) — the primary monitor surface (≈90% of interaction). Built on
@@ -114,11 +115,17 @@ import works.mees.dinghy.theme.seriesColor
 @Composable
 fun PrintStatusScreen(
     container: AppContainer,
-    onOpenFiles: () -> Unit = {},
-    onOpenSpool: () -> Unit = {},
-    onScanSpool: () -> Unit = onOpenSpool,
+    onNavigate: (Dest) -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
+    onScanSpool: () -> Unit = {},
+    errorLines: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
+    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(Dest.*) /
+    // onOpenDrawer(); the active-spool card Change/Open routes to the Spool screen. Local aliases keep
+    // the existing card-wiring below readable while Tasks 2-4 fill the Standby/Terminal bodies.
+    val onOpenFiles: () -> Unit = { onNavigate(Dest.Files) }
+    val onOpenSpool: () -> Unit = { onNavigate(Dest.Spool) }
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)

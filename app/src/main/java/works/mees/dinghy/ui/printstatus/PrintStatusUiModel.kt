@@ -1,0 +1,130 @@
+package works.mees.dinghy.ui.printstatus
+
+import works.mees.dinghy.state.PrinterState
+
+/**
+ * The PURE per-mode layout/control derivation for the Phase-16 four-state Print-Status home (16-06,
+ * the seam Codex asked for so the ~942-line Compose screen has an automated gate BEFORE the on-device
+ * pass). NO Compose, NO Android — plain Kotlin so it runs in the JVM unit suite ([PrintStatusUiModelTest]).
+ *
+ * It maps a [PrintStatusMode] (+ the small extra inputs the screen already has at hand) to a
+ * host-testable description of the per-mode surface:
+ *  - [launcherDests] — the ordered, curated Standby launcher destination list (empty for the non-Standby
+ *    modes; the Standby grid renders FROM this in the fixed UI-SPEC order),
+ *  - [gutter] — the active gutter control set (built by REUSING the 16-02 `PrintStatusControlModel`
+ *    per-mode list-builders — this model does NOT re-derive the gutter sets),
+ *  - [activeRow] — which Field row is active (shortcut vs babystep) for the Printing/Paused modes,
+ *  - [showErrorLines] — whether the Terminal error-line area is shown (Terminal(Error) only).
+ *
+ * The screen renders FROM this so the mode→layout/control logic is unit-tested before the big Compose
+ * edit (ADR-0001 toolkit-agnostic). The screen still owns the actual COMPOSE (the focus composition,
+ * the stat frame, dispatch wiring); this model owns the structural/ordering DECISIONS.
+ */
+
+/** A launcher destination on the Standby grid. Decoupled from `ui.route.Dest` so this stays pure
+ *  (no UI import) — the screen maps each [LauncherDest] to its `Dest` + `onNavigate`/`onOpenDrawer`. */
+enum class LauncherDest {
+    Files,
+    Temperature,
+    Move,
+    Extrude,
+    Calibration,
+    Spool,
+    Macros,
+    Console,
+
+    /** The always-present flexible/growing tile — opens the swipe-up App Drawer (not a `Dest`). */
+    Drawer,
+}
+
+/** Which Field row the Printing/Paused mode shows: the normal shortcut grid, or the babystep 3-cell
+ *  row (early-layer window). [None] for Standby/Terminal (no Field shortcut/babystep row). */
+enum class PrintStatusFieldRow {
+    Shortcut,
+    Babystep,
+    None,
+}
+
+/**
+ * The pure per-mode surface description the screen renders from.
+ *
+ * @param mode the classified mode (the input — carried for the screen's `when`).
+ * @param launcherDests the ordered Standby launcher list (empty for non-Standby modes).
+ * @param gutter the active gutter control set (reused from the 16-02 per-mode list-builders).
+ * @param activeRow which Field row is active (shortcut vs babystep) — [PrintStatusFieldRow.None] off
+ *   the active modes.
+ * @param showErrorLines whether the Terminal error-line area is shown (true only for Terminal(Error)).
+ */
+data class PrintStatusUiModel(
+    val mode: PrintStatusMode,
+    val launcherDests: List<LauncherDest>,
+    val gutter: List<PrintStatusControl>,
+    val activeRow: PrintStatusFieldRow,
+    val showErrorLines: Boolean,
+)
+
+/**
+ * Build the pure [PrintStatusUiModel] for [mode]. Reuses the 16-02 per-mode gutter list-builders via
+ * [derivePrintStatusControls] (so the gutter sets are owned in ONE place, never re-derived here).
+ *
+ * @param mode the classified mode.
+ * @param state the printer state (passed straight to [derivePrintStatusControls] for the gutter set
+ *   + restart-filename resolution — this model does not read it for anything else).
+ * @param lastJob the one-shot last completed job (gutter restart-filename input only).
+ * @param pendingAction the in-flight debounce action (gutter label input only).
+ * @param spoolmanPresent whether the printer exposes Spoolman — gates the Spool launcher tile.
+ * @param hasBookmarkedMacros whether the user has bookmarked macros — gates the Macros launcher tile.
+ * @param babystepVisible whether the early-layer babystep window is active — picks the Field row for
+ *   the Printing/Paused modes (shortcut when false, babystep when true).
+ */
+fun uiModel(
+    mode: PrintStatusMode,
+    state: PrinterState,
+    lastJob: works.mees.dinghy.state.LastJob? = null,
+    pendingAction: PrintStatusPendingAction? = null,
+    spoolmanPresent: Boolean = false,
+    hasBookmarkedMacros: Boolean = false,
+    babystepVisible: Boolean = false,
+): PrintStatusUiModel {
+    val gutter = derivePrintStatusControls(state = state, lastJob = lastJob, pendingAction = pendingAction).controls
+    val launcherDests = if (mode is PrintStatusMode.Standby) {
+        standbyLauncherDests(spoolmanPresent = spoolmanPresent, hasBookmarkedMacros = hasBookmarkedMacros)
+    } else {
+        emptyList()
+    }
+    val activeRow = when (mode) {
+        is PrintStatusMode.Printing,
+        is PrintStatusMode.Paused,
+        -> if (babystepVisible) PrintStatusFieldRow.Babystep else PrintStatusFieldRow.Shortcut
+        else -> PrintStatusFieldRow.None
+    }
+    val showErrorLines = mode is PrintStatusMode.Terminal && mode.kind == TerminalKind.Error
+    return PrintStatusUiModel(
+        mode = mode,
+        launcherDests = launcherDests,
+        gutter = gutter,
+        activeRow = activeRow,
+        showErrorLines = showErrorLines,
+    )
+}
+
+/**
+ * The fixed, curated Standby launcher order (UI-SPEC "Launcher order"):
+ * Files · Temperature · Move · Extrude · Calibration · Spool[if present] · Macros[if bookmarked] ·
+ * Console · Drawer (always last, the flexible/growing tile). Forward stubs (Output/SysInfo) do NOT
+ * appear here — they live in the App Drawer only (D-02).
+ */
+private fun standbyLauncherDests(
+    spoolmanPresent: Boolean,
+    hasBookmarkedMacros: Boolean,
+): List<LauncherDest> = buildList {
+    add(LauncherDest.Files)
+    add(LauncherDest.Temperature)
+    add(LauncherDest.Move)
+    add(LauncherDest.Extrude)
+    add(LauncherDest.Calibration)
+    if (spoolmanPresent) add(LauncherDest.Spool)
+    if (hasBookmarkedMacros) add(LauncherDest.Macros)
+    add(LauncherDest.Console)
+    add(LauncherDest.Drawer)
+}
