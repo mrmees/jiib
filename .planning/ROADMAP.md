@@ -67,7 +67,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 15: Theme System & Settings Redesign** - Establish the full semantic-token theme system (dark/light/user-custom + S/M/L) as the visual foundation and rebuild Settings to host it (merges the former Settings-Redesign + Final-Conformance phases); pulled to the front because the parallel theme work needs the new Settings UI to test against; also conformance-sweeps existing surfaces (completed 2026-06-05). **Scoped engine-first; the semantic/shape + conformance halves split to inserted Phases 15.1 + 15.2 below.**
 - [x] **Phase 15.1: Shape-Coded Status & Semantic Color** *(INSERTED 2026-06-05 — split from Phase 15)* - The deferred semantic + safety half of the theme work, built before Home so every later surface inherits it: shape-coded status (octagon=stop / triangle=caution / circle=go) + icon + position across every status signal so color is never the only safety cue; status-from-pool recolor + High-Contrast stoplight status + status-slot editability (Phase-15 D-09 open); app-wide pool→role semantic assignment; color-doctrine D-5 (back-button) / D-6 (bed-mesh perceptually-uniform OKLCH ramp) / D-8 (force-move); Move homed/unhomed status-color + force-move lock-shape; reconcile docs/ui_design/THEMING.md against ../theme_theory/COLOR-SYSTEM.md. Source: 15-CONTEXT.md ⟨deferred⟩ + COLOR-SYSTEM.md §7/§D (completed 2026-06-05)
 - [x] **Phase 15.2: Theme Conformance Sweep & Settings IA** *(INSERTED 2026-06-05 — split from Phase 15)* - Heavy audit of every existing surface against the now-reconciled theme LAW: token purity (role tokens, no raw colors), button-intent color, Focus/Field/Gutter grammar, ≥64px touch targets, the fsSp font scale, dark/light/custom correctness; plus resolve the Settings-vs-Devices boundary (Connection redundant vs the Devices screen — "printer settings page" reframe vs per-printer Devices editor). The light final re-sweep of the late surfaces (16–20) still folds into Ship. Tracked todos: 2026-06-05-settings-vs-devices-boundary + 2026-06-05-pool-color-semantic-assignment (completed 2026-06-06)
-- [ ] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune)
+- [x] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune) (completed 2026-06-06)
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [ ] **Phase 18: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 19: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
@@ -741,7 +741,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4; on-device gates)*
 
-- [ ] 16-08-PLAN.md — Binding on-device gates: SC-5 live babystep round-trip (E5 first layer) + SC-3 Adreno-320 perf no-regression + SC-4 monitor loop preserved (autonomous:false)
+- [x] 16-08-PLAN.md — Binding on-device gates: SC-5 live babystep round-trip (E5 first layer) + SC-3 Adreno-320 perf no-regression + SC-4 monitor loop preserved (autonomous:false)
 
 **UI hint**: yes
 **Research note**: STANDARD — design rework against the existing UI LAW (now sitting on the Phase-15 theme system); no new backend.
@@ -863,7 +863,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
-| 16. Home / Print-Status Redesign | 7/8 | In Progress|  |
+| 16. Home / Print-Status Redesign | 8/8 | Complete   | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |
