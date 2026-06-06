@@ -207,7 +207,9 @@ fun FilesScreen(
                             label = if (state.pendingAction != null) "Starting" else "Print file",
                             onClick = { guard = FileGuard.Start },
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Go,
+                            // 15.2-06 (M4 / C5): "Print file" is the Files screen's natural primary action,
+                            // so it wears the accent (was green/Go). Cancel picker stays Neutral (plain nav).
+                            intent = Intent.Accent,
                             enabled = startEnabled,
                         )
                     }

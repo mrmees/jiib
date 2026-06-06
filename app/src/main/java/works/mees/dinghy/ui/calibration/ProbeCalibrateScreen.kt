@@ -471,7 +471,7 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
                 text = "mm",
                 color = t.text3,
                 fontFamily = Geist,
-                fontSize = fsSp(12f, t.fs).sp,
+                fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
             )
         }
     }

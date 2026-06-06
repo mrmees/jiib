@@ -153,7 +153,7 @@ fun BedMeshScreen(
                         color = t.text2,
                         fontFamily = GeistMono,
                         fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(14f, t.fs).sp,
+                        fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -421,7 +421,7 @@ private fun SaveNameDialog(
                             "Use letters, numbers, . _ - only (no spaces).",
                             color = t.stop,
                             fontFamily = Geist,
-                            fontSize = fsSp(14f, t.fs).sp,
+                            fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
                             modifier = Modifier.padding(top = 6.dp),
                         )
                     }

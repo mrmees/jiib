@@ -179,17 +179,22 @@ fun TemperatureScreen(
                         modifier = Modifier.weight(1f),
                         intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     )
+                    // 15.2-06 (M3 / C5): the screen's NATURAL PRIMARY ACTION wears the accent, and which
+                    // action that *is* depends on state — when NOT heating, Presets (start heating) is the
+                    // accent; once heating, Cooldown becomes the natural/accent action. Heating = any drawn
+                    // sensor has a live setpoint (SensorReadout.target != null).
+                    val heating = legend.any { it.target != null }
                     OutlinedControl(
                         label = "Presets",
                         onClick = { showPresets = true },
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = if (heating) Intent.Neutral else Intent.Accent,
                     )
                     OutlinedControl(
                         label = "Cooldown",
                         onClick = { dispatchCommand(CommandRegistry.cooldown, Unit) },
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Warn,
+                        intent = if (heating) Intent.Accent else Intent.Warn,
                     )
                 }
             },

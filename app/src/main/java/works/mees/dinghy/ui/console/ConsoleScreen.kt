@@ -167,7 +167,7 @@ private fun FilterToggle(
                 color = if (active) t.text else t.text2,
                 fontFamily = Geist,
                 fontWeight = FontWeight.Medium,
-                fontSize = fsSp(13f, t.fs).sp,
+                fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
                 textAlign = TextAlign.Center,
                 maxLines = 2,
             )
@@ -199,7 +199,7 @@ private fun BackControl(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 color = t.text,
                 fontFamily = Geist,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(13f, t.fs).sp,
+                fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
                 textAlign = TextAlign.Center,
             )
         }
@@ -251,7 +251,7 @@ private fun BackfillFailedNotice(modifier: Modifier = Modifier) {
             color = t.heat,
             fontFamily = Geist,
             fontWeight = FontWeight.Medium,
-            fontSize = fsSp(14f, t.fs).sp,
+            fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
         )
     }
 }

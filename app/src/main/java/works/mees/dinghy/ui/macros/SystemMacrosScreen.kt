@@ -77,7 +77,7 @@ fun SystemMacrosScreen(
                         text = "Underscore-prefixed helper macros are hidden. Show hidden to reveal them.",
                         color = t.text2,
                         fontFamily = Geist,
-                        fontSize = fsSp(14f, t.fs).sp,
+                        fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
                         modifier = Modifier.padding(horizontal = 4.dp),
                     )
                     LazyColumn(

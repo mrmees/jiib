@@ -521,7 +521,7 @@ private fun SelectorLabel(text: String) {
         color = t.text2,
         fontFamily = GeistMono,
         fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(13f, t.fs).sp,
+        fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
     )
 }
 

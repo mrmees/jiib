@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.move
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -308,14 +309,19 @@ private fun JogPad(
 }
 
 /**
- * Directional-jog ICON tint (the outline stays blue — state is carried by the icon color only,
- * 2026-06-01): GRAY when unavailable, YELLOW in normal mode (jog moves the toolhead — caution), RED in
- * force-move mode (no homing/limits — extra danger).
+ * Directional-jog ICON tint (the outline stays the directional-plane color — state is carried by the
+ * icon color only, 2026-06-01): GRAY when unavailable, ACCENT in normal mode (jogging is the Move
+ * screen's EXPECTED physical action, so it wears the accent per C1 — NOT caution/amber), RED in
+ * force-move mode (no homing/limits — genuinely dangerous, so it earns the stop color).
+ *
+ * 15.2-06 (M1 / C1): normal-jog was amber/caution; the C1 conformance criterion (a button performing a
+ * screen's EXPECTED physical action is ACCENT, not caution/danger) routes the everyday jog to the accent
+ * and reserves the stop color for the genuinely hazardous force-move-armed state.
  */
 private fun jogIconTint(t: ThemeTokens, disabled: Boolean, forceMove: Boolean): Color = when {
     disabled -> t.text3
     forceMove -> t.stop
-    else -> t.heat
+    else -> t.accent2
 }
 
 /**
@@ -461,10 +467,14 @@ private fun StatusShape(resId: Int, tint: Color, sizeSp: Float, modifier: Modifi
 private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val color = if (enabled) t.stop else t.go // red unlocked (danger) / green locked (safe).
+    // 15.2-06 (M2 / C4): a control that ENABLES a catastrophic state (force-move armed) is FILLED with
+    // the stop color while active — not merely outlined — so the "you are now in a dangerous mode"
+    // signal is unmistakable. The fill complements the open-padlock shape signal (D-12).
     PadCell(
         outline = color,
         onClick = onToggle,
         disabled = false,
+        fill = if (enabled) t.stopSoft else Color.Transparent,
         modifier = modifier,
     ) {
         StatusShape(
@@ -475,13 +485,18 @@ private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modi
     }
 }
 
-/** Shared jog-pad cell chrome: a sacred `aspectRatio(1f)` square, 2px token outline, ≥64dp floor. */
+/**
+ * Shared jog-pad cell chrome: a sacred `aspectRatio(1f)` square, 2px token outline, ≥64dp floor.
+ * [fill] is the optional cell background — transparent by default (the outline-led control language),
+ * a soft token tint when a cell needs to signal an active/armed state with a fill (C4).
+ */
 @Composable
 private fun PadCell(
     outline: Color,
     onClick: () -> Unit,
     disabled: Boolean,
     modifier: Modifier = Modifier,
+    fill: Color = Color.Transparent,
     content: @Composable () -> Unit,
 ) {
     val t = LocalTokens.current
@@ -489,6 +504,7 @@ private fun PadCell(
     var box = modifier
         .aspectRatio(1f) // sacred square (NON-NEGOTIABLE 2).
         .clip(shape)
+        .background(fill, shape)
         .border(BorderStroke(2.dp, outline), shape)
     if (!disabled) box = box.clickable(onClick = onClick)
     Box(box, contentAlignment = Alignment.Center) { content() }
