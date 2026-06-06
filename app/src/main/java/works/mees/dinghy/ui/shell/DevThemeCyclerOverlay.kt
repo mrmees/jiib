@@ -268,11 +268,18 @@ private fun CyclerChip(
     val tappable = if (enabled) {
         base.pointerInput(Unit) {
             awaitEachGesture {
+                // Consume the DOWN so the parent panel-drag (Column `drag(down.id)`) never starts from a
+                // press that lands on a chip — without this, finger movement on a chip bleeds through to
+                // the parent and the whole overlay slides (15.2-04 finding-2 drag regression).
                 val down = awaitFirstDown(requireUnconsumed = false)
+                down.consume()
                 // wait for up; if no significant drag, treat as a tap (a static one-shot, no loop).
                 var dragged = false
                 drag(down.id) { change ->
                     if (change.positionChange().getDistanceSquared() > 64f) dragged = true
+                    // Consume each move so it does not propagate to the parent panel-drag handler. A chip
+                    // owns its own pointer; the panel only relocates from a press that misses every chip.
+                    change.consume()
                 }
                 if (!dragged) onTap()
             }
@@ -309,10 +316,14 @@ private fun DismissChip(onDismiss: () -> Unit) {
             .border(2.dp, t.stop, RoundedCornerShape(6.dp))
             .pointerInput(Unit) {
                 awaitEachGesture {
+                    // Consume DOWN + each move so a press/drag on Dismiss never bleeds into the parent
+                    // panel-drag (same fix as the cycler chips — finding-2 drag regression).
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    down.consume()
                     var dragged = false
                     drag(down.id) { change ->
                         if (change.positionChange().getDistanceSquared() > 64f) dragged = true
+                        change.consume()
                     }
                     if (!dragged) onDismiss()
                 }
