@@ -729,7 +729,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 — depends on 16-03 for canonical BABYSTEP_STEPS)*
 
-- [ ] 16-02-PLAN.md — Pure PrintStatusMode classifier (Standby=Standby behavior change) + selectPreheatPath + babystep gating/step-cycle + extended control actions (Preheat/Dismiss/Power)
+- [x] 16-02-PLAN.md — Pure PrintStatusMode classifier (Standby=Standby behavior change) + selectPreheatPath + babystep gating/step-cycle + extended control actions (Preheat/Dismiss/Power)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -863,7 +863,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
-| 16. Home / Print-Status Redesign | 4/8 | In Progress|  |
+| 16. Home / Print-Status Redesign | 5/8 | In Progress|  |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T11:38:30.624Z"
+last_updated: "2026-06-06T11:49:11.818Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 17
   total_plans: 122
-  completed_plans: 118
+  completed_plans: 119
   percent: 71
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 16 (home-print-status-redesign) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
   → **Plan 15.2-02 (Wave 2: Dev Theme Cycler overlay — the conformance accelerant) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (continuation close-out; checkpoint approved by owner). Commits `495af95` (feat — `DevThemeCyclerOverlay.kt`: two small >=64px floating cycler widgets, every color via `LocalTokens.current` so the chrome themes WITH the app, STATIC per the Adreno-320 motion LAW; + the pure `nextStyleOverride`/`nextSizeOverride` steppers + StyleCyclerTest/TextSizeCyclerTest GREEN incl. the two HIGH-4 preserve-other-axis tests) + `f679120` (feat — wired into `AppShell` as a `devCyclerEnabled`-gated overlay Box drawn ABOVE `when(dest)` so it floats over every Dest; + the TEMP `devEnableFlow` default-true flip). **HIGH-4 merge-onto-current:** `nextStyleOverride` preserves the active `fs`, `nextSizeOverride` preserves the active `dark`/`paletteMode` — the two axes are runtime-INDEPENDENT, tapping one never reverts the other. **MEDIUM atomic stepping:** taps route through `container.updateThemeOverride { next*Override(it) }` (reads live `_themeOverride`, not a captured Compose snapshot) so rapid taps drop no axis; dismiss = `setThemeOverride(null)`. **D-06:** cyclers carry NO seedHex — the user's real per-profile accent/seed falls through (steps only the 6 `{dark,light}x{Colorful,Simple,HighContrast}` combos + S/M/L). **MEDIUM-3 release-visibility:** the cyclers are reachable in the RELEASE APK via a TEMP `ThemePrefs.devEnableFlow` default-true flip tagged `// TEMP(15.2-02)` (NOT a `BuildConfig.DEBUG` hook — doesn't run in release — nor an adb DataStore poke); **INTENTIONALLY left in place, reverted in 15.2-04 Task 1** when the durable About dev-enable toggle (D-05) becomes the control. **On-device cycler-walk on flox + live printer PASSED ("approved"):** whole app flipped across all 6 styles INCLUDING the classic-Views surfaces (GraphView, bed-mesh heatmap, webcam border), seed/accent preserved, S/M/L independent (neither axis reverted the other, rapid taps dropped nothing), restored cleanly on dismiss, static with no jank. 0 deviations (SUMMARY `15.2-02-SUMMARY.md`). THEME-01/02 closed. This is the conformance accelerant the rest of the phase rides on (D-09): one device walk per combo instead of six rebuilds. Next: **15.2-04** (durable About dev-enable toggle from D-05 — REVERTS the TEMP default flip — + remaining sweep work).
@@ -192,6 +192,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 16 P03 | ~15 min | 2 tasks tasks | 5 files files |
 | Phase 16 P04 | 8 min | 2 tasks tasks | 7 files files |
 | Phase 16 P5 | 11 | 2 tasks | 9 files |
+| Phase 16 P02 | ~25 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -346,6 +347,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 16-04: gcodeZOffset from homing_origin[2] via getOrNull(2) null-safe; host-load proc_stats deferred to Phase 19
 - [Phase ?]: 16-05: babystep app setting is process-scoped + connection-independent (own babystep.preferences_pb), persisted via AppContainer writeScope intent helpers — never a composition scope
 - [Phase ?]: 16-05: Output (bolt) + System Info (memory) are greyed dest=null drawer forward stubs only (D-02 / SC-1), not on the Standby launcher grid
+- [Phase ?]: 16-02: ONE pure classifyPrintStatus(PrinterState)->PrintStatusMode (printState-only); Standby ALWAYS Standby — masquerade branch deleted (behavior change vs derivePrintStatusControls)
+- [Phase ?]: 16-02: pure selectPreheatPath per-temp guard (missing temp stays null, never 0); per-mode gutters set now (Paused no E-Stop, Terminal Dismiss+Reprint) so 16-06 reuses correct sets
 
 ### Pending Todos
 
@@ -378,7 +381,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T11:38:11.435Z
+Last session: 2026-06-06T11:48:47.492Z
 Stopped at: Completed 16-04-PLAN.md
 Resume file: 
 None
