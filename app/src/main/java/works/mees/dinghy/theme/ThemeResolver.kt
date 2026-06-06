@@ -145,11 +145,48 @@ class ThemeResolver(
     }
 
     /**
-     * Produce the cached [ThemeTokens]: generate (Palette.generate → TokenBridge.build). Generation is
-     * wrapped in a try/catch: on ANY throw it falls back to the [BakedTokens] default-seed snapshot — the
-     * math is total so this should never fire, but the printer surface must NEVER go dark (T-15-04-01).
+     * Produce the cached [ThemeTokens] from the resolver's CURRENT fields. A thin delegate over the pure
+     * [computeFrom] so the live `apply()`/`set*()` path is byte-identical to a [bake] of the same inputs.
      */
-    private fun compute(): ThemeTokens {
+    private fun compute(): ThemeTokens =
+        computeFrom(seedHex, dark, paletteMode, poolShift, maxItems, poolOverrides, statusOverrides, fs)
+
+    /**
+     * Bake an arbitrary theme TUPLE to a snapshot [ThemeTokens] PURELY (HIGH-2): it reads NO `var` field,
+     * mutates NOTHING, and never assigns `_tokens` — so concurrent collectors (DinghyTheme + every Views
+     * host) cannot tear each other's bake, and the persisted-theme `seedTheme()` path that drives `_tokens`
+     * is untouched. Reuses the SAME [computeFrom] generate/fail-safe body as the live path. The tuple's
+     * wire-form overrides are mapped to the runtime [Color] form via the SAME [toComposeColor] conversion
+     * `seedTheme` uses (AppContainer.seedTheme), so a baked override matches an applied one exactly.
+     */
+    fun bake(tuple: ThemePrefs.ThemeTuple): ThemeTokens =
+        computeFrom(
+            seedHex = tuple.seedHex,
+            dark = tuple.dark,
+            paletteMode = tuple.paletteMode,
+            poolShift = tuple.poolShift,
+            maxItems = tuple.maxItems,
+            poolOverrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
+            statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
+            fs = tuple.fs,
+        )
+
+    /**
+     * The PURE generate-and-cache core: produce [ThemeTokens] from explicit inputs (no `this.*` reads),
+     * generate (Palette.generate → TokenBridge.build), wrapped in a try/catch fail-safe — on ANY throw it
+     * falls back to the [BakedTokens] default snapshot so the printer surface NEVER goes dark (T-15-04-01).
+     * Both the live [compute] and the pure [bake] route through here so the two paths can never diverge.
+     */
+    private fun computeFrom(
+        seedHex: String,
+        dark: Boolean,
+        paletteMode: String,
+        poolShift: Int,
+        maxItems: Int,
+        poolOverrides: Map<Int, Color>,
+        statusOverrides: Map<String, Color>,
+        fs: Float,
+    ): ThemeTokens {
         return try {
             val simple = paletteMode == MODE_SIMPLE
             val highContrast = paletteMode == MODE_HIGH_CONTRAST
