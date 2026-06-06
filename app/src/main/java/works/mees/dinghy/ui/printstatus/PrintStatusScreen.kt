@@ -257,7 +257,7 @@ fun PrintStatusScreen(
                 // ConfirmGuard, does NOT SDCARD_RESET_FILE first. Available when a usable path is exposed.
                 restartFilename?.let { dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(it)) }
             }
-            PrintStatusControlAction.Tune -> Unit // P17 Fine-Tune stub (D-03).
+            PrintStatusControlAction.Tune -> onNavigate(Dest.FineTune) // TUNE-01 / D-21 — opens the Fine-Tune Hub.
             PrintStatusControlAction.PausePrint -> {
                 if (pendingAction == null) {
                     dispatcher?.dispatch(CommandRegistry.printPause, Unit)
@@ -847,24 +847,6 @@ private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier
     }
 }
 
-/** A greyed, disabled placeholder (D-07) — neutral outline + faint ICON-ONLY glyph, no-op. The [glyph]
- *  is a Material-Symbol ligature; [label] is the TalkBack name (the tile is visually icon-only,
- *  2026-06-06 UAT). */
-@Composable
-private fun DisabledTile(label: String, glyph: String, modifier: Modifier = Modifier) {
-    val t = LocalTokens.current
-    Box(
-        modifier
-            .heightIn(min = 64.dp)
-            .clip(RoundedCornerShape(t.rCtrl))
-            .border(BorderStroke(2.dp, t.hair), RoundedCornerShape(t.rCtrl))
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        MaterialSymbol(glyph, tint = t.text3, sizeSp = fsSp(40f, t.fs))
-    }
-}
-
 // --- Phase-16 four-state surfaces (Standby launcher / babystep / Terminal / Spoolman line) -----------
 
 /**
@@ -1007,6 +989,28 @@ private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modi
     }
 }
 
+/**
+ * The LIVE Print-Status shortcut Tune tile (TUNE-01 / D-21) — taps open the Fine-Tune Hub. Icon-only,
+ * mirroring [LauncherTile] (hair outline, ≥64dp, `instant_mix` sliders glyph — DISTINCT from `tune`
+ * which is Calibration's, icon-no-repeat). The flexible/growing first cell of the shortcut row.
+ */
+@Composable
+private fun TuneShortcutTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "Tune" },
+        contentAlignment = Alignment.Center,
+    ) {
+        MaterialSymbol("instant_mix", tint = t.text2, sizeSp = fsSp(40f, t.fs))
+    }
+}
+
 /** Distinct Material-Symbol glyph per launcher tile (icon-never-twice). */
 private fun launcherGlyph(d: LauncherDest): String = when (d) {
     LauncherDest.Files -> "print_connect"
@@ -1053,9 +1057,15 @@ private fun ShortcutRow(
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Tune = the flexible/growing tile (weight grows when the row is short — the "Tune grows" case).
+        // TUNE-01 / D-21: now LIVE — taps open the Fine-Tune Hub (Dest.FineTune). This is the mid-print
+        // Print-Status entry into the live-adjust panel (the gutter Tune control stays a disabled stub,
+        // PrintStatusControlModel). Distinct `instant_mix` glyph (icon-no-repeat; `tune` is Calibration's).
         val tuneWeight = if (tail.size < 3) 2f else 1f
         Box(Modifier.weight(tuneWeight)) {
-            DisabledTile("Tune", glyph = "tune", modifier = Modifier.fillMaxWidth())
+            TuneShortcutTile(
+                onClick = { onNavigate(Dest.FineTune) },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         tail.forEach { d ->
             LauncherTile(dest = d, onClick = { launcherDestTarget(d)?.let(onNavigate) }, modifier = Modifier.weight(1f))

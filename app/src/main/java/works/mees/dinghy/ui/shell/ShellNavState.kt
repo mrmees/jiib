@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import works.mees.dinghy.calibration.CalibrationRoutine
+import works.mees.dinghy.ui.finetune.FineTuneGroup
 import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
@@ -56,6 +57,15 @@ class ShellNavState {
     var calibrationRoutine by mutableStateOf<CalibrationRoutine?>(null)
 
     /**
+     * Fine-Tune sub-nav (17-06, mirrors [calibrationRoutine]): null = the Hub, non-null = that group's
+     * page (Motion / Extrusion / FW-Retraction). A lean LOCAL back-stack WITHIN [Dest.FineTune] — NOT
+     * four top-level Dests. RESET to null on every ENTRY into [Dest.FineTune] (REVIEW #6 — Fine-Tune
+     * always opens the Hub, never a stale group page from a prior visit); see [navigateTo]. Preserved
+     * across a Splash blip like [calibrationRoutine] so a user mid-group returns to it after a recovery.
+     */
+    var fineTuneGroup by mutableStateOf<FineTuneGroup?>(null)
+
+    /**
      * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open OVER the Spool
      * screen / active-spool card. TRANSIENT — reset on return from a recovery Splash ([resetTransient]):
      * a live camera surface must NOT survive a reconnect (the camera was released on decompose; re-opening
@@ -82,6 +92,12 @@ class ShellNavState {
         // Entering the Calibration surface always starts on the hub (no routine selected).
         if (target == Dest.Calibration) {
             calibrationRoutine = null
+        }
+        // Entering Fine-Tune always opens the Hub — reset the group sub-nav so a stale group page from a
+        // prior visit never shows (REVIEW #6). Fires for BOTH the Print-Status Tune action AND the drawer
+        // tile, since both route through navigateTo(Dest.FineTune).
+        if (target == Dest.FineTune) {
+            fineTuneGroup = null
         }
         dest = target
     }

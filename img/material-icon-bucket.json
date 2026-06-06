@@ -1477,6 +1477,24 @@
       "updatedAt": 1780760229042,
       "key": "Material Symbols Outlined::remove",
       "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aremove%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "instant_mix",
+      "label": "Instant Mix",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "Fine-Tune drawer tile (17-06) \u2014 distinct from tune (Calibration)",
+      "createdAt": 1780767669329,
+      "updatedAt": 1780767669329,
+      "key": "Material Symbols Outlined::instant_mix",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ainstant_mix%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
     }
   ]
 }

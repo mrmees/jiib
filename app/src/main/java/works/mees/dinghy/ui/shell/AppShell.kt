@@ -52,6 +52,12 @@ import works.mees.dinghy.ui.console.ConsoleHolder
 import works.mees.dinghy.ui.console.ConsoleScreen
 import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
+import works.mees.dinghy.ui.finetune.ExtrusionScreen
+import works.mees.dinghy.ui.finetune.FineTuneGroup
+import works.mees.dinghy.ui.finetune.FineTuneHolder
+import works.mees.dinghy.ui.finetune.FineTuneHubScreen
+import works.mees.dinghy.ui.finetune.FwRetractionScreen
+import works.mees.dinghy.ui.finetune.MotionScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
@@ -153,6 +159,13 @@ fun AppShell(
     // (and each page's green Back) pops back to the hub. Hoisted on [nav] so a user mid-routine returns
     // to it after a recovery Splash, not to Home.
     val calibrationRoutine = nav.calibrationRoutine
+
+    // Fine-Tune sub-navigation (a lean LOCAL back-stack WITHIN Dest.FineTune — NOT four top-level Dests,
+    // mirroring Dest.Calibration above). null = the Hub; a non-null group = that group's page. The Hub's
+    // onNavigate pushes; a BackHandler (and each page's neutral Back) pops back to the Hub. Reset to null
+    // on entry by [ShellNavState.navigateTo] (REVIEW #6). Hoisted on [nav] so a user mid-group returns to
+    // it after a recovery Splash, not to Home.
+    val fineTuneGroup = nav.fineTuneGroup
 
     fun navigateTo(target: Dest) = nav.navigateTo(target)
     fun goBack() = nav.goBack()
@@ -304,6 +317,15 @@ fun AppShell(
     val bedMeshVm by bedMeshHolder.vm.collectAsStateWithLifecycle()
     val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
 
+    // ---- Fine-Tune holder (17-06) ------------------------------------------------------------------
+    // ONE FineTuneHolder per spine (re-keyed when the spine rebuilds (reconnect), mirroring the Phase-5
+    // control + calibration holders above) feeds ALL FOUR Fine-Tune screens (Hub/Motion/Extrusion/
+    // FwRetraction) so the D-15 whole-group state-flip busy lock is SHARED across the group sub-nav.
+    // The holder CONSUMES the live per-session store; while idle the empty fallback store backs it (no
+    // readbacks → dashes, no baselines → resets are no-ops). The screens source the dispatcher's live
+    // in-flight set + Failure stream from `container.dispatcher` themselves (the holder is dispatch-free).
+    val fineTuneHolder = remember(store) { FineTuneHolder(scope = scope, store = store) }
+
     // ---- Console + Macro holders (08-07) -----------------------------------------------------------
     // Both are SESSION-owned: built off the same per-session store and re-keyed when the spine rebuilds
     // (reconnect), exactly like the Phase-5 control holders above. While idle the empty fallback store
@@ -405,6 +427,12 @@ fun AppShell(
     // generic back-stack pop (leaving the Calibration surface).
     BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
         nav.calibrationRoutine = null
+    }
+    // Fine-Tune sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration):
+    // an open group page (Motion/Extrusion/FwRetraction) returns to the Hub; from the Hub, Back falls
+    // through to the generic back-stack pop (leaving the Fine-Tune surface).
+    BackHandler(enabled = !drawerOpen && dest == Dest.FineTune && fineTuneGroup != null) {
+        nav.fineTuneGroup = null
     }
     // The open QR scan overlay (11-07) intercepts system Back: close the scan (releasing the camera via
     // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
@@ -599,6 +627,38 @@ fun AppShell(
                         onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                         onAbort = { probeCalibrateHolder.markAborted() },
                         onBack = { nav.calibrationRoutine = null },
+                    )
+                }
+            }
+            Dest.FineTune -> {
+                // The Fine-Tune surface: the Hub (two group entries) OR the selected group page. The Hub's
+                // onNavigate sets the LOCAL sub-dest; each page's neutral Back (and system Back) pops back
+                // to the Hub by clearing [fineTuneGroup] — a lean local back-stack within Dest.FineTune
+                // (NOT four top-level Dests, mirroring Dest.Calibration). All four screens share the ONE
+                // [fineTuneHolder] so the D-15 whole-group state-flip busy lock is shared. The Extrusion
+                // FW-retraction entry is threaded via the explicit typed onFwRetraction callback (REVIEW
+                // #4) — the build-blind FW screen is thus a LIVE, compile-checked wire (gated off on both
+                // dev printers, shown only when the printer reports a firmware_retraction object).
+                when (val group = fineTuneGroup) {
+                    null -> FineTuneHubScreen(
+                        onNavigate = { nav.fineTuneGroup = it },
+                        onBack = { goBack() },
+                    )
+                    FineTuneGroup.MOTION -> MotionScreen(
+                        container = container,
+                        holder = fineTuneHolder,
+                        onBack = { nav.fineTuneGroup = null },
+                    )
+                    FineTuneGroup.EXTRUSION -> ExtrusionScreen(
+                        container = container,
+                        holder = fineTuneHolder,
+                        onBack = { nav.fineTuneGroup = null },
+                        onFwRetraction = { nav.fineTuneGroup = FineTuneGroup.FW_RETRACTION },
+                    )
+                    FineTuneGroup.FW_RETRACTION -> FwRetractionScreen(
+                        container = container,
+                        holder = fineTuneHolder,
+                        onBack = { nav.fineTuneGroup = FineTuneGroup.EXTRUSION },
                     )
                 }
             }

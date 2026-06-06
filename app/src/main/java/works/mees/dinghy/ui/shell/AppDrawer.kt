@@ -154,6 +154,11 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // `tune` is the single Calibration tile (D-14) — unique among DRAWER_TILES glyphs (icon-no-repeat
     // law). It opens the Calibration hub, which sub-routes to all five routine pages (09-07).
     DrawerTileSpec(label = "Calibration", symbol = "tune", dest = Dest.Calibration),
+    // Fine-Tune (17-06, TUNE-01 / D-21) — the live-adjust panel. `instant_mix` (the sliders/mixer glyph)
+    // is DISTINCT from Calibration's `tune` (icon-no-repeat law) and reads as "live adjustment". Opens the
+    // Fine-Tune Hub, which sub-routes to Motion / Extrusion / FW-Retraction (a LOCAL back-stack within
+    // Dest.FineTune). It is the always-reachable entry alongside the Print-Status Tune shortcut.
+    DrawerTileSpec(label = "Fine-Tune", symbol = "instant_mix", dest = Dest.FineTune),
     // The Webcam tile carries a LIVE [dest] but is RUNTIME-gated (D-08): greyed when the session
     // enumerated 0 cams, live at ≥1 — the gating input is `webcamEnabled`, folded into [DrawerTile]'s
     // live-decision (NOT a compile-time `dest = null`, which would grey it permanently). `photo_camera`
