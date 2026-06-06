@@ -800,7 +800,7 @@ Plans:
 **Plans**: 7 plans
 **Wave 1**
 
-- [ ] 18-01-PLAN.md — Build wiring confirm + en-XA pseudolocale + lint-gate decision + RED scaffolds
+- [x] 18-01-PLAN.md — Build wiring confirm + en-XA pseudolocale + lint-gate decision + RED scaffolds
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -938,7 +938,7 @@ notes.
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 5/6 | In Progress|  |
-| 18. Preview Harness & Tokenization Foundation | 0/TBD | Not started | - |
+| 18. Preview Harness & Tokenization Foundation | 1/7 | In Progress|  |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |

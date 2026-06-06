@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T23:26:34.177Z"
-last_activity: 2026-06-06 -- Phase 18 planning complete
+last_updated: "2026-06-06T23:39:49.717Z"
+last_activity: 2026-06-06
 progress:
   total_phases: 25
   completed_phases: 18
   total_plans: 135
-  completed_plans: 127
+  completed_plans: 128
   percent: 72
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 17 — fine-tune-live-adjust-panel
+**Current focus:** Phase 18 — preview-harness-tokenization-foundation
 
 ## Current Position
 
-Phase: 17 (fine-tune-live-adjust-panel) — EXECUTING (paused at on-device UAT, owner-deferred)
-Plan: 6 of 6 (17-01..17-05 complete; 17-06 autonomous work done, on-device UAT deferred)
+Phase: 18 (preview-harness-tokenization-foundation) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
   → **Phase 17 (Fine-Tune / Live-Adjust) — 17-01..17-05 COMPLETE + 17-06 autonomous work done; ON-DEVICE UAT OWNER-DEFERRED 2026-06-06.** Full wave run (worktrees off, sequential): 17-01 RED scaffolds (31 RED methods, both test sourcesets compile) → 17-04 11 Fine-Tune glyph drawables → 17-02 pure clamp-format gcode builders (M220/M221/velocity-limit/PA/M106/SET_RETRACTION, Locale.US, object-gated registry specs) + 17-03 state layer (7 nullable readback fields, null-safe diff-merge reducer, nullable config baselines, `firmware_retraction` in subscribe) → 17-05 Fine-Tune UI (one `FineTuneHolder` per spine w/ display-scaling + D-15 whole-group state-flip busy-lock + nullable long-press reset; Hub + Motion/Extrusion/FwRetraction screens; FW-retraction build-blind) → 17-06 entry/nav wiring (Print-Status Tune tile + drawer `instant_mix` tile, reset-to-Hub on entry) + **FULL host unit suite GREEN** (final gate, all 17-01 RED stubs closed) + APK built & installed on flox. **In-checkpoint polish:** owner reviewed remotely via screenshots (away from device) → caught landscape value-clipping → fix `73296fd` `fix(17-06): drop Fine-Tune tile label, rely on glyph` (label-less single-Row `[glyph][value][−+]` tile, consistent both orientations; tests + assembleDebug GREEN, reinstalled, re-shot — clipping resolved). **On-device functional UAT (state-flip / reject-path / mid-print speed effect / Adreno-320 perf — `17-UAT.md`, 8 checks all PENDING) DEFERRED by owner to a later session** (status: partial/deferred, surfaces in /gsd-progress + /gsd-audit-uat). Phase is NOT verified/complete: resume = run the 8 checks on flox+live printer, reply approved → write 17-06-SUMMARY → code-review + verifier gates → close. Screenshots in `17-fine-tune-live-adjust-panel/uat-shots/` (incl. `*b` fixed set).
   → **Plan 16-07 (Wave 4: Documentation Merge — four-state Print-Status UI LAW) EXECUTED + COMPLETE 2026-06-06** — folded the as-built four-state model into the UI LAW so docs match the as-built home + lock the foundation for Phases 17–20. Commits `d62b3dd` (docs — README Print Status section replaced with the four-state `PrintStatusMode` model: classifier [`standby→Standby` even with a stale filename; klippy shutdown/error is NOT terminal] + each state's Focus/Field/Gutter layout [Standby launcher+glance; Printing cockpit+stats+shortcut/babystep row; Paused dimmed; Terminal hero+stats-frame+≤3 error lines]; accent-temperature resolution noted — nozzle/bed = `directional.temperature` = accent, the amber `03-print-status.png` SUPERSEDED) + `a4bb616` (docs — LAYOUT.md gains the **interactive-grid flexible-tile rule as HARD LAW**, scoped EXACTLY to interaction-surface grids ONLY [never stat grids/text lists/graphs/info frames]; named the P16 flexible tiles Standby launcher→Drawer + active shortcut grid→Tune; **babystep horizontal-3-cell-row recorded as a documented C3 exception**). **THEMING.md deliberately untouched** (`git diff --quiet` verified — no color/shape-status rule changes this phase). **Task 3 (owner-side manual artboard gate) RESOLVED = DEFERRED** (resume signal "artboards deferred"): the Print-Status hi-fi artboards in `docs/ui_design/images/` (`03-print-status.png` + the absent per-state Standby/Paused/Terminal boards) are DEFERRED to a later visual/conformance design pass — hand-authored hi-fi mockups rendered from `reference/hifi.css`, regenerable anytime. The README four-state section + LAYOUT flexible-tile law are now THE WRITTEN AUTHORITY for the four-state model + accent-temperature identity until the boards are regenerated; **`03-print-status.png` is STALE (old single-state amber cockpit) and is SUPERSEDED by the prose**. NO PNG under `docs/ui_design/images/` was modified — explicit deferral, not silent omission (satisfies the plan must_have that the artboard status be explicitly resolved). The runtime Standby brand app-icon is a SEPARATE already-built element, NOT affected. 0 deviations. SUMMARY `16-07-SUMMARY.md`. SC-1 closed. **Phase 16 execution: 7/8 plans complete (only 16-08 = on-device SC gates remains); do NOT mark the phase complete here.**
@@ -54,7 +54,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-06 -- Phase 18 planning complete
+Last activity: 2026-06-06
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -203,6 +203,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 17 P17-02 | 12min | 2 tasks | 6 files |
 | Phase 17 P03 | ~6 min | 2 tasks | 6 files |
 | Phase 17 P05 | 9 | 3 tasks | 10 files |
+| Phase 18 P01 | 25 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -365,6 +366,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 17-01: RED stubs carry exact target strings/values (M220 S105, M106 S153, MINIMUM_CRUISE_RATIO=0.55, ObjectPresent predicates, D-15 busy=inFlight||pendingStateFlip) so each is converted to a typed assertion against a fixed target; requirements TUNE-01..07 stay Pending until on-device UAT.
 - [Phase 17]: 17-03: Fine-Tune PA/smooth_time reduced in a separate extruder walk (not the heater loop); reducer stores RAW, scaling deferred to the holder display boundary.
 - [Phase 17]: 17-03: smooth-time RESET baseline reads config key pressure_advance_smooth_time (not status field smooth_time); speed/flow/part-fan deliberately have no baseline StateFlow.
+- [Phase ?]: Phase 18 SC-3 lint gate fallback fired: no verified Compose ruleset (io.nlopez.compose.rules:detekt 0.4.22, ru.kode:detekt-rules-compose 1.4.0) ships a hardcoded-string rule under Kotlin 2.1.21/AGP 8.7; automated lint gate deferred to Phase 22, en-XA pseudolocale ships regardless (18-01)
 
 ### Pending Todos
 
@@ -397,7 +399,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T22:23:51.106Z
+Last session: 2026-06-06T23:39:37.250Z
 Stopped at: Phase 18 context gathered
 Resume file: 
-.planning/phases/18-preview-harness-tokenization-foundation/18-CONTEXT.md
+None
