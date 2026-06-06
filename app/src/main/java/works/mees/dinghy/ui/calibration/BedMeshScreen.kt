@@ -84,7 +84,7 @@ import works.mees.dinghy.theme.fsSp
  * @param tokens            the active resolved tokens (passed to the Views heatmap host; THEME-01).
  * @param dispatcher        the live session dispatcher; all actions go through it (null until a session).
  * @param onCycleScaleMode  cycle the holder's color-scale mode (D-09 — re-color only, no re-probe).
- * @param onBack            leave the page (green Back).
+ * @param onBack            leave the page (neutral Back, D-10).
  */
 @Composable
 fun BedMeshScreen(
@@ -220,7 +220,7 @@ fun BedMeshScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Go,
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                     )
                 }
             },

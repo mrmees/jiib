@@ -57,7 +57,7 @@ import works.mees.dinghy.theme.fsSp
  * When shown, the cams list with the SELECTED one expanded to show its Moonraker info (name / service /
  * resolution). A single cam never needs the picker (full-focus).
  *
- * ## Gutter — Back ONLY (red intent, THEME-04 back=red)
+ * ## Gutter — Back ONLY (neutral intent, D-10 back=outline)
  * One full-width Back tile wired `onClick = onBack`, exactly as MoveScreen wires its Back.
  *
  * ## Page-visible lifecycle (D-13)
@@ -66,7 +66,7 @@ import works.mees.dinghy.theme.fsSp
  * the spine-rebuild `cancel()` (WR-01) on top of this.
  *
  * @param holder the Bitmap-bound orchestration holder (selected cam + frame + mode + cam list).
- * @param onBack invoked by the red Back gutter tile.
+ * @param onBack invoked by the neutral Back gutter tile (D-10).
  */
 @Composable
 fun WebcamScreen(
@@ -125,7 +125,7 @@ fun WebcamScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Danger, // back = red (THEME-04 / camera_feed: gutter is Back only).
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     )
                 }
             },

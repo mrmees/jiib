@@ -103,7 +103,7 @@ private enum class NumpadTarget { Distance, Speed, Temp }
  *
  * ## Gutter — Load / Unload / Back (EXTR-02 / D-10)
  * Load and Unload are ALWAYS shown. Present-macro tap dispatches `loadFilament()` / `unloadFilament()`;
- * ABSENT shows an informational [SeverityToast] (never a failed dispatch). Back ([Intent.Danger]) returns.
+ * ABSENT shows an informational [SeverityToast] (never a failed dispatch). Back ([Intent.Neutral]) returns.
  *
  * Every action dispatches a registry gcode entry via the per-session
  * [works.mees.dinghy.command.CommandDispatcher]. A control whose dispatch key is in-flight is disabled
@@ -111,7 +111,7 @@ private enum class NumpadTarget { Distance, Speed, Temp }
  *
  * @param container the service-locator (provides the session dispatcher).
  * @param holder    the toolkit-agnostic [ExtrudeHolder] (live gate + tools + temp + macro presence).
- * @param onBack    invoked by the red Back gutter tile.
+ * @param onBack    invoked by the neutral Back gutter tile (D-10).
  */
 @Composable
 fun ExtrudeScreen(
@@ -284,7 +284,7 @@ fun ExtrudeScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Go, // green — non-destructive nav (matches Move).
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     )
                 }
             },

@@ -82,7 +82,7 @@ import kotlin.math.max
  *
  * @param container the service-locator (provides the session dispatcher).
  * @param holder    the headless [ScrewsTiltHolder] (guided loop + coords + homed gate + error).
- * @param onBack    the green Back gutter exit.
+ * @param onBack    the neutral Back gutter exit (D-10).
  */
 @Composable
 fun ScrewsTiltScreen(
@@ -180,7 +180,7 @@ fun ScrewsTiltScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                     )
                 }
             },

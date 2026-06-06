@@ -60,7 +60,7 @@ import works.mees.dinghy.theme.fsSp
  * [SettingsScreen] ACCEPTS the [AppContainer] and CONSTRUCTS nothing.
  *
  * @param container the process-scoped service-locator (constructs nothing here).
- * @param onBack the explicit green gutter Back exit.
+ * @param onBack the explicit neutral gutter Back exit (D-10).
  */
 @Composable
 fun SettingsScreen(
@@ -116,7 +116,7 @@ fun SettingsScreen(
                     label = "Back",
                     onClick = onBack,
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    intent = Intent.Go, // backing out changes nothing — Back is green (THEMING).
+                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     symbol = "arrow_back",
                 )
             },

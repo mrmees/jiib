@@ -82,7 +82,7 @@ private const val TEMP_STEP = 5f
  * dashed [TemperatureHolder.setpoints] line.
  *
  * ## Gutter — Back · Presets · Cooldown
- *  - Back ([Intent.Go], green — non-destructive nav, safety doctrine) → [onBack].
+ *  - Back ([Intent.Neutral], outline — plain nav spends no safety color, D-10) → [onBack].
  *  - Presets ([Intent.Neutral]) → reveals the fixed PLA/PETG/ABS/TPU selector ([PrinterCommands.MATERIAL_PRESETS]);
  *    each dispatches `applyPreset(nozzle,bed)`. Keyboard-free (D-01).
  *  - Cooldown ([Intent.Warn], amber) → dispatches [PrinterCommands.COOLDOWN] (TURN_OFF_HEATERS) (TEMP-03).
@@ -94,7 +94,7 @@ private const val TEMP_STEP = 5f
  *
  * @param container the service-locator (provides the live `printerState` + the session dispatcher).
  * @param holder    the toolkit-agnostic [TemperatureHolder] (legend + per-sensor series/setpoints).
- * @param onBack    invoked by the red Back gutter tile.
+ * @param onBack    invoked by the neutral Back gutter tile (D-10).
  */
 @Composable
 fun TemperatureScreen(
@@ -177,7 +177,7 @@ fun TemperatureScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Go, // green — non-destructive nav (safety doctrine).
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     )
                     OutlinedControl(
                         label = "Presets",

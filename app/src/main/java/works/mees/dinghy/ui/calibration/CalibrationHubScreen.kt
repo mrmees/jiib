@@ -53,7 +53,7 @@ import works.mees.dinghy.theme.fsSp
  *
  * @param holder     the headless hub holder (supported-first routine list, live off capabilities).
  * @param onNavigate invoked with the tapped [CalibrationRoutine] (09-07 wires the sub-routes).
- * @param onBack     the green Back gutter exit.
+ * @param onBack     the neutral Back gutter exit (D-10).
  */
 @Composable
 fun CalibrationHubScreen(
@@ -98,7 +98,7 @@ fun CalibrationHubScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Go,
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                     )
                 }
             },

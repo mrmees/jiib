@@ -72,7 +72,7 @@ import works.mees.dinghy.theme.fsSp
  * @param client the session Spoolman reader (resolves the confirm-card detail); null → pending shape.
  * @param onConfirm invoked with the spool id ONLY on the green confirm (the caller dispatches set-active).
  * @param onUsePicker the "Use picker instead" degrade escape (D-15) — returns to the manual picker.
- * @param onBack the red Back gutter exit.
+ * @param onBack the neutral Back gutter exit (D-10).
  */
 @Composable
 fun ScanSurface(
@@ -159,7 +159,7 @@ fun ScanSurface(
             }
         }
 
-        // Gutter — red Back (THEME-04), plus a camera-flip toggle while a live preview is showing.
+        // Gutter — neutral Back (D-10), plus a camera-flip toggle while a live preview is showing.
         val livePreview = state is ScanState.Scanning ||
             state is ScanState.Unsupported ||
             state is ScanState.NotRecognized
@@ -168,7 +168,7 @@ fun ScanSurface(
                 label = "Back",
                 onClick = onBack,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Danger,
+                intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                 symbol = "arrow_back",
             )
             if (livePreview) {

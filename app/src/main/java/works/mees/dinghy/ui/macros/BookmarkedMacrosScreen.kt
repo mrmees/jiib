@@ -91,7 +91,7 @@ fun BookmarkedMacrosScreen(
                     label = "Back",
                     onClick = onBack,
                     modifier = Modifier.weight(1f),
-                    intent = Intent.Go,
+                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     symbol = "arrow_back",
                 )
                 OutlinedControl(

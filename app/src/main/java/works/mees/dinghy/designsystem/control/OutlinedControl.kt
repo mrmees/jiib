@@ -30,11 +30,14 @@ import androidx.compose.material3.Text
  * docs/ui_design/CLAUDE.md). Intent IS the affordance signal — color is never decorative here.
  * Each intent resolves its outline color from [LocalTokens] (THEME-01 — never a raw color):
  *
- *  - [Neutral] — basic setting / secondary follow-up → `outline`.
+ *  - [Neutral] — basic setting / secondary follow-up / plain nav (Back, D-10) → `outline`.
  *  - [Accent]  — functional command with a direct physical effect (move, heat, fan) → `accentLine`.
  *  - [Warn]    — proceed at peril (reset, disable, undo, unexpected live change) → `heat` (amber).
- *  - [Danger]  — stop / cancel / back / host interruption → `stop` (red).
+ *  - [Danger]  — stop / cancel a pending action / host interruption → `stop` (red).
  *  - [Go]      — accept / done / commit a positive action → `go` (green).
+ *
+ * Plain navigational Back spends NO safety color — it is [Neutral]/outline app-wide (15.1 D-10;
+ * MoveScreen is the reference). Only a Back that DISCARDS pending input/result is [Danger].
  */
 enum class Intent {
     Neutral,

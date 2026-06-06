@@ -88,7 +88,7 @@ private val TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 
  * @param tokens     the active resolved tokens (THEME-01 — never raw color).
  * @param dispatcher the live session dispatcher; all actions go through it (null until a session exists).
  * @param onStartDispatched called after Start dispatches (parity with the other calibration screens).
- * @param onBack     leave the page (green Back; only offered when NOT Active).
+ * @param onBack     leave the page (neutral Back, D-10; only offered when NOT Active).
  */
 @Composable
 fun ProbeCalibrateScreen(
@@ -185,7 +185,7 @@ fun ProbeCalibrateScreen(
                                 label = "Back",
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Go,
+                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                             )
                         } else {
                             ProbeGutterButton(
@@ -208,7 +208,7 @@ fun ProbeCalibrateScreen(
                                 label = "Back",
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Go,
+                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                             )
                         }
                         ProbePageState.Active -> {
@@ -245,7 +245,7 @@ fun ProbeCalibrateScreen(
                                 label = "Back",
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Go,
+                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                             )
                         }
                     }

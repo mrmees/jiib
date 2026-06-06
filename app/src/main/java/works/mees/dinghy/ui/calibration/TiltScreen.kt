@@ -76,7 +76,7 @@ enum class TiltVariant { ZTilt, Qgl }
  * @param onRunDispatched called after Run dispatches so the holder marks the routine run this load.
  * @param onHome     dispatch the homed pre-flight (G28) — the Home All offer (D-13).
  * @param onEnter    called once on page entry to reset the holder to the Idle landing state.
- * @param onBack     leave the page (green Back).
+ * @param onBack     leave the page (neutral Back, D-10).
  */
 @Composable
 fun TiltScreen(
@@ -160,7 +160,7 @@ fun TiltScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
                     )
                 }
             },

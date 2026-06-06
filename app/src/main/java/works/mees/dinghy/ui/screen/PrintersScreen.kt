@@ -90,7 +90,7 @@ import works.mees.dinghy.theme.fsSp
  *                     repoints the call site / drawer label).
  * @param onSwitched   the D-02 navigation hook — invoked after `setActive`; the shell maps it to
  *                     `navigateTo(Dest.PrintStatus)` so the recovery Splash lands on the new printer's Status.
- * @param onBack       the explicit green gutter Back exit (the swipe-drawer is suppressed for this Field).
+ * @param onBack       the explicit neutral gutter Back exit (D-10; the swipe-drawer is suppressed for this Field).
  */
 @Composable
 fun PrintersScreen(
@@ -154,7 +154,7 @@ fun PrintersScreen(
                     label = "Back",
                     onClick = onBack,
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    intent = Intent.Go, // backing out changes nothing — Back is green (THEMING).
+                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                     symbol = "arrow_back",
                 )
             },

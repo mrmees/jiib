@@ -175,7 +175,7 @@ private fun FilterToggle(
     }
 }
 
-/** The green Back exit (safe dismiss — backing out changes nothing → `t.go`, per safety doctrine). */
+/** The neutral Back exit (D-10: plain nav spends no safety color → `t.outline`, matching Move). */
 @Composable
 private fun BackControl(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
@@ -184,7 +184,7 @@ private fun BackControl(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier
             .heightIn(min = 64.dp)
             .clip(shape)
-            .border(BorderStroke(2.dp, t.go), shape)
+            .border(BorderStroke(2.dp, t.outline), shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -193,7 +193,7 @@ private fun BackControl(onClick: () -> Unit, modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            MaterialSymbol("arrow_back", tint = t.go, sizeSp = fsSp(22f, t.fs))
+            MaterialSymbol("arrow_back", tint = t.outline, sizeSp = fsSp(22f, t.fs))
             Text(
                 text = "Back",
                 color = t.text,

@@ -67,7 +67,7 @@ import works.mees.dinghy.theme.fsSp
  *
  * @param holder the per-session picker holder (state + mutators).
  * @param dispatcher the session action dispatcher (null when idle — Set/Clear no-op until reconnected).
- * @param onBack the red Back gutter exit.
+ * @param onBack the neutral Back gutter exit (D-10).
  * @param onScan opens the QR scan sub-surface (the 11-07 surface; a no-op hook until wired).
  * @param prefilter the D-04 gcode-aware prefilter seed carried from a Files spool-warning "Pick spool"
  *   (null on a plain drawer open); applied ONCE on entry then cleared via [onPrefilterConsumed].
@@ -141,7 +141,7 @@ fun SpoolScreen(
                         label = "Back",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Danger, // back = red (THEME-04).
+                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
                         symbol = "arrow_back",
                     )
                     OutlinedControl(
