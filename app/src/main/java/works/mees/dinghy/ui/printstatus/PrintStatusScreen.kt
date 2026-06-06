@@ -7,6 +7,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -878,28 +880,29 @@ private fun StandbyFocus(
     val bed = state.heaters["heater_bed"]
     val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
-    BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-        val iconSize = minOf(maxWidth, maxHeight) * 0.9f
-        Box(Modifier.size(iconSize), contentAlignment = Alignment.Center) {
-            // App-icon base (faint backdrop) — the future per-printer user image slots in here. Enlarged
-            // to fill the focus (2026-06-06 UAT: "large and in charge"); stays faint under the glance list.
-            Icon(
-                painter = painterResource(R.drawable.ic_launcher_foreground),
-                contentDescription = null,
-                tint = t.accent2,
-                modifier = Modifier.fillMaxSize(0.9f).alpha(0.45f).align(Alignment.Center),
-            )
-            // The centered glance list overlaid on the icon.
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                GlanceRow("nozzle-temp", "Nozzle", tempActive(nozzle), t.seriesColor(0))
-                GlanceRow("heat-bed", "Bed", tempActive(bed), t.seriesColor(1))
-                glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
-                if (spoolmanPresent && spoolRemaining != null) {
-                    GlanceRow("spool", "Spool", "${spoolRemaining.roundToInt()} g", t.text)
-                }
+    Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+        // App-icon base (faint backdrop): the Benchy brand image (default; per-printer user-brandable per
+        // the staging note). ContentScale.Crop FILLS the focus region in BOTH orientations — Icon's hard
+        // Fit left big margins on the tall landscape half-focus (2026-06-06 UAT); Crop scales the 16:9 art
+        // to cover and trims the decorative margins. Themed via accent2 tint, faint under the glance list.
+        Image(
+            painter = painterResource(R.drawable.benchy),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            colorFilter = ColorFilter.tint(t.accent2),
+            alpha = 0.45f,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // The centered glance list overlaid on the backdrop.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            GlanceRow("nozzle-temp", "Nozzle", tempActive(nozzle), t.seriesColor(0))
+            GlanceRow("heat-bed", "Bed", tempActive(bed), t.seriesColor(1))
+            glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
+            if (spoolmanPresent && spoolRemaining != null) {
+                GlanceRow("spool", "Spool", "${spoolRemaining.roundToInt()} g", t.text)
             }
         }
     }
@@ -1002,15 +1005,15 @@ private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modi
 
 /** Distinct Material-Symbol glyph per launcher tile (icon-never-twice). */
 private fun launcherGlyph(d: LauncherDest): String = when (d) {
-    LauncherDest.Files -> "folder"
+    LauncherDest.Files -> "print_connect"
     LauncherDest.Temperature -> "thermostat"
     LauncherDest.Move -> "open_with"
-    LauncherDest.Extrude -> "swap_vert"
+    LauncherDest.Extrude -> "output_circle"
     LauncherDest.Calibration -> "tune"
     LauncherDest.Spool -> "donut_large"
     LauncherDest.Macros -> "bolt"
     LauncherDest.Console -> "terminal"
-    LauncherDest.Drawer -> "apps"
+    LauncherDest.Drawer -> "more_horiz"
 }
 
 private fun launcherLabel(d: LauncherDest): String = when (d) {
