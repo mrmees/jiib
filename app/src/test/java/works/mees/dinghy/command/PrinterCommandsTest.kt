@@ -4,7 +4,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.MoonrakerJson
 
@@ -161,44 +160,75 @@ class PrinterCommandsTest {
         )
     }
 
-    // --- Phase-16 Z-babystep + SD reset builders (RED — land in 16-03) ----------------------------
+    // --- Phase-16 Z-babystep + SD reset builders (GREEN — landed in 16-03) ------------------------
 
     /**
-     * Wave-0 RED scaffold (16-01) — turned GREEN by 16-03.
-     *
-     * `setGcodeOffsetZAdjust(±step)` must emit `SET_GCODE_OFFSET Z_ADJUST=<value> MOVE=1` with the
-     * SIGNED delta: Compress (nozzle closer) = NEGATIVE, Expand (nozzle further) = POSITIVE. The step
-     * is one of the fixed set {0.02, 0.05, 0.10, 0.15, 0.20} — validate/canonicalize against the set,
-     * NEVER free-text concatenation (ASVS V5 / T-16-01-V5).
-     *
-     * RED discipline: this asserts against the EXPECTED gcode literal and does NOT call the not-yet-built
-     * `PrinterCommands.setGcodeOffsetZAdjust` (it lands in 16-03), so the case compiles but is RED.
+     * `setGcodeOffsetZAdjust(±step)` emits `SET_GCODE_OFFSET Z_ADJUST=<value> MOVE=1` with the SIGNED
+     * delta: Compress (nozzle closer) = NEGATIVE, Expand (nozzle further) = POSITIVE. The step is one of
+     * the fixed set {0.02, 0.05, 0.10, 0.15, 0.20} — canonicalize against the set, NEVER free-text (V5).
      */
     @Test
     fun setGcodeOffsetZAdjust_signedDelta_exactString() {
-        val expectedExpand = "SET_GCODE_OFFSET Z_ADJUST=0.05 MOVE=1"
-        val expectedCompress = "SET_GCODE_OFFSET Z_ADJUST=-0.05 MOVE=1"
-        // EXPECT (16-03): PrinterCommands.setGcodeOffsetZAdjust(+0.05) == expectedExpand
-        // EXPECT (16-03): PrinterCommands.setGcodeOffsetZAdjust(-0.05) == expectedCompress
-        require(expectedExpand.endsWith("MOVE=1") && expectedCompress.contains("=-0.05"))
-        fail("not yet implemented — 16-03 setGcodeOffsetZAdjust (signed delta)")
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=0.05 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(0.05),
+        )
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=-0.05 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(-0.05),
+        )
+        // Locale.US trailing-zero strip: 0.10 → "0.1", and the negative compress direction.
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=0.1 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(0.10),
+        )
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=-0.1 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(-0.10),
+        )
+    }
+
+    @Test
+    fun babystepSteps_areTheFixedCycle() {
+        assertEquals(listOf(0.02, 0.05, 0.10, 0.15, 0.20), PrinterCommands.BABYSTEP_STEPS)
     }
 
     @Test
     fun setGcodeOffsetZAdjust_offGridStep_snapsToNearestMember() {
-        // EXPECT (16-03): an off-grid input (e.g. 0.07) canonicalizes to the NEAREST set member (0.05),
-        // never emits free-text 0.07 — the V5 validation guard.
-        val nearestForSevenHundredths = 0.05
-        require(nearestForSevenHundredths == 0.05)
-        fail("not yet implemented — 16-03 setGcodeOffsetZAdjust (snap off-grid to {0.02..0.20})")
+        // 0.037 is nearest 0.05 (|.037-.05|=.013 < |.037-.02|=.017) — never emits free-text 0.037.
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=0.05 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(0.037),
+        )
+        // Sign preserved while snapping.
+        assertEquals(
+            "SET_GCODE_OFFSET Z_ADJUST=-0.05 MOVE=1",
+            PrinterCommands.setGcodeOffsetZAdjust(-0.037),
+        )
+    }
+
+    @Test
+    fun setGcodeOffsetZAdjust_invalidInput_canonicalizesToValidMember() {
+        // 0.0 / NaN / out-of-range never emit a raw/garbage Z_ADJUST — always a BABYSTEP_STEPS member.
+        for (out in listOf(
+            PrinterCommands.setGcodeOffsetZAdjust(0.0),
+            PrinterCommands.setGcodeOffsetZAdjust(Double.NaN),
+            PrinterCommands.setGcodeOffsetZAdjust(999.0),
+        )) {
+            assertTrue("must start SET_GCODE_OFFSET Z_ADJUST=", out.startsWith("SET_GCODE_OFFSET Z_ADJUST="))
+            assertTrue("must end MOVE=1", out.endsWith("MOVE=1"))
+            val zAdjust = out.removePrefix("SET_GCODE_OFFSET Z_ADJUST=").removeSuffix(" MOVE=1")
+            val magnitude = zAdjust.removePrefix("-").toDouble()
+            assertTrue(
+                "$zAdjust magnitude must be a fixed BABYSTEP_STEPS member, was $magnitude",
+                PrinterCommands.BABYSTEP_STEPS.any { kotlin.math.abs(it - magnitude) < 1e-9 },
+            )
+        }
     }
 
     @Test
     fun sdcardResetFile_constIsExactLiteral() {
-        // EXPECT (16-03): PrinterCommands.SDCARD_RESET_FILE == "SDCARD_RESET_FILE"
-        val expected = "SDCARD_RESET_FILE"
-        require(expected == "SDCARD_RESET_FILE")
-        fail("not yet implemented — 16-03 SDCARD_RESET_FILE const")
+        assertEquals("SDCARD_RESET_FILE", PrinterCommands.SDCARD_RESET_FILE)
     }
 
     // --- scriptParams serialization ---------------------------------------------------------------

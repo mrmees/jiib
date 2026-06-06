@@ -3,6 +3,9 @@ package works.mees.dinghy.command
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * PURE gcode builders for every Phase-5 print-control action (Move / Temperature / Extrude). Mirrors
@@ -92,6 +95,22 @@ object PrinterCommands {
 
     /** `SAVE_CONFIG` — persist config + restart the host (D-12; reuses the G2 re-handshake). */
     const val SAVE_CONFIG = "SAVE_CONFIG"
+
+    /**
+     * `SDCARD_RESET_FILE` — clear the loaded virtual_sdcard file after a Terminal print (D-05). Fixed
+     * const gcode, zero interpolation (ASVS V5, T-16-03-02): the Print-Status Terminal-Dismiss gutter
+     * action ships this verbatim to return the printer to Standby with no leftover restartFilename.
+     */
+    const val SDCARD_RESET_FILE = "SDCARD_RESET_FILE"
+
+    // --- Z-babystep (SC-5, Phase 16) --------------------------------------------------------------
+    /**
+     * The fixed Z-babystep increment cycle (mm) the Print-Status early-layer babystep stepper offers
+     * (the staging-note canonical set). [setGcodeOffsetZAdjust] canonicalizes any input against THIS set
+     * (ASVS V5) so an off-grid/garbage value can never reach the gcode string. Defined ONCE here; 16-02's
+     * classifier step-cycle reads this constant (single source of truth).
+     */
+    val BABYSTEP_STEPS: List<Double> = listOf(0.02, 0.05, 0.10, 0.15, 0.20)
 
     // --- Fixed identifier sets --------------------------------------------------------------------
     private val MOTION_AXES = setOf("X", "Y", "Z")
@@ -198,6 +217,30 @@ object PrinterCommands {
     fun testZ(step: Double): String = "TESTZ Z=${step.coerceIn(-MAX_TESTZ_MM, MAX_TESTZ_MM)}"
 
     /**
+     * `SET_GCODE_OFFSET Z_ADJUST=<signed step> MOVE=1` — the session-only Z-babystep nudge (SC-5). A
+     * NEGATIVE [deltaMm] compresses (nozzle closer to bed); POSITIVE expands (further). MOVE=1 applies the
+     * adjustment immediately during the current move.
+     *
+     * SECURITY (ASVS V5, T-16-03-01): the builder is TOTAL — it never rejects, never concatenates a
+     * free-text/off-grid value. The magnitude of [deltaMm] is CANONICALIZED to the nearest [BABYSTEP_STEPS]
+     * member (epsilon-tolerant nearest-match) with the sign preserved, so a malformed (NaN / 0 / off-grid)
+     * input always snaps to a valid increment before formatting. Mirrors the [testZ] clamp-before-format
+     * discipline. The Double is formatted with [Locale.US] (`0.10 → "0.1"`, `0.05 → "0.05"`) so no
+     * locale-comma / trailing-zero noise reaches the gcode.
+     */
+    fun setGcodeOffsetZAdjust(deltaMm: Double): String {
+        val sign = if (deltaMm < 0.0) -1.0 else 1.0 // NaN/0 → positive default; member sign re-applied below
+        val magnitude = abs(deltaMm)
+        val snapped = if (magnitude.isNaN()) {
+            BABYSTEP_STEPS.first()
+        } else {
+            BABYSTEP_STEPS.minByOrNull { abs(it - magnitude) } ?: BABYSTEP_STEPS.first()
+        }
+        val canonical = sign(sign) * snapped
+        return "SET_GCODE_OFFSET Z_ADJUST=${formatZ(canonical)} MOVE=1"
+    }
+
+    /**
      * Strict allowlist validator for a bed-mesh profile NAME (T-09-02-02). The name DEFAULTS to the
      * app-generated `YY.MM.DD_HH.MM` timestamp (D-10) but is keyboard-EDITABLE per the UI-SPEC owner
      * carve-out, so it IS a user-controlled injection surface: a newline would inject a SECOND gcode line.
@@ -248,4 +291,15 @@ object PrinterCommands {
 
     /** Clamp |[v]| to [max] preserving sign. */
     private fun clampMagnitude(v: Double, max: Double): Double = v.coerceIn(-max, max)
+
+    /**
+     * Format a babystep Double cleanly with [Locale.US] — no locale comma, no trailing-zero noise. The
+     * input is always a (signed) [BABYSTEP_STEPS] member, so two decimals suffices: format to 2dp then
+     * strip a trailing zero so `0.10 → "0.1"` while `0.05 → "0.05"` is preserved.
+     */
+    private fun formatZ(v: Double): String {
+        var s = String.format(Locale.US, "%.2f", v)
+        if (s.contains('.')) s = s.trimEnd('0').trimEnd('.')
+        return s
+    }
 }
