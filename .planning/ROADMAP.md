@@ -719,24 +719,27 @@ Plans:
 
 **Wave 0**
 
-- [ ] 16-01-PLAN.md — RED scaffolds (compile-clean): PrintStatusModeTest, PreheatTest, + extend PrinterCommandsTest / PrinterStateReducerTest
+- [ ] 16-01-PLAN.md — RED scaffolds (compile-clean): PrintStatusModeTest, PreheatTest, GlanceSensorTest, BabystepPrefsTest, + extend PrinterCommandsTest / PrinterStateReducerTest
 
-**Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
+**Wave 1** *(blocked on Wave 0; parallel — disjoint files: command/ ‖ state/ ‖ app-prefs)*
 
-- [ ] 16-02-PLAN.md — Pure PrintStatusMode classifier (Standby=Standby behavior change) + babystep gating/step-cycle + extended control actions (Preheat/Dismiss/Power)
-- [ ] 16-03-PLAN.md — Command specs: SET_GCODE_OFFSET (babystep) + SDCARD_RESET_FILE (dismiss), V5-validated, registered in `all` + catalog sidecar
-- [ ] 16-04-PLAN.md — State additions: gcode_move.homing_origin[2] readback + temperature_sensor Standby glance temp (host-load deferred to P19)
-- [ ] 16-05-PLAN.md — Babystep app setting (BabystepPrefs + writeScope intent helpers + Settings toggle/numeric layer-count) + greyed Output/System-Info drawer stubs
+- [ ] 16-03-PLAN.md — Command specs: SET_GCODE_OFFSET (babystep, canonicalize-against-set) + SDCARD_RESET_FILE (dismiss), V5-validated, registered in `all` + docs/commands/ sidecars
+- [ ] 16-04-PLAN.md — State additions: gcode_move.homing_origin[2] readback + retained temperature_sensor map + pure selectGlanceSensor (host-load deferred to P19)
+- [ ] 16-05-PLAN.md — Babystep app setting (BabystepPrefs + DinghyApp DataStore + writeScope intent helpers + Settings toggle/numeric layer-count) + greyed Output/System-Info drawer stubs
 
-**Wave 2** *(blocked on Wave 1)*
+**Wave 2** *(blocked on Wave 1 — depends on 16-03 for canonical BABYSTEP_STEPS)*
 
-- [ ] 16-06-PLAN.md — PrintStatusScreen four-mode rework (Standby/Printing/Paused/Terminal off the classifier) + spool-aware Preheat + babystep row + glyphs + Dismiss/Reprint
+- [ ] 16-02-PLAN.md — Pure PrintStatusMode classifier (Standby=Standby behavior change) + selectPreheatPath + babystep gating/step-cycle + extended control actions (Preheat/Dismiss/Power)
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 16-07-PLAN.md — Documentation Merge: README four-state model + LAYOUT interactive-grid flexible-tile hard law + babystep C3 exception (THEMING untouched)
+- [ ] 16-06-PLAN.md — PrintStatusScreen four-mode rework off the classifier + pure PrintStatusUiModel seam + AppShell launcher nav + spool-aware Preheat (capability-gated) + babystep row + Dismiss/Reprint
 
-**Wave 4** *(blocked on Wave 3; on-device gates)*
+**Wave 4** *(blocked on Wave 3; owner doc-asset checkpoint)*
+
+- [ ] 16-07-PLAN.md — Documentation Merge: README four-state model + LAYOUT interactive-grid flexible-tile hard law + babystep C3 exception (THEMING untouched) + artboard regen (owner checkpoint)
+
+**Wave 5** *(blocked on Wave 4; on-device gates)*
 
 - [ ] 16-08-PLAN.md — Binding on-device gates: SC-5 live babystep round-trip (E5 first layer) + SC-3 Adreno-320 perf no-regression + SC-4 monitor loop preserved (autonomous:false)
 
