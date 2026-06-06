@@ -65,6 +65,31 @@ private val SIZE_STEPS: List<Float> = listOf(
 )
 
 /**
+ * Advance the ACTIVE printer-profile id to the NEXT id in [ids] (wrap-around) — the pure stepper behind
+ * the dev printer-switcher cycler (15.2-04 finding 2). This is a GENUINE active-profile switch (reused via
+ * `AppContainer.setActiveProfile`), not a transient theme override, so it directly accelerates the
+ * upcoming 15.2-06 cross-printer conformance sweep.
+ *
+ * Contract:
+ *  - 0 or 1 ids → returns [currentId] unchanged (single-profile / empty = no-op, no crash).
+ *  - currentId not found in [ids] (null or dangling) → returns the FIRST id (so the first tap lands a
+ *    valid active profile rather than no-opping forever).
+ *  - otherwise → the id one position past [currentId], wrapping after the last.
+ *
+ * @param ids the ordered profile ids (the live `profileStore.profiles` order).
+ * @param currentId the live active-profile id (or null when none).
+ * @return the id to switch to, or null only when [ids] is empty.
+ */
+fun nextProfileId(ids: List<String>, currentId: String?): String? {
+    if (ids.isEmpty()) return null
+    if (ids.size == 1) return currentId // single-profile no-op (keeps whatever is active).
+    val pos = ids.indexOf(currentId)
+    // Unknown/dangling current → land on the first id; otherwise advance with wrap.
+    val nextIndex = if (pos < 0) 0 else (pos + 1) % ids.size
+    return ids[nextIndex]
+}
+
+/**
  * Advance the STYLE axis (dark + paletteMode) to the next of the 6 combos, wrapping after 6, while
  * carrying `current.fs` forward UNCHANGED (HIGH-4: an active size override survives a style tap). The
  * current style position is derived from `current?.dark`/`current?.paletteMode`; an absent/unknown
@@ -119,10 +144,20 @@ private fun sizeLabel(o: ThemeOverride?): String = when (o?.fs) {
  * Compose overlay above all routes, NOT a WindowManager TYPE_APPLICATION_OVERLAY (avoids
  * SYSTEM_ALERT_WINDOW).
  *
+ * ## Printer cycler (15.2-04 finding 2)
+ * A THIRD chip advances the ACTIVE printer profile to the next available one (wrap-around) via the same
+ * `AppContainer.setActiveProfile` intent the drawer/Printers screen use — a GENUINE switch, not a
+ * transient override. It identifies the current printer (so the human can tell which is active mid-sweep)
+ * and is a no-op / disabled when fewer than two profiles exist. It accelerates the 15.2-06 cross-printer
+ * conformance walk. Same static-only motion + role-token rules as the other chips.
+ *
  * @param currentOverride the live override (from `container.themeOverride`) — labels the active combo.
  * @param onCycleStyle    advance the style axis (wired to `updateThemeOverride { nextStyleOverride(it) }`).
  * @param onCycleSize     advance the size axis (wired to `updateThemeOverride { nextSizeOverride(it) }`).
  * @param onDismiss       clear the override (wired to `setThemeOverride(null)`).
+ * @param printerLabel    the active printer's display name/host (the chip face); null when no profile.
+ * @param printerSwitchable whether ≥2 profiles exist (false → the printer chip reads disabled/no-op).
+ * @param onCyclePrinter  advance to the next active profile (wired to `setActiveProfile(nextProfileId(...))`).
  */
 @Composable
 fun DevThemeCyclerOverlay(
@@ -131,6 +166,9 @@ fun DevThemeCyclerOverlay(
     onCycleSize: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    printerLabel: String? = null,
+    printerSwitchable: Boolean = false,
+    onCyclePrinter: () -> Unit = {},
 ) {
     val t = LocalTokens.current
     val density = LocalDensity.current
@@ -199,6 +237,15 @@ fun DevThemeCyclerOverlay(
                 value = sizeLabel(currentOverride),
                 onTap = onCycleSize,
             )
+            // Printer switcher cycler (15.2-04 finding 2) — a GENUINE active-profile switch (wrap-around).
+            // Disabled / no-op when <2 profiles exist; shows the active printer so the human can tell which
+            // is live during the cross-printer conformance sweep.
+            CyclerChip(
+                title = "Printer",
+                value = printerLabel ?: "—",
+                onTap = onCyclePrinter,
+                enabled = printerSwitchable,
+            )
         }
     }
 }
@@ -208,26 +255,33 @@ private fun CyclerChip(
     title: String,
     value: String,
     onTap: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val t = LocalTokens.current
-    Column(
-        modifier = Modifier
-            // >=64dp tap target (touch floor) — the only sanctioned fixed px (LAYOUT.md NON-NEGOTIABLE 3).
-            .sizeIn(minWidth = 96.dp, minHeight = 64.dp)
-            .background(t.surface3, RoundedCornerShape(8.dp))
-            .border(2.dp, t.accentLine, RoundedCornerShape(8.dp))
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    // wait for up; if no significant drag, treat as a tap (a static one-shot, no loop).
-                    var dragged = false
-                    drag(down.id) { change ->
-                        if (change.positionChange().getDistanceSquared() > 64f) dragged = true
-                    }
-                    if (!dragged) onTap()
+    // Disabled chips read greyed (hairline outline) and swallow no taps (single-profile no-op, finding 2).
+    val outline = if (enabled) t.accentLine else t.outline
+    val base = Modifier
+        // >=64dp tap target (touch floor) — the only sanctioned fixed px (LAYOUT.md NON-NEGOTIABLE 3).
+        .sizeIn(minWidth = 96.dp, minHeight = 64.dp)
+        .background(t.surface3, RoundedCornerShape(8.dp))
+        .border(2.dp, outline, RoundedCornerShape(8.dp))
+    val tappable = if (enabled) {
+        base.pointerInput(Unit) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                // wait for up; if no significant drag, treat as a tap (a static one-shot, no loop).
+                var dragged = false
+                drag(down.id) { change ->
+                    if (change.positionChange().getDistanceSquared() > 64f) dragged = true
                 }
+                if (!dragged) onTap()
             }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+        }
+    } else {
+        base
+    }
+    Column(
+        modifier = tappable.padding(horizontal = 10.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         BasicText(
@@ -237,7 +291,7 @@ private fun CyclerChip(
         BasicText(
             text = value,
             style = TextStyle(
-                color = t.text,
+                color = if (enabled) t.text else t.text3,
                 fontSize = fsSp(15f, t.fs).sp,
                 fontWeight = FontWeight.Medium,
             ),

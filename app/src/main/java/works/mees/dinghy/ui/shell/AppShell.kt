@@ -731,12 +731,23 @@ fun AppShell(
         val devCyclerEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
         if (devCyclerEnabled) {
             val currentOverride by container.themeOverride.collectAsStateWithLifecycle(initialValue = null)
+            // 15.2-04 finding 2 — the printer-switcher cycler. A GENUINE active-profile switch (reusing
+            // setActiveProfile, the same intent the drawer/Printers screen use), wrap-around via the pure
+            // nextProfileId stepper; disabled/no-op with <2 profiles. Accelerates the 15.2-06 cross-printer
+            // conformance sweep by letting the human hop printers without leaving the screen under audit.
+            val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(initialValue = emptyList())
+            val profileIds = profiles.map { it.id }
             DevThemeCyclerOverlay(
                 currentOverride = currentOverride,
                 onCycleStyle = { container.updateThemeOverride { nextStyleOverride(it) } },
                 onCycleSize = { container.updateThemeOverride { nextSizeOverride(it) } },
                 onDismiss = { container.setThemeOverride(null) },
                 modifier = Modifier.fillMaxSize(),
+                printerLabel = activeName,
+                printerSwitchable = profileIds.size >= 2,
+                onCyclePrinter = {
+                    nextProfileId(profileIds, activeProfileId)?.let { container.setActiveProfile(it) }
+                },
             )
         }
 
