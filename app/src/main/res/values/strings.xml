@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Master English vocabulary (SC-3). This is the single source of truth for the app's UI vocabulary and
+  the seed for the tokenization convention the exemplar plans (18-05/06/07) and Phase-22 backfill extend.
+
+  ## Key convention
+  - Visible labels / titles / body:  <area>_<element>   e.g. printstatus_title, finetune_motion_label
+  - contentDescription (a11y) keys:  cd_<thing>          e.g. cd_back  (TalkBack-only, never shown)
+  - <area> = the screen/feature owning the string (printstatus, finetune, spool, common, …).
+
+  ## Scope boundary (IN / OUT — see parallel_dinghy/phase-tokenization-staging.md)
+  IN  = APP vocabulary authored by us (labels, titles, actions, status words, a11y descriptions).
+  OUT = pass-through DATA — filenames, console output, macro params, raw Moonraker fields — those are
+        rendered VERBATIM and are NEVER given string keys.
+
+  This file establishes the file + convention + a representative starter set (incl. the required
+  format-arg and plurals proofs). Per-screen keys are ADDED by the exemplar plans; the ~240-literal
+  backfill is Phase-22 (the detekt baseline from 18-01 tolerates the not-yet-tokenized literals).
+-->
+<resources>
+
+    <!-- ============================ common ============================ -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_done">Done</string>
+
+    <!-- contentDescription (cd_*) — TalkBack labels, never rendered as visible text -->
+    <string name="cd_back">Back</string>
+    <string name="cd_save">Save</string>
+    <string name="cd_fine_tune">Fine-tune live print adjustments</string>
+
+    <!-- ========================= printstatus ========================== -->
+    <string name="printstatus_title">Print Status</string>
+    <string name="printstatus_nozzle_label">Nozzle</string>
+    <string name="printstatus_bed_label">Bed</string>
+    <string name="printstatus_print_time_label">Print time</string>
+
+    <!-- Format-arg proof (SC-3): a single positional string substitution. -->
+    <string name="printstatus_layer_progress">Layer %1$d of %2$d</string>
+
+    <!-- ========================== finetune ============================ -->
+    <string name="finetune_title">Fine-Tune</string>
+    <string name="finetune_motion_label">Motion</string>
+    <string name="finetune_extrusion_label">Extrusion</string>
+
+    <!-- ============================ spool ============================= -->
+    <string name="spool_title">Spool</string>
+    <string name="spool_remaining_label">Remaining</string>
+
+    <!-- Plurals proof (SC-3): count-aware quantity string. -->
+    <plurals name="spool_count">
+        <item quantity="one">%1$d spool</item>
+        <item quantity="other">%1$d spools</item>
+    </plurals>
+
+</resources>
