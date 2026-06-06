@@ -291,6 +291,24 @@ class AppContainer(
     val webcamCount: Flow<Int> = webcams.map { it.size }
 
     /**
+     * The WIRED Webcam-tile/surface gate (MEDIUM-4, 15.2-03 D-04) — the tile is live ONLY when the
+     * connected printer actually HAS cams ([webcamCount] > 0) AND the active profile's per-profile
+     * [Profile.webcamEnabled] toggle is on. This REPLACES the bare `webcamCount > 0` consumer at
+     * AppShell.kt:183 (plan 04 repoints it) so toggling the per-profile setting actually greys the tile.
+     * Pure predicate [webcamTileGate] is the host-tested core; a null active profile keeps the prior
+     * always-on default (true) so an unmanaged/idle session is unchanged.
+     */
+    val webcamTileEnabled: Flow<Boolean> =
+        combine(webcamCount, activeProfile) { count, p ->
+            webcamTileGate(count, p?.webcamEnabled ?: true)
+        }
+
+    /** Set the active profile's per-profile webcam toggle (D-04), durable + lost-update-safe (WR-01). */
+    fun setActiveWebcamEnabled(on: Boolean) {
+        mutateActiveProfile { it.copy(webcamEnabled = on) }
+    }
+
+    /**
      * Live active-spool status (SPOOL-01/08, plan 11-04) — forwarded off the current session's
      * [SpineHandle.activeSpool], which a service-owned [works.mees.dinghy.spool.ActiveSpoolFacade]
      * fetches on each handshake edge and reconciles to the two server-push notifications (D-10). null
@@ -543,6 +561,27 @@ class AppContainer(
             // WR-03: ONE atomic edit (not six sequential ones) so tupleFlow emits once — no partial-reset
             // flicker as the idle theme re-themes through intermediate half-reset tuples.
             writeScope.launch { themePrefs.resetToDefaults() }
+        }
+    }
+
+    companion object {
+        /**
+         * PURE Webcam-tile gate (MEDIUM-4) — the tile is live ONLY when the printer has cams AND the
+         * per-profile toggle is on. Host-testable with no flow/IO; the [webcamTileEnabled] flow wraps it.
+         */
+        fun webcamTileGate(count: Int, webcamEnabled: Boolean): Boolean = count > 0 && webcamEnabled
+
+        /**
+         * PURE Connection apiKey edit resolution (MEDIUM-5/V7) — the single source of truth for what a
+         * Connection save writes for the key, so the raw stored key never has to round-trip into the UI:
+         *  - [cleared] (an explicit Clear) → `null` (remove the key) — Clear wins even over a typed field;
+         *  - blank [fieldInput] (and NOT cleared) → [existing] (PRESERVE — a save without retyping keeps it);
+         *  - non-blank [fieldInput] → [fieldInput] (REPLACE).
+         */
+        fun resolveApiKeyEdit(existing: String?, fieldInput: String, cleared: Boolean): String? = when {
+            cleared -> null
+            fieldInput.isBlank() -> existing
+            else -> fieldInput
         }
     }
 }

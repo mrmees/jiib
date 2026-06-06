@@ -40,6 +40,10 @@ data class PersistedProfile(
     val maxItems: Int = 4,
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M", // FontScale.name — a SEPARATE setting (D-05), NOT folded into the theme tuple.
+    // Per-profile FEATURE TOGGLE (D-04, 15.2-03) — NOT app-global. Defaults TRUE to preserve today's
+    // always-available webcam behavior (the prior gate was capability-only `webcamCount > 0`). When false,
+    // AppContainer.webcamTileEnabled greys the Webcam drawer tile/surface even on a printer that HAS cams.
+    val webcamEnabled: Boolean = true,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
     // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
@@ -75,6 +79,8 @@ data class Profile(
     val maxItems: Int = 4,
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M",
+    // Per-profile feature toggle (D-04, 15.2-03) — see [PersistedProfile.webcamEnabled]. Default true.
+    val webcamEnabled: Boolean = true,
 ) {
     /**
      * The connection projection — host/port/apiKey ONLY. This is the value `distinctUntilChanged` keys
@@ -118,6 +124,7 @@ data class Profile(
             maxItems = maxItems,
             poolOverrides = poolOverrides,
             fsChoice = fsChoice,
+            webcamEnabled = webcamEnabled,
         )
 
     override fun toString(): String =
@@ -145,6 +152,7 @@ data class Profile(
                 maxItems = p.maxItems,
                 poolOverrides = p.poolOverrides,
                 fsChoice = p.fsChoice,
+                webcamEnabled = p.webcamEnabled,
             )
     }
 }
