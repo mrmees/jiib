@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T23:39:49.717Z"
+last_updated: "2026-06-06T23:48:41.742Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 25
   completed_phases: 18
   total_plans: 135
-  completed_plans: 128
+  completed_plans: 129
   percent: 72
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 18 (preview-harness-tokenization-foundation) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
   → **Phase 17 (Fine-Tune / Live-Adjust) — 17-01..17-05 COMPLETE + 17-06 autonomous work done; ON-DEVICE UAT OWNER-DEFERRED 2026-06-06.** Full wave run (worktrees off, sequential): 17-01 RED scaffolds (31 RED methods, both test sourcesets compile) → 17-04 11 Fine-Tune glyph drawables → 17-02 pure clamp-format gcode builders (M220/M221/velocity-limit/PA/M106/SET_RETRACTION, Locale.US, object-gated registry specs) + 17-03 state layer (7 nullable readback fields, null-safe diff-merge reducer, nullable config baselines, `firmware_retraction` in subscribe) → 17-05 Fine-Tune UI (one `FineTuneHolder` per spine w/ display-scaling + D-15 whole-group state-flip busy-lock + nullable long-press reset; Hub + Motion/Extrusion/FwRetraction screens; FW-retraction build-blind) → 17-06 entry/nav wiring (Print-Status Tune tile + drawer `instant_mix` tile, reset-to-Hub on entry) + **FULL host unit suite GREEN** (final gate, all 17-01 RED stubs closed) + APK built & installed on flox. **In-checkpoint polish:** owner reviewed remotely via screenshots (away from device) → caught landscape value-clipping → fix `73296fd` `fix(17-06): drop Fine-Tune tile label, rely on glyph` (label-less single-Row `[glyph][value][−+]` tile, consistent both orientations; tests + assembleDebug GREEN, reinstalled, re-shot — clipping resolved). **On-device functional UAT (state-flip / reject-path / mid-print speed effect / Adreno-320 perf — `17-UAT.md`, 8 checks all PENDING) DEFERRED by owner to a later session** (status: partial/deferred, surfaces in /gsd-progress + /gsd-audit-uat). Phase is NOT verified/complete: resume = run the 8 checks on flox+live printer, reply approved → write 17-06-SUMMARY → code-review + verifier gates → close. Screenshots in `17-fine-tune-live-adjust-panel/uat-shots/` (incl. `*b` fixed set).
   → **Plan 16-07 (Wave 4: Documentation Merge — four-state Print-Status UI LAW) EXECUTED + COMPLETE 2026-06-06** — folded the as-built four-state model into the UI LAW so docs match the as-built home + lock the foundation for Phases 17–20. Commits `d62b3dd` (docs — README Print Status section replaced with the four-state `PrintStatusMode` model: classifier [`standby→Standby` even with a stale filename; klippy shutdown/error is NOT terminal] + each state's Focus/Field/Gutter layout [Standby launcher+glance; Printing cockpit+stats+shortcut/babystep row; Paused dimmed; Terminal hero+stats-frame+≤3 error lines]; accent-temperature resolution noted — nozzle/bed = `directional.temperature` = accent, the amber `03-print-status.png` SUPERSEDED) + `a4bb616` (docs — LAYOUT.md gains the **interactive-grid flexible-tile rule as HARD LAW**, scoped EXACTLY to interaction-surface grids ONLY [never stat grids/text lists/graphs/info frames]; named the P16 flexible tiles Standby launcher→Drawer + active shortcut grid→Tune; **babystep horizontal-3-cell-row recorded as a documented C3 exception**). **THEMING.md deliberately untouched** (`git diff --quiet` verified — no color/shape-status rule changes this phase). **Task 3 (owner-side manual artboard gate) RESOLVED = DEFERRED** (resume signal "artboards deferred"): the Print-Status hi-fi artboards in `docs/ui_design/images/` (`03-print-status.png` + the absent per-state Standby/Paused/Terminal boards) are DEFERRED to a later visual/conformance design pass — hand-authored hi-fi mockups rendered from `reference/hifi.css`, regenerable anytime. The README four-state section + LAYOUT flexible-tile law are now THE WRITTEN AUTHORITY for the four-state model + accent-temperature identity until the boards are regenerated; **`03-print-status.png` is STALE (old single-state amber cockpit) and is SUPERSEDED by the prose**. NO PNG under `docs/ui_design/images/` was modified — explicit deferral, not silent omission (satisfies the plan must_have that the artboard status be explicitly resolved). The runtime Standby brand app-icon is a SEPARATE already-built element, NOT affected. 0 deviations. SUMMARY `16-07-SUMMARY.md`. SC-1 closed. **Phase 16 execution: 7/8 plans complete (only 16-08 = on-device SC gates remains); do NOT mark the phase complete here.**
@@ -204,6 +204,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 17 P03 | ~6 min | 2 tasks | 6 files |
 | Phase 17 P05 | 9 | 3 tasks | 10 files |
 | Phase 18 P01 | 25 | 2 tasks | 5 files |
+| Phase 18 P02 | ~10 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -367,6 +368,7 @@ Recent decisions affecting current work:
 - [Phase 17]: 17-03: Fine-Tune PA/smooth_time reduced in a separate extruder walk (not the heater loop); reducer stores RAW, scaling deferred to the holder display boundary.
 - [Phase 17]: 17-03: smooth-time RESET baseline reads config key pressure_advance_smooth_time (not status field smooth_time); speed/flow/part-fan deliberately have no baseline StateFlow.
 - [Phase ?]: Phase 18 SC-3 lint gate fallback fired: no verified Compose ruleset (io.nlopez.compose.rules:detekt 0.4.22, ru.kode:detekt-rules-compose 1.4.0) ships a hardcoded-string rule under Kotlin 2.1.21/AGP 8.7; automated lint gate deferred to Phase 22, en-XA pseudolocale ships regardless (18-01)
+- [Phase ?]: 18-02: PreviewBox uses the DinghyTheme(tokensFlow=) production overload + ThemeResolver.bake; fs=L injected via ThemeTuple.fs (@Preview(fontScale=) is a NO-OP); theme combos are explicit named seeds, multipreviews carry device/locale only
 
 ### Pending Todos
 
@@ -399,7 +401,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T23:39:37.250Z
+Last session: 2026-06-06T23:48:37.374Z
 Stopped at: Phase 18 context gathered
 Resume file: 
 None

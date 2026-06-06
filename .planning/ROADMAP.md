@@ -804,7 +804,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 18-02-PLAN.md — Preview infra (PreviewBox/fixtures/Nexus-7/placeholders) + D-05 host branches
+- [x] 18-02-PLAN.md — Preview infra (PreviewBox/fixtures/Nexus-7/placeholders) + D-05 host branches
 - [ ] 18-03-PLAN.md — Icon-token registry (DinghyIcon/IconRef/View) + strings.xml master + convention
 - [ ] 18-04-PLAN.md — Debug-gated start_dest hook on MainActivity (security-modeled) + flox gate
 
@@ -938,7 +938,7 @@ notes.
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 5/6 | In Progress|  |
-| 18. Preview Harness & Tokenization Foundation | 1/7 | In Progress|  |
+| 18. Preview Harness & Tokenization Foundation | 2/7 | In Progress|  |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
