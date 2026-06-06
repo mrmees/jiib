@@ -118,7 +118,10 @@ class ThemePrefs(
             .catch { e ->
                 if (e is IOException) emit(emptyPreferences()) else throw e
             }
-            .map { it[KEY_DEV_ENABLE] ?: false } // canonical default FALSE (see TEMP(15.2-02) note above)
+            // TEMP(15.2-02): default true so the cyclers appear in the RELEASE APK for the pre-About
+            // on-device walk; REVERTED to false in 15.2-04 Task 1 (the About toggle from D-05 becomes the
+            // durable control). Canonical end-state default is FALSE.
+            .map { it[KEY_DEV_ENABLE] ?: true }
 
     /** Persist the app-global dev-widget enable boolean. */
     suspend fun setDevEnable(on: Boolean) {

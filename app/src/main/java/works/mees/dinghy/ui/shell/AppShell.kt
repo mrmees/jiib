@@ -693,6 +693,26 @@ fun AppShell(
             )
         }
 
+        // Dev theme cycler overlay (15.2-02, D-08) — the two floating Style/Size cyclers hoisted OUTSIDE
+        // when(dest) so they float over EVERY screen, making this a true walk-the-app conformance tool.
+        // Gated on the app-global dev-enable boolean (default flipped true for the 15.2-02 release walk,
+        // reverted in 15.2-04). Each tap routes through the ATOMIC `updateThemeOverride { next*Override(it) }`
+        // (MEDIUM — reads the LIVE override, never a Compose-captured snapshot, so rapid taps cannot drop an
+        // axis); dismiss clears to null (idempotent, no atomic transform needed). NOT in the swipe-suppress
+        // set — it is chrome, not a route. Disabling in About also clears the override (AppContainer.
+        // setDevCyclerEnabled, HIGH-5), so no extra clear is needed here.
+        val devCyclerEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
+        if (devCyclerEnabled) {
+            val currentOverride by container.themeOverride.collectAsStateWithLifecycle(initialValue = null)
+            DevThemeCyclerOverlay(
+                currentOverride = currentOverride,
+                onCycleStyle = { container.updateThemeOverride { nextStyleOverride(it) } },
+                onCycleSize = { container.updateThemeOverride { nextSizeOverride(it) } },
+                onDismiss = { container.setThemeOverride(null) },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
         // A thin bottom-edge affordance: a deliberate, discoverable swipe-up handle at the bottom.
         Box(
             Modifier
