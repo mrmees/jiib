@@ -84,6 +84,25 @@ class PrintMetadataHolderTest {
     }
 
     @Test
+    fun retainsMetadataThroughTerminal_clearsOnStandby() = runTest(UnconfinedTestDispatcher()) {
+        var calls = 0
+        val flow = MutableStateFlow(PrinterState())
+        val holder = PrintMetadataHolder(backgroundScope, flow) { calls++; metadataJson }
+
+        flow.value = printing("a.gcode"); runCurrent()
+        assertEquals(1, calls)
+
+        // Print ends → Cancelled (same filename). Metadata MUST survive for the Terminal hero/stats.
+        flow.value = PrinterState(printState = PrintState.Cancelled, printFilename = "a.gcode"); runCurrent()
+        assertEquals("no re-fetch on terminal (same key)", 1, calls)
+        assertEquals(50, holder.metadata.value!!.layerCount)
+
+        // Only Standby (Dismiss/new session) clears it.
+        flow.value = PrinterState(printState = PrintState.Standby, printFilename = ""); runCurrent()
+        assertNull(holder.metadata.value)
+    }
+
+    @Test
     fun nullFetch_metadataStaysNull_noCrash() = runTest(UnconfinedTestDispatcher()) {
         val flow = MutableStateFlow(PrinterState())
         val holder = PrintMetadataHolder(backgroundScope, flow) { null }

@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -397,12 +398,14 @@ fun PrintStatusScreen(
             is PrintStatusMode.Terminal -> ScreenScaffold(
                 focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase) },
                 field = {
-                    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatGrid(
+                    // Roomier padding than the cockpit grid — the Terminal summary breathes, and the
+                    // right-aligned values don't hug the screen edge (2026-06-06 UAT).
+                    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
+                        // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
+                        TerminalStatsList(
                             state = state,
                             metadata = metadata,
-                            babystepWindow = false,
-                            terminal = true,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
@@ -1174,6 +1177,62 @@ private fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBas
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+    }
+}
+
+/**
+ * Terminal Field: a FINISHED-print summary LIST (2026-06-06 UAT) — replaces the live cockpit grid for
+ * Complete/Cancelled/Error. Reads only retained, catalog-confirmed state (print_stats + the held
+ * metadata); a missing value shows "—", never fabricated. Vertically centered, roomy rows.
+ */
+@Composable
+private fun TerminalStatsList(state: PrinterState, metadata: PrintMetadata?, modifier: Modifier = Modifier) {
+    val file = state.printFilename.substringAfterLast('/').ifBlank { "—" }
+    val time = fmtDuration(state.printDuration.takeIf { it > 0.0 } ?: state.totalDuration)
+    val filament = state.filamentUsed.takeIf { it > 0.0 }?.let { "${fmt(it / 1000.0)} m" } ?: "—"
+    val totalLayers = state.totalLayer ?: metadata?.layerCount
+    val layers = when {
+        totalLayers != null -> "${state.currentLayer ?: 0} / $totalLayers"
+        state.currentLayer != null -> "${state.currentLayer}"
+        else -> "—"
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
+        TerminalStatRow("File", file, marquee = true)
+        TerminalStatRow("Print time", time)
+        TerminalStatRow("Filament", filament)
+        TerminalStatRow("Layers", layers)
+    }
+}
+
+/** One Terminal summary row: dim caption (left) + GeistMono value filling the rest, right-aligned.
+ *  [marquee] = true scrolls an over-long value (the filename) instead of ellipsizing it. */
+@Composable
+private fun TerminalStatRow(label: String, value: String, marquee: Boolean = false) {
+    val t = LocalTokens.current
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            color = t.text2,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(20f, t.fs).sp,
+        )
+        Text(
+            value,
+            color = t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(22f, t.fs).sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = if (marquee) TextOverflow.Clip else TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f).then(if (marquee) Modifier.basicMarquee() else Modifier),
+        )
     }
 }
 

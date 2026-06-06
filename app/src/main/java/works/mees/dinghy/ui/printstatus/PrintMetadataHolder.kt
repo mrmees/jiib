@@ -23,9 +23,10 @@ import works.mees.dinghy.state.parsePrintMetadata
  * Every `notify_status_update` delta carries `print_stats.filename`, so the active filename re-emits
  * constantly while printing. The holder caches [lastKey] and fetches ONLY on a transition to a
  * non-blank filename that DIFFERS from the cached key — identical re-emits are cheap no-ops past the
- * `active != lastKey` guard. A filename CHANGE (next print) re-keys and re-fetches. Going idle
- * (standby/complete/cancelled/error → blank active filename) clears [metadata] to null AND resets
- * [lastKey] so the NEXT print re-fetches.
+ * `active != lastKey` guard. A filename CHANGE (next print) re-keys and re-fetches. The key stays
+ * live through the TERMINAL states (complete/cancelled/error) so the Terminal result hero/stats keep
+ * the finished print's thumbnail+metadata; only true STANDBY (idle / new session) blanks the key,
+ * clearing [metadata] to null AND resetting [lastKey] so the NEXT print re-fetches.
  *
  * ## Best-effort, never fatal (mirrors the 05-03 one-shot reads)
  * [fetch] is wrapped in `runCatching`; a null/failed read leaves [metadata] null (the cells degrade,
@@ -55,16 +56,15 @@ class PrintMetadataHolder(
     init {
         scope.launch {
             printerState.collect { state ->
-                val active = if (
-                    state.printState == PrintState.Printing || state.printState == PrintState.Paused
-                ) {
-                    state.printFilename
-                } else {
-                    ""
-                }
+                // Keep the key live through the TERMINAL states (Complete/Cancelled/Error) too, not just
+                // Printing/Paused — so the Terminal result hero + stats can still show the FINISHED print's
+                // thumbnail/metadata. Only true Standby (idle / new session) blanks the key, which clears
+                // metadata and lets the NEXT print re-fetch. (2026-06-06 UAT: Terminal showed the app icon
+                // because metadata was nulled the instant the print ended.)
+                val active = if (state.printState == PrintState.Standby) "" else state.printFilename
 
                 if (active.isBlank()) {
-                    // Transitioned to idle — clear and reset so the next print re-fetches.
+                    // Transitioned to Standby (or no filename) — clear and reset so the next print re-fetches.
                     if (lastKey != null) {
                         _metadata.value = null
                         lastKey = null
