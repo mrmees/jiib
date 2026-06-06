@@ -24,39 +24,44 @@ class PrintStatusControlModelTest {
     }
 
     @Test
-    fun paused_mapsToTuneResumeStopWithGracefulCancelHoldAndAccessibilityAction() {
+    fun paused_mapsToTuneResumeCancel_noEStop_withGracefulCancelHoldAndAccessibilityAction() {
+        // Phase-16: Paused gutter is Resume + Cancel — NO E-Stop (user is already intervening).
         val model = derivePrintStatusControls(PrinterState(printState = PrintState.Paused, printFilename = "cube.gcode"))
 
-        assertControls(model, "Tune", "Resume", "Stop")
+        assertControls(model, "Tune", "Resume", "Cancel")
         assertFalse(model.controls[0].enabled)
         assertEquals(PrintStatusControlAction.ResumePrint, model.controls[1].tapAction)
         assertEquals(PrintStatusControlAction.GracefulCancel, model.controls[1].holdAction)
         assertEquals(PrintStatusControlAction.GracefulCancel, model.controls[1].accessibilityAction)
+        // No EmergencyStop anywhere in the Paused gutter.
+        assertNull(model.controls.firstOrNull { it.tapAction == PrintStatusControlAction.EmergencyStop })
+        assertEquals(PrintStatusControlAction.GracefulCancel, model.controls[2].tapAction)
     }
 
     @Test
-    fun completeWithCurrentFilename_mapsToFilesRestartStop() {
+    fun completeWithCurrentFilename_mapsToDismissReprint() {
+        // Phase-16: Terminal gutter is Dismiss + Reprint (no Stop).
         val model = derivePrintStatusControls(PrinterState(printState = PrintState.Complete, printFilename = "cube.gcode"))
 
-        assertControls(model, "Files", "Restart print", "Stop")
+        assertControls(model, "Dismiss", "Reprint")
         assertEquals("cube.gcode", model.restartFilename)
-        assertEquals(PrintStatusControlAction.OpenFiles, model.controls[0].tapAction)
+        assertEquals(PrintStatusControlAction.Dismiss, model.controls[0].tapAction)
         assertEquals(PrintStatusControlAction.RestartPrint, model.controls[1].tapAction)
     }
 
     @Test
-    fun errorWithCurrentFilename_mapsToFilesRestartStop() {
+    fun errorWithCurrentFilename_mapsToDismissReprint() {
         val model = derivePrintStatusControls(PrinterState(printState = PrintState.Error, printFilename = "failed.gcode"))
 
-        assertControls(model, "Files", "Restart print", "Stop")
+        assertControls(model, "Dismiss", "Reprint")
         assertEquals("failed.gcode", model.restartFilename)
     }
 
     @Test
-    fun cancelledWithCurrentFilename_mapsToFilesRestartStop() {
+    fun cancelledWithCurrentFilename_mapsToDismissReprint() {
         val model = derivePrintStatusControls(PrinterState(printState = PrintState.Cancelled, printFilename = "cancelled.gcode"))
 
-        assertControls(model, "Files", "Restart print", "Stop")
+        assertControls(model, "Dismiss", "Reprint")
         assertEquals("cancelled.gcode", model.restartFilename)
     }
 
@@ -67,43 +72,49 @@ class PrintStatusControlModelTest {
             lastJob = lastJob("history/benchy.gcode"),
         )
 
-        assertControls(model, "Files", "Restart print", "Stop")
+        assertControls(model, "Dismiss", "Reprint")
         assertEquals("history/benchy.gcode", model.restartFilename)
     }
 
     @Test
-    fun terminalStateWithoutAnyFilename_hidesRestart() {
+    fun terminalStateWithoutAnyFilename_hidesReprint() {
         val model = derivePrintStatusControls(PrinterState(printState = PrintState.Complete, printFilename = ""))
 
-        assertControls(model, "Files", "Restart print", "Stop")
+        assertControls(model, "Dismiss", "Reprint")
         assertNull(model.restartFilename)
         assertFalse(model.controls[1].enabled)
         assertNull(model.controls[1].tapAction)
     }
 
     @Test
-    fun standbyWithLastJob_mapsToFilesRestartStop() {
+    fun standbyWithLastJob_staysStandbyPreheatPower_notTerminal() {
+        // Phase-16 behavior change: Standby STAYS Standby even with a leftover last-job filename — it
+        // does NOT masquerade as a terminal Files/Reprint gutter. Restart-from-idle moves to the
+        // launcher Files tile (16-06), not the gutter.
         val model = derivePrintStatusControls(
             state = PrinterState(printState = PrintState.Standby, printFilename = ""),
             lastJob = lastJob("history/benchy.gcode"),
         )
 
-        assertControls(model, "Files", "Restart print", "Stop")
-        assertEquals("history/benchy.gcode", model.restartFilename)
-        assertEquals(PrintStatusControlAction.OpenFiles, model.controls[0].tapAction)
-        assertEquals(PrintStatusControlAction.RestartPrint, model.controls[1].tapAction)
+        assertControls(model, "Preheat", "Power")
+        assertEquals(PrintStatusControlAction.Preheat, model.controls[0].tapAction)
+        assertEquals(PrintStatusControlAction.Power, model.controls[1].tapAction)
+        // No terminal/restart action leaks into the Standby gutter.
+        assertNull(model.controls.firstOrNull { it.tapAction == PrintStatusControlAction.RestartPrint })
     }
 
     @Test
-    fun standbyWithoutLastJob_keepsIdleControls() {
+    fun standbyWithoutLastJob_mapsToPreheatPower_noEStop() {
         val model = derivePrintStatusControls(
             state = PrinterState(printState = PrintState.Standby, printFilename = ""),
             lastJob = null,
         )
 
-        assertControls(model, "Tune", "Pause", "Stop")
+        assertControls(model, "Preheat", "Power")
         assertNull(model.restartFilename)
-        assertFalse(model.controls[1].enabled)
+        assertEquals(PrintStatusControlAction.Preheat, model.controls[0].tapAction)
+        assertFalse(model.controls[1].enabled) // Power is inert (D-04)
+        assertNull(model.controls.firstOrNull { it.tapAction == PrintStatusControlAction.EmergencyStop })
     }
 
     @Test
@@ -130,7 +141,7 @@ class PrintStatusControlModelTest {
             ).controls[1].label,
         )
         assertEquals(
-            "Restarting",
+            "Reprinting",
             derivePrintStatusControls(
                 state = PrinterState(printState = PrintState.Complete, printFilename = "cube.gcode"),
                 pendingAction = PrintStatusPendingAction.Restart("cube.gcode"),
@@ -202,9 +213,9 @@ class PrintStatusControlModelTest {
         )
     }
 
-    private fun assertControls(model: PrintStatusControlModel, left: String, center: String, right: String) {
-        assertEquals(listOf(left, center, right), model.controls.map { it.label })
-        assertTrue(model.controls.size == 3)
+    private fun assertControls(model: PrintStatusControlModel, vararg labels: String) {
+        assertEquals(labels.toList(), model.controls.map { it.label })
+        assertTrue(model.controls.size == labels.size)
     }
 
     private fun lastJob(filename: String): LastJob =

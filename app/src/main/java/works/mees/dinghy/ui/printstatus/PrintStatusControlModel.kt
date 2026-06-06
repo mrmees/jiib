@@ -25,6 +25,16 @@ enum class PrintStatusControlAction {
     ResumePrint,
     GracefulCancel,
     EmergencyStop,
+
+    // Phase-16 extended actions (per-state gutter sets — UI-SPEC "Per-state button intents").
+    /** Standby spool-aware Preheat (accent). The decision routes through `selectPreheatPath` (16-02). */
+    Preheat,
+
+    /** Terminal clear/back (neutral) — dispatches `SDCARD_RESET_FILE` (16-03) in the Wave-3 screen. */
+    Dismiss,
+
+    /** Standby inert Power tile (red stop-intent chrome, NONFUNCTIONAL in P16, D-04). */
+    Power,
 }
 
 sealed interface PrintStatusPendingAction {
@@ -49,13 +59,12 @@ fun derivePrintStatusControls(
             },
             tapAction = PrintStatusControlAction.PausePrint,
         )
-        PrintState.Paused -> activeControls(
+        PrintState.Paused -> pausedControls(
             label = when (pendingAction) {
                 PrintStatusPendingAction.Resume -> "Resuming"
                 PrintStatusPendingAction.Cancel -> "Cancelling"
                 else -> "Resume"
             },
-            tapAction = PrintStatusControlAction.ResumePrint,
         )
         PrintState.Complete,
         PrintState.Error,
@@ -64,14 +73,10 @@ fun derivePrintStatusControls(
             restartFilename = restartFilename,
             pendingRestart = pendingAction as? PrintStatusPendingAction.Restart,
         )
-        PrintState.Standby -> if (restartFilename != null) {
-            terminalControls(
-                restartFilename = restartFilename,
-                pendingRestart = pendingAction as? PrintStatusPendingAction.Restart,
-            )
-        } else {
-            standbyControls()
-        }
+        // Standby is ALWAYS Standby (Phase-16 behavior change): a leftover restartFilename does NOT
+        // masquerade as a terminal state. Restart-from-idle moves to the Standby launcher Files tile
+        // (16-06), not the gutter — so we no longer branch to terminalControls here.
+        PrintState.Standby -> standbyControls()
     }
     return PrintStatusControlModel(controls = controls, restartFilename = restartFilename)
 }
@@ -120,6 +125,32 @@ private fun activeControls(
     stopControl(),
 )
 
+// Paused gutter (UI-SPEC): Resume (go) + Cancel (ConfirmGuard, red). NO E-Stop — the user is
+// already intentionally intervening; Cancel ends the job. (Distinct from the Printing gutter, which
+// keeps the E-Stop.)
+private fun pausedControls(label: String): List<PrintStatusControl> = listOf(
+    PrintStatusControl(
+        label = "Tune",
+        enabled = false,
+        tapAction = null,
+    ),
+    PrintStatusControl(
+        label = label,
+        enabled = true,
+        tapAction = PrintStatusControlAction.ResumePrint,
+        holdAction = PrintStatusControlAction.GracefulCancel,
+        accessibilityAction = PrintStatusControlAction.GracefulCancel,
+    ),
+    PrintStatusControl(
+        label = "Cancel",
+        enabled = true,
+        tapAction = PrintStatusControlAction.GracefulCancel,
+    ),
+)
+
+// Terminal gutter (UI-SPEC): Dismiss (neutral — clears via SDCARD_RESET_FILE, does not discard
+// pending input) + Reprint (accent — natural primary, no guard). Reprint is disabled when no
+// restart filename is resolvable.
 private fun terminalControls(
     restartFilename: String?,
     pendingRestart: PrintStatusPendingAction.Restart?,
@@ -127,31 +158,32 @@ private fun terminalControls(
     val restartEnabled = restartFilename != null
     return listOf(
         PrintStatusControl(
-            label = "Files",
+            label = "Dismiss",
             enabled = true,
-            tapAction = PrintStatusControlAction.OpenFiles,
+            tapAction = PrintStatusControlAction.Dismiss,
         ),
         PrintStatusControl(
-            label = if (pendingRestart != null && pendingRestart.filename == restartFilename) "Restarting" else "Restart print",
+            label = if (pendingRestart != null && pendingRestart.filename == restartFilename) "Reprinting" else "Reprint",
             enabled = restartEnabled,
             tapAction = if (restartEnabled) PrintStatusControlAction.RestartPrint else null,
         ),
-        stopControl(),
     )
 }
 
+// Standby gutter (UI-SPEC "Per-state button intents"): Preheat (accent) + Power (inert, red
+// stop-intent chrome, D-04). NO E-Stop in Standby — there is no active job to halt. The Power tile
+// is rendered but nonfunctional in P16 (the Wave-3 screen wires its inert no-op).
 private fun standbyControls(): List<PrintStatusControl> = listOf(
     PrintStatusControl(
-        label = "Tune",
-        enabled = false,
-        tapAction = null,
+        label = "Preheat",
+        enabled = true,
+        tapAction = PrintStatusControlAction.Preheat,
     ),
     PrintStatusControl(
-        label = "Pause",
+        label = "Power",
         enabled = false,
-        tapAction = null,
+        tapAction = PrintStatusControlAction.Power,
     ),
-    stopControl(),
 )
 
 private fun stopControl(): PrintStatusControl =

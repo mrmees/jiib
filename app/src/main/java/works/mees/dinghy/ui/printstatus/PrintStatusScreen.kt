@@ -210,6 +210,12 @@ fun PrintStatusScreen(
             PrintStatusControlAction.EmergencyStop -> {
                 showEstopGuard = true
             }
+            // Phase-16 extended actions — full wiring (spool-aware Preheat, SDCARD_RESET_FILE
+            // Dismiss) lands in Wave 3 (16-06). Power is INERT by design (D-04). Stubbed here so the
+            // exhaustive `when` compiles after 16-02 extends the enum.
+            PrintStatusControlAction.Preheat -> Unit
+            PrintStatusControlAction.Dismiss -> Unit
+            PrintStatusControlAction.Power -> Unit
         }
     }
 
@@ -811,14 +817,17 @@ private fun controlColor(control: PrintStatusControl, t: works.mees.dinghy.theme
     when (control.tapAction) {
         PrintStatusControlAction.OpenFiles,
         PrintStatusControlAction.PausePrint,
+        PrintStatusControlAction.Preheat,
         -> t.accentLine
         PrintStatusControlAction.ResumePrint,
         PrintStatusControlAction.RestartPrint,
         -> t.go
         PrintStatusControlAction.EmergencyStop,
         PrintStatusControlAction.GracefulCancel,
+        PrintStatusControlAction.Power,
         -> t.stop
         PrintStatusControlAction.Tune,
+        PrintStatusControlAction.Dismiss,
         null,
         -> t.hair
     }
