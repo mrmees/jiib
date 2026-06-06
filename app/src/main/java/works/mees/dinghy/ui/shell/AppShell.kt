@@ -73,8 +73,10 @@ import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.scan.ScanSurface
+import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
+import works.mees.dinghy.ui.screen.ThemeScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
 import works.mees.dinghy.ui.webcam.WebcamHolder
@@ -177,10 +179,14 @@ fun AppShell(
     val printerState by printerStateFlow.collectAsStateWithLifecycle()
 
     // ---- Webcam holder (10-07) ---------------------------------------------------------------------
-    // The D-08 runtime greyed-gating signal: the drawer Webcam tile is LIVE only when the CURRENT
-    // session enumerated ≥1 cam (0 while idle). Collected here and threaded into AppDrawer below.
+    // The webcam-tile gate (D-08 + MEDIUM-4, 15.2-03/04): the drawer Webcam tile is LIVE only when the
+    // CURRENT session enumerated ≥1 cam (D-08 capability) AND the active profile's per-profile webcam
+    // feature toggle is on (D-04 — flipped on the Settings screen). 15.2-04 repoints this from the bare
+    // `webcamCount > 0` to `container.webcamTileEnabled` (capability × per-profile toggle) so the Settings
+    // toggle actually greys/lights this tile. webcamCount is still collected below for the holder's
+    // decode-budget / default-cam pick.
     val webcamCount by container.webcamCount.collectAsStateWithLifecycle(initialValue = 0)
-    val webcamEnabled = webcamCount > 0
+    val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
     // The live per-session cam enumeration + the persisted connection config (host/port → the D-09
     // URL-resolution base + the per-printer preferred-cam key). An idle fallback keeps the holder
     // constructible while no session/config exists (it simply enumerates no cams → never drives a feed).
@@ -427,8 +433,16 @@ fun AppShell(
                 // floats over any screen and owns the whole canvas (its Field scrolls its own content),
                 // so a content scroll must never trigger nav while the prompt is up. The prompt's
                 // always-present close control is the exit (D-05 exit-in-overlay).
+                // Theme / Settings / About join the swipe-suppress set (15.2-04): they are FFG-exempt
+                // scrollable keyboard surfaces (a full-canvas vertical-drag detector would fight the
+                // content scroll, the Files Views-in-Compose scroll lesson). Each has its own explicit
+                // exit — Theme's green "Done", About's gutter Back; Settings is short but suppressed for
+                // consistency (its tap-rows would otherwise compete with the drawer pull).
                 if (!promptView.visible &&
-                    dest !in setOf(Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool, Dest.Devices)
+                    dest !in setOf(
+                        Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool,
+                        Dest.Devices, Dest.Theme, Dest.Settings, Dest.About,
+                    )
                 ) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
@@ -599,8 +613,22 @@ fun AppShell(
                 onSwitched = { navigateTo(Dest.PrintStatus) },
                 onBack = { goBack() },
             )
+            // Dest.Theme (15.2-04 D-03): the per-printer look (the promoted theme editor). Its writes
+            // route through the per-profile setActive* intents (writeScope), so it changes only the active
+            // printer's saved look. Done/Back pops to the caller.
+            Dest.Theme -> ThemeScreen(
+                container = container,
+                onBack = { goBack() },
+            )
             Dest.Settings -> SettingsScreen(
                 container = container,
+                onBack = { goBack() },
+            )
+            // Dest.About (15.2-04 D-05): the app-global remainder (version/build) + the dev-enable toggle
+            // (off clears the override, HIGH-5). Gutter Back pops to the caller.
+            Dest.About -> AboutScreen(
+                container = container,
+                onBack = { goBack() },
             )
         }
 

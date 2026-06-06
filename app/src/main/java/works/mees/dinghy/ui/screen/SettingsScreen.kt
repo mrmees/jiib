@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -48,14 +51,21 @@ import works.mees.dinghy.theme.fsSp
  * visible behavior the on-device checkpoint verifies. Per-profile: toggling on printer A leaves B
  * independent.
  *
+ * ## Layout + Back (15.2-04)
+ * Settings is in AppShell's swipe-suppress set (FFG-exempt scrollable surface), so it carries an explicit
+ * green gutter Back via [ScreenScaffold] (the PrintersScreen/AboutScreen template) — the swipe-up drawer
+ * is not its exit.
+ *
  * ## Dependency injection — the screen OWNS nothing (Phase-4 boundary)
  * [SettingsScreen] ACCEPTS the [AppContainer] and CONSTRUCTS nothing.
  *
  * @param container the process-scoped service-locator (constructs nothing here).
+ * @param onBack the explicit green gutter Back exit.
  */
 @Composable
 fun SettingsScreen(
     container: AppContainer,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -65,37 +75,52 @@ fun SettingsScreen(
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val webcamOn = activeProfile?.webcamEnabled ?: true
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        SectionHeader("Settings")
+    Box(modifier.fillMaxSize()) {
+        ScreenScaffold(
+            field = {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    SectionHeader("Settings")
 
-        // ============================ FEATURE TOGGLES ======================================
-        // Per-profile feature flags (D-04). Webcam is the one live toggle this phase; the rest are greyed
-        // capability-gated placeholders later phases light up.
-        SectionLabel("Feature toggles")
+                    // ============================ FEATURE TOGGLES ======================================
+                    // Per-profile feature flags (D-04). Webcam is the one live toggle this phase; the rest
+                    // are greyed capability-gated placeholders later phases light up.
+                    SectionLabel("Feature toggles")
 
-        // Webcam — the SAME per-profile field webcamTileEnabled gates on (MEDIUM-4): flipping it here
-        // greys/lights the Webcam drawer tile. Durable via the process-lifetime writeScope intent.
-        ToggleRow(
-            label = "Webcam",
-            subLabel = if (webcamOn) "Shown in the drawer when a camera is found" else "Hidden — tile greyed out",
-            checked = webcamOn,
-            enabled = activeProfile != null,
-            onToggle = { container.setActiveWebcamEnabled(it) },
+                    // Webcam — the SAME per-profile field webcamTileEnabled gates on (MEDIUM-4): flipping
+                    // it here greys/lights the Webcam drawer tile. Durable via the writeScope intent.
+                    ToggleRow(
+                        label = "Webcam",
+                        subLabel = if (webcamOn) "Shown in the drawer when a camera is found" else "Hidden — tile greyed out",
+                        checked = webcamOn,
+                        enabled = activeProfile != null,
+                        onToggle = { container.setActiveWebcamEnabled(it) },
+                    )
+
+                    // Greyed capability-gated placeholders (D-11) — later phases light these up.
+                    ForwardEntryRow(label = "Output controls", subLabel = "Coming soon", enabled = false, onClick = { })
+                    ForwardEntryRow(label = "Camera (WebRTC)", subLabel = "Coming soon", enabled = false, onClick = { })
+                    ForwardEntryRow(label = "Fine-tune", subLabel = "Coming soon", enabled = false, onClick = { })
+
+                    // Bottom breathing room so the last control clears the scroll edge.
+                    Box(Modifier.height(24.dp))
+                }
+            },
+            gutter = {
+                OutlinedControl(
+                    label = "Back",
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    intent = Intent.Go, // backing out changes nothing — Back is green (THEMING).
+                    symbol = "arrow_back",
+                )
+            },
         )
-
-        // Greyed capability-gated placeholders (D-11) — later phases light these up.
-        ForwardEntryRow(label = "Output controls", subLabel = "Coming soon", enabled = false, onClick = { })
-        ForwardEntryRow(label = "Camera (WebRTC)", subLabel = "Coming soon", enabled = false, onClick = { })
-        ForwardEntryRow(label = "Fine-tune", subLabel = "Coming soon", enabled = false, onClick = { })
-
-        // Bottom breathing room so the last control clears the scroll edge.
-        Box(Modifier.height(24.dp))
     }
 }
 

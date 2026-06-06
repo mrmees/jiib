@@ -27,8 +27,14 @@ sealed interface TopRoute {
  * Phase 4 (there is deliberately NO `Dest.Job` — printing and idle share PrintStatus, content adapts
  * on `printState` inside the screen, D-06); Settings is reachable from the App Drawer. Extra panels
  * are a one-line addition later (D-05).
+ *
+ * ## The four-tile Settings IA (15.2-04, D-01..D-05)
+ * The monolithic Settings was dissolved into FOUR drawer destinations: **Printers** ([Devices] — the
+ * kept enum constant; only the drawer LABEL changed Devices→Printers, D-02), **[Theme]** (per-printer
+ * look, D-03), **[Settings]** (per-printer feature toggles, D-04), and **[About]** (app-global items +
+ * the dev-enable toggle, D-05). [Theme] + [About] are the new constants added here.
  */
-enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Console, Calibration, Webcam, Spool, Devices, Settings }
+enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Console, Calibration, Webcam, Spool, Devices, Theme, Settings, About }
 
 /**
  * PURE top-level route derivation (mirrors the `derive*` idiom in `state/DeriveCapabilities.kt`):

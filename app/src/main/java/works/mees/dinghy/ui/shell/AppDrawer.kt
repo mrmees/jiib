@@ -171,11 +171,18 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // `inventory_2` is unique among DRAWER_TILES glyphs (icon-no-repeat law). No `beta = true` — Spool is
     // not a development flag (the camera feed is).
     DrawerTileSpec(label = "Spool", symbol = "inventory_2", dest = Dest.Spool),
-    // Devices (D-01) is LIVE — the printer switcher (Dest.Devices, plan 05). `cable` is unique among
-    // DRAWER_TILES glyphs (icon-no-repeat law). It is the ONLY tile that gains a subtitle: the active
-    // printer's name (D-03), threaded in as `activeName` and rendered under the 16sp label.
-    DrawerTileSpec(label = "Devices", symbol = "cable", dest = Dest.Devices),
+    // Printers (15.2-04 D-01/D-02) is LIVE — the printer switcher + connection editor (Dest.Devices, the
+    // kept enum constant; only the LABEL changed Devices→"Printers"). `cable` is unique among DRAWER_TILES
+    // glyphs (icon-no-repeat law). It is the ONLY tile that gains a subtitle: the active printer's name
+    // (D-03), threaded in as `activeName` and rendered under the 16sp label.
+    DrawerTileSpec(label = "Printers", symbol = "cable", dest = Dest.Devices),
+    // Theme (15.2-04 D-03) — the per-printer look (promoted theme editor). `palette` is unique among
+    // DRAWER_TILES glyphs (icon-no-repeat law).
+    DrawerTileSpec(label = "Theme", symbol = "palette", dest = Dest.Theme),
     DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
+    // About (15.2-04 D-05) — app-global items + the dev-enable toggle. `info` is unique among DRAWER_TILES
+    // glyphs (icon-no-repeat law).
+    DrawerTileSpec(label = "About", symbol = "info", dest = Dest.About),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
 
