@@ -33,11 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
@@ -71,6 +73,7 @@ import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCard
+import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -131,6 +134,16 @@ fun PrintStatusScreen(
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
     val lastJob by container.lastJob.collectAsStateWithLifecycle(initialValue = null)
     val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
+    // Per-heater capability gate (16-06): the Preheat per-temp dispatch is gated on each heater being
+    // present (a bed temp is NEVER routed to an absent heater_bed). Read the live capabilities.
+    val capabilities by container.capabilities.collectAsStateWithLifecycle(initialValue = works.mees.dinghy.state.Capabilities())
+    // Babystep app setting (16-05): the early-layer babystep row shows only while enabled AND the print
+    // is within the configured first-N-layer window. Process-scoped (survives reconnects).
+    val babystepEnabled by container.babystepEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val babystepLayers by container.babystepLayers.collectAsStateWithLifecycle(initialValue = 5)
+    // Bookmarked-macros gate (16-06): the Macros launcher tile appears on Standby ONLY if the user has
+    // bookmarked at least one macro (UI-SPEC launcher order). Process-scoped pref.
+    val bookmarkedMacros by container.macroPrefs.bookmarks.collectAsStateWithLifecycle(initialValue = emptySet())
 
     // ---- Active-spool card (SPOOL-02, 11-06) -------------------------------------------------------
     // The D-03 card reads the capability gate + the D-10-reconciled active status; the spool DETAIL is
@@ -163,14 +176,61 @@ fun PrintStatusScreen(
 
     var showEstopGuard by remember { mutableStateOf(false) }
     var showCancelGuard by remember { mutableStateOf(false) }
-    var showRestartGuard by remember { mutableStateOf(false) }
+    var showPresetSelector by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PrintStatusPendingAction?>(null) }
     var failureText by remember { mutableStateOf<String?>(null) }
-    val controlModel = derivePrintStatusControls(
+    // Babystep step size (16-06): the center cell shows it; tapping cycles via nextBabystepStep. Session
+    // state — defaults to the first canonical step. Compress fires -step, Expand +step.
+    var babystepStep by remember { mutableStateOf(works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first()) }
+
+    // The classified four-state mode (the phase's central routing axis) + the pure UI model the screen
+    // renders FROM (launcher order, gutter set, active Field row, terminal-error flag).
+    val mode = classifyPrintStatus(state)
+    val babystepShown = babystepVisible(babystepEnabled, state.currentLayer, babystepLayers)
+    val ui = uiModel(
+        mode = mode,
         state = state,
         lastJob = lastJob,
         pendingAction = pendingAction,
+        spoolmanPresent = spoolmanPresent,
+        hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
+        babystepVisible = babystepShown,
     )
+    // The restart filename (Terminal Reprint / restart-guard) still resolves through the 16-02 builder.
+    val restartFilename = derivePrintStatusControls(state = state, lastJob = lastJob).restartFilename
+
+    // Spool-aware Preheat (D-01): fire whichever heaters the active spool provides, EACH gated on its
+    // capability, else fall through to the PresetSelector. Decision owned by the pure selectPreheatPath.
+    fun runPreheat() {
+        val path = selectPreheatPath(
+            spoolmanPresent = spoolmanPresent,
+            nozzleTemp = spoolDetail?.filament?.settingsExtruderTemp,
+            bedTemp = spoolDetail?.filament?.settingsBedTemp,
+        )
+        when (path) {
+            is PreheatPath.DirectTemps -> {
+                // Per-temp setHeater for each NON-NULL temp the result carries, EACH capability-gated:
+                // nozzle on `extruder`, bed on `heater_bed`. A null temp fires nothing (never 0).
+                path.nozzle?.let { noz ->
+                    if (capabilities.hasObject("extruder")) {
+                        dispatcher?.dispatch(
+                            CommandRegistry.setHeater,
+                            works.mees.dinghy.command.SetHeaterArgs(heater = "extruder", target = noz),
+                        )
+                    }
+                }
+                path.bed?.let { bed ->
+                    if (capabilities.hasObject("heater_bed")) {
+                        dispatcher?.dispatch(
+                            CommandRegistry.setHeater,
+                            works.mees.dinghy.command.SetHeaterArgs(heater = "heater_bed", target = bed),
+                        )
+                    }
+                }
+            }
+            PreheatPath.OpenSelector -> showPresetSelector = true
+        }
+    }
 
     LaunchedEffect(dispatcher) {
         failureText = null
@@ -196,9 +256,11 @@ fun PrintStatusScreen(
         when (action) {
             PrintStatusControlAction.OpenFiles -> onOpenFiles()
             PrintStatusControlAction.RestartPrint -> {
-                if (pendingAction == null && controlModel.restartFilename != null) showRestartGuard = true
+                // Terminal Reprint (D-05): direct print-start of Moonraker's current/last file path, NO
+                // ConfirmGuard, does NOT SDCARD_RESET_FILE first. Available when a usable path is exposed.
+                restartFilename?.let { dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(it)) }
             }
-            PrintStatusControlAction.Tune -> Unit
+            PrintStatusControlAction.Tune -> Unit // P17 Fine-Tune stub (D-03).
             PrintStatusControlAction.PausePrint -> {
                 if (pendingAction == null) {
                     dispatcher?.dispatch(CommandRegistry.printPause, Unit)
@@ -217,98 +279,153 @@ fun PrintStatusScreen(
             PrintStatusControlAction.EmergencyStop -> {
                 showEstopGuard = true
             }
-            // Phase-16 extended actions — full wiring (spool-aware Preheat, SDCARD_RESET_FILE
-            // Dismiss) lands in Wave 3 (16-06). Power is INERT by design (D-04). Stubbed here so the
-            // exhaustive `when` compiles after 16-02 extends the enum.
-            PrintStatusControlAction.Preheat -> Unit
-            PrintStatusControlAction.Dismiss -> Unit
+            // Spool-aware Preheat (D-01) — selectPreheatPath owns the direct-vs-selector branch.
+            PrintStatusControlAction.Preheat -> runPreheat()
+            // Terminal Dismiss (D-05): SDCARD_RESET_FILE; a failure surfaces via the dispatcher toast
+            // (the LaunchedEffect below). Neutral — clears, does not discard input.
+            PrintStatusControlAction.Dismiss -> dispatcher?.dispatch(CommandRegistry.dismissPrint, Unit)
+            // Power is INERT in P16 (D-04) — rendered as the red Power tile, no-op.
             PrintStatusControlAction.Power -> Unit
         }
     }
 
     Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
-            field = {
-                val printing = state.printState == PrintState.Printing || state.printState == PrintState.Paused
-                Column(
-                    Modifier.fillMaxSize().padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // Active-spool card (SPOOL-02, 11-06): a compact "what's loaded" glance, shown only
-                    // when the printer has the spoolman component (D-02 — hidden entirely on printers
-                    // without it, so it never crowds a non-Spoolman setup). Sits above the state-driven
-                    // content (it is useful both idle AND mid-print — a runout/M600 swap is a print-time
-                    // concern). The whole card / Change → the Spool screen; Clear → post_spool_id {} (D-13).
-                    if (spoolmanPresent) {
-                        ActiveSpoolCard(
-                            state = activeSpoolCardState,
-                            onScan = onScanSpool, // the dedicated QR scan surface (11-07); falls back to the picker.
-                            onChange = onOpenSpool,
-                            onClear = { dispatcher?.dispatch(CommandRegistry.spoolmanPostSpoolId, works.mees.dinghy.command.SetSpoolArgs(spoolId = null)) },
-                            onClick = onOpenSpool,
-                            modifier = Modifier.fillMaxWidth(),
+        // The shared gutter renderer — drives all four modes from [ui.gutter] (the 16-02 per-mode set).
+        val gutterContent: @Composable () -> Unit = {
+            Row(
+                Modifier.fillMaxWidth().padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ui.gutter.forEach { control ->
+                    val renderControl = control.copy(
+                        enabled = control.enabled &&
+                            (pendingAction == null ||
+                                control.tapAction == PrintStatusControlAction.OpenFiles ||
+                                control.tapAction == PrintStatusControlAction.EmergencyStop),
+                    )
+                    if (control.tapAction == PrintStatusControlAction.EmergencyStop) {
+                        StopButton(
+                            onTap = { runAction(PrintStatusControlAction.EmergencyStop) },
+                            onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                            modifier = Modifier.weight(1f),
                         )
-                    }
-                    // State-driven field (Inc 3): printing → StatGrid (UNCHANGED); idle + history →
-                    // last-job card; idle + no history → file_copy_off empty state.
-                    val contentModifier = Modifier.fillMaxWidth().weight(1f)
-                    when {
-                        printing -> StatGrid(state = state, metadata = metadata, modifier = contentModifier)
-                        lastJob != null -> LastJobCard(
-                            job = lastJob!!,
-                            httpBase = httpBase,
-                            onClick = { /* TODO(nav): open past-print detail */ },
-                            modifier = contentModifier,
+                    } else {
+                        PrintStatusControlTile(
+                            control = renderControl,
+                            onTap = { control.tapAction?.let(::runAction) },
+                            onHold = { control.holdAction?.let(::runAction) },
+                            modifier = Modifier.weight(1f),
                         )
-                        else -> LastJobEmpty(
-                            onClick = { /* TODO(nav): open file browser */ },
-                            modifier = contentModifier,
-                        )
-                    }
-                    // The estop-failure toast stays reachable in ALL branches (even idle) so a failed
-                    // command still surfaces.
-                    failureText?.let { msg ->
-                        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                     }
                 }
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    controlModel.controls.forEach { control ->
-                        val renderControl = control.copy(
-                            enabled = control.enabled &&
-                                (pendingAction == null ||
-                                    control.tapAction == PrintStatusControlAction.OpenFiles ||
-                                    control.tapAction == PrintStatusControlAction.EmergencyStop),
+            }
+        }
+
+        // The active-print Field: ONE framed StatGrid + the shortcut OR babystep row + optional Spoolman
+        // line + the estop-failure toast. Shared by Printing AND Paused (Paused reuses the same toolset).
+        val activeFieldContent: @Composable () -> Unit = {
+            Column(
+                Modifier.fillMaxSize().padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatGrid(
+                    state = state,
+                    metadata = metadata,
+                    babystepWindow = babystepShown,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+                // Optional Spoolman print line (informational; accent when available < required, D-1c).
+                if (spoolmanPresent) {
+                    SpoolmanPrintLine(
+                        cardState = activeSpoolCardState,
+                        metadata = metadata,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                // The shortcut row, OR the babystep 3-cell row inside the early-layer window.
+                if (ui.activeRow == PrintStatusFieldRow.Babystep) {
+                    BabystepRow(
+                        step = babystepStep,
+                        onCompress = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(-babystepStep)) },
+                        onExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
+                        onCycleStep = { babystepStep = nextBabystepStep(babystepStep) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    ShortcutRow(
+                        spoolmanPresent = spoolmanPresent,
+                        hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
+                        onNavigate = onNavigate,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            }
+        }
+
+        when (mode) {
+            is PrintStatusMode.Standby -> ScreenScaffold(
+                focus = {
+                    StandbyFocus(
+                        state = state,
+                        spoolmanPresent = spoolmanPresent,
+                        activeSpoolCardState = activeSpoolCardState,
+                    )
+                },
+                field = {
+                    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LauncherGrid(
+                            dests = ui.launcherDests,
+                            onNavigate = onNavigate,
+                            onOpenDrawer = onOpenDrawer,
+                            modifier = Modifier.fillMaxSize().weight(1f),
                         )
-                        if (control.tapAction == PrintStatusControlAction.EmergencyStop) {
-                            StopButton(
-                                onTap = { runAction(PrintStatusControlAction.EmergencyStop) },
-                                onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        } else {
-                            PrintStatusControlTile(
-                                control = renderControl,
-                                onTap = { control.tapAction?.let(::runAction) },
-                                onHold = { control.holdAction?.let(::runAction) },
-                                modifier = Modifier.weight(1f),
-                            )
+                        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+                    }
+                },
+                gutter = gutterContent,
+            )
+
+            is PrintStatusMode.Printing -> ScreenScaffold(
+                focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
+                field = { activeFieldContent() },
+                gutter = gutterContent,
+            )
+
+            is PrintStatusMode.Paused -> ScreenScaffold(
+                focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase, paused = true) },
+                field = { activeFieldContent() },
+                gutter = gutterContent,
+            )
+
+            is PrintStatusMode.Terminal -> ScreenScaffold(
+                focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase) },
+                field = {
+                    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatGrid(
+                            state = state,
+                            metadata = metadata,
+                            babystepWindow = false,
+                            terminal = true,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                        // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
+                        if (ui.showErrorLines && errorLines.isNotEmpty()) {
+                            TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
                         }
+                        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
                     }
-                }
-            },
-        )
+                },
+                gutter = gutterContent,
+            )
+        }
 
         if (showEstopGuard) {
             ConfirmGuard(
                 title = "Emergency stop?",
-                message = "This halts the printer.",
-                confirmLabel = "STOP",
+                message = "Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.",
+                confirmLabel = "Emergency stop",
+                cancelLabel = "Cancel",
                 onConfirm = {
                     dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
                     showEstopGuard = false
@@ -320,7 +437,7 @@ fun PrintStatusScreen(
         if (showCancelGuard) {
             ConfirmGuard(
                 title = "Cancel print?",
-                message = "Klipper will run the normal cancel flow. Emergency Stop remains separate.",
+                message = "This stops the current job. The printer will not finish this print.",
                 confirmLabel = "Cancel print",
                 cancelLabel = "Keep printing",
                 onConfirm = {
@@ -332,22 +449,22 @@ fun PrintStatusScreen(
                 destructive = true,
             )
         }
-        if (showRestartGuard) {
-            val filename = controlModel.restartFilename
-            ConfirmGuard(
-                title = "Restart print?",
-                message = filename ?: "No restartable filename is available.",
-                confirmLabel = "Restart print",
-                cancelLabel = "Not now",
-                onConfirm = {
-                    if (filename != null) {
-                        dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(filename))
-                        pendingAction = PrintStatusPendingAction.Restart(filename)
-                    }
-                    showRestartGuard = false
+        // (No restart ConfirmGuard: Terminal Reprint dispatches printStart DIRECTLY with no guard, D-05.)
+        // Spool-aware Preheat fallback (D-01): the now-internal Phase-5 PresetSelector (fixed
+        // PLA/PETG/ABS/TPU, keyboard-free) — opened when selectPreheatPath returns OpenSelector.
+        if (showPresetSelector) {
+            val inFlight by (dispatcher?.inFlight ?: remember { kotlinx.coroutines.flow.MutableStateFlow(emptySet<String>()) })
+                .collectAsStateWithLifecycle(initialValue = emptySet())
+            works.mees.dinghy.ui.temperature.PresetSelector(
+                inFlight = inFlight,
+                onPreset = { p ->
+                    dispatcher?.dispatch(
+                        CommandRegistry.applyPreset,
+                        works.mees.dinghy.command.ApplyPresetArgs(nozzle = p.nozzle, bed = p.bed, key = "preset_${p.name}"),
+                    )
+                    showPresetSelector = false
                 },
-                onCancel = { showRestartGuard = false },
-                destructive = true,
+                onDismiss = { showPresetSelector = false },
             )
         }
     }
@@ -364,6 +481,7 @@ private fun PrintStatusFocus(
     state: PrinterState,
     metadata: PrintMetadata? = null,
     httpBase: String = "",
+    paused: Boolean = false,
 ) {
     val t = LocalTokens.current
     val context = LocalContext.current
@@ -376,6 +494,9 @@ private fun PrintStatusFocus(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(Modifier.size(ringSize)) {
+                // Paused (16-06): the Printing composition DIMMED (alpha) with a static pause overlay.
+                val dim = if (paused) Modifier.alpha(0.4f) else Modifier
+                Box(dim.fillMaxSize()) {
                 ProgressRing(
                     progress = if (printing) state.progress.toFloat() else 0f,
                     modifier = Modifier.fillMaxSize(),
@@ -435,6 +556,18 @@ private fun PrintStatusFocus(
                     fontSize = fsSp(30f, t.fs).sp,
                     modifier = Modifier.align(Alignment.Center).offset(y = ringSize / 2),
                 )
+                } // end dim wrapper
+                // Static pause overlay (NOT dimmed) centered on the ring — the Focus carries the paused
+                // state (UI-SPEC Accessibility: contentDescription "Print paused").
+                if (paused) {
+                    MaterialSymbol(
+                        "pause_circle",
+                        tint = t.text,
+                        sizeSp = fsSp(64f, t.fs),
+                        modifier = Modifier.align(Alignment.Center)
+                            .semantics { contentDescription = "Print paused" },
+                    )
+                }
             }
             // Nothing below the ring — the ONLY focus readout is the %/READY on the ring itself.
             // Z height + layer live in the field grid (Matthew, 2026-06-01: extra lines pushed the
@@ -451,21 +584,31 @@ private fun PrintStatusFocus(
  * The "final height" (Z) and Remaining (ETA) need file metadata → "—" until Inc 2.
  */
 @Composable
-private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modifier: Modifier = Modifier) {
+private fun StatGrid(
+    state: PrinterState,
+    metadata: PrintMetadata? = null,
+    babystepWindow: Boolean = false,
+    terminal: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     val nozzle = primaryHeater(state)
     val bed = state.heaters["heater_bed"]
+    // Applied Z offset (SC-5): shown when non-zero OR inside the babystep window. The row stays stable
+    // (em-dash placeholder) when shown-but-zero in-window; hidden entirely otherwise.
+    val zOffset = state.gcodeZOffset ?: 0.0
+    val showZOffset = !terminal && (babystepWindow || zOffset != 0.0)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTwoRowCell(
                 icon = { sp -> MaterialSymbol("altitude", tint = t.text2, sizeSp = sp) },
                 // Active = live Z; inactive = metadata object_height (final print height context), "—" when absent.
-                active = fmtZ(state), inactive = metadata?.objectHeight?.let { fmt(it) } ?: "—", activeColor = t.text,
+                active = if (terminal) "—" else fmtZ(state), inactive = metadata?.objectHeight?.let { fmt(it) } ?: "—", activeColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
                 icon = { sp -> MaterialSymbol("layers", tint = t.text2, sizeSp = sp) },
-                active = state.currentLayer?.toString() ?: "—",
+                active = if (terminal) "—" else (state.currentLayer?.toString() ?: "—"),
                 // Total = live slicer value preferred, metadata layer_count as the reliable fallback.
                 inactive = totalLayers(state, metadata),
                 activeColor = t.text,
@@ -506,6 +649,19 @@ private fun StatGrid(state: PrinterState, metadata: PrintMetadata? = null, modif
                 value = remaining, valueColor = if (remaining != "—") t.text else t.text3,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+        }
+        // Applied Z offset (SC-5): the running gcode_move.homing_origin[2] readback (16-04), shown only
+        // when non-zero OR inside the babystep window (the row that pairs with the babystep field row).
+        // The applied offset lives HERE in the stat frame, never in the babystep row itself.
+        if (showZOffset) {
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconValueCell(
+                    icon = { sp -> MaterialSymbol("height", tint = t.text2, sizeSp = sp) },
+                    value = "Z offset ${fmtSignedZ(zOffset)}",
+                    valueColor = if (zOffset != 0.0) t.text else t.text3,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+            }
         }
     }
 }
@@ -879,6 +1035,376 @@ private fun DisabledTile(label: String, modifier: Modifier = Modifier) {
     }
 }
 
+// --- Phase-16 four-state surfaces (Standby launcher / babystep / Terminal / Spoolman line) -----------
+
+/**
+ * Standby Focus: the app-icon base + a minimal centered glance overlay (UI-SPEC Standby). The glance
+ * list is intentionally short/glanceable: Nozzle · Bed · the MCU/host glance sensor (only when a real
+ * `selectGlanceSensor` reading exists, else omitted — NO host-load fallback in P16) · Active spool
+ * remaining (only when Spoolman is available). NO connection-state line.
+ */
+@Composable
+private fun StandbyFocus(
+    state: PrinterState,
+    spoolmanPresent: Boolean,
+    activeSpoolCardState: ActiveSpoolCardState,
+) {
+    val t = LocalTokens.current
+    val nozzle = primaryHeater(state)
+    val bed = state.heaters["heater_bed"]
+    val glance = selectGlanceSensor(state.temperatureSensors)
+    val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
+    BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+        val iconSize = minOf(maxWidth, maxHeight) * 0.9f
+        Box(Modifier.size(iconSize), contentAlignment = Alignment.Center) {
+            // App-icon base (faint) — the future per-printer user image slots in here (staging note).
+            Icon(
+                painter = painterResource(R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                tint = t.accent2,
+                modifier = Modifier.fillMaxSize(0.7f).alpha(0.5f).align(Alignment.Center),
+            )
+            // The centered glance list overlaid on the icon.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                GlanceRow("nozzle-temp", "Nozzle", tempActive(nozzle), t.seriesColor(0))
+                GlanceRow("heat-bed", "Bed", tempActive(bed), t.seriesColor(1))
+                glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
+                if (spoolmanPresent && spoolRemaining != null) {
+                    GlanceRow("spool", "Spool", "${spoolRemaining.roundToInt()} g", t.text)
+                }
+            }
+        }
+    }
+}
+
+/** One glance line: dim caption + GeistMono value (Body role). */
+@Composable
+private fun GlanceRow(key: String, label: String, value: String, valueColor: Color) {
+    val t = LocalTokens.current
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
+        Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = fsSp(18f, t.fs).sp)
+    }
+}
+
+/** Friendly glance-sensor label: strip the `temperature_sensor ` prefix, fall back to the raw key. */
+private fun glanceLabel(name: String): String =
+    name.removePrefix("temperature_sensor ").ifBlank { name }
+
+/**
+ * The Standby adaptive launcher grid (UI-SPEC). Every tile dispatches a real Dest via [onNavigate], or
+ * the flexible/growing Drawer tile via [onOpenDrawer] — NO tile is bound to a no-op. The Drawer tile is
+ * the explicitly-chosen flexible tile (interactive-grid flexible-tile rule): it spans the remaining
+ * column(s) on the last row so the rest of the grid stays regular.
+ */
+@Composable
+private fun LauncherGrid(
+    dests: List<LauncherDest>,
+    onNavigate: (Dest) -> Unit,
+    onOpenDrawer: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // 2 columns (portrait-stable, touch-friendly ≥64px). The Drawer tile (always last) GROWS to fill any
+    // leftover cell on its row — the flexible tile.
+    val columns = 2
+    val nonDrawer = dests.filter { it != LauncherDest.Drawer }
+    val rows = nonDrawer.chunked(columns)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { rowItems ->
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowItems.forEach { d ->
+                    LauncherTile(
+                        dest = d,
+                        onClick = { launcherDestTarget(d)?.let(onNavigate) },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+                // A leftover odd cell on this row — the Drawer (flexible) absorbs it below; pad here only
+                // if this is NOT the last row (the last row hosts the Drawer tile).
+                if (rowItems.size < columns) {
+                    Box(Modifier.weight((columns - rowItems.size).toFloat()).fillMaxHeight())
+                }
+            }
+        }
+        // The always-present flexible Drawer tile — a full-width growing row (interactive-grid rule).
+        LauncherTile(
+            dest = LauncherDest.Drawer,
+            onClick = onOpenDrawer,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        )
+    }
+}
+
+/** Map a [LauncherDest] to its route [Dest] (Drawer → null, it opens the drawer not a Dest). */
+private fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
+    LauncherDest.Files -> Dest.Files
+    LauncherDest.Temperature -> Dest.Temperature
+    LauncherDest.Move -> Dest.Move
+    LauncherDest.Extrude -> Dest.Extrude
+    LauncherDest.Calibration -> Dest.Calibration
+    LauncherDest.Spool -> Dest.Spool
+    LauncherDest.Macros -> Dest.Macros
+    LauncherDest.Console -> Dest.Console
+    LauncherDest.Drawer -> null
+}
+
+/** One neutral-outline launcher tile (navigation intent = neutral, UI-SPEC). Icon + Body label. */
+@Composable
+private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Column(
+        modifier
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        MaterialSymbol(launcherGlyph(dest), tint = t.text2, sizeSp = fsSp(26f, t.fs))
+        Text(
+            launcherLabel(dest),
+            color = t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(17f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Distinct Material-Symbol glyph per launcher tile (icon-never-twice). */
+private fun launcherGlyph(d: LauncherDest): String = when (d) {
+    LauncherDest.Files -> "folder"
+    LauncherDest.Temperature -> "thermostat"
+    LauncherDest.Move -> "open_with"
+    LauncherDest.Extrude -> "swap_vert"
+    LauncherDest.Calibration -> "tune"
+    LauncherDest.Spool -> "donut_large"
+    LauncherDest.Macros -> "bolt"
+    LauncherDest.Console -> "terminal"
+    LauncherDest.Drawer -> "apps"
+}
+
+private fun launcherLabel(d: LauncherDest): String = when (d) {
+    LauncherDest.Files -> "Files"
+    LauncherDest.Temperature -> "Temperature"
+    LauncherDest.Move -> "Move"
+    LauncherDest.Extrude -> "Extrude"
+    LauncherDest.Calibration -> "Calibration"
+    LauncherDest.Spool -> "Spool"
+    LauncherDest.Macros -> "Macros"
+    LauncherDest.Console -> "Console"
+    LauncherDest.Drawer -> "More"
+}
+
+/**
+ * The Printing/Paused shortcut row (UI-SPEC combination matrix). Tune is the flexible/growing tile (the
+ * P17 stub, no-op); the other three slots are navigation tiles per the Spoolman × bookmarked-macros
+ * combination. NO Drawer tile mid-print (drawer stays swipe-only).
+ */
+@Composable
+private fun ShortcutRow(
+    spoolmanPresent: Boolean,
+    hasBookmarkedMacros: Boolean,
+    onNavigate: (Dest) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // The trailing nav slots per the matrix (Tune is always first + flexible).
+    val tail: List<LauncherDest> = when {
+        spoolmanPresent && hasBookmarkedMacros -> listOf(LauncherDest.Temperature, LauncherDest.Macros, LauncherDest.Spool)
+        !spoolmanPresent && hasBookmarkedMacros -> listOf(LauncherDest.Temperature, LauncherDest.Macros, LauncherDest.Console)
+        spoolmanPresent && !hasBookmarkedMacros -> listOf(LauncherDest.Temperature, LauncherDest.Spool, LauncherDest.Console)
+        else -> listOf(LauncherDest.Temperature, LauncherDest.Console)
+    }
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Tune = the flexible/growing tile (weight grows when the row is short — the "Tune grows" case).
+        val tuneWeight = if (tail.size < 3) 2f else 1f
+        Box(Modifier.weight(tuneWeight)) {
+            DisabledTile("Tune", Modifier.fillMaxWidth())
+        }
+        tail.forEach { d ->
+            LauncherTile(dest = d, onClick = { launcherDestTarget(d)?.let(onNavigate) }, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+/**
+ * The babystep 3-cell row (SC-5) — `[ Compress ] [ step value ] [ Expand ]` — replaces the shortcut row
+ * inside the early-layer window. Compress fires `babystepZ(-step)` (nozzle CLOSER), Expand `+step`
+ * (FARTHER); the center cell shows the step value and tapping it cycles via `nextBabystepStep`. Both
+ * controls are accent-outline, icon-only (distinct silhouettes), carrying their verbatim UI-SPEC
+ * contentDescription. The applied offset lives in the StatGrid, not here (exempt from the flexible rule).
+ */
+@Composable
+private fun BabystepRow(
+    step: Double,
+    onCompress: () -> Unit,
+    onExpand: () -> Unit,
+    onCycleStep: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        BabystepIconCell(
+            resId = R.drawable.ic_babystep_compress,
+            description = "Compress — move nozzle closer to bed",
+            onClick = onCompress,
+            modifier = Modifier.weight(1f),
+        )
+        // Center: step value only; tap cycles the size.
+        Box(
+            Modifier.weight(1f).heightIn(min = 64.dp)
+                .clip(RoundedCornerShape(t.rCtrl))
+                .border(BorderStroke(2.dp, t.accentLine), RoundedCornerShape(t.rCtrl))
+                .clickable(onClick = onCycleStep)
+                .semantics { contentDescription = "Babystep step size, ${fmtStep(step)} millimeters — tap to change" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                fmtStep(step),
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(22f, t.fs).sp,
+            )
+        }
+        BabystepIconCell(
+            resId = R.drawable.ic_babystep_expand,
+            description = "Expand — move nozzle farther from bed",
+            onClick = onExpand,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** An accent-outline icon-only babystep cell (Compress/Expand). The glyph carries the action direction;
+ *  [description] is the TalkBack contract (the cell is visually icon-only). */
+@Composable
+private fun BabystepIconCell(resId: Int, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.accentLine), shape)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(resId),
+            contentDescription = null,
+            tint = t.accentLine,
+            modifier = Modifier.size(fsSp(32f, t.fs).dp),
+        )
+    }
+}
+
+/**
+ * Terminal Focus: a clean result hero — the gcode thumbnail (Coil) when available, else the app-icon
+ * fallback. NO ring, NO dim, NO result-icon overlay (UI-SPEC Terminal). Complete/Cancelled/Error share
+ * this treatment.
+ */
+@Composable
+private fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBase: String) {
+    val t = LocalTokens.current
+    val context = LocalContext.current
+    val thumbRel = metadata?.largestThumbRelPath
+    val filename = state.printFilename
+    BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+        val size = minOf(maxWidth, maxHeight) * 0.9f
+        Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+            if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(thumbnailUrl(httpBase, filename, thumbRel))
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = null,
+                    tint = t.accent2,
+                    modifier = Modifier.fillMaxSize(0.7f).alpha(0.6f),
+                )
+            }
+            // The result label centered at the ring-bottom analog — the terminal outcome.
+            Text(
+                statusLabel(state.printState),
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(22f, t.fs).sp,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+/** Terminal(Error) error lines (≤3, AppShell-projected). Plain text — NO markup execution (T-16-06-04).
+ *  Hidden by the caller when the list is empty. */
+@Composable
+private fun TerminalErrorLines(lines: List<String>, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCard)
+    Column(
+        modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        lines.forEach { line ->
+            Text(
+                line,
+                color = t.text2,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Medium,
+                fontSize = fsSp(15f, t.fs).sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * The optional Spoolman print line (Printing/Paused Field) — informational active-spool remaining.
+ * Hidden entirely when Spoolman is unavailable (the caller gates that) or the remaining is unknown.
+ * (The live `PrintMetadata` carries no per-job filament weight in P16, so the required-vs-available
+ * comparison + the accent-when-short attention cue is deferred — there is no required-weight source
+ * on this surface yet; the line stays informational/neutral. UI-SPEC D-1c.)
+ */
+@Composable
+private fun SpoolmanPrintLine(
+    cardState: ActiveSpoolCardState,
+    metadata: PrintMetadata?,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val availableG = (cardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight ?: return
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        MaterialSymbol("donut_large", tint = t.text2, sizeSp = fsSp(18f, t.fs))
+        Text(
+            "Spool remaining ${availableG.roundToInt()} g",
+            color = t.text2,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(16f, t.fs).sp,
+        )
+    }
+}
+
 // --- formatters / resolution (catalog-aligned) -----------------------------------------------------
 
 /** Primary nozzle heater: `extruder`, else the first `extruder`-prefixed heater (multi-tool naming). */
@@ -915,6 +1441,16 @@ private fun fmtDuration(seconds: Double): String {
 
 /** Tabular-friendly one-decimal formatting, rounded (not truncated). */
 private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
+
+/** A signed, 3-decimal Z-offset readout (`+0.050` / `-0.025` / `0.000`) — tabular, sign always shown. */
+private fun fmtSignedZ(v: Double): String {
+    val rounded = (v * 1000).roundToInt() / 1000.0
+    val sign = if (rounded > 0) "+" else ""
+    return "$sign${String.format(java.util.Locale.US, "%.3f", rounded)}"
+}
+
+/** A babystep step size as a 2-decimal value (`0.05`) — matches the canonical BABYSTEP_STEPS members. */
+private fun fmtStep(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
 
 /** Format an epoch-seconds instant as a short local "Finished" stamp, e.g. "Jun 1, 9:48 PM" (java.time
  *  via core-library desugaring); "—" if the value is unparseable. */
