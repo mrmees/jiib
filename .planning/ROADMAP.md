@@ -723,7 +723,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0; parallel — disjoint files: command/ ‖ state/ ‖ app-prefs)*
 
-- [ ] 16-03-PLAN.md — Command specs: SET_GCODE_OFFSET (babystep, canonicalize-against-set) + SDCARD_RESET_FILE (dismiss), V5-validated, registered in `all` + docs/commands/ sidecars
+- [x] 16-03-PLAN.md — Command specs: SET_GCODE_OFFSET (babystep, canonicalize-against-set) + SDCARD_RESET_FILE (dismiss), V5-validated, registered in `all` + docs/commands/ sidecars
 - [ ] 16-04-PLAN.md — State additions: gcode_move.homing_origin[2] readback + retained temperature_sensor map + pure selectGlanceSensor (host-load deferred to P19)
 - [ ] 16-05-PLAN.md — Babystep app setting (BabystepPrefs + DinghyApp DataStore + writeScope intent helpers + Settings toggle/numeric layer-count) + greyed Output/System-Info drawer stubs
 
@@ -863,7 +863,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 13. Optimization, Network Efficiency & End-to-End Reliability | 5/5 | Complete    | 2026-06-04 |
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
-| 16. Home / Print-Status Redesign | 1/8 | In Progress|  |
+| 16. Home / Print-Status Redesign | 2/8 | In Progress|  |
 | 17. Fine-Tune / Live-Adjust Panel | 0/TBD | Not started | - |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |
