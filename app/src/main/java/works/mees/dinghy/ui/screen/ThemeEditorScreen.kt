@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,16 +40,19 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.R
+import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.PaletteMode
 import works.mees.dinghy.theme.StatusSlot
+import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.toComposeColor
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.flow.firstOrNull
 import kotlin.random.Random
 
 /**
@@ -95,6 +99,28 @@ fun ThemeEditorScreen(
     var hue by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(activeProfile?.id) {
         hue = seedHexToHue(activeProfile?.seedHex)
+    }
+
+    // ---- Appearance (dark/light + S/M/L + palette-mode) mirror state -----------------------------
+    // (15.2-04 finding 3 — RELOCATED here from the old SettingsScreen "Appearance" section that the
+    // 4-tile split deleted without rehoming. The Theme tile is APPEARANCE per its own docstring, so
+    // dark/light, text-size, and palette mode belong here alongside seed/pool/status.) Each control
+    // drives the LIVE resolver AND persists via the durable AppContainer intents (writeScope, NOT a
+    // rememberCoroutineScope — [[dinghy-compose-write-scope-cancellation]]). These mirror vars only
+    // drive the selected-chip emphasis; the live resolver + persisted prefs/profile are the authority.
+    var dark by remember { mutableStateOf(true) }
+    var fsChoice by remember { mutableStateOf(FontScale.M) }
+    var paletteMode by remember { mutableStateOf(ThemeResolver.MODE_COLORFUL) }
+
+    // Seed the Appearance mirror from the ACTIVE profile's theme tuple when one exists (so the screen
+    // opens reflecting the active printer's look, D-09), else from the global theme tuple (idle default).
+    LaunchedEffect(activeProfile?.id) {
+        val tuple = activeProfile?.toThemeTuple() ?: container.themePrefs.tupleFlow.firstOrNull()
+        if (tuple != null) {
+            dark = tuple.dark
+            fsChoice = FontScale.entries.firstOrNull { it.multiplier == tuple.fs } ?: FontScale.M
+            paletteMode = tuple.paletteMode
+        }
     }
 
     // The Reset confirm guard (D-09) — hoisted over the whole editor, mirrors the Settings delete guard.
@@ -242,6 +268,74 @@ fun ThemeEditorScreen(
     ) {
         ScreenTitle("Edit theme")
 
+        // ---- 0. APPEARANCE — dark/light + S/M/L + palette-mode (15.2-04 finding 3) ------------------
+        // Relocated from the deleted SettingsScreen Appearance section. Each control drives the LIVE
+        // resolver AND persists via the durable AppContainer intents (writeScope). The existing Preview
+        // strip below (section 3) is the single coherent palette preview — no second competing row.
+
+        // Dark / Light — chrome derives from the seed; this only flips polarity.
+        SectionLabel("Mode")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedControl(
+                label = "Dark",
+                onClick = {
+                    dark = true
+                    container.themeResolver.setDark(true) // live
+                    container.setActiveDark(hasActive, true) // durable
+                },
+                modifier = Modifier.weight(1f),
+                intent = if (dark) Intent.Accent else Intent.Neutral,
+            )
+            OutlinedControl(
+                label = "Light",
+                onClick = {
+                    dark = false
+                    container.themeResolver.setDark(false) // live
+                    container.setActiveDark(hasActive, false) // durable
+                },
+                modifier = Modifier.weight(1f),
+                intent = if (!dark) Intent.Accent else Intent.Neutral,
+            )
+        }
+
+        // S / M / L text size (the --fs authority). Each segment is filled with a POOL color from the
+        // active palette so the selector visibly reflects the current mode; the selected segment gets the
+        // accent ring. The fill is the literal pool color (data carve-out).
+        SectionLabel("Text size")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FontScale.entries.forEachIndexed { i, choice ->
+                val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
+                PoolSizeSegment(
+                    label = choice.name,
+                    fill = poolColor,
+                    selected = fsChoice == choice,
+                    onClick = {
+                        fsChoice = choice
+                        container.themeResolver.setFs(choice.multiplier) // live
+                        container.setActiveFs(hasActive, choice) // durable (process-lifetime writeScope)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // Palette mode (D-15) — Colorful (default) / Simple / High contrast. Active = Intent.Accent.
+        SectionLabel("Palette mode")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            for ((mode, label) in PALETTE_MODES) {
+                OutlinedControl(
+                    label = label,
+                    onClick = {
+                        paletteMode = mode
+                        container.themeResolver.setMode(mode) // live
+                        container.setActiveMode(hasActive, mode) // durable
+                    },
+                    modifier = Modifier.weight(1f),
+                    intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral,
+                )
+            }
+        }
+
         // ---- 1. SEED COLOR — the wheel (settle-regen, D-07) ----------------------------------------
         SectionLabel("Seed color")
         SubLabel("Pick a color or tap a preset")
@@ -344,6 +438,48 @@ fun ThemeEditorScreen(
         )
 
         Box(Modifier.height(24.dp))
+    }
+}
+
+/** The palette-mode chips (D-15) — `ThemeResolver` mode name → display label. Colorful is the default. */
+private val PALETTE_MODES: List<Pair<String, String>> = listOf(
+    ThemeResolver.MODE_COLORFUL to "Colorful",
+    ThemeResolver.MODE_SIMPLE to "Simple",
+    ThemeResolver.MODE_HIGH_CONTRAST to "High contrast",
+)
+
+/**
+ * A text-size segment whose FILL is a pool ("traffic-light") color from the active palette, so the S/M/L
+ * selector visibly reflects the current palette mode (and recolors when the mode flips). The fill is the
+ * literal pool color (data carve-out); the SELECTED segment gets an accent ring so the pick is still
+ * unambiguous. The label color is contrast-picked against the fill (ink on light fills, light on dark).
+ */
+@Composable
+private fun PoolSizeSegment(
+    label: String,
+    fill: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val ink = if (fill.luminance() > 0.5f) Color(0xFF101010) else Color(0xFFF5F5F5)
+    val base = modifier
+        .height(64.dp) // ≥64dp touch floor (UI-02).
+        .clip(shape)
+        .background(fill)
+    val outlined =
+        if (selected) base.border(BorderStroke(3.dp, t.accentLine), shape)
+        else base.border(BorderStroke(2.dp, t.outline), shape)
+    Box(outlined.clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(
+            text = label,
+            color = ink,
+            fontFamily = Geist,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
+        )
     }
 }
 
