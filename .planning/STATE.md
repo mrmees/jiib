@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-06T03:26:50.216Z"
+status: ready_to_plan
+last_updated: 2026-06-06T03:40:26.051Z
 last_activity: 2026-06-06
 progress:
   total_phases: 24
@@ -11,6 +11,7 @@ progress:
   total_plans: 114
   completed_plans: 114
   percent: 71
+stopped_at: Phase 15.2 complete (6/6) — ready to discuss Phase 17
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 15.2 — theme-conformance-sweep-settings-ia
+**Current focus:** Phase 17 — fine tune live adjust panel
 
 ## Current Position
 
-Phase: 15.2 (theme-conformance-sweep-settings-ia) — EXECUTING
-Plan: 6 of 6
-Status: Phase complete — ready for verification
+Phase: 17
+Plan: Not started
+Status: Ready to plan
   → **Plan 15.2-06 (Wave 6: app-wide conformance AUDIT + mechanical fixes + closed loop) EXECUTED + COMPLETE & owner-signed 2026-06-05** — the FINAL plan of Phase 15.2. The app-wide D-12 scorecard (`15.2-AUDIT.md`) is FINALIZED: all ~32 surfaces scored at SURFACE granularity (multi-surface files expanded to surface rows), coverage proven against a regenerated inventory diff + a lint-style check (zero `MaterialTheme.colorScheme`, every `Color(0x` whitelisted as sanctioned data, no raw font `.sp` outside `fsSp`). Commits: `95f23a7` (Task 1 scorecard) + `c2f16a8` (Task 2 mechanical fixes — core M1–M4 [Move accent jog + force-move stop-FILL, Temperature context-dependent presets/cooldown, Files Print-file accent] + long-tail sub-15sp `FIX:fs` font floors across calibration/spool/macros/console/extrude/webcam) + `b949ac2` (deferred-finding capture). **HIGH-6 CLOSED LOOP (Task 4):** Task-3 on-device checkpoint returned "approved"; the device walk surfaced exactly ONE real mechanical gap — the **bed-mesh heatmap ramp** was a hardcoded theme-INDEPENDENT viridis ramp → FIXED theme-derived in `12d894c` (new `OklchRamp.themedRampStops(low,high)`; `BedMeshHeatmapView.applyTokens` re-bakes LOW=pool/seriesColor(1), HIGH=accent/seriesColor(0) so it re-tints on theme/palette-mode change; allocation-free `onDraw` index+lerp preserved; OklchRamp tests GREEN). A FIRST closed-loop fix targeted the **Z-calibrate** (`ProbeCalibrateScreen`) — owner clarified that screen was fine → MISDIRECT REVERTED (`c82bd2c`→`6fad432`, **net-unchanged**, empty diff confirmed; do NOT re-touch). Owner re-verified the final state on flox: **"Looks great."** AUDIT finalized in `0686b07`. **ZERO genuine judgment-call design conflicts** — every non-conformance was a clear-cut mechanical fix applied silently per D-13. **Owner-accepted deliberate exemptions (recorded, NOT gaps):** `EX(dev)` dev theme/printer cycler overlay fonts (11–12sp, dev-only tool default-off in release); `EX(set)` Settings/Printers/Theme Material field labels (13sp floating labels — C6-exempt settings-class; densify-restyle = deferred R3). **Out-of-scope / locked (noted):** Print-Status=EXEMPT (Phase 16 redesign); icons/glyphs CHOICE=EXEMPT (future glyph-library phase; shape-coded STATUS glyphs stay in scope); **Prompt screen left as-is** (owner developing the prompt standard externally). **Deferred findings = pending todos** (reference, not re-created): webcam-screen-crash (Phase 20), bookmarked-macros-density (Phase 21), R1 increment-picker + R2 Move-Z-vertical (Phase 17), R3 settings-densify (Phase 20), R4 Printers-edit/delete (Phase 16). 2 deviations (both the closed loop working as designed: 1 reverted misdirect + 1 theme-purity bug-fix; the bed-mesh theme-independence was caught only on-device, NOT by the green host suite — another mock-vs-reality data point). UI-01/UI-02/THEME-01/THEME-02 closed. SUMMARY `15.2-06-SUMMARY.md`. **Phase 15.2 execution COMPLETE (6/6); orchestrator runs phase verification next (do NOT mark the phase complete here).**
   → **Plan 15.2-02 (Wave 2: Dev Theme Cycler overlay — the conformance accelerant) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (continuation close-out; checkpoint approved by owner). Commits `495af95` (feat — `DevThemeCyclerOverlay.kt`: two small >=64px floating cycler widgets, every color via `LocalTokens.current` so the chrome themes WITH the app, STATIC per the Adreno-320 motion LAW; + the pure `nextStyleOverride`/`nextSizeOverride` steppers + StyleCyclerTest/TextSizeCyclerTest GREEN incl. the two HIGH-4 preserve-other-axis tests) + `f679120` (feat — wired into `AppShell` as a `devCyclerEnabled`-gated overlay Box drawn ABOVE `when(dest)` so it floats over every Dest; + the TEMP `devEnableFlow` default-true flip). **HIGH-4 merge-onto-current:** `nextStyleOverride` preserves the active `fs`, `nextSizeOverride` preserves the active `dark`/`paletteMode` — the two axes are runtime-INDEPENDENT, tapping one never reverts the other. **MEDIUM atomic stepping:** taps route through `container.updateThemeOverride { next*Override(it) }` (reads live `_themeOverride`, not a captured Compose snapshot) so rapid taps drop no axis; dismiss = `setThemeOverride(null)`. **D-06:** cyclers carry NO seedHex — the user's real per-profile accent/seed falls through (steps only the 6 `{dark,light}x{Colorful,Simple,HighContrast}` combos + S/M/L). **MEDIUM-3 release-visibility:** the cyclers are reachable in the RELEASE APK via a TEMP `ThemePrefs.devEnableFlow` default-true flip tagged `// TEMP(15.2-02)` (NOT a `BuildConfig.DEBUG` hook — doesn't run in release — nor an adb DataStore poke); **INTENTIONALLY left in place, reverted in 15.2-04 Task 1** when the durable About dev-enable toggle (D-05) becomes the control. **On-device cycler-walk on flox + live printer PASSED ("approved"):** whole app flipped across all 6 styles INCLUDING the classic-Views surfaces (GraphView, bed-mesh heatmap, webcam border), seed/accent preserved, S/M/L independent (neither axis reverted the other, rapid taps dropped nothing), restored cleanly on dismiss, static with no jank. 0 deviations (SUMMARY `15.2-02-SUMMARY.md`). THEME-01/02 closed. This is the conformance accelerant the rest of the phase rides on (D-09): one device walk per combo instead of six rebuilds. Next: **15.2-04** (durable About dev-enable toggle from D-05 — REVERTS the TEMP default flip — + remaining sweep work).
   → **Plan 15.1-07 (Wave 3: Theme Editor status swatches) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). Commits `bfd88d9` (status-slot swatches Stop/Caution/Go + writeScope-routed picker via `setActiveStatusOverride`, NO editability guard D-03 — shape carries safety not color; mode-aware STORED-vs-EFFECTIVE display so Simple/High-Contrast don't lie about an override that only renders in Colorful) + `c028f50` (shape-decorated preview strip: octagon on stop / triangle on caution / go shapeless D-02, at explicit fsSp glyph bounds; S/M/L preview samples confirmed sourced from `seriesColor(0)`+plain pool ONLY — never status / `seriesColor(1+)`, Open-Question-2). All writes route through the process-lifetime writeScope intent helper ([[dinghy-compose-write-scope-cancellation]]), never `rememberCoroutineScope()`. **flox UAT PASS 3/3** (autonomous:false gate): Colorful status-swatch edit persists across editor reopen; preview strip shows octagon-on-stop / triangle-on-caution / none-on-go; High-Contrast S/M/L samples are NOT the RYG status colors + the picker sub-label correctly states the override applies in Colorful only. 0 deviations (SUMMARY `15.1-07-SUMMARY.md`). THEME-statusedit + THEME-shape closed (design D-tokens, not REQUIREMENTS.md REQ-IDs). Next: **15.1-08** (app-wide Back sweep + THEMING.md canonicalization / conformance — the deferred 15.1-05/06 sweep work).
@@ -60,7 +61,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 83
+- Total plans completed: 89
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -80,6 +81,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 14 | 6 | - | - |
 | 15 | 7 | - | - |
 | 15.1 | 8 | - | - |
+| 15.2 | 6 | - | - |
 
 **Recent Trend:**
 
