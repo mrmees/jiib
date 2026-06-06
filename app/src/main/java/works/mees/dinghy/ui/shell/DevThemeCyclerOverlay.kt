@@ -1,0 +1,274 @@
+package works.mees.dinghy.ui.shell
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.ui.text.TextStyle
+import works.mees.dinghy.theme.FontScale
+import works.mees.dinghy.theme.ThemeOverride
+import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.fsSp
+import kotlin.math.roundToInt
+
+// ---- Pure MERGE-onto-current combo-stepping logic (HIGH-4 + atomic-stepping transform shape) --------
+//
+// These are PURE `(ThemeOverride?) -> ThemeOverride` functions, exactly the transform shape that
+// `AppContainer.updateThemeOverride { next*Override(it) }` consumes (so the atomic stepping path reads
+// the LIVE current value, never a Compose-captured snapshot — MEDIUM). Each steps ONLY its own axis
+// and carries the OTHER axis forward via `.copy(...)`, so tapping one cycler never reverts the other
+// (HIGH-4 — the two axes are runtime-independent). Mode strings MUST match ThemePrefs.VALID_MODES
+// ("Colorful"/"Simple"/"HighContrast") and DEFAULT_MODE — do NOT invent new names.
+
+/** The 6 {dark,light} x {Colorful,Simple,HighContrast} style combos, in cycle order. */
+private val STYLE_COMBOS: List<Pair<Boolean, String>> = listOf(
+    true to "Colorful",
+    true to "Simple",
+    true to "HighContrast",
+    false to "Colorful",
+    false to "Simple",
+    false to "HighContrast",
+)
+
+/** The S/M/L font-scale multipliers, in cycle order. */
+private val SIZE_STEPS: List<Float> = listOf(
+    FontScale.S.multiplier,
+    FontScale.M.multiplier,
+    FontScale.L.multiplier,
+)
+
+/**
+ * Advance the STYLE axis (dark + paletteMode) to the next of the 6 combos, wrapping after 6, while
+ * carrying `current.fs` forward UNCHANGED (HIGH-4: an active size override survives a style tap). The
+ * current style position is derived from `current?.dark`/`current?.paletteMode`; an absent/unknown
+ * style defaults to the FIRST combo's predecessor so the first tap lands on combo 0.
+ */
+fun nextStyleOverride(current: ThemeOverride?): ThemeOverride {
+    val pos = STYLE_COMBOS.indexOfFirst { (d, m) -> d == current?.dark && m == current?.paletteMode }
+    // pos == -1 (no/unknown style) -> start at index 0; otherwise advance with wrap.
+    val nextIndex = if (pos < 0) 0 else (pos + 1) % STYLE_COMBOS.size
+    val (nextDark, nextMode) = STYLE_COMBOS[nextIndex]
+    return (current ?: ThemeOverride()).copy(dark = nextDark, paletteMode = nextMode)
+}
+
+/**
+ * Advance the SIZE axis (`fs`) to the next of FontScale.S/M/L, wrapping after L, while carrying
+ * `current.dark`/`current.paletteMode` forward UNCHANGED (HIGH-4: an active style override survives a
+ * size tap). An absent/unknown fs defaults so the first tap lands on the first size.
+ */
+fun nextSizeOverride(current: ThemeOverride?): ThemeOverride {
+    val pos = SIZE_STEPS.indexOfFirst { it == current?.fs }
+    val nextIndex = if (pos < 0) 0 else (pos + 1) % SIZE_STEPS.size
+    val nextFs = SIZE_STEPS[nextIndex]
+    return (current ?: ThemeOverride()).copy(fs = nextFs)
+}
+
+/** Short human label for the current style combo (for the widget face). */
+private fun styleLabel(o: ThemeOverride?): String {
+    val dark = o?.dark
+    val mode = o?.paletteMode
+    val polarity = when (dark) { true -> "Dark"; false -> "Light"; null -> "—" }
+    val m = mode ?: "—"
+    return "$polarity · $m"
+}
+
+/** Short human label for the current size (for the widget face). */
+private fun sizeLabel(o: ThemeOverride?): String = when (o?.fs) {
+    FontScale.S.multiplier -> "S"
+    FontScale.M.multiplier -> "M"
+    FontScale.L.multiplier -> "L"
+    else -> "—"
+}
+
+/**
+ * The two floating dev theme cyclers (D-06 style + D-07 size), gated on the dev-enable boolean upstream
+ * (rendered by AppShell only when on). Each is a >=64dp tap target showing its current axis label; a
+ * separate dismiss control clears the override back to the real saved theme.
+ *
+ * MOTION LAW (D-08 / CLAUDE.md / OutlinedControl): STATIC ONLY — no continuous/looping/breathing
+ * animation (the Adreno-320 fill-rate floor). The widget is a draggable static chip (offset moves only
+ * while a finger drags it); there is NO `rememberInfiniteTransition`/`infiniteRepeatable`. Every color
+ * reads `LocalTokens.current` (themes WITH the app — never a raw Color literal). This is a normal
+ * Compose overlay above all routes, NOT a WindowManager TYPE_APPLICATION_OVERLAY (avoids
+ * SYSTEM_ALERT_WINDOW).
+ *
+ * @param currentOverride the live override (from `container.themeOverride`) — labels the active combo.
+ * @param onCycleStyle    advance the style axis (wired to `updateThemeOverride { nextStyleOverride(it) }`).
+ * @param onCycleSize     advance the size axis (wired to `updateThemeOverride { nextSizeOverride(it) }`).
+ * @param onDismiss       clear the override (wired to `setThemeOverride(null)`).
+ */
+@Composable
+fun DevThemeCyclerOverlay(
+    currentOverride: ThemeOverride?,
+    onCycleStyle: () -> Unit,
+    onCycleSize: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val density = LocalDensity.current
+
+    // Draggable position (ScrubberPage/ColorWheel precedent: offset moves only during an active drag —
+    // a STATIC chip otherwise). Seeded to a top-start inset so it never hides under the status bar.
+    var offset by remember { mutableStateOf<Offset?>(null) }
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
+    Box(
+        modifier = modifier
+            .onSizeChanged { boxSize = it },
+    ) {
+        val startInsetPx = with(density) { 12.dp.toPx() }
+        val pos = offset ?: Offset(startInsetPx, startInsetPx)
+        Column(
+            modifier = Modifier
+                .offset { IntOffset(pos.x.roundToInt(), pos.y.roundToInt()) }
+                .background(t.surface2, RoundedCornerShape(10.dp))
+                .border(2.dp, t.outline, RoundedCornerShape(10.dp))
+                .pointerInput(boxSize) {
+                    // Drag the whole panel (consume the position changes); a one-finger drag relocates it.
+                    // This is the ONLY motion in the widget — it moves only while a finger drags it
+                    // (no looping/continuous animation; Adreno-320 motion LAW).
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        drag(down.id) { change ->
+                            val delta = change.positionChange()
+                            offset = Offset(pos.x + delta.x, pos.y + delta.y).let { o ->
+                                // keep it on screen (best-effort clamp to parent bounds)
+                                val maxX = (boxSize.width - 1).coerceAtLeast(0).toFloat()
+                                val maxY = (boxSize.height - 1).coerceAtLeast(0).toFloat()
+                                Offset(o.x.coerceIn(0f, maxX), o.y.coerceIn(0f, maxY))
+                            }
+                            change.consume()
+                        }
+                    }
+                }
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // Header + dismiss
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicText(
+                    text = "THEME",
+                    style = TextStyle(
+                        color = t.text3,
+                        fontSize = fsSp(11f, t.fs).sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+                DismissChip(onDismiss = onDismiss)
+            }
+            // Style cycler (>=64dp tap target)
+            CyclerChip(
+                title = "Style",
+                value = styleLabel(currentOverride),
+                onTap = onCycleStyle,
+            )
+            // Size cycler (>=64dp tap target) — separate axis (D-07)
+            CyclerChip(
+                title = "Size",
+                value = sizeLabel(currentOverride),
+                onTap = onCycleSize,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CyclerChip(
+    title: String,
+    value: String,
+    onTap: () -> Unit,
+) {
+    val t = LocalTokens.current
+    Column(
+        modifier = Modifier
+            // >=64dp tap target (touch floor) — the only sanctioned fixed px (LAYOUT.md NON-NEGOTIABLE 3).
+            .sizeIn(minWidth = 96.dp, minHeight = 64.dp)
+            .background(t.surface3, RoundedCornerShape(8.dp))
+            .border(2.dp, t.accentLine, RoundedCornerShape(8.dp))
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    // wait for up; if no significant drag, treat as a tap (a static one-shot, no loop).
+                    var dragged = false
+                    drag(down.id) { change ->
+                        if (change.positionChange().getDistanceSquared() > 64f) dragged = true
+                    }
+                    if (!dragged) onTap()
+                }
+            }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        BasicText(
+            text = title,
+            style = TextStyle(color = t.text3, fontSize = fsSp(11f, t.fs).sp),
+        )
+        BasicText(
+            text = value,
+            style = TextStyle(
+                color = t.text,
+                fontSize = fsSp(15f, t.fs).sp,
+                fontWeight = FontWeight.Medium,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun DismissChip(onDismiss: () -> Unit) {
+    val t = LocalTokens.current
+    Box(
+        modifier = Modifier
+            .sizeIn(minWidth = 64.dp, minHeight = 32.dp)
+            .background(t.stopSoft, RoundedCornerShape(6.dp))
+            .border(2.dp, t.stop, RoundedCornerShape(6.dp))
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var dragged = false
+                    drag(down.id) { change ->
+                        if (change.positionChange().getDistanceSquared() > 64f) dragged = true
+                    }
+                    if (!dragged) onDismiss()
+                }
+            }
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = "Dismiss",
+            style = TextStyle(color = t.stop, fontSize = fsSp(12f, t.fs).sp, fontWeight = FontWeight.Bold),
+        )
+    }
+}
