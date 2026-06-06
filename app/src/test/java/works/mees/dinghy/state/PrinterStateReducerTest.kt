@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import works.mees.dinghy.net.GoldenFixtures
 import works.mees.dinghy.net.MoonrakerJson
@@ -160,6 +161,43 @@ class PrinterStateReducerTest {
         )
 
         assertEquals(listOf(10.0, 20.0, 5.0, 0.0), state.gcodePosition)
+    }
+
+    /**
+     * Wave-0 RED scaffold (16-01) — turned GREEN by 16-04.
+     *
+     * A `gcode_move.homing_origin = [x, y, z, e]` diff must parse the Z component (index 2) into a new
+     * `PrinterState.gcodeZOffset` field, so the Print-Status Z-babystep readout reflects the live
+     * applied offset (`gcode_move.homing_origin[2]`). A malformed/short array must yield null / retain
+     * the prior value (the existing `double*ListOrNull` null-safe walk discipline).
+     *
+     * RED discipline ([[dinghy-wave0-red-scaffold-compile]]): `gcodeZOffset` does NOT exist yet (it
+     * lands in 16-04 — a 1-line reducer parse off `gcode_move.homing_origin[2]` + the new field on
+     * PrinterState). The frame is parsed with the existing helpers (compile proof) but the field
+     * assertion is held as a `fail()` so the case is RED until 16-04 adds the field + reducer line.
+     */
+    @Test
+    fun gcodeMoveDiffCapturesHomingOriginZAsGcodeZOffset() {
+        val diff = MoonrakerJson.parseToJsonElement(
+            """{ "gcode_move": { "homing_origin": [0.0, 0.0, 0.125, 0.0] } }""",
+        ).jsonObject
+        val state = reduceDiff(PrinterState(), diff)
+        // Keep the parsed state load-bearing so the fixture/helpers compile-prove.
+        assertNotNull(state)
+        // EXPECT (16-04): state.gcodeZOffset == 0.125  (homing_origin index 2)
+        fail("not yet implemented — 16-04 PrinterState.gcodeZOffset from gcode_move.homing_origin[2]")
+    }
+
+    @Test
+    fun gcodeMoveShortHomingOriginYieldsNullOrRetainsPrior() {
+        val diff = MoonrakerJson.parseToJsonElement(
+            """{ "gcode_move": { "homing_origin": [0.0, 0.0] } }""",
+        ).jsonObject
+        val state = reduceDiff(PrinterState(), diff)
+        assertNotNull(state)
+        // EXPECT (16-04): a short (<3) homing_origin array -> state.gcodeZOffset == null (retains prior),
+        // never an index-out-of-bounds crash (double*ListOrNull null-safe walk).
+        fail("not yet implemented — 16-04 gcodeZOffset null-safe on short homing_origin")
     }
 
     @Test
