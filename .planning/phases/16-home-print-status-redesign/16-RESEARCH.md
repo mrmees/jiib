@@ -491,18 +491,21 @@ UI-SPEC), not a trailing afterthought.**
 | A3 | The babystep step cycle values are the on-screen *step magnitudes* in mm (0.02–0.20), dispatched as `Z_ADJUST=±step`. | §4 | Locked by staging note; standard Klipper babystep semantics. Low risk; confirm sign on device. |
 | A4 | `homing_origin` is the live applied gcode offset (index [2] = Z). | §4 | Confirmed by caps doc + standard Klipper; low risk. Verify the array is `[X,Y,Z,E]`/`[X,Y,Z]` ordering on device (Z at index 2). |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which existing composable becomes the canonical "stats frame" for Terminal — `StatGrid` or `LastJobCard`?**
    - What we know: staging note says "reuse the **Printing** stats-frame, omitting live-only fields." That points to `StatGrid`.
    - What's unclear: `LastJobCard` already renders rich terminal-relevant stats (status/finished/elapsed/filament/slicer) and a thumbnail background. There's overlap.
    - Recommendation: make `StatGrid` (the Printing frame) the single stats component per the staging note; reuse `LastJobCard`'s thumbnail-hero treatment for the Terminal **Focus** hero, not its stats. Planner decides; both are reusable.
+   - **RESOLVED: `StatGrid`** — the Terminal Field reuses the Printing `StatGrid` stats frame (live-only fields omitted, em-dash placeholders); `LastJobCard`'s thumbnail-hero treatment is the Terminal **Focus** hero only. Per plan 16-06 Task 3.
 
 2. **Independent per-temp Preheat: add a nullable preheat builder, or per-temp `setHeater`?**
    - Recommendation: per-temp `setHeater` (option b, §5) — no new builder, no 0-passing risk.
+   - **RESOLVED: per-temp `setHeater`** — the direct-vs-selector decision is made by the pure `selectPreheatPath` fn (16-02, unit-gated by `PreheatTest`) returning `DirectTemps(nozzle?, bed?)`; 16-06 dispatches per-temp `setHeater` only for the non-null temps. Never a nullable builder firing 0; never `applyPreset` with a 0. Per plan 16-06 + the new pure function.
 
 3. **Does Matthew want the host-load glance fallback in P16, or defer to P19?**
    - Recommendation: defer to P19 (§3). Flag as an explicit scope question in planning — it's the one place P16 could quietly grow a backend.
+   - **RESOLVED: DEFER to Phase 19** (owner decision 2026-06-06). P16 glance = `temperature_sensor` only (prefer `*mcu*`, else `*host*`, else first sensor; OMIT the line if none); no `machine.proc_stats` host-load surface pulled forward.
 
 ## Environment Availability
 

@@ -46,8 +46,9 @@ created: 2026-06-06
 | Babystep gating: null `currentLayer` hides; layer ≤ threshold shows; > threshold hides (no time fallback) | 0/1 | babystep (SC-5) | — | N/A | unit (pure) | `--tests '...PrintStatusModeTest'` | ❌ W0 | ⬜ pending |
 | `SET_GCODE_OFFSET Z_ADJUST=±step MOVE=1` builder: sign (Compress=−/Expand=+), step ∈ fixed set {.02/.05/.10/.15/.20}, clamp/validate | 1 | babystep (SC-5) | T-16 V5 | Only fixed identifier + validated-against-set numeric — never free-text concat | unit (pure) | `--tests '...PrinterCommandsTest'` | ✅ extend | ⬜ pending |
 | `SDCARD_RESET_FILE` (Terminal Dismiss) builder | 1 | terminal D-05 | T-16 V5 | Fixed gcode, no interpolation | unit (pure) | `--tests '...PrinterCommandsTest'` | ❌ W0 | ⬜ pending |
-| Spool-aware Preheat selection: direct-apply when spool temps present, per-temp independent guard, fall to PresetSelector when absent/both-null | 1/2 | D-01 | — | N/A | unit (pure) | `--tests '...PreheatTest'` | ❌ W0 | ⬜ pending |
+| Spool-aware Preheat selection (pure `selectPreheatPath`): `DirectTemps` when spool temps present (per-temp independent guard, never 0), `OpenSelector` when absent/both-null | 0/2 | D-01 | — | N/A | unit (pure) | `--tests '...PreheatTest'` | ❌ W0 | ⬜ pending |
 | `gcode_move.homing_origin[2]` parsed into PrinterState (one reducer line) → applied-offset readout | 1 | babystep (SC-5) | — | N/A | unit (pure) | `--tests '...PrinterStateReducerTest'` | ✅ extend | ⬜ pending |
+| `BabystepPrefs` persistence: default enabled=true / layers=5; IOException-fail-safe read → defaults; `setEnabled`/`setLayerCount` write-through; layers coerced ≥1 | 0/1 | babystep app setting (D-06) | — | N/A (DataStore via writeScope intent helper, never composition scope) | unit (pure) | `--tests '...BabystepPrefsTest'` | ❌ W0 | ⬜ pending |
 | Babystep round-trip on a live first layer: nudge → `homing_origin[2]` flip confirms sign/direction; session-only | — | SC-5 | T-16 (physical motion) | `MOVE=1` small Z jog gated to early-layer window, session-only, no SAVE_CONFIG | **manual on-device** | flox + E5 — NOT automatable | manual gate | ⬜ pending |
 | Adreno-320 perf: no regression vs current home (Views GraphView/status untouched) | — | SC-3 | — | N/A | on-device gfxinfo / eyeball | flox release build | manual gate | ⬜ pending |
 | Core monitor loop behavior-preserving | — | SC-4 | — | N/A | on-device | flox + live printer | manual gate | ⬜ pending |
@@ -60,6 +61,7 @@ created: 2026-06-06
 
 - [ ] `PrintStatusModeTest.kt` — classifier mapping (all 6 raw states + Standby/klippy edges) + babystep gating + step-cycle
 - [ ] `PreheatTest.kt` — spool-aware Preheat selection (direct / per-temp guard / selector fallback)
+- [ ] `BabystepPrefsTest.kt` — babystep persistence (defaults enabled/5, IOException-fail-safe read, write-through, layers ≥1) — mirrors the `MacroPrefs` test analog; unit-gates the write-scope trap
 - [ ] Extend existing `PrinterCommandsTest` for `SET_GCODE_OFFSET` + new `SDCARD_RESET_FILE`
 - [ ] Extend `PrinterStateReducerTest` for `gcode_move.homing_origin[2]` parse
 - [ ] **Wave-0 RED scaffolds MUST compile day-one** — `fail()` bodies, no refs to unbuilt symbols; Gradle compiles the whole test sourceset before `--tests` filtering, so a bad scaffold bricks every per-wave run ([[dinghy-wave0-red-scaffold-compile]])
