@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-06T17:34:55.428Z"
+status: completed
+last_updated: "2026-06-06T20:58:01.127Z"
 last_activity: 2026-06-06
 progress:
-  total_phases: 24
+  total_phases: 25
   completed_phases: 18
   total_plans: 128
   completed_plans: 127
-  percent: 75
+  percent: 72
 ---
 
 # Project State
@@ -210,6 +210,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 - Phase 15.1 inserted after Phase 15: Shape-Coded Status & Semantic Color — split from Phase 15 (engine-first); semantic + safety layer before Home
 - Phase 15.2 inserted after Phase 15.1: Theme Conformance Sweep & Settings IA — split from Phase 15; heavy existing-surface conformance + Settings/Devices IA
+- Phase 18 inserted after Phase 17: Preview Harness & Tokenization Foundation (integer insert; Output→19/SysInfo→20/WebRTC→21/Ship→22)
 
 ### Decisions
 
