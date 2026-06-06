@@ -70,12 +70,93 @@ All live in `reference/Print Status Hi-Fi.html` as labeled artboards on a pan/zo
 > vector drawables remain for the printer-specific glyphs Material Symbols lacks.) The full font ships in
 > dev; subset to referenced names before release (Phase 8).
 
-### 3. Print Status (home / monitor)
-- **Purpose:** glanceable live job status.
-- **Layout:** Focus = circular progress ring (animated draw-on) with the print preview inside
-  + time-remaining; printer name, filename, and "Printing" status live **inside** the Focus
-  (not a header). Field = stat grid (layer / filament / nozzle / bed / elapsed / finish-by).
-  Gutter = **Tune** (accent) · **Pause** (accent) · **Stop** (red, weighted wider).
+### 3. Print Status (home / monitor) — the four-state `PrintStatusMode` model
+- **Purpose:** the app's home surface. It is **state-driven**, not a single "monitor" screen:
+  ONE Moonraker-derived classifier, **`PrintStatusMode`**, maps the live print state to exactly four
+  states — **Standby · Printing · Paused · Terminal(kind)** — and every composable renders **from that
+  mode** rather than scattering raw `printState` checks. (Implemented Phase 16; supersedes the old
+  single-screen "Print Status" + idle "last-job card" treatment.)
+
+- **The classifier (Moonraker-derived only):** `classifyPrintStatus(state)` reads **only**
+  `state.printState`:
+  - `printing → Printing` · `paused → Paused` · `complete → Terminal(Complete)` ·
+    `cancelled → Terminal(Cancelled)` · `error → Terminal(Error)`.
+  - **`standby → Standby` ALWAYS — even with a stale filename / leftover job data.** (Behavior change:
+    the old screen could masquerade a Standby-with-leftover-`restartFilename` as a terminal screen; that
+    branch is **deleted**. Standby is always the launcher dashboard.)
+  - **Klippy shutdown/error is NOT terminal.** A klippy lifecycle fault does not manufacture a
+    `Terminal` print-result mode — that is a separate axis owned by app-level recovery routing (the
+    Syncing Splash), not this classifier.
+
+- **Each state's Focus / Field / Gutter:**
+
+  - **Standby** — *idle dashboard + launcher.*
+    - **Focus:** the app icon (P16; future: per-printer user image) with a **minimal centered glance-list
+      overlay** — Nozzle temp · Bed temp · an MCU/host temperature glance (omitted when no usable sensor,
+      no host-load fallback in P16) · Active-spool remaining (only when Spoolman is present). **No
+      connection-state line** (the app being live already implies it).
+    - **Field:** an **adaptive launcher grid** — Files · Temperature · Move · Extrude · Calibration ·
+      Spool *(if Spoolman present)* · Macros *(only if bookmarked macros exist)* · Console *(low-priority
+      filler)* · **Drawer (always last, the flexible/growing tile → opens the App Drawer)**. Every tile
+      dispatches a real navigation; the Drawer tile is the swipe-up alternative.
+    - **Gutter:** **Preheat** (accent — ordinary physical command; spool-aware: fires the active spool's
+      filament temps directly when Spoolman exposes them, else opens the `PresetSelector`) · **Power**
+      (red, **inert/design-only** in P16). **No E-Stop in Standby.**
+
+  - **Printing** — *live print cockpit.* Preserves the `03-print-status.png` composition.
+    - **Focus:** thumbnail/preview base + the accent **progress ring** overlaid + numeric progress and
+      time-remaining at the ring's center; filename + printer subtitle below. No animated ring loop —
+      it draws on once and updates at the throttled cadence (Adreno-320 budget).
+    - **Field:** ONE framed **print-stats list** (icon-led rows; nozzle + bed emphasized): Nozzle · Bed ·
+      Elapsed / Remaining · Current layer / total *(placeholder if unavailable)* · Current Z · **Applied
+      Z offset** (shown when non-zero OR during the babystep window). **Speed % and Flow % are EXCLUDED**
+      — they belong under Tune (Phase 17). An optional **Spoolman line** (job filament vs available;
+      informational; rendered in **accent** for attention when available < required — not warning/stop)
+      shows only when Spoolman is present. Below the stats sits the **shortcut row** (see flexible-tile
+      note) **OR** the **babystep row** during the early-layer window (the babystep row *replaces* the
+      shortcut row).
+    - **Gutter:** **Pause** (accent — immediate, no guard) · **Cancel** (red — destructive, routes
+      through the full-screen ConfirmGuard) · **E-Stop** (red, octagon glyph — tap→confirm,
+      long-press→immediate).
+
+  - **Paused** — *same job context, resume/cancel priority.*
+    - **Focus:** the Printing focus **dimmed**, with a static pause-icon overlay — the Focus carries the
+      paused state (no extra status row).
+    - **Field:** identical structure/toolset to Printing (babystep replacement still applies if in-window).
+    - **Gutter:** **Resume** (green — returns to a safe running state) · **Cancel** (red, ConfirmGuard).
+      **No E-Stop** (the user is already intentionally intervening; Cancel ends the job).
+
+  - **Terminal(Complete | Cancelled | Error)** — *result screen.* Moonraker-derived only (no
+    app-remembered terminal state); visible until dismissed, a reprint starts, or Moonraker reports
+    another state. It is **passive** — a mode of Home, not a screen that yanks the user off another view.
+    - **Focus:** a clean **result hero** — the print preview/thumbnail shown cleanly (**no ring, no dim,
+      no result-icon overlay**); app-icon fallback when no preview exists. Complete and Cancelled share
+      the identical treatment.
+    - **Field:** ONE framed stats element (reuses the Printing stats-frame, omitting live-only fields that
+      no longer make sense; em-dash placeholders keep core rows stable). **`Terminal(Error)` only**
+      appends the last **≤3 meaningful printer error lines** from console history (the area is hidden if
+      there are none). **No** special stop/error chrome beyond those lines.
+    - **Gutter:** **Dismiss** (neutral — issues `SDCARD_RESET_FILE`; clears the terminal presentation;
+      allowed even after an error, hot heaters don't block it; on failure it surfaces feedback rather than
+      silently losing context) · **Reprint** (accent — the terminal screen's natural primary action;
+      directly re-issues the existing print-start on Moonraker's current/last file path, **no confirm
+      guard, no `SDCARD_RESET_FILE` first**).
+
+- **Babystep row (early-layer window only).** A dedicated **3-cell row** — `[ Compress ] [ step-size ]
+  [ Expand ]` — that *replaces* the active-print shortcut row while layer data is available and within the
+  configured early-layer window (no time-based fallback; hidden if layer data is unavailable). Compress =
+  nozzle closer to bed; Expand = nozzle farther; **icons only** (distinct silhouettes, no text labels),
+  each accent-outlined (the icon carries the live-jog action). The center cell shows the step size only and
+  cycles `.02 → .05 → .10 → .15 → .20` on tap. The current **applied Z offset lives in the print-stats
+  frame**, not in this row. This row is an intentional, documented exception to the usual
+  "vertical quantity → vertical arrangement" concern — see LAYOUT.md (C3 exception) and the flexible-tile
+  rule.
+
+- **Temperature identity = accent, not amber (supersedes the `03-print-status.png` mockup).** The hi-fi
+  mockup shows nozzle/bed in **amber**; that predates the Phase-15.1 D-13 / N-series rules. `--heat` is now
+  the **caution** color (no longer a heater identity); live temperature identity rides
+  `directional.temperature` (**= accent**). Nozzle/bed temperature values render in **accent**. The
+  mockup's amber is **superseded** — the artboards are to be regenerated to match (see the merge note).
 
 ### 4. Move — jog & home
 - **Purpose:** position the toolhead.
