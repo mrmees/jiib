@@ -187,6 +187,47 @@ class AppContainer(
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */
     val themeResolver: ThemeResolver = ThemeResolver()
 
+    // ---- Dev theme-cycler enable + transient override (15.2-01) ------------------------------------
+    //
+    // The dev cyclers (15.2-02+) flip the WHOLE live app to a transient look without persisting (D-06/
+    // D-08). The enable boolean is APP-GLOBAL + RELEASE-readable (NOT BuildConfig.DEBUG); the override
+    // itself is the in-memory [_themeOverride] StateFlow below. Both feed the PURE [effectiveTokens]
+    // derivation (Task 3).
+
+    /** The app-global dev-widget enable flow (D-08) — default false, release-readable. */
+    val devCyclerEnabled: Flow<Boolean> = themePrefs.devEnableFlow
+
+    /**
+     * The transient theme override (15.2-01 Task 3) — an IN-MEMORY only sparse override that never
+     * persists. Declared here (with its bare setter) so [setDevCyclerEnabled] below can clear it on
+     * disable (HIGH-5); Task 3 formalizes the [ThemeOverride] model, [updateThemeOverride], and the
+     * [effectiveTokens] derivation that consumes it.
+     */
+    private val _themeOverride =
+        MutableStateFlow<works.mees.dinghy.theme.ThemeOverride?>(null)
+
+    /** The current transient override (null = none). Public read for the cycler overlay (15.2-02+). */
+    val themeOverride: StateFlow<works.mees.dinghy.theme.ThemeOverride?> = _themeOverride.asStateFlow()
+
+    /**
+     * Set the transient override directly (in-memory ONLY — no DataStore write, the deliberate
+     * non-persisting exception to [[dinghy-compose-write-scope-cancellation]]: there is no write to lose).
+     */
+    fun setThemeOverride(o: works.mees.dinghy.theme.ThemeOverride?) {
+        _themeOverride.value = o
+    }
+
+    /**
+     * Toggle the app-global dev-widget enable (D-08). The boolean IS persisted, so the write routes
+     * through the process-lifetime [writeScope] ([[dinghy-compose-write-scope-cancellation]]). Turning
+     * OFF ALSO clears any active override (HIGH-5) so the app can never be stranded in an overridden look
+     * with the dismiss control hidden — pairs with the `!devOn` gate in [effectiveTokens] (Task 3).
+     */
+    fun setDevCyclerEnabled(on: Boolean) {
+        if (!on) setThemeOverride(null)
+        writeScope.launch { themePrefs.setDevEnable(on) }
+    }
+
     // ---- Spine publication (review #6) -------------------------------------------------------------
 
     private val _spine = MutableStateFlow<SpineHandle?>(null)

@@ -103,6 +103,29 @@ class ThemePrefs(
     }
 
     /**
+     * The APP-GLOBAL dev-widget enable boolean (D-08, 15.2-01 Task 4) — NOT keyed by profile.id, NOT
+     * gated on `BuildConfig.DEBUG`. The owner sideloads RELEASE APKs to flox, so the dev theme cyclers
+     * must be reachable in a release build via this RUNTIME flag, never the build type. Defaults FALSE so
+     * a normal user never sees the dev widgets.
+     *
+     * TEMP(15.2-02): plan 02's pre-About on-device walk needs the cyclers visible in the release APK
+     * BEFORE the durable About toggle (D-05) lands in 15.2-04 — for that plan ONLY, the default below is
+     * flipped to `true`, then REVERTED to `false` in 15.2-04 Task 1 once About is the durable control.
+     * The canonical end-state default is `false` (built here).
+     */
+    val devEnableFlow: Flow<Boolean> =
+        dataStore.data
+            .catch { e ->
+                if (e is IOException) emit(emptyPreferences()) else throw e
+            }
+            .map { it[KEY_DEV_ENABLE] ?: false } // canonical default FALSE (see TEMP(15.2-02) note above)
+
+    /** Persist the app-global dev-widget enable boolean. */
+    suspend fun setDevEnable(on: Boolean) {
+        dataStore.edit { it[KEY_DEV_ENABLE] = on }
+    }
+
+    /**
      * Reset the whole theme tuple (seed/dark/mode/shift/maxItems/overrides) to the validated out-of-box
      * defaults in ONE [dataStore.edit] (WR-03). fsChoice is a SEPARATE setting and is deliberately NOT
      * reset here. Doing all writes in a single edit means [tupleFlow] emits ONCE — the old six sequential
@@ -150,6 +173,9 @@ class ThemePrefs(
 
         // The S/M/L text-size key (a SEPARATE setting, D-05) — read by tupleFlow + written by setFs.
         private val KEY_FS = stringPreferencesKey("fs_choice")
+
+        // The APP-GLOBAL dev-widget enable boolean (D-08, 15.2-01) — NOT profile-keyed, NOT BuildConfig.DEBUG.
+        private val KEY_DEV_ENABLE = androidx.datastore.preferences.core.booleanPreferencesKey("dev_cycler_enabled")
 
         // ---- Tuple defaults + validation (the fail-safe contract, V5/T-15-05-01) ---------------------
 
