@@ -67,13 +67,39 @@ created: 2026-06-06
 
 ## Wave 0 Requirements
 
-- [ ] Confirm test framework deps present in `app/build.gradle.kts` (JUnit4 already used by existing tests).
-- [ ] Decide + (if adopted) install detekt + Compose ruleset with a **baseline** capturing the ~240
+- [x] Confirm test framework deps present in `app/build.gradle.kts` (JUnit4 already used by existing tests).
+- [x] Decide + (if adopted) install detekt + Compose ruleset with a **baseline** capturing the ~240
       deferred literals (so only NEW literals fail the gate) — RESEARCH A5/A6, Codex-review per
-      [[codex-review-final-plans]].
-- [ ] Wire `en-XA` pseudolocale generation (`resConfigs`/`pseudoLocalesEnabled` on the debug build type).
+      [[codex-review-final-plans]]. **→ DECISION: detekt-baseline route SELECTED; Task-3 verification
+      FAILED → FALLBACK FIRED (see SC-3 downgrade below).**
+- [x] Wire `en-XA` pseudolocale generation (`pseudoLocalesEnabled` on the debug build type) — done
+      in 18-01 Task 2 (`app/build.gradle.kts` debug build type, commit c30aa57).
 
 *If detekt is deferred to pseudolocale-only, record that decision and downgrade SC-3's lint sub-criterion accordingly.*
+
+### SC-3 lint-gate downgrade — FALLBACK FIRED (18-01 Task 3, 2026-06-06)
+
+The Task-1 owner decision was **detekt-baseline with `detekt-fallback-to-pseudolocale` as the Task-3
+escape hatch**. During Task 3 the two candidate Compose rulesets were resolved from Maven Central and
+their rule classes inspected:
+
+- `io.nlopez.compose.rules:detekt:0.4.22` (mrmans0n / compose-rules) — ships ONLY Compose API-convention
+  rules (`NamingCheck`, `ParameterNamingCheck`, `ModifierMissingCheck`, `ParameterOrderCheck`,
+  `UnstableCollectionsCheck`, etc.). **No hardcoded-string / `Text("…")` literal rule.**
+- `ru.kode:detekt-rules-compose:1.4.0` (appKODE) — ships `ReusedModifierInstance`,
+  `ModifierDefaultValue`, `ComposableParametersOrdering`, `ModifierHeightWithText`, etc.
+  **No hardcoded-string / `contentDescription` literal rule either.**
+
+Neither verified ruleset (nor the platform `HardcodedText` lint, which is XML-only — RESEARCH Q7)
+exposes a working Compose hardcoded-string check under Kotlin 2.1.21 / AGP 8.7. Per the explicit
+fallback branch, **no detekt was wired** (zero residue: no plugin, no `config/detekt/`, no catalog
+entry), and SC-3's automated "can't-regress" hardcoded-literal lint gate is **DEFERRED to Phase 22**.
+
+**What SC-3 STILL ships this phase (not downgraded):** the `en-XA` / `ar-XB` pseudolocale generation on
+the debug build (`isPseudoLocalesEnabled = true`) — the i18n completeness sweep. The `strings.xml`
+convention + semantic icon registry land in plans 18-02/03/04. Only the *automated lint gate*
+sub-criterion of SC-3 is the scoped downgrade; the pseudolocale sweep is the manual completeness check
+in its place until Phase 22 restores an automated gate.
 
 ---
 
