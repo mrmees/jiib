@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-06T00:46:22.524Z"
+last_updated: "2026-06-06T01:42:55.659Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 16
   total_plans: 114
-  completed_plans: 111
+  completed_plans: 112
   percent: 67
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 15.2 (theme-conformance-sweep-settings-ia) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
   → **Plan 15.2-02 (Wave 2: Dev Theme Cycler overlay — the conformance accelerant) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (continuation close-out; checkpoint approved by owner). Commits `495af95` (feat — `DevThemeCyclerOverlay.kt`: two small >=64px floating cycler widgets, every color via `LocalTokens.current` so the chrome themes WITH the app, STATIC per the Adreno-320 motion LAW; + the pure `nextStyleOverride`/`nextSizeOverride` steppers + StyleCyclerTest/TextSizeCyclerTest GREEN incl. the two HIGH-4 preserve-other-axis tests) + `f679120` (feat — wired into `AppShell` as a `devCyclerEnabled`-gated overlay Box drawn ABOVE `when(dest)` so it floats over every Dest; + the TEMP `devEnableFlow` default-true flip). **HIGH-4 merge-onto-current:** `nextStyleOverride` preserves the active `fs`, `nextSizeOverride` preserves the active `dark`/`paletteMode` — the two axes are runtime-INDEPENDENT, tapping one never reverts the other. **MEDIUM atomic stepping:** taps route through `container.updateThemeOverride { next*Override(it) }` (reads live `_themeOverride`, not a captured Compose snapshot) so rapid taps drop no axis; dismiss = `setThemeOverride(null)`. **D-06:** cyclers carry NO seedHex — the user's real per-profile accent/seed falls through (steps only the 6 `{dark,light}x{Colorful,Simple,HighContrast}` combos + S/M/L). **MEDIUM-3 release-visibility:** the cyclers are reachable in the RELEASE APK via a TEMP `ThemePrefs.devEnableFlow` default-true flip tagged `// TEMP(15.2-02)` (NOT a `BuildConfig.DEBUG` hook — doesn't run in release — nor an adb DataStore poke); **INTENTIONALLY left in place, reverted in 15.2-04 Task 1** when the durable About dev-enable toggle (D-05) becomes the control. **On-device cycler-walk on flox + live printer PASSED ("approved"):** whole app flipped across all 6 styles INCLUDING the classic-Views surfaces (GraphView, bed-mesh heatmap, webcam border), seed/accent preserved, S/M/L independent (neither axis reverted the other, rapid taps dropped nothing), restored cleanly on dismiss, static with no jank. 0 deviations (SUMMARY `15.2-02-SUMMARY.md`). THEME-01/02 closed. This is the conformance accelerant the rest of the phase rides on (D-09): one device walk per combo instead of six rebuilds. Next: **15.2-04** (durable About dev-enable toggle from D-05 — REVERTS the TEMP default flip — + remaining sweep work).
   → **Plan 15.1-07 (Wave 3: Theme Editor status swatches) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). Commits `bfd88d9` (status-slot swatches Stop/Caution/Go + writeScope-routed picker via `setActiveStatusOverride`, NO editability guard D-03 — shape carries safety not color; mode-aware STORED-vs-EFFECTIVE display so Simple/High-Contrast don't lie about an override that only renders in Colorful) + `c028f50` (shape-decorated preview strip: octagon on stop / triangle on caution / go shapeless D-02, at explicit fsSp glyph bounds; S/M/L preview samples confirmed sourced from `seriesColor(0)`+plain pool ONLY — never status / `seriesColor(1+)`, Open-Question-2). All writes route through the process-lifetime writeScope intent helper ([[dinghy-compose-write-scope-cancellation]]), never `rememberCoroutineScope()`. **flox UAT PASS 3/3** (autonomous:false gate): Colorful status-swatch edit persists across editor reopen; preview strip shows octagon-on-stop / triangle-on-caution / none-on-go; High-Contrast S/M/L samples are NOT the RYG status colors + the picker sub-label correctly states the override applies in Colorful only. 0 deviations (SUMMARY `15.1-07-SUMMARY.md`). THEME-statusedit + THEME-shape closed (design D-tokens, not REQUIREMENTS.md REQ-IDs). Next: **15.1-08** (app-wide Back sweep + THEMING.md canonicalization / conformance — the deferred 15.1-05/06 sweep work).
@@ -184,6 +184,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15.1 P08 | 1m | 2 tasks | 2 files |
 | Phase 15.2 P01 | 40 | 4 tasks | 9 files |
 | Phase 15.2 P03 | 8min | 2 tasks | 6 files |
+| Phase 15.2 P15.2-04 | 120min | 3 tasks tasks | 8 files files |
 
 ## Accumulated Context
 
@@ -330,6 +331,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 15.2-03: Devices renamed to Printers in-place (no orphan); Dest.Devices enum kept for plan 04 IA
 - [Phase ?]: 15.2-03: per-profile webcamEnabled toggle gates Webcam tile via webcamTileEnabled; AppShell consumer repointed in plan 04
 - [Phase ?]: 15.2-02: dev theme-cycler steppers MERGE onto current override (HIGH-4) so axes are independent; atomic updateThemeOverride (MEDIUM); RELEASE-visible via TEMP devEnableFlow default-true (reverted in 15.2-04)
+- [Phase 15.2]: 15.2-04: Settings IA dissolved into four App-Drawer destinations (Printers/Theme/Settings/About); Theme/Settings per-printer, About app-global homes the durable dev-enable toggle (off clears override, HIGH-5); webcam toggle gates the Webcam tile (MEDIUM-4); plan-02 TEMP devEnableFlow default reverted true→false (MEDIUM-3). Checkpoint PASSED after 3 owner-approved fixes (Appearance relocated to Theme tile, printer-switcher dev cycler added, chip-tap drag-bleed fixed); 2 owner-accepted Phase-21 deferrals (webcam-tile-gating live-verify; dev-overlay panel drag).
 
 ### Pending Todos
 
@@ -362,7 +364,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-06T00:29:22.848Z
-Stopped at: Completed 15.2-01-PLAN.md
+Last session: 2026-06-06T01:42:55.587Z
+Stopped at: Completed 15.2-04-PLAN.md (checkpoint PASSED)
 Resume file: 
 None
