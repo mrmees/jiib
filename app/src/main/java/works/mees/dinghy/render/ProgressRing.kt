@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -56,6 +58,12 @@ fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
                 // Ratio-only stroke: a fraction of the smaller dimension, never a hardcoded px.
                 val strokeWidth = size.minDimension * STROKE_FRACTION
                 val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                // Inset the arc by HALF the stroke so the stroke (centered on the path) stays fully
+                // INSIDE the cell — drawArc's default path rides the bounds edge, so an un-inset stroke
+                // bleeds strokeWidth/2 past the cell and gets clipped flat by any bounding layer (e.g. the
+                // Paused focus's alpha dim layer cut the ring's top arc, 2026-06-06 UAT).
+                val arcTopLeft = Offset(strokeWidth / 2f, strokeWidth / 2f)
+                val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
                 onDrawBehind {
                     // Track: full 360° in surface2 (the well the arc rides on).
                     drawArc(
@@ -63,6 +71,8 @@ fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
                         startAngle = START_ANGLE,
                         sweepAngle = 360f,
                         useCenter = false,
+                        topLeft = arcTopLeft,
+                        size = arcSize,
                         style = stroke,
                     )
                     // Progress arc: accent, from 12-o'clock sweeping clockwise by the completed fraction.
@@ -71,6 +81,8 @@ fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
                         startAngle = START_ANGLE,
                         sweepAngle = 360f * safe,
                         useCenter = false,
+                        topLeft = arcTopLeft,
+                        size = arcSize,
                         style = stroke,
                     )
                 }

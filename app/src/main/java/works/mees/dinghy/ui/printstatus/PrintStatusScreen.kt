@@ -540,8 +540,11 @@ private fun PrintStatusFocus(
                         )
                     }
                 }
-                // Status text CENTERED ON the bottom of the circle (its center at box-center + R, R =
-                // ringSize/2 = the 6-o'clock point of the drawn ring): "Ready" idle → "NN%" printing.
+                } // end dim wrapper
+                // Status label rendered OUTSIDE the dim/alpha layer: in Paused that alpha graphicsLayer
+                // CLIPS to its bounds, cutting off this label's 6-o'clock overhang (2026-06-06 UAT). The
+                // outer ring Box doesn't clip, so here it stays fully visible AND full-opacity (readable in
+                // Paused). Centered on the ring's 6-o'clock point (box-center + R): "Ready"/"NN%"/"PAUSED".
                 Text(
                     text = if (state.printState == PrintState.Printing)
                         "${(state.progress * 100).roundToInt()}%"
@@ -552,25 +555,23 @@ private fun PrintStatusFocus(
                     fontSize = fsSp(30f, t.fs).sp,
                     modifier = Modifier.align(Alignment.Center).offset(y = ringSize / 2),
                 )
-                } // end dim wrapper
                 // Static pause overlay (NOT dimmed) centered on the ring — the Focus carries the paused
                 // state (UI-SPEC Accessibility: contentDescription "Print paused"). RING-RELATIVE (sized
                 // from ringSize, not a fixed sp) so it scales with the focus and can NEVER crop, in any
                 // orientation (2026-06-06 UAT: fixed glyph grew/cropped strangely). The glyph fills a
                 // bounded box at 40% of the ring; the font size tracks that box's dp.
                 if (paused) {
-                    val pauseBox = ringSize * 0.4f
-                    Box(
-                        Modifier.size(pauseBox).align(Alignment.Center)
+                    // Render the glyph WITHOUT a fixed-size Box: a font glyph's line box is ~1.17× its
+                    // fontSize, so wrapping it in a `size(fontSize)` Box capped the Text height and shaved
+                    // the circle's bottom (2026-06-06 UAT). Let MaterialSymbol size itself (no height cap)
+                    // and just center it on the ring — sizeSp tracks the ring so it still scales/can't crop.
+                    MaterialSymbol(
+                        "pause_circle",
+                        tint = t.text,
+                        sizeSp = ringSize.value * 0.4f,
+                        modifier = Modifier.align(Alignment.Center)
                             .semantics { contentDescription = "Print paused" },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        MaterialSymbol(
-                            "pause_circle",
-                            tint = t.text,
-                            sizeSp = pauseBox.value,
-                        )
-                    }
+                    )
                 }
             }
             // Nothing below the ring — the ONLY focus readout is the %/READY on the ring itself.
