@@ -769,7 +769,7 @@ Plans:
 **Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
 
 - [x] 17-02-PLAN.md — Pure command layer: PrinterCommands clamp-before-format builders + CommandRegistry gcode() specs (M220/M221/SET_VELOCITY_LIMIT/SET_PRESSURE_ADVANCE/M106/SET_RETRACTION), object-gated, distinct keys (TUNE-02/03/04/05)
-- [ ] 17-03-PLAN.md — State layer: new readback fields + null-safe reducer walks (toolhead/extruder/fan/firmware_retraction) + subscribe-set + config-baseline one-shot reads for reset (TUNE-02/03/05)
+- [x] 17-03-PLAN.md — State layer: new readback fields + null-safe reducer walks (toolhead/extruder/fan/firmware_retraction) + subscribe-set + config-baseline one-shot reads for reset (TUNE-02/03/05)
 - [x] 17-04-PLAN.md — Export the 11 Fine-Tune vector drawables (D-17 glyphs, runtime-tintable; add/remove reused) (TUNE-07)
 
 **Wave 2** *(blocked on 17-02/03/04)*
@@ -885,7 +885,7 @@ test against; the final conformance net folds a LIGHT late-surface sweep into Sh
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
-| 17. Fine-Tune / Live-Adjust Panel | 3/6 | In Progress|  |
+| 17. Fine-Tune / Live-Adjust Panel | 4/6 | In Progress|  |
 | 18. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 19. System Information Page | 0/TBD | Not started | - |
 | 20. WebRTC Camera Streaming | 0/TBD | Not started | - |
