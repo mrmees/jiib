@@ -797,7 +797,14 @@ Plans:
   4. Build wiring is correct: `compose-ui-tooling` as `debugImplementation` (renderer, stripped from release), `compose-ui-tooling-preview` on the compile classpath; the debug `start_dest` hook jumps the running app to a screen and is absent/inert in release (existing dev-enable pattern, not `BuildConfig.DEBUG`)
   5. The exhaustive every-screen preview + string/icon backfill is explicitly deferred and recorded as Phase-22 conformance-sweep scope (one per-screen pass); the foundation does NOT regress any existing screen
 
-**Plans**: TBD
+**Plans**: 7 plans
+- [ ] 18-01-PLAN.md — Build wiring confirm + en-XA pseudolocale + lint-gate decision + RED scaffolds
+- [ ] 18-02-PLAN.md — Preview infra (PreviewBox/fixtures/Nexus-7/placeholders) + D-05 host branches
+- [ ] 18-03-PLAN.md — Icon-token registry (DinghyIcon/IconRef/View) + strings.xml master + convention
+- [ ] 18-04-PLAN.md — Debug-gated start_dest hook on MainActivity (security-modeled) + flox gate
+- [ ] 18-05-PLAN.md — Exemplar #1 PrintStatus (multi-state @PreviewParameter archetype)
+- [ ] 18-06-PLAN.md — Exemplar #2 FineTune (capability-gating + busy-lock archetype)
+- [ ] 18-07-PLAN.md — Exemplar #3 Spool (Coil/image + dense-data) + PREVIEW_AND_TOKENS.md + Phase-22 deferral
 **UI hint**: yes (tooling/infra — not a user-facing surface)
 **Research note**: STANDARD — Compose preview tooling, `@PreviewParameter`, Android string resources + pseudolocales are well-documented; the real work is the fixture design + the icon-registry abstraction over the app's two icon sources. Primary spec = the two out-of-repo staging notes (`../parallel_dinghy/phase-preview-harness-staging.md` + `phase-tokenization-staging.md`), which MUST be co-sequenced. Classic-View surfaces (GraphView, BedMeshHeatmapView/OKLCH ramp, webcam border) are NOT Compose-previewable — planner decides exclude vs separate harness.
 
