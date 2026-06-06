@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-05T23:46:15.830Z"
-last_activity: 2026-06-05 -- Phase 15.2 planning complete
+last_updated: "2026-06-06T00:18:15.494Z"
+last_activity: 2026-06-06
 progress:
   total_phases: 24
   completed_phases: 16
   total_plans: 114
-  completed_plans: 108
+  completed_plans: 109
   percent: 67
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 15.2 — theme conformance sweep settings ia
+**Current focus:** Phase 15.2 — theme-conformance-sweep-settings-ia
 
 ## Current Position
 
-Phase: 15.2
-Plan: Not started
+Phase: 15.2 (theme-conformance-sweep-settings-ia) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
   → **Plan 15.1-07 (Wave 3: Theme Editor status swatches) EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). Commits `bfd88d9` (status-slot swatches Stop/Caution/Go + writeScope-routed picker via `setActiveStatusOverride`, NO editability guard D-03 — shape carries safety not color; mode-aware STORED-vs-EFFECTIVE display so Simple/High-Contrast don't lie about an override that only renders in Colorful) + `c028f50` (shape-decorated preview strip: octagon on stop / triangle on caution / go shapeless D-02, at explicit fsSp glyph bounds; S/M/L preview samples confirmed sourced from `seriesColor(0)`+plain pool ONLY — never status / `seriesColor(1+)`, Open-Question-2). All writes route through the process-lifetime writeScope intent helper ([[dinghy-compose-write-scope-cancellation]]), never `rememberCoroutineScope()`. **flox UAT PASS 3/3** (autonomous:false gate): Colorful status-swatch edit persists across editor reopen; preview strip shows octagon-on-stop / triangle-on-caution / none-on-go; High-Contrast S/M/L samples are NOT the RYG status colors + the picker sub-label correctly states the override applies in Colorful only. 0 deviations (SUMMARY `15.1-07-SUMMARY.md`). THEME-statusedit + THEME-shape closed (design D-tokens, not REQUIREMENTS.md REQ-IDs). Next: **15.1-08** (app-wide Back sweep + THEMING.md canonicalization / conformance — the deferred 15.1-05/06 sweep work).
   → **Plans 15.1-05 + 15.1-06 EXECUTED + COMPLETE & on-device flox-UAT PASSED 2026-06-05** (close-out of already-implemented + UAT-passed work). **15.1-05 (N-series color identity)** — commits `1a2f3db` (GraphView traces → accent-led `seriesColor(i)`: trace 0 = accent/nozzle, 1 = pool[0]/bed, 2 = pool[1]/chamber; under-fill = `seriesColor(0)`; supersedes Phase-15 `pool[i % size]`, D-05/D-06) + `c1621e0` (PrintStatus nozzle readout = `seriesColor(0)` / bed = `seriesColor(1)`; Temperature `traceColor()` = `seriesColor(index)`; Stop button gets `ic_status_octagon` tinted from `t.stop` at explicit fsSp; D-06/D-01/D-02). Cross-screen identity closed: nozzle trace == PrintStatus readout == Temperature legend trace-0 (same channel/same color). **flox UAT PASS 4/4**: trace+readout match, legend matches graph, reseed moves all together, Stop octagon distinct. 0 deviations (SUMMARY `a3170ac`). **15.1-06 (shape-glyph safety layer + Move)** — commits `cf8f1c6` (console ERROR=octagon / WARNING=triangle compound glyphs via `setCompoundDrawables` + EXPLICIT fsSp `setBounds` — NOT `...WithIntrinsicBounds` — so the 96dp vector intrinsic doesn't blow up row height; recycled-row clear; D-01/D-02; ConsoleSeverity.kt needed no change) + `14061d2` (Move unhomed-axis caution triangle from `t.heat` at explicit fsSp; force-move green-`ic_lock_closed` SAFE / red-`ic_lock_open` ARMED redundant lock shape D-12; new `ic_lock_*.xml` padlock drawables; Back → neutral/outline at consistent gutter position, D-10 Move-only) + `a7d435e` (**UAT deviation**: XY/Z home-button OUTLINES wear their group's directional color — XY → `directional.xy`, Z → `directional.z` — icon color stays the sole state carrier; reinforces D-08 grouping, re-confirmed PASS). **flox UAT PASS**: console glyphs distinct + row height fine, Move unhomed caution triangle, force-move lock open/closed flip, neutral Back. 1 UAT-driven deviation (SUMMARY `9a20c79`). App-wide Back sweep + THEMING.md canonicalization remain DEFERRED to Phase 15.2 plan 08 by design. Next: **15.1-07** (status editor UI consuming the accent-led series channel + status-slot overrides).
@@ -50,7 +50,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-05 -- Phase 15.2 planning complete
+Last activity: 2026-06-06
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -181,6 +181,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 15.1 P15.1-04 | 12min | 2 tasks | 7 files |
 | Phase 15.1 P15.1-07 | 15min | 2 tasks | 1 files |
 | Phase 15.1 P08 | 1m | 2 tasks | 2 files |
+| Phase 15.2 P01 | 40 | 4 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -322,6 +323,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 15.1-04: status overrides ride the existing String-keyed poolOverrides wire map; typed split in sanitizeTuple (no Profile schema change). Mode-gated — applied in Colorful only, Simple=text, High-Contrast=fixed RYG (D-03/D-04). Writes via writeScope.setActiveStatusOverride.
 - [Phase ?]: THEMING.md is now the canonical in-repo token-law (D-13) for the as-built 15.1 model
 - [Phase ?]: Back = neutral/outline app-wide rule (D-10) canonicalized in THEMING.md + CLAUDE.md; app-wide Back sweep deferred to Phase 15.2
+- [Phase ?]: 15.2-01: transient theme override = separate in-memory StateFlow baked by pure ThemeResolver.bake; never persists, never reads themeResolver.tokens (HIGH-1)
+- [Phase ?]: 15.2-01: dev-cycler enable = app-global release-readable DataStore boolean (NOT BuildConfig.DEBUG), default false; disabling clears the override (HIGH-5)
 
 ### Pending Todos
 
@@ -354,7 +357,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T22:18:32.022Z
-Stopped at: Phase 15.2 context gathered
+Last session: 2026-06-06T00:18:15.421Z
+Stopped at: Completed 15.2-01-PLAN.md
 Resume file: 
-.planning/phases/15.2-theme-conformance-sweep-settings-ia/15.2-CONTEXT.md
+None
