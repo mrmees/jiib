@@ -1,0 +1,1482 @@
+{
+  "version": 1,
+  "exportedAt": "2026-06-06T14:55:28.174Z",
+  "bookmarks": [
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "more_horiz",
+      "label": "More Horiz",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "shortcuts / drawer",
+      "createdAt": 1780757713633,
+      "updatedAt": 1780757723518,
+      "key": "Material Symbols Outlined::more_horiz",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amore_horiz%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "pause",
+      "label": "Pause",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "",
+      "createdAt": 1780707405503,
+      "updatedAt": 1780707405503,
+      "key": "Material Symbols Outlined::pause",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Apause%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "resume",
+      "label": "Resume",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "resume",
+      "createdAt": 1780707263707,
+      "updatedAt": 1780707267532,
+      "key": "Material Symbols Outlined::resume",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aresume%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "stack_off",
+      "label": "Stack Off",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "disable stepper motors",
+      "createdAt": 1780702332058,
+      "updatedAt": 1780702345201,
+      "key": "Material Symbols Outlined::stack_off",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Astack_off%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "stop_circle",
+      "label": "Stop Circle",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "unload spool",
+      "createdAt": 1780701984036,
+      "updatedAt": 1780701999042,
+      "key": "Material Symbols Outlined::stop_circle",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Astop_circle%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "play_circle",
+      "label": "Play Circle",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "load spool / swap spool ",
+      "createdAt": 1780701981642,
+      "updatedAt": 1780702005888,
+      "key": "Material Symbols Outlined::play_circle",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aplay_circle%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "history",
+      "label": "History",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "Use for \"restart print\"",
+      "createdAt": 1780701528968,
+      "updatedAt": 1780701537925,
+      "key": "Material Symbols Outlined::history",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ahistory%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "linked_services",
+      "label": "Linked Services",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "use for quad gantry leveling.  ",
+      "createdAt": 1780700524824,
+      "updatedAt": 1780700532033,
+      "key": "Material Symbols Outlined::linked_services",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alinked_services%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "linear_scale",
+      "label": "Linear Scale",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "use for z-tilt calibration, when using adjust 10 degrees clockwise to imply the tilt. ",
+      "createdAt": 1780700394790,
+      "updatedAt": 1780700467711,
+      "key": "Material Symbols Outlined::linear_scale",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alinear_scale%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "detector",
+      "label": "Detector",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "use for z calibrate / probe calibrate",
+      "createdAt": 1780699805602,
+      "updatedAt": 1780699824253,
+      "key": "Material Symbols Outlined::detector",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adetector%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "android_wifi_3_bar_plus",
+      "label": "Android Wifi 3 Bar Plus",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "use for the printer connection menu item (for add/remove printer connections)",
+      "createdAt": 1780699673100,
+      "updatedAt": 1780699697156,
+      "key": "Material Symbols Outlined::android_wifi_3_bar_plus",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aandroid_wifi_3_bar_plus%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "sprint",
+      "label": "Sprint",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "generic acceleration / max acceleration fields (Fine-Tune)",
+      "createdAt": 1780687271520,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::sprint",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Asprint%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_and_edge",
+      "label": "Arrow And Edge",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "the icon to use for generic distance fields",
+      "createdAt": 1780687504795,
+      "updatedAt": 1780699527690,
+      "key": "Material Symbols Outlined::arrow_and_edge",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_and_edge%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "rule_settings",
+      "label": "Rule Settings",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "Use for screw tilt adjust",
+      "createdAt": 1780681712895,
+      "updatedAt": 1780699527691,
+      "key": "Material Symbols Outlined::rule_settings",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Arule_settings%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "blur_linear",
+      "label": "Blur Linear",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "use for the bed mesh calibrate routine icon",
+      "createdAt": 1780681259584,
+      "updatedAt": 1780699527691,
+      "key": "Material Symbols Outlined::blur_linear",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ablur_linear%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "print_connect",
+      "label": "Print Connect",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "use for for a completed job shortcut on homescreen",
+      "createdAt": 1780622073313,
+      "updatedAt": 1780699527691,
+      "key": "Material Symbols Outlined::print_connect",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aprint_connect%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "delete_sweep",
+      "label": "Delete Sweep",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "Used as \"clear all selections\"",
+      "createdAt": 1780616110274,
+      "updatedAt": 1780699527691,
+      "key": "Material Symbols Outlined::delete_sweep",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adelete_sweep%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "storefront",
+      "label": "Storefront",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "sort by vendor in spoolman",
+      "createdAt": 1780616056146,
+      "updatedAt": 1780699527692,
+      "key": "Material Symbols Outlined::storefront",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Astorefront%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "experiment",
+      "label": "Experiment",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "sort by filament family in spoolman",
+      "createdAt": 1780616033831,
+      "updatedAt": 1780699527692,
+      "key": "Material Symbols Outlined::experiment",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aexperiment%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "balance",
+      "label": "Balance",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "sort by weight in spoolman",
+      "createdAt": 1780616015558,
+      "updatedAt": 1780699527692,
+      "key": "Material Symbols Outlined::balance",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Abalance%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "calendar_clock",
+      "label": "Calendar Clock",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "sort by date in spoolman page",
+      "createdAt": 1780615993128,
+      "updatedAt": 1780699527693,
+      "key": "Material Symbols Outlined::calendar_clock",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Acalendar_clock%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "match_case",
+      "label": "Match Case",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "sort by name",
+      "createdAt": 1780615969619,
+      "updatedAt": 1780699527693,
+      "key": "Material Symbols Outlined::match_case",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amatch_case%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "video_camera_back",
+      "label": "Video Camera Back",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "webcam menu icon, also show timelapse in console. ",
+      "createdAt": 1780613003262,
+      "updatedAt": 1780699527694,
+      "key": "Material Symbols Outlined::video_camera_back",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Avideo_camera_back%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "video_camera_front_off",
+      "label": "Video Camera Front Off",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780615830167,
+      "updatedAt": 1780699527694,
+      "key": "Material Symbols Outlined::video_camera_front_off",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Avideo_camera_front_off%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "chat_error",
+      "label": "Chat Error",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "hide macro prompt messages in console",
+      "createdAt": 1780615651432,
+      "updatedAt": 1780699527694,
+      "key": "Material Symbols Outlined::chat_error",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Achat_error%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "chat",
+      "label": "Chat",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "show macro prompt messages in console",
+      "createdAt": 1780615652812,
+      "updatedAt": 1780699527695,
+      "key": "Material Symbols Outlined::chat",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Achat%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "mode_heat_off",
+      "label": "Mode Heat Off",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "hide temperature messages in console",
+      "createdAt": 1780615751580,
+      "updatedAt": 1780699527695,
+      "key": "Material Symbols Outlined::mode_heat_off",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amode_heat_off%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "mode_heat",
+      "label": "Mode Heat",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "show temperature messages in console",
+      "createdAt": 1780615752609,
+      "updatedAt": 1780699527696,
+      "key": "Material Symbols Outlined::mode_heat",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amode_heat%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "keyboard_return",
+      "label": "Keyboard Return",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "for denoting a return to the previous screen, the \"Back\" button",
+      "createdAt": 1780615568859,
+      "updatedAt": 1780701763500,
+      "key": "Material Symbols Outlined::keyboard_return",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Akeyboard_return%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "visibility_off",
+      "label": "Visibility Off",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "for denoting hidden files or items",
+      "createdAt": 1780615468010,
+      "updatedAt": 1780699527696,
+      "key": "Material Symbols Outlined::visibility_off",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Avisibility_off%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "disabled_visible",
+      "label": "Disabled Visible",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "for denoting hidden items being shown",
+      "createdAt": 1780615506590,
+      "updatedAt": 1780699527697,
+      "key": "Material Symbols Outlined::disabled_visible",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adisabled_visible%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "visibility",
+      "label": "Visibility",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780615471759,
+      "updatedAt": 1780699527697,
+      "key": "Material Symbols Outlined::visibility",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Avisibility%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "bookmark_manager",
+      "label": "Bookmark Manager",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780615437405,
+      "updatedAt": 1780699527697,
+      "key": "Material Symbols Outlined::bookmark_manager",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Abookmark_manager%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "bookmark_add",
+      "label": "Bookmark Add",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780615401739,
+      "updatedAt": 1780699527698,
+      "key": "Material Symbols Outlined::bookmark_add",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Abookmark_add%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "clock_arrow_down",
+      "label": "Clock Arrow Down",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780614536358,
+      "updatedAt": 1780699527698,
+      "key": "Material Symbols Outlined::clock_arrow_down",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aclock_arrow_down%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "clock_arrow_up",
+      "label": "Clock Arrow Up",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780614534967,
+      "updatedAt": 1780699527698,
+      "key": "Material Symbols Outlined::clock_arrow_up",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aclock_arrow_up%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "calendar_add_on",
+      "label": "Calendar Add On",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780614514738,
+      "updatedAt": 1780699527699,
+      "key": "Material Symbols Outlined::calendar_add_on",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Acalendar_add_on%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "palette",
+      "label": "Palette",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780614504726,
+      "updatedAt": 1780699527699,
+      "key": "Material Symbols Outlined::palette",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Apalette%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "expand",
+      "label": "Expand",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "raise print head or babystep further away ",
+      "createdAt": 1780613177833,
+      "updatedAt": 1780707066215,
+      "key": "Material Symbols Outlined::expand",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aexpand%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "compress",
+      "label": "Compress",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "lower print head or babystep closer",
+      "createdAt": 1780613194514,
+      "updatedAt": 1780707058431,
+      "key": "Material Symbols Outlined::compress",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Acompress%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "wifi_home",
+      "label": "Wifi Home",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "axis needs homing",
+      "createdAt": 1780613224848,
+      "updatedAt": 1780699527700,
+      "key": "Material Symbols Outlined::wifi_home",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Awifi_home%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "in_home_mode",
+      "label": "In Home Mode",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "axis is homed",
+      "createdAt": 1780613230337,
+      "updatedAt": 1780699527700,
+      "key": "Material Symbols Outlined::in_home_mode",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ain_home_mode%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "home_app_logo",
+      "label": "Home App Logo",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "Useful for a HOME ALL button",
+      "createdAt": 1780613768034,
+      "updatedAt": 1780699527700,
+      "key": "Material Symbols Outlined::home_app_logo",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ahome_app_logo%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "find_in_page",
+      "label": "Find In Page",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780614023337,
+      "updatedAt": 1780699527701,
+      "key": "Material Symbols Outlined::find_in_page",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Afind_in_page%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "folder_open",
+      "label": "Folder Open",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780613941823,
+      "updatedAt": 1780699527701,
+      "key": "Material Symbols Outlined::folder_open",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Afolder_open%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "disabled_by_default",
+      "label": "Disabled By Default",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "STOP / red",
+      "createdAt": 1780613891506,
+      "updatedAt": 1780700792831,
+      "key": "Material Symbols Outlined::disabled_by_default",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adisabled_by_default%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "print",
+      "label": "Print",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "start a print",
+      "createdAt": 1780613804402,
+      "updatedAt": 1780700768519,
+      "key": "Material Symbols Outlined::print",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aprint%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "lock_open_right",
+      "label": "Lock Open Right",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "unlocked",
+      "createdAt": 1780613382490,
+      "updatedAt": 1780700760048,
+      "key": "Material Symbols Outlined::lock_open_right",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alock_open_right%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "lock",
+      "label": "Lock",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780613379557,
+      "updatedAt": 1780699527703,
+      "key": "Material Symbols Outlined::lock",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alock%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_back",
+      "label": "Arrow Back",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "left",
+      "createdAt": 1780613171224,
+      "updatedAt": 1780701778215,
+      "key": "Material Symbols Outlined::arrow_back",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_back%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_forward",
+      "label": "Arrow Forward",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "right",
+      "createdAt": 1780613164719,
+      "updatedAt": 1780701781291,
+      "key": "Material Symbols Outlined::arrow_forward",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_forward%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_downward",
+      "label": "Arrow Downward",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "down",
+      "createdAt": 1780613150525,
+      "updatedAt": 1780701784416,
+      "key": "Material Symbols Outlined::arrow_downward",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_downward%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_upward",
+      "label": "Arrow Upward",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "up",
+      "createdAt": 1780613143394,
+      "updatedAt": 1780701786689,
+      "key": "Material Symbols Outlined::arrow_upward",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_upward%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "power_settings_new",
+      "label": "Power Settings New",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "power icon ",
+      "createdAt": 1780613123915,
+      "updatedAt": 1780700670102,
+      "key": "Material Symbols Outlined::power_settings_new",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Apower_settings_new%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "tune",
+      "label": "Tune",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "general settings icon",
+      "createdAt": 1780612960635,
+      "updatedAt": 1780700665062,
+      "key": "Material Symbols Outlined::tune",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Atune%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "check_circle",
+      "label": "Check Circle",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "GREEN / go",
+      "createdAt": 1780612904475,
+      "updatedAt": 1780700622184,
+      "key": "Material Symbols Outlined::check_circle",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Acheck_circle%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "terminal",
+      "label": "Terminal",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "console",
+      "createdAt": 1780612833947,
+      "updatedAt": 1780700613257,
+      "key": "Material Symbols Outlined::terminal",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aterminal%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "code",
+      "label": "Code",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "macros",
+      "createdAt": 1780612813492,
+      "updatedAt": 1780700609843,
+      "key": "Material Symbols Outlined::code",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Acode%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "thermostat",
+      "label": "Thermostat",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "general temperature",
+      "createdAt": 1780612780292,
+      "updatedAt": 1780700606751,
+      "key": "Material Symbols Outlined::thermostat",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Athermostat%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "open_with",
+      "label": "Open With",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "general movement",
+      "createdAt": 1780612725997,
+      "updatedAt": 1780700594908,
+      "key": "Material Symbols Outlined::open_with",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aopen_with%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "monitoring",
+      "label": "Monitoring",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "status / monitoring",
+      "createdAt": 1780612674681,
+      "updatedAt": 1780700739518,
+      "key": "Material Symbols Outlined::monitoring",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amonitoring%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "folder_copy",
+      "label": "Folder Copy",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "folder/job page icon",
+      "createdAt": 1780612483290,
+      "updatedAt": 1780700585252,
+      "key": "Material Symbols Outlined::folder_copy",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Afolder_copy%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "refresh",
+      "label": "Refresh",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "also for general rotation",
+      "createdAt": 1780612455990,
+      "updatedAt": 1780700731255,
+      "key": "Material Symbols Outlined::refresh",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Arefresh%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "eject",
+      "label": "Eject",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780612331235,
+      "updatedAt": 1780699527708,
+      "key": "Material Symbols Outlined::eject",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aeject%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "tab_close",
+      "label": "Tab Close",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "popup close",
+      "createdAt": 1780612283382,
+      "updatedAt": 1780700711179,
+      "key": "Material Symbols Outlined::tab_close",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Atab_close%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "output_circle",
+      "label": "Output Circle",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "extrude icon",
+      "createdAt": 1780612216632,
+      "updatedAt": 1780700680284,
+      "key": "Material Symbols Outlined::output_circle",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aoutput_circle%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "input_circle",
+      "label": "Input Circle",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "retract icon",
+      "createdAt": 1780612215663,
+      "updatedAt": 1780700683423,
+      "key": "Material Symbols Outlined::input_circle",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ainput_circle%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "sync_alt",
+      "label": "Sync Alt",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "swap icon",
+      "createdAt": 1780612146054,
+      "updatedAt": 1780700689017,
+      "key": "Material Symbols Outlined::sync_alt",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Async_alt%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "qr_code",
+      "label": "Qr Code",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780612118529,
+      "updatedAt": 1780699527709,
+      "key": "Material Symbols Outlined::qr_code",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aqr_code%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "warning",
+      "label": "Warning",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "WARNING, yellow",
+      "createdAt": 1780612099850,
+      "updatedAt": 1780700649499,
+      "key": "Material Symbols Outlined::warning",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Awarning%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "delete",
+      "label": "Delete",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780612050674,
+      "updatedAt": 1780699527711,
+      "key": "Material Symbols Outlined::delete",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adelete%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "home",
+      "label": "Home",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780612029954,
+      "updatedAt": 1780699527711,
+      "key": "Material Symbols Outlined::home",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ahome%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "settings",
+      "label": "Settings",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "",
+      "createdAt": 1780612028350,
+      "updatedAt": 1780699527711,
+      "key": "Material Symbols Outlined::settings",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Asettings%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "speed",
+      "label": "Speed",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "generic speed fields (Fine-Tune Speed %)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::speed",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aspeed%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "arrow_shape_up_stack_2",
+      "label": "Arrow Shape Up Stack 2",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "max velocity (Fine-Tune)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::arrow_shape_up_stack_2",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aarrow_shape_up_stack_2%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "directions_boat",
+      "label": "Directions Boat",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "minimum cruise ratio (Fine-Tune)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::directions_boat",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adirections_boat%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "rounded_corner",
+      "label": "Rounded Corner",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "square-corner velocity (Fine-Tune)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::rounded_corner",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Arounded_corner%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "text_select_move_forward",
+      "label": "Text Select Move Forward",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "pressure advance (Fine-Tune)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::text_select_move_forward",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Atext_select_move_forward%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "avg_time",
+      "label": "Avg Time",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "smooth time / pressure-advance smooth time (Fine-Tune)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::avg_time",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aavg_time%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "mode_fan",
+      "label": "Mode Fan",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "part-cooling fan (Fine-Tune; part fan only)",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::mode_fan",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Amode_fan%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "add",
+      "label": "Add",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "generic increment (+) for value-tile nudge",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::add",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aadd%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "remove",
+      "label": "Remove",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "generic decrement (-) for value-tile nudge",
+      "createdAt": 1780760229042,
+      "updatedAt": 1780760229042,
+      "key": "Material Symbols Outlined::remove",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aremove%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    }
+  ]
+}

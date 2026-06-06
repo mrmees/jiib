@@ -118,12 +118,11 @@ shared-component / Move-screen rework (→ deferred todos, see below).
   - **FW-retraction sub-controls** (retract length/speed, unretract extra length/speed): not separately named
     in staging — planner may reuse `input_circle`/`output_circle`/`sprint`, owner confirms if they want
     distinct glyphs.
-  - **Planner verification (per staging's own instruction):** confirm the two unusual ligatures
-    **`arrow_shape_up_stack_2`** and **`text_select_move_forward`** are real Material Symbols Outlined names;
-    fall back to a near equivalent only if a name doesn't exist.
-  - **Bucket note conflict to reconcile:** the bucket currently notes `sprint` = "generic speed fields," but
-    staging uses `speed` for Speed % and `sprint` for Max acceleration. Staging per-field assignment wins;
-    the bucket's `sprint` note should be tidied.
+  - **STATUS (2026-06-06):** all of the above are now folded into `img/material-icon-bucket.json` (82 icons).
+    Both unusual ligatures (`arrow_shape_up_stack_2`, `text_select_move_forward`) confirmed REAL by the owner.
+    `sprint`'s bucket note corrected to acceleration; `speed` added for generic speed; `add`/`remove` added as
+    the canonical ± glyphs. Planner exports these to `res/drawable/*.xml` via `painterResource` — no remaining
+    icon-selection work except the optional FW sub-control glyph choice above.
 - **D-17b:** **`img/spool.svg`** (black spool + red filament path) is the **canonical filament-roll graphic
   going forward**, tinted to each spool's color (the committed red = an example color). Primarily a Spoolman
   surface concern; recorded here so it isn't lost. Not a Fine-Tune tile, but it's the project-wide spool glyph.
