@@ -1,0 +1,19 @@
+<!--
+  Material Symbols Outlined "arrow_shape_up_stack_2" glyph (FILL 0, wght 400) — provenance:
+  img/material-icon-bucket.json::Material Symbols Outlined::arrow_shape_up_stack_2
+  (D-17, Max velocity; owner-confirmed REAL/present in the bucket).
+  Filled white, recolored at runtime via Compose Icon(tint = …) — semantic token system
+  (THEME-01). Repo-standard 24dp viewport; no baked token color.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,2L4,9h4v4h8V9h4L12,2zM10,11V7H8.83L12,4.23 15.17,7H14v4h-4z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M5,16h14v2L5,18zM7,20h10v2L7,22z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

@@ -1,0 +1,21 @@
+<!--
+  Material Symbols Outlined "avg_time" glyph (FILL 0, wght 400) — provenance:
+  img/material-icon-bucket.json::Material Symbols Outlined::avg_time (D-17, Smooth time).
+  Filled white, recolored at runtime via Compose Icon(tint = …) — semantic token system
+  (THEME-01). Repo-standard 24dp viewport; no baked token color.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M12.5,7h-1.5v6l5.25,3.15 0.75,-1.23 -4.5,-2.67z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M7,11.25h4v1.5L7,12.75zM5,11.25h1.5v1.5L5,12.75z"
+        android:fillColor="#FFFFFFFF" />
+</vector>
