@@ -42,7 +42,7 @@ created: 2026-06-06
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | TBD | — | 0 | TUNE-02/03 | — / — | N/A | unit | `... --tests 'works.mees.dinghy.command.PrinterCommandsTest'` | ❌ W0 (extend) | ⬜ pending |
-| TBD | — | 0 | TUNE-02/03 | — / — | N/A | unit | `... --tests 'works.mees.dinghy.command.CommandRegistryTest'` | ❌ W0 (extend) | ⬜ pending |
+| TBD | — | 0 | TUNE-02/03 | — / — | N/A | unit | `... --tests 'works.mees.dinghy.command.CommandRegistryGcodeTest'` | ❌ W0 (extend) | ⬜ pending |
 | TBD | — | 0 | TUNE-02/03/05 | — / — | N/A | unit | `... --tests 'works.mees.dinghy.state.PrinterStateReducerTest'` | ❌ W0 (extend) | ⬜ pending |
 | TBD | — | 0 | TUNE-04/05/06 | — / — | N/A | unit | `... --tests 'works.mees.dinghy.ui.finetune.FineTuneHolderTest'` | ❌ W0 (new) | ⬜ pending |
 | TBD | — | 0 | TUNE-01 | — / — | N/A | instrumented | `... :app:connectedAndroidTest` (Tune → FineTune nav) | ❌ W0 (new) | ⬜ pending |
@@ -55,7 +55,7 @@ created: 2026-06-06
 ## Wave 0 Requirements
 
 - [ ] Extend `PrinterCommandsTest` — new builders (M220/M221/M106, SET_VELOCITY_LIMIT, SET_PRESSURE_ADVANCE, SET_RETRACTION) + scaling assertions (1.05 ratio→`S105`; 60%→`M106 S153`)
-- [ ] Extend `CommandRegistryTest` — new `gcode()` specs present in `.all` + correct capability availability
+- [ ] Extend `CommandRegistryGcodeTest` — new `gcode()` specs present in `.all` + correct capability availability
 - [ ] Extend `PrinterStateReducerTest` — new field walks (toolhead limits, `extruder.pressure_advance`/`smooth_time`, `fan.speed`, `firmware_retraction.*`) + synthetic `firmware_retraction` fixture + diff-merge retention
 - [ ] New `FineTuneHolderTest` — vm scaling, capability gates, config-baseline reset derivation, whole-group busy-lock derivation
 - [ ] New instrumented nav test — `PrintStatusControlAction.Tune` → `Dest.FineTune` route

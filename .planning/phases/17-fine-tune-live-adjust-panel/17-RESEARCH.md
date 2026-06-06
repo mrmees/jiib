@@ -511,19 +511,11 @@ enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Consol
 | A4 | A small Motion/Extrusion readout strip (D-20 planner discretion) is optional, not required | Layout | Low — pure layout choice |
 | A5 | FW-retraction sub-control glyphs reuse `input_circle`/`output_circle`/`sprint` | Icons | Low — D-17 says owner confirms if distinct glyphs wanted; reuse is the documented fallback |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Part-cooling fan "reset" semantics (A2).**
-   - Known: Klipper `[fan]` has no persistent configured speed; "never assumed off" is locked.
-   - Unclear: should the part-fan tile have NO reset, reset-to-current (no-op snap), or reset-to-a-fixed-%?
-   - Recommendation: **no reset affordance** on the part-fan tile (honest: nothing to reset to); confirm with owner in discuss/plan.
-2. **Motion limits: expanded vs "advanced" disclosure (D, staging open item).**
-   - Known: 5 tiles per group must stay touch-friendly portrait AND landscape (≥64px targets, Focus/Field grammar).
-   - Unclear: do all 5 Motion tiles show at once, or speed-only + an "Advanced limits" disclosure?
-   - Recommendation: show all 5 in a Field grid (a 2×3 or 1×5 responsive grid keeps targets ≥64px on a Nexus-7-class screen); planner validates on-device. The two screens (Motion/Extrusion) each carry ≤5 tiles — comfortably fits without disclosure.
-3. **`SET_PRESSURE_ADVANCE EXTRUDER=` omission.**
-   - Known: single-extruder v1 (D-09); omitting `EXTRUDER=` targets the active extruder.
-   - Recommendation: omit `EXTRUDER=` (active-extruder default) — matches single-extruder assumption; revisit only if multi-tool is scoped.
+1. **Part-cooling fan "reset" semantics (A2).** → **RESOLVED: no reset affordance** on the part-fan tile (Klipper `[fan]` has no persistent configured speed; nothing to reset to). Implemented in plan 17-03 T2 (no-baseline decision documented) + 17-05 T3 (part-fan tile has no long-press reset, with code comment). Flagged for owner confirm at 17-06 UAT.
+2. **Motion limits: expanded vs "advanced" disclosure.** → **RESOLVED: show all 5** Motion tiles in a Field grid (no "advanced" disclosure); ≤5 tiles per group fits ≥64px targets portrait AND landscape. Implemented in 17-05 T3; validated on-device in 17-06.
+3. **`SET_PRESSURE_ADVANCE EXTRUDER=` omission.** → **RESOLVED: omit `EXTRUDER=`** (active-extruder default), per single-extruder v1 assumption D-09. Implemented in 17-02 builder.
 
 ## Environment Availability
 

@@ -123,9 +123,10 @@ shared-component / Move-screen rework (→ deferred todos, see below).
     `sprint`'s bucket note corrected to acceleration; `speed` added for generic speed; `add`/`remove` added as
     the canonical ± glyphs. Planner exports these to `res/drawable/*.xml` via `painterResource` — no remaining
     icon-selection work except the optional FW sub-control glyph choice above.
-- **D-17b:** **`img/spool.svg`** (black spool + red filament path) is the **canonical filament-roll graphic
-  going forward**, tinted to each spool's color (the committed red = an example color). Primarily a Spoolman
-  surface concern; recorded here so it isn't lost. Not a Fine-Tune tile, but it's the project-wide spool glyph.
+- **D-17b [informational]:** **`img/spool.svg`** (black spool + red filament path) is the **canonical
+  filament-roll graphic going forward**, tinted to each spool's color (the committed red = an example color).
+  Primarily a Spoolman surface concern; recorded here so it isn't lost. **Not a Fine-Tune tile / out of P17
+  scope** — tracked for future Spoolman work, not planned this phase.
 
 ### Default tap increments (app-defined, fixed)
 - **D-18:** Increments are **fixed and app-defined** this phase (per-control values in D-03..D-12 above).
@@ -153,6 +154,10 @@ shared-component / Move-screen rework (→ deferred todos, see below).
 ### Claude's Discretion
 - Exact **ranges + clamping** for every tuner (start from the staging increments; verify bounds against the
   Klipper config reference at plan time). Staging seeds: accel, max-velocity, SCV, minimum-cruise-ratio.
+  - **Speed % upper clamp = 300% (owner-confirmed 2026-06-06).** RESEARCH proposed 300% for rescue headroom;
+    ROADMAP SC-3's "speed 25–200%" is **illustrative, not normative** for the clamp. The clamp is a safety
+    net (defaults still 100%). Executor: add a one-line rationale comment in `PrinterCommands.kt` noting the
+    300% clamp diverges intentionally from SC-3's example range. (Flow stays 50–150%.)
 - Exact **config-baseline paths** for each reset (staging lists candidates: `configfile.settings.printer.{
   max_velocity,max_accel,minimum_cruise_ratio,square_corner_velocity}`, `configfile.settings.extruder.{
   pressure_advance,pressure_advance_smooth_time}`, `configfile.settings.fan.*`, `configfile.settings.
