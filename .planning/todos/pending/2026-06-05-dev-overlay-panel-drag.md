@@ -26,3 +26,12 @@ relocation: give the panel its own bare-surface drag region whose pointerInput i
 distinct from the chips', so chip taps consume their own gestures while a drag started
 on the panel background still moves it. Otherwise close as won't-fix when the dev
 overlay is retired.
+
+## 15.2 code review (WR-01) — precise root cause
+
+The panel-drag also doesn't ACCUMULATE: `DevThemeCyclerOverlay.kt:~200` does
+`offset = pos + delta` where `pos` is captured once at gesture-start and
+`positionChange()` is per-event incremental — so the panel snaps back to the gesture's
+starting point instead of tracking the finger. Fix: accumulate into a running offset
+(`offset = offset + delta` each event, or track from the captured start + total
+delta), in addition to the consume/region fix above.
