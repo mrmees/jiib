@@ -2,8 +2,10 @@ package works.mees.dinghy.render
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import works.mees.dinghy.calibration.BedMeshModel
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.theme.ThemeTokens
 
 /**
@@ -32,6 +34,12 @@ fun BedMeshHeatmapHost(
     scaleMode: BedMeshHeatmapView.ScaleMode,
     modifier: Modifier = Modifier,
 ) {
+    // D-05/D-04: the heatmap AndroidView renders blank under @Preview — short-circuit to a labeled
+    // stand-in so a screen embedding it previews cleanly. The real heatmap is the on-device gate.
+    if (LocalInspectionMode.current) {
+        PreviewPlaceholderBox(label = "Bed mesh (live on device)", modifier = modifier)
+        return
+    }
     AndroidView(
         factory = { ctx -> BedMeshHeatmapView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->

@@ -2,7 +2,9 @@ package works.mees.dinghy.render
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.theme.ThemeTokens
 
 /**
@@ -31,6 +33,13 @@ fun GraphViewHost(
     modifier: Modifier = Modifier,
     drawArea: Boolean = true,
 ) {
+    // D-05/D-04: a classic-Views AndroidView renders as a blank/broken region under @Preview (the
+    // View's onDraw never runs in inspection mode), so a screen EMBEDDING this host would preview an
+    // empty hole. Short-circuit to a labeled stand-in instead — the real graph is the on-device gate.
+    if (LocalInspectionMode.current) {
+        PreviewPlaceholderBox(label = "GraphView (live on device)", modifier = modifier)
+        return
+    }
     AndroidView(
         factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->
@@ -71,6 +80,12 @@ fun GraphViewHost(
     drawArea: Boolean = true,
     showAxisLabels: Boolean = false,
 ) {
+    // D-05: same inspection-mode stand-in as the single-snapshot overload (this multi-trace host
+    // backs the Temperature panel's embedded graph). See that overload's comment for the rationale.
+    if (LocalInspectionMode.current) {
+        PreviewPlaceholderBox(label = "GraphView (live on device)", modifier = modifier)
+        return
+    }
     AndroidView(
         factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->

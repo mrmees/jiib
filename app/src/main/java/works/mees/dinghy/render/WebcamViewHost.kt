@@ -3,7 +3,9 @@ package works.mees.dinghy.render
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.theme.ThemeTokens
 
 /**
@@ -46,6 +48,13 @@ fun WebcamViewHost(
     flipVertical: Boolean = false,
     rotation: Int = 0,
 ) {
+    // D-05/D-04: the webcam AndroidView renders blank under @Preview (no live frame, View onDraw
+    // skipped) — short-circuit to a labeled stand-in so an embedding screen previews cleanly. The
+    // real MJPEG feed + chrome is the on-device gate.
+    if (LocalInspectionMode.current) {
+        PreviewPlaceholderBox(label = "Webcam (live on device)", modifier = modifier)
+        return
+    }
     AndroidView(
         factory = { ctx -> WebcamView(ctx) }, // created ONCE; never recreated on a theme/frame/chrome change
         update = { view ->
