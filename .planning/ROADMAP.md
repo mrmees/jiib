@@ -715,7 +715,31 @@ Plans:
   4. Behavior-preserving for the core monitor loop, verified on-device
   5. Z-babystep conditional control: appears on Print-Status only during the early first-layer window (~first 10 layers), nudges live Z offset (closer/away) confirmed by the `homing_origin[2]` flip, and is session-only; proven on a real first layer on the Ender 5 Plus
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+**Wave 0**
+
+- [ ] 16-01-PLAN.md — RED scaffolds (compile-clean): PrintStatusModeTest, PreheatTest, + extend PrinterCommandsTest / PrinterStateReducerTest
+
+**Wave 1** *(blocked on Wave 0; parallel — disjoint files)*
+
+- [ ] 16-02-PLAN.md — Pure PrintStatusMode classifier (Standby=Standby behavior change) + babystep gating/step-cycle + extended control actions (Preheat/Dismiss/Power)
+- [ ] 16-03-PLAN.md — Command specs: SET_GCODE_OFFSET (babystep) + SDCARD_RESET_FILE (dismiss), V5-validated, registered in `all` + catalog sidecar
+- [ ] 16-04-PLAN.md — State additions: gcode_move.homing_origin[2] readback + temperature_sensor Standby glance temp (host-load deferred to P19)
+- [ ] 16-05-PLAN.md — Babystep app setting (BabystepPrefs + writeScope intent helpers + Settings toggle/numeric layer-count) + greyed Output/System-Info drawer stubs
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 16-06-PLAN.md — PrintStatusScreen four-mode rework (Standby/Printing/Paused/Terminal off the classifier) + spool-aware Preheat + babystep row + glyphs + Dismiss/Reprint
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 16-07-PLAN.md — Documentation Merge: README four-state model + LAYOUT interactive-grid flexible-tile hard law + babystep C3 exception (THEMING untouched)
+
+**Wave 4** *(blocked on Wave 3; on-device gates)*
+
+- [ ] 16-08-PLAN.md — Binding on-device gates: SC-5 live babystep round-trip (E5 first layer) + SC-3 Adreno-320 perf no-regression + SC-4 monitor loop preserved (autonomous:false)
+
 **UI hint**: yes
 **Research note**: STANDARD — design rework against the existing UI LAW (now sitting on the Phase-15 theme system); no new backend.
 
