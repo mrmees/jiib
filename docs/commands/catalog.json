@@ -8827,7 +8827,7 @@
       "runtime_registry": {
         "status": "registered",
         "registered": true,
-        "notes": "Registered (Phase 10, plan 10-03) as CommandRegistry.webcamsList — a paramless one-shot edge-driven enumeration fetched once per handshake. NO availability predicate (D-08): the webcam component is universal on E5/E3, so the command is unconditional and the drawer tile is greyed on cam-count==0 instead of being command-gated."
+        "notes": "Registered (Phase 10, plan 10-03) as CommandRegistry.webcamsList \u2014 a paramless one-shot edge-driven enumeration fetched once per handshake. NO availability predicate (D-08): the webcam component is universal on E5/E3, so the command is unconditional and the drawer tile is greyed on cam-count==0 instead of being command-gated."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
@@ -10436,6 +10436,37 @@
         "status": "registered",
         "registered": true,
         "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 9 calibration spine, 09-02)."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-M106",
+      "catalog_id": "KGC-M106",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "M106",
+      "category": "motion",
+      "purpose": "Dinghy Fine-Tune part-cooling fan live-adjust (D-11).",
+      "params": [],
+      "key_params": [],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "fan"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "fan"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 17 Fine-Tune, 17-02)."
       },
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",

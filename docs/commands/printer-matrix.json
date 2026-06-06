@@ -2631,6 +2631,150 @@
           "caveat": "Live objects.list capture; re-derived every reconnect."
         }
       ]
+    },
+    {
+      "catalog_id": "KGC-M220",
+      "name": "M220",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "gcode_move"
+      },
+      "predicate_key": "object_present:gcode_move",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object gcode_move listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object gcode_move listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-M221",
+      "name": "M221",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "gcode_move"
+      },
+      "predicate_key": "object_present:gcode_move",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object gcode_move listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object gcode_move listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_VELOCITY_LIMIT",
+      "name": "SET_VELOCITY_LIMIT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_PRESSURE_ADVANCE",
+      "name": "SET_PRESSURE_ADVANCE",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object extruder listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-M106",
+      "name": "M106",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "fan"
+      },
+      "predicate_key": "object_present:fan",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object fan listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object fan listed in /printer/objects/list capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_RETRACTION",
+      "name": "SET_RETRACTION",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "firmware_retraction"
+      },
+      "predicate_key": "object_present:firmware_retraction",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "absent",
+          "evidence": "object firmware_retraction NOT listed in /printer/objects/list capture (built blind, D-12); see not_on_printers."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "absent",
+          "evidence": "object firmware_retraction NOT listed in /printer/objects/list capture (built blind, D-12); see not_on_printers."
+        }
+      ]
     }
   ],
   "not_on_printers": [
@@ -2728,6 +2872,17 @@
         "ender3"
       ],
       "reason": "Neither printer exposed Z_ENDSTOP_CALIBRATE in /printer/gcode/help (both have a probe; PROBE_CALIBRATE is the live path). A3 probe-less sibling, gated off live."
+    },
+    {
+      "predicate": {
+        "type": "object_present",
+        "name": "firmware_retraction"
+      },
+      "printer_ids": [
+        "ender3",
+        "ender5plus"
+      ],
+      "reason": "Neither dev printer exposes firmware_retraction in the 2026-06-02 capture; SET_RETRACTION is built blind (D-12) and gates itself off via the live object predicate."
     }
   ],
   "unknown": []

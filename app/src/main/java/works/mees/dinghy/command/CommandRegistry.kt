@@ -61,6 +61,55 @@ data class BedMeshProfileArgs(val name: String)
  */
 data class BabystepArgs(val deltaMm: Double)
 
+// --- Phase-17 Fine-Tune live-adjust args (D-03..D-12) -----------------------------------------------
+
+/** Speed-factor override (D-03) — [pct] is the DISPLAYED percent; [PrinterCommands.speedFactor] clamps. */
+data class SpeedFactorArgs(val pct: Int)
+
+/** Flow/extrude-factor override (D-08) — [pct] is the DISPLAYED percent; [PrinterCommands.flowFactor] clamps. */
+data class FlowFactorArgs(val pct: Int)
+
+/**
+ * One motion-limit nudge (D-04..D-07). [field] names WHICH limit this nudge sets — one of
+ * `"velocity"`/`"accel"`/`"minCruiseRatio"`/`"scv"` — so a single spec serves all four; it also yields a
+ * DISTINCT per-field dispatchKey (`"set_vel_<field>"`, Pitfall 4) so an in-flight velocity tweak never
+ * busy-locks an accel tweak by key-collision. [value] is the target (the ratio on the wire for minCruiseRatio).
+ */
+data class VelocityLimitArgs(val field: String, val value: Double) {
+    enum class Field { VELOCITY, ACCEL, MIN_CRUISE_RATIO, SCV }
+    companion object {
+        const val VELOCITY = "velocity"
+        const val ACCEL = "accel"
+        const val MIN_CRUISE_RATIO = "minCruiseRatio"
+        const val SCV = "scv"
+    }
+}
+
+/**
+ * One pressure-advance nudge (D-09/D-10). [field] is `"advance"` or `"smoothTime"` (distinct dispatchKey
+ * per field); [value] the target in seconds. Only the named field is sent (no EXTRUDER=, single-extruder v1).
+ */
+data class PressureAdvanceArgs(val field: String, val value: Double) {
+    companion object {
+        const val ADVANCE = "advance"
+        const val SMOOTH_TIME = "smoothTime"
+    }
+}
+
+/** Part-cooling-fan nudge (D-11) — [pct] is the DISPLAYED percent; [PrinterCommands.setFan] maps to 0..255. */
+data class FanArgs(val pct: Int)
+
+/**
+ * Firmware-retraction four-field nudge (D-12). All four are re-sent each nudge (the holder folds the changed
+ * field over the live readback); [PrinterCommands.setRetraction] clamps each. NO Z_HOP.
+ */
+data class RetractionArgs(
+    val retractLength: Double,
+    val unretractExtraLength: Double,
+    val retractSpeed: Int,
+    val unretractSpeed: Int,
+)
+
 object CommandRegistry {
     private val jsonRpcSemantics = CommandSemantics(
         success = "JSON-RPC result acknowledges the request.",
@@ -541,6 +590,91 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("virtual_sdcard"),
     )
 
+    // --- Phase-17 Fine-Tune live-adjust specs (D-03..D-12). Every gcode spec inherits the G4 120s
+    // timeout automatically. Gated STRICTLY on the owning OBJECT (RESEARCH § Capability-Gate Predicates) —
+    // SET_VELOCITY_LIMIT/SET_PRESSURE_ADVANCE/SET_RETRACTION are built-in Klipper commands present whenever
+    // their owning object exists, so NO GcodeCommandPresent help-query path is invented. ---
+
+    /** `M220 S<pct>` speed-factor override (D-03). Gated on `gcode_move` (carries `speed_factor` readback). */
+    val speedFactor: CommandSpec<SpeedFactorArgs> = gcode(
+        catalogId = "KGC-M220",
+        key = { "set_speed_factor" },
+        gcode = { args -> PrinterCommands.speedFactor(args.pct) },
+        availability = AvailabilityPredicate.ObjectPresent("gcode_move"),
+    )
+
+    /** `M221 S<pct>` flow-factor override (D-08). Gated on `gcode_move` (carries `extrude_factor` readback). */
+    val flowFactor: CommandSpec<FlowFactorArgs> = gcode(
+        catalogId = "KGC-M221",
+        key = { "set_flow_factor" },
+        gcode = { args -> PrinterCommands.flowFactor(args.pct) },
+        availability = AvailabilityPredicate.ObjectPresent("gcode_move"),
+    )
+
+    /**
+     * `SET_VELOCITY_LIMIT <FIELD>=<value>` (D-04..D-07) — ONE spec serves all four motion limits. Each
+     * nudge sets exactly one field; the [VelocityLimitArgs.field] selects which builder arg is non-null and
+     * yields a DISTINCT dispatchKey `set_vel_<field>` (Pitfall 4 — never a shared key). Gated on `toolhead`.
+     */
+    val setVelocityLimit: CommandSpec<VelocityLimitArgs> = gcode(
+        catalogId = "KGC-SET_VELOCITY_LIMIT",
+        key = { args -> "set_vel_${args.field}" },
+        gcode = { args ->
+            when (args.field) {
+                VelocityLimitArgs.VELOCITY -> PrinterCommands.setVelocityLimit(velocity = args.value)
+                VelocityLimitArgs.ACCEL -> PrinterCommands.setVelocityLimit(accel = args.value)
+                VelocityLimitArgs.MIN_CRUISE_RATIO -> PrinterCommands.setVelocityLimit(minCruiseRatio = args.value)
+                VelocityLimitArgs.SCV -> PrinterCommands.setVelocityLimit(scv = args.value)
+                else -> error("unknown SET_VELOCITY_LIMIT field '${args.field}'")
+            }
+        },
+        availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+    )
+
+    /**
+     * `SET_PRESSURE_ADVANCE <FIELD>=<value>` (D-09/D-10). One spec, two fields (advance/smoothTime) keyed
+     * distinctly (`set_pa_<field>`). Gated on `extruder`. No EXTRUDER= param (single-extruder v1, D-09).
+     */
+    val setPressureAdvance: CommandSpec<PressureAdvanceArgs> = gcode(
+        catalogId = "KGC-SET_PRESSURE_ADVANCE",
+        key = { args -> "set_pa_${args.field}" },
+        gcode = { args ->
+            when (args.field) {
+                PressureAdvanceArgs.ADVANCE -> PrinterCommands.setPressureAdvance(advance = args.value)
+                PressureAdvanceArgs.SMOOTH_TIME -> PrinterCommands.setPressureAdvance(smoothTime = args.value)
+                else -> error("unknown SET_PRESSURE_ADVANCE field '${args.field}'")
+            }
+        },
+        availability = AvailabilityPredicate.ObjectPresent("extruder"),
+    )
+
+    /** `M106 S<0..255>` part-cooling fan (D-11). Gated STRICTLY on the part-cooling `fan` object only. */
+    val setFan: CommandSpec<FanArgs> = gcode(
+        catalogId = "KGC-M106",
+        key = { "set_fan" },
+        gcode = { args -> PrinterCommands.setFan(args.pct) },
+        availability = AvailabilityPredicate.ObjectPresent("fan"),
+    )
+
+    /**
+     * `SET_RETRACTION …` four-field firmware-retraction (D-12). Gated on `firmware_retraction` — built
+     * BLIND (neither dev printer exposes it), mirroring [quadGantryLevel]: the live object predicate gates
+     * it off on both test printers; the matrix records the not_on_printers exclusion. No Z_HOP.
+     */
+    val setRetraction: CommandSpec<RetractionArgs> = gcode(
+        catalogId = "KGC-SET_RETRACTION",
+        key = { "set_retraction" },
+        gcode = { args ->
+            PrinterCommands.setRetraction(
+                retractLength = args.retractLength,
+                unretractExtraLength = args.unretractExtraLength,
+                retractSpeed = args.retractSpeed,
+                unretractSpeed = args.unretractSpeed,
+            )
+        },
+        availability = AvailabilityPredicate.ObjectPresent("firmware_retraction"),
+    )
+
     val all: List<CommandSpec<*>> = listOf(
         identify,
         oneshotToken,
@@ -596,6 +730,12 @@ object CommandRegistry {
         saveConfig,
         babystepZ,
         dismissPrint,
+        speedFactor,
+        flowFactor,
+        setVelocityLimit,
+        setPressureAdvance,
+        setFan,
+        setRetraction,
     )
 
     private fun objectsParam(objects: Set<String>): JsonElement = buildJsonObject {
