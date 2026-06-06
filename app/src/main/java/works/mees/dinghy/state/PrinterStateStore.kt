@@ -127,6 +127,65 @@ class PrinterStateStore(
      */
     val screwsTiltConfig: StateFlow<ScrewConfig?> = _screwsTiltConfig.asStateFlow()
 
+    // ---- Phase-17 Fine-Tune reset baselines (TUNE-05 / D-16) ------------------------------------
+    // Read ONCE at handshake from `configfile.settings.<section>` via the SAME existing one-shot
+    // configfile query (Pitfall 3 — no extra query), modeled on the minExtrudeTemp seam. Long-press
+    // reset re-sends the normal setter with these baselines so reset targets the PRINTER's config, not
+    // a Dinghy default. All nullable (default null) — when a baseline is null (e.g. firmware_retraction
+    // on the dev printers, or any absent config section) the holder's reset for that tuner is a NO-OP
+    // (REVIEW #3, enforced in 17-05); never dispatch a bare/invalid command.
+    //
+    // NOTE — three tuners deliberately have NO baseline StateFlow:
+    //   • Speed % / Flow %  → reset is the protocol-neutral `M220 S100` / `M221 S100` (D-16); there is
+    //     no config baseline to read (they are pure live overrides), handled in the holder/UI.
+    //   • Part-cooling fan  → Klipper `[fan]` has NO persistent configured speed (only pin/PWM config);
+    //     `configfile.settings.fan.*` carries no target. So the part-fan tile has NO reset affordance
+    //     (RESEARCH A2 / Open-Q1) — owner confirms at UAT. There is intentionally no baselineFan* here.
+
+    private val _baselineMaxVelocity = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.printer.max_velocity` reset baseline (D-16); null if unreadable. */
+    val baselineMaxVelocity: StateFlow<Double?> = _baselineMaxVelocity.asStateFlow()
+
+    private val _baselineMaxAccel = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.printer.max_accel` reset baseline (D-16); null if unreadable. */
+    val baselineMaxAccel: StateFlow<Double?> = _baselineMaxAccel.asStateFlow()
+
+    private val _baselineMinCruise = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.printer.minimum_cruise_ratio` reset baseline (RAW ratio, D-16); null if unreadable. */
+    val baselineMinCruise: StateFlow<Double?> = _baselineMinCruise.asStateFlow()
+
+    private val _baselineScv = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.printer.square_corner_velocity` reset baseline (D-16); null if unreadable. */
+    val baselineScv: StateFlow<Double?> = _baselineScv.asStateFlow()
+
+    private val _baselinePressureAdvance = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.extruder.pressure_advance` reset baseline (D-16); null if unreadable. */
+    val baselinePressureAdvance: StateFlow<Double?> = _baselinePressureAdvance.asStateFlow()
+
+    private val _baselineSmoothTime = MutableStateFlow<Double?>(null)
+    /**
+     * Smooth-time reset baseline (D-16) — read from the CONFIG key
+     * `configfile.settings.extruder.pressure_advance_smooth_time` ⚠, NOT the live STATUS field
+     * `smooth_time` (Pitfall 2 — config key ≠ status field). Null if unreadable.
+     */
+    val baselineSmoothTime: StateFlow<Double?> = _baselineSmoothTime.asStateFlow()
+
+    private val _baselineRetractLength = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.firmware_retraction.retract_length` baseline (build-blind; null on dev printers). */
+    val baselineRetractLength: StateFlow<Double?> = _baselineRetractLength.asStateFlow()
+
+    private val _baselineRetractSpeed = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.firmware_retraction.retract_speed` baseline (build-blind; null on dev printers). */
+    val baselineRetractSpeed: StateFlow<Double?> = _baselineRetractSpeed.asStateFlow()
+
+    private val _baselineUnretractExtraLength = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.firmware_retraction.unretract_extra_length` baseline (build-blind; null on dev). */
+    val baselineUnretractExtraLength: StateFlow<Double?> = _baselineUnretractExtraLength.asStateFlow()
+
+    private val _baselineUnretractSpeed = MutableStateFlow<Double?>(null)
+    /** `configfile.settings.firmware_retraction.unretract_speed` baseline (build-blind; null on dev printers). */
+    val baselineUnretractSpeed: StateFlow<Double?> = _baselineUnretractSpeed.asStateFlow()
+
     init {
         // Sampled flush: every sampleMillis, publish the accumulator IF a high-rate update is pending.
         scope.launch {
@@ -256,6 +315,42 @@ class PrinterStateStore(
     fun setScrewsTiltConfig(config: ScrewConfig?) {
         _screwsTiltConfig.value = config
     }
+
+    // ---- Phase-17 Fine-Tune reset-baseline setters (TUNE-05 / D-16) -----------------------------
+    // One-shot at handshake from the SAME configfile query (Pitfall 3). NOT the throttled hot path.
+
+    /** One-shot at handshake: max-velocity reset baseline (`printer.max_velocity`). */
+    fun setBaselineMaxVelocity(value: Double?) { _baselineMaxVelocity.value = value }
+
+    /** One-shot at handshake: max-accel reset baseline (`printer.max_accel`). */
+    fun setBaselineMaxAccel(value: Double?) { _baselineMaxAccel.value = value }
+
+    /** One-shot at handshake: min-cruise-ratio reset baseline (`printer.minimum_cruise_ratio`, RAW ratio). */
+    fun setBaselineMinCruise(value: Double?) { _baselineMinCruise.value = value }
+
+    /** One-shot at handshake: square-corner-velocity reset baseline (`printer.square_corner_velocity`). */
+    fun setBaselineScv(value: Double?) { _baselineScv.value = value }
+
+    /** One-shot at handshake: pressure-advance reset baseline (`extruder.pressure_advance`). */
+    fun setBaselinePressureAdvance(value: Double?) { _baselinePressureAdvance.value = value }
+
+    /**
+     * One-shot at handshake: smooth-time reset baseline — read from the CONFIG key
+     * `extruder.pressure_advance_smooth_time` ⚠ (NOT the status field `smooth_time`, Pitfall 2).
+     */
+    fun setBaselineSmoothTime(value: Double?) { _baselineSmoothTime.value = value }
+
+    /** One-shot at handshake: FW-retraction retract_length baseline (build-blind; null on dev printers). */
+    fun setBaselineRetractLength(value: Double?) { _baselineRetractLength.value = value }
+
+    /** One-shot at handshake: FW-retraction retract_speed baseline (build-blind; null on dev printers). */
+    fun setBaselineRetractSpeed(value: Double?) { _baselineRetractSpeed.value = value }
+
+    /** One-shot at handshake: FW-retraction unretract_extra_length baseline (build-blind; null on dev). */
+    fun setBaselineUnretractExtraLength(value: Double?) { _baselineUnretractExtraLength.value = value }
+
+    /** One-shot at handshake: FW-retraction unretract_speed baseline (build-blind; null on dev printers). */
+    fun setBaselineUnretractSpeed(value: Double?) { _baselineUnretractSpeed.value = value }
 
     // ---- internals ------------------------------------------------------------------------------
 

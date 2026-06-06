@@ -513,6 +513,26 @@ class MoonrakerSession(
             // no extra query (Pitfall 3). Without this the bed graphic + row names never populate.
             store.setScrewsTiltConfig(parseScrewConfig(settings?.objectOrNull("screws_tilt_adjust")))
 
+            // (d) Phase-17 Fine-Tune reset baselines (TUNE-05 / D-16) — read ONCE from the SAME configfile
+            // result (Pitfall 3, no extra query). Motion limits live under `printer`, PA/smooth under
+            // `extruder`. ⚠ Smooth-time baseline reads the CONFIG key (the `..._smooth_time` config field),
+            // NOT the live STATUS field `smooth_time` (Pitfall 2 — config key ≠ status field). FW-retraction is
+            // build-blind (null on both dev printers — no `[firmware_retraction]` section). Best-effort:
+            // any absent section/field leaves the baseline at its null default → the 17-05 reset no-ops.
+            val printerCfg = settings?.objectOrNull("printer")
+            store.setBaselineMaxVelocity(printerCfg?.doubleOrNullAt("max_velocity"))
+            store.setBaselineMaxAccel(printerCfg?.doubleOrNullAt("max_accel"))
+            store.setBaselineMinCruise(printerCfg?.doubleOrNullAt("minimum_cruise_ratio"))
+            store.setBaselineScv(printerCfg?.doubleOrNullAt("square_corner_velocity"))
+            store.setBaselinePressureAdvance(extruderCfg?.doubleOrNullAt("pressure_advance"))
+            store.setBaselineSmoothTime(extruderCfg?.doubleOrNullAt("pressure_advance_smooth_time"))
+
+            val fwRetractionCfg = settings?.objectOrNull("firmware_retraction")
+            store.setBaselineRetractLength(fwRetractionCfg?.doubleOrNullAt("retract_length"))
+            store.setBaselineRetractSpeed(fwRetractionCfg?.doubleOrNullAt("retract_speed"))
+            store.setBaselineUnretractExtraLength(fwRetractionCfg?.doubleOrNullAt("unretract_extra_length"))
+            store.setBaselineUnretractSpeed(fwRetractionCfg?.doubleOrNullAt("unretract_speed"))
+
             val macroBodies: Map<String, String> = settings
                 ?.entries
                 ?.mapNotNull { (key, value) ->
@@ -555,6 +575,9 @@ class MoonrakerSession(
 
     private fun JsonObject.floatOrNullAt(key: String): Float? =
         runCatching { this[key]?.jsonPrimitive?.doubleOrNull?.toFloat() }.getOrNull()
+
+    private fun JsonObject.doubleOrNullAt(key: String): Double? =
+        runCatching { this[key]?.jsonPrimitive?.doubleOrNull }.getOrNull()
 
     /**
      * Parse the `[screws_tilt_adjust]` config subtree (`screw1:[x,y]`, `screw1_name:"..."`, …,
