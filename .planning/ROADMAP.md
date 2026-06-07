@@ -71,7 +71,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [x] **Phase 18: Preview Harness & Tokenization Foundation** - Compose `@Preview` harness + reusable fake-state fixtures (no printer/device), themed-token preview providers, Nexus-7 device profile, the string-resource + semantic-icon tokenization conventions, and a debug `start_dest` hook — so Phases 19-21 build preview-first & tokenized-first; infra + convention + 2-3 exemplar screens only (exhaustive every-screen backfill → Phase 22) (completed 2026-06-07)
 - [x] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22. (completed 2026-06-07)
-- [ ] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only.
+- [x] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only. (completed 2026-06-07)
 - [ ] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first.
 - [ ] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
@@ -874,7 +874,7 @@ Plans:
 
 **Assets**: `img/jiib_icon.svg`, `img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 Plans:
 **Wave 1**
 
@@ -888,7 +888,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 18.2-05-PLAN.md — SC-4 de-brand audit + grep gate, release build green, on-device flox spot-check
+- [x] 18.2-05-PLAN.md — SC-4 de-brand audit + grep gate, release build green, on-device flox spot-check
 
 ### Phase 18.3: Color-Reactive Spool Icon (INSERTED)
 
