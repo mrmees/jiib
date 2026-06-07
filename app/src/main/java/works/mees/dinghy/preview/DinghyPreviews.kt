@@ -1,6 +1,5 @@
 package works.mees.dinghy.preview
 
-import android.content.res.Configuration
 import androidx.compose.ui.tooling.preview.Preview
 
 /**
@@ -32,21 +31,10 @@ const val NEXUS7_PORTRAIT: String = "spec:width=1920px,height=1200px,dpi=320,ori
 @Preview(name = "Nexus7 portrait", device = NEXUS7_PORTRAIT, showBackground = true)
 annotation class Nexus7Previews
 
-/**
- * The canonical device + uiMode + locale review group for an exemplar: Nexus-7 landscape, the
- * pseudolocale (`en-XA`) for the i18n completeness sweep (SC-3c — plain-English text that shows
- * through a pseudolocalized run is a still-hardcoded literal), and the night uiMode flag.
- *
- * ⚠ Same contract as [Nexus7Previews]: device / uiMode / locale ONLY. The three palette MODES are
- * NOT selectable here — they come from [PreviewBox] wrappers. (Named `@DeviceAndLocalePreviews`, NOT
- * `@DinghyThemePreviews`, precisely so nobody believes the annotation selects the themes.)
- */
-@Preview(name = "Device default", device = NEXUS7, showBackground = true)
-@Preview(name = "Pseudolocale en-XA", device = NEXUS7, locale = "en-XA", showBackground = true)
-@Preview(
-    name = "Night uiMode",
-    device = NEXUS7,
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true,
-)
-annotation class DeviceAndLocalePreviews
+// NOTE: the pseudolocale (`en-XA`) i18n-completeness sweep (SC-3c) is NOT a multipreview annotation.
+// It is a single dedicated `@Preview(device = NEXUS7, locale = "en-XA")` per screen — the
+// `*PseudolocaleSpotCheck` companion to the `*RtlSpotCheck` (see the exemplar preview files +
+// `docs/ui_design/PREVIEW_AND_TOKENS.md` §3/§7). A former `@DeviceAndLocalePreviews` annotation was
+// removed: it was defined-but-unused, and its `uiMode = UI_MODE_NIGHT_YES` panel was a verified NO-OP
+// (theme is tuple-driven through [PreviewBox] — uiMode does not select the palette), so it falsely
+// implied the annotation selected theme.

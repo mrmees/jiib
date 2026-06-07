@@ -3,6 +3,7 @@ package works.mees.dinghy.preview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.LayoutDirection
@@ -125,5 +126,20 @@ private fun PrintStatusRtlSpotCheck() {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             PrintStatusScreen(state = SampleFixtures.forMode(PrintStatusMode.Printing))
         }
+    }
+}
+
+/**
+ * The pseudolocale (`en-XA`) spot-check (SC-3c) — the i18n-completeness companion to the RTL check.
+ * A pseudolocalized run accordion-pads + brackets the APP vocabulary, so any plain-English text that
+ * shows through unpseudolocalized is a still-hardcoded literal (not yet routed through stringResource).
+ * Locale comes from the annotation alone — no CompositionLocalProvider; this is its OWN dedicated single
+ * `@Preview`, NOT part of `@Nexus7Previews`/`@DeviceAndLocalePreviews`.
+ */
+@Preview(device = NEXUS7, locale = "en-XA", showBackground = true)
+@Composable
+private fun PrintStatusPseudolocaleSpotCheck() {
+    PreviewBox(colorfulDark) {
+        PrintStatusScreen(state = SampleFixtures.forMode(PrintStatusMode.Printing))
     }
 }
