@@ -11,6 +11,14 @@ import works.mees.dinghy.R
  * Going forward this object is the single source of truth for `tools/subset-symbols`: iterate [all],
  * collect every [IconRef.Ligature.name], and that is the subset list. No existing artifact breaks —
  * only exemplar icons are registered today.
+ *
+ * **Icon-source policy.** Icons are real Material Symbols by default — [IconRef.Ligature] (rendered
+ * from the bundled font) when the glyph is present, or an OFFICIAL Google vector drawable (path data
+ * verbatim, never hand-traced) when the bundled font is too old to carry it. Hand-authored custom
+ * drawables are ONLY for genuinely-custom printer-domain glyphs Material Symbols lacks (nozzle, bed,
+ * bed-tilt, spool). The shape-coded status indicators (octagon/triangle) ARE in the font and are NOT
+ * custom. Retires D-17's "no Material Symbols font" stance — the font is already a shipped dependency
+ * used app-wide. (The "never the same glyph twice on one screen" rule still holds.)
  */
 object DinghyIcons {
 
@@ -60,28 +68,31 @@ object DinghyIcons {
         DinghyIcon(IconRef.Drawable(R.drawable.ic_status_octagon), alternate = "status_octagon")
     val Nozzle = DinghyIcon(IconRef.Drawable(R.drawable.nozzle), alternate = "nozzle")
     val HeatBed = DinghyIcon(IconRef.Drawable(R.drawable.heat_bed), alternate = "heat_bed")
-    val FanMode = DinghyIcon(IconRef.Drawable(R.drawable.mode_fan), alternate = "fan_mode")
-    val Speed = DinghyIcon(IconRef.Drawable(R.drawable.speed), alternate = "speed")
+
+    // FanMode/Speed render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) — the
+    // bundled ttf carries `mode_fan`/`speed`, so no local vector is needed (260607-fts).
+    val FanMode = DinghyIcon(IconRef.Ligature("mode_fan"), alternate = "fan_mode")
+    val Speed = DinghyIcon(IconRef.Ligature("speed"), alternate = "speed")
 
     // --- FineTune exemplar glyphs (18-06) ---
     // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
     // NOT a hand-traced local vector. The font is already a shipped dependency used app-wide (PrintStatus
     // launcher icons etc.), so D-17's "no Material Symbols font dep" rationale does not hold for these.
     // The remaining FineTune glyphs below stay project-local vector drawables (D-17) pending owner review.
-    val KeyboardReturn = DinghyIcon(IconRef.Drawable(R.drawable.keyboard_return), alternate = "keyboard_return")
-    val OutputCircle = DinghyIcon(IconRef.Drawable(R.drawable.output_circle), alternate = "output_circle")
+    val KeyboardReturn = DinghyIcon(IconRef.Ligature("keyboard_return"), alternate = "keyboard_return")
+    val OutputCircle = DinghyIcon(IconRef.Ligature("output_circle"), alternate = "output_circle")
     val MaxVelocity =
         DinghyIcon(IconRef.Ligature("arrow_shape_up_stack_2"), alternate = "max_velocity")
     val MaxAccel = DinghyIcon(IconRef.Ligature("sprint"), alternate = "max_accel")
-    val MinCruise = DinghyIcon(IconRef.Drawable(R.drawable.directions_boat), alternate = "min_cruise")
+    val MinCruise = DinghyIcon(IconRef.Ligature("directions_boat"), alternate = "min_cruise")
     val SquareCornerVelocity =
-        DinghyIcon(IconRef.Drawable(R.drawable.rounded_corner), alternate = "square_corner_velocity")
+        DinghyIcon(IconRef.Ligature("rounded_corner"), alternate = "square_corner_velocity")
     val PressureAdvance =
-        DinghyIcon(IconRef.Drawable(R.drawable.text_select_move_forward), alternate = "pressure_advance")
-    val SmoothTime = DinghyIcon(IconRef.Drawable(R.drawable.avg_time), alternate = "smooth_time")
+        DinghyIcon(IconRef.Drawable(R.drawable.text_select_move_forward_word), alternate = "pressure_advance")
+    val SmoothTime = DinghyIcon(IconRef.Ligature("avg_time"), alternate = "smooth_time")
     val Decrease = DinghyIcon(IconRef.Drawable(R.drawable.remove), alternate = "decrease")
     val Increase = DinghyIcon(IconRef.Drawable(R.drawable.add), alternate = "increase")
-    val InputCircle = DinghyIcon(IconRef.Drawable(R.drawable.input_circle), alternate = "input_circle")
+    val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration

@@ -39,6 +39,13 @@
   assume Back is already app-wide neutral. See THEMING.md → "Back = NEUTRAL / outline" for the full rule.
 - **Icons: never the same glyph twice on one screen.** If you'd repeat one, use a 1–3 letter
   text label instead (e.g. "XY"/"Z" homes vs. arrows; chevrons for Z vs. arrows for the XY pad).
+- **Icons are real Material Symbols by default** — `IconRef.Ligature` (rendered from the bundled
+  font) when the glyph is present, or an OFFICIAL Google vector drawable (path data verbatim, never
+  hand-traced) when the bundled font is too old to carry it. Hand-authored custom drawables are ONLY
+  for genuinely-custom printer-domain glyphs Material Symbols lacks (nozzle, bed, bed-tilt, spool).
+  The shape-coded status indicators (octagon/triangle) ARE in the font and are NOT custom. Retires
+  D-17's "no Material Symbols font" stance — the font is already a shipped dependency used app-wide.
+  (The "never the same glyph twice on one screen" rule above still holds.)
 - **Square the smallest buttons.** When a Field stacks multiple button rows, the shortest row's
   height should equal its per-column width (equal spans) so the smallest targets are square.
 - **Dense cells drop labels.** At ≥3 columns (portrait) / ≥6 (landscape), a cell shows a single

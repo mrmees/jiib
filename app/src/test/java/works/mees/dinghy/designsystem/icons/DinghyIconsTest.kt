@@ -65,18 +65,25 @@ class DinghyIconsTest {
      */
     @Test
     fun iconRef_isUnique_acrossAllEntries() {
-        val refs = DinghyIcons.all.map { it.primary }
-        val distinct = refs.toSet()
+        // Allow-list: IconRefs intentionally shared by tokens that NEVER co-occur on one screen, so the
+        // "icon-never-twice on one screen" rule (WR-02) is not actually violated. Each entry MUST be
+        // justified by render-site separation (per the NOTE above — allow-list, don't weaken the check):
+        //   - "output_circle": OutputCircle (FineTune Extrusion-factor control) + LauncherExtrude
+        //     (PrintStatus launcher Extrude tile) — the same official extrude/output glyph for the same
+        //     concept, on different screens that never render together (260607-fts).
+        val allowedSharedLigatures = setOf("output_circle")
+        val unexpectedDuplicates = DinghyIcons.all
+            .groupBy { it.primary }
+            .filter { (ref, dups) ->
+                dups.size > 1 && !(ref is IconRef.Ligature && ref.name in allowedSharedLigatures)
+            }
+            .mapValues { (_, dups) -> dups.map { it.alternate } }
         assertEquals(
-            "every DinghyIcon.primary (rendered IconRef) must be unique across the registry — two tokens " +
-                "sharing one glyph break the 'icon-never-twice on one screen' rule (WR-02). Duplicate " +
-                "sources → entries: " +
-                DinghyIcons.all
-                    .groupBy { it.primary }
-                    .filter { it.value.size > 1 }
-                    .mapValues { (_, dups) -> dups.map { it.alternate } },
-            refs.size,
-            distinct.size,
+            "every DinghyIcon.primary (rendered IconRef) must be unique across the registry unless " +
+                "explicitly allow-listed as a never-co-occurring shared glyph (WR-02). Unexpected " +
+                "duplicate sources → entries: $unexpectedDuplicates",
+            emptyMap<IconRef, List<String>>(),
+            unexpectedDuplicates,
         )
     }
 }
