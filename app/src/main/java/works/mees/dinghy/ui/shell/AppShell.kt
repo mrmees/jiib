@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -78,6 +79,7 @@ import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
+import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
@@ -279,6 +281,13 @@ fun AppShell(
     val spoolHolder = remember(store) { SpoolHolder(scope = scope, client = spoolmanClient, activeSpool = activeSpoolFlow) }
     // The live active-spool status the Files print-start gate reads (D-01) — the D-10-reconciled truth.
     val activeSpoolStatus by activeSpoolFlow.collectAsStateWithLifecycle()
+    // 18.3-04 (D-06.2): the live active-spool DETAIL (color-bearing) for the drawer Spool tile's reactive
+    // glyph. Resolve to swatches via the shared parser — Spoolman-active-color → empty spool ONLY (no gcode
+    // middle tier on the drawer; printMetadata is deliberately NOT threaded here — owner's simpler-diff
+    // narrowing of D-07). A null detail / malformed hex → empty list → the honest empty spool (D-03).
+    val activeSpoolDetail by spoolHolder.activeSpoolDetail.collectAsStateWithLifecycle()
+    val drawerSpoolSwatches: List<Color> =
+        activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
 
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed

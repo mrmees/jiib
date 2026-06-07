@@ -18,6 +18,7 @@ import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.spool.parseSpoolmanFilaments
 import works.mees.dinghy.spool.parseSpoolmanLocations
 import works.mees.dinghy.spool.parseSpoolmanMaterials
+import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
 import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.spool.parseSpoolmanVendors
 
@@ -164,12 +165,35 @@ class SpoolHolder(
     private val _state = MutableStateFlow(SpoolPickerState(activeStatus = activeSpool.value))
     val state: StateFlow<SpoolPickerState> = _state.asStateFlow()
 
+    /**
+     * The ALWAYS-LIVE active-spool DETAIL (18.3-04, D-06.2/D-07). [SpoolPickerState.activeStatus] carries
+     * only the active id + connection — NOT a color-bearing record — and the inventory [spools] list only
+     * populates after a [load] call the drawer never triggers. The shell/drawer needs the active spool's
+     * COLOR without opening SpoolScreen, so this flow fetches + keeps the full [SpoolmanSpool] by the active
+     * id. Null when there is no active spool (D-13 clear) OR the best-effort fetch fails/mismatches → the
+     * drawer band degrades to the empty spool downstream, never throws.
+     */
+    private val _activeSpoolDetail = MutableStateFlow<SpoolmanSpool?>(null)
+    val activeSpoolDetail: StateFlow<SpoolmanSpool?> = _activeSpoolDetail.asStateFlow()
+
     init {
         // D-10: mirror the upstream active-spool truth so the picker marks the currently-loaded spool and
         // reconciles an EXTERNAL change (Fluidd/runout-macro) without assuming Dinghy caused it. Read-only.
+        // 18.3-04 (D-06.2): ALSO drive the live activeSpoolDetail color source off the active id — a
+        // best-effort getSpool(id) so the shell/drawer can tint the Spool tile without a load() call.
         scope.launch {
             activeSpool.collect { status ->
                 _state.update { it.copy(activeStatus = status) }
+                val id = status?.activeSpoolId
+                if (id == null) {
+                    // No active spool (or a D-13 clear) → no color (the drawer renders the empty spool).
+                    _activeSpoolDetail.value = null
+                } else {
+                    // Best-effort single-spool detail read; a network failure / null / id mismatch parses to
+                    // null → empty spool downstream. Mirrors the holder's existing runCatching discipline.
+                    val envelope = runCatching { client.getSpool(id) }.getOrNull()
+                    _activeSpoolDetail.value = parseSpoolmanSpoolDetail(envelope, expectedId = id)
+                }
             }
         }
     }
