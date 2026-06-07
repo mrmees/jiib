@@ -63,12 +63,16 @@ object DinghyIcons {
     val FanMode = DinghyIcon(IconRef.Drawable(R.drawable.mode_fan), alternate = "fan_mode")
     val Speed = DinghyIcon(IconRef.Drawable(R.drawable.speed), alternate = "speed")
 
-    // --- FineTune exemplar glyphs (18-06; project-local vectors, D-17 — no Material Symbols font) ---
+    // --- FineTune exemplar glyphs (18-06) ---
+    // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
+    // NOT a hand-traced local vector. The font is already a shipped dependency used app-wide (PrintStatus
+    // launcher icons etc.), so D-17's "no Material Symbols font dep" rationale does not hold for these.
+    // The remaining FineTune glyphs below stay project-local vector drawables (D-17) pending owner review.
     val KeyboardReturn = DinghyIcon(IconRef.Drawable(R.drawable.keyboard_return), alternate = "keyboard_return")
     val OutputCircle = DinghyIcon(IconRef.Drawable(R.drawable.output_circle), alternate = "output_circle")
     val MaxVelocity =
-        DinghyIcon(IconRef.Drawable(R.drawable.arrow_shape_up_stack_2), alternate = "max_velocity")
-    val MaxAccel = DinghyIcon(IconRef.Drawable(R.drawable.sprint), alternate = "max_accel")
+        DinghyIcon(IconRef.Ligature("arrow_shape_up_stack_2"), alternate = "max_velocity")
+    val MaxAccel = DinghyIcon(IconRef.Ligature("sprint"), alternate = "max_accel")
     val MinCruise = DinghyIcon(IconRef.Drawable(R.drawable.directions_boat), alternate = "min_cruise")
     val SquareCornerVelocity =
         DinghyIcon(IconRef.Drawable(R.drawable.rounded_corner), alternate = "square_corner_velocity")
