@@ -874,11 +874,11 @@ Plans:
 
 **Assets**: `img/jiib_icon.svg`, `img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`.
 
-**Plans:** 5 plans (3 waves)
+**Plans:** 1/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 18.2-01-PLAN.md — Convert the 3 brand SVGs to VectorDrawables (launcher foreground fixed-white; wordmark + lockup single-fill tintable) (D-07/D-08)
+- [x] 18.2-01-PLAN.md — Convert the 3 brand SVGs to VectorDrawables (launcher foreground fixed-white; wordmark + lockup single-fill tintable) (D-07/D-08)
 - [ ] 18.2-02-PLAN.md — App label + FGS notification title -> "jiib" via @string/app_name; seed About tagline + jib-note strings (D-09/D-10/D-11)
 
 **Wave 2** *(blocked on Wave 1 completion)*

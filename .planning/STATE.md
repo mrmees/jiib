@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-07T19:26:13.978Z"
-last_activity: 2026-06-07 -- Phase 18.2 planning complete
+last_updated: "2026-06-07T20:26:21.862Z"
+last_activity: 2026-06-07
 progress:
   total_phases: 28
   completed_phases: 19
   total_plans: 144
-  completed_plans: 137
+  completed_plans: 138
   percent: 68
 ---
 
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 18.2 — jiib rebrand
+**Current focus:** Phase 18.2 — jiib-rebrand
 
 ## Current Position
 
-Phase: 18.2
-Plan: Not started
+Phase: 18.2 (jiib-rebrand) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
   → **Plan 18-07 (Wave 5: Spool exemplar #3 + PREVIEW_AND_TOKENS.md convention) — CRASH-RECOVERY CLOSE-OUT 2026-06-06.** The original executor committed all 3 implementation/docs commits but CRASHED before writing the SUMMARY / advancing STATE / flipping ROADMAP. Close-out pass verified the committed work against the plan, re-ran the authoritative gate on the merged tree, and wrote the SUMMARY + tracking — **no work re-implemented.** Commits: `97b65a2` (feat — `preview/SpoolPreviews.kt`: `SpoolSelectionProvider` no-selection/selected driving the MINIMIZED matrix on `SampleFixtures.spoolList` [`PreviewBox`×9], `@Nexus7Previews`; stateless `SpoolScreen(state=)` + shared `SpoolContent` seam [no Moonraker]; 20 `stringResource(spool_*/cd_spool_*/common_back)` + 7 `DinghyIconView(DinghyIcons.*)`; **D-05 branch applied to the CameraX `PreviewView` in `ScanSurface.kt` on `LocalInspectionMode`→`PreviewPlaceholderBox`** — NOT a Coil thumb, because Spool has NONE [its QR is `painterResource`, preview-safe]; the scan camera is its real preview-unsafe surface, RESEARCH Q5; +Inventory/Palette/CalendarAddOn/CheckCircle/Archive icons; D-03 respected [0 `@Stable`/`@Immutable`/`ImmutableList`]) + `c614aae` (docs — `docs/ui_design/PREVIEW_AND_TOKENS.md` [229 lines, the authoritative preview-first/tokenized-first LAW Phases 19-21 follow: PreviewBox idiom, device/locale-only multipreview note, minimized-matrix shape, fs=L-via-`fsLargeSeed` gotcha, `<area>_<element>`/`cd_*` convention, DinghyIcon registration, RTL start/end rule, ≥48dp+`cd_*` rider, D-04/D-05 placeholder idiom, D-03 EXCLUSION + shared-component/backfill boundary] + a CLAUDE.md UI-LAW pointer [SC-2 enforcement hook]; Spool instrumented-matcher migration = NO-OP, no `SpoolScreenTest`) + `8397891` (docs — `18-VALIDATION.md` finalized: per-task map filled for 18-02..18-07, `status=final`, `wave_0_complete=true`; **`nyquist_compliant` HELD `false`** [Codex LOW-9 — all CI rows ✅ but Studio-eyeball + flox rows owner-DEFERRED ⬜; flip only once recorded]; Phase-22 backfill deferral confirmed in ROADMAP §Phase 22). **Authoritative gate re-run on merged state (close-out):** `:app:assembleDebug` + full `:app:testDebugUnitTest` + `:app:compileDebugAndroidTestKotlin` → BUILD SUCCESSFUL, exit 0 (no regression). SUMMARY `b3e29f3` (`18-07-SUMMARY.md`). SC-1/SC-2/SC-3/SC-5 + D-01/D-02/D-05 closed (CI tier). **Phase 18 NOT verified/complete: 18-04's Task-3 on-device `start_dest` gate + the 3-exemplar Studio eyeball + flox smoke are owner-DEFERRED (Phase-17-UAT posture); orchestrator runs phase verification + flips `nyquist_compliant` once those are recorded.**
   → **Plan 18-04 (Wave 2: dev-gated start_dest deep-jump) — Tasks 1+2 EXECUTED + COMMITTED, PAUSED at the Task-3 on-device gate 2026-06-07.** Task 1 `e6ab0a2` (feat — pure `parseStartDest(raw): Dest?` in `ui/shell/StartDestMapping.kt`: null/blank/unknown→null, never throws on untrusted input [V5/T-18-04-02]; converted the 18-01 `StartDestMappingTest` compile scaffold to live assertions — every Dest name round-trips, garbage→null, whitespace-trimmed; `:app:testDebugUnitTest --tests *StartDestMappingTest` GREEN). Task 2 `6628b44` (feat — `MainActivity` reads the `start_dest` extra ONLY when `container.devCyclerEnabled` is true via a BOUNDED `runBlocking { withTimeoutOrNull(500) { devCyclerEnabled.first() } } ?: false` seam [`devCyclerEnabledBlocking()`, Codex MEDIUM-4 — NOT an unbounded `.first()`; defaults FALSE/inert on timeout]; `EXTRA_START_DEST` companion const mirrors `BenchActivity.EXTRA_SCENE`; `RootController` gains `startDest: Dest?` seeded into `ShellNavState.dest` ONCE in the `rememberShellNavState` initializer [NOT a `LaunchedEffect` in AppShell — RESEARCH Q3 anti-pattern]; gate-off/release passes `startDest=null` → PrintStatus default, Splash gate applies on top). `:app:assembleDebug` + FULL `:app:testDebugUnitTest` GREEN (no regression); other `RootController(container)`/`ShellNavState()` callers unaffected (new params default null). 0 deviations. **Task 3 = BLOCKING `checkpoint:human-verify` (on-device flox)**: build+install debug APK; with dev-enable ON `am start ... --es start_dest FineTune|Spool|PrintStatus` lands on each (after Splash, Klippy Ready); garbage `NotARealScreen` → default screen, no crash; release-inert from a CLEAN data state (`pm clear` so `dev_cycler_enabled`=FALSE default → extra IGNORED) AND confirm release exposes no `setDevCyclerEnabled(true)` UI path; optional D-06 spot-check jump to Temperature/Webcam. **18-04-SUMMARY.md NOT written + plan NOT complete until the owner reports the gate result** (per project memory the on-device gate may be owner-DEFERRED like Phase 17's UAT — orchestrator handles that).
@@ -56,7 +56,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-07 -- Phase 18.2 planning complete
+Last activity: 2026-06-07
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -216,6 +216,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 18.1 P02 | 6 | 3 tasks | 3 files |
 | Phase 18.1 P03 | 12 | 3 tasks | 3 files |
 | Phase 18.1 P18.1-04 | close-out | 3 tasks | 16 files |
+| Phase 18.2 P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -391,6 +392,7 @@ Recent decisions affecting current work:
 - [Phase ?]: D-15: 18.1 drawable-to-ligature flip is SIX entries (incl Increase/Decrease); only Nozzle/HeatBed remain IconRef.Drawable
 - [Phase ?]: 18.1-03: ProbeIconButton/StatusShape/DataSwatch helpers flipped drawable-typed params to ligature names (String), rendering DinghyIconView/MaterialSymbol internally; raw Compose icon sites swapped to ligatures (D-09, not promoted to registry)
 - [Phase ?]: Phase 18.1: icon system source-conformant app-wide; 13 superseded drawables deleted, 7 keepers preserved; on-device flox spot check owner-approved (no tofu, status shapes distinct); font v2.944 retained (D-13)
+- [Phase ?]: 18.2-01: jiib brand assets converted SVG->VectorDrawable — launcher mark fixed-white (D-03), wordmark+lockup single-fill tintable (D-07); circles->two-arc pathData (D-08); assembleDebug GREEN
 
 ### Pending Todos
 
@@ -427,7 +429,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-07T19:07:24.292Z
-Stopped at: Phase 18.2 context gathered
+Last session: 2026-06-07T20:26:21.773Z
+Stopped at: Completed 18.2-01-PLAN.md
 Resume file: 
-.planning/phases/18.2-jiib-rebrand/18.2-CONTEXT.md
+None
