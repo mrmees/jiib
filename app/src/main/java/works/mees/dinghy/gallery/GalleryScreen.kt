@@ -133,7 +133,7 @@ fun GalleryScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        SectionHeader("Dinghy Display — Component Gallery (debug)")
+        SectionHeader("jiib — Component Gallery (debug)")
 
         // ---- THEME CONTROLS: every toggle drives the INJECTED resolver so the matrix re-themes ---
         SectionLabel("Theme controls")
