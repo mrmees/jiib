@@ -71,6 +71,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [x] **Phase 18: Preview Harness & Tokenization Foundation** - Compose `@Preview` harness + reusable fake-state fixtures (no printer/device), themed-token preview providers, Nexus-7 device profile, the string-resource + semantic-icon tokenization conventions, and a debug `start_dest` hook — so Phases 19-21 build preview-first & tokenized-first; infra + convention + 2-3 exemplar screens only (exhaustive every-screen backfill → Phase 22) (completed 2026-06-07)
 - [ ] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22.
+- [ ] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only.
+- [ ] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first.
 - [ ] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
 - [ ] **Phase 21: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
@@ -833,18 +835,63 @@ Plans:
 
 **Success Criteria** (what must be TRUE):
 
-  1. **Font refreshed to a current Material Symbols Outlined cut.** The shipped `app/src/main/res/font/material_symbols_outlined.ttf` is an older version (it lacks newer glyphs, e.g. `text_select_move_forward_word`, which had to ship as an official vector drawable). A current font lets nearly every glyph render as a ligature with no per-glyph vector workaround; all existing ligature names re-verified to still resolve after the refresh.
-  2. **Remaining hand-traced "Material-Symbol-wannabe" drawables converted** to font ligatures (or official Google vector drawables only where the refreshed font still lacks the glyph) — notably the shape-coded status indicators (`ic_status_octagon`/triangle, which ARE in the font) and any other hand-traced glyphs outside the already-converted FineTune set. The octagon/triangle carry the D-01/D-02 shape-coded SAFETY language, so the chosen Material Symbol MUST preserve the exact shape semantics (not merely a similar glyph).
-  3. **Only genuinely-custom printer-domain glyphs remain hand-authored drawables**: nozzle, bed (`heat_bed`), bed-tilt, spool indicators. Everything else routes to a real Material Symbol.
+  1. **Font refreshed to a current Material Symbols Outlined cut.** The shipped `app/src/main/res/font/material_symbols_outlined.ttf` is an older version (it lacks newer glyphs, e.g. `text_select_move_forward_word`, which had to ship as an official vector drawable). A current font lets nearly every glyph render as a ligature with no per-glyph vector workaround; all existing ligature names re-verified to still resolve after the refresh. **Ship the full refreshed font; subsetting is deferred to Phase 22.** Axes locked at FILL 0 / wght 400 / GRAD 0 (per `img/material-icon-bucket.json`).
+  2. **Remaining hand-traced "Material-Symbol-wannabe" drawables converted** to font ligatures (or official Google vector drawables only where the refreshed font still lacks the glyph) per the source→target map in `18.1-CONTEXT.md` (D-08, derived from `img/material-icon-bucket.json`). For the shape-coded status indicators the chosen glyphs are **`disabled_by_default` (stop) and `warning` (caution)** — the D-01/D-02 requirement is **shape-DISTINCT** safety coding (square+✕ vs triangle+!, distinct in grayscale/CVD), NOT a literal octagon (owner decision 2026-06-07; supersedes the earlier "preserve exact octagon" wording).
+  3. **Only genuinely-custom printer-domain glyphs remain hand-authored drawables**: nozzle, bed (`heat_bed`), bed-tilt, benchy (launcher art). (No custom spool glyph exists yet — the spool launcher uses the `database` ligature; a custom color-reactive spool glyph is **Phase 18.3**.) Everything else routes to a real Material Symbol.
   4. **Cosmetic KDoc doc-link warnings cleaned up** in the preview files (unresolvable `[DinghyPreviews]`, the stale `[PrintStatusThemeMatrix]` → `PrintStatusStateMatrix`, `[AppContainer]`).
   5. No regression: build + unit suite green; the icon-source policy in `docs/ui_design/CLAUDE.md` + `DinghyIcons` KDoc is enforced app-wide.
 
-**Out of scope** (tracked elsewhere): Phase-18 UAT Test 6 (en-XA pseudolocale on-device — `18-HUMAN-UAT.md`); the Temperature "No heaters" observation (a bug → `/gsd-debug`/todo); and the per-screen icon-call-site tokenization + string/preview backfill (stays in Phase 22).
+**Out of scope** (tracked elsewhere): Phase-18 UAT Test 6 (en-XA pseudolocale on-device — `18-HUMAN-UAT.md`); the Temperature "No heaters" observation (a bug → `/gsd-debug`/todo); the per-screen icon-call-site tokenization + string/preview backfill (stays in Phase 22); font subsetting (Phase 22); the jiib rebrand (Phase 18.2); the color-reactive spool glyph (Phase 18.3).
 
 **Plans:** 0 plans (run `/gsd-plan-phase 18.1` to break down)
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 18.1 to break down)
+
+### Phase 18.2: jiib Rebrand (INSERTED)
+
+**Goal**: Replace the user-facing **"Dinghy Display"** brand with **"jiib"**. Swap the launcher icon to the jiib mark (`img/jiib_icon.svg` → vector drawable, regenerating the adaptive-icon foreground that currently uses the benchy `ic_launcher_foreground.xml`), rename the app label in `AndroidManifest.xml` + `strings.xml`, and apply the wordmark / stacked lockup (`img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`) to the appropriate in-app branding surface(s) (splash / about / connect-empty-state as applicable). The git repo and Android **package name stay as-is** (`dinghy-display` / current applicationId) — this is user-facing brand only.
+
+**Depends on:** Phase 18.1
+**Requirements**: (branding — design/asset work, not REQUIREMENTS.md REQ-IDs)
+
+**Success Criteria** (what must be TRUE):
+
+  1. Launcher icon renders the jiib mark as a proper **adaptive icon** (square + round masks, art within the adaptive-icon safe zone) at all densities.
+  2. The app **label reads "jiib"** (launcher + recents).
+  3. The wordmark / stacked lockup is applied to the designated in-app branding surface(s).
+  4. **No user-visible "Dinghy Display" string remains** (repo + package name untouched).
+  5. Build green.
+
+**Out of scope**: repo/package/applicationId rename; logo redesign (assets are provided in `img/`).
+
+**Assets**: `img/jiib_icon.svg`, `img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`.
+
+**Plans:** 0 plans (run `/gsd-plan-phase 18.2` to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18.2 to break down)
+
+### Phase 18.3: Color-Reactive Spool Icon (INSERTED)
+
+**Goal**: Author a genuinely-custom **spool glyph** (Material Symbols has no filament-spool icon) to replace the `database` ligature placeholder used for spool (`DinghyIcons.LauncherSpool` + spool surfaces), and make it **color-reactive** — tinted by the loaded filament's actual color rather than a semantic token, a **documented exception to THEME-01** (white-stroke-tinted-by-token). Needs a design pass: **run `/gsd-discuss-phase 18.3` first** to settle which surfaces show it (launcher tile / print-status spool line / SpoolScreen), how the filament color is sourced (Spoolman / `PrintMetadata`), the no-filament/no-color fallback, and contrast/legibility across dark + light + custom themes.
+
+**Depends on:** Phase 18.1 (icon policy + registry); relates to the existing spool feature (`SpoolScreen`/`SpoolHolder`, filament color in `PrintMetadata`).
+**Requirements**: (custom glyph + reactive-tint behavior — design D-tokens, not REQUIREMENTS.md REQ-IDs)
+
+**Success Criteria** (what must be TRUE):
+
+  1. A **custom spool drawable** is authored and registered as a `DinghyIcon`, replacing the `database` placeholder.
+  2. It renders **tinted by the actual filament color** on the agreed surfaces.
+  3. The **THEME-01 exception is documented** (where color-reactive tinting overrides semantic-token tinting).
+  4. Sensible **fallback** when no filament/color is known (→ semantic-token tint).
+  5. **Legible across all theme modes** (dark + light + custom).
+  6. Build + unit tests green.
+
+**Plans:** 0 plans (run `/gsd-discuss-phase 18.3`, then `/gsd-plan-phase 18.3` to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18.3 to break down)
 
 ### Phase 19: Output Controls — Fans, Lights & Generic Pins
 
