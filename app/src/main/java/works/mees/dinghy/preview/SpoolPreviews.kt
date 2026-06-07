@@ -44,7 +44,8 @@ import works.mees.dinghy.ui.spool.SpoolScreen
  * and its glyphs are `painterResource`/Material-Symbol tokens (RESEARCH Q5 verified: the QR is a static
  * drawable, not Coil). The Spool feature's genuine preview-unsafe "embed a live View" surface is the
  * CameraX `PreviewView` in `ui/spool/scan/ScanSurface.kt`, which is branched on `LocalInspectionMode`
- * to a [PreviewPlaceholderBox] (the same D-05 idiom as the 18-02 classic-View hosts). That scan surface
+ * to a [works.mees.dinghy.preview.PreviewPlaceholderBox] (the same D-05 idiom as the 18-02 classic-View
+ * hosts). That scan surface
  * is NOT previewed here — it resolves its state through a live Android permission/camera gate (un-
  * previewable, like the live-only modals the anchor omits); the D-05 branch is verified by grep + on-device.
  */

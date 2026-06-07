@@ -34,9 +34,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.MaterialSymbol
-import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
