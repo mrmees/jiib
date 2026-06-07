@@ -964,11 +964,12 @@ private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier
             .combinedClickable(onClick = onTap, onLongClick = onHold),
         contentAlignment = Alignment.Center,
     ) {
-        // D-01/D-02: the octagon stop-status silhouette (a redundant non-color cue for the stop state).
-        // Explicit fsSp-scaled size — do NOT rely on the 96dp intrinsic. [[dinghy-font-sizes-too-small]]:
-        // the glyph tracks adjacent control text via fsSp(baseSp, t.fs).
+        // D-01/D-02/D-06: the stop-status silhouette (a redundant non-color cue for the stop state). The
+        // `disabled_by_default` glyph is a square+✕, not a literal octagon — safety is carried by the
+        // distinct shape (D-06). Explicit fsSp-scaled size — do NOT rely on the 96dp intrinsic.
+        // [[dinghy-font-sizes-too-small]]: the glyph tracks adjacent control text via fsSp(baseSp, t.fs).
         DinghyIconView(
-            DinghyIcons.StatusOctagon,
+            DinghyIcons.StatusStop,
             tint = t.stop,
             sizeDp = fsSp(32f, t.fs).dp,
             contentDescription = stringResource(R.string.cd_emergency_stop),

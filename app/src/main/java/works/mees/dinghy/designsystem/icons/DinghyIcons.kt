@@ -59,13 +59,18 @@ object DinghyIcons {
     val LauncherConsole = DinghyIcon(IconRef.Ligature("terminal"), alternate = "launcher_console")
     val LauncherDrawer = DinghyIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")
 
-    // --- Drawable-backed (bundled vectors) ---
-    val BabystepCompress =
-        DinghyIcon(IconRef.Drawable(R.drawable.ic_babystep_compress), alternate = "babystep_compress")
-    val BabystepExpand =
-        DinghyIcon(IconRef.Drawable(R.drawable.ic_babystep_expand), alternate = "babystep_expand")
-    val StatusOctagon =
-        DinghyIcon(IconRef.Drawable(R.drawable.ic_status_octagon), alternate = "status_octagon")
+    // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
+    val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
+    val BabystepExpand = DinghyIcon(IconRef.Ligature("expand"), alternate = "babystep_expand")
+    /**
+     * Stop-status glyph (the former octagon token, renamed in 18.1). The bundled Material Symbols `disabled_by_default`
+     * ligature renders a square+✕ silhouette — NOT a literal octagon — so the token is named `StatusStop`
+     * (D-06/D-14): safety is carried by the distinct *shape* of the glyph, not the octagon outline.
+     */
+    val StatusStop =
+        DinghyIcon(IconRef.Ligature("disabled_by_default"), alternate = "status_stop")
+
+    // --- Drawable-backed (hand-authored printer-domain customs; the only two D-10 keepers) ---
     val Nozzle = DinghyIcon(IconRef.Drawable(R.drawable.nozzle), alternate = "nozzle")
     val HeatBed = DinghyIcon(IconRef.Drawable(R.drawable.heat_bed), alternate = "heat_bed")
 
@@ -88,10 +93,10 @@ object DinghyIcons {
     val SquareCornerVelocity =
         DinghyIcon(IconRef.Ligature("rounded_corner"), alternate = "square_corner_velocity")
     val PressureAdvance =
-        DinghyIcon(IconRef.Drawable(R.drawable.text_select_move_forward_word), alternate = "pressure_advance")
+        DinghyIcon(IconRef.Ligature("text_select_move_forward_word"), alternate = "pressure_advance")
     val SmoothTime = DinghyIcon(IconRef.Ligature("avg_time"), alternate = "smooth_time")
-    val Decrease = DinghyIcon(IconRef.Drawable(R.drawable.remove), alternate = "decrease")
-    val Increase = DinghyIcon(IconRef.Drawable(R.drawable.add), alternate = "increase")
+    val Decrease = DinghyIcon(IconRef.Ligature("remove"), alternate = "decrease")
+    val Increase = DinghyIcon(IconRef.Ligature("add"), alternate = "increase")
     val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
 
     /**
@@ -105,7 +110,7 @@ object DinghyIcons {
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
-        BabystepCompress, BabystepExpand, StatusOctagon, Nozzle, HeatBed, FanMode, Speed,
+        BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
     )
