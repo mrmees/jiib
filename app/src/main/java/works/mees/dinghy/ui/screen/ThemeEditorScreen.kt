@@ -36,10 +36,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.designsystem.ColorWheel
 import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.R
 import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -50,8 +50,6 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.toComposeColor
-import androidx.compose.material3.Icon
-import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.flow.firstOrNull
 import kotlin.random.Random
 
@@ -372,10 +370,10 @@ fun ThemeEditorScreen(
             // accent + the first few pool colors + the three status colors, each its actual color.
             DataSwatch(t.accent, Modifier.weight(1f))
             for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
-            // Status swatches preview the status color WITH its safety shape (D-01/D-02) — octagon on
-            // stop, triangle on caution; go stays shapeless. Makes "color is redundant to shape" visible.
-            DataSwatch(t.stop, Modifier.weight(1f), glyph = R.drawable.ic_status_octagon)
-            DataSwatch(t.heat, Modifier.weight(1f), glyph = R.drawable.ic_status_triangle)
+            // Status swatches preview the status color WITH its safety shape (D-01/D-02) — disabled_by_default
+            // (stop) on stop, warning on caution; go stays shapeless. Makes "color is redundant to shape" visible.
+            DataSwatch(t.stop, Modifier.weight(1f), glyphName = "disabled_by_default")
+            DataSwatch(t.heat, Modifier.weight(1f), glyphName = "warning")
             DataSwatch(t.go, Modifier.weight(1f))
         }
 
@@ -525,14 +523,18 @@ private fun SeedSwatch(
 
 /**
  * A preview swatch — renders its actual generated color (carve-out). Display-only, no touch target.
- * An optional [glyph] overlays a status safety shape (octagon/triangle) so the preview shows the status
- * color WITH its shape (D-01/D-02); the glyph is tinted to the background for contrast.
+ * An optional [glyphName] overlays a status safety shape (disabled_by_default / warning) so the preview
+ * shows the status color WITH its shape (D-01/D-02); the glyph is tinted to the background for contrast.
+ *
+ * 18.1-03 (D-05/D-06): the overlay swapped from a `@DrawableRes glyph` to a Material Symbols ligature
+ * by name. These are DECORATIVE preview swatches (no contentDescription), so a bare [MaterialSymbol] is
+ * the minimal render path; the contrast [t.bg] tint + fsSp size are preserved 1:1 (THEME-01).
  */
 @Composable
 private fun DataSwatch(
     fill: Color,
     modifier: Modifier = Modifier,
-    @androidx.annotation.DrawableRes glyph: Int? = null,
+    glyphName: String? = null,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
@@ -544,12 +546,11 @@ private fun DataSwatch(
             .border(BorderStroke(2.dp, t.outline), shape),
         contentAlignment = Alignment.Center,
     ) {
-        if (glyph != null) {
-            Icon(
-                painter = painterResource(glyph),
-                contentDescription = null,
+        if (glyphName != null) {
+            MaterialSymbol(
+                name = glyphName,
                 tint = t.bg,
-                modifier = Modifier.size(fsSp(20f, t.fs).dp),
+                sizeSp = fsSp(20f, t.fs),
             )
         }
     }
@@ -622,18 +623,18 @@ private fun StatusSlotSwatch(
                 .border(BorderStroke(2.dp, t.outline), shape),
         )
         // The safety SHAPE overlay (D-01/D-02) — explicit size (NOT the 96dp vector intrinsic). Tinted to
-        // the contrasting background so the glyph reads on top of its own status color.
-        val glyph = when (slot) {
-            StatusSlot.Stop -> R.drawable.ic_status_octagon
-            StatusSlot.Caution -> R.drawable.ic_status_triangle
+        // the contrasting background so the glyph reads on top of its own status color. 18.1-03 (D-05/D-06):
+        // swapped from drawables to Material Symbols ligatures by name (decorative — bare MaterialSymbol).
+        val glyphName = when (slot) {
+            StatusSlot.Stop -> "disabled_by_default"
+            StatusSlot.Caution -> "warning"
             StatusSlot.Go -> null // go is shapeless (D-02).
         }
-        if (glyph != null) {
-            Icon(
-                painter = painterResource(glyph),
-                contentDescription = null,
+        if (glyphName != null) {
+            MaterialSymbol(
+                name = glyphName,
                 tint = t.bg,
-                modifier = Modifier.size(fsSp(28f, t.fs).dp),
+                sizeSp = fsSp(28f, t.fs),
             )
         }
         if (overridden) {
