@@ -874,11 +874,15 @@ Plans:
 
 **Assets**: `img/jiib_icon.svg`, `img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`.
 
-**Plans:** 0 plans (run `/gsd-plan-phase 18.2` to break down)
+**Plans:** 5 plans (3 waves)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 18.2 to break down)
+- [ ] 18.2-01-PLAN.md — Convert the 3 brand SVGs to VectorDrawables (launcher foreground fixed-white; wordmark + lockup single-fill tintable) (D-07/D-08)
+- [ ] 18.2-02-PLAN.md — App label + FGS notification title -> "jiib" via @string/app_name; seed About tagline + jib-note strings (D-09/D-10/D-11)
+- [ ] 18.2-03-PLAN.md — Wire the jiib launcher icon (adaptive v26 + monochrome + pre-26 fallback), retain navy bg (D-01/D-02/D-03)
+- [ ] 18.2-04-PLAN.md — Splash lockup + About wordmark+note, accent-tinted via brandTint contrast-floor helper; brand preview matrix (D-04/D-05/D-06)
+- [ ] 18.2-05-PLAN.md — SC-4 de-brand audit + grep gate, release build green, on-device flox spot-check
 
 ### Phase 18.3: Color-Reactive Spool Icon (INSERTED)
 
