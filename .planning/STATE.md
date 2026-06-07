@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-07T20:59:32.891Z"
+status: ready_to_plan
+last_updated: 2026-06-07T21:12:02.956Z
 last_activity: 2026-06-07
 progress:
   total_phases: 28
@@ -11,6 +11,7 @@ progress:
   total_plans: 144
   completed_plans: 142
   percent: 71
+stopped_at: Phase 18.2 complete (5/5) — ready to discuss Phase 18.3
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 18.2 — jiib-rebrand
+**Current focus:** Phase 18.3 — color reactive spool icon
 
 ## Current Position
 
-Phase: 18.2 (jiib-rebrand) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 18.3
+Plan: Not started
+Status: Ready to plan
   → **Plan 18.2-05 (Wave 3: SC-4 de-brand audit + build/test gates + on-device sign-off) — COMPLETE & on-device flox-APPROVED 2026-06-07.** The CLOSING plan of Phase 18.2 (5/5). Task 1 `252e749` (fix — GalleryScreen debug `SectionHeader` "Dinghy Display — Component Gallery (debug)" → "jiib — Component Gallery (debug)"; wrote `18.2-DEBRAND-AUDIT.md` classifying EVERY `Dinghy Display`/`dinghy` hit in `app/src/main` as FIXED [Splash/About=18.2-04; manifest label×2 + MoonrakerService notif title=18.2-02; gallery=this plan] or OUT-OF-SCOPE [MoonrakerSession `clientName`/`clientUrl` = JSON-RPC connection identity recorded server-side only — CONSCIOUS retention per CONTEXT package/repo boundary, NOT a miss; ScreenScaffold KDoc comment; locked `Dinghy*` package/class/theme symbols + applicationId]; concluded zero user-visible "Dinghy Display" strings remain = SC-4). Task 2 `ebd5a12` (test — SC-4 grep gate PASS: only 2 survivors [ScreenScaffold comment + MoonrakerSession clientName], both on the documented allow-list; NONE in any string-resource body, manifest `android:label`, Compose `Text`/`SectionLabel`/`SectionHeader`/`setContentTitle`, or drawable. `:app:assembleRelease` BUILD SUCCESSFUL exit 0 via gw.bat [SC-5, unsigned — signing deferred PKG-01/Phase 8]. `:app:testDebugUnitTest` GREEN exit 0, no regression incl. 18.2-02 BrandTintTest. Gate results appended to the audit). **Task 3 = `checkpoint:human-verify` ON-DEVICE flox (LineageOS 18.1/API 30, genuine Adreno 320) → APPROVED:** debug APK built+installed via `installDebug` (BUILD SUCCESSFUL on device); owner confirmed all FIVE user-facing brand surfaces render correctly — launcher icon (white jiib sail on navy, square+round masks, v26 STATIC navy+white path NOT Material You tint), app/drawer label + recents title = "jiib", FGS notification title = "jiib", splash stacked lockup (accent-tinted, legible), About wordmark + tagline + jib-explainer note. SC-1/SC-2/SC-3 confirmed on-device; combined with Task-2's SC-4/SC-5 closure, **all Phase-18.2 success criteria met on the real hardware floor**. 0 deviations. Sign-off recorded in `18.2-DEBRAND-AUDIT.md`; SUMMARY `18.2-05-SUMMARY.md`. **Phase 18.2 execution COMPLETE (5/5); orchestrator runs phase verification next (do NOT mark the phase verified here).**
   → **Plan 18-07 (Wave 5: Spool exemplar #3 + PREVIEW_AND_TOKENS.md convention) — CRASH-RECOVERY CLOSE-OUT 2026-06-06.** The original executor committed all 3 implementation/docs commits but CRASHED before writing the SUMMARY / advancing STATE / flipping ROADMAP. Close-out pass verified the committed work against the plan, re-ran the authoritative gate on the merged tree, and wrote the SUMMARY + tracking — **no work re-implemented.** Commits: `97b65a2` (feat — `preview/SpoolPreviews.kt`: `SpoolSelectionProvider` no-selection/selected driving the MINIMIZED matrix on `SampleFixtures.spoolList` [`PreviewBox`×9], `@Nexus7Previews`; stateless `SpoolScreen(state=)` + shared `SpoolContent` seam [no Moonraker]; 20 `stringResource(spool_*/cd_spool_*/common_back)` + 7 `DinghyIconView(DinghyIcons.*)`; **D-05 branch applied to the CameraX `PreviewView` in `ScanSurface.kt` on `LocalInspectionMode`→`PreviewPlaceholderBox`** — NOT a Coil thumb, because Spool has NONE [its QR is `painterResource`, preview-safe]; the scan camera is its real preview-unsafe surface, RESEARCH Q5; +Inventory/Palette/CalendarAddOn/CheckCircle/Archive icons; D-03 respected [0 `@Stable`/`@Immutable`/`ImmutableList`]) + `c614aae` (docs — `docs/ui_design/PREVIEW_AND_TOKENS.md` [229 lines, the authoritative preview-first/tokenized-first LAW Phases 19-21 follow: PreviewBox idiom, device/locale-only multipreview note, minimized-matrix shape, fs=L-via-`fsLargeSeed` gotcha, `<area>_<element>`/`cd_*` convention, DinghyIcon registration, RTL start/end rule, ≥48dp+`cd_*` rider, D-04/D-05 placeholder idiom, D-03 EXCLUSION + shared-component/backfill boundary] + a CLAUDE.md UI-LAW pointer [SC-2 enforcement hook]; Spool instrumented-matcher migration = NO-OP, no `SpoolScreenTest`) + `8397891` (docs — `18-VALIDATION.md` finalized: per-task map filled for 18-02..18-07, `status=final`, `wave_0_complete=true`; **`nyquist_compliant` HELD `false`** [Codex LOW-9 — all CI rows ✅ but Studio-eyeball + flox rows owner-DEFERRED ⬜; flip only once recorded]; Phase-22 backfill deferral confirmed in ROADMAP §Phase 22). **Authoritative gate re-run on merged state (close-out):** `:app:assembleDebug` + full `:app:testDebugUnitTest` + `:app:compileDebugAndroidTestKotlin` → BUILD SUCCESSFUL, exit 0 (no regression). SUMMARY `b3e29f3` (`18-07-SUMMARY.md`). SC-1/SC-2/SC-3/SC-5 + D-01/D-02/D-05 closed (CI tier). **Phase 18 NOT verified/complete: 18-04's Task-3 on-device `start_dest` gate + the 3-exemplar Studio eyeball + flox smoke are owner-DEFERRED (Phase-17-UAT posture); orchestrator runs phase verification + flips `nyquist_compliant` once those are recorded.**
   → **Plan 18-04 (Wave 2: dev-gated start_dest deep-jump) — Tasks 1+2 EXECUTED + COMMITTED, PAUSED at the Task-3 on-device gate 2026-06-07.** Task 1 `e6ab0a2` (feat — pure `parseStartDest(raw): Dest?` in `ui/shell/StartDestMapping.kt`: null/blank/unknown→null, never throws on untrusted input [V5/T-18-04-02]; converted the 18-01 `StartDestMappingTest` compile scaffold to live assertions — every Dest name round-trips, garbage→null, whitespace-trimmed; `:app:testDebugUnitTest --tests *StartDestMappingTest` GREEN). Task 2 `6628b44` (feat — `MainActivity` reads the `start_dest` extra ONLY when `container.devCyclerEnabled` is true via a BOUNDED `runBlocking { withTimeoutOrNull(500) { devCyclerEnabled.first() } } ?: false` seam [`devCyclerEnabledBlocking()`, Codex MEDIUM-4 — NOT an unbounded `.first()`; defaults FALSE/inert on timeout]; `EXTRA_START_DEST` companion const mirrors `BenchActivity.EXTRA_SCENE`; `RootController` gains `startDest: Dest?` seeded into `ShellNavState.dest` ONCE in the `rememberShellNavState` initializer [NOT a `LaunchedEffect` in AppShell — RESEARCH Q3 anti-pattern]; gate-off/release passes `startDest=null` → PrintStatus default, Splash gate applies on top). `:app:assembleDebug` + FULL `:app:testDebugUnitTest` GREEN (no regression); other `RootController(container)`/`ShellNavState()` callers unaffected (new params default null). 0 deviations. **Task 3 = BLOCKING `checkpoint:human-verify` (on-device flox)**: build+install debug APK; with dev-enable ON `am start ... --es start_dest FineTune|Spool|PrintStatus` lands on each (after Splash, Klippy Ready); garbage `NotARealScreen` → default screen, no crash; release-inert from a CLEAN data state (`pm clear` so `dev_cycler_enabled`=FALSE default → extra IGNORED) AND confirm release exposes no `setDevCyclerEnabled(true)` UI path; optional D-06 spot-check jump to Temperature/Webcam. **18-04-SUMMARY.md NOT written + plan NOT complete until the owner reports the gate result** (per project memory the on-device gate may be owner-DEFERRED like Phase 17's UAT — orchestrator handles that).
@@ -65,7 +66,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 107
+- Total plans completed: 112
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -89,6 +90,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 16 | 8 | - | - |
 | 18 | 6 | - | - |
 | 18.1 | 4 | - | - |
+| 18.2 | 5 | - | - |
 
 **Recent Trend:**
 
