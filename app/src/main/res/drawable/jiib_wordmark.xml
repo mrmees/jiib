@@ -1,0 +1,26 @@
+<!-- jiib wordmark, tintable in-app (About). Source: img/jiib_name.svg (viewBox 656 526 433 289).
+     Per D-07 every shape is flattened to a SINGLE android:fillColor="#FFFFFFFF" so a Material3
+     Icon(tint=...) recolors the whole drawable uniformly (the baked white is overridden by a
+     t.accent tint at the call site in 18.2-04). The viewBox origin is mapped to 0,0 via a group
+     translate so the source path coords are preserved verbatim. Aspect ratio 433:289 preserved.
+     Per D-08 the SVG circle elements are converted to two-arc pathData. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="433dp" android:height="289dp"
+    android:viewportWidth="433" android:viewportHeight="289">
+    <group android:translateX="-656" android:translateY="-526">
+        <path android:pathData="M 944.399 542.56 C 952.895 542.56 961.14 542.56 969.805 542.56 C 967.981 555.52 961.823 597.925 960.773 606.515 C 960.537 608.446 961.37 610.507 961.71 612.509 C 963.532 611.985 965.53 611.782 967.149 610.89 C 985.01 601.055 1003.85 597.703 1024 601.525 C 1054.98 607.405 1072.98 634.024 1072.78 663.402 C 1072.49 704.449 1044.22 739.336 1004.09 748.051 C 987.633 751.625 971.26 750.417 955.549 743.842 C 933.534 734.628 921.631 713.883 923.92 687.498 M 989.412 627.766 C 963.033 636.187 945.697 664.138 949.92 691.439 C 952.58 708.636 964.423 720.684 981.563 723.592 C 1014.13 729.119 1040.46 704.392 1045.73 679.3 C 1049.59 660.874 1046.12 644.317 1029.83 632.777 C 1017.72 624.205 1004.12 623.801 989.412 627.766 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 727.281 739.255 C 733.391 696.527 746.933 605.075 747.411 602.276 C 755.913 602.276 764.171 602.276 773.107 602.276 C 771.614 612.88 757.555 703.965 753.246 739.34 C 748.496 778.342 721.839 796.084 688.086 798.8 C 682.967 799.212 677.787 798.858 672.133 798.858 C 673.511 790.543 674.886 782.247 676.272 773.885 C 681.953 773.505 687.439 773.312 692.884 772.743 C 712.856 770.653 724.443 759.1 727.281 739.255 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 791.302 746.523 C 791.98 741.651 812.242 602.649 812.417 602.29 C 820.672 602.29 828.952 602.29 838.074 602.29 C 831.097 650.603 824.17 698.569 817.245 746.523 C 808.325 746.523 800.051 746.523 791.302 746.523 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 900.259 602.401 C 896.195 630.355 882.327 726.506 879.45 746.524 C 870.679 746.524 862.443 746.524 853.787 746.524 C 860.763 698.381 867.693 650.556 874.671 602.401 C 882.997 602.401 891.216 602.401 900.259 602.401 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 747.752 563.76 a 16.2 16.2 0 1 0 32.4 0 a 16.2 16.2 0 1 0 -32.4 0 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 811.949 563.76 a 16.2 16.2 0 1 0 32.4 0 a 16.2 16.2 0 1 0 -32.4 0 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 875.133 563.76 a 16.2 16.2 0 1 0 32.4 0 a 16.2 16.2 0 1 0 -32.4 0 Z"
+            android:fillColor="#FFFFFFFF" />
+    </group>
+</vector>
