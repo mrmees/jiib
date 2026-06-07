@@ -17,13 +17,13 @@ import works.mees.dinghy.ui.printstatus.TerminalKind
  * `PrintStatusScreen` is the multi-state archetype: its 4/6 [PrintStatusMode] states are the interesting
  * axis, so the STATE matrix is driven by a [PreviewParameterProvider] ([PrintStatusModeProvider]) while
  * THEME is a wrapper concern ([PreviewBox] seeds) — a Compose `@Preview` allows at most one
- * `@PreviewParameter`, and (per [PreviewBox]/[DinghyPreviews] KDoc) an annotation can select
+ * `@PreviewParameter`, and (per [PreviewBox]/[Nexus7Previews] KDoc) an annotation can select
  * device/uiMode/locale but NEVER the Colorful/Simple/High-Contrast palette MODE.
  *
  * ## Matrix shape (RESEARCH Q8 — MINIMIZE proliferation)
  * Do NOT render every state × every theme × fs (that's 28+ noisy/slow panels per screen). Instead:
  *  - [PrintStatusStateMatrix] — the FULL state matrix on ONE representative theme (mode = the parameter).
- *  - [PrintStatusThemeMatrix] — the FULL 6-theme matrix on ONE representative state (Printing), six
+ *  - [PrintStatusStateMatrix] — the FULL 6-theme matrix on ONE representative state (Printing), six
  *    sibling [PreviewBox] seed wrappers.
  *  - [PrintStatusFsLargeOverflow] — ONE `fs = L` overflow shot ([fsLargeSeed]). `@Preview(fontScale=)` is
  *    a NO-OP in this app (OS fontScale pinned to 1f) — fs is injected via the seed's `fs`, never the
@@ -32,7 +32,7 @@ import works.mees.dinghy.ui.printstatus.TerminalKind
  *
  * ## No live Moonraker (SC-1)
  * Every preview wraps `PrintStatusScreen(state = SampleFixtures.forMode(mode))` — the stateless overload
- * that renders the four-state scaffold from a pure [SampleFixtures] fixture, no [AppContainer], no socket.
+ * that renders the four-state scaffold from a pure [SampleFixtures] fixture, no AppContainer, no socket.
  * The embedded GraphView region + Coil thumbnails preview as labeled stand-ins via the D-05/D-02
  * `LocalInspectionMode` branches (covered by 18-02's host branch + this phase's Coil branch).
  */

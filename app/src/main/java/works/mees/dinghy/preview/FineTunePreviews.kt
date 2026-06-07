@@ -21,7 +21,7 @@ import works.mees.dinghy.ui.finetune.MotionScreen
  * HIDDEN, not disabled) / busy (whole-group lock) — so the variant matrix is driven by a
  * [PreviewParameterProvider] ([FineTuneVariantProvider]) while THEME stays a wrapper concern
  * ([PreviewBox] seeds). A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette
- * MODE; the themes MUST be explicit wrappers (per [PreviewBox]/[DinghyPreviews] KDoc).
+ * MODE; the themes MUST be explicit wrappers (per [PreviewBox]/[Nexus7Previews] KDoc).
  *
  * ## Matrix shape (RESEARCH Q8 — MINIMIZE proliferation)
  * Do NOT render every variant × every theme × fs. Instead:

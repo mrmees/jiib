@@ -21,7 +21,7 @@ import works.mees.dinghy.ui.spool.SpoolScreen
  * [works.mees.dinghy.preview.SampleFixtures.spoolList] fixture, so the selection matrix is driven by a
  * [PreviewParameterProvider] ([SpoolSelectionProvider]) while THEME stays a wrapper concern ([PreviewBox]
  * seeds). A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette MODE; the themes
- * MUST be explicit wrappers (per [PreviewBox]/[DinghyPreviews] KDoc).
+ * MUST be explicit wrappers (per [PreviewBox]/[Nexus7Previews] KDoc).
  *
  * ## Matrix shape (RESEARCH Q8 — MINIMIZE proliferation)
  * Do NOT render every selection × every theme × fs. Instead:
