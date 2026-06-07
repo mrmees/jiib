@@ -197,11 +197,11 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         val tint: Int
         when (severity) {
             ConsoleSeverity.ERROR -> {
-                resId = R.drawable.ic_status_octagon
+                resId = R.drawable.disabled_by_default
                 tint = palette?.error ?: currentTextColor
             }
             ConsoleSeverity.WARNING -> {
-                resId = R.drawable.ic_status_triangle
+                resId = R.drawable.warning
                 tint = palette?.warning ?: currentTextColor
             }
             else -> {
