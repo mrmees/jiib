@@ -86,4 +86,27 @@ class DinghyIconsTest {
             unexpectedDuplicates,
         )
     }
+
+    /**
+     * (D-15 / SC-3b) Drift-guard for the Phase-18.1 drawable→ligature flip. After the six registry
+     * entries flip (StatusStop, BabystepCompress, BabystepExpand, PressureAdvance, Increase, Decrease),
+     * the ONLY remaining [IconRef.Drawable] entries are the D-10 hand-authored printer-domain customs
+     * `Nozzle`/`HeatBed`. Any other [IconRef.Drawable] is an un-flipped 18.1 regression.
+     *
+     * NOTE: this method is intentionally RED until Plan 18.1-02 performs the registry flips — it is the
+     * RED half of a guard that goes GREEN in Wave 1. The other tests in this class stay GREEN throughout.
+     */
+    @Test
+    fun registryDrawableEntries_areOnlyTheCustomKeepers() {
+        val drawableBacked = DinghyIcons.all
+            .filter { it.primary is IconRef.Drawable }
+            .map { it.alternate }
+            .toSet()
+        assertEquals(
+            "after 18.1 the only drawable-backed icons are the D-10 customs (Nozzle, HeatBed); " +
+                "any other IconRef.Drawable is an un-flipped 18.1 regression",
+            setOf("nozzle", "heat_bed"),
+            drawableBacked,
+        )
+    }
 }
