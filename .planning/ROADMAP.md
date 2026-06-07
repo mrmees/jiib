@@ -814,7 +814,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 18-06-PLAN.md — Exemplar #2 FineTune (capability-gating + busy-lock archetype)
+- [x] 18-06-PLAN.md — Exemplar #2 FineTune (capability-gating + busy-lock archetype)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -938,7 +938,7 @@ notes.
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 5/6 | In Progress|  |
-| 18. Preview Harness & Tokenization Foundation | 4/7 | In Progress|  |
+| 18. Preview Harness & Tokenization Foundation | 5/7 | In Progress|  |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |

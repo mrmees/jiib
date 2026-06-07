@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-07T00:23:31.870Z"
+last_updated: "2026-06-07T00:37:13.197Z"
 last_activity: 2026-06-07
 progress:
   total_phases: 25
   completed_phases: 18
   total_plans: 135
-  completed_plans: 131
+  completed_plans: 132
   percent: 72
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 18 (preview-harness-tokenization-foundation) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
   → **Plan 18-04 (Wave 2: dev-gated start_dest deep-jump) — Tasks 1+2 EXECUTED + COMMITTED, PAUSED at the Task-3 on-device gate 2026-06-07.** Task 1 `e6ab0a2` (feat — pure `parseStartDest(raw): Dest?` in `ui/shell/StartDestMapping.kt`: null/blank/unknown→null, never throws on untrusted input [V5/T-18-04-02]; converted the 18-01 `StartDestMappingTest` compile scaffold to live assertions — every Dest name round-trips, garbage→null, whitespace-trimmed; `:app:testDebugUnitTest --tests *StartDestMappingTest` GREEN). Task 2 `6628b44` (feat — `MainActivity` reads the `start_dest` extra ONLY when `container.devCyclerEnabled` is true via a BOUNDED `runBlocking { withTimeoutOrNull(500) { devCyclerEnabled.first() } } ?: false` seam [`devCyclerEnabledBlocking()`, Codex MEDIUM-4 — NOT an unbounded `.first()`; defaults FALSE/inert on timeout]; `EXTRA_START_DEST` companion const mirrors `BenchActivity.EXTRA_SCENE`; `RootController` gains `startDest: Dest?` seeded into `ShellNavState.dest` ONCE in the `rememberShellNavState` initializer [NOT a `LaunchedEffect` in AppShell — RESEARCH Q3 anti-pattern]; gate-off/release passes `startDest=null` → PrintStatus default, Splash gate applies on top). `:app:assembleDebug` + FULL `:app:testDebugUnitTest` GREEN (no regression); other `RootController(container)`/`ShellNavState()` callers unaffected (new params default null). 0 deviations. **Task 3 = BLOCKING `checkpoint:human-verify` (on-device flox)**: build+install debug APK; with dev-enable ON `am start ... --es start_dest FineTune|Spool|PrintStatus` lands on each (after Splash, Klippy Ready); garbage `NotARealScreen` → default screen, no crash; release-inert from a CLEAN data state (`pm clear` so `dev_cycler_enabled`=FALSE default → extra IGNORED) AND confirm release exposes no `setDevCyclerEnabled(true)` UI path; optional D-06 spot-check jump to Temperature/Webcam. **18-04-SUMMARY.md NOT written + plan NOT complete until the owner reports the gate result** (per project memory the on-device gate may be owner-DEFERRED like Phase 17's UAT — orchestrator handles that).
   → **Phase 17 (Fine-Tune / Live-Adjust) — 17-01..17-05 COMPLETE + 17-06 autonomous work done; ON-DEVICE UAT OWNER-DEFERRED 2026-06-06.** Full wave run (worktrees off, sequential): 17-01 RED scaffolds (31 RED methods, both test sourcesets compile) → 17-04 11 Fine-Tune glyph drawables → 17-02 pure clamp-format gcode builders (M220/M221/velocity-limit/PA/M106/SET_RETRACTION, Locale.US, object-gated registry specs) + 17-03 state layer (7 nullable readback fields, null-safe diff-merge reducer, nullable config baselines, `firmware_retraction` in subscribe) → 17-05 Fine-Tune UI (one `FineTuneHolder` per spine w/ display-scaling + D-15 whole-group state-flip busy-lock + nullable long-press reset; Hub + Motion/Extrusion/FwRetraction screens; FW-retraction build-blind) → 17-06 entry/nav wiring (Print-Status Tune tile + drawer `instant_mix` tile, reset-to-Hub on entry) + **FULL host unit suite GREEN** (final gate, all 17-01 RED stubs closed) + APK built & installed on flox. **In-checkpoint polish:** owner reviewed remotely via screenshots (away from device) → caught landscape value-clipping → fix `73296fd` `fix(17-06): drop Fine-Tune tile label, rely on glyph` (label-less single-Row `[glyph][value][−+]` tile, consistent both orientations; tests + assembleDebug GREEN, reinstalled, re-shot — clipping resolved). **On-device functional UAT (state-flip / reject-path / mid-print speed effect / Adreno-320 perf — `17-UAT.md`, 8 checks all PENDING) DEFERRED by owner to a later session** (status: partial/deferred, surfaces in /gsd-progress + /gsd-audit-uat). Phase is NOT verified/complete: resume = run the 8 checks on flox+live printer, reply approved → write 17-06-SUMMARY → code-review + verifier gates → close. Screenshots in `17-fine-tune-live-adjust-panel/uat-shots/` (incl. `*b` fixed set).
@@ -208,6 +208,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 18 P02 | ~10 min | 3 tasks | 9 files |
 | Phase 18 P03 | 20 | 2 tasks | 5 files |
 | Phase 18 P05 | ~40min | 3 tasks | 4 files |
+| Phase 18 P06 | 35min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -375,6 +376,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 18-03: adopted RESEARCH Q6 sealed IconRef + DinghyIcon(primary, alternate) WITH 3 amendments (a11y ligature semantics; dpToSp fontScale=1f helper; DinghyIcons.all + uniqueness test)
 - [Phase ?]: 18-03: strings.xml master vocabulary with <area>_<element>/cd_* convention + format-arg + plurals; backfill deferred to Phase 22
 - [Phase ?]: 18-05: PrintStatus anchor exemplar — container-free PrintStatusContent + stateless PrintStatusScreen(state=) preview seam; minimized @Preview matrix (state×theme + 6 themes + fs=L + RTL); 16 stringResource + 13 DinghyIconView sites; both Coil sites LocalInspectionMode-branched (no Moonraker)
+- [Phase ?]: 18-06: FineTune exemplar copies the anchor (capability variant present/absent/busy as @PreviewParameter, theme as PreviewBox wrappers); Motion/Extrusion state-hoisted into container-free *Content + stateless (vm=) overloads
 
 ### Pending Todos
 
@@ -407,7 +409,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-07T00:23:31.788Z
+Last session: 2026-06-07T00:37:02.259Z
 Stopped at: Phase 18 context gathered
 Resume file: 
 None
