@@ -1,9 +1,9 @@
 ---
 phase: 18
 slug: preview-harness-tokenization-foundation
-status: draft
+status: final
 nyquist_compliant: false
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-06-06
 ---
 
@@ -49,9 +49,34 @@ created: 2026-06-06
 
 | Task ID | Plan | Wave | Requirement (SC) | Test Type | Automated Command / Check | Tier | Status |
 |---------|------|------|------------------|-----------|---------------------------|------|--------|
-| 18-XX-XX | XX | N | SC-{1..5} | unit / compile / eyeball | `{command}` | CI / Studio / flox | ⬜ pending |
+| 18-02-T1 | 02 | 1 | SC-1 | unit | `:app:testDebugUnitTest --tests *PreviewBoxSmokeTest` (6 combos + fs=L bake distinct) | CI | ✅ |
+| 18-02-T2 | 02 | 1 | SC-2 | unit | `:app:testDebugUnitTest --tests *SampleFixturesTest` | CI | ✅ |
+| 18-02-T3 | 02 | 1 | D-05 | unit/grep | `LocalInspectionMode` in the 3 render hosts; `assembleDebug` green | CI | ✅ |
+| 18-03-T2 | 03 | 1 | SC-3 | unit/grep | `:app:testDebugUnitTest --tests *DinghyIconsTest` (resolvable + unique alternate) | CI | ✅ |
+| 18-03-T3 | 03 | 1 | SC-3 | compile | `:app:assembleDebug` (strings.xml format-arg + plurals merge) | CI | ✅ |
+| 18-04 | 04 | 1 | SC-4 | unit/flox | `start_dest` parse unit test (CI); jump lands on a live screen (flox) | CI / flox | CI ✅ · flox ⬜ pending |
+| 18-05-T1 | 05 | 4 | SC-1/D-01 | grep/compile | `PreviewParameterProvider<PrintStatusMode>`; `PreviewBox(`/`SampleFixtures`; `compileDebugKotlin` | CI | ✅ |
+| 18-05-T2 | 05 | 4 | SC-3/D-02/D-05 | grep/unit | 16 `stringResource(printstatus_*)`, 13 `DinghyIconView`, both Coil `AsyncImage` on `LocalInspectionMode`; `assembleDebug`+`testDebugUnitTest` | CI | ✅ |
+| 18-05-eye | 05 | 4 | SC-1 | eyeball | PrintStatus: 4/6 states × 6 combos + fs=L + RTL render; placeholders labeled | Studio | ⬜ pending |
+| 18-06-T1 | 06 | 4 | SC-1/D-01 | grep/compile | `FineTuneVariantProvider`; present/absent/busy fixtures; `compileDebugKotlin` | CI | ✅ |
+| 18-06-T2 | 06 | 4 | SC-3/D-02 | grep/unit | `stringResource(finetune_*/cd_finetune_*)`, `DinghyIcon` routing; `assembleDebug`+`testDebugUnitTest` | CI | ✅ |
+| 18-06-T3 | 06 | 4 | SC-1 | compile | `:app:compileDebugAndroidTestKotlin` (FineTuneNavTest matchers migrated) | CI | ✅ |
+| 18-06-eye | 06 | 4 | SC-1 | eyeball | FineTune: present/absent/busy × 6 combos + fs=L + RTL; absent HIDES FW-retraction; busy locks group | Studio | ⬜ pending |
+| 18-07-T1 | 07 | 5 | SC-1/SC-3/D-01/D-02/D-05 | grep/unit | `SpoolPreviews.kt` `PreviewBox(`×9 + `SampleFixtures.spoolList`×5; SpoolScreen 20 `stringResource(spool_*/cd_spool_*/common_back)` + 7 `DinghyIconView`; `LocalInspectionMode` in ScanSurface; no `@Stable/@Immutable/ImmutableList`; `assembleDebug`+full `testDebugUnitTest` | CI | ✅ |
+| 18-07-T2 | 07 | 5 | SC-2 | compile/grep | `:app:compileDebugAndroidTestKotlin`; PREVIEW_AND_TOKENS.md content keywords; CLAUDE.md `PREVIEW_AND_TOKENS` pointer | CI | ✅ |
+| 18-07-T2b | 07 | 5 | SC-1 | flox | `:app:connectedDebugAndroidTest` Spool tests (string values unchanged → behave identically) | flox | ⬜ pending |
+| 18-07-T3 | 07 | 5 | SC-5 | unit | full `:app:testDebugUnitTest` green (no regression) | CI | ✅ |
+| 18-07-eye | 07 | 5 | SC-1 | eyeball | Spool: no-selection/selected × 6 combos + fs=L + RTL; dense list renders; camera placeholder labeled | Studio | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+> **nyquist note (Codex LOW-9):** every CI tier row is ✅ (all three exemplars compile, tokenize, and
+> pass the full unit suite with no regression). The Studio human-eyeball rows (the 3 exemplars across
+> 6 combos + fs=L + RTL) and the flox rows (the 18-04 `start_dest` jump + the Spool `connectedAndroidTest`
+> smoke) are **⬜ pending** — they are owner-DEFERRED on-device review, the same posture as the Phase-17
+> UAT. `nyquist_compliant` therefore STAYS `false` until those Studio + flox rows are actually recorded ✅
+> (not merely planned); flip it in a follow-up once recorded. The CI foundation is complete and additive
+> (the 3 host D-05 branches are preview-only; the 3 exemplars preserve layout/tokens — no screen regresses).
 
 ### Validation tiers (RESEARCH §Validation Architecture)
 
@@ -116,11 +141,12 @@ in its place until Phase 22 restores an automated gate.
 
 ## Validation Sign-Off
 
-- [ ] Every task has a CI-assertable verify OR an explicitly-tiered Studio/flox check with instructions
-- [ ] Sampling continuity: no 3 consecutive tasks without an automated (CI) verify where one is possible
-- [ ] Wave 0 covers the lint-gate + pseudolocale + framework decisions
-- [ ] No watch-mode flags in test commands
-- [ ] Feedback latency budget recorded (~300s)
-- [ ] `nyquist_compliant: true` set in frontmatter once planner fills the per-task map
+- [x] Every task has a CI-assertable verify OR an explicitly-tiered Studio/flox check with instructions
+- [x] Sampling continuity: no 3 consecutive tasks without an automated (CI) verify where one is possible
+- [x] Wave 0 covers the lint-gate + pseudolocale + framework decisions
+- [x] No watch-mode flags in test commands
+- [x] Feedback latency budget recorded (~300s)
+- [ ] `nyquist_compliant: true` — HELD `false` (Codex LOW-9): CI rows all ✅, but the Studio-eyeball +
+      flox rows are owner-DEFERRED ⬜ pending; flip only once those are recorded ✅ (not merely planned)
 
-**Approval:** pending
+**Approval:** CI tier complete (all exemplars compile/tokenize/no-regression); Studio + flox tiers pending owner on-device review (deferred, Phase-17-UAT posture).
