@@ -1,11 +1,16 @@
 package works.mees.dinghy.preview
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.flowOf
 import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.compose.DinghyTheme
+import works.mees.dinghy.theme.compose.LocalTokens
 
 /**
  * The ONE preview theme boundary (SC-1). This is the reusable wrapper every later UI exemplar
@@ -41,7 +46,13 @@ fun PreviewBox(
     content: @Composable () -> Unit,
 ) {
     DinghyTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple))) {
-        content()
+        // Paint the themed shell background so previews are theme-faithful. The screens
+        // themselves do NOT fill a root background — the app shell does (MainActivity.kt:79:
+        // `Box(Modifier.fillMaxSize().background(LocalTokens.current.bg))`). Without this,
+        // every @Preview shows Studio's default-white backdrop and dark/light look identical.
+        Box(Modifier.fillMaxSize().background(LocalTokens.current.bg)) {
+            content()
+        }
     }
 }
 
