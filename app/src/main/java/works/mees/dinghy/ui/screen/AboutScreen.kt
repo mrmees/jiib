@@ -14,23 +14,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -83,13 +88,20 @@ fun AboutScreen(
                     SectionHeader("About")
 
                     // ============================ APP ==========================================
-                    SectionLabel("Dinghy Display")
+                    AboutWordmark()
                     InfoRow(
                         label = "Version",
                         value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     )
                     Text(
-                        text = "A direct Moonraker touchscreen for Klipper.",
+                        text = stringResource(R.string.about_tagline),
+                        color = t.text3,
+                        fontFamily = Geist,
+                        fontSize = fsSp(15f, t.fs).sp,
+                    )
+                    // D-11: the jib-explainer note, directly below the kept tagline (D-10).
+                    Text(
+                        text = stringResource(R.string.about_jib_note),
                         color = t.text3,
                         fontFamily = Geist,
                         fontSize = fsSp(15f, t.fs).sp,
@@ -118,6 +130,30 @@ fun AboutScreen(
             },
         )
     }
+}
+
+/**
+ * The jiib wordmark that fronts the About APP block (D-05) — wordmark only, NOT the stacked lockup.
+ * Tinted from the theme accent with the D-06 contrast-floor guard ([brandTint] falls back to `t.text`
+ * when the accent would wash out against `t.bg`).
+ *
+ * STATELESS and AppContainer-FREE on purpose — reads only [LocalTokens] — so it is the preview seam
+ * [works.mees.dinghy.preview.BrandPreviews] drives across the six theme combos (PREVIEW_AND_TOKENS / D-03).
+ *
+ * Sized by RATIO (LAYOUT.md ratio-only rule) to carry roughly the visual weight of the 20sp
+ * [SectionLabel] it replaces: it fills 55% of the width and wraps its (433×289) height un-stretched.
+ */
+@Composable
+internal fun AboutWordmark() {
+    val t = LocalTokens.current
+    Icon(
+        painter = painterResource(R.drawable.jiib_wordmark),
+        contentDescription = stringResource(R.string.cd_jiib_logo),
+        tint = brandTint(t.accent, t.bg, t.text),
+        modifier = Modifier
+            .fillMaxWidth(0.55f)
+            .padding(top = 8.dp),
+    )
 }
 
 /**
