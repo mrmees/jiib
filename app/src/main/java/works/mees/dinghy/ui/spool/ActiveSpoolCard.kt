@@ -30,7 +30,6 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanStatus
-import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
@@ -334,12 +333,5 @@ private fun cardTitle(state: ActiveSpoolCardState): String = when (state) {
     is ActiveSpoolCardState.Loaded -> "Active spool"
 }
 
-/**
- * Parse an ALREADY-normalized `#RRGGBB`/`#AARRGGBB` hex to a Compose [Color] (D-08). Re-runs the
- * defensive [normalizeColorHex] first so a caller passing a raw value still can't crash the render; a
- * non-normalizable value → null (the neutral marker). Never throws.
- */
-private fun parseNormalizedHex(hex: String): Color? {
-    val normalized = normalizeColorHex(hex) ?: return null
-    return runCatching { Color(android.graphics.Color.parseColor(normalized)) }.getOrNull()
-}
+// parseNormalizedHex was promoted to an `internal` top-level helper in SpoolScreen.kt (18.3-01) — the
+// same `works.mees.dinghy.ui.spool` package, so it resolves here with no import and no duplicated logic.

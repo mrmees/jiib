@@ -15,11 +15,14 @@ import java.net.URLEncoder
  * currently-dashed cells from — host-testable with no I/O, no coroutines, no socket, mirroring the
  * [parseTemperatureStore] pure-module shape.
  *
- * **Catalog fidelity (docs/moonraker-capabilities.md § "File metadata"):** ONLY the four confirmed
- * fields are read — `layer_count`, `object_height`, `estimated_time`, and `thumbnails[]`
- * (`{width,height,size,relative_path}`). Anything NOT in that doc is NOT invented; a missing/garbage
- * field yields `null` for THAT field (never `!!`), so the cell degrades to a dashed value / the ring
- * keeps Benchy. `progress` is NOT a metadata field — it comes from the LIVE `virtual_sdcard` /
+ * **Catalog fidelity (docs/moonraker-capabilities.md § "File metadata"):** the catalog-confirmed
+ * fields read here are `layer_count`, `object_height`, `estimated_time`, `thumbnails[]`
+ * (`{width,height,size,relative_path}`), and `filament_colors[]` (the per-extruder color array — also
+ * catalog-confirmed, moonraker-capabilities.md § "File metadata", and already proven parseable in
+ * [parseFilePreviewMetadata]). Anything NOT in that doc is NOT invented; a missing/garbage field yields
+ * `null` (or an empty list for the array) for THAT field (never `!!`), so the cell degrades to a dashed
+ * value / the ring keeps Benchy / the spool glyph draws empty.
+ * `progress` is NOT a metadata field — it comes from the LIVE `virtual_sdcard` /
  * `display_status` reduced into [PrinterState.progress]; the screen multiplies it against
  * [estimatedTime].
  */
@@ -32,6 +35,13 @@ data class PrintMetadata(
     val estimatedTime: Double?,
     /** `relative_path` of the LARGEST thumbnail by width (typically the 300×300); null if none. */
     val largestThumbRelPath: String?,
+    /**
+     * `filament_colors[]` — per-extruder `#hex` colors from the catalog-confirmed `filament_colors`
+     * key (docs/moonraker-capabilities.md), empty when absent. Threaded onto the LIVE active-file
+     * metadata in 18.3-01 so the color-reactive spool glyph has a gcode color FALLBACK (D-07) when no
+     * Spoolman active spool is known. Null-safe by construction (missing/garbage → empty list).
+     */
+    val filamentColors: List<String> = emptyList(),
 )
 
 data class FilePreviewMetadata(
@@ -61,7 +71,8 @@ data class FilePreviewMetadata(
  * Map a `server.files.metadata` [result] object to a [PrintMetadata]. Every walk is null-safe
  * (`as?`/`orNull`, NEVER `!!`); an entirely empty object yields all-null fields. The thumbnail pick
  * iterates `thumbnails[]` and chooses the entry with the greatest `width`, reading its `relative_path`
- * — an absent/empty array yields a null [PrintMetadata.largestThumbRelPath]. No field outside the four
+ * — an absent/empty array yields a null [PrintMetadata.largestThumbRelPath]. `filament_colors[]` is read
+ * via the tolerant [stringArray] helper (missing/garbage → empty list). No field outside the
  * catalog-confirmed keys is read.
  */
 fun parsePrintMetadata(result: JsonObject): PrintMetadata {
@@ -74,6 +85,7 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
         objectHeight = objectHeight,
         estimatedTime = estimatedTime,
         largestThumbRelPath = largestThumbRelPath(result),
+        filamentColors = stringArray(result, "filament_colors"),
     )
 }
 

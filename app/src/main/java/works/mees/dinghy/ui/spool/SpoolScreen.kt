@@ -498,8 +498,17 @@ private fun DetailBadge(
     }
 }
 
-/** Parse an already-normalized hex to a Compose [Color] (D-08); guard via [normalizeColorHex]. */
-private fun parseNormalizedHex(hex: String): Color? {
+/**
+ * Parse a (possibly un-normalized) filament hex to a Compose [Color] (D-08); guards via
+ * [normalizeColorHex] (accepts `#`/no-`#`, 6/8 hex digits, else null) and never throws — a
+ * non-normalizable value yields `null` (the neutral marker / empty-spool signal).
+ *
+ * Promoted from `private` to `internal` top-level (18.3-01) so the SpoolGlyph (plan 02) and the
+ * surface-wiring (plan 03) call this ONE shared helper instead of duplicating the parse logic
+ * (Pitfall 6). It lives in the `works.mees.dinghy.ui.spool` package, visible to every spool screen
+ * without an import.
+ */
+internal fun parseNormalizedHex(hex: String): Color? {
     val normalized = normalizeColorHex(hex) ?: return null
     return runCatching { Color(android.graphics.Color.parseColor(normalized)) }.getOrNull()
 }
