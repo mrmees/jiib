@@ -843,10 +843,17 @@ Plans:
 
 **Out of scope** (tracked elsewhere): Phase-18 UAT Test 6 (en-XA pseudolocale on-device — `18-HUMAN-UAT.md`); the Temperature "No heaters" observation (a bug → `/gsd-debug`/todo); the per-screen icon-call-site tokenization + string/preview backfill (stays in Phase 22); font subsetting (Phase 22); the jiib rebrand (Phase 18.2); the color-reactive spool glyph (Phase 18.3).
 
-**Plans:** 0 plans (run `/gsd-plan-phase 18.1` to break down)
-
+**Plans:** 4 plans (waves 0-2)
 Plans:
-- [ ] TBD (run /gsd-plan-phase 18.1 to break down)
+**Wave 1**
+
+- [ ] 18.1-01-PLAN.md — Wave 0 tooling: verify_ligatures.py gate + font provenance, two official vectors (disabled_by_default/warning), DinghyIconsTest drift-guard
+- [ ] 18.1-02-PLAN.md — Registry: flip six DinghyIcons entries drawable->ligature (StatusOctagon->StatusStop) + Console Views resId swap to official vectors
+- [ ] 18.1-03-PLAN.md — Raw Compose call-site swaps (ProbeCalibrate, MoveScreen, ThemeEditor) drawable->ligature
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 18.1-04-PLAN.md — Delete 13 superseded drawables + KDoc doc-link fixes + full no-regression gate + on-device spot check
 
 ### Phase 18.2: jiib Rebrand (INSERTED)
 
@@ -870,6 +877,7 @@ Plans:
 **Plans:** 0 plans (run `/gsd-plan-phase 18.2` to break down)
 
 Plans:
+
 - [ ] TBD (run /gsd-plan-phase 18.2 to break down)
 
 ### Phase 18.3: Color-Reactive Spool Icon (INSERTED)
@@ -891,6 +899,7 @@ Plans:
 **Plans:** 0 plans (run `/gsd-discuss-phase 18.3`, then `/gsd-plan-phase 18.3` to break down)
 
 Plans:
+
 - [ ] TBD (run /gsd-plan-phase 18.3 to break down)
 
 ### Phase 19: Output Controls — Fans, Lights & Generic Pins
