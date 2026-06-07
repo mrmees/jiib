@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import works.mees.dinghy.DinghyApp
 import works.mees.dinghy.MainActivity
+import works.mees.dinghy.R
 import works.mees.dinghy.auth.MoonrakerAuth
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
@@ -273,7 +274,7 @@ class MoonrakerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Dinghy Display")
+            .setContentTitle(getString(R.string.app_name))
             .setContentText(text) // ONLY ever a connection/status string — never the API key.
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setOngoing(true)
