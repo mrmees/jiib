@@ -74,14 +74,21 @@
   "stopping mid-screen.") (2026-06-02.)
 - **Theme-able via tokens.** Dark-first baseline; everything routes through semantic tokens
   (`--bg/--surface/--text/--outline/--accent/--heat/--go/--stop` …). See THEMING.md.
-- **Token carve-out: macro-authored PromptMarkup author-hex (D-03).** The Macro Prompt Protocol
-  (Phase 12) renders a Klipper macro author's inline `<color:#hex>`/`<bgcolor:#hex>` text runs as the
-  author's EXACT literal hex — NOT a role token. This is a *bounded* exception to the tokens-only law:
-  the hex is content DATA the author chose (like a Spoolman spool color — the precedent), not chrome.
-  It is scoped to `PromptMarkupText` text runs ONLY — all prompt chrome (dialog bg, header, button
+- **Token carve-out: macro-authored PromptMarkup author-hex (D-03) AND the color-reactive spool band
+  (18.3 D-10).** The Macro Prompt Protocol (Phase 12) renders a Klipper macro author's inline
+  `<color:#hex>`/`<bgcolor:#hex>` text runs as the author's EXACT literal hex — NOT a role token. This is
+  a *bounded* exception to the tokens-only law: the hex is content DATA the author chose, not chrome. It
+  is scoped to `PromptMarkupText` text runs ONLY — all prompt chrome (dialog bg, header, button
   outlines/intents, close, toasts, Field) stays token-routed, and the semantic button styles still map
-  to tokens (`promptStyleColor`). The Phase-21 conformance audit treats this as sanctioned, not a
-  violation. See THEMING.md → "Carve-out: macro-authored PromptMarkup author-hex". (2026-06-04; 12-05.)
+  to tokens (`promptStyleColor`). **The same carve-out covers the custom spool glyph's filament band
+  (Phase 18.3):** the spool's wound-filament **band** is tinted by the loaded filament's actual color
+  (the Spoolman-spool-color precedent made literal, D-02/D-05/D-10) — true hex, never clamped. That band
+  reactivity is scoped to the **BAND ONLY**; the spool body/flanges, the band's neutral **keyline**, and
+  all surrounding chrome stay token-routed (`--text`/`--text2`/`--outline`), and the empty-spool fallback
+  draws no band (pure token chrome). `brandTint`'s WCAG clamp was considered and **rejected** for the
+  band (it would distort the true color; legibility comes from the keyline, not distortion) — `brandTint`
+  stays for brand chrome only. The Phase-21 conformance audit treats BOTH as sanctioned, not a violation.
+  See THEMING.md → "Carve-out: macro-authored PromptMarkup author-hex". (2026-06-04; 12-05 · 2026-06-07; 18.3-03.)
 - **Keyboard carve-out: Save-name fields.** The alphanumeric keyboard is barred from *printer
   controls*, but a **pre-filled, optional-override name field for SAVING a named artifact** (the
   bed-mesh **Save-name** dialog, pre-filled `YY.MM.DD_HH.MM`) is a Settings-class text entry, NOT a
