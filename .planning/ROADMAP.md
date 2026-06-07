@@ -906,11 +906,14 @@ Plans:
   5. **Legible across all theme modes** (dark + light + custom).
   6. Build + unit tests green.
 
-**Plans:** 0 plans (run `/gsd-discuss-phase 18.3`, then `/gsd-plan-phase 18.3` to break down)
+**Plans:** 4 plans (3 waves)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 18.3 to break down)
+- [ ] 18.3-01-PLAN.md — Author spool.xml body vector + flip LauncherSpool Ligature→Drawable + update DinghyIconsTest keeper set; promote parseNormalizedHex + thread PrintMetadata.filamentColors gcode-fallback source (D-01/D-07, SC1/SC6) [wave 0]
+- [ ] 18.3-02-PLAN.md — SpoolGlyph composable (token body + runtime gradient/solid/empty band + neutral keyline) + @Preview matrix + pure render-branch host test (D-02/D-03/D-04/D-05/D-08, SC2/SC4/SC5/SC6) [wave 1]
+- [ ] 18.3-03-PLAN.md — Extend the THEME-01 token carve-out for the spool band in THEMING.md + ui_design/CLAUDE.md (D-10, SC3) [wave 0]
+- [ ] 18.3-04-PLAN.md — Wire SpoolGlyph into all 5 surfaces with D-07/D-08 precedence + on-device flox UAT (D-06/D-07/D-08/D-09, SC2/SC4/SC5/SC6) [wave 2]
 
 ### Phase 19: Output Controls — Fans, Lights & Generic Pins
 
