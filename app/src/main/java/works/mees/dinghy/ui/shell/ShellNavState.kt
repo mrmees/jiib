@@ -40,9 +40,14 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
  * [drawerOpen] stays AppShell-local (it is meaningless while the shell is decomposed) — it is NOT
  * hoisted here.
  */
-class ShellNavState {
-    /** The visible screen. PrintStatus is the home/root. */
-    var dest by mutableStateOf(Dest.PrintStatus)
+class ShellNavState(startDest: Dest? = null) {
+    /**
+     * The visible screen. PrintStatus is the home/root. [startDest] (the dev-gated `start_dest` deep-jump,
+     * 18-04 SC-4b/D-06) seeds the initial value ONCE at construction — null (release / gate-off) keeps the
+     * [Dest.PrintStatus] default. Because the holder is `remember`-ed (constructed once), the seed cannot
+     * re-fire on recompose/recovery; the Splash gate still applies on top (land-when-Klippy-Ready).
+     */
+    var dest by mutableStateOf(startDest ?: Dest.PrintStatus)
 
     /** CALLER dests (most-recent last). PrintStatus clears it; Back pops to the caller. */
     val backStack = mutableStateListOf<Dest>()
@@ -119,6 +124,12 @@ class ShellNavState {
     }
 }
 
-/** Remember a [ShellNavState] in the CURRENT composition scope (call from above the Splash/Shell switch). */
+/**
+ * Remember a [ShellNavState] in the CURRENT composition scope (call from above the Splash/Shell switch).
+ * [startDest] (the dev-gated `start_dest` deep-jump, 18-04) seeds [ShellNavState.dest] ONCE — it is read
+ * only inside the `remember` initializer, so a later recompose with a changed value does NOT re-seed
+ * (intentional: the deep-jump is a one-shot launch seed, never a live re-navigation lever).
+ */
 @Composable
-fun rememberShellNavState(): ShellNavState = remember { ShellNavState() }
+fun rememberShellNavState(startDest: Dest? = null): ShellNavState =
+    remember { ShellNavState(startDest) }

@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.ui.route.Dest
 import works.mees.dinghy.ui.route.TopRoute
 import works.mees.dinghy.ui.route.derive
 import works.mees.dinghy.ui.screen.PrintersScreen
@@ -38,10 +39,21 @@ import works.mees.dinghy.ui.screen.SplashScreen
  *    so a fast recovery is still perceptible (D-03) — it only delays HIDING, never the actual recovery.
  *  - else → [AppShell] (the drawer hosts in-shell Settings as `Dest.Settings`), passed the hoisted [nav].
  *
+ * ## Dev-gated start_dest seed (18-04, SC-4b/D-06)
+ * [startDest] is the OPTIONAL debug deep-jump target parsed by [works.mees.dinghy.MainActivity] from the
+ * `start_dest` intent extra (null in release / when the dev gate is off). When non-null it seeds the
+ * hoisted [ShellNavState.dest] EXACTLY ONCE here — NOT from a `LaunchedEffect` inside [AppShell], which
+ * would re-fire on every recompose / recovery and fight the user's navigation (RESEARCH Q3 anti-pattern).
+ * Seeding happens in the [nav] holder's initializer so it runs once at composition and never re-applies.
+ * The Splash gate below still applies ON TOP (land-with-whatever-state): the user boots to Splash and
+ * lands on the seeded screen once Klippy goes Ready. The gate-OFF / release path passes `startDest = null`,
+ * leaving [ShellNavState.dest] at its [Dest.PrintStatus] default.
+ *
  * @param container the process-scoped service-locator (the live spine + theme + session control).
+ * @param startDest OPTIONAL dev-gated initial screen (null = default home); seeded once into [nav].
  */
 @Composable
-fun RootController(container: AppContainer) {
+fun RootController(container: AppContainer, startDest: Dest? = null) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val hasConfig by container.hasConfig.collectAsStateWithLifecycle(initialValue = false)
 
@@ -52,7 +64,9 @@ fun RootController(container: AppContainer) {
     // The shell's NAV state, HOISTED HERE (above the Splash/Shell switch) so a transient recovery Splash
     // that decomposes [AppShell] does NOT reset the user to Home (G-A1, 13-05 Task 2). [RootController]
     // stays composed across the Splash/Shell flip, so this `remember`-ed holder survives the blip.
-    val nav = rememberShellNavState()
+    // The dev-gated [startDest] (null in release) seeds [ShellNavState.dest] ONCE in the holder's
+    // initializer — it runs at first composition and never re-fires (18-04, SC-4b/D-06).
+    val nav = rememberShellNavState(startDest)
 
     val rawRoute = derive(hasConfig, state)
 
