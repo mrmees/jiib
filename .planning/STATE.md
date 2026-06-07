@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-07T22:57:50.679Z"
+last_updated: "2026-06-07T23:05:06.381Z"
 last_activity: 2026-06-07
 progress:
   total_phases: 28
   completed_phases: 20
   total_plans: 148
-  completed_plans: 144
+  completed_plans: 145
   percent: 71
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 18.3 (color-reactive-spool-icon) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
   → **Plan 18.3-03 (Wave 0: document the THEME-01 spool-band carve-out) EXECUTED + COMPLETE 2026-06-07.** Docs-only (SC3 / D-10). Commit `8fa948f` EXTENDED the existing `docs/ui_design/THEMING.md` §"Carve-out: macro-authored PromptMarkup author-hex (D-03)" with a "Second instance: the color-reactive spool glyph's filament band" subsection — names the spool band as the second instance of the same "filament color is DATA, not chrome" exception (NOT a new rule), scopes it to the **BAND ONLY** (spool body/flanges + neutral keyline + all chrome stay `--text`/`--text2`/`--outline` token-routed; empty-spool fallback = pure token chrome), records the band renders the EXACT filament hex (never clamped) with legibility from the neutral keyline (framing, not distortion), and documents that `brandTint`'s WCAG-3:1 clamp was **considered and REJECTED** for the band (would lie about true color; stays brand-chrome-only). Same extension made literal in the `docs/ui_design/CLAUDE.md` "Token carve-out" bullet — its existing "a Spoolman spool's filament color" precedent now literally sanctions the spool glyph band (band-only; body+keyline token-routed; D-02/D-05/D-10). grep gate PASS (both files mention spool+band in carve-out context); all 4 must-have truths met; 0 deviations. SUMMARY `18.3-03-SUMMARY.md`. This is the documentation half of the THEME-01 exception that the implementation plans (01/02/04: custom vector glyph + band reactivity + surface wiring) ride on.
   → **Plan 18.2-05 (Wave 3: SC-4 de-brand audit + build/test gates + on-device sign-off) — COMPLETE & on-device flox-APPROVED 2026-06-07.** The CLOSING plan of Phase 18.2 (5/5). Task 1 `252e749` (fix — GalleryScreen debug `SectionHeader` "Dinghy Display — Component Gallery (debug)" → "jiib — Component Gallery (debug)"; wrote `18.2-DEBRAND-AUDIT.md` classifying EVERY `Dinghy Display`/`dinghy` hit in `app/src/main` as FIXED [Splash/About=18.2-04; manifest label×2 + MoonrakerService notif title=18.2-02; gallery=this plan] or OUT-OF-SCOPE [MoonrakerSession `clientName`/`clientUrl` = JSON-RPC connection identity recorded server-side only — CONSCIOUS retention per CONTEXT package/repo boundary, NOT a miss; ScreenScaffold KDoc comment; locked `Dinghy*` package/class/theme symbols + applicationId]; concluded zero user-visible "Dinghy Display" strings remain = SC-4). Task 2 `ebd5a12` (test — SC-4 grep gate PASS: only 2 survivors [ScreenScaffold comment + MoonrakerSession clientName], both on the documented allow-list; NONE in any string-resource body, manifest `android:label`, Compose `Text`/`SectionLabel`/`SectionHeader`/`setContentTitle`, or drawable. `:app:assembleRelease` BUILD SUCCESSFUL exit 0 via gw.bat [SC-5, unsigned — signing deferred PKG-01/Phase 8]. `:app:testDebugUnitTest` GREEN exit 0, no regression incl. 18.2-02 BrandTintTest. Gate results appended to the audit). **Task 3 = `checkpoint:human-verify` ON-DEVICE flox (LineageOS 18.1/API 30, genuine Adreno 320) → APPROVED:** debug APK built+installed via `installDebug` (BUILD SUCCESSFUL on device); owner confirmed all FIVE user-facing brand surfaces render correctly — launcher icon (white jiib sail on navy, square+round masks, v26 STATIC navy+white path NOT Material You tint), app/drawer label + recents title = "jiib", FGS notification title = "jiib", splash stacked lockup (accent-tinted, legible), About wordmark + tagline + jib-explainer note. SC-1/SC-2/SC-3 confirmed on-device; combined with Task-2's SC-4/SC-5 closure, **all Phase-18.2 success criteria met on the real hardware floor**. 0 deviations. Sign-off recorded in `18.2-DEBRAND-AUDIT.md`; SUMMARY `18.2-05-SUMMARY.md`. **Phase 18.2 execution COMPLETE (5/5); orchestrator runs phase verification next (do NOT mark the phase verified here).**
@@ -225,6 +225,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 18.2 P04 | 10 | 3 tasks | 5 files |
 | Phase 18.2 P05 | 15min | 3 tasks | 2 files |
 | Phase 18.3 P01 | 20 | 2 tasks | 6 files |
+| Phase 18.3 P02 | ~15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -407,6 +408,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 18.3-01: custom spool.xml draws body/flanges only; band rect documented as 96-box fractions (left 0.34/right 0.66/top 0.18/bottom 0.82) for plan 02's Canvas overlay; no baked gradient (D-01/D-04)
 - [Phase ?]: 18.3-01: LauncherSpool flipped database ligature -> IconRef.Drawable(R.drawable.spool); DinghyIconsTest keeper set -> {nozzle,heat_bed,launcher_spool} in lockstep (SC1/SC6)
 - [Phase ?]: 18.3-01: parseNormalizedHex promoted to one internal top-level helper; removed 2 same-package private duplicates (Rule-3 collision); PrintMetadata.filamentColors added as D-07 gcode fallback source
+- [Phase ?]: 18.3-02: SpoolGlyph is the single render seam (token body Icon + runtime band Canvas + neutral keyline); DinghyIconView flat-tint contract untouched — a runtime gradient is beyond it by design
+- [Phase ?]: 18.3-02: band geometry pinned to spool.xml fractions (left .34/right .66/top .18/bottom .82); explicit Brush.linearGradient start/end bound to the band rect (Pitfall 4); static brush in DrawScope, no remember-cache
+- [Phase ?]: 18.3-02: swatch-count branch factored into a pure sealed BandRender + bandRenderFor() (0->Empty/1->Solid/2+->Gradient first-two only, D-09) so it is host-tested without a Compose harness
 
 ### Pending Todos
 
@@ -443,7 +447,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-07T22:57:50.589Z
+Last session: 2026-06-07T23:04:16.990Z
 Stopped at: Completed 18.3-01-PLAN.md
 Resume file: 
 None
