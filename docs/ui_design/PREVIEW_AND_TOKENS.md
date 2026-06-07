@@ -38,12 +38,16 @@ The six named seeds live in `PreviewTheming.kt`: `colorfulDark`, `colorfulLight`
 
 ---
 
-## 2. The multipreview annotations set device/locale ONLY — themes are wrappers
+## 2. The multipreview annotation sets device/orientation ONLY — themes are wrappers
 
-`preview/DinghyPreviews.kt` provides two multipreview annotations:
+`preview/DinghyPreviews.kt` provides one multipreview annotation:
 
 - **`@Nexus7Previews`** — the floor-device geometry (`dpi=320`, 1920×1200), portrait + landscape.
-- **`@DeviceAndLocalePreviews`** — device default / `en-XA` pseudolocale / night uiMode.
+
+The pseudolocale (`en-XA`) check is NOT a multipreview annotation — it is a dedicated per-screen
+`@Preview(device = NEXUS7, locale = "en-XA")` (`*PseudolocaleSpotCheck`, see §3/§7). (A former
+`@DeviceAndLocalePreviews` annotation was removed: it was defined-but-unused, and its night-uiMode
+panel was a verified no-op — uiMode does not select the palette, theme is `PreviewBox`-driven.)
 
 > ⚠ **A `@Preview` annotation can set device / uiMode / locale, but it CANNOT select the
 > Colorful / Simple / High-Contrast palette MODE.** The six theme combos come from explicit
@@ -65,6 +69,7 @@ theme/fs/RTL in single representative shots:
 | `*Theme{ColorfulDark…HighContrastLight}` | the FULL 6-theme matrix on ONE representative state | six sibling `PreviewBox(seed)` wrappers |
 | `*FsLargeOverflow` | text/row clipping at the LARGEST text size | `PreviewBox(fsLargeSeed)` |
 | `*RtlSpotCheck` | `start`/`end` modifiers mirror correctly | `CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl)` |
+| `*PseudolocaleSpotCheck` | every APP-vocabulary literal is tokenized (no plain English shows through) | `@Preview(device = NEXUS7, locale = "en-XA")` (a single dedicated panel — NOT a multipreview) |
 
 The "interesting axis" differs per archetype:
 - **PrintStatus** (anchor): the 4/6 print **STATE**s (`PrintStatusModeProvider`).
@@ -172,6 +177,12 @@ or left/right offsets. The `*RtlSpotCheck` preview is the proof.
 **Exception:** genuinely hardware-spatial glyphs/controls that map to a PHYSICAL printer direction
 (e.g. a +X jog that is physically rightward regardless of reading order) stay spatial — those are
 about the machine, not the text. Document the exception inline when you keep one.
+
+**i18n companion — the `*PseudolocaleSpotCheck`.** Alongside the RTL check, each screen ships one
+dedicated `@Preview(device = NEXUS7, locale = "en-XA")` — its own single `@Preview`, NOT part of
+`@Nexus7Previews`. The `en-XA` pseudolocale accordion-pads + brackets the app vocabulary, so it is the
+proof that every app-vocabulary string is tokenized: plain-English text surviving a pseudolocalized
+run is a still-hardcoded literal (the SC-3c completeness sweep).
 
 ---
 
