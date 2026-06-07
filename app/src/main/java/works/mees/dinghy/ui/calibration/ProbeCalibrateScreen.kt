@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +44,9 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.TestZArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
@@ -328,16 +330,23 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                painter = painterResource(R.drawable.detector),
+            // 18.1-03 (D-08/D-09): detector + expand swapped from drawables to Material Symbols ligatures
+            // via the a11y-aware DinghyIconView (real cd → free TalkBack, no registry entry). nozzle stays
+            // a custom drawable (D-10). The weight().aspectRatio(1f) cell magnitude is preserved (cells stay
+            // equal-width to the kept nozzle drawable); the ligature glyph centers in its square cell at a
+            // Focus-hero sizeDp (matching the app's fsSp(56) calibration-hero convention, e.g. ScrewsTilt).
+            DinghyIconView(
+                icon = DinghyIcon(IconRef.Ligature("detector"), alternate = "detector"),
                 contentDescription = "Probe",
                 tint = t.text2,
+                sizeDp = fsSp(56f, t.fs).dp,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
-            Icon(
-                painter = painterResource(R.drawable.expand),
+            DinghyIconView(
+                icon = DinghyIcon(IconRef.Ligature("expand"), alternate = "expand"),
                 contentDescription = "Z offset",
                 tint = t.text2,
+                sizeDp = fsSp(56f, t.fs).dp,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
             Icon(
@@ -409,7 +418,7 @@ private fun ProbeJogPad(
         // Step selector column: [+] larger / current step / [−] smaller. Always enabled (the step is a setting).
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ProbeIconButton(
-                painter = painterResource(R.drawable.add),
+                glyphName = "add",
                 contentDescription = "Larger step",
                 onClick = { onSelectStep(TESTZ_STEPS[(idx + 1).coerceAtMost(TESTZ_STEPS.lastIndex)]) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -418,7 +427,7 @@ private fun ProbeJogPad(
             )
             StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
             ProbeIconButton(
-                painter = painterResource(R.drawable.remove),
+                glyphName = "remove",
                 contentDescription = "Smaller step",
                 onClick = { onSelectStep(TESTZ_STEPS[(idx - 1).coerceAtLeast(0)]) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -429,7 +438,7 @@ private fun ProbeJogPad(
         // Z nudge column: ↑ raise on top, ↓ lower on bottom — accent icons (a physical command), TESTZ(±step).
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ProbeIconButton(
-                painter = painterResource(R.drawable.arrow_upward),
+                glyphName = "arrow_upward",
                 contentDescription = "Raise nozzle (TESTZ +)",
                 onClick = { onTestZ(step) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -438,7 +447,7 @@ private fun ProbeJogPad(
                 enabled = enabled,
             )
             ProbeIconButton(
-                painter = painterResource(R.drawable.arrow_downward),
+                glyphName = "arrow_downward",
                 contentDescription = "Lower nozzle (TESTZ -)",
                 onClick = { onTestZ(-step) },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -477,10 +486,18 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
     }
 }
 
-/** An outline-led icon button (mirrors [ProbeGutterButton] but renders an Icon glyph, not a label). */
+/**
+ * An outline-led icon button (mirrors [ProbeGutterButton] but renders a glyph, not a label).
+ *
+ * 18.1-03 (D-08/D-09): the glyph is a Material Symbols ligature named by [glyphName] (was a
+ * `painter: Painter` drawable). It renders through the a11y-aware [DinghyIconView] so the real
+ * [contentDescription] is the spoken TalkBack label (NOT the raw ligature name) — without promoting the
+ * site into the [DinghyIcons] registry. The disabled/iconTint coloring and ≥64dp button chrome are
+ * unchanged; the glyph is sized at a fixed Focus-jog magnitude (was `fillMaxHeight(0.5f).aspectRatio(1f)`).
+ */
 @Composable
 private fun ProbeIconButton(
-    painter: Painter,
+    glyphName: String,
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -498,11 +515,11 @@ private fun ProbeIconButton(
         .background(if (enabled) Color.Transparent else t.surface)
     val box = if (enabled) base.clickable(onClick = onClick) else base
     Box(box, contentAlignment = Alignment.Center) {
-        Icon(
-            painter = painter,
+        DinghyIconView(
+            icon = DinghyIcon(IconRef.Ligature(glyphName), alternate = glyphName),
             contentDescription = contentDescription,
             tint = if (!enabled) t.text3 else (iconTint ?: t.text),
-            modifier = Modifier.fillMaxHeight(0.5f).aspectRatio(1f),
+            sizeDp = fsSp(34f, t.fs).dp,
         )
     }
 }
