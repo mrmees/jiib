@@ -46,14 +46,22 @@ class MainActivity : ComponentActivity() {
         // ---- Dev-gated start_dest deep-jump (SC-4b / D-06, T-18-04-01) ---------------------------------
         // MainActivity is exported="true", so an `am start ... --es start_dest <Dest>` extra crosses an
         // UNTRUSTED boundary. The jump is gated on the APP-GLOBAL devCyclerEnabled DataStore flag (default
-        // FALSE → inert in release), NOT BuildConfig.DEBUG. The gate read is a BOUNDED one-shot first-
-        // emission read (the safe/inert FALSE on timeout) so onCreate cannot hang on a slow/empty store.
-        // Only when the gate is ON do we read + SAFE-parse the extra (parseStartDest → Dest?, never throws
-        // on garbage, T-18-04-02). This is a one-shot intent READ — no DataStore WRITE — so the
-        // write-scope-cancellation trap does not apply (T-18-04-03). Per D-06 this is THE live path for
-        // classic-View perf truth on flox (jump to Temperature/Webcam/BedMesh); no new View harness exists.
+        // FALSE → inert in release). The gate read is a BOUNDED one-shot first-emission read (the safe/inert
+        // FALSE on timeout) so onCreate cannot hang on a slow/empty store. Only when the gate is ON do we
+        // read + SAFE-parse the extra (parseStartDest → Dest?, never throws on garbage, T-18-04-02). This is
+        // a one-shot intent READ — no DataStore WRITE — so the write-scope-cancellation trap does not apply
+        // (T-18-04-03). Per D-06 this is THE live path for classic-View perf truth on flox (jump to
+        // Temperature/Webcam/BedMesh); no new View harness exists.
+        //
+        // WR-01: the WHOLE gate read is additionally short-circuited behind BuildConfig.DEBUG. The
+        // devCyclerEnabled DataStore flag CANNOT be true in a release build (the dev cyclers that flip it
+        // are themselves debug-only), so the bounded main-thread first-emission read is pure cold-start cost
+        // in release for an answer that is always FALSE. Skipping the read entirely in release means a
+        // release cold start pays ZERO main-thread DataStore I/O here and never reads the start_dest extra —
+        // STRENGTHENING the release-inert contract (release is inert by construction, not just by flag value).
+        // Debug behavior is unchanged: the bounded gate read + safe-parse still runs.
         val startDest: Dest? =
-            if (container.devCyclerEnabledBlocking()) {
+            if (BuildConfig.DEBUG && container.devCyclerEnabledBlocking()) {
                 parseStartDest(intent?.getStringExtra(EXTRA_START_DEST))
             } else {
                 null
