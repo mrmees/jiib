@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -549,6 +550,9 @@ private fun DataSwatch(
         if (glyphName != null) {
             MaterialSymbol(
                 name = glyphName,
+                // Decorative swatch shape: suppress the raw ligature name from TalkBack (the swatch's
+                // meaning is conveyed by its color/label, matching DinghyIconView's null-cd behavior).
+                modifier = Modifier.clearAndSetSemantics {},
                 tint = t.bg,
                 sizeSp = fsSp(20f, t.fs),
             )
@@ -633,6 +637,9 @@ private fun StatusSlotSwatch(
         if (glyphName != null) {
             MaterialSymbol(
                 name = glyphName,
+                // Decorative safety-shape overlay (D-01/D-02): suppress the raw ligature name from
+                // TalkBack (status is conveyed by color + shape, matching DinghyIconView's null-cd behavior).
+                modifier = Modifier.clearAndSetSemantics {},
                 tint = t.bg,
                 sizeSp = fsSp(28f, t.fs),
             )

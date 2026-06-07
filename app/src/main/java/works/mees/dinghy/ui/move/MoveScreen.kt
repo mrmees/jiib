@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -442,15 +443,18 @@ private fun AxisCorner(
  * is the D-01/D-02/D-12 redundant non-color safety signal; the [tint] is the matching status color.
  *
  * 18.1-03 (D-08): swapped from `painter:` drawables to ligatures by name. These are DECORATIVE status
- * shapes (no contentDescription — the meaning is carried by the labeled element they sit on), so a bare
- * [MaterialSymbol] is the minimal render path. The [tint]/[sizeSp] params are preserved 1:1 (THEME-01 +
- * no size regression).
+ * shapes (no contentDescription — the meaning is carried by the labeled element they sit on), so the
+ * [MaterialSymbol] is marked decorative via `clearAndSetSemantics {}` (TalkBack speaks nothing — the
+ * raw ligature name must NOT leak, matching [DinghyIconView]'s null-cd path). The [tint]/[sizeSp] params
+ * are preserved 1:1 (THEME-01 + no size regression).
  */
 @Composable
 private fun StatusShape(glyphName: String, tint: Color, sizeSp: Float, modifier: Modifier = Modifier) {
     MaterialSymbol(
         name = glyphName,
-        modifier = modifier,
+        // Decorative status shape (D-01/D-02): the meaning is carried by the labeled element it sits on,
+        // so suppress the raw ligature name from TalkBack (matches DinghyIconView's null-cd behavior).
+        modifier = modifier.clearAndSetSemantics {},
         tint = tint,
         sizeSp = sizeSp,
     )
