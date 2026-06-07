@@ -39,6 +39,7 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -320,9 +321,12 @@ private fun SpoolDetailFocus(
     ) {
         if (spool == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                DinghyIconView(
-                    DinghyIcons.Inventory,
-                    tint = t.text3,
+                // D-06.4: the honest empty spool (band omitted, D-03) instead of the generic inventory box.
+                // Neutral token body/keyline; same t.text3 tint + fsSp(64f) size as the prior icon.
+                SpoolGlyph(
+                    swatches = emptyList(),
+                    bodyTint = t.text3,
+                    keyline = t.hair,
                     sizeDp = fsSp(64f, t.fs).dp,
                     contentDescription = stringResource(R.string.cd_spool_empty),
                 )
@@ -335,7 +339,21 @@ private fun SpoolDetailFocus(
         val headerSp = fsSp(26f, t.fs)
         val bodySp = fsSp(18f, t.fs)
         val iconSp = fsSp(20f, t.fs)
+        // D-06.5/D-08: the reactive spool hero tinted by the SELECTED spool's OWN color (NOT the active
+        // spool). Resolved via the shared parser from the selected spool's swatches; a malformed/absent hex
+        // → empty list → empty spool (D-03), never a throw. Neutral token body/keyline.
+        val detailSwatches: List<Color> =
+            spool.filament?.colorSwatches?.mapNotNull(::parseNormalizedHex).orEmpty()
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                SpoolGlyph(
+                    swatches = detailSwatches,
+                    bodyTint = t.text2,
+                    keyline = t.hair,
+                    sizeDp = fsSp(64f, t.fs).dp,
+                    contentDescription = stringResource(R.string.cd_spool_color),
+                )
+            }
             // Header line (LARGER): the D-08 split swatch + the filament MATERIAL only.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

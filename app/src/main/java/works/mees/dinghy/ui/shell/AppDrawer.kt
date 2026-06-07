@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -71,6 +73,9 @@ import works.mees.dinghy.ui.route.Dest
  * @param spoolEnabled  D-02 capability gate: the Spool tile is LIVE only when the connected printer has
  *   the Moonraker `spoolman` component (`AppContainer.spoolmanPresent`). The SAME runtime-greying shape as
  *   [webcamEnabled] — greyed (hairline) when the component is absent, accent-outline live when present.
+ * @param spoolSwatches 18.3-04 (D-06.2): the resolved active-spool filament colors for the Spool tile's
+ *   reactive [SpoolGlyph] band (Spoolman-active-color → empty spool only — no gcode tier on the drawer).
+ *   Empty = the honest empty spool (D-03). Stateless; the shell resolves it from `activeSpoolDetail`.
  * @param activeName D-03 active-printer indicator: the active profile's display name, rendered as a 15sp
  *   `t.text2` ellipsized subtitle under the **Devices** tile label (the ONLY tile that gains a subtitle).
  *   Null when no active profile (0 profiles → no subtitle; the tile routes through the same Connect flow).
@@ -82,6 +87,7 @@ fun AppDrawer(
     modifier: Modifier = Modifier,
     webcamEnabled: Boolean = false,
     spoolEnabled: Boolean = false,
+    spoolSwatches: List<Color> = emptyList(),
     activeName: String? = null,
 ) {
     val t = LocalTokens.current
@@ -103,6 +109,7 @@ fun AppDrawer(
                     tile = tile,
                     webcamEnabled = webcamEnabled,
                     spoolEnabled = spoolEnabled,
+                    spoolSwatches = spoolSwatches,
                     // D-03: only the Devices tile carries a subtitle (the active printer's name).
                     subtitle = if (tile.dest == Dest.Devices) activeName else null,
                     onClick = {
@@ -209,6 +216,7 @@ private fun DrawerTile(
     tile: DrawerTileSpec,
     webcamEnabled: Boolean,
     spoolEnabled: Boolean,
+    spoolSwatches: List<Color>,
     subtitle: String?,
     onClick: () -> Unit,
 ) {
@@ -255,11 +263,27 @@ private fun DrawerTile(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(8.dp),
         ) {
-            MaterialSymbol(
-                name = tile.symbol,
-                tint = contentColor,
-                sizeSp = fsSp(40f, t.fs),
-            )
+            // 18.3-04 (D-06.2): the Spool tile draws the reactive SpoolGlyph (a Brush band is beyond the
+            // flat-tint MaterialSymbol contract — a special-case here, NOT a closing-over lambda on the
+            // static DRAWER_TILES spec, which could not read the per-call spoolSwatches). The body tint
+            // follows the tile's contentColor so the glyph greys in lockstep with the spoolEnabled gate;
+            // the keyline is the neutral t.hair (D-05 legibility framing). Empty swatches → empty spool
+            // (D-03). The drawer uses Spoolman-color → empty only (no gcode tier — D-07 narrowing).
+            if (tile.dest == Dest.Spool) {
+                SpoolGlyph(
+                    swatches = spoolSwatches,
+                    bodyTint = contentColor,
+                    keyline = t.hair,
+                    sizeDp = fsSp(40f, t.fs).dp,
+                    contentDescription = tile.label,
+                )
+            } else {
+                MaterialSymbol(
+                    name = tile.symbol,
+                    tint = contentColor,
+                    sizeSp = fsSp(40f, t.fs),
+                )
+            }
             Text(
                 text = tile.label,
                 color = contentColor,

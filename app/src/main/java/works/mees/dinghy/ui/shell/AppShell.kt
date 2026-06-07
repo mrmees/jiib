@@ -853,6 +853,7 @@ fun AppShell(
                 onDismiss = { drawerOpen = false },
                 webcamEnabled = webcamEnabled,
                 spoolEnabled = spoolEnabled,
+                spoolSwatches = drawerSpoolSwatches,
                 activeName = activeName,
             )
         }
