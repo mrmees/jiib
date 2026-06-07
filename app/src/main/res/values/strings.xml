@@ -19,6 +19,28 @@
 -->
 <resources>
 
+    <!-- ============================== about / brand ============================== -->
+    <!--
+      App brand label (D-09). All-lowercase, matches the jiib wordmark. SINGLE source of truth:
+      consumed by AndroidManifest android:label (application + activity) AND the persistent
+      foreground-service notification title (MoonrakerService.buildNotification).
+    -->
+    <string name="app_name">jiib</string>
+
+    <!-- About functional tagline (D-10) — was a hardcoded literal at AboutScreen; now a resource. -->
+    <string name="about_tagline">A direct Moonraker touchscreen for Klipper.</string>
+
+    <!--
+      About jib-explainer note (D-11, EXACT locked copy — leads with the "it's a sail" definition,
+      attributes the quote to Wikipedia, lands the "So is this." parallel). Wrapped in CDATA so the
+      embedded double-quote AND the jib's apostrophe need no per-character escaping; the ellipsis is
+      the literal … character (NOT three periods) per Android string rules.
+    -->
+    <string name="about_jib_note"><![CDATA[jiib — "a triangular sail that sets ahead of the foremast … a jib's most crucial function is increasing performance and overall stability" (Wikipedia). So is this.]]></string>
+
+    <!-- contentDescription for the brand Icon on splash / about (used by 18.2-04). -->
+    <string name="cd_jiib_logo">jiib</string>
+
     <!-- ============================ common ============================ -->
     <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>
