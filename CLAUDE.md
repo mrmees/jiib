@@ -200,6 +200,7 @@ the Compose/Views stack (it is a reference, not code to copy verbatim).
 - `docs/ui_design/CLAUDE.md` — design philosophy + non-negotiables.
 - `docs/ui_design/LAYOUT.md` — the **Focus / Field / Gutter** grammar (regions, orientation rules, the ⚠ non-negotiables: one shared tabular grid, sacred aspect ratios, ratio-only sizing — no hardcoded px).
 - `docs/ui_design/THEMING.md` — the semantic token system, dark/light values, button-intent colors, `--fs`.
+- `docs/ui_design/PREVIEW_AND_TOKENS.md` — the **preview-first / tokenized-first** build convention (Phase 18): every new screen ships a `@Preview` matrix (6 theme combos + `fs=L`, no live Moonraker), `stringResource` strings, and `DinghyIcon` tokens from day one.
 - `docs/ui_design/images/*.png` — hi-fi mockups of all 10 core screens (portrait + landscape).
 
 **Load-bearing rules (and the decisions that reconcile them with this project's constraints):**
