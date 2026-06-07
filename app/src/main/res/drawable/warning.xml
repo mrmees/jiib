@@ -1,0 +1,20 @@
+<!--
+  Material Symbols Outlined "warning" (triangle + !, FILL 0 / wght 400 / GRAD 0) — OFFICIAL Google
+  vector (google/material-design-icons), path data verbatim, NOT hand-traced. Backs the single classic-
+  Views status-glyph site (ConsoleRowsAdapter WARNING row) where a font ligature is not viable on the
+  minSdk-23 floor (setFontVariationSettings is API 26+). Replaces the hand-traced ic_status_triangle —
+  shape-distinct safety coding preserved (triangle+! vs disabled_by_default's square+✕) (D-05 / D-06 /
+  D-07). Material Symbols 0 -960 960 960 viewBox -> 960 Android viewport + translateY group; white fill,
+  recolored at runtime via DrawableCompat.setTint (THEME-01) — KEEPER, do not delete.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="m40,-120 440,-760 440,760H40Zm138,-80h604L480,-720 178,-200Zm302,-40q17,0 28.5,-11.5T520,-280q0,-17 -11.5,-28.5T480,-320q-17,0 -28.5,11.5T440,-280q0,17 11.5,28.5T480,-240Zm-40,-120h80v-200h-80v200Zm40,-100Z" />
+    </group>
+</vector>

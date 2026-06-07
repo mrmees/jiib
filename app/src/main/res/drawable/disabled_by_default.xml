@@ -1,0 +1,20 @@
+<!--
+  Material Symbols Outlined "disabled_by_default" (square + ✕, FILL 0 / wght 400 / GRAD 0) — OFFICIAL
+  Google vector (google/material-design-icons), path data verbatim, NOT hand-traced. Backs the single
+  classic-Views status-glyph site (ConsoleRowsAdapter ERROR row) where a font ligature is not viable on
+  the minSdk-23 floor (setFontVariationSettings is API 26+). Replaces the hand-traced ic_status_octagon
+  — shape-distinct safety coding preserved (square+✕ vs warning's triangle+!), not the literal octagon
+  (D-05 / D-06 / D-07). Material Symbols 0 -960 960 960 viewBox -> 960 Android viewport + translateY
+  group; white fill, recolored at runtime via DrawableCompat.setTint (THEME-01) — KEEPER, do not delete.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="m336,-280 144,-144 144,144 56,-56 -144,-144 144,-144 -56,-56 -144,144 -144,-144 -56,56 144,144 -144,144 56,56ZM200,-120q-33,0 -56.5,-23.5T120,-200v-560q0,-33 23.5,-56.5T200,-840h560q33,0 56.5,23.5T840,-760v560q0,33 -23.5,56.5T760,-120H200Zm0,-80h560v-560H200v560Zm0,-560v560,-560Z" />
+    </group>
+</vector>
