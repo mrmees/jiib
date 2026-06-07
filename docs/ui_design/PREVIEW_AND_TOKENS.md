@@ -184,6 +184,14 @@ dedicated `@Preview(device = NEXUS7, locale = "en-XA")` — its own single `@Pre
 proof that every app-vocabulary string is tokenized: plain-English text surviving a pseudolocalized
 run is a still-hardcoded literal (the SC-3c completeness sweep).
 
+> ⚠ **The pseudolocale check is ON-DEVICE, not Studio.** Android Studio's Compose preview does **not**
+> apply AAPT2 pseudolocalization for `locale = "en-XA"` — layoutlib renders the *base* English strings,
+> so the `*PseudolocaleSpotCheck` panel looks plain in the preview pane (expected, not a defect). Run the
+> actual SC-3c sweep on a device/emulator: Settings → Languages → add **English (XA)**, then view the
+> screen — accented/bracketed text = tokenized; plain English = a missed `stringResource`. The `@Preview`
+> panel still documents intent and pins the locale config; it just isn't where you read the result.
+> (Phase-18 UAT, 2026-06-07.)
+
 ---
 
 ## 8. Touch-target + a11y rider (≥48dp, tokenized `cd_*`)
