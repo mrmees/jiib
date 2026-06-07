@@ -70,10 +70,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune) (completed 2026-06-06)
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [x] **Phase 18: Preview Harness & Tokenization Foundation** - Compose `@Preview` harness + reusable fake-state fixtures (no printer/device), themed-token preview providers, Nexus-7 device profile, the string-resource + semantic-icon tokenization conventions, and a debug `start_dest` hook — so Phases 19-21 build preview-first & tokenized-first; infra + convention + 2-3 exemplar screens only (exhaustive every-screen backfill → Phase 22) (completed 2026-06-07)
+- [ ] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22.
 - [ ] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
 - [ ] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
 - [ ] **Phase 21: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
-- [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string/icon backfill + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
+- [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
 
@@ -823,6 +824,28 @@ Plans:
 **UI hint**: yes (tooling/infra — not a user-facing surface)
 **Research note**: STANDARD — Compose preview tooling, `@PreviewParameter`, Android string resources + pseudolocales are well-documented; the real work is the fixture design + the icon-registry abstraction over the app's two icon sources. Primary spec = the two out-of-repo staging notes (`../parallel_dinghy/phase-preview-harness-staging.md` + `phase-tokenization-staging.md`), which MUST be co-sequenced. Classic-View surfaces (GraphView, BedMeshHeatmapView/OKLCH ramp, webcam border) are NOT Compose-previewable — planner decides exclude vs separate harness.
 
+### Phase 18.1: Icon System Conformance (INSERTED)
+
+**Goal**: Apply Phase 18's now-codified icon-source policy across the WHOLE app so every icon is a real Material Symbol except the genuinely-custom printer-domain glyphs Material Symbols lacks. Phase 18 established the policy (in `docs/ui_design/CLAUDE.md` + the `DinghyIcons` KDoc) and converted the FineTune set (quick tasks 260606/260607-fts); this phase makes it app-wide. This is icon **SOURCE/form** conformance (which glyph, from where), NOT the per-screen icon-call-site tokenization coverage — that stays in Phase 22's backfill.
+
+**Depends on:** Phase 18
+**Requirements**: (icon-source conformance — design D-tokens, not REQUIREMENTS.md REQ-IDs)
+
+**Success Criteria** (what must be TRUE):
+
+  1. **Font refreshed to a current Material Symbols Outlined cut.** The shipped `app/src/main/res/font/material_symbols_outlined.ttf` is an older version (it lacks newer glyphs, e.g. `text_select_move_forward_word`, which had to ship as an official vector drawable). A current font lets nearly every glyph render as a ligature with no per-glyph vector workaround; all existing ligature names re-verified to still resolve after the refresh.
+  2. **Remaining hand-traced "Material-Symbol-wannabe" drawables converted** to font ligatures (or official Google vector drawables only where the refreshed font still lacks the glyph) — notably the shape-coded status indicators (`ic_status_octagon`/triangle, which ARE in the font) and any other hand-traced glyphs outside the already-converted FineTune set. The octagon/triangle carry the D-01/D-02 shape-coded SAFETY language, so the chosen Material Symbol MUST preserve the exact shape semantics (not merely a similar glyph).
+  3. **Only genuinely-custom printer-domain glyphs remain hand-authored drawables**: nozzle, bed (`heat_bed`), bed-tilt, spool indicators. Everything else routes to a real Material Symbol.
+  4. **Cosmetic KDoc doc-link warnings cleaned up** in the preview files (unresolvable `[DinghyPreviews]`, the stale `[PrintStatusThemeMatrix]` → `PrintStatusStateMatrix`, `[AppContainer]`).
+  5. No regression: build + unit suite green; the icon-source policy in `docs/ui_design/CLAUDE.md` + `DinghyIcons` KDoc is enforced app-wide.
+
+**Out of scope** (tracked elsewhere): Phase-18 UAT Test 6 (en-XA pseudolocale on-device — `18-HUMAN-UAT.md`); the Temperature "No heaters" observation (a bug → `/gsd-debug`/todo); and the per-screen icon-call-site tokenization + string/preview backfill (stays in Phase 22).
+
+**Plans:** 0 plans (run `/gsd-plan-phase 18.1` to break down)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18.1 to break down)
+
 ### Phase 19: Output Controls — Fans, Lights & Generic Pins
 
 **Goal**: A dedicated page to control the printer's auxiliary outputs without the browser — `[fan_generic]` aux/part fans, `[output_pin]` switches (enclosure power, chamber-heater enable, etc.), and `[led]`/`[neopixel]` lighting where present. Capability-gated by the Phase-6 matrix; each output's current value comes from the central subscribe and is set through the shared command primitive. Slots into the redesigned home/Settings from Phases 15–16.
@@ -873,7 +896,7 @@ Plans:
 
 ### Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
 
-**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), a LIGHT final whole-app UI-conformance re-sweep of the late surfaces against `docs/ui_design/` LAW (the conformance net moved to Phase 15 for the existing surfaces; this catches drift in 16–21's new screens) — and the exhaustive `@Preview` + string/icon **tokenization backfill** (deferred here from Phase 18) runs as ONE co-sequenced per-screen pass, plus the optional `compose-preview-screenshot` regression bolt-on, the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
+**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), a LIGHT final whole-app UI-conformance re-sweep of the late surfaces against `docs/ui_design/` LAW (the conformance net moved to Phase 15 for the existing surfaces; this catches drift in 16–21's new screens) — and the exhaustive `@Preview` + string + icon-call-site **tokenization backfill** (deferred here from Phase 18; the icon SOURCE/font conformance was pulled forward to Phase 18.1) runs as ONE co-sequenced per-screen pass, plus the optional `compose-preview-screenshot` regression bolt-on, the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
 **Depends on**: Phase 21
 **Requirements**: PKG-01, PKG-03
 **Success Criteria** (what must be TRUE):

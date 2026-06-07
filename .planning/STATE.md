@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-last_updated: 2026-06-07T01:29:02.358Z
-last_activity: 2026-06-07
+status: planning
+last_updated: "2026-06-07T15:35:43.067Z"
+last_activity: "2026-06-07 -- Completed quick task 260606-ttd: Phase-18 preview pseudolocale spot-checks + DinghyIcons gallery section"
 progress:
-  total_phases: 25
+  total_phases: 26
   completed_phases: 18
   total_plans: 135
   completed_plans: 133
-  percent: 72
-stopped_at: Phase 18 complete (6/7) — ready to discuss Phase 19
+  percent: 69
 ---
 
 # Project State
@@ -221,6 +220,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 - Phase 15.1 inserted after Phase 15: Shape-Coded Status & Semantic Color — split from Phase 15 (engine-first); semantic + safety layer before Home
 - Phase 15.2 inserted after Phase 15.1: Theme Conformance Sweep & Settings IA — split from Phase 15; heavy existing-surface conformance + Settings/Devices IA
 - Phase 18 inserted after Phase 17: Preview Harness & Tokenization Foundation (integer insert; Output→19/SysInfo→20/WebRTC→21/Ship→22)
+- Phase 18.1 inserted after Phase 18: Icon System Conformance — app-wide real-Material-Symbols icon-source policy + font refresh; pulled icon-source portion forward from Phase 22 (URGENT)
 
 ### Decisions
 
