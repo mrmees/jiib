@@ -42,7 +42,9 @@ findings:
   warning: 4
   info: 6
   total: 10
-status: issues_found
+  resolved: [WR-01, WR-02, WR-04]
+  deferred: [WR-03]
+status: partially_resolved
 ---
 
 # Phase 18: Code Review Report
@@ -62,7 +64,9 @@ No BLOCKERS. The findings are: a main-thread DataStore read on the cold-start pa
 
 ## Warnings
 
-### WR-01: Main-thread DataStore read on every cold start (`devCyclerEnabledBlocking`)
+### WR-01: Main-thread DataStore read on every cold start (`devCyclerEnabledBlocking`) — RESOLVED (commit 5821408)
+
+**Resolution:** Gated the whole gate read + `start_dest` extra read behind `BuildConfig.DEBUG` (`if (BuildConfig.DEBUG && container.devCyclerEnabledBlocking())`). Release cold start now pays zero main-thread DataStore I/O here; debug behavior unchanged. Verified `:app:assembleDebug` green.
 
 **File:** `app/src/main/java/works/mees/dinghy/MainActivity.kt:55-56`, `98-99`
 **Issue:** `onCreate` calls `container.devCyclerEnabledBlocking()` UNCONDITIONALLY (it must read the gate to decide whether to read the extra), which does `runBlocking { withTimeoutOrNull(500) { devCyclerEnabled.first() } }` on the main thread. `devCyclerEnabled` is `ThemePrefs.devEnableFlow`, backed by `dataStore.data` — the first emission performs disk I/O. On the Nexus-7-class slow-flash floor this can stall the UI thread for up to the full 500ms timeout at every launch, on the hottest startup path, purely to support a dev-only feature that is `false` in release. The timeout caps the worst case (good — it can't ANR), but a bounded main-thread stall on cold start is still a startup-jank regression on the exact device class the project optimizes for, and it runs even in release where the answer is always `false`.
@@ -75,7 +79,9 @@ val startDest: Dest? =
 ```
 (Note: the KDoc at line 49 explicitly argues the gate is "NOT BuildConfig.DEBUG"; that is fine for *honoring* the extra, but the blocking *read itself* can still be skipped in release where the DataStore flag cannot be true anyway.)
 
-### WR-02: `LauncherSpool` and `Progress` share the `donut_large` glyph — silent "icon-never-twice" violation
+### WR-02: `LauncherSpool` and `Progress` share the `donut_large` glyph — silent "icon-never-twice" violation — RESOLVED (commit 814885a)
+
+**Resolution:** (a) `LauncherSpool` now uses a distinct `database` ligature (`Progress` keeps `donut_large`). (b) Added `DinghyIconsTest.iconRef_isUnique_acrossAllEntries`, asserting on `it.primary` (the rendered `IconRef`), not just `alternate` — non-vacuous (would have failed on the pre-fix dup: refs 45 != distinct 44). Test ran and passed in `:app:testDebugUnitTest`. (Note for WR-03: any *intentional* future shared-drawable token, e.g. RetractSpeed/UnretractSpeed both on `R.drawable.sprint`, must be explicitly allow-listed in that test rather than weakening it.)
 
 **File:** `app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt:29` and `:45`
 **Issue:** `Progress = DinghyIcon(IconRef.Ligature("donut_large"), …)` and `LauncherSpool = DinghyIcon(IconRef.Ligature("donut_large"), …)` use the SAME Material Symbols ligature. The registry KDoc and the launcher-block comment both assert the "icon-never-twice" / "icon-no-repeat" rule, and both icons render on the SAME PrintStatus screen: `Progress` is the Spoolman-print-line glyph (`SpoolmanPrintLine`, PrintStatusScreen.kt:1446) and `LauncherSpool` is the Spool launcher/shortcut tile (PrintStatusScreen.kt:1160). So two distinct affordances draw an identical donut glyph in the same view — exactly the duplication the convention forbids. `DinghyIconsTest` only enforces uniqueness of `alternate`, NOT of the underlying `IconRef`, so this passes green and the regression is invisible to the suite.
@@ -98,7 +104,9 @@ val UnretractSpeed = DinghyIcon(IconRef.Drawable(R.drawable.sprint), alternate =
 ```
 (They will collide with WR-02's proposed `IconRef`-uniqueness test, which is correct to call out — a shared *drawable* across distinct *semantic* tokens is the one legitimate exception and should be allow-listed, not the accidental ligature dup in WR-02.)
 
-### WR-04: Stale/dangling references left after edits (unused import + unresolvable KDoc link)
+### WR-04: Stale/dangling references left after edits (unused import + unresolvable KDoc link) — RESOLVED (commit 4847a0e)
+
+**Resolution:** (1) Alphabetized the `works.mees.dinghy.*` import block in `ScanSurface.kt` (moved `preview.PreviewPlaceholderBox` into order after the `designsystem.*` imports). (2) Fully-qualified the `[works.mees.dinghy.preview.PreviewPlaceholderBox]` KDoc link in `SpoolPreviews.kt`. Verified `:app:assembleDebug` green.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/spool/scan/ScanSurface.kt:37`; `app/src/main/java/works/mees/dinghy/preview/SpoolPreviews.kt:47`
 **Issue:** Two loose ends from this phase's edits:
