@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-07T18:00:12.552Z"
+status: verifying
+last_updated: "2026-06-07T18:25:00.477Z"
 last_activity: 2026-06-07
 progress:
   total_phases: 28
-  completed_phases: 18
+  completed_phases: 19
   total_plans: 139
-  completed_plans: 136
-  percent: 64
+  completed_plans: 137
+  percent: 68
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 18.1 (icon-system-conformance) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
   → **Plan 18-07 (Wave 5: Spool exemplar #3 + PREVIEW_AND_TOKENS.md convention) — CRASH-RECOVERY CLOSE-OUT 2026-06-06.** The original executor committed all 3 implementation/docs commits but CRASHED before writing the SUMMARY / advancing STATE / flipping ROADMAP. Close-out pass verified the committed work against the plan, re-ran the authoritative gate on the merged tree, and wrote the SUMMARY + tracking — **no work re-implemented.** Commits: `97b65a2` (feat — `preview/SpoolPreviews.kt`: `SpoolSelectionProvider` no-selection/selected driving the MINIMIZED matrix on `SampleFixtures.spoolList` [`PreviewBox`×9], `@Nexus7Previews`; stateless `SpoolScreen(state=)` + shared `SpoolContent` seam [no Moonraker]; 20 `stringResource(spool_*/cd_spool_*/common_back)` + 7 `DinghyIconView(DinghyIcons.*)`; **D-05 branch applied to the CameraX `PreviewView` in `ScanSurface.kt` on `LocalInspectionMode`→`PreviewPlaceholderBox`** — NOT a Coil thumb, because Spool has NONE [its QR is `painterResource`, preview-safe]; the scan camera is its real preview-unsafe surface, RESEARCH Q5; +Inventory/Palette/CalendarAddOn/CheckCircle/Archive icons; D-03 respected [0 `@Stable`/`@Immutable`/`ImmutableList`]) + `c614aae` (docs — `docs/ui_design/PREVIEW_AND_TOKENS.md` [229 lines, the authoritative preview-first/tokenized-first LAW Phases 19-21 follow: PreviewBox idiom, device/locale-only multipreview note, minimized-matrix shape, fs=L-via-`fsLargeSeed` gotcha, `<area>_<element>`/`cd_*` convention, DinghyIcon registration, RTL start/end rule, ≥48dp+`cd_*` rider, D-04/D-05 placeholder idiom, D-03 EXCLUSION + shared-component/backfill boundary] + a CLAUDE.md UI-LAW pointer [SC-2 enforcement hook]; Spool instrumented-matcher migration = NO-OP, no `SpoolScreenTest`) + `8397891` (docs — `18-VALIDATION.md` finalized: per-task map filled for 18-02..18-07, `status=final`, `wave_0_complete=true`; **`nyquist_compliant` HELD `false`** [Codex LOW-9 — all CI rows ✅ but Studio-eyeball + flox rows owner-DEFERRED ⬜; flip only once recorded]; Phase-22 backfill deferral confirmed in ROADMAP §Phase 22). **Authoritative gate re-run on merged state (close-out):** `:app:assembleDebug` + full `:app:testDebugUnitTest` + `:app:compileDebugAndroidTestKotlin` → BUILD SUCCESSFUL, exit 0 (no regression). SUMMARY `b3e29f3` (`18-07-SUMMARY.md`). SC-1/SC-2/SC-3/SC-5 + D-01/D-02/D-05 closed (CI tier). **Phase 18 NOT verified/complete: 18-04's Task-3 on-device `start_dest` gate + the 3-exemplar Studio eyeball + flox smoke are owner-DEFERRED (Phase-17-UAT posture); orchestrator runs phase verification + flips `nyquist_compliant` once those are recorded.**
   → **Plan 18-04 (Wave 2: dev-gated start_dest deep-jump) — Tasks 1+2 EXECUTED + COMMITTED, PAUSED at the Task-3 on-device gate 2026-06-07.** Task 1 `e6ab0a2` (feat — pure `parseStartDest(raw): Dest?` in `ui/shell/StartDestMapping.kt`: null/blank/unknown→null, never throws on untrusted input [V5/T-18-04-02]; converted the 18-01 `StartDestMappingTest` compile scaffold to live assertions — every Dest name round-trips, garbage→null, whitespace-trimmed; `:app:testDebugUnitTest --tests *StartDestMappingTest` GREEN). Task 2 `6628b44` (feat — `MainActivity` reads the `start_dest` extra ONLY when `container.devCyclerEnabled` is true via a BOUNDED `runBlocking { withTimeoutOrNull(500) { devCyclerEnabled.first() } } ?: false` seam [`devCyclerEnabledBlocking()`, Codex MEDIUM-4 — NOT an unbounded `.first()`; defaults FALSE/inert on timeout]; `EXTRA_START_DEST` companion const mirrors `BenchActivity.EXTRA_SCENE`; `RootController` gains `startDest: Dest?` seeded into `ShellNavState.dest` ONCE in the `rememberShellNavState` initializer [NOT a `LaunchedEffect` in AppShell — RESEARCH Q3 anti-pattern]; gate-off/release passes `startDest=null` → PrintStatus default, Splash gate applies on top). `:app:assembleDebug` + FULL `:app:testDebugUnitTest` GREEN (no regression); other `RootController(container)`/`ShellNavState()` callers unaffected (new params default null). 0 deviations. **Task 3 = BLOCKING `checkpoint:human-verify` (on-device flox)**: build+install debug APK; with dev-enable ON `am start ... --es start_dest FineTune|Spool|PrintStatus` lands on each (after Splash, Klippy Ready); garbage `NotARealScreen` → default screen, no crash; release-inert from a CLEAN data state (`pm clear` so `dev_cycler_enabled`=FALSE default → extra IGNORED) AND confirm release exposes no `setDevCyclerEnabled(true)` UI path; optional D-06 spot-check jump to Temperature/Webcam. **18-04-SUMMARY.md NOT written + plan NOT complete until the owner reports the gate result** (per project memory the on-device gate may be owner-DEFERRED like Phase 17's UAT — orchestrator handles that).
   → **Phase 17 (Fine-Tune / Live-Adjust) — 17-01..17-05 COMPLETE + 17-06 autonomous work done; ON-DEVICE UAT OWNER-DEFERRED 2026-06-06.** Full wave run (worktrees off, sequential): 17-01 RED scaffolds (31 RED methods, both test sourcesets compile) → 17-04 11 Fine-Tune glyph drawables → 17-02 pure clamp-format gcode builders (M220/M221/velocity-limit/PA/M106/SET_RETRACTION, Locale.US, object-gated registry specs) + 17-03 state layer (7 nullable readback fields, null-safe diff-merge reducer, nullable config baselines, `firmware_retraction` in subscribe) → 17-05 Fine-Tune UI (one `FineTuneHolder` per spine w/ display-scaling + D-15 whole-group state-flip busy-lock + nullable long-press reset; Hub + Motion/Extrusion/FwRetraction screens; FW-retraction build-blind) → 17-06 entry/nav wiring (Print-Status Tune tile + drawer `instant_mix` tile, reset-to-Hub on entry) + **FULL host unit suite GREEN** (final gate, all 17-01 RED stubs closed) + APK built & installed on flox. **In-checkpoint polish:** owner reviewed remotely via screenshots (away from device) → caught landscape value-clipping → fix `73296fd` `fix(17-06): drop Fine-Tune tile label, rely on glyph` (label-less single-Row `[glyph][value][−+]` tile, consistent both orientations; tests + assembleDebug GREEN, reinstalled, re-shot — clipping resolved). **On-device functional UAT (state-flip / reject-path / mid-print speed effect / Adreno-320 perf — `17-UAT.md`, 8 checks all PENDING) DEFERRED by owner to a later session** (status: partial/deferred, surfaces in /gsd-progress + /gsd-audit-uat). Phase is NOT verified/complete: resume = run the 8 checks on flox+live printer, reply approved → write 17-06-SUMMARY → code-review + verifier gates → close. Screenshots in `17-fine-tune-live-adjust-panel/uat-shots/` (incl. `*b` fixed set).
@@ -214,6 +214,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 18 P07 | ~4min (crash-recovery close-out) | 3 tasks | 8 files |
 | Phase 18.1 P02 | 6 | 3 tasks | 3 files |
 | Phase 18.1 P03 | 12 | 3 tasks | 3 files |
+| Phase 18.1 P18.1-04 | close-out | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -388,6 +389,7 @@ Recent decisions affecting current work:
 - [Phase ?]: D-14: StatusOctagon renamed StatusStop (disabled_by_default square+X glyph, safety by shape distinctness)
 - [Phase ?]: D-15: 18.1 drawable-to-ligature flip is SIX entries (incl Increase/Decrease); only Nozzle/HeatBed remain IconRef.Drawable
 - [Phase ?]: 18.1-03: ProbeIconButton/StatusShape/DataSwatch helpers flipped drawable-typed params to ligature names (String), rendering DinghyIconView/MaterialSymbol internally; raw Compose icon sites swapped to ligatures (D-09, not promoted to registry)
+- [Phase ?]: Phase 18.1: icon system source-conformant app-wide; 13 superseded drawables deleted, 7 keepers preserved; on-device flox spot check owner-approved (no tofu, status shapes distinct); font v2.944 retained (D-13)
 
 ### Pending Todos
 
@@ -424,7 +426,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-07T17:59:56.965Z
-Stopped at: Phase 18.1 context gathered
+Last session: 2026-06-07T18:24:59.963Z
+Stopped at: Completed 18.1-04-PLAN.md (Phase 18.1 execution complete, 4/4)
 Resume file: 
 None

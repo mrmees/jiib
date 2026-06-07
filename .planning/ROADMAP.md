@@ -70,7 +70,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 16: Home / Print-Status Redesign** - Rework the home/status surface into its definitive form as the visual FOUNDATION for the remaining features (built before them to avoid later rework), leaving forward greyed/capability-gated entry points; no regression to the render/throttle primitives. Includes the conditional first-~10-layers **Z-babystep** control (moved from Fine-Tune) (completed 2026-06-06)
 - [ ] **Phase 17: Fine-Tune / Live-Adjust Panel** - A lean live-adjust tuner organized by failure-mode — **Motion** (speed M220, accel/max-velocity/SCV) and **Extrusion** (flow M221, pressure advance, firmware retraction if present, part-cooling fan) — wired from the stubbed Print-Status Tune button; capability-gated, keyboard-free, always-available; temps/pause linked not duplicated. (Z babystep moved to Phase 16; object exclusion → v2.) See 17-CONTEXT.md.
 - [x] **Phase 18: Preview Harness & Tokenization Foundation** - Compose `@Preview` harness + reusable fake-state fixtures (no printer/device), themed-token preview providers, Nexus-7 device profile, the string-resource + semantic-icon tokenization conventions, and a debug `start_dest` hook — so Phases 19-21 build preview-first & tokenized-first; infra + convention + 2-3 exemplar screens only (exhaustive every-screen backfill → Phase 22) (completed 2026-06-07)
-- [ ] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22.
+- [x] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22. (completed 2026-06-07)
 - [ ] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only.
 - [ ] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first.
 - [ ] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
@@ -843,7 +843,7 @@ Plans:
 
 **Out of scope** (tracked elsewhere): Phase-18 UAT Test 6 (en-XA pseudolocale on-device — `18-HUMAN-UAT.md`); the Temperature "No heaters" observation (a bug → `/gsd-debug`/todo); the per-screen icon-call-site tokenization + string/preview backfill (stays in Phase 22); font subsetting (Phase 22); the jiib rebrand (Phase 18.2); the color-reactive spool glyph (Phase 18.3).
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 **Wave 1**
 
@@ -853,7 +853,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 18.1-04-PLAN.md — Delete 13 superseded drawables + KDoc doc-link fixes + full no-regression gate + on-device spot check
+- [x] 18.1-04-PLAN.md — Delete 13 superseded drawables + KDoc doc-link fixes + full no-regression gate + on-device spot check
 
 ### Phase 18.2: jiib Rebrand (INSERTED)
 
