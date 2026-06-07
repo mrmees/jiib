@@ -67,6 +67,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.di.AppContainer
@@ -81,6 +82,7 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCard
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
+import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -174,6 +176,23 @@ fun PrintStatusScreen(
         status = activeSpool,
         detail = spoolDetail,
     )
+
+    // D-07 color precedence for the reactive spool glyph on the launcher tile + mid-print shortcut slot.
+    // These surfaces are ALREADY Spoolman-gated (standbyLauncherDests/spoolmanPresent), so this resolution
+    // only changes the icon the gated slot draws — never un-gates it. From state already collected (no new
+    // fetch): (1) the active Spoolman record's color FIRST, then (2) the active print's gcode
+    // filament_colors[0] FALLBACK (fires only when Spoolman IS present but the active record has no usable
+    // color — exactly D-07's middle tier), else (3) emptyList() → the empty spool (D-03). Index [0] / first
+    // only (D-09). The parse helpers null-guard malformed hex → that swatch drops → empty spool, never a throw.
+    val spoolSwatches: List<Color> = run {
+        val spoolmanColors = spoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
+        if (spoolmanColors.isNotEmpty()) {
+            spoolmanColors
+        } else {
+            val gcodeColor = metadata?.filamentColors?.firstOrNull()?.let(::parseNormalizedHex)
+            if (gcodeColor != null) listOf(gcodeColor) else emptyList()
+        }
+    }
 
     var showEstopGuard by remember { mutableStateOf(false) }
     var showCancelGuard by remember { mutableStateOf(false) }
@@ -306,6 +325,7 @@ fun PrintStatusScreen(
             errorLines = errorLines,
             babystepShown = babystepShown,
             spoolmanPresent = spoolmanPresent,
+            spoolSwatches = spoolSwatches,
             activeSpoolCardState = activeSpoolCardState,
             babystepStep = babystepStep,
             failureText = failureText,
@@ -389,6 +409,7 @@ fun PrintStatusScreen(
     httpBase: String = "",
     errorLines: List<String> = emptyList(),
     spoolmanPresent: Boolean = false,
+    spoolSwatches: List<Color> = emptyList(),
     activeSpoolCardState: ActiveSpoolCardState = ActiveSpoolCardState.Unavailable,
     hasBookmarkedMacros: Boolean = false,
     babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
@@ -417,6 +438,7 @@ fun PrintStatusScreen(
             errorLines = errorLines,
             babystepShown = babystepShown,
             spoolmanPresent = spoolmanPresent,
+            spoolSwatches = spoolSwatches,
             activeSpoolCardState = activeSpoolCardState,
             babystepStep = babystepStep,
             failureText = null,
@@ -450,6 +472,7 @@ private fun PrintStatusContent(
     errorLines: List<String>,
     babystepShown: Boolean,
     spoolmanPresent: Boolean,
+    spoolSwatches: List<Color>,
     activeSpoolCardState: ActiveSpoolCardState,
     babystepStep: Double,
     failureText: String?,
@@ -527,6 +550,7 @@ private fun PrintStatusContent(
             } else {
                 ShortcutRow(
                     spoolmanPresent = spoolmanPresent,
+                    spoolSwatches = spoolSwatches,
                     hasBookmarkedMacros = hasBookmarkedMacros,
                     onNavigate = onNavigate,
                     modifier = Modifier.fillMaxWidth(),
@@ -549,6 +573,7 @@ private fun PrintStatusContent(
                 Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LauncherGrid(
                         dests = ui.launcherDests,
+                        spoolSwatches = spoolSwatches,
                         onNavigate = onNavigate,
                         onOpenDrawer = onOpenDrawer,
                         modifier = Modifier.fillMaxSize().weight(1f),
@@ -1047,6 +1072,7 @@ private fun glanceLabel(name: String): String =
 @Composable
 private fun LauncherGrid(
     dests: List<LauncherDest>,
+    spoolSwatches: List<Color>,
     onNavigate: (Dest) -> Unit,
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1069,12 +1095,14 @@ private fun LauncherGrid(
                     if (d == LauncherDest.Drawer) {
                         LauncherTile(
                             dest = LauncherDest.Drawer,
+                            spoolSwatches = spoolSwatches,
                             onClick = onOpenDrawer,
                             modifier = Modifier.weight(cellWeight).fillMaxHeight(),
                         )
                     } else {
                         LauncherTile(
                             dest = d,
+                            spoolSwatches = spoolSwatches,
                             onClick = { launcherDestTarget(d)?.let(onNavigate) },
                             modifier = Modifier.weight(cellWeight).fillMaxHeight(),
                         )
@@ -1101,7 +1129,12 @@ private fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
 /** One neutral-outline launcher tile (navigation intent = neutral, UI-SPEC). ICON-ONLY (the text label
  *  was dropped on-device, 2026-06-06 UAT): the glyph fills the tile; [launcherLabel] now feeds a11y only. */
 @Composable
-private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun LauncherTile(
+    dest: LauncherDest,
+    spoolSwatches: List<Color>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     val label = stringResource(launcherLabelRes(dest))
@@ -1113,14 +1146,29 @@ private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modi
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        // Icon-only: the glyph owns the whole tile, enlarged to read across the room. DinghyIconView
-        // owns the a11y (the tile is visually icon-only) — the launcher label is the spoken cd.
-        DinghyIconView(
-            launcherIcon(dest),
-            tint = t.text2,
-            sizeDp = fsSp(40f, t.fs).dp,
-            contentDescription = label,
-        )
+        // Icon-only: the glyph owns the whole tile, enlarged to read across the room.
+        if (dest == LauncherDest.Spool) {
+            // D-06.1/.3: the Spool launcher tile (and the mid-print shortcut Spool slot, which routes
+            // through this same renderer) draws the reactive SpoolGlyph tinted by the resolved D-07
+            // swatches. Body/keyline stay neutral role tokens (matching the sibling tiles' t.text2);
+            // empty swatches → the honest empty spool (D-03). Same fsSp(40f) size as the other tiles.
+            SpoolGlyph(
+                swatches = spoolSwatches,
+                bodyTint = t.text2,
+                keyline = t.hair,
+                sizeDp = fsSp(40f, t.fs).dp,
+                contentDescription = label,
+            )
+        } else {
+            // DinghyIconView owns the a11y (the tile is visually icon-only) — the launcher label is the
+            // spoken cd.
+            DinghyIconView(
+                launcherIcon(dest),
+                tint = t.text2,
+                sizeDp = fsSp(40f, t.fs).dp,
+                contentDescription = label,
+            )
+        }
     }
 }
 
@@ -1185,6 +1233,7 @@ private fun launcherLabelRes(d: LauncherDest): Int = when (d) {
 @Composable
 private fun ShortcutRow(
     spoolmanPresent: Boolean,
+    spoolSwatches: List<Color>,
     hasBookmarkedMacros: Boolean,
     onNavigate: (Dest) -> Unit,
     modifier: Modifier = Modifier,
@@ -1209,7 +1258,12 @@ private fun ShortcutRow(
             )
         }
         tail.forEach { d ->
-            LauncherTile(dest = d, onClick = { launcherDestTarget(d)?.let(onNavigate) }, modifier = Modifier.weight(1f))
+            LauncherTile(
+                dest = d,
+                spoolSwatches = spoolSwatches,
+                onClick = { launcherDestTarget(d)?.let(onNavigate) },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
