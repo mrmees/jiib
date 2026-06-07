@@ -92,6 +92,27 @@
     <string name="finetune_motion_label">Motion</string>
     <string name="finetune_extrusion_label">Extrusion</string>
 
+    <!-- FW-Retraction group ENTRY tile (shown only when the printer reports a firmware_retraction object). -->
+    <string name="finetune_fw_retraction_label">Firmware Retraction</string>
+
+    <!--
+      Per-tuner names. These ride as the value tile's glyph contentDescription (the tile draws NO text
+      label — the glyph is the sole on-screen identity, 17-06), so they are a11y descriptions: cd_*.
+    -->
+    <string name="cd_finetune_speed">Speed</string>
+    <string name="cd_finetune_max_velocity">Maximum velocity</string>
+    <string name="cd_finetune_max_accel">Maximum acceleration</string>
+    <string name="cd_finetune_min_cruise">Minimum cruise ratio</string>
+    <string name="cd_finetune_scv">Square corner velocity</string>
+    <string name="cd_finetune_flow">Flow</string>
+    <string name="cd_finetune_pressure_advance">Pressure advance</string>
+    <string name="cd_finetune_smooth_time">Smooth time</string>
+    <string name="cd_finetune_part_fan">Part-cooling fan</string>
+
+    <!-- Value-tile ± nudge a11y descriptions (the screen's expected physical action). -->
+    <string name="cd_finetune_decrease">Decrease</string>
+    <string name="cd_finetune_increase">Increase</string>
+
     <!-- ============================ spool ============================= -->
     <string name="spool_title">Spool</string>
     <string name="spool_remaining_label">Remaining</string>

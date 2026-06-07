@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
@@ -28,6 +27,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 
@@ -113,7 +113,7 @@ fun FwRetractionScreen(
                     if (vm.hasFwRetraction) {
                         // Retract length (step 0.1).
                         FineTuneTile(
-                            iconRes = R.drawable.output_circle,
+                            icon = DinghyIcons.OutputCircle,
                             name = "Retract Len",
                             valueText = fmtValue(vm.retractLength, decimals = 2),
                             onDecrement = {
@@ -132,7 +132,7 @@ fun FwRetractionScreen(
                         )
                         // Unretract extra length (step 0.1).
                         FineTuneTile(
-                            iconRes = R.drawable.input_circle,
+                            icon = DinghyIcons.InputCircle,
                             name = "Unretract Extra",
                             valueText = fmtValue(vm.unretractExtraLength, decimals = 2),
                             onDecrement = {
@@ -151,7 +151,7 @@ fun FwRetractionScreen(
                         )
                         // Retract speed (step 1).
                         FineTuneTile(
-                            iconRes = R.drawable.sprint,
+                            icon = DinghyIcons.MaxAccel,
                             name = "Retract Spd",
                             valueText = fmtValue(vm.retractSpeed, decimals = 0),
                             onDecrement = {
@@ -170,7 +170,7 @@ fun FwRetractionScreen(
                         )
                         // Unretract speed (step 1).
                         FineTuneTile(
-                            iconRes = R.drawable.sprint,
+                            icon = DinghyIcons.MaxAccel,
                             name = "Unretract Spd",
                             valueText = fmtValue(vm.unretractSpeed, decimals = 0),
                             onDecrement = {

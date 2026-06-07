@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
@@ -30,6 +31,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 
@@ -162,8 +164,8 @@ private fun ExtrusionContent(
                     // Reset = M221 S100 (protocol 100%, always available — no baseline, D-16).
                     if (vm.hasGcodeMove) {
                         FineTuneTile(
-                            iconRes = R.drawable.output_circle,
-                            name = "Flow",
+                            icon = DinghyIcons.OutputCircle,
+                            name = stringResource(R.string.cd_finetune_flow),
                             valueText = vm.flowPct?.let { "$it%" } ?: DASH,
                             onDecrement = {
                                 val cur = vm.flowPct ?: return@FineTuneTile
@@ -189,8 +191,8 @@ private fun ExtrusionContent(
                     // Reset → baseline if non-null else null (REVIEW #3).
                     if (vm.hasExtruder) {
                         FineTuneTile(
-                            iconRes = R.drawable.text_select_move_forward,
-                            name = "Press Adv",
+                            icon = DinghyIcons.PressureAdvance,
+                            name = stringResource(R.string.cd_finetune_pressure_advance),
                             valueText = if (vm.pressureAdvance == null) {
                                 DASH
                             } else {
@@ -226,8 +228,8 @@ private fun ExtrusionContent(
                         // D-10 Smooth time (step 0.01, SET_PRESSURE_ADVANCE SMOOTH_TIME).
                         // Reset → baseline (from CONFIG pressure_advance_smooth_time) if non-null else null.
                         FineTuneTile(
-                            iconRes = R.drawable.avg_time,
-                            name = "Smooth",
+                            icon = DinghyIcons.SmoothTime,
+                            name = stringResource(R.string.cd_finetune_smooth_time),
                             valueText = if (vm.smoothTime == null) {
                                 DASH
                             } else {
@@ -265,8 +267,8 @@ private fun ExtrusionContent(
                     // exists for a Klipper [fan] (A2 / Open-Q1 / REVIEW #3); owner confirms at UAT.
                     if (vm.hasFan) {
                         FineTuneTile(
-                            iconRes = R.drawable.mode_fan,
-                            name = "Part Fan",
+                            icon = DinghyIcons.FanMode,
+                            name = stringResource(R.string.cd_finetune_part_fan),
                             valueText = vm.partFanPct?.let { "$it%" } ?: DASH,
                             onDecrement = {
                                 val cur = vm.partFanPct ?: return@FineTuneTile
@@ -288,7 +290,7 @@ private fun ExtrusionContent(
                     // FW-Retraction ENTRY — shown ONLY when the object is present; tap → onFwRetraction (D-12).
                     if (vm.hasFwRetraction) {
                         OutlinedControl(
-                            label = "Firmware Retraction",
+                            label = stringResource(R.string.finetune_fw_retraction_label),
                             onClick = onFwRetraction,
                             modifier = Modifier.fillMaxWidth(),
                             intent = Intent.Accent,
@@ -300,7 +302,7 @@ private fun ExtrusionContent(
             gutter = {
                 Row(Modifier.fillMaxWidth().padding(8.dp)) {
                     OutlinedControl(
-                        label = "Back",
+                        label = stringResource(R.string.common_back),
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth(),
                         intent = Intent.Neutral,

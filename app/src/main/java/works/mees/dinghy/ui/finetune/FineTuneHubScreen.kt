@@ -1,6 +1,5 @@
 package works.mees.dinghy.ui.finetune
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,20 +11,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -39,7 +39,8 @@ import works.mees.dinghy.theme.fsSp
  * [FineTuneGroup] (REVIEW #4 — explicit typed callback, no stringly route).
  *
  * Field-only [ScreenScaffold]; gutter Back = [Intent.Neutral] (15.2 C7 — plain nav spends no safety
- * color). Static styling only (Adreno-320 floor). Every color routes through [LocalTokens].
+ * color). Static styling only (Adreno-320 floor). Every color routes through [LocalTokens]. This entry is
+ * inherently stateless (no [works.mees.dinghy.di.AppContainer]) so a preview drives it directly (18-06).
  *
  * @param onNavigate invoked with the tapped [FineTuneGroup] (17-06 wires the sub-route).
  * @param onBack     the neutral Back gutter exit.
@@ -60,7 +61,7 @@ fun FineTuneHubScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Fine-Tune",
+                        text = stringResource(R.string.finetune_title),
                         color = t.text,
                         fontFamily = Geist,
                         fontWeight = FontWeight.SemiBold,
@@ -68,14 +69,14 @@ fun FineTuneHubScreen(
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     )
                     HubEntry(
-                        iconRes = R.drawable.speed,
-                        label = "Motion",
+                        icon = DinghyIcons.Speed,
+                        label = stringResource(R.string.finetune_motion_label),
                         onClick = { onNavigate(FineTuneGroup.MOTION) },
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                     HubEntry(
-                        iconRes = R.drawable.output_circle,
-                        label = "Extrusion",
+                        icon = DinghyIcons.OutputCircle,
+                        label = stringResource(R.string.finetune_extrusion_label),
                         onClick = { onNavigate(FineTuneGroup.EXTRUSION) },
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
@@ -94,14 +95,14 @@ fun FineTuneHubScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = painterResource(R.drawable.keyboard_return),
-                                contentDescription = null,
+                            DinghyIconView(
+                                icon = DinghyIcons.KeyboardReturn,
                                 tint = t.text,
-                                modifier = Modifier.size(fsSp(24f, t.fs).dp),
+                                sizeDp = fsSp(24f, t.fs).dp,
+                                contentDescription = null, // label below is the spoken affordance.
                             )
                             Text(
-                                text = "  Back",
+                                text = "  " + stringResource(R.string.common_back),
                                 color = t.text,
                                 fontFamily = Geist,
                                 fontWeight = FontWeight.SemiBold,
@@ -118,7 +119,7 @@ fun FineTuneHubScreen(
 /** One large accent-outlined hub entry: glyph over the label, centered. NO live value (D-20). */
 @Composable
 private fun HubEntry(
-    @DrawableRes iconRes: Int,
+    icon: DinghyIcon,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -136,11 +137,11 @@ private fun HubEntry(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
+            DinghyIconView(
+                icon = icon,
                 tint = t.accent2,
-                modifier = Modifier.size(fsSp(48f, t.fs).dp),
+                sizeDp = fsSp(48f, t.fs).dp,
+                contentDescription = null, // the label below is the spoken affordance.
             )
             Text(
                 text = label,

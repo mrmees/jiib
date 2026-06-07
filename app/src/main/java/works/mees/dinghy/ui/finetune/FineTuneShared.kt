@@ -1,9 +1,9 @@
 package works.mees.dinghy.ui.finetune
 
-import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import works.mees.dinghy.command.VelocityLimitArgs
+import works.mees.dinghy.designsystem.icons.DinghyIcon
 
 /** Unreported value placeholder (D-20: "—", never a fabricated 0). */
 internal const val DASH = "—"
@@ -46,7 +46,7 @@ internal fun fmtValue(v: Double?, decimals: Int): String {
  */
 @Composable
 internal fun VelocityLimitTile(
-    @DrawableRes iconRes: Int,
+    icon: DinghyIcon,
     name: String,
     value: Double?,
     unit: String,
@@ -64,7 +64,7 @@ internal fun VelocityLimitTile(
         dispatch(VelocityLimitArgs(field, target))
     }
     FineTuneTile(
-        iconRes = iconRes,
+        icon = icon,
         name = name,
         valueText = if (value == null) DASH else fmtValue(value, decimals = 2) + unit,
         onDecrement = { value?.let { nudge((it - step).coerceAtLeast(0.0)) } },

@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -28,6 +29,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 
@@ -155,8 +157,8 @@ private fun MotionContent(
                     // always available — no baseline needed, D-16).
                     if (vm.hasGcodeMove) {
                         FineTuneTile(
-                            iconRes = R.drawable.speed,
-                            name = "Speed",
+                            icon = DinghyIcons.Speed,
+                            name = stringResource(R.string.cd_finetune_speed),
                             valueText = vm.speedPct?.let { "$it%" } ?: DASH,
                             onDecrement = {
                                 val cur = vm.speedPct ?: return@FineTuneTile
@@ -181,8 +183,8 @@ private fun MotionContent(
                     // D-04 Max velocity (step 10, SET_VELOCITY_LIMIT VELOCITY, gate toolhead).
                     if (vm.hasToolhead) {
                         VelocityLimitTile(
-                            iconRes = R.drawable.arrow_shape_up_stack_2,
-                            name = "Max Vel",
+                            icon = DinghyIcons.MaxVelocity,
+                            name = stringResource(R.string.cd_finetune_max_velocity),
                             value = vm.maxVelocity,
                             unit = " mm/s",
                             step = VEL_STEP,
@@ -196,8 +198,8 @@ private fun MotionContent(
                         )
                         // D-05 Max accel (step 100, SET_VELOCITY_LIMIT ACCEL).
                         VelocityLimitTile(
-                            iconRes = R.drawable.sprint,
-                            name = "Max Accel",
+                            icon = DinghyIcons.MaxAccel,
+                            name = stringResource(R.string.cd_finetune_max_accel),
                             value = vm.maxAccel,
                             unit = "",
                             step = ACCEL_STEP,
@@ -212,8 +214,8 @@ private fun MotionContent(
                         // D-06 Minimum cruise ratio — DISPLAY percent, send ratio (REVIEW #9).
                         // step 5 percentage points = 0.05 ratio.
                         FineTuneTile(
-                            iconRes = R.drawable.directions_boat,
-                            name = "Min Cruise",
+                            icon = DinghyIcons.MinCruise,
+                            name = stringResource(R.string.cd_finetune_min_cruise),
                             valueText = vm.minCruisePct?.let { "$it%" } ?: DASH,
                             onDecrement = {
                                 val cur = vm.minCruisePct ?: return@FineTuneTile
@@ -244,8 +246,8 @@ private fun MotionContent(
                         )
                         // D-07 Square-corner velocity (step 0.1, SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY).
                         VelocityLimitTile(
-                            iconRes = R.drawable.rounded_corner,
-                            name = "SCV",
+                            icon = DinghyIcons.SquareCornerVelocity,
+                            name = stringResource(R.string.cd_finetune_scv),
                             value = vm.scv,
                             unit = " mm/s",
                             step = SCV_STEP,
@@ -264,7 +266,7 @@ private fun MotionContent(
             gutter = {
                 Row(Modifier.fillMaxWidth().padding(8.dp)) {
                     OutlinedControl(
-                        label = "Back",
+                        label = stringResource(R.string.common_back),
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth(),
                         intent = Intent.Neutral, // 15.2 C7: plain nav spends no safety color.

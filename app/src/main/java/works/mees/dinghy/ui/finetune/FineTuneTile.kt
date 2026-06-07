@@ -1,6 +1,5 @@
 package works.mees.dinghy.ui.finetune
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,11 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -32,9 +34,9 @@ import works.mees.dinghy.theme.fsSp
  * `icon · live-value · − · +`.
  *
  * ## No text label — the glyph identifies the tunable (17-06 polish)
- * The tile carries **no name/title Text** in either orientation; the per-row [iconRes] glyph is the sole
- * identity affordance (the design system's "dense cells drop labels" rule). [name] is retained as the
- * icon's `contentDescription` for TalkBack and as the call-site's documented intent — it is never drawn.
+ * The tile carries **no name/title Text** in either orientation; the per-row [icon] glyph is the sole
+ * identity affordance (the design system's "dense cells drop labels" rule). [name] is the icon's
+ * `contentDescription` for TalkBack and the call-site's documented intent — it is never drawn.
  * Dropping the stacked label is what frees the vertical room so the big tabular value can render fully
  * (vertically centered) without clipping on the Adreno-320 / 1920×1200 floor; the value font is NOT
  * shrunk to fit. The tile is now a single centered Row: `[glyph]  [big value]  [ − ] [ + ]`.
@@ -53,10 +55,10 @@ import works.mees.dinghy.theme.fsSp
  * busy whole-group lock serializes taps — there is no optimistic local state, the value is the live vm
  * reduced value the caller passes in.
  *
- * Glyphs come from the 17-04 project-local vector drawables via [painterResource] + [Icon] tinting — NOT
- * the Material Symbols font (D-17, minSdk-23 / Adreno-320, no font dependency).
+ * Glyphs route through [DinghyIconView] over the [DinghyIcons] registry (18-06 tokenization): the
+ * project-local vector drawables (17-04, D-17 — minSdk-23 / Adreno-320, no Material Symbols font dep).
  *
- * @param iconRes    the 17-04 R.drawable glyph for this tuner (the sole on-screen identity).
+ * @param icon       the [DinghyIcon] glyph for this tuner (the sole on-screen identity).
  * @param name       the tuner label — NOT drawn; used as the glyph's accessibility contentDescription.
  * @param valueText  the live, display-scaled value ("—" when unreported, never a fabricated 0).
  * @param onDecrement − nudge (one command per tap; confirmed by the reduced state flip).
@@ -66,7 +68,7 @@ import works.mees.dinghy.theme.fsSp
  */
 @Composable
 fun FineTuneTile(
-    @DrawableRes iconRes: Int,
+    icon: DinghyIcon,
     name: String,
     valueText: String,
     onDecrement: () -> Unit,
@@ -89,11 +91,11 @@ fun FineTuneTile(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Identity = glyph only (no text label — 17-06; `name` rides as the contentDescription).
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = name,
+            DinghyIconView(
+                icon = icon,
                 tint = if (enabled) t.text2 else t.text3,
-                modifier = Modifier.size(fsSp(34f, t.fs).dp),
+                sizeDp = fsSp(34f, t.fs).dp,
+                contentDescription = name,
             )
             // Tap-INERT value cell. Long-press resets ONLY when onReset != null (REVIEW #3).
             // Vertically centered in the row + weight(1f) so the big value can never clip in either
@@ -139,17 +141,15 @@ private fun NudgeCell(
         .border(BorderStroke(2.dp, if (enabled) t.accentLine else t.hair), shape)
     if (enabled) cell = cell.clickable(onClick = onClick)
     Box(cell, contentAlignment = Alignment.Center) {
-        Icon(
-            painter = painterResource(
-                if (decrement) {
-                    works.mees.dinghy.R.drawable.remove
-                } else {
-                    works.mees.dinghy.R.drawable.add
-                },
-            ),
-            contentDescription = if (decrement) "decrease" else "increase",
+        DinghyIconView(
+            icon = if (decrement) DinghyIcons.Decrease else DinghyIcons.Increase,
             tint = if (enabled) t.accent2 else t.text3,
-            modifier = Modifier.size(fsSp(34f, t.fs).dp),
+            sizeDp = fsSp(34f, t.fs).dp,
+            contentDescription = if (decrement) {
+                stringResource(R.string.cd_finetune_decrease)
+            } else {
+                stringResource(R.string.cd_finetune_increase)
+            },
         )
     }
 }

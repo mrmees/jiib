@@ -52,6 +52,22 @@ object DinghyIcons {
     val FanMode = DinghyIcon(IconRef.Drawable(R.drawable.mode_fan), alternate = "fan_mode")
     val Speed = DinghyIcon(IconRef.Drawable(R.drawable.speed), alternate = "speed")
 
+    // --- FineTune exemplar glyphs (18-06; project-local vectors, D-17 — no Material Symbols font) ---
+    val KeyboardReturn = DinghyIcon(IconRef.Drawable(R.drawable.keyboard_return), alternate = "keyboard_return")
+    val OutputCircle = DinghyIcon(IconRef.Drawable(R.drawable.output_circle), alternate = "output_circle")
+    val MaxVelocity =
+        DinghyIcon(IconRef.Drawable(R.drawable.arrow_shape_up_stack_2), alternate = "max_velocity")
+    val MaxAccel = DinghyIcon(IconRef.Drawable(R.drawable.sprint), alternate = "max_accel")
+    val MinCruise = DinghyIcon(IconRef.Drawable(R.drawable.directions_boat), alternate = "min_cruise")
+    val SquareCornerVelocity =
+        DinghyIcon(IconRef.Drawable(R.drawable.rounded_corner), alternate = "square_corner_velocity")
+    val PressureAdvance =
+        DinghyIcon(IconRef.Drawable(R.drawable.text_select_move_forward), alternate = "pressure_advance")
+    val SmoothTime = DinghyIcon(IconRef.Drawable(R.drawable.avg_time), alternate = "smooth_time")
+    val Decrease = DinghyIcon(IconRef.Drawable(R.drawable.remove), alternate = "decrease")
+    val Increase = DinghyIcon(IconRef.Drawable(R.drawable.add), alternate = "increase")
+    val InputCircle = DinghyIcon(IconRef.Drawable(R.drawable.input_circle), alternate = "input_circle")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -63,5 +79,7 @@ object DinghyIcons {
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
         BabystepCompress, BabystepExpand, StatusOctagon, Nozzle, HeatBed, FanMode, Speed,
+        KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
+        PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
     )
 }
