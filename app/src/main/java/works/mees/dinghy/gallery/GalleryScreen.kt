@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.bench.SyntheticFeed
@@ -31,6 +32,8 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.render.ProgressRing
@@ -215,6 +218,40 @@ fun GalleryScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl("Danger", {}, Modifier.weight(1f), Intent.Danger)
             OutlinedControl("Go", {}, Modifier.weight(1f), Intent.Go)
+        }
+
+        // ---- DINGHY ICON REGISTRY — every DinghyIcons.all entry ---------------------------------
+        // The on-device proof (D-07) that every registered icon resolves + shows its remap-handle
+        // (`alternate`) name. A simple chunked Row grid (NOT LazyVerticalGrid — this Column is
+        // already inside a verticalScroll). Labels use the established fsSp(13f) scale (>=13sp floor,
+        // per CLAUDE.md font LAW) — NEVER a raw unscaled .sp literal.
+        SectionLabel("DinghyIcon registry — every DinghyIcons.all entry")
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (row in DinghyIcons.all.chunked(4)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (icon in row) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            DinghyIconView(
+                                icon = icon,
+                                tint = tokens.text,
+                                sizeDp = 28.dp,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = icon.alternate,
+                                color = tokens.text2,
+                                fontFamily = GeistMono,
+                                fontSize = fsSp(13f, tokens.fs).sp,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // ---- SEVERITY TOAST — all four severities -----------------------------------------------
