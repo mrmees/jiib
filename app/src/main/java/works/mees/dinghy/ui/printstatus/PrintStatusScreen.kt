@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -61,10 +63,12 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrintStartArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.ProgressRing
 import works.mees.dinghy.state.HeaterState
@@ -318,10 +322,10 @@ fun PrintStatusScreen(
 
         if (showEstopGuard) {
             ConfirmGuard(
-                title = "Emergency stop?",
-                message = "Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.",
-                confirmLabel = "Emergency stop",
-                cancelLabel = "Cancel",
+                title = stringResource(R.string.printstatus_estop_guard_title),
+                message = stringResource(R.string.printstatus_estop_guard_message),
+                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
+                cancelLabel = stringResource(R.string.common_cancel),
                 onConfirm = {
                     dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
                     showEstopGuard = false
@@ -332,10 +336,10 @@ fun PrintStatusScreen(
         }
         if (showCancelGuard) {
             ConfirmGuard(
-                title = "Cancel print?",
-                message = "This stops the current job. The printer will not finish this print.",
-                confirmLabel = "Cancel print",
-                cancelLabel = "Keep printing",
+                title = stringResource(R.string.printstatus_cancel_guard_title),
+                message = stringResource(R.string.printstatus_cancel_guard_message),
+                confirmLabel = stringResource(R.string.printstatus_cancel_guard_confirm),
+                cancelLabel = stringResource(R.string.printstatus_cancel_guard_keep),
                 onConfirm = {
                     dispatcher?.dispatch(CommandRegistry.printCancel, Unit)
                     pendingAction = PrintStatusPendingAction.Cancel
@@ -641,16 +645,22 @@ private fun PrintStatusFocus(
                             modifier = Modifier.fillMaxWidth().aspectRatio(1600f / 900f),
                         )
                     } else if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
-                        // Default Coil loader (coil-network-okhttp on the classpath) — cleartext to the
-                        // LAN printer rides the same NSC posture as the websocket/REST.
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(thumbnailUrl(httpBase, filename, thumbRel))
-                                .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        // D-05/D-02 preview branch: a Coil AsyncImage never loads under @Preview
+                        // (LocalInspectionMode) — render the labeled placeholder so the previewed ring
+                        // center is not blank, else the live cleartext-LAN thumbnail load (coil-network-
+                        // okhttp on the classpath, same NSC posture as the websocket/REST).
+                        if (LocalInspectionMode.current) {
+                            PreviewPlaceholderBox(label = "Thumbnail", modifier = Modifier.fillMaxSize())
+                        } else {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl(httpBase, filename, thumbRel))
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     } else if (filename.isNotBlank()) {
                         // No preview thumbnail available → the filename itself lives in the ring center,
                         // marquee-scrolling if it's too long to fit on one line (Matthew, 2026-06-01).
@@ -674,7 +684,7 @@ private fun PrintStatusFocus(
                 Text(
                     text = if (state.printState == PrintState.Printing)
                         "${(state.progress * 100).roundToInt()}%"
-                    else statusLabel(state.printState),
+                    else stringResource(statusLabelRes(state.printState)),
                     color = t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
@@ -689,14 +699,15 @@ private fun PrintStatusFocus(
                 if (paused) {
                     // Render the glyph WITHOUT a fixed-size Box: a font glyph's line box is ~1.17× its
                     // fontSize, so wrapping it in a `size(fontSize)` Box capped the Text height and shaved
-                    // the circle's bottom (2026-06-06 UAT). Let MaterialSymbol size itself (no height cap)
-                    // and just center it on the ring — sizeSp tracks the ring so it still scales/can't crop.
-                    MaterialSymbol(
-                        "pause_circle",
+                    // the circle's bottom (2026-06-06 UAT). Let the glyph size itself (no height cap)
+                    // and just center it on the ring — sizeDp tracks the ring so it still scales/can't crop.
+                    // DinghyIconView owns the a11y semantics (the cd is the sole spoken label).
+                    DinghyIconView(
+                        DinghyIcons.PauseCircle,
                         tint = t.text,
-                        sizeSp = ringSize.value * 0.4f,
-                        modifier = Modifier.align(Alignment.Center)
-                            .semantics { contentDescription = "Print paused" },
+                        sizeDp = (ringSize.value * 0.4f).dp,
+                        contentDescription = stringResource(R.string.cd_print_paused),
+                        modifier = Modifier.align(Alignment.Center),
                     )
                 }
             }
@@ -732,13 +743,13 @@ private fun StatGrid(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTwoRowCell(
-                icon = { sp -> MaterialSymbol("altitude", tint = t.text2, sizeSp = sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.Altitude, tint = t.text2, sizeDp = sp.dp) },
                 // Active = live Z; inactive = metadata object_height (final print height context), "—" when absent.
                 active = if (terminal) "—" else fmtZ(state), inactive = metadata?.objectHeight?.let { fmt(it) } ?: "—", activeColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
-                icon = { sp -> MaterialSymbol("layers", tint = t.text2, sizeSp = sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.Layers, tint = t.text2, sizeDp = sp.dp) },
                 active = if (terminal) "—" else (state.currentLayer?.toString() ?: "—"),
                 // Total = live slicer value preferred, metadata layer_count as the reliable fallback.
                 inactive = totalLayers(state, metadata),
@@ -756,19 +767,19 @@ private fun StatGrid(
             val nozzleColor = t.seriesColor(0)
             val bedColor = t.seriesColor(1)
             IconTwoRowCell(
-                icon = { sp -> DrawableIcon(R.drawable.nozzle, nozzleColor, sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.Nozzle, tint = nozzleColor, sizeDp = sp.dp) },
                 active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = nozzleColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
-                icon = { sp -> DrawableIcon(R.drawable.heat_bed, bedColor, sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.HeatBed, tint = bedColor, sizeDp = sp.dp) },
                 active = tempActive(bed), inactive = tempInactive(bed), activeColor = bedColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconValueCell(
-                icon = { sp -> MaterialSymbol("timer_arrow_up", tint = t.text2, sizeSp = sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.TimerUp, tint = t.text2, sizeDp = sp.dp) },
                 value = fmtDuration(state.printDuration), valueColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -776,7 +787,7 @@ private fun StatGrid(
             val remainingSeconds = metadata?.estimatedTime?.let { it * (1.0 - state.progress.coerceIn(0.0, 1.0)) }
             val remaining = remainingSeconds?.takeIf { it > 0.0 }?.let { fmtDuration(it) } ?: "—"
             IconValueCell(
-                icon = { sp -> MaterialSymbol("timer_arrow_down", tint = t.text2, sizeSp = sp) },
+                icon = { sp -> DinghyIconView(DinghyIcons.TimerDown, tint = t.text2, sizeDp = sp.dp) },
                 value = remaining, valueColor = if (remaining != "—") t.text else t.text3,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -787,20 +798,14 @@ private fun StatGrid(
         if (showZOffset) {
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconValueCell(
-                    icon = { sp -> MaterialSymbol("height", tint = t.text2, sizeSp = sp) },
-                    value = "Z offset ${fmtSignedZ(zOffset)}",
+                    icon = { sp -> DinghyIconView(DinghyIcons.Height, tint = t.text2, sizeDp = sp.dp) },
+                    value = stringResource(R.string.printstatus_z_offset, fmtSignedZ(zOffset)),
                     valueColor = if (zOffset != 0.0) t.text else t.text3,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
         }
     }
-}
-
-/** A bespoke vector glyph (nozzle / heat_bed) tinted to a token, sized to the cell (dp ≈ the icon sp). */
-@Composable
-private fun DrawableIcon(resId: Int, tint: Color, sizeSp: Float) {
-    Icon(painter = painterResource(resId), contentDescription = null, tint = tint, modifier = Modifier.size(sizeSp.dp))
 }
 
 /** Icon font size as a fraction of the cell height — kept SMALL so the icon is a quiet indicator and
@@ -886,6 +891,7 @@ private fun PrintStatusControlTile(
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = if (control.enabled) controlColor(control, t) else t.hair
+    val cancelCd = stringResource(R.string.cd_cancel_print)
     val base = modifier
         .heightIn(min = 64.dp)
         .clip(shape)
@@ -894,7 +900,7 @@ private fun PrintStatusControlTile(
             if (control.accessibilityAction == PrintStatusControlAction.GracefulCancel && control.enabled) {
                 Modifier.semantics {
                     customActions = listOf(
-                        CustomAccessibilityAction("Cancel print") {
+                        CustomAccessibilityAction(cancelCd) {
                             onHold()
                             true
                         },
@@ -961,11 +967,11 @@ private fun StopButton(onTap: () -> Unit, onHold: () -> Unit, modifier: Modifier
         // D-01/D-02: the octagon stop-status silhouette (a redundant non-color cue for the stop state).
         // Explicit fsSp-scaled size — do NOT rely on the 96dp intrinsic. [[dinghy-font-sizes-too-small]]:
         // the glyph tracks adjacent control text via fsSp(baseSp, t.fs).
-        Icon(
-            painter = painterResource(R.drawable.ic_status_octagon),
-            contentDescription = "stop",
+        DinghyIconView(
+            DinghyIcons.StatusOctagon,
             tint = t.stop,
-            modifier = Modifier.size(fsSp(32f, t.fs).dp),
+            sizeDp = fsSp(32f, t.fs).dp,
+            contentDescription = stringResource(R.string.cd_emergency_stop),
         )
     }
 }
@@ -1007,11 +1013,11 @@ private fun StandbyFocus(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            GlanceRow("nozzle-temp", "Nozzle", tempActive(nozzle), t.seriesColor(0))
-            GlanceRow("heat-bed", "Bed", tempActive(bed), t.seriesColor(1))
+            GlanceRow("nozzle-temp", stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
+            GlanceRow("heat-bed", stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
             glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
             if (spoolmanPresent && spoolRemaining != null) {
-                GlanceRow("spool", "Spool", "${spoolRemaining.roundToInt()} g", t.text)
+                GlanceRow("spool", stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
             }
         }
     }
@@ -1097,18 +1103,23 @@ private fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
 private fun LauncherTile(dest: LauncherDest, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
-    val label = launcherLabel(dest)
+    val label = stringResource(launcherLabelRes(dest))
     Box(
         modifier
             .heightIn(min = 64.dp)
             .clip(shape)
             .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = label },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        // Icon-only: the glyph owns the whole tile, enlarged to read across the room.
-        MaterialSymbol(launcherGlyph(dest), tint = t.text2, sizeSp = fsSp(40f, t.fs))
+        // Icon-only: the glyph owns the whole tile, enlarged to read across the room. DinghyIconView
+        // owns the a11y (the tile is visually icon-only) — the launcher label is the spoken cd.
+        DinghyIconView(
+            launcherIcon(dest),
+            tint = t.text2,
+            sizeDp = fsSp(40f, t.fs).dp,
+            contentDescription = label,
+        )
     }
 }
 
@@ -1126,37 +1137,43 @@ private fun TuneShortcutTile(onClick: () -> Unit, modifier: Modifier = Modifier)
             .heightIn(min = 64.dp)
             .clip(shape)
             .border(BorderStroke(2.dp, t.hair), shape)
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = "Tune" },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        MaterialSymbol("instant_mix", tint = t.text2, sizeSp = fsSp(40f, t.fs))
+        // Icon-only: DinghyIconView owns the a11y (the spoken "Tune" cd).
+        DinghyIconView(
+            DinghyIcons.FineTune,
+            tint = t.text2,
+            sizeDp = fsSp(40f, t.fs).dp,
+            contentDescription = stringResource(R.string.cd_tune),
+        )
     }
 }
 
-/** Distinct Material-Symbol glyph per launcher tile (icon-never-twice). */
-private fun launcherGlyph(d: LauncherDest): String = when (d) {
-    LauncherDest.Files -> "print_connect"
-    LauncherDest.Temperature -> "thermostat"
-    LauncherDest.Move -> "open_with"
-    LauncherDest.Extrude -> "output_circle"
-    LauncherDest.Calibration -> "tune"
-    LauncherDest.Spool -> "donut_large"
-    LauncherDest.Macros -> "bolt"
-    LauncherDest.Console -> "terminal"
-    LauncherDest.Drawer -> "more_horiz"
+/** Distinct semantic icon token per launcher tile (icon-never-twice), routed through [DinghyIcons]. */
+private fun launcherIcon(d: LauncherDest): works.mees.dinghy.designsystem.icons.DinghyIcon = when (d) {
+    LauncherDest.Files -> DinghyIcons.LauncherFiles
+    LauncherDest.Temperature -> DinghyIcons.LauncherTemperature
+    LauncherDest.Move -> DinghyIcons.LauncherMove
+    LauncherDest.Extrude -> DinghyIcons.LauncherExtrude
+    LauncherDest.Calibration -> DinghyIcons.LauncherCalibration
+    LauncherDest.Spool -> DinghyIcons.LauncherSpool
+    LauncherDest.Macros -> DinghyIcons.LauncherMacros
+    LauncherDest.Console -> DinghyIcons.LauncherConsole
+    LauncherDest.Drawer -> DinghyIcons.LauncherDrawer
 }
 
-private fun launcherLabel(d: LauncherDest): String = when (d) {
-    LauncherDest.Files -> "Files"
-    LauncherDest.Temperature -> "Temperature"
-    LauncherDest.Move -> "Move"
-    LauncherDest.Extrude -> "Extrude"
-    LauncherDest.Calibration -> "Calibration"
-    LauncherDest.Spool -> "Spool"
-    LauncherDest.Macros -> "Macros"
-    LauncherDest.Console -> "Console"
-    LauncherDest.Drawer -> "More"
+/** The tile's a11y label string-resource id (icon-only tiles; the label feeds TalkBack only). */
+private fun launcherLabelRes(d: LauncherDest): Int = when (d) {
+    LauncherDest.Files -> R.string.cd_launcher_files
+    LauncherDest.Temperature -> R.string.cd_launcher_temperature
+    LauncherDest.Move -> R.string.cd_launcher_move
+    LauncherDest.Extrude -> R.string.cd_launcher_extrude
+    LauncherDest.Calibration -> R.string.cd_launcher_calibration
+    LauncherDest.Spool -> R.string.cd_launcher_spool
+    LauncherDest.Macros -> R.string.cd_launcher_macros
+    LauncherDest.Console -> R.string.cd_launcher_console
+    LauncherDest.Drawer -> R.string.cd_launcher_drawer
 }
 
 /**
@@ -1214,18 +1231,19 @@ private fun BabystepRow(
     val t = LocalTokens.current
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         BabystepIconCell(
-            resId = R.drawable.ic_babystep_compress,
-            description = "Compress — move nozzle closer to bed",
+            icon = DinghyIcons.BabystepCompress,
+            description = stringResource(R.string.cd_babystep_compress),
             onClick = onCompress,
             modifier = Modifier.weight(1f),
         )
         // Center: step value only; tap cycles the size.
+        val stepCd = stringResource(R.string.cd_babystep_step_size, fmtStep(step))
         Box(
             Modifier.weight(1f).heightIn(min = 64.dp)
                 .clip(RoundedCornerShape(t.rCtrl))
                 .border(BorderStroke(2.dp, t.accentLine), RoundedCornerShape(t.rCtrl))
                 .clickable(onClick = onCycleStep)
-                .semantics { contentDescription = "Babystep step size, ${fmtStep(step)} millimeters — tap to change" },
+                .semantics { contentDescription = stepCd },
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -1237,8 +1255,8 @@ private fun BabystepRow(
             )
         }
         BabystepIconCell(
-            resId = R.drawable.ic_babystep_expand,
-            description = "Expand — move nozzle farther from bed",
+            icon = DinghyIcons.BabystepExpand,
+            description = stringResource(R.string.cd_babystep_expand),
             onClick = onExpand,
             modifier = Modifier.weight(1f),
         )
@@ -1248,7 +1266,12 @@ private fun BabystepRow(
 /** An accent-outline icon-only babystep cell (Compress/Expand). The glyph carries the action direction;
  *  [description] is the TalkBack contract (the cell is visually icon-only). */
 @Composable
-private fun BabystepIconCell(resId: Int, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun BabystepIconCell(
+    icon: works.mees.dinghy.designsystem.icons.DinghyIcon,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     Box(
@@ -1256,15 +1279,15 @@ private fun BabystepIconCell(resId: Int, description: String, onClick: () -> Uni
             .heightIn(min = 64.dp)
             .clip(shape)
             .border(BorderStroke(2.dp, t.accentLine), shape)
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = description },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = painterResource(resId),
-            contentDescription = null,
+        // DinghyIconView owns the a11y (the cell is visually icon-only) — [description] is the spoken cd.
+        DinghyIconView(
+            icon,
             tint = t.accentLine,
-            modifier = Modifier.size(fsSp(32f, t.fs).dp),
+            sizeDp = fsSp(32f, t.fs).dp,
+            contentDescription = description,
         )
     }
 }
@@ -1284,14 +1307,22 @@ private fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBas
         val size = minOf(maxWidth, maxHeight) * 0.9f
         Box(Modifier.size(size), contentAlignment = Alignment.Center) {
             if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(thumbnailUrl(httpBase, filename, thumbRel))
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
-                )
+                // D-05/D-02 preview branch: Coil doesn't load under @Preview → labeled placeholder.
+                if (LocalInspectionMode.current) {
+                    PreviewPlaceholderBox(
+                        label = "Thumbnail",
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                    )
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(thumbnailUrl(httpBase, filename, thumbRel))
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                    )
+                }
             } else {
                 Icon(
                     painter = painterResource(R.drawable.ic_launcher_foreground),
@@ -1302,7 +1333,7 @@ private fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBas
             }
             // The result label centered at the ring-bottom analog — the terminal outcome.
             Text(
-                statusLabel(state.printState),
+                stringResource(statusLabelRes(state.printState)),
                 color = t.text,
                 fontFamily = GeistMono,
                 fontWeight = FontWeight.Bold,
@@ -1330,10 +1361,10 @@ private fun TerminalStatsList(state: PrinterState, metadata: PrintMetadata?, mod
         else -> "—"
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
-        TerminalStatRow("File", file, marquee = true)
-        TerminalStatRow("Print time", time)
-        TerminalStatRow("Filament", filament)
-        TerminalStatRow("Layers", layers)
+        TerminalStatRow(stringResource(R.string.printstatus_terminal_file_label), file, marquee = true)
+        TerminalStatRow(stringResource(R.string.printstatus_print_time_label), time)
+        TerminalStatRow(stringResource(R.string.printstatus_terminal_filament_label), filament)
+        TerminalStatRow(stringResource(R.string.printstatus_terminal_layers_label), layers)
     }
 }
 
@@ -1412,9 +1443,9 @@ private fun SpoolmanPrintLine(
     val t = LocalTokens.current
     val availableG = (cardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight ?: return
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        MaterialSymbol("donut_large", tint = t.text2, sizeSp = fsSp(18f, t.fs))
+        DinghyIconView(DinghyIcons.Progress, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp)
         Text(
-            "Spool remaining ${availableG.roundToInt()} g",
+            stringResource(R.string.printstatus_spool_remaining, availableG.roundToInt()),
             color = t.text2,
             fontFamily = GeistMono,
             fontWeight = FontWeight.Medium,
@@ -1488,11 +1519,11 @@ private fun parseSpoolDetail(envelope: kotlinx.serialization.json.JsonElement?, 
 
 /** The printer's current print state as a short uppercase label for the ring center (idle/finished
  *  states); the Printing case is rendered as the live % instead. */
-private fun statusLabel(s: PrintState): String = when (s) {
-    PrintState.Standby -> "STANDBY"
-    PrintState.Printing -> "PRINTING"
-    PrintState.Paused -> "PAUSED"
-    PrintState.Complete -> "COMPLETE"
-    PrintState.Cancelled -> "CANCELLED"
-    PrintState.Error -> "ERROR"
+private fun statusLabelRes(s: PrintState): Int = when (s) {
+    PrintState.Standby -> R.string.printstatus_status_standby
+    PrintState.Printing -> R.string.printstatus_status_printing
+    PrintState.Paused -> R.string.printstatus_status_paused
+    PrintState.Complete -> R.string.printstatus_status_complete
+    PrintState.Cancelled -> R.string.printstatus_status_cancelled
+    PrintState.Error -> R.string.printstatus_status_error
 }

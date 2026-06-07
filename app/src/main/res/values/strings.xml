@@ -34,10 +34,58 @@
     <string name="printstatus_title">Print Status</string>
     <string name="printstatus_nozzle_label">Nozzle</string>
     <string name="printstatus_bed_label">Bed</string>
+    <string name="printstatus_spool_label">Spool</string>
     <string name="printstatus_print_time_label">Print time</string>
 
     <!-- Format-arg proof (SC-3): a single positional string substitution. -->
     <string name="printstatus_layer_progress">Layer %1$d of %2$d</string>
+
+    <!-- Ring-center status labels (idle/finished print states; the Printing case shows the live %). -->
+    <string name="printstatus_status_standby">STANDBY</string>
+    <string name="printstatus_status_printing">PRINTING</string>
+    <string name="printstatus_status_paused">PAUSED</string>
+    <string name="printstatus_status_complete">COMPLETE</string>
+    <string name="printstatus_status_cancelled">CANCELLED</string>
+    <string name="printstatus_status_error">ERROR</string>
+
+    <!-- Terminal summary-list row labels (finished-print summary). -->
+    <string name="printstatus_terminal_file_label">File</string>
+    <string name="printstatus_terminal_filament_label">Filament</string>
+    <string name="printstatus_terminal_layers_label">Layers</string>
+
+    <!-- Spoolman informational print line (active-spool remaining grams). -->
+    <string name="printstatus_spool_remaining">Spool remaining %1$d g</string>
+    <!-- Applied gcode Z-offset readout (sign + 3-decimal value, e.g. "+0.050"). -->
+    <string name="printstatus_z_offset">Z offset %1$s</string>
+
+    <!-- Emergency-stop confirmation guard. -->
+    <string name="printstatus_estop_guard_title">Emergency stop?</string>
+    <string name="printstatus_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
+    <string name="printstatus_estop_guard_confirm">Emergency stop</string>
+
+    <!-- Cancel-print confirmation guard. -->
+    <string name="printstatus_cancel_guard_title">Cancel print?</string>
+    <string name="printstatus_cancel_guard_message">This stops the current job. The printer will not finish this print.</string>
+    <string name="printstatus_cancel_guard_confirm">Cancel print</string>
+    <string name="printstatus_cancel_guard_keep">Keep printing</string>
+
+    <!-- printstatus contentDescription (cd_*) — TalkBack labels, never rendered as visible text. -->
+    <string name="cd_print_paused">Print paused</string>
+    <string name="cd_emergency_stop">Emergency stop</string>
+    <string name="cd_cancel_print">Cancel print</string>
+    <string name="cd_babystep_compress">Compress — move nozzle closer to bed</string>
+    <string name="cd_babystep_expand">Expand — move nozzle farther from bed</string>
+    <string name="cd_babystep_step_size">Babystep step size, %1$s millimeters — tap to change</string>
+    <string name="cd_launcher_files">Files</string>
+    <string name="cd_launcher_temperature">Temperature</string>
+    <string name="cd_launcher_move">Move</string>
+    <string name="cd_launcher_extrude">Extrude</string>
+    <string name="cd_launcher_calibration">Calibration</string>
+    <string name="cd_launcher_spool">Spool</string>
+    <string name="cd_launcher_macros">Macros</string>
+    <string name="cd_launcher_console">Console</string>
+    <string name="cd_launcher_drawer">More</string>
+    <string name="cd_tune">Tune</string>
 
     <!-- ========================== finetune ============================ -->
     <string name="finetune_title">Fine-Tune</string>
