@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import works.mees.dinghy.DinghyApp
+import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.di.SpineHandle
@@ -56,6 +58,13 @@ class FineTuneNavTest {
 
     private val app: DinghyApp = ApplicationProvider.getApplicationContext()
     private val container get() = app.container
+
+    // 18-06: matchers reference the tokenized resources (not literal text) so a vocabulary edit can't
+    // silently desync the assertion from the screen.
+    private val context: Context get() = app
+    private val fineTuneTitle get() = context.getString(R.string.finetune_title)
+    private val motionLabel get() = context.getString(R.string.finetune_motion_label)
+    private val extrusionLabel get() = context.getString(R.string.finetune_extrusion_label)
 
     private val testScope = CoroutineScope(SupervisorJob())
 
@@ -103,9 +112,9 @@ class FineTuneNavTest {
         composeRule.onRoot().performTouchInput { swipeUp() }
         composeRule.waitForIdle()
         // Fine-Tune is a lower tile in the lazy grid — scroll to it, then tap.
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Fine-Tune"))
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(fineTuneTitle))
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Fine-Tune").performClick()
+        composeRule.onNodeWithText(fineTuneTitle).performClick()
         composeRule.waitForIdle()
     }
 
@@ -125,10 +134,10 @@ class FineTuneNavTest {
 
         openFineTuneViaDrawer()
 
-        // The Fine-Tune Hub is shown: its "Fine-Tune" title + the Motion + Extrusion entries.
-        composeRule.onNodeWithText("Fine-Tune").assertIsDisplayed()
-        composeRule.onNodeWithText("Motion").assertIsDisplayed()
-        composeRule.onNodeWithText("Extrusion").assertIsDisplayed()
+        // The Fine-Tune Hub is shown: its title + the Motion + Extrusion entries.
+        composeRule.onNodeWithText(fineTuneTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(motionLabel).assertIsDisplayed()
+        composeRule.onNodeWithText(extrusionLabel).assertIsDisplayed()
     }
 
     // (b) Reset-to-Hub on entry (REVIEW #6): into Motion, leave, re-enter → the HUB, not the Motion page.
@@ -140,15 +149,15 @@ class FineTuneNavTest {
 
         // Enter Fine-Tune → tap Motion → the Motion group page is shown.
         openFineTuneViaDrawer()
-        composeRule.onNodeWithText("Motion").performClick()
+        composeRule.onNodeWithText(motionLabel).performClick()
         composeRule.waitForIdle()
         // On the Motion page the Hub's Extrusion entry is gone (we are inside a group, not the Hub).
-        composeRule.onNodeWithText("Extrusion").assertDoesNotExist()
+        composeRule.onNodeWithText(extrusionLabel).assertDoesNotExist()
 
         // Re-enter Fine-Tune via the drawer (navigateTo resets fineTuneGroup = null, REVIEW #6).
         openFineTuneViaDrawer()
         // It opens the HUB again — both group entries render, NOT a stale Motion group page.
-        composeRule.onNodeWithText("Motion").assertIsDisplayed()
-        composeRule.onNodeWithText("Extrusion").assertIsDisplayed()
+        composeRule.onNodeWithText(motionLabel).assertIsDisplayed()
+        composeRule.onNodeWithText(extrusionLabel).assertIsDisplayed()
     }
 }
