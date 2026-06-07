@@ -818,7 +818,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 18-07-PLAN.md — Exemplar #3 Spool (Coil/image + dense-data) + PREVIEW_AND_TOKENS.md + Phase-22 deferral
+- [x] 18-07-PLAN.md — Exemplar #3 Spool (Coil/image + dense-data) + PREVIEW_AND_TOKENS.md + Phase-22 deferral
 
 **UI hint**: yes (tooling/infra — not a user-facing surface)
 **Research note**: STANDARD — Compose preview tooling, `@PreviewParameter`, Android string resources + pseudolocales are well-documented; the real work is the fixture design + the icon-registry abstraction over the app's two icon sources. Primary spec = the two out-of-repo staging notes (`../parallel_dinghy/phase-preview-harness-staging.md` + `phase-tokenization-staging.md`), which MUST be co-sequenced. Classic-View surfaces (GraphView, BedMeshHeatmapView/OKLCH ramp, webcam border) are NOT Compose-previewable — planner decides exclude vs separate harness.
@@ -938,7 +938,7 @@ notes.
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 5/6 | In Progress|  |
-| 18. Preview Harness & Tokenization Foundation | 5/7 | In Progress|  |
+| 18. Preview Harness & Tokenization Foundation | 6/7 | In Progress|  |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
