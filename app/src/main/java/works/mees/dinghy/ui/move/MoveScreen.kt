@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,11 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import works.mees.dinghy.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -422,7 +419,7 @@ private fun AxisCorner(
                     // Unhomed caution shape (D-01/D-02) — the redundant non-color signal for the
                     // not-yet-homed state; sized via fsSp, NOT the 96dp vector intrinsic.
                     StatusShape(
-                        resId = R.drawable.ic_status_triangle,
+                        glyphName = "warning",
                         tint = t.heat,
                         sizeSp = fsSp(20f, t.fs),
                     )
@@ -440,28 +437,33 @@ private fun AxisCorner(
 }
 
 /**
- * Render a status SHAPE drawable (ic_status_triangle / ic_lock_open / ic_lock_closed …) tinted from a
+ * Render a status SHAPE Material Symbols ligature (warning / lock_open_right / lock …) tinted from a
  * role token at an EXPLICIT fsSp size (NOT the 96dp vector intrinsic — Item 6). The shape silhouette
  * is the D-01/D-02/D-12 redundant non-color safety signal; the [tint] is the matching status color.
+ *
+ * 18.1-03 (D-08): swapped from `painter:` drawables to ligatures by name. These are DECORATIVE status
+ * shapes (no contentDescription — the meaning is carried by the labeled element they sit on), so a bare
+ * [MaterialSymbol] is the minimal render path. The [tint]/[sizeSp] params are preserved 1:1 (THEME-01 +
+ * no size regression).
  */
 @Composable
-private fun StatusShape(resId: Int, tint: Color, sizeSp: Float, modifier: Modifier = Modifier) {
-    Icon(
-        painter = painterResource(resId),
-        contentDescription = null,
+private fun StatusShape(glyphName: String, tint: Color, sizeSp: Float, modifier: Modifier = Modifier) {
+    MaterialSymbol(
+        name = glyphName,
+        modifier = modifier,
         tint = tint,
-        modifier = modifier.size(sizeSp.dp),
+        sizeSp = sizeSp,
     )
 }
 
 /**
  * The force-move toggle (replaces the old Override cell, 2026-06-01). A latching lock with the D-12
  * shape-coded safety layer: when OFF (SAFE — normal G1 jog, homing enforced) it shows the GREEN
- * CLOSED padlock ([R.drawable.ic_lock_closed]); when ON (ARMED — jog issues FORCE_MOVE, moving a
- * stepper with NO homing/limit checks, the deliberate proceed-at-peril unhomed escape; requires
- * `enable_force_move` in the printer config) it shows the RED OPEN padlock ([R.drawable.ic_lock_open]).
- * The LOCK OPEN/CLOSED silhouette is the redundant non-color signal (D-12) so the armed/safe state
- * reads without relying on color. Tapping toggles the mode.
+ * CLOSED padlock (the `lock` ligature); when ON (ARMED — jog issues FORCE_MOVE, moving a stepper with
+ * NO homing/limit checks, the deliberate proceed-at-peril unhomed escape; requires `enable_force_move`
+ * in the printer config) it shows the RED OPEN padlock (the `lock_open_right` ligature). The LOCK
+ * OPEN/CLOSED silhouette is the redundant non-color signal (D-12) so the armed/safe state reads without
+ * relying on color. Tapping toggles the mode. (18.1-03: swapped ic_lock_*.xml drawables to ligatures.)
  */
 @Composable
 private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
@@ -478,7 +480,7 @@ private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modi
         modifier = modifier,
     ) {
         StatusShape(
-            resId = if (enabled) R.drawable.ic_lock_open else R.drawable.ic_lock_closed,
+            glyphName = if (enabled) "lock_open_right" else "lock",
             tint = color,
             sizeSp = fsSp(40f, t.fs),
         )
