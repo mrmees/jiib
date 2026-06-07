@@ -23,8 +23,8 @@ import works.mees.dinghy.ui.printstatus.TerminalKind
  * ## Matrix shape (RESEARCH Q8 — MINIMIZE proliferation)
  * Do NOT render every state × every theme × fs (that's 28+ noisy/slow panels per screen). Instead:
  *  - [PrintStatusStateMatrix] — the FULL state matrix on ONE representative theme (mode = the parameter).
- *  - [PrintStatusStateMatrix] — the FULL 6-theme matrix on ONE representative state (Printing), six
- *    sibling [PreviewBox] seed wrappers.
+ *  - The six `PrintStatusTheme*` previews — the FULL 6-theme matrix on ONE representative state
+ *    (Printing), each a sibling [PreviewBox] seed wrapper.
  *  - [PrintStatusFsLargeOverflow] — ONE `fs = L` overflow shot ([fsLargeSeed]). `@Preview(fontScale=)` is
  *    a NO-OP in this app (OS fontScale pinned to 1f) — fs is injected via the seed's `fs`, never the
  *    annotation. This is the #1 thing a copy-pasting phase gets wrong; the seed is the ONLY way.
