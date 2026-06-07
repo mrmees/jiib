@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,7 +32,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanClient
@@ -196,6 +200,20 @@ private fun CameraPreview(
     onBindFailed: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // D-05 (the Spool exemplar's genuine preview-unsafe surface): the CameraX [PreviewView] is a live
+    // hardware [AndroidView] that never renders under Layoutlib (Studio @Preview / inspection mode), so
+    // short-circuit to a token-aware labeled stand-in — the SAME idiom as the GraphView/Webcam classic-View
+    // hosts (18-02). The real camera still binds on-device unchanged. SpoolScreen has NO Coil thumbnail
+    // (its swatches are colored Boxes, its drawables painterResource); THIS camera host is the Spool
+    // feature's real "embed a live View" case the convention doc points to.
+    if (LocalInspectionMode.current) {
+        PreviewPlaceholderBox(
+            label = stringResource(R.string.cd_spool_camera),
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember {

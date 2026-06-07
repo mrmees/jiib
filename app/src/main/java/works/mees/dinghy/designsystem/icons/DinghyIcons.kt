@@ -29,6 +29,13 @@ object DinghyIcons {
     val Progress = DinghyIcon(IconRef.Ligature("donut_large"), alternate = "progress")
     val PauseCircle = DinghyIcon(IconRef.Ligature("pause_circle"), alternate = "pause_circle")
 
+    // --- Spool exemplar glyphs (18-07; the detail-pane Material Symbols) ---
+    val Inventory = DinghyIcon(IconRef.Ligature("inventory_2"), alternate = "inventory")
+    val Palette = DinghyIcon(IconRef.Ligature("palette"), alternate = "palette")
+    val CalendarAddOn = DinghyIcon(IconRef.Ligature("calendar_add_on"), alternate = "calendar_add_on")
+    val CheckCircle = DinghyIcon(IconRef.Ligature("check_circle"), alternate = "check_circle")
+    val Archive = DinghyIcon(IconRef.Ligature("archive"), alternate = "archive")
+
     // --- Launcher / shortcut glyphs (Standby grid + Printing shortcut row — icon-never-twice) ---
     val LauncherFiles = DinghyIcon(IconRef.Ligature("print_connect"), alternate = "launcher_files")
     val LauncherTemperature = DinghyIcon(IconRef.Ligature("thermostat"), alternate = "launcher_temperature")
@@ -76,6 +83,7 @@ object DinghyIcons {
     val all: List<DinghyIcon> = listOf(
         Back, Check, Edit, FineTune, Height, Altitude, Layers, Scale, Storefront, TimerDown, TimerUp,
         Progress, PauseCircle,
+        Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
         BabystepCompress, BabystepExpand, StatusOctagon, Nozzle, HeatBed, FanMode, Speed,

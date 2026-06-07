@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,7 +36,9 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
-import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -107,76 +108,29 @@ fun SpoolScreen(
     // (Matthew 2026-06-04); the Field is then a pure scrolling list that gets the whole Field height.
     // Focus is always shown so the filters are always reachable (both orientations).
     Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            focus = {
-                // Detail fills the flexible top; the chips sit at the bottom of the Focus pane.
-                Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
-                    SpoolDetailFocus(
-                        spool = selected,
-                        isActive = selected?.id == state.activeStatus?.activeSpoolId,
-                        onMeasure = { selected?.let { measureSpool = it } },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                SpoolFilterControls(
-                    state = state,
-                    onSelectSort = { scope.launch { holder.applySort(it) } },
-                    onOpenFilter = { openFilter = it },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                )
+        SpoolContent(
+            state = state,
+            selected = selected,
+            isActive = selected?.id == state.activeStatus?.activeSpoolId,
+            onSelectSort = { scope.launch { holder.applySort(it) } },
+            onOpenFilter = { openFilter = it },
+            onRowClick = { holder.selectSpool(it) },
+            onMeasure = { selected?.let { measureSpool = it } },
+            onBack = onBack,
+            onScan = onScan,
+            // Set the selected spool active (D-13 → post_spool_id {spool_id}) via the holder's
+            // change-during-print mutator: this re-points active-spool tracking ONLY and does NOT interrupt
+            // a running print — there is NO print-state gating (the change is allowed mid-print, the whole
+            // point of change-during-print). The holder reconciles the resulting notify_active_spool_set
+            // into its "Loaded" mark (D-10). No-op when nothing is selected OR no live session.
+            onSetActive = {
+                val id = selected?.id
+                if (id != null) holder.setActiveSpool(dispatcher, id)
             },
-            field = {
-                SpoolPicker(
-                    state = state,
-                    onRowClick = { holder.selectSpool(it) },
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedControl(
-                        label = "Back",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                        symbol = "arrow_back",
-                    )
-                    OutlinedControl(
-                        label = "",
-                        onClick = onScan,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent, // physical/command accent.
-                        symbol = "qr_code",
-                    )
-                    OutlinedControl(
-                        // Set the selected spool active (D-13 → post_spool_id {spool_id}) via the holder's
-                        // change-during-print mutator: this re-points active-spool tracking ONLY and does
-                        // NOT interrupt a running print — there is NO print-state gating (the change is
-                        // allowed mid-print, the whole point of change-during-print). The holder reconciles
-                        // the resulting notify_active_spool_set into its "Loaded" mark (D-10). No-op when
-                        // nothing is selected OR no live session (the dispatcher is null then).
-                        label = "",
-                        onClick = {
-                            val id = selected?.id
-                            if (id != null) {
-                                holder.setActiveSpool(dispatcher, id)
-                            }
-                        },
-                        // Long-press UNLOADS whatever spool is currently loaded (D-13 → post_spool_id {}),
-                        // Matthew 2026-06-04. No-op when nothing is loaded.
-                        onLongClick = {
-                            if (state.activeStatus?.activeSpoolId != null) {
-                                holder.clearActiveSpool(dispatcher)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go, // green accept/commit.
-                        symbol = "add_circle",
-                    )
-                }
+            // Long-press UNLOADS whatever spool is currently loaded (D-13 → post_spool_id {}),
+            // Matthew 2026-06-04. No-op when nothing is loaded.
+            onClearActive = {
+                if (state.activeStatus?.activeSpoolId != null) holder.clearActiveSpool(dispatcher)
             },
         )
 
@@ -221,6 +175,125 @@ fun SpoolScreen(
 }
 
 /**
+ * STATELESS preview/render seam (18-07, the D-01/D-02 Spool exemplar). Renders the same Focus/Field/Gutter
+ * scaffold as the live [SpoolScreen] from a pure [SpoolPickerState] fixture — NO holder, NO dispatcher, NO
+ * Moonraker — so the dense-data archetype previews in Studio across the theme combos + fs=L (SC-1). The
+ * live-only overlays (filter selector, measured-weight page) are NOT part of this seam (they need the
+ * holder/client); the preview proves the base list+detail+gutter surface, mirroring the anchor's treatment
+ * of its live-only modals. All side-effect callbacks default to no-ops.
+ */
+@Composable
+fun SpoolScreen(
+    state: SpoolPickerState,
+    modifier: Modifier = Modifier,
+    onSelectSort: (SpoolSortKey) -> Unit = {},
+    onOpenFilter: (SpoolFilterCategory) -> Unit = {},
+    onRowClick: (SpoolmanSpool) -> Unit = {},
+    onMeasure: () -> Unit = {},
+    onBack: () -> Unit = {},
+    onScan: () -> Unit = {},
+    onSetActive: () -> Unit = {},
+    onClearActive: () -> Unit = {},
+) {
+    Box(modifier.fillMaxSize()) {
+        SpoolContent(
+            state = state,
+            selected = state.selected,
+            isActive = state.selected?.id == state.activeStatus?.activeSpoolId,
+            onSelectSort = onSelectSort,
+            onOpenFilter = onOpenFilter,
+            onRowClick = onRowClick,
+            onMeasure = onMeasure,
+            onBack = onBack,
+            onScan = onScan,
+            onSetActive = onSetActive,
+            onClearActive = onClearActive,
+        )
+    }
+}
+
+/**
+ * The shared, container-free scaffold (Focus = detail + filter chips · Field = the dense [SpoolPicker] list
+ * · Gutter = red-free Back / accent Scan / green Set-active). Both the live [SpoolScreen] (holder/dispatcher
+ * resolved) and the stateless preview overload render byte-identically through here — the side effects are
+ * passed as lambdas so a preview drives it with no-ops (SC-1).
+ */
+@Composable
+private fun SpoolContent(
+    state: SpoolPickerState,
+    selected: SpoolmanSpool?,
+    isActive: Boolean,
+    onSelectSort: (SpoolSortKey) -> Unit,
+    onOpenFilter: (SpoolFilterCategory) -> Unit,
+    onRowClick: (SpoolmanSpool) -> Unit,
+    onMeasure: () -> Unit,
+    onBack: () -> Unit,
+    onScan: () -> Unit,
+    onSetActive: () -> Unit,
+    onClearActive: () -> Unit,
+) {
+    ScreenScaffold(
+        focus = {
+            // Detail fills the flexible top; the chips sit at the bottom of the Focus pane.
+            Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
+                SpoolDetailFocus(
+                    spool = selected,
+                    isActive = isActive,
+                    onMeasure = onMeasure,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            SpoolFilterControls(
+                state = state,
+                onSelectSort = onSelectSort,
+                onOpenFilter = onOpenFilter,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+        },
+        field = {
+            SpoolPicker(
+                state = state,
+                onRowClick = onRowClick,
+                modifier = Modifier.fillMaxSize().padding(8.dp),
+            )
+        },
+        gutter = {
+            Row(
+                Modifier.fillMaxWidth().padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(
+                    label = stringResource(R.string.common_back),
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
+                    symbol = "arrow_back",
+                )
+                // Icon-only Scan/Set buttons: the shared OutlinedControl has no a11y cd param yet (its
+                // symbol/label API rides the Phase-22 backfill — out of this exemplar's tokenization
+                // boundary, Codex MEDIUM-6); their cd_spool_* keys are pre-seeded in strings.xml for that
+                // backfill to wire once OutlinedControl gains a contentDescription parameter.
+                OutlinedControl(
+                    label = "",
+                    onClick = onScan,
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent, // physical/command accent.
+                    symbol = "qr_code",
+                )
+                OutlinedControl(
+                    label = "",
+                    onClick = onSetActive,
+                    onLongClick = onClearActive,
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Go, // green accept/commit.
+                    symbol = "add_circle",
+                )
+            }
+        },
+    )
+}
+
+/**
  * The Focus: the selected spool's detail (material / color split swatch / vendor / remaining·used linked
  * (D-04) / location / archived badge D-09). Empty state when nothing is selected (landscape only — portrait
  * never shows the empty Focus). Values via [LocalTokens]; the remaining/used pair is the GeistMono hero.
@@ -247,7 +320,12 @@ private fun SpoolDetailFocus(
     ) {
         if (spool == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                MaterialSymbol("inventory_2", tint = t.text3, sizeSp = fsSp(64f, t.fs))
+                DinghyIconView(
+                    DinghyIcons.Inventory,
+                    tint = t.text3,
+                    sizeDp = fsSp(64f, t.fs).dp,
+                    contentDescription = stringResource(R.string.cd_spool_empty),
+                )
             }
             return@Box
         }
@@ -265,7 +343,8 @@ private fun SpoolDetailFocus(
             ) {
                 DetailSwatch(filament?.colorSwatches ?: emptyList(), headerSp, t)
                 Text(
-                    text = filament?.material?.ifBlank { null } ?: "Spool ${spool.id}",
+                    text = filament?.material?.ifBlank { null }
+                        ?: stringResource(R.string.spool_unnamed, spool.id),
                     color = t.text,
                     fontFamily = Geist,
                     fontWeight = FontWeight.SemiBold,
@@ -279,9 +358,9 @@ private fun SpoolDetailFocus(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("storefront", tint = t.text2, sizeSp = iconSp)
+                DinghyIconView(DinghyIcons.Storefront, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_vendor))
                 DetailValue(filament?.vendor?.name, bodySp, Modifier.weight(1f), t)
-                MaterialSymbol("palette", tint = t.text2, sizeSp = iconSp)
+                DinghyIconView(DinghyIcons.Palette, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_color))
                 DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
             }
             // Line 3 (BODY): scale → "remaining/original g" (drop the "remaining" label). Tap to correct
@@ -292,7 +371,7 @@ private fun SpoolDetailFocus(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("scale", tint = t.text2, sizeSp = iconSp)
+                DinghyIconView(DinghyIcons.Scale, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight))
                 Text(
                     text = spoolWeightText(spool),
                     color = if (spool.remainingWeight == null) t.text3 else t.text,
@@ -302,16 +381,17 @@ private fun SpoolDetailFocus(
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
-                MaterialSymbol("edit", tint = t.text3, sizeSp = iconSp)
+                DinghyIconView(DinghyIcons.Edit, tint = t.text3, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight_edit))
             }
             // Line 4 (BODY): calendar_add_on → the Spoolman registration date (date part only).
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("calendar_add_on", tint = t.text2, sizeSp = iconSp)
+                DinghyIconView(DinghyIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
                 Text(
-                    text = spool.registered?.substringBefore('T')?.ifBlank { null } ?: "—",
+                    text = spool.registered?.substringBefore('T')?.ifBlank { null }
+                        ?: stringResource(R.string.spool_value_unset),
                     color = t.text,
                     fontFamily = GeistMono,
                     fontSize = bodySp.sp,
@@ -323,16 +403,26 @@ private fun SpoolDetailFocus(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DrawableIcon(R.drawable.nozzle, t.text2, iconSp)
+                DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
                 Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
-                DrawableIcon(R.drawable.heat_bed, t.text2, iconSp)
+                DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
                 Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
             }
             if (isActive) {
-                DetailBadge("check_circle", "Loaded on this printer", bodySp, iconSp, t.go, t)
+                DetailBadge(
+                    icon = DinghyIcons.CheckCircle,
+                    text = stringResource(R.string.spool_badge_loaded),
+                    contentDescription = stringResource(R.string.cd_spool_loaded),
+                    textSp = bodySp, iconSp = iconSp, color = t.go,
+                )
             }
             if (spool.archived) {
-                DetailBadge("archive", "Archived — verify before loading", bodySp, iconSp, t.heat, t)
+                DetailBadge(
+                    icon = DinghyIcons.Archive,
+                    text = stringResource(R.string.spool_badge_archived),
+                    contentDescription = stringResource(R.string.cd_spool_archived),
+                    textSp = bodySp, iconSp = iconSp, color = t.heat,
+                )
             }
         }
     }
@@ -361,7 +451,7 @@ private fun DetailSwatch(swatches: List<String>, sizeSp: Float, t: ThemeTokens) 
 @Composable
 private fun DetailValue(value: String?, fontSizeSp: Float, modifier: Modifier, t: ThemeTokens) {
     Text(
-        text = value?.ifBlank { null } ?: "—",
+        text = value?.ifBlank { null } ?: stringResource(R.string.spool_value_unset),
         color = if (value.isNullOrBlank()) t.text3 else t.text,
         fontFamily = Geist,
         fontWeight = FontWeight.Medium,
@@ -372,39 +462,38 @@ private fun DetailValue(value: String?, fontSizeSp: Float, modifier: Modifier, t
     )
 }
 
-/** Render a vector drawable (nozzle / heat_bed) tinted via the token system, sized in sp (like fsSp). */
-@Composable
-private fun DrawableIcon(resId: Int, tint: Color, sizeSp: Float) {
-    Icon(
-        painter = painterResource(resId),
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier.size(sizeSp.dp),
-    )
-}
-
 /** Line-3 weight text: "remaining/original g" (e.g. `579/1000 g`); degrades to remaining-only or "—". */
+@Composable
 private fun spoolWeightText(spool: SpoolmanSpool): String {
-    val remaining = spool.remainingWeight ?: return "—"
+    val remaining = spool.remainingWeight ?: return stringResource(R.string.spool_value_unset)
     val original = spool.originalWeight
     return if (original != null) {
-        "${remaining.roundToInt()}/${original.roundToInt()} g"
+        stringResource(R.string.spool_weight_pair, remaining.roundToInt(), original.roundToInt())
     } else {
-        "${remaining.roundToInt()} g"
+        stringResource(R.string.spool_weight_single, remaining.roundToInt())
     }
 }
 
 /** Line-5 temperature text from a Spoolman filament setting: `210°C`, or "—" when unset. */
-private fun tempText(temp: Int?): String = temp?.let { "$it°C" } ?: "—"
+@Composable
+private fun tempText(temp: Int?): String =
+    temp?.let { stringResource(R.string.spool_temp, it) } ?: stringResource(R.string.spool_value_unset)
 
 /** An icon-led detail badge (loaded green / archived amber) at the body size. */
 @Composable
-private fun DetailBadge(symbol: String, text: String, textSp: Float, iconSp: Float, color: Color, t: ThemeTokens) {
+private fun DetailBadge(
+    icon: DinghyIcon,
+    text: String,
+    contentDescription: String,
+    textSp: Float,
+    iconSp: Float,
+    color: Color,
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = color, sizeSp = iconSp)
+        DinghyIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
         Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = textSp.sp)
     }
 }
