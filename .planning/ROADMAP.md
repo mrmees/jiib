@@ -874,7 +874,7 @@ Plans:
 
 **Assets**: `img/jiib_icon.svg`, `img/jiib_name.svg`, `img/jiib_name_icon_stack.svg`.
 
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 Plans:
 **Wave 1**
 
@@ -883,7 +883,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 18.2-03-PLAN.md — Wire the jiib launcher icon (adaptive v26 + monochrome + pre-26 fallback), retain navy bg (D-01/D-02/D-03)
+- [x] 18.2-03-PLAN.md — Wire the jiib launcher icon (adaptive v26 + monochrome + pre-26 fallback), retain navy bg (D-01/D-02/D-03)
 - [ ] 18.2-04-PLAN.md — Splash lockup + About wordmark+note, accent-tinted via brandTint contrast-floor helper; brand preview matrix (D-04/D-05/D-06)
 
 **Wave 3** *(blocked on Wave 2 completion)*
