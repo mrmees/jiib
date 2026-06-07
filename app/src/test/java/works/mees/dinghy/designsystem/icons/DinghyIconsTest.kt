@@ -50,4 +50,33 @@ class DinghyIconsTest {
             distinct.size,
         )
     }
+
+    /**
+     * (WR-02) The RENDERED [IconRef] must be unique across the registry, not just the [alternate] string.
+     * Two distinct semantic tokens that resolve to the SAME glyph (e.g. the `donut_large` `Progress` +
+     * `LauncherSpool` collision) draw an identical icon for two different affordances — and because both can
+     * appear on the SAME PrintStatus screen, that violates the registry's "an icon is never used twice on
+     * one screen" rule. The old `alternate`-only uniqueness check was blind to it (false-confidence). This
+     * asserts on `it.primary` so an undocumented glyph collision fails LOUDLY.
+     *
+     * NOTE: if a future phase intentionally shares ONE source across distinct semantic tokens (e.g. WR-03's
+     * proposed `RetractSpeed`/`UnretractSpeed` both wrapping `R.drawable.sprint`), allow-list those specific
+     * `alternate`s here explicitly rather than weakening the check — an accidental dup must still fail.
+     */
+    @Test
+    fun iconRef_isUnique_acrossAllEntries() {
+        val refs = DinghyIcons.all.map { it.primary }
+        val distinct = refs.toSet()
+        assertEquals(
+            "every DinghyIcon.primary (rendered IconRef) must be unique across the registry — two tokens " +
+                "sharing one glyph break the 'icon-never-twice on one screen' rule (WR-02). Duplicate " +
+                "sources → entries: " +
+                DinghyIcons.all
+                    .groupBy { it.primary }
+                    .filter { it.value.size > 1 }
+                    .mapValues { (_, dups) -> dups.map { it.alternate } },
+            refs.size,
+            distinct.size,
+        )
+    }
 }
