@@ -1,64 +1,23 @@
 <!--
-  Filament-spool glyph (side view): the two circular flanges + the central hub/axle silhouette,
-  BODY/FLANGES ONLY. Authored for the 96x96 viewBox convention shared by nozzle.xml / heat_bed.xml.
-  Strokes are drawn white and recolored at runtime via Compose Icon(tint = neutral role token) so the
-  body honors the semantic token system (THEME-01); the body is NOT color-reactive (D-02).
+  Filament-spool glyph BODY — front view, converted from the owner's source art img/spool.svg
+  (512x512 viewBox preserved). This is the spool DISC ONLY: the outer face plus the three
+  wound-filament "windows" cut as evenOdd holes. The windows (and the center) are transparent, so the
+  reactive filament SPIRAL drawn behind it in SpoolGlyph shows THROUGH them.
 
-  PHASE-CRITICAL (18.3 D-01/D-04): this vector deliberately EXCLUDES the wound-filament band region —
-  the rectangular gap between the two flanges is empty negative space owned exclusively by the
-  SpoolGlyph Compose Canvas overlay (plan 02), which paints the live filament color there (or omits it
-  for the empty-spool fallback, D-03). No <gradient> is baked in — filament color is dynamic runtime
-  data, never a static asset color.
+  Drawn white and recolored at runtime via Compose Icon(tint = neutral role token) — the body honors the
+  semantic token system and is NOT color-reactive (18.3 D-02). The color-reactive element is the spiral
+  (see SpoolGlyph.kt SPIRAL_PATH_DATA), not this disc.
 
-  BAND RECTANGLE (fixed fractions of the 96-unit box — SpoolGlyph MUST reproduce these EXACTLY so the
-  Canvas band registers seam-free with the gap below; see Pitfall 3):
-    left   = 0.34  -> x = 32.64
-    right  = 0.66  -> x = 63.36
-    top    = 0.18  -> y = 17.28
-    bottom = 0.82  -> y = 78.72
-  i.e. the band spans the vertical center column between the two flange faces. The flange faces sit at
-  x = 0.34 (32.64) and x = 0.66 (63.36); the flanges are circles of radius ~30 centered at x = 33 and
-  x = 63, y = 48. The hub line connects the two flange centers through the band gap.
+  fillType="evenOdd": the outer disc + the three window subpaths alternate, turning the windows into
+  holes regardless of their winding direction.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="96dp"
     android:height="96dp"
-    android:viewportWidth="96"
-    android:viewportHeight="96">
-    <!-- Left flange (circle, r=30, center (33,48)) — drawn as two semicircle arcs to a closed path. -->
+    android:viewportWidth="512"
+    android:viewportHeight="512">
     <path
-        android:pathData="M33,18 A30,30 0 1,1 32.99,18 Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <!-- Left hub bore (small circle, r=6, center (33,48)) — the axle hole. -->
-    <path
-        android:pathData="M33,42 A6,6 0 1,1 32.99,42 Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <!-- Right flange (circle, r=30, center (63,48)). -->
-    <path
-        android:pathData="M63,18 A30,30 0 1,1 62.99,18 Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <!-- Right hub bore (small circle, r=6, center (63,48)). -->
-    <path
-        android:pathData="M63,42 A6,6 0 1,1 62.99,42 Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <!-- Hub/axle: the top and bottom edges of the drum connecting the two flanges, framing the empty
-         band gap (band region between them is intentionally left blank for the Canvas overlay). -->
-    <path
-        android:pathData="M33,18 L63,18 M33,78 L63,78"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:fillType="evenOdd"
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 465.481 256.223 C 465.481 371.891 371.714 465.658 256.046 465.658 C 140.378 465.658 46.611 371.891 46.611 256.223 C 46.611 140.555 140.378 46.788 256.046 46.788 C 371.714 46.788 465.481 140.555 465.481 256.223 Z M 261.3 332 C 261.5 315.6 252.8 300.5 238.7 292.3 C 224.5 284.2 207.1 284.3 193 292.6 L 105.4 344.5 C 101.3 346.9 98.5 350.9 97.6 355.5 C 96.7 360.2 97.8 364.9 100.6 368.7 L 100.6 368.8 C 134.6 413.9 185.4 443.2 241.4 450.1 C 246.1 450.7 250.8 449.2 254.4 446.1 C 258 443 260 438.5 260.1 433.8 Z M 191.8 222.3 C 205.9 230.7 223.4 230.8 237.5 222.6 C 251.6 214.4 260.3 199.2 260.1 182.9 L 259 81.1 C 259 76.4 256.9 71.9 253.4 68.8 C 249.9 65.7 245.2 64.2 240.5 64.8 L 240.4 64.8 C 184.4 71.7 133.6 101 99.6 146.1 C 96.8 149.9 95.7 154.7 96.6 159.3 C 97.5 164 100.3 168 104.4 170.4 Z M 319 216.6 C 304.7 224.6 295.9 239.7 295.9 256 C 295.9 272.3 304.8 287.4 319 295.4 L 407.7 345.4 C 411.8 347.7 416.6 348.1 421.1 346.6 C 425.6 345.1 429.2 341.7 431 337.4 L 431 337.3 C 453 285.3 453 226.7 431 174.7 C 429.2 170.4 425.6 167 421.1 165.5 C 416.6 163.9 411.7 164.4 407.6 166.7 Z" />
 </vector>
