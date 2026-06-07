@@ -336,33 +336,35 @@ correct, not a token-purity violation:**
   text runs. The protocol's *semantic* button styles (`primary`/`info`/`warning`/`error`/`success`)
   do still map to tokens (`promptStyleColor` → `accent`/`accent-2`/`heat`/`stop`/`go`).
 
-### Second instance: the color-reactive spool glyph's filament band (Phase 18.3, D-10)
+### Second instance: the color-reactive spool glyph's filament spiral (Phase 18.3, D-10)
 
-The custom **spool glyph** (`DinghyIcons.LauncherSpool` and the SpoolScreen surfaces) is the **second
-named instance** of this same "filament color is DATA, not chrome" exception — not a new rule, an
-extension of *this* carve-out. The glyph's **wound-filament band** is tinted by the **loaded filament's
-actual color** (Spoolman active-spool `colorHex` → gcode `filament_colors[0]` fallback → empty spool),
-sourced from inventory/slicer data rather than the role tokens. That is sanctioned here for exactly the
-same reason as the PromptMarkup author-hex above: a theme remap must not silently recolor a physical
-value the user/slicer deliberately chose (white PLA stays white in dark mode; a red filament stays red).
+The custom **spool glyph** (`DinghyIcons.LauncherSpool` and the SpoolScreen surfaces, converted from the
+owner's front-view source art `img/spool.svg`) is the **second named instance** of this same "filament
+color is DATA, not chrome" exception — not a new rule, an extension of *this* carve-out. The glyph's
+**wound-filament spiral** (the coil that shows through the spool-body windows) is tinted by the **loaded
+filament's actual color** (Spoolman active-spool `colorHex` → gcode `filament_colors[0]` fallback →
+empty spool), sourced from inventory/slicer data rather than the role tokens. That is sanctioned here
+for exactly the same reason as the PromptMarkup author-hex above: a theme remap must not silently
+recolor a physical value the user/slicer deliberately chose (white PLA stays white in dark mode; a red
+filament stays red).
 
-- **The carve-out is scoped to the filament BAND ONLY.** The spool **body/flanges**, the band's
-  **keyline**, and **all surrounding chrome** stay fully token-routed (`--text` / `--text2` /
-  `--outline`, etc.). Only the band fill (a flat color, or a two-stop runtime gradient for multi-color
-  filament, D-04) carries the raw filament hex. The empty-spool fallback (D-03) draws no band at all,
-  so a no-color state shows pure token chrome.
-- **True color, never clamped (D-05).** The band renders the **exact filament hex** — it is never
+- **The carve-out is scoped to the filament SPIRAL ONLY.** The spool **body disc** (and its window
+  frames), the spiral's **keyline**, and **all surrounding chrome** stay fully token-routed (`--text` /
+  `--text2` / `--outline`, etc.). Only the spiral stroke (a flat color, or a two-stop runtime gradient
+  along the coil for multi-color filament, D-04) carries the raw filament hex. The empty-spool fallback
+  (D-03) draws no spiral at all, so a no-color state shows pure token chrome (an empty windowed disc).
+- **True color, never clamped (D-05).** The spiral renders the **exact filament hex** — it is never
   pushed toward a contrast floor. Legibility is solved by **framing, not distortion**: a thin neutral
-  (token) keyline frames the band so its edge reads against any background even when the fill ≈ surface
+  (token) keyline outlines the coil so its edge reads against any background even when the fill ≈ surface
   (white PLA on light, black on dark).
-- **`brandTint` was considered and REJECTED for the band.** The `brandTint` WCAG-3:1 contrast-floor
-  helper (`theme/BrandTint.kt`) was evaluated for band legibility and deliberately rejected: clamping
+- **`brandTint` was considered and REJECTED for the spiral.** The `brandTint` WCAG-3:1 contrast-floor
+  helper (`theme/BrandTint.kt`) was evaluated for spiral legibility and deliberately rejected: clamping
   the filament color toward a contrast floor would **lie about the true color** (the very thing this
   carve-out exists to preserve). `brandTint` remains correct for **brand chrome only** (Splash lockup,
-  About wordmark) — never for content-data color like the filament band.
+  About wordmark) — never for content-data color like the filament spiral.
 
 The Phase-15.2 / later theme-UI conformance audit should treat author-hex inside PromptMarkup text runs
-**and the spool glyph's filament band** as sanctioned by this carve-out, not flag them.
+**and the spool glyph's filament spiral** as sanctioned by this carve-out, not flag them.
 
 ## The control language (the outline rule)
 
