@@ -83,7 +83,8 @@ object DinghyIcons {
     // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
     // NOT a hand-traced local vector. The font is already a shipped dependency used app-wide (PrintStatus
     // launcher icons etc.), so D-17's "no Material Symbols font dep" rationale does not hold for these.
-    // The remaining FineTune glyphs below stay project-local vector drawables (D-17) pending owner review.
+    // The FineTune glyphs below now ALSO render the OFFICIAL Material Symbols glyph via the bundled font
+    // (Ligature) — the 18.1 flip retired their hand-traced local vectors (D-08/D-15).
     val KeyboardReturn = DinghyIcon(IconRef.Ligature("keyboard_return"), alternate = "keyboard_return")
     val OutputCircle = DinghyIcon(IconRef.Ligature("output_circle"), alternate = "output_circle")
     val MaxVelocity =
