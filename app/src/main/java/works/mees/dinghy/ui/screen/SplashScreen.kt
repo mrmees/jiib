@@ -177,7 +177,7 @@ fun SplashScreen(
  * centers it horizontally.
  */
 @Composable
-private fun SplashBrandLockup() {
+internal fun SplashBrandLockup() {
     val t = LocalTokens.current
     Icon(
         painter = painterResource(R.drawable.jiib_lockup),
