@@ -8,14 +8,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -23,8 +28,8 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -81,14 +86,7 @@ fun SplashScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = "Dinghy Display",
-                        color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(28f, t.fs).sp,
-                        textAlign = TextAlign.Center,
-                    )
+                    SplashBrandLockup()
                     Text(
                         text = reasonText(hasConfig, state),
                         color = t.text2,
@@ -163,6 +161,32 @@ fun SplashScreen(
             },
         )
     }
+}
+
+/**
+ * The jiib stacked icon+wordmark lockup that fronts the splash (D-04), tinted from the theme accent
+ * with the D-06 contrast-floor guard ([brandTint] falls back to `t.text` when the accent would wash
+ * out against `t.bg` on a user-custom theme).
+ *
+ * STATELESS and AppContainer-FREE on purpose — it reads only [LocalTokens] — so it is the preview
+ * seam [works.mees.dinghy.preview.BrandPreviews] drives across the six theme combos (PREVIEW_AND_TOKENS /
+ * D-03), which is how the D-06 contrast risk gets eyeballed before device.
+ *
+ * Sized by RATIO (LAYOUT.md ratio-only rule), not a magic px: the lockup fills 60% of the available
+ * width and wraps its (square-ish 600×600) height so it never stretches; the enclosing Column already
+ * centers it horizontally.
+ */
+@Composable
+private fun SplashBrandLockup() {
+    val t = LocalTokens.current
+    Icon(
+        painter = painterResource(R.drawable.jiib_lockup),
+        contentDescription = stringResource(R.string.cd_jiib_logo),
+        tint = brandTint(t.accent, t.bg, t.text),
+        modifier = Modifier
+            .fillMaxWidth(0.6f)
+            .wrapContentHeight(),
+    )
 }
 
 /** The self-contained recovery affordance sets the splash offers, keyed off the same state inputs. */
