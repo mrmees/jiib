@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive launcher icon (API 26+): dark-navy background + Benchy foreground (also monochrome). -->
+<!-- Adaptive launcher icon (API 26+): dark-navy background + jiib sail mark foreground (also monochrome). -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+    <foreground android:drawable="@drawable/ic_jiib_foreground" />
+    <monochrome android:drawable="@drawable/ic_jiib_foreground" />
 </adaptive-icon>

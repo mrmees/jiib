@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher adaptive-icon background — app dark-navy, Benchy line art sits white on top. -->
+    <!-- Launcher adaptive-icon background — app dark-navy, the white jiib mark sits on top. -->
     <color name="ic_launcher_background">#141A24</color>
 </resources>
