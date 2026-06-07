@@ -287,137 +287,34 @@ fun PrintStatusScreen(
     }
 
     Box(modifier.fillMaxSize()) {
-        // The shared gutter renderer — drives all four modes from [ui.gutter] (the 16-02 per-mode set).
-        val gutterContent: @Composable () -> Unit = {
-            Row(
-                Modifier.fillMaxWidth().padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ui.gutter.forEach { control ->
-                    val renderControl = control.copy(
-                        enabled = control.enabled &&
-                            (pendingAction == null ||
-                                control.tapAction == PrintStatusControlAction.OpenFiles ||
-                                control.tapAction == PrintStatusControlAction.EmergencyStop),
-                    )
-                    if (control.tapAction == PrintStatusControlAction.EmergencyStop) {
-                        StopButton(
-                            onTap = { runAction(PrintStatusControlAction.EmergencyStop) },
-                            onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        PrintStatusControlTile(
-                            control = renderControl,
-                            onTap = { control.tapAction?.let(::runAction) },
-                            onHold = { control.holdAction?.let(::runAction) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        }
-
-        // The active-print Field: ONE framed StatGrid + the shortcut OR babystep row + optional Spoolman
-        // line + the estop-failure toast. Shared by Printing AND Paused (Paused reuses the same toolset).
-        val activeFieldContent: @Composable () -> Unit = {
-            Column(
-                Modifier.fillMaxSize().padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                StatGrid(
-                    state = state,
-                    metadata = metadata,
-                    babystepWindow = babystepShown,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                )
-                // Optional Spoolman print line (informational; accent when available < required, D-1c).
-                if (spoolmanPresent) {
-                    SpoolmanPrintLine(
-                        cardState = activeSpoolCardState,
-                        metadata = metadata,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                // The shortcut row, OR the babystep 3-cell row inside the early-layer window.
-                if (ui.activeRow == PrintStatusFieldRow.Babystep) {
-                    BabystepRow(
-                        step = babystepStep,
-                        onCompress = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(-babystepStep)) },
-                        onExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
-                        onCycleStep = { babystepStep = nextBabystepStep(babystepStep) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    ShortcutRow(
-                        spoolmanPresent = spoolmanPresent,
-                        hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
-                        onNavigate = onNavigate,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-            }
-        }
-
-        when (mode) {
-            is PrintStatusMode.Standby -> ScreenScaffold(
-                focus = {
-                    StandbyFocus(
-                        state = state,
-                        spoolmanPresent = spoolmanPresent,
-                        activeSpoolCardState = activeSpoolCardState,
-                    )
-                },
-                field = {
-                    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LauncherGrid(
-                            dests = ui.launcherDests,
-                            onNavigate = onNavigate,
-                            onOpenDrawer = onOpenDrawer,
-                            modifier = Modifier.fillMaxSize().weight(1f),
-                        )
-                        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-                    }
-                },
-                gutter = gutterContent,
-            )
-
-            is PrintStatusMode.Printing -> ScreenScaffold(
-                focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
-                field = { activeFieldContent() },
-                gutter = gutterContent,
-            )
-
-            is PrintStatusMode.Paused -> ScreenScaffold(
-                focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase, paused = true) },
-                field = { activeFieldContent() },
-                gutter = gutterContent,
-            )
-
-            is PrintStatusMode.Terminal -> ScreenScaffold(
-                focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase) },
-                field = {
-                    // Roomier padding than the cockpit grid — the Terminal summary breathes, and the
-                    // right-aligned values don't hug the screen edge (2026-06-06 UAT).
-                    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
-                        // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
-                        TerminalStatsList(
-                            state = state,
-                            metadata = metadata,
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                        )
-                        // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
-                        if (ui.showErrorLines && errorLines.isNotEmpty()) {
-                            TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
-                        }
-                        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-                    }
-                },
-                gutter = gutterContent,
-            )
-        }
+        // The pure, container-free rendering surface (hoisted for the 18-05 preview anchor): the live
+        // composable resolves all flow values + action lambdas above and passes them in; the
+        // `PrintStatusScreen(state = …)` preview overload calls the SAME body with fixture state and
+        // no-op callbacks (no Moonraker). Keeps this entry as the single layout source the previews and
+        // the running app share — drift is impossible. The dispatcher-driven guards/PresetSelector stay
+        // OUTSIDE the content (they're live-only modals, not part of the previewable scaffold).
+        PrintStatusContent(
+            mode = mode,
+            state = state,
+            metadata = metadata,
+            httpBase = httpBase,
+            ui = ui,
+            errorLines = errorLines,
+            babystepShown = babystepShown,
+            spoolmanPresent = spoolmanPresent,
+            activeSpoolCardState = activeSpoolCardState,
+            babystepStep = babystepStep,
+            failureText = failureText,
+            pendingActionIsNull = pendingAction == null,
+            hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
+            onRunAction = ::runAction,
+            onEmergencyStopHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            onBabystepCompress = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(-babystepStep)) },
+            onBabystepExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
+            onCycleBabystepStep = { babystepStep = nextBabystepStep(babystepStep) },
+            onNavigate = onNavigate,
+            onOpenDrawer = onOpenDrawer,
+        )
 
         if (showEstopGuard) {
             ConfirmGuard(
@@ -466,6 +363,232 @@ fun PrintStatusScreen(
                 onDismiss = { showPresetSelector = false },
             )
         }
+    }
+}
+
+/**
+ * The STATELESS Print-Status entry (18-05 preview anchor / D-01). Renders the four-state scaffold from a
+ * plain [PrinterState] fixture with NO [AppContainer], NO dispatcher, NO Moonraker — the seam every
+ * `@Preview` in [works.mees.dinghy.preview.PrintStatusPreviews] composes inside a `PreviewBox`. The mode
+ * is derived from the fixture's `printState` via [classifyPrintStatus] (the same print-state-only
+ * discipline the live screen uses), so `SampleFixtures.forMode(mode)` reproduces every screen state.
+ *
+ * This is the hoisted-state half of the live [PrintStatusScreen] `container` overload: both delegate to
+ * the shared [PrintStatusContent], so a preview renders byte-identical layout to the running app. All
+ * action callbacks default to no-ops (a preview never dispatches); pass values only where a preview wants
+ * to exercise a branch (e.g. [errorLines] for Terminal(Error)).
+ */
+@Composable
+fun PrintStatusScreen(
+    state: PrinterState,
+    metadata: PrintMetadata? = null,
+    httpBase: String = "",
+    errorLines: List<String> = emptyList(),
+    spoolmanPresent: Boolean = false,
+    activeSpoolCardState: ActiveSpoolCardState = ActiveSpoolCardState.Unavailable,
+    hasBookmarkedMacros: Boolean = false,
+    babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
+    onNavigate: (Dest) -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val mode = classifyPrintStatus(state)
+    val babystepShown = false
+    val ui = uiModel(
+        mode = mode,
+        state = state,
+        lastJob = null,
+        pendingAction = null,
+        spoolmanPresent = spoolmanPresent,
+        hasBookmarkedMacros = hasBookmarkedMacros,
+        babystepVisible = babystepShown,
+    )
+    Box(modifier.fillMaxSize()) {
+        PrintStatusContent(
+            mode = mode,
+            state = state,
+            metadata = metadata,
+            httpBase = httpBase,
+            ui = ui,
+            errorLines = errorLines,
+            babystepShown = babystepShown,
+            spoolmanPresent = spoolmanPresent,
+            activeSpoolCardState = activeSpoolCardState,
+            babystepStep = babystepStep,
+            failureText = null,
+            pendingActionIsNull = true,
+            hasBookmarkedMacros = hasBookmarkedMacros,
+            onRunAction = {},
+            onEmergencyStopHold = {},
+            onBabystepCompress = {},
+            onBabystepExpand = {},
+            onCycleBabystepStep = {},
+            onNavigate = onNavigate,
+            onOpenDrawer = onOpenDrawer,
+        )
+    }
+}
+
+/**
+ * The pure, container-free four-state rendering surface shared by BOTH [PrintStatusScreen] overloads —
+ * the live `container` entry (passing resolved flow values + real dispatch lambdas) and the stateless
+ * preview entry (passing fixture state + no-op lambdas). Holds the gutter renderer, the active-print
+ * Field, and the per-mode [ScreenScaffold] `when(mode)`. Carries NO `remember`/flow/dispatcher state —
+ * every input arrives as a parameter so it renders identically under `@Preview` and at runtime.
+ */
+@Composable
+private fun PrintStatusContent(
+    mode: PrintStatusMode,
+    state: PrinterState,
+    metadata: PrintMetadata?,
+    httpBase: String,
+    ui: PrintStatusUiModel,
+    errorLines: List<String>,
+    babystepShown: Boolean,
+    spoolmanPresent: Boolean,
+    activeSpoolCardState: ActiveSpoolCardState,
+    babystepStep: Double,
+    failureText: String?,
+    pendingActionIsNull: Boolean,
+    hasBookmarkedMacros: Boolean,
+    onRunAction: (PrintStatusControlAction) -> Unit,
+    onEmergencyStopHold: () -> Unit,
+    onBabystepCompress: () -> Unit,
+    onBabystepExpand: () -> Unit,
+    onCycleBabystepStep: () -> Unit,
+    onNavigate: (Dest) -> Unit,
+    onOpenDrawer: () -> Unit,
+) {
+    // The shared gutter renderer — drives all four modes from [ui.gutter] (the 16-02 per-mode set).
+    val gutterContent: @Composable () -> Unit = {
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ui.gutter.forEach { control ->
+                val renderControl = control.copy(
+                    enabled = control.enabled &&
+                        (pendingActionIsNull ||
+                            control.tapAction == PrintStatusControlAction.OpenFiles ||
+                            control.tapAction == PrintStatusControlAction.EmergencyStop),
+                )
+                if (control.tapAction == PrintStatusControlAction.EmergencyStop) {
+                    StopButton(
+                        onTap = { onRunAction(PrintStatusControlAction.EmergencyStop) },
+                        onHold = onEmergencyStopHold,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    PrintStatusControlTile(
+                        control = renderControl,
+                        onTap = { control.tapAction?.let(onRunAction) },
+                        onHold = { control.holdAction?.let(onRunAction) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+
+    // The active-print Field: ONE framed StatGrid + the shortcut OR babystep row + optional Spoolman
+    // line + the estop-failure toast. Shared by Printing AND Paused (Paused reuses the same toolset).
+    val activeFieldContent: @Composable () -> Unit = {
+        Column(
+            Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatGrid(
+                state = state,
+                metadata = metadata,
+                babystepWindow = babystepShown,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
+            // Optional Spoolman print line (informational; accent when available < required, D-1c).
+            if (spoolmanPresent) {
+                SpoolmanPrintLine(
+                    cardState = activeSpoolCardState,
+                    metadata = metadata,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            // The shortcut row, OR the babystep 3-cell row inside the early-layer window.
+            if (ui.activeRow == PrintStatusFieldRow.Babystep) {
+                BabystepRow(
+                    step = babystepStep,
+                    onCompress = onBabystepCompress,
+                    onExpand = onBabystepExpand,
+                    onCycleStep = onCycleBabystepStep,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                ShortcutRow(
+                    spoolmanPresent = spoolmanPresent,
+                    hasBookmarkedMacros = hasBookmarkedMacros,
+                    onNavigate = onNavigate,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+        }
+    }
+
+    when (mode) {
+        is PrintStatusMode.Standby -> ScreenScaffold(
+            focus = {
+                StandbyFocus(
+                    state = state,
+                    spoolmanPresent = spoolmanPresent,
+                    activeSpoolCardState = activeSpoolCardState,
+                )
+            },
+            field = {
+                Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LauncherGrid(
+                        dests = ui.launcherDests,
+                        onNavigate = onNavigate,
+                        onOpenDrawer = onOpenDrawer,
+                        modifier = Modifier.fillMaxSize().weight(1f),
+                    )
+                    failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+                }
+            },
+            gutter = gutterContent,
+        )
+
+        is PrintStatusMode.Printing -> ScreenScaffold(
+            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
+            field = { activeFieldContent() },
+            gutter = gutterContent,
+        )
+
+        is PrintStatusMode.Paused -> ScreenScaffold(
+            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase, paused = true) },
+            field = { activeFieldContent() },
+            gutter = gutterContent,
+        )
+
+        is PrintStatusMode.Terminal -> ScreenScaffold(
+            focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase) },
+            field = {
+                // Roomier padding than the cockpit grid — the Terminal summary breathes, and the
+                // right-aligned values don't hug the screen edge (2026-06-06 UAT).
+                Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
+                    // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
+                    TerminalStatsList(
+                        state = state,
+                        metadata = metadata,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
+                    // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
+                    if (ui.showErrorLines && errorLines.isNotEmpty()) {
+                        TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
+                    }
+                    failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+                }
+            },
+            gutter = gutterContent,
+        )
     }
 }
 
