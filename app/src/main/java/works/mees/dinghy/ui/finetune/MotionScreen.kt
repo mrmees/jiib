@@ -45,6 +45,10 @@ import works.mees.dinghy.di.AppContainer
  * Absent tunables are HIDDEN, not disabled (SC-2): each tile renders only when its capability gate is on.
  * A dispatcher [DispatchEvent.Failure] surfaces a non-fatal error [SeverityToast] (out-of-range
  * rejections land here, G1 lesson) and clears the pending flip. Gutter Back = [Intent.Neutral].
+ *
+ * This live `container` overload resolves the dispatcher/holder flows + builds the dispatch side-effects,
+ * then delegates rendering to the container-free [MotionContent] — the same surface the stateless preview
+ * overload calls (18-06 state-hoist, mirroring the PrintStatus anchor). Behaviour is unchanged.
  */
 @Composable
 fun MotionScreen(
@@ -87,6 +91,59 @@ fun MotionScreen(
         dispatcher?.dispatch(command, args)
     }
 
+    MotionContent(
+        vm = vm,
+        enabled = !groupBusy,
+        failureText = failureText,
+        onBack = onBack,
+        markPending = { tuner, target -> holder.markPending(tuner, target) },
+        dispatchSpeed = { args -> dispatchCommand(CommandRegistry.speedFactor, args) },
+        dispatchVelocityLimit = { args -> dispatchCommand(CommandRegistry.setVelocityLimit, args) },
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless preview/host overload of [MotionScreen]: renders the same [MotionContent] from a pure
+ * [FineTuneVm] fixture with no [AppContainer], dispatcher, or holder (18-06 SC-1 — no live Moonraker).
+ * All side-effects default to no-ops; a preview never dispatches.
+ */
+@Composable
+fun MotionScreen(
+    vm: FineTuneVm,
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    MotionContent(
+        vm = vm,
+        enabled = !vm.groupBusy,
+        failureText = null,
+        onBack = onBack,
+        markPending = { _, _ -> },
+        dispatchSpeed = {},
+        dispatchVelocityLimit = {},
+        modifier = modifier,
+    )
+}
+
+/**
+ * The pure, container-free Motion rendering surface shared by BOTH [MotionScreen] overloads — the live
+ * `container` entry (real dispatch side-effects) and the stateless preview entry (no-op side-effects).
+ * Holds the capability-gated tile column + the Back gutter; carries NO `remember`/flow/dispatcher state,
+ * so it renders byte-identically under `@Preview` and at runtime. The capability gates (`vm.has*`) and the
+ * absent-tunable HIDDEN path are exactly the D-01 archetype 18-06 proves.
+ */
+@Composable
+private fun MotionContent(
+    vm: FineTuneVm,
+    enabled: Boolean,
+    failureText: String?,
+    onBack: () -> Unit,
+    markPending: (FineTuneTuner, Double) -> Unit,
+    dispatchSpeed: (SpeedFactorArgs) -> Unit,
+    dispatchVelocityLimit: (VelocityLimitArgs) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
             field = {
@@ -104,20 +161,20 @@ fun MotionScreen(
                             onDecrement = {
                                 val cur = vm.speedPct ?: return@FineTuneTile
                                 val target = cur - SPEED_STEP
-                                holder.markPending(FineTuneTuner.SPEED, target.toDouble())
-                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(target))
+                                markPending(FineTuneTuner.SPEED, target.toDouble())
+                                dispatchSpeed(SpeedFactorArgs(target))
                             },
                             onIncrement = {
                                 val cur = vm.speedPct ?: return@FineTuneTile
                                 val target = cur + SPEED_STEP
-                                holder.markPending(FineTuneTuner.SPEED, target.toDouble())
-                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(target))
+                                markPending(FineTuneTuner.SPEED, target.toDouble())
+                                dispatchSpeed(SpeedFactorArgs(target))
                             },
                             onReset = {
-                                holder.markPending(FineTuneTuner.SPEED, 100.0)
-                                dispatchCommand(CommandRegistry.speedFactor, SpeedFactorArgs(100))
+                                markPending(FineTuneTuner.SPEED, 100.0)
+                                dispatchSpeed(SpeedFactorArgs(100))
                             },
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                     }
@@ -132,9 +189,9 @@ fun MotionScreen(
                             field = VelocityLimitArgs.VELOCITY,
                             tuner = FineTuneTuner.MAX_VELOCITY,
                             baseline = vm.baselines.maxVelocity,
-                            holder = holder,
-                            dispatch = { spec, args -> dispatchCommand(spec, args) },
-                            enabled = !groupBusy,
+                            markPending = markPending,
+                            dispatch = dispatchVelocityLimit,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         // D-05 Max accel (step 100, SET_VELOCITY_LIMIT ACCEL).
@@ -147,9 +204,9 @@ fun MotionScreen(
                             field = VelocityLimitArgs.ACCEL,
                             tuner = FineTuneTuner.MAX_ACCEL,
                             baseline = vm.baselines.maxAccel,
-                            holder = holder,
-                            dispatch = { spec, args -> dispatchCommand(spec, args) },
-                            enabled = !groupBusy,
+                            markPending = markPending,
+                            dispatch = dispatchVelocityLimit,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         // D-06 Minimum cruise ratio — DISPLAY percent, send ratio (REVIEW #9).
@@ -161,31 +218,28 @@ fun MotionScreen(
                             onDecrement = {
                                 val cur = vm.minCruisePct ?: return@FineTuneTile
                                 val targetPct = (cur - MIN_CRUISE_STEP_PCT).coerceAtLeast(0)
-                                holder.markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
-                                dispatchCommand(
-                                    CommandRegistry.setVelocityLimit,
+                                markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
+                                dispatchVelocityLimit(
                                     VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, targetPct / 100.0),
                                 )
                             },
                             onIncrement = {
                                 val cur = vm.minCruisePct ?: return@FineTuneTile
                                 val targetPct = (cur + MIN_CRUISE_STEP_PCT).coerceAtMost(100)
-                                holder.markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
-                                dispatchCommand(
-                                    CommandRegistry.setVelocityLimit,
+                                markPending(FineTuneTuner.MIN_CRUISE, targetPct.toDouble())
+                                dispatchVelocityLimit(
                                     VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, targetPct / 100.0),
                                 )
                             },
                             onReset = vm.baselines.minCruise?.let { base ->
                                 {
-                                    holder.markPending(FineTuneTuner.MIN_CRUISE, base * 100)
-                                    dispatchCommand(
-                                        CommandRegistry.setVelocityLimit,
+                                    markPending(FineTuneTuner.MIN_CRUISE, base * 100)
+                                    dispatchVelocityLimit(
                                         VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, base),
                                     )
                                 }
                             },
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         // D-07 Square-corner velocity (step 0.1, SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY).
@@ -198,9 +252,9 @@ fun MotionScreen(
                             field = VelocityLimitArgs.SCV,
                             tuner = FineTuneTuner.SCV,
                             baseline = vm.baselines.scv,
-                            holder = holder,
-                            dispatch = { spec, args -> dispatchCommand(spec, args) },
-                            enabled = !groupBusy,
+                            markPending = markPending,
+                            dispatch = dispatchVelocityLimit,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                     }

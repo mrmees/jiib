@@ -46,6 +46,10 @@ import works.mees.dinghy.di.AppContainer
  *
  * State-flip whole-group busy lock (D-15), state-flip-confirmed nudges, failure→SeverityToast as in
  * [MotionScreen]. Gutter Back = [Intent.Neutral].
+ *
+ * This live `container` overload resolves the dispatcher/holder flows + builds the dispatch side-effects,
+ * then delegates rendering to the container-free [ExtrusionContent] — the same surface the stateless
+ * preview overload calls (18-06 state-hoist, mirroring the PrintStatus anchor). Behaviour is unchanged.
  */
 @Composable
 fun ExtrusionScreen(
@@ -86,6 +90,67 @@ fun ExtrusionScreen(
         dispatcher?.dispatch(command, args)
     }
 
+    ExtrusionContent(
+        vm = vm,
+        enabled = !groupBusy,
+        failureText = failureText,
+        onBack = onBack,
+        onFwRetraction = onFwRetraction,
+        markPending = { tuner, target -> holder.markPending(tuner, target) },
+        dispatchFlow = { args -> dispatchCommand(CommandRegistry.flowFactor, args) },
+        dispatchPressureAdvance = { args -> dispatchCommand(CommandRegistry.setPressureAdvance, args) },
+        dispatchFan = { args -> dispatchCommand(CommandRegistry.setFan, args) },
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless preview/host overload of [ExtrusionScreen]: renders the same [ExtrusionContent] from a pure
+ * [FineTuneVm] fixture with no [AppContainer], dispatcher, or holder (18-06 SC-1 — no live Moonraker). The
+ * `fineTuneNoFwRetraction` fixture proves the absent→HIDDEN FW-retraction path. Side-effects default to
+ * no-ops; a preview never dispatches.
+ */
+@Composable
+fun ExtrusionScreen(
+    vm: FineTuneVm,
+    onBack: () -> Unit = {},
+    onFwRetraction: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    ExtrusionContent(
+        vm = vm,
+        enabled = !vm.groupBusy,
+        failureText = null,
+        onBack = onBack,
+        onFwRetraction = onFwRetraction,
+        markPending = { _, _ -> },
+        dispatchFlow = {},
+        dispatchPressureAdvance = {},
+        dispatchFan = {},
+        modifier = modifier,
+    )
+}
+
+/**
+ * The pure, container-free Extrusion rendering surface shared by BOTH [ExtrusionScreen] overloads — the
+ * live `container` entry (real dispatch side-effects) and the stateless preview entry (no-op side-effects).
+ * Holds the capability-gated tile column + the FW-Retraction entry + the Back gutter; carries NO
+ * `remember`/flow/dispatcher state, so it renders byte-identically under `@Preview` and at runtime. The
+ * `vm.hasFwRetraction` HIDDEN path is the absent-capability archetype 18-06 proves (de-risks Phase 19).
+ */
+@Composable
+private fun ExtrusionContent(
+    vm: FineTuneVm,
+    enabled: Boolean,
+    failureText: String?,
+    onBack: () -> Unit,
+    onFwRetraction: () -> Unit,
+    markPending: (FineTuneTuner, Double) -> Unit,
+    dispatchFlow: (FlowFactorArgs) -> Unit,
+    dispatchPressureAdvance: (PressureAdvanceArgs) -> Unit,
+    dispatchFan: (FanArgs) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
             field = {
@@ -103,20 +168,20 @@ fun ExtrusionScreen(
                             onDecrement = {
                                 val cur = vm.flowPct ?: return@FineTuneTile
                                 val target = cur - FLOW_STEP
-                                holder.markPending(FineTuneTuner.FLOW, target.toDouble())
-                                dispatchCommand(CommandRegistry.flowFactor, FlowFactorArgs(target))
+                                markPending(FineTuneTuner.FLOW, target.toDouble())
+                                dispatchFlow(FlowFactorArgs(target))
                             },
                             onIncrement = {
                                 val cur = vm.flowPct ?: return@FineTuneTile
                                 val target = cur + FLOW_STEP
-                                holder.markPending(FineTuneTuner.FLOW, target.toDouble())
-                                dispatchCommand(CommandRegistry.flowFactor, FlowFactorArgs(target))
+                                markPending(FineTuneTuner.FLOW, target.toDouble())
+                                dispatchFlow(FlowFactorArgs(target))
                             },
                             onReset = {
-                                holder.markPending(FineTuneTuner.FLOW, 100.0)
-                                dispatchCommand(CommandRegistry.flowFactor, FlowFactorArgs(100))
+                                markPending(FineTuneTuner.FLOW, 100.0)
+                                dispatchFlow(FlowFactorArgs(100))
                             },
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                     }
@@ -134,31 +199,28 @@ fun ExtrusionScreen(
                             onDecrement = {
                                 val cur = vm.pressureAdvance ?: return@FineTuneTile
                                 val target = (cur - PA_STEP).coerceAtLeast(0.0)
-                                holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
-                                dispatchCommand(
-                                    CommandRegistry.setPressureAdvance,
+                                markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
+                                dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, target),
                                 )
                             },
                             onIncrement = {
                                 val cur = vm.pressureAdvance ?: return@FineTuneTile
                                 val target = cur + PA_STEP
-                                holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
-                                dispatchCommand(
-                                    CommandRegistry.setPressureAdvance,
+                                markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
+                                dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, target),
                                 )
                             },
                             onReset = vm.baselines.pressureAdvance?.let { base ->
                                 {
-                                    holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, base)
-                                    dispatchCommand(
-                                        CommandRegistry.setPressureAdvance,
+                                    markPending(FineTuneTuner.PRESSURE_ADVANCE, base)
+                                    dispatchPressureAdvance(
                                         PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, base),
                                     )
                                 }
                             },
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         // D-10 Smooth time (step 0.01, SET_PRESSURE_ADVANCE SMOOTH_TIME).
@@ -174,31 +236,28 @@ fun ExtrusionScreen(
                             onDecrement = {
                                 val cur = vm.smoothTime ?: return@FineTuneTile
                                 val target = (cur - SMOOTH_STEP).coerceAtLeast(0.0)
-                                holder.markPending(FineTuneTuner.SMOOTH_TIME, target)
-                                dispatchCommand(
-                                    CommandRegistry.setPressureAdvance,
+                                markPending(FineTuneTuner.SMOOTH_TIME, target)
+                                dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, target),
                                 )
                             },
                             onIncrement = {
                                 val cur = vm.smoothTime ?: return@FineTuneTile
                                 val target = cur + SMOOTH_STEP
-                                holder.markPending(FineTuneTuner.SMOOTH_TIME, target)
-                                dispatchCommand(
-                                    CommandRegistry.setPressureAdvance,
+                                markPending(FineTuneTuner.SMOOTH_TIME, target)
+                                dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, target),
                                 )
                             },
                             onReset = vm.baselines.smoothTime?.let { base ->
                                 {
-                                    holder.markPending(FineTuneTuner.SMOOTH_TIME, base)
-                                    dispatchCommand(
-                                        CommandRegistry.setPressureAdvance,
+                                    markPending(FineTuneTuner.SMOOTH_TIME, base)
+                                    dispatchPressureAdvance(
                                         PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, base),
                                     )
                                 }
                             },
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                     }
@@ -212,17 +271,17 @@ fun ExtrusionScreen(
                             onDecrement = {
                                 val cur = vm.partFanPct ?: return@FineTuneTile
                                 val target = (cur - FAN_STEP_PCT).coerceAtLeast(0)
-                                holder.markPending(FineTuneTuner.PART_FAN, target.toDouble())
-                                dispatchCommand(CommandRegistry.setFan, FanArgs(target))
+                                markPending(FineTuneTuner.PART_FAN, target.toDouble())
+                                dispatchFan(FanArgs(target))
                             },
                             onIncrement = {
                                 val cur = vm.partFanPct ?: return@FineTuneTile
                                 val target = (cur + FAN_STEP_PCT).coerceAtMost(100)
-                                holder.markPending(FineTuneTuner.PART_FAN, target.toDouble())
-                                dispatchCommand(CommandRegistry.setFan, FanArgs(target))
+                                markPending(FineTuneTuner.PART_FAN, target.toDouble())
+                                dispatchFan(FanArgs(target))
                             },
                             onReset = null, // A2 / Open-Q1: [fan] has no persistent configured speed.
-                            enabled = !groupBusy,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                     }

@@ -3,8 +3,6 @@ package works.mees.dinghy.ui.finetune
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import works.mees.dinghy.command.CommandRegistry
-import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.VelocityLimitArgs
 
 /** Unreported value placeholder (D-20: "—", never a fabricated 0). */
@@ -40,8 +38,11 @@ internal fun fmtValue(v: Double?, decimals: Int): String {
 /**
  * A motion-limit value tile bound to ONE [VelocityLimitArgs] field (Max velocity / Max accel / SCV —
  * Min-cruise has its own percent-display path). Computes the target from the live [value] + [step],
- * marks the holder's pendingStateFlip (D-15), then dispatches via [dispatch]. [baseline]-driven reset
- * is wired ONLY when [baseline] is non-null (REVIEW #3 — else no long-press affordance).
+ * marks the pendingStateFlip via [markPending] (D-15), then dispatches via [dispatch]. [baseline]-driven
+ * reset is wired ONLY when [baseline] is non-null (REVIEW #3 — else no long-press affordance).
+ *
+ * Takes the [markPending]/[dispatch] side-effects directly (not the holder) so it renders identically in
+ * a stateless preview, where both are no-ops (18-06 state-hoist).
  */
 @Composable
 internal fun VelocityLimitTile(
@@ -53,14 +54,14 @@ internal fun VelocityLimitTile(
     field: String,
     tuner: FineTuneTuner,
     baseline: Double?,
-    holder: FineTuneHolder,
-    dispatch: (CommandSpec<VelocityLimitArgs>, VelocityLimitArgs) -> Unit,
+    markPending: (FineTuneTuner, Double) -> Unit,
+    dispatch: (VelocityLimitArgs) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     fun nudge(target: Double) {
-        holder.markPending(tuner, target)
-        dispatch(CommandRegistry.setVelocityLimit, VelocityLimitArgs(field, target))
+        markPending(tuner, target)
+        dispatch(VelocityLimitArgs(field, target))
     }
     FineTuneTile(
         iconRes = iconRes,
