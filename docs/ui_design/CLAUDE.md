@@ -46,6 +46,19 @@
   The shape-coded status indicators (octagon/triangle) ARE in the font and are NOT custom. Retires
   D-17's "no Material Symbols font" stance — the font is already a shipped dependency used app-wide.
   (The "never the same glyph twice on one screen" rule above still holds.)
+- **🚫 NEVER create an icon or choose a glyph independently — ASK. (Owner law, 2026-06-07.)** Claude does
+  NOT invent custom drawables and does NOT pick which Material Symbol/ligature represents a function on
+  its own. The track record on this is bad — Claude messes it up almost every time (Phase 18.3: invented
+  a fake side-view spool instead of using the owner's `img/spool.svg`; earlier phases mis-chose glyphs).
+  The procedure when a screen needs an icon:
+  1. **Check first** — is a glyph already selected for this function (in the registry `DinghyIcons`, the
+     hi-fi mockups, an existing screen, or a source asset in `img/`)? Run `ls img/` + grep the repo for
+     `*.svg` and the registry before doing anything. If one exists, USE it — never substitute.
+  2. **If nothing is already selected, STOP and ASK Matthew** which glyph/asset to use. Do not guess, do
+     not author a custom drawable, do not pick "a reasonable Material Symbol." Wait for his answer.
+  3. Only author a hand-made custom drawable when Matthew has explicitly approved doing so for a specific
+     printer-domain glyph — and even then, prefer converting a source SVG he provides.
+  This rule overrides any "be proactive / use sensible defaults" instinct for icon/glyph selection.
 - **Square the smallest buttons.** When a Field stacks multiple button rows, the shortest row's
   height should equal its per-column width (equal spans) so the smallest targets are square.
 - **Dense cells drop labels.** At ≥3 columns (portrait) / ≥6 (landscape), a cell shows a single
