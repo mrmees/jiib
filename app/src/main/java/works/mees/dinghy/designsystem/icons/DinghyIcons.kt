@@ -50,11 +50,12 @@ object DinghyIcons {
     val LauncherMove = DinghyIcon(IconRef.Ligature("open_with"), alternate = "launcher_move")
     val LauncherExtrude = DinghyIcon(IconRef.Ligature("output_circle"), alternate = "launcher_extrude")
     val LauncherCalibration = DinghyIcon(IconRef.Ligature("tune"), alternate = "launcher_calibration")
-    // WR-02: distinct from `Progress` (donut_large). `LauncherSpool` is the Spool launcher tile and
-    // `Progress` (the Spoolman print-line glyph) can render on the SAME PrintStatus screen — they must NOT
-    // share a glyph (the registry's "icon-never-twice on one screen" rule). `database` reads as a stacked
-    // spool/cylinder and is consistent with the Spool feature's inventory framing.
-    val LauncherSpool = DinghyIcon(IconRef.Ligature("database"), alternate = "launcher_spool")
+    // 18.3 D-01: the former `database` ligature placeholder is retired for a genuinely-custom side-view
+    // filament-spool VectorDrawable (`R.drawable.spool`) — Material Symbols has no spool glyph, so this is
+    // a sanctioned hand-authored printer-domain custom (icon-source policy above). The drawable draws the
+    // BODY/FLANGES only; the color-reactive filament band is painted at runtime by `SpoolGlyph` (D-02/D-04).
+    // Still distinct from `Progress` (donut_large) — they can co-render on PrintStatus (WR-02 still holds).
+    val LauncherSpool = DinghyIcon(IconRef.Drawable(R.drawable.spool), alternate = "launcher_spool")
     val LauncherMacros = DinghyIcon(IconRef.Ligature("bolt"), alternate = "launcher_macros")
     val LauncherConsole = DinghyIcon(IconRef.Ligature("terminal"), alternate = "launcher_console")
     val LauncherDrawer = DinghyIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")

@@ -88,13 +88,13 @@ class DinghyIconsTest {
     }
 
     /**
-     * (D-15 / SC-3b) Drift-guard for the Phase-18.1 drawable→ligature flip. After the six registry
-     * entries flip (StatusStop, BabystepCompress, BabystepExpand, PressureAdvance, Increase, Decrease),
-     * the ONLY remaining [IconRef.Drawable] entries are the D-10 hand-authored printer-domain customs
-     * `Nozzle`/`HeatBed`. Any other [IconRef.Drawable] is an un-flipped 18.1 regression.
-     *
-     * NOTE: this method is intentionally RED until Plan 18.1-02 performs the registry flips — it is the
-     * RED half of a guard that goes GREEN in Wave 1. The other tests in this class stay GREEN throughout.
+     * (D-15 / SC-3b / 18.3 SC1+SC6) Drift-guard for the hand-authored printer-domain Drawable keepers.
+     * After the Phase-18.1 drawable→ligature flips (StatusStop, BabystepCompress, BabystepExpand,
+     * PressureAdvance, Increase, Decrease), the remaining [IconRef.Drawable] entries are EXACTLY the
+     * sanctioned custom printer-domain glyphs Material Symbols lacks (icon-source policy, DinghyIcons.kt
+     * lines 15-21): `Nozzle`, `HeatBed`, and — added in Phase 18.3 — `launcher_spool` (the custom
+     * side-view filament-spool vector that retired the `database` ligature placeholder, D-01). Any OTHER
+     * [IconRef.Drawable] is an un-flipped 18.1 regression or an unsanctioned custom drawable.
      */
     @Test
     fun registryDrawableEntries_areOnlyTheCustomKeepers() {
@@ -103,9 +103,10 @@ class DinghyIconsTest {
             .map { it.alternate }
             .toSet()
         assertEquals(
-            "after 18.1 the only drawable-backed icons are the D-10 customs (Nozzle, HeatBed); " +
-                "any other IconRef.Drawable is an un-flipped 18.1 regression",
-            setOf("nozzle", "heat_bed"),
+            "the only drawable-backed icons are the sanctioned custom printer-domain glyphs Material " +
+                "Symbols lacks (Nozzle, HeatBed, launcher_spool — 18.3 D-01); any other IconRef.Drawable " +
+                "is an un-flipped 18.1 regression or an unsanctioned custom drawable",
+            setOf("nozzle", "heat_bed", "launcher_spool"),
             drawableBacked,
         )
     }

@@ -1,0 +1,64 @@
+<!--
+  Filament-spool glyph (side view): the two circular flanges + the central hub/axle silhouette,
+  BODY/FLANGES ONLY. Authored for the 96x96 viewBox convention shared by nozzle.xml / heat_bed.xml.
+  Strokes are drawn white and recolored at runtime via Compose Icon(tint = neutral role token) so the
+  body honors the semantic token system (THEME-01); the body is NOT color-reactive (D-02).
+
+  PHASE-CRITICAL (18.3 D-01/D-04): this vector deliberately EXCLUDES the wound-filament band region —
+  the rectangular gap between the two flanges is empty negative space owned exclusively by the
+  SpoolGlyph Compose Canvas overlay (plan 02), which paints the live filament color there (or omits it
+  for the empty-spool fallback, D-03). No <gradient> is baked in — filament color is dynamic runtime
+  data, never a static asset color.
+
+  BAND RECTANGLE (fixed fractions of the 96-unit box — SpoolGlyph MUST reproduce these EXACTLY so the
+  Canvas band registers seam-free with the gap below; see Pitfall 3):
+    left   = 0.34  -> x = 32.64
+    right  = 0.66  -> x = 63.36
+    top    = 0.18  -> y = 17.28
+    bottom = 0.82  -> y = 78.72
+  i.e. the band spans the vertical center column between the two flange faces. The flange faces sit at
+  x = 0.34 (32.64) and x = 0.66 (63.36); the flanges are circles of radius ~30 centered at x = 33 and
+  x = 63, y = 48. The hub line connects the two flange centers through the band gap.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Left flange (circle, r=30, center (33,48)) — drawn as two semicircle arcs to a closed path. -->
+    <path
+        android:pathData="M33,18 A30,30 0 1,1 32.99,18 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Left hub bore (small circle, r=6, center (33,48)) — the axle hole. -->
+    <path
+        android:pathData="M33,42 A6,6 0 1,1 32.99,42 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Right flange (circle, r=30, center (63,48)). -->
+    <path
+        android:pathData="M63,18 A30,30 0 1,1 62.99,18 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Right hub bore (small circle, r=6, center (63,48)). -->
+    <path
+        android:pathData="M63,42 A6,6 0 1,1 62.99,42 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Hub/axle: the top and bottom edges of the drum connecting the two flanges, framing the empty
+         band gap (band region between them is intentionally left blank for the Canvas overlay). -->
+    <path
+        android:pathData="M33,18 L63,18 M33,78 L63,78"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
