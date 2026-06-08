@@ -14,7 +14,12 @@ import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.net.WebcamClients
 import works.mees.dinghy.net.surfaceWebcamUrl
@@ -60,7 +65,14 @@ enum class H264AttemptResult {
      */
     FallThrough,
 
-    /** The driver scope was cancelled (page background / nav / spine rebuild) — clean exit (WR-01). */
+    /**
+     * The driver scope was cancelled (page background / nav / spine rebuild) — clean exit (WR-01).
+     *
+     * NOTE (WR-02): the PRODUCTION [realH264Attempt] NO LONGER returns this — it RE-THROWS the
+     * [kotlinx.coroutines.CancellationException] so structured-concurrency cancellation propagates. This value
+     * is retained as the composite's mapping for a FAKE attempt that returns it (the host-test seam, see
+     * [compositeMedia3Feed] / Media3FeedOutcomeTest) and for any future synchronous cancel signal.
+     */
     Cancelled,
 }
 
@@ -156,7 +168,23 @@ fun <T> compositeMedia3Feed(
  *  - [H264AttemptResult.Transient] on a NETWORK PlaybackException (retry the rung),
  *  - [H264AttemptResult.FallThrough] on a DECODER PlaybackException (the composite delegates to MJPEG/Snapshot),
  *  - [H264AttemptResult.FallThrough] when no native URL is derivable (rung falls through),
- *  - [H264AttemptResult.Cancelled] when the driver scope is cancelled.
+ *  - [H264AttemptResult.Transient] on a clean stream END (STATE_ENDED) — a live RTSP/HLS feed that ENDs
+ *    has torn down; let the holder back off + re-attempt the rung rather than hang forever (WR-01),
+ *  - [H264AttemptResult.FallThrough] when no SurfaceView is ever registered within
+ *    [SURFACE_AWAIT_TIMEOUT_MS] (the host never composed — fall to the lower rung, WR-03).
+ *  On driver cancellation the [kotlinx.coroutines.CancellationException] is RE-THROWN after teardown (WR-02)
+ *  — structured-concurrency cancellation propagates out of `run()` and the holder's `drive()` exits its
+ *  loop as a cancelled coroutine. The attempt itself NEVER returns [H264AttemptResult.Cancelled] (that enum
+ *  value remains the composite's host-test mapping for a fake attempt; see [compositeMedia3Feed]).
+ *
+ * ## Surface re-attach across rotation (CR-01)
+ * The host recreates its SurfaceView on `AndroidView` reset (orientation change — this app supports portrait
+ * AND landscape), firing `clear()` → `register(new)` on the provider. The RUNNING player must follow, so the
+ * attempt does NOT capture one surface via `first()` and pin it — it COLLECTS [Media3SurfaceProvider.surface]
+ * for the player's whole lifetime and re-attaches on every change: a non-null SurfaceView →
+ * `setVideoSurfaceView(sv)`; a transient null (host disposing/rotating) → `setVideoSurfaceView(null)` WITHOUT
+ * tearing the player down (the fresh surface arrives momentarily and re-attaches). The feed keeps rendering
+ * across rotation instead of pinning a destroyed surface (the CR-01 permanent-black-feed defect).
  *
  * Leak-free teardown (WR-01 / T-21-04-02): on EVERY exit path the player is detached + released —
  * `setVideoSurfaceView(null)` THEN `release()`, idempotently, on `Dispatchers.Main`. The H.264 player is
@@ -185,32 +213,62 @@ fun realH264Attempt(
     var player: ExoPlayer? = null
     val result = CompletableDeferred<H264AttemptResult>()
     try {
-        // Await the host's SurfaceView (cancellable — a cancelled driver throws CancellationException here).
-        val surfaceView = surfaceProvider.awaitSurface()
+        // WR-03: bound the FIRST-surface wait so an H.264-selected cam whose host never composes (the
+        // SurfaceView never registers) does NOT park the IO driver forever — fall through to the lower rung.
+        // Cancellable: a cancelled driver throws CancellationException out of the timed wait (re-thrown below).
+        withTimeoutOrNull(SURFACE_AWAIT_TIMEOUT_MS) {
+            surfaceProvider.surface.filterNotNull().first()
+        } ?: return@H264Attempt H264AttemptResult.FallThrough
 
-        withContext(Dispatchers.Main) {
-            val exo = ExoPlayer.Builder(context).build()
-            player = exo
-            exo.addListener(object : Player.Listener {
-                override fun onPlayerError(error: PlaybackException) {
-                    // Classify network-vs-decoder and complete the attempt (the composite acts on it).
-                    result.complete(classifyPlaybackException(error.errorCode))
-                }
-            })
-            exo.setVideoSurfaceView(surfaceView)
-            exo.setMediaSource(buildMediaSource(transport, nativeUrl))
-            exo.playWhenReady = true
-            exo.prepare()
+        // CR-01: the player must re-attach the surface for its WHOLE lifetime (rotation recreates the host
+        // SurfaceView). coroutineScope keeps the surface-collector a CHILD of the attempt — it is cancelled
+        // when result.await() returns OR the driver is cancelled, and the finally still releases the player.
+        coroutineScope {
+            withContext(Dispatchers.Main) {
+                val exo = ExoPlayer.Builder(context).build()
+                player = exo
+                exo.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: PlaybackException) {
+                        // Classify network-vs-decoder and complete the attempt (the composite acts on it).
+                        result.complete(classifyPlaybackException(error.errorCode))
+                    }
+
+                    override fun onPlaybackStateChanged(state: Int) {
+                        // WR-01: a clean stream END (server tore the stream down / HLS playlist ended) raises
+                        // no PlaybackException — map STATE_ENDED to Transient so the holder reconnects rather
+                        // than hanging forever. complete() is a no-op if already completed (safe).
+                        if (state == Player.STATE_ENDED) {
+                            result.complete(H264AttemptResult.Transient)
+                        }
+                    }
+                })
+                exo.setMediaSource(buildMediaSource(transport, nativeUrl))
+                exo.playWhenReady = true
+                exo.prepare()
+            }
+
+            // CR-01: re-attach the surface on EVERY change for the player's lifetime. Collecting the StateFlow
+            // replays the current value first (idempotent initial attach), then follows rotation: a new
+            // SurfaceView re-attaches; a transient null (host disposing/rotating) detaches WITHOUT tearing the
+            // player down — the fresh surface arrives momentarily and re-attaches. All player ops stay on Main.
+            val surfaceJob = launch(Dispatchers.Main) {
+                surfaceProvider.surface.collect { sv -> player?.setVideoSurfaceView(sv) }
+            }
+
+            // Suspend until the player errors / ends (the listener completes [result]) OR the driver is
+            // cancelled. A healthy stream renders to the SurfaceView indefinitely; await() suspends here, and a
+            // cancelled driver throws CancellationException out of await() → re-thrown below; the finally always
+            // releases the player (WR-01). Cancel the surface-collector once the attempt resolves.
+            try {
+                result.await()
+            } finally {
+                surfaceJob.cancel()
+            }
         }
-
-        // Suspend until the player errors (the listener completes [result]) OR the driver is cancelled.
-        // A healthy stream renders to the SurfaceView indefinitely; await() suspends here, and a cancelled
-        // driver throws CancellationException out of await() → caught below, treated as Cancelled, and the
-        // finally always releases the player (WR-01).
-        result.await()
     } catch (ce: kotlinx.coroutines.CancellationException) {
-        // Re-thrown after teardown — the holder treats a cancelled feed as Cancelled (clean exit, WR-01).
-        H264AttemptResult.Cancelled
+        // WR-02: the finally below runs FIRST (NonCancellable teardown), then re-throw so structured-concurrency
+        // cancellation propagates out of run() — the holder's drive() exits its loop as a cancelled coroutine.
+        throw ce
     } finally {
         // Idempotent leak-free release on EVERY exit path (WR-01): detach the surface BEFORE release().
         val p = player
@@ -288,3 +346,10 @@ fun webcamMedia3Holder(
 private val webcamClientsAnchor = WebcamClients
 
 private const val RTSP_TIMEOUT_MS = 8000L
+
+/**
+ * WR-03: the bound on the FIRST-surface wait in [realH264Attempt]. If the host never composes a SurfaceView
+ * within this window (e.g. the screen is on the Bitmap branch, or a refactor gates the host differently),
+ * the attempt falls through to the lower rung rather than parking the IO driver forever.
+ */
+private const val SURFACE_AWAIT_TIMEOUT_MS = 5000L
