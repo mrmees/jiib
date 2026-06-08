@@ -1020,7 +1020,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 21-02-PLAN.md — THE GATING throwaway on-device spike (D-02): Media3 RTSP-vs-HLS glass-to-glass latency + decoder + APK delta on flox vs both printers; records the DECISION plans 03/04 consume
+- [x] 21-02-PLAN.md — THE GATING throwaway on-device spike (D-02): Media3 RTSP-vs-HLS glass-to-glass latency + decoder + APK delta on flox vs both printers; records the DECISION plans 03/04 consume
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -1107,7 +1107,7 @@ notes.
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
-| 21. WebRTC Camera Streaming | 1/5 | In Progress|  |
+| 21. WebRTC Camera Streaming | 2/5 | In Progress|  |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)

@@ -230,7 +230,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CALIB-05 (PROBE_CALIBRATE; ⊂ ZCAL-01) | Phase 9 | Planned |
 | CALIB-06 (files-delete scoping D-15) | Phase 9 | Planned |
 | CAM-01 | Phase 10 | Complete |
-| CAM-10 (throwaway on-device latency spike; ⊂ CAM-01 H.264 ext) | Phase 21 | Planned |
+| CAM-10 (throwaway on-device latency spike; ⊂ CAM-01 H.264 ext) | Phase 21 | Complete |
 | CAM-11 (Media3 H.264 rung above MJPEG/Snapshot, D-09; ⊂ CAM-01) | Phase 21 | Planned |
 | CAM-12 (heuristic-selects / decoder-verifies routing, D-10/T-10-06; ⊂ CAM-01) | Phase 21 | Planned |
 | CAM-13 (URL resolution: explicit extra_data else derive-from-convention, D-11/D-12; ⊂ CAM-01) | Phase 21 | Planned |

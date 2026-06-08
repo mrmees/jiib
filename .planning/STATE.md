@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-08T17:12:10.254Z"
+last_updated: "2026-06-08T18:20:37.872Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
   completed_phases: 24
   total_plans: 169
-  completed_plans: 164
+  completed_plans: 165
   percent: 86
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 21 (webrtc-camera-streaming) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
   → **Plan 19-01 (Wave 0: output-type icon registry + D-08 fan reassignment) EXECUTED + COMPLETE 2026-06-08.** Icon foundation for Phase 19. Task 1 `8a6211a` (feat — registered 7 owner-locked output-type tokens in `DinghyIcons`: `OutputHeater`→`mode_heat` [D-01], `OutputFan`→`mode_fan_2` [D-02], `OutputLed`→`lightbulb_2` [D-03, led/neopixel/dotstar/pca9533/pca9632], `OutputServo`→`cyclone` [D-04], `OutputPin`→`check_box` [D-05, digital+PWM output_pin], `OutputPwmTool`→`vital_signs` [D-06], `OutputSection`→`output` [D-07, Outputs section/drawer tile]; each with a unique `alternate`; all 7 added to the explicit `DinghyIcons.all` drift-guard list. D-08 cross-phase reassignment: `FanMode` flipped `mode_fan`→`air` — the part-cooling fan glyph — keeping the val name + `alternate="fan_mode"` so its SOLE consumer `ExtrusionScreen.kt:271` needed NO call-site edit [symbolic ref]; `mode_fan_2` now owns the generic-fan OUTPUT glyph. `:app:compileDebugKotlin` GREEN). Task 2 `87913d2` (test — extended `verify_ligatures.py` NEEDED with the 8 D-09 glyphs [`mode_heat`/`mode_fan_2`/`lightbulb_2`/`cyclone`/`check_box`/`vital_signs`/`output`/`air`] + REMOVED `mode_fan` [no `IconRef.Ligature` references it post-reassignment]; gate exits 0 `missing: []`, all 8 resolve in the v2.944 bundled ttf. `DinghyIconsTest` needed NO edit — it derives uniqueness/drift checks dynamically from `DinghyIcons.all` — and stayed GREEN with the 7 new ligature-backed entries). grep proofs: zero `IconRef.Ligature("mode_fan")` in `app/src/main`, exactly one `DinghyIcons.FanMode` consumer (no regression site). 0 deviations. SUMMARY `19-01-SUMMARY.md`. SC-1/SC-2 satisfied at the icon-registry layer; Wave-2 detail rows reference `DinghyIcons.Output*` tokens symbolically behind the D-09 gate. **Phase 19: 1/8 plans complete.**
   → **Plan 17-08 (GAP 2 / UAT Check 8, MINOR — same-dest re-entry entry-reset) EXECUTED + COMPLETE & on-device flox-APPROVED 2026-06-08.** Continuation close-out after the blocking on-device checkpoint resolved. Task 1 `2bebae0` (fix — `ShellNavState.navigateTo()`: extracted the three per-dest ENTRY-RESET side-effects [Macros `macroShowSystem=false`+`macroPopupFor=null`; Calibration `calibrationRoutine=null`; Fine-Tune `fineTuneGroup=null`] into a private `applyEntryReset(target)` helper, then made `navigateTo()` run it on a **same-dest re-selection BEFORE the no-push early-return** instead of an unconditional return that skipped it. One-spot fix closes the Fine-Tune stale-sub-page hole [re-entering Fine-Tune from its drawer tile while on the Motion sub-page now snaps to the Hub] AND the identical latent Calibration + Macros holes — REVIEW #6 holds for EVERY entry path. Dest-change `backStack` semantics unchanged [PrintStatus clears, else push the outgoing dest]; same-dest re-selection still pushes NO back entry. Host unit suite GREEN + androidTest sourceset compiles). **Task 2 = `checkpoint:human-verify` ON-DEVICE flox → APPROVED:** owner Matthew manually verified on flox (debug build with the fix installed) — swipe up → Fine-Tune tile → Motion → swipe up → Fine-Tune tile again → lands on the **Hub** (not the stale Motion page); replied "approved". **DEFERRED follow-up (test-only, surfaces in /gsd-progress, NOT a blocker):** the instrumented `FineTuneNavTest` (both methods) FAILED on flox — but NOT at the assertion under test; they die at the `openFineTuneViaDrawer()` setup because `performTouchInput { swipeUp() }` spreads ~800px over ~12 events so no single per-event `dragAmount` clears AppShell's `SWIPE_UP_THRESHOLD_PX = 80f`, so the drawer never opens in the test. This is a **pre-existing test-harness gesture defect** (this instrumented test compiled but was never device-run before 17-08), independent of the 17-08 fix and affecting the baseline equally. Owner chose manual eyeball as the authoritative on-device gate and deferred the instrumented-test fix to a separate test-hardening pass; `FineTuneNavTest.kt` was intentionally NOT modified in this plan. 0 deviations. SUMMARY `17-08-SUMMARY.md` (`31a9226`). TUNE-01 closed. **Both Phase-17 gap-closure plans (17-07 busy-lock wedge + 17-08 same-dest re-entry) now executed + on-device-approved; Phase-17 closure [17-06 on-device UAT SUMMARY + verifier] remains orchestrator-owned — do NOT mark the phase verified here.**
@@ -246,6 +246,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 20 P03 | 35 | 3 tasks | 14 files |
 | Phase 20 P04 | 30 | 3 tasks | 8 files |
 | Phase 21 P01 | 13 min | 2 tasks | 7 files |
+| Phase 21 P02 | 1day | 2 tasks | 1 file |
 
 ## Accumulated Context
 
@@ -452,6 +453,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 20-04: System Info drawer-tile flip + AppShell branch in ONE commit (no dead-tap window); D-03/D-09 reuse thermostat/speed tokens; on-device cross-SBC UAT (SYS-05/SC-4) is the PENDING blocking checkpoint.
 - [Phase 21]: Plan 21-01: accepted compileSdk 35→36 (media3 1.10.1 AAR metadata HARD-REQUIRES >=36; the RESEARCH/PLAN "35 in range" claim was wrong). Kept media3 1.10.1 + AGP 8.7.0, targetSdk 35; minSdk-23 floor PROVEN by verifyMinSdkRelease. This is an accepted middle step on AGP 8.7.0, DISTINCT from the forbidden AGP-9/compileSdk-37/Compose-1.12 jump. Reconciled project law (libs.versions.toml header + 4 CLAUDE.md pin lines).
 - [Phase 21]: Plan 21-01: Wave-0 RED scaffolds use org.junit.Assert.fail (project is JUnit4; kotlin.test not on classpath) and are grep-clean of unbuilt symbol names — 21-03/04 convert them to live assertions.
+- [Phase 21]: Plan 21-02 SPIKE (D-02): lead=RTSP, fallback=HLS, WebRTC escape (D-03) NOT needed, cutout=square. On flox: RTSP startup ~2.3s vs HLS ~5.0s, HW decoder OMX.qcom.video.decoder.avc (CPU ~0%), SPS/PPS-in-fmtp PRESENT (RTSP prepare decoded with zero init error). Latency accepted by owner eyeball (NOT clock-photo medians). E3 + APK-delta NOT measured this session (deferred to 21-05 UAT). 21-04 MUST overlay required controls z-ordered ABOVE the SurfaceView. See 21-SPIKE-RESULT.md.
 
 ### Pending Todos
 
@@ -489,7 +491,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-08T17:11:12.019Z
+Last session: 2026-06-08T18:19:56.746Z
 Stopped at: Phase 21 context gathered
 Resume file: 
 None
