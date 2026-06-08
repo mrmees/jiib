@@ -1050,7 +1050,27 @@ Plans:
   4. The three AndroidView surfaces (Files / temp-graph / console) and the image/webcam decode paths are confirmed leak-free and not GC-churning under sustained use
   5. No functional regressions: the full host unit suite is green and the connect → monitor → control-a-print loop still works on flox
 
-**Plans**: TBD
+**Plans**: 7 plans (4 waves)
+Plans:
+
+**Wave 0**
+
+- [ ] 22-01-PLAN.md — gfxinfo RELEASE baseline on flox (D-05/D-06 sweep) + add kotlinx-collections-immutable 0.3.8 + @Stable AppContainer (blocks every code wave)
+
+**Wave 1** *(blocked on Wave 0)*
+
+- [ ] 22-02-PLAN.md — D-02 P0: @Immutable PrinterState tree + ImmutableMap/ImmutableList field migration + reducer emission
+- [ ] 22-03-PLAN.md — SpoolGlyph cached gradient Brush via remember(render) (ColorWheel template; P2)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 22-04-PLAN.md — D-01 move #1: split PrintStatusScreen god-component into Focus/Field/Gutter/Previews + lambda-slot fix + co-located P1/P2 + on-device parity
+- [ ] 22-05-PLAN.md — D-12 AndroidView token guards (GraphView/WebcamView) + measureText/SimpleDateFormat hygiene + SC4 leak/GC confirmation
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
+- [ ] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
 **UI hint**: no
 **Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
 
