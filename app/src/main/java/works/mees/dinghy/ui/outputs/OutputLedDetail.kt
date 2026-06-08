@@ -329,10 +329,17 @@ internal fun LedBrightnessControl(
     val range = 0f..100f
     val step = 1f
     var barWidthPx by remember { mutableFloatStateOf(0f) }
+    // Internal working value (mirrors ScrubberPage's `working`) seeded from the caller [value]; re-seeds when
+    // [value] changes (e.g. a live state flip). CRITICAL: the gesture's settle() reads `working` — a MutableState
+    // read is always current — so a drag-to-release dispatches the DRAGGED-TO value, not the stale pre-gesture
+    // value captured in the pointerInput closure (the GAP-B "value doesn't stick" regression).
+    var working by remember(value) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
 
     fun set(next: Float) {
         if (!enabled) return
-        onValueChange(next.coerceIn(range.start, range.endInclusive))
+        val clamped = next.coerceIn(range.start, range.endInclusive)
+        working = clamped
+        onValueChange(clamped)
     }
 
     fun setFromX(x: Float) {
@@ -340,12 +347,12 @@ internal fun LedBrightnessControl(
         set(range.start + fractionFromX(x, barWidthPx) * (range.endInclusive - range.start))
     }
 
-    fun settle(v: Float) {
-        if (enabled) onSettle(v.coerceIn(range.start, range.endInclusive))
+    fun settle() {
+        if (enabled) onSettle(working)
     }
 
-    val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
-    val display = value.roundToInt().toString()
+    val fraction = ((working - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+    val display = working.roundToInt().toString()
 
     Column(modifier) {
         // Horizontal fill-bar scrubber (mirrors ScrubberPage's fill-bar; horizontal here to share the LED field
@@ -373,26 +380,31 @@ internal fun LedBrightnessControl(
                                 }
                             }
                         } while (event.changes.any { it.pressed })
-                        // Gesture END — settle once (HIGH-3), never per move frame.
-                        settle(value)
+                        // Gesture END — settle once (HIGH-3), never per move frame. Reads `working` (fresh).
+                        settle()
                     }
                 },
-            contentAlignment = Alignment.Center,
+            // NO contentAlignment here: the accent fill MUST anchor to the start (left) edge and grow
+            // rightward — a centered Box would make a fillMaxWidth(fraction) fill expand from the middle
+            // (the GAP-B "expands from the middle" regression). The value text is centered via its own overlay.
         ) {
-            // Accent-tinted fill tracks the value (left-anchored).
+            // Accent-tinted fill, LEFT-anchored (default TopStart), width = fraction.
             Box(
                 Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(fraction)
                     .background(t.accentSoft),
             )
-            Text(
-                text = "$display%",
-                color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(40f, t.fs).sp,
-            )
+            // Centered value overlay (separate from the fill so the fill stays left-anchored).
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "$display%",
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(40f, t.fs).sp,
+                )
+            }
         }
         // ± stepper row (keyboard-free): each tap is itself a settle (ends a discrete adjustment).
         Row(
@@ -401,13 +413,13 @@ internal fun LedBrightnessControl(
         ) {
             OutlinedControl(
                 label = "−",
-                onClick = { val n = (value - step).coerceIn(range.start, range.endInclusive); set(n); settle(n) },
+                onClick = { set(working - step); settle() },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral,
             )
             OutlinedControl(
                 label = "+",
-                onClick = { val n = (value + step).coerceIn(range.start, range.endInclusive); set(n); settle(n) },
+                onClick = { set(working + step); settle() },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral,
             )
