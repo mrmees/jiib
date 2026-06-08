@@ -1,6 +1,7 @@
 package works.mees.dinghy.systeminfo
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,11 +48,18 @@ class SystemInfoHolder(
     /** The latest ~1 Hz live resource sample (cpu%/mem/temp), parsed from the push. Null until the first frame. */
     val live: StateFlow<ProcStatLive?> = _live.asStateFlow()
 
-    init {
-        scope.launch {
-            procStatUpdates.collect { push ->
-                _live.value = ProcStatLive.fromPush(push)
-            }
+    // The 1 Hz push collector runs on the process-lifetime serviceScope, so unlike the other
+    // serviceScope holders it is rebuilt on every reconnect/profile-switch — without a cancel handle
+    // each rebuild would leak one idle collector. Retain the Job and expose [cancel] so the service
+    // can tear down the PRIOR holder before publishing the new one (WR-01).
+    private val collectorJob: Job = scope.launch {
+        procStatUpdates.collect { push ->
+            _live.value = ProcStatLive.fromPush(push)
         }
+    }
+
+    /** Cancel the 1 Hz live collector. Called by the service on session teardown / before republish. */
+    fun cancel() {
+        collectorJob.cancel()
     }
 }

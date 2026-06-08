@@ -104,6 +104,8 @@ class MoonrakerService : Service() {
                 publishIdle = {
                     container.bindSessionControl(null)
                     container.publishSpine(null)
+                    // Cancel the prior holder's collector before dropping it (WR-01).
+                    container.systemInfoHolder.value?.cancel()
                     container.publishSystemInfoHolder(null)
                     updateNotification("Set up printer")
                 },
@@ -237,6 +239,10 @@ class MoonrakerService : Service() {
         // printer hot path (Open Q2). Built per session from the just-published handle's one-shot
         // identity/proc-stat StateFlows + the session rpc's ~1 Hz proc-stat push (procStatUpdates). The
         // screen (Plan 04) collects its identity/procStats/live flows off the container.
+        // Cancel the PRIOR holder's 1 Hz collector before publishing the new one — the collector runs
+        // on the process-lifetime serviceScope, so without this each reconnect/profile-switch would leak
+        // one idle collector (WR-01). Mirrors runConfigLoop's cancel-before-rebuild discipline.
+        container.systemInfoHolder.value?.cancel()
         container.publishSystemInfoHolder(
             works.mees.dinghy.systeminfo.SystemInfoHolder(
                 scope = serviceScope,
