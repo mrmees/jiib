@@ -17,7 +17,7 @@
 | 3. Color | 3/4 | Token discipline is near-total (THEME-01 essentially clean; carve-outs all sanctioned), but a concrete intent-vs-mockup divergence exists (Move "Disable" red where the mockup is amber) plus 4 duplicated `intentColor()` maps inviting drift. |
 | 4. Typography | 4/4 | `fsSp(base, t.fs)` is used universally — ZERO hardcoded `.sp` font sizes app-wide; Geist/GeistMono split honored; metadata 15sp floor respected. |
 | 5. Spacing | 3/4 | Ratio-only region sizing via `ScreenScaffold` is disciplined; fixed dp is confined to decorative spacers + the sanctioned 64dp floor. The App Drawer's fixed 4-column grid is the one structural spacing regression. |
-| 6. Experience Design | 3/4 | Loading/error/empty/disabled/confirm states are thorough; the single full-screen `ConfirmGuard` is a model safety gate. Dragged down by the App-Drawer density regression and the deferred Files-delete-during-print bug. |
+| 6. Experience Design | 3/4 | Loading/error/empty/disabled/confirm states are thorough; the single full-screen `ConfirmGuard` is a model safety gate. Dragged down by the App-Drawer density regression. (NOTE: an earlier draft also cited a Files-delete-during-print bug — that was RESOLVED in Phase 9, see CONCERNS.md; not an open defect.) |
 
 **Overall: 20/24**
 
@@ -50,7 +50,7 @@ Verdict legend: **OVERHAUL** = major rework needed (structural layout / interact
 | **Extrude** | `ui/extrude/ExtrudeScreen.kt` | **POLISH** | Conformant intents + numpad, but raw `MaterialSymbol` + bespoke `FieldButton` + the live "Spoolman integration coming soon" placeholder + inline strings. |
 | **Move** | `ui/move/MoveScreen.kt` | **POLISH** | Excellent jog-pad/force-move/value-on-glyph, but Disable intent red-vs-amber divergence + raw `MaterialSymbol` + inline strings. |
 | **Console** | `ui/console/ConsoleScreen.kt` | **POLISH** | Solid read-only list + filters, but a 4-cell gutter (3 filters + Back) crowds the row; bespoke `FilterToggle`/`BackControl`; raw `MaterialSymbol`; inline strings. |
-| **Files** | `ui/files/FilesScreen.kt` | **POLISH** | Views-in-Compose list works; but duplicated `intentColor`, raw `MaterialSymbol`, and the deferred delete-during-print bug (CONCERNS.md) live here. |
+| **Files** | `ui/files/FilesScreen.kt` | **POLISH** | Views-in-Compose list works; remaining items are duplicated `intentColor` + raw `MaterialSymbol`. (The delete-during-print bug is RESOLVED — Phase 9 `DeleteGate.kt`; not open.) |
 | **Macros (System/Bookmarked)** | `ui/macros/SystemMacrosScreen.kt`, `BookmarkedMacrosScreen.kt` | **POLISH** | Functional list; raw `MaterialSymbol`, inline strings; verify ≥64dp on macro rows. |
 | **Macro Execution Popup** | `ui/macros/MacroExecutionPopup.kt` | **POLISH** | Duplicated `intentColor`, raw `MaterialSymbol`; param-entry interaction differs from the app's numpad/scrubber idiom — confirm coherence. |
 | **Spool** | `ui/spool/SpoolScreen.kt` | **POLISH** | Already on `DinghyIconView` + `SpoolGlyph`; sub-pages (`SpoolPicker`, `ScanConfirmCard`, `ScanSurface`, `ActiveSpoolCard`) still raw `MaterialSymbol`; verify discard-Back stays red (C7). |

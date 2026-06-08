@@ -381,19 +381,21 @@ notification small icon.
 
 ---
 
-### Files Delete blocks ALL files during any active print — deferred from Phase 7
+### Files Delete during print — RESOLVED in Phase 9 (not an open bug)
 
-**Symptoms:** When any print is active, the Files screen blocks delete operations on all files, not
-just the currently-printing file.
+**Status:** ✅ FIXED. The original Phase-7 symptom (delete blocked on ALL files during any print)
+was resolved in Phase 9 (plan 09-03). Delete is now scoped to the actively-printing file only —
+every other idle file stays deletable mid-print. Routed through the pure, host-tested
+`deleteAllowed` helper.
 
 **Files:**
-- `app/src/main/java/works/mees/dinghy/ui/files/FilesScreen.kt` — delete gate logic
+- `app/src/main/java/works/mees/dinghy/ui/files/DeleteGate.kt:22` — `deleteAllowed(...)` gate
+- `app/src/main/java/works/mees/dinghy/ui/files/FilesScreen.kt:147-151` — D-15 comment + call site
+- Tests: `app/src/test/java/works/mees/dinghy/ui/files/FilesDeleteGateTest.kt`,
+  `FileBrowserHolderDeleteTest.kt`
 
-**Trigger:** Any active print job.
-
-**Correct behavior:** Only the file currently being printed should be undeletable.
-
-**Deferred to:** Phase 7 `07-UAT.md` open item; no assigned phase.
+**Note:** the stale `07-UAT.md` open item and the earlier draft of this section predate the Phase-9
+fix. No action needed for Phases 23/25.
 
 ---
 
