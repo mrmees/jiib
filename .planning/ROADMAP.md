@@ -969,19 +969,19 @@ Plans:
 
 ### Phase 20: System Information Page
 
-**Goal**: A read-only, at-a-glance page for the printer host + Klipper/Moonraker system state — `machine.system_info` / `machine.proc_stats` / `server.info` / version info: host CPU/memory, CPU temp + throttle, uptime, distro, Klipper/Moonraker versions, network, and disk usage. No control surface — a diagnostics/health view that reuses the central subscribe and the existing data-table/render primitives.
+**Goal**: A read-only, at-a-glance **host-health/diagnostics** page for the **printer host** (the SBC running Klipper + Moonraker for the active printer) — `machine.system_info` / `machine.proc_stats`: host identity (CPU model/cores, RAM, distro, kernel), live load (CPU %, memory used/available), and a host-health summary (hostname, CPU temp, throttle/health state, uptime). No control surface — a diagnostics/health view that reuses the central subscribe and the existing label:value render primitives. **Versions live in About; disk/network are out of scope** (owner-narrowed — see `20-system-info-staging.md`).
 **Depends on**: Phase 19
 **Requirements**: *(new SYS-* family — defined at phase discuss)*
 **Success Criteria** (what must be TRUE):
 
-  1. The page shows host system info (CPU/mem/temp/throttle/uptime/distro), Klipper + Moonraker versions, and disk/network status sourced from Moonraker machine/server endpoints
+  1. The page shows host system identity (CPU model/cores, total RAM, distro, kernel), live host load (CPU %, memory used/available), and a host-health summary (hostname, CPU temp, throttle/health state, uptime) sourced from Moonraker `machine.system_info` / `machine.proc_stats`
   2. Live values (proc stats, temps) update at a sane throttled cadence via the central subscribe — no dedicated polling loop (honors the Phase-13 cadence contract)
   3. Missing/unsupported fields degrade gracefully ("—"); the page never blocks or crashes on a sparse/older Moonraker
   4. Verified against both real printers (different SBCs: RPi 4 vs RockPro64)
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — machine.system_info / proc_stats / server.info shapes partly captured already in `docs/moonraker-capabilities.md`; confirm fields against the Moonraker API.
+**Research note**: STANDARD — confirm exact `machine.system_info` / `machine.proc_stats` field shapes (incl. Pi throttle flags vs RockPro64 temp-fallback) against the Moonraker API on BOTH real SBCs; some shapes partly captured in `docs/moonraker-capabilities.md`. Full design locked in `20-system-info-staging.md`.
 
 ### Phase 21: WebRTC Camera Streaming
 
