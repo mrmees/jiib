@@ -111,6 +111,35 @@ object PrinterCommands {
     const val RETRACT_SPEED_MIN = 1
     const val RETRACT_SPEED_MAX = 100
 
+    // --- Fine-Tune clamp AUTHORITY (Phase 17 gap-1 / 17-07) ----------------------------------------
+    // The SINGLE source of truth for every live-adjust clamp: the gcode builders below delegate to
+    // these pure functions, AND each screen's markPending call site feeds the SAME clamp output as its
+    // dispatched target — so the optimistic state-flip target and the wire-clamped value can NEVER
+    // disagree. (UAT Check 6 root cause: an UNCLAMPED markPending target at the cap armed a flip the
+    // clamped wire command could never reach, wedging the whole group's busy lock permanently.) Each is
+    // a one-liner over the existing *_MIN/*_MAX consts — exactly ONE clamp definition per tuner.
+
+    /** Clamp a speed-override percent to [SPEED_PCT_MIN]..[SPEED_PCT_MAX] (display unit). */
+    fun clampSpeedPct(pct: Int): Int = pct.coerceIn(SPEED_PCT_MIN, SPEED_PCT_MAX)
+
+    /** Clamp a flow/extrude-factor percent to [FLOW_PCT_MIN]..[FLOW_PCT_MAX] (display unit). */
+    fun clampFlowPct(pct: Int): Int = pct.coerceIn(FLOW_PCT_MIN, FLOW_PCT_MAX)
+
+    /** Clamp a max-velocity (mm/s) to [VEL_MIN]..[VEL_MAX]. */
+    fun clampVelocity(v: Double): Double = v.coerceIn(VEL_MIN, VEL_MAX)
+
+    /** Clamp a max-accel (mm/s²) to [ACCEL_MIN]..[ACCEL_MAX]. */
+    fun clampAccel(v: Double): Double = v.coerceIn(ACCEL_MIN, ACCEL_MAX)
+
+    /** Clamp a square-corner-velocity (mm/s) to [SCV_MIN]..[SCV_MAX]. */
+    fun clampScv(v: Double): Double = v.coerceIn(SCV_MIN, SCV_MAX)
+
+    /** Clamp a pressure-advance (s) to [PA_MIN]..[PA_MAX]. */
+    fun clampPressureAdvance(v: Double): Double = v.coerceIn(PA_MIN, PA_MAX)
+
+    /** Clamp a smooth-time (s) to [SMOOTH_MIN]..[SMOOTH_MAX]. */
+    fun clampSmoothTime(v: Double): Double = v.coerceIn(SMOOTH_MIN, SMOOTH_MAX)
+
     // --- Constant action gcodes -------------------------------------------------------------------
     /** Turn off every heater (Temp-panel Cooldown). */
     const val COOLDOWN = "TURN_OFF_HEATERS"
@@ -301,14 +330,14 @@ object PrinterCommands {
      * ×100 before calling this — the #1 off-by-100 trap (RESEARCH Scaling notes). Clamped to
      * [SPEED_PCT_MIN]..[SPEED_PCT_MAX] before formatting (ASVS V5).
      */
-    fun speedFactor(pct: Int): String = "M220 S${pct.coerceIn(SPEED_PCT_MIN, SPEED_PCT_MAX)}"
+    fun speedFactor(pct: Int): String = "M220 S${clampSpeedPct(pct)}"
 
     /**
      * `M221 S<percent>` — live flow/extrude-factor override (D-08). [pct] is the DISPLAYED percent;
      * `gcode_move.extrude_factor` is a ratio, scaled ×100 by the holder. Clamped to
      * [FLOW_PCT_MIN]..[FLOW_PCT_MAX] (D-08 WIDE).
      */
-    fun flowFactor(pct: Int): String = "M221 S${pct.coerceIn(FLOW_PCT_MIN, FLOW_PCT_MAX)}"
+    fun flowFactor(pct: Int): String = "M221 S${clampFlowPct(pct)}"
 
     /**
      * `SET_VELOCITY_LIMIT [VELOCITY=…] [ACCEL=…] [MINIMUM_CRUISE_RATIO=…] [SQUARE_CORNER_VELOCITY=…]` —
@@ -328,12 +357,12 @@ object PrinterCommands {
         scv: Double? = null,
     ): String = buildString {
         append("SET_VELOCITY_LIMIT")
-        velocity?.let { append(" VELOCITY=${fmt(it.coerceIn(VEL_MIN, VEL_MAX), 0)}") }
-        accel?.let { append(" ACCEL=${fmt(it.coerceIn(ACCEL_MIN, ACCEL_MAX), 0)}") }
+        velocity?.let { append(" VELOCITY=${fmt(clampVelocity(it), 0)}") }
+        accel?.let { append(" ACCEL=${fmt(clampAccel(it), 0)}") }
         minCruiseRatio?.let {
             append(" MINIMUM_CRUISE_RATIO=${fmt(it.coerceIn(MIN_CRUISE_RATIO_MIN, MIN_CRUISE_RATIO_MAX), 2)}")
         }
-        scv?.let { append(" SQUARE_CORNER_VELOCITY=${fmt(it.coerceIn(SCV_MIN, SCV_MAX), 1)}") }
+        scv?.let { append(" SQUARE_CORNER_VELOCITY=${fmt(clampScv(it), 1)}") }
     }
 
     /**
@@ -343,8 +372,8 @@ object PrinterCommands {
      */
     fun setPressureAdvance(advance: Double? = null, smoothTime: Double? = null): String = buildString {
         append("SET_PRESSURE_ADVANCE")
-        advance?.let { append(" ADVANCE=${fmt(it.coerceIn(PA_MIN, PA_MAX), 3)}") }
-        smoothTime?.let { append(" SMOOTH_TIME=${fmt(it.coerceIn(SMOOTH_MIN, SMOOTH_MAX), 2)}") }
+        advance?.let { append(" ADVANCE=${fmt(clampPressureAdvance(it), 3)}") }
+        smoothTime?.let { append(" SMOOTH_TIME=${fmt(clampSmoothTime(it), 2)}") }
     }
 
     /**

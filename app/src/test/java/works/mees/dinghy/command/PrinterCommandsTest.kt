@@ -365,6 +365,38 @@ class PrinterCommandsTest {
         }
     }
 
+    // --- 17-07 clamp AUTHORITY: pure clamps + builders delegate (byte-identical output) -------------
+
+    @Test
+    fun clampAuthority_pureClamps() {
+        // Speed range is 25..300, so 151 is IN range (the plan's "==MAX" example was a typo).
+        assertEquals(PrinterCommands.SPEED_PCT_MAX, PrinterCommands.clampSpeedPct(9999))
+        assertEquals(151, PrinterCommands.clampSpeedPct(151))
+        assertEquals(PrinterCommands.SPEED_PCT_MIN, PrinterCommands.clampSpeedPct(10))
+        assertEquals(120, PrinterCommands.clampSpeedPct(120))
+
+        assertEquals(PrinterCommands.FLOW_PCT_MAX, PrinterCommands.clampFlowPct(151))
+        assertEquals(PrinterCommands.FLOW_PCT_MIN, PrinterCommands.clampFlowPct(40))
+        assertEquals(120, PrinterCommands.clampFlowPct(120))
+
+        assertEquals(PrinterCommands.VEL_MAX, PrinterCommands.clampVelocity(2000.0), 0.0)
+        assertEquals(PrinterCommands.ACCEL_MAX, PrinterCommands.clampAccel(60000.0), 0.0)
+        assertEquals(PrinterCommands.SCV_MAX, PrinterCommands.clampScv(50.0), 0.0)
+        assertEquals(PrinterCommands.PA_MAX, PrinterCommands.clampPressureAdvance(2.0), 0.0)
+        assertEquals(PrinterCommands.SMOOTH_MAX, PrinterCommands.clampSmoothTime(0.5), 0.0)
+    }
+
+    @Test
+    fun clampAuthority_buildersUnchangedAtCap() {
+        // The builders now delegate to the SAME clamp funcs — output must stay byte-identical to before.
+        assertEquals("M221 S150", PrinterCommands.flowFactor(151))
+        assertEquals("M220 S300", PrinterCommands.speedFactor(310))
+        assertTrue(PrinterCommands.setVelocityLimit(accel = 60000.0).contains("ACCEL=50000"))
+        assertTrue(PrinterCommands.setVelocityLimit(velocity = 2000.0).contains("VELOCITY=1000"))
+        assertTrue(PrinterCommands.setPressureAdvance(advance = 2.0).contains("ADVANCE=1"))
+        assertTrue(PrinterCommands.setPressureAdvance(smoothTime = 0.5).contains("SMOOTH_TIME=0.2"))
+    }
+
     // --- scriptParams serialization ---------------------------------------------------------------
 
     @Test

@@ -2,13 +2,16 @@ package works.mees.dinghy.ui.finetune
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.FirmwareRetractionObject
 import works.mees.dinghy.state.PrinterState
@@ -123,6 +126,122 @@ class FineTuneHolderTest {
         runCurrent()
         assertFalse("clears once the value flips to target", holder.vm.value.groupBusy)
         assertNull("pendingStateFlip cleared on the flip", holder.pendingStateFlip)
+    }
+
+    // --- 17-07 GAP-1 regression: the busy-lock wedge at the clamp ceiling ---------------------------
+
+    @Test
+    fun smallStep_inRange_nudge_arms_and_holds_until_value_equals_target() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(backgroundScope)
+            val holder = FineTuneHolder(backgroundScope, store)
+            store.setCapabilities(caps("extruder"))
+            store.seed(PrinterState(pressureAdvance = 0.040))
+            runCurrent()
+
+            // A LEGITIMATE +0.001 in-range nudge on a small-step tuner (PA step 0.001 ≫ epsilon 0.0001).
+            // The CLAMPED target 0.041 is well above the per-tuner epsilon from the reported 0.040 → ARMS.
+            holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(0.041))
+            runCurrent()
+            assertNotNull("small-step in-range nudge ARMS the flip (flat 0.5 would wrongly skip)", holder.pendingStateFlip)
+            assertTrue("groupBusy true while the real flip is pending", holder.vm.value.groupBusy)
+
+            // A MIDPOINT reading (half a step toward target) must NOT release — strict-< / epsilon regression.
+            store.seed(PrinterState(pressureAdvance = 0.0405))
+            runCurrent()
+            assertNotNull("a midpoint reading does NOT release the lock", holder.pendingStateFlip)
+            assertTrue("STILL busy at the midpoint reading", holder.vm.value.groupBusy)
+
+            // The reported value finally EQUALS the target: NOW the flip clears.
+            store.seed(PrinterState(pressureAdvance = 0.041))
+            runCurrent()
+            assertNull("released ONLY when the value reaches the target", holder.pendingStateFlip)
+            assertFalse("groupBusy clears on the real flip", holder.vm.value.groupBusy)
+        }
+
+    @Test
+    fun groupBusy_releases_when_target_at_cap_already_reported() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("gcode_move"))
+        store.seed(PrinterState(extrudeFactor = 1.5)) // flowPct 150 = the FLOW_PCT_MAX cap
+        runCurrent()
+
+        // At-cap '+' tap: the wire clamps 151 → 150, so the CLAMPED markPending target == reported 150.
+        holder.markPending(FineTuneTuner.FLOW, PrinterCommands.clampFlowPct(151).toDouble())
+        runCurrent()
+        assertNull("skip-arm: at-cap no-op does NOT arm a flip (|150-150| < FLOW epsilon 0.1)", holder.pendingStateFlip)
+        assertFalse("no false busy lock at the cap", holder.vm.value.groupBusy)
+    }
+
+    @Test
+    fun smallStep_atCap_noop_releases() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("extruder"))
+        store.seed(PrinterState(pressureAdvance = 1.0)) // PA at the PA_MAX cap
+        runCurrent()
+
+        // At-cap '+' on a SMALL-STEP tuner: wire clamps 1.001 → 1.0, target == reported → skip-arm.
+        holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(1.001))
+        runCurrent()
+        assertNull("small-step at-cap no-op skips arming (per-tuner epsilon still releases the no-op)", holder.pendingStateFlip)
+        assertFalse("no false busy lock for the small-step cap no-op", holder.vm.value.groupBusy)
+    }
+
+    @Test
+    fun groupBusy_releases_via_timeout_on_unreachable_target() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("gcode_move"))
+        store.seed(PrinterState(extrudeFactor = 1.0)) // flowPct 100
+        runCurrent()
+
+        // An unreachable target (never reported) arms — then the seq-guarded backstop self-clears it.
+        holder.markPending(FineTuneTuner.FLOW, 9999.0)
+        runCurrent()
+        assertNotNull("unreachable target arms a flip", holder.pendingStateFlip)
+        assertTrue("busy while the unreachable flip is armed", holder.vm.value.groupBusy)
+
+        advanceTimeBy(FineTuneHolder.PENDING_FLIP_TIMEOUT_MS + 100)
+        runCurrent()
+        assertNull("the bounded timeout self-clears the unreachable flip", holder.pendingStateFlip)
+        assertFalse("groupBusy can never wedge forever (backstop)", holder.vm.value.groupBusy)
+    }
+
+    @Test
+    fun rapidDoubleTap_staleTimer_doesNotClearNewerFlip() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("gcode_move"))
+        store.seed(PrinterState(extrudeFactor = 1.0))
+        runCurrent()
+
+        // First unreachable arm; advance PARTWAY so its timer is pending-but-not-fired.
+        holder.markPending(FineTuneTuner.FLOW, 9999.0)
+        runCurrent()
+        val firstSeq = holder.pendingStateFlip!!.seq
+        advanceTimeBy(FineTuneHolder.PENDING_FLIP_TIMEOUT_MS / 2)
+        runCurrent()
+
+        // Second STRUCTURALLY-EQUAL arm (same tuner+target, fresh seq) → distinct StateFlow value.
+        holder.markPending(FineTuneTuner.FLOW, 9999.0)
+        runCurrent()
+        val secondSeq = holder.pendingStateFlip!!.seq
+        assertTrue("re-arm gets a NEWER monotonic seq despite equal contents", secondSeq > firstSeq)
+
+        // Advance so the FIRST timer's full delay elapses (from ITS own schedule) — its seq is now stale.
+        advanceTimeBy(FineTuneHolder.PENDING_FLIP_TIMEOUT_MS / 2 + 100)
+        runCurrent()
+        assertNotNull("stale (older-seq) timer must NOT cross-clear the newer flip", holder.pendingStateFlip)
+        assertEquals("the live flip is still the second arm", secondSeq, holder.pendingStateFlip!!.seq)
+        assertTrue("still busy — second flip outstanding", holder.vm.value.groupBusy)
+
+        // Advance past the SECOND timer's full delay → it clears its OWN flip.
+        advanceTimeBy(FineTuneHolder.PENDING_FLIP_TIMEOUT_MS)
+        runCurrent()
+        assertNull("the second flip clears on its own timer", holder.pendingStateFlip)
+        assertFalse("group released once the newer flip times out", holder.vm.value.groupBusy)
     }
 
     @Test
