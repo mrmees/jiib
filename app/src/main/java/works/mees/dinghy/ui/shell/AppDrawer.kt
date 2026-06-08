@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -79,6 +81,11 @@ import works.mees.dinghy.ui.route.Dest
  * @param activeName D-03 active-printer indicator: the active profile's display name, rendered as a 15sp
  *   `t.text2` ellipsized subtitle under the **Devices** tile label (the ONLY tile that gains a subtitle).
  *   Null when no active profile (0 profiles → no subtitle; the tile routes through the same Connect flow).
+ * @param outputsEnabled D-10 capability gate (Phase 19): the Output tile is HIDDEN ENTIRELY (filtered out
+ *   by [visibleDrawerTiles]) when the connected printer reports ZERO controllable outputs — the DELIBERATE
+ *   DIVERGENCE from the Webcam/Spool GREY pattern (D-10 hide-not-grey). The shell sources this from
+ *   [works.mees.dinghy.di.AppContainer.outputsPresent] (spine-scoped, so it idles to false on disconnect/
+ *   printer-switch — never stale process state). Default `false` so an idle drawer hides the Output tile.
  */
 @Composable
 fun AppDrawer(
@@ -89,7 +96,11 @@ fun AppDrawer(
     spoolEnabled: Boolean = false,
     spoolSwatches: List<Color> = emptyList(),
     activeName: String? = null,
+    outputsEnabled: Boolean = false,
 ) {
+    // D-10 HIDE-not-grey: the Output tile is FILTERED OUT entirely when no outputs are present (the pure
+    // host-tested helper below), unlike the Webcam/Spool tiles which stay shown-but-greyed.
+    val tiles = visibleDrawerTiles(DRAWER_TILES, outputsEnabled)
     val t = LocalTokens.current
     Dialog(
         onDismissRequest = onDismiss,
@@ -104,7 +115,7 @@ fun AppDrawer(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(DRAWER_TILES, key = { it.label }) { tile ->
+            items(tiles, key = { it.label }) { tile ->
                 DrawerTile(
                     tile = tile,
                     webcamEnabled = webcamEnabled,
@@ -133,7 +144,7 @@ fun AppDrawer(
  * experimental — currently only the Webcam tile (camera feed is an ongoing beta; see the greyed-gating
  * note below). Beta-amber applies ONLY to the LIVE styling; the greyed path is untouched.
  */
-private data class DrawerTileSpec(
+internal data class DrawerTileSpec(
     val label: String,
     val symbol: String, // Material Symbols ligature name (see MaterialSymbol)
     val dest: Dest?,
@@ -142,13 +153,33 @@ private data class DrawerTileSpec(
 )
 
 /**
+ * The `output` ligature SOURCED FROM the owner-locked [DinghyIcons.OutputSection] token (D-07) — NOT a
+ * hand-typed string. The icon-law-locked glyph (`output`) thus can never drift from a typo'd literal: any
+ * future remap of the section glyph in [DinghyIcons] flows here automatically (19-07 review MEDIUM). The
+ * registry guarantees this is a [IconRef.Ligature]; the cast is total for the Phase-19 token shape.
+ */
+internal val OUTPUT_SYMBOL: String = (DinghyIcons.OutputSection.primary as IconRef.Ligature).name
+
+/**
+ * PURE, host-testable (non-@Composable) drawer-tile filter — the D-10 HIDE-not-grey decision lives here so
+ * it is unit-testable without Compose (mirrors the host-testable seams elsewhere in the app). The Output
+ * tile ([Dest.Outputs]) is FILTERED OUT entirely when [outputsEnabled] is false (D-10: a printer with zero
+ * outputs must NOT show a dead-end tile — the deliberate divergence from the Webcam/Spool shown-but-greyed
+ * pattern). Every other tile is passed through untouched (only the Output tile is gated).
+ */
+internal fun visibleDrawerTiles(
+    tiles: List<DrawerTileSpec>,
+    outputsEnabled: Boolean,
+): List<DrawerTileSpec> = tiles.filter { it.dest != Dest.Outputs || outputsEnabled }
+
+/**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
  * Files + Extrude + Macros + Console + Calibration are LIVE; Devices remains greyed "coming soon"; Power is the red,
  * greyed, deliberately-inert host-power tile (T-04-07-E — wiring deferred to a later phase). The
  * Extrude tile (was the generic "Tools"/wrench) routes to the Extrude panel and is named for its
  * function.
  */
-private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
+internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     DrawerTileSpec(label = "Status", symbol = "monitoring", dest = Dest.PrintStatus),
     DrawerTileSpec(label = "Move", symbol = "open_with", dest = Dest.Move),
     DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
@@ -195,12 +226,16 @@ private val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // About (15.2-04 D-05) — app-global items + the dev-enable toggle. `info` is unique among DRAWER_TILES
     // glyphs (icon-no-repeat law).
     DrawerTileSpec(label = "About", symbol = "info", dest = Dest.About),
-    // Forward-stub tiles (D-02 / SC-1, Phase 16): Output controls (P18) and System Info (P19) are GREYED,
-    // non-navigating placeholders (`dest = null`) — they appear in the drawer so the surfaces are
-    // discoverable but are inert until their phases wire them. Drawer ONLY (NOT the Standby launcher grid).
-    // `bolt` (Output: fans/lights/pins) and `memory` (System Info) are unique among DRAWER_TILES glyphs
-    // (icon-no-repeat law).
-    DrawerTileSpec(label = "Output", symbol = "bolt", dest = null),
+    // Output (Phase 19, D-07/D-10/D-11) is now LIVE — fans/lights/generic-pins/heater_generic/servo/
+    // pwm_tool control (Dest.Outputs). UNLIKE every other tile it is RUNTIME-HIDDEN, not greyed: when the
+    // connected printer reports ZERO controllable outputs the tile is FILTERED OUT entirely by
+    // [visibleDrawerTiles] (D-10 hide-not-grey, the deliberate divergence from the Webcam/Spool greyed
+    // pattern), so a printer with no outputs never shows a dead-end tile. The symbol is SOURCED FROM the
+    // owner-locked [DinghyIcons.OutputSection] token ([OUTPUT_SYMBOL] = `output`, D-07) so the icon-law glyph
+    // can never drift from a typo'd literal. `output` is unique among DRAWER_TILES glyphs (icon-no-repeat
+    // law; `bolt` is now freed — it backs the launcher Macros glyph elsewhere). Only System Info remains a
+    // greyed forward-stub (P20).
+    DrawerTileSpec(label = "Output", symbol = OUTPUT_SYMBOL, dest = Dest.Outputs),
     DrawerTileSpec(label = "System Info", symbol = "memory", dest = null),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )

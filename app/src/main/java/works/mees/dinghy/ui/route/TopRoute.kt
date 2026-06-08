@@ -34,7 +34,7 @@ sealed interface TopRoute {
  * look, D-03), **[Settings]** (per-printer feature toggles, D-04), and **[About]** (app-global items +
  * the dev-enable toggle, D-05). [Theme] + [About] are the new constants added here.
  */
-enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Console, Calibration, FineTune, Webcam, Spool, Devices, Theme, Settings, About }
+enum class Dest { PrintStatus, Temperature, Move, Extrude, Files, Macros, Console, Calibration, FineTune, Webcam, Spool, Outputs, Devices, Theme, Settings, About }
 
 /**
  * PURE top-level route derivation (mirrors the `derive*` idiom in `state/DeriveCapabilities.kt`):
