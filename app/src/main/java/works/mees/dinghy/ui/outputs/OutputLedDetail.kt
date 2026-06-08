@@ -3,10 +3,13 @@ package works.mees.dinghy.ui.outputs
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,8 +43,7 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.SetLedArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ColorWheel
-import works.mees.dinghy.designsystem.ScrubberActions
-import works.mees.dinghy.designsystem.ScrubberPage
+import works.mees.dinghy.designsystem.fractionFromX
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
@@ -215,25 +219,21 @@ fun OutputLedContent(
                         fontWeight = FontWeight.Medium,
                         fontSize = fsSp(16f, t.fs).sp,
                     )
-                    // Brightness scrubber (OnSettle 0..100 %). Sized so it shares the field but leaves room for
-                    // the wheel; dispatches the CURRENT hue at the settled brightness.
-                    Box(Modifier.fillMaxWidth().weight(1f)) {
-                        ScrubberPage(
-                            label = stringResource(R.string.output_led_brightness),
-                            value = brightness,
-                            range = 0f..100f,
-                            step = 1f,
-                            unit = "%",
-                            onValueChange = { brightness = it },
-                            actions = ScrubberActions.OnSettle(
-                                onSettle = { settled ->
-                                    brightness = settled
-                                    if (enabled) onColorSettle(hue, settled)
-                                },
-                                onBack = onBack,
-                            ),
-                        )
-                    }
+                    // GAP-A (19-09): the brightness control is now an INLINE control inside the LED field — it
+                    // no longer nests a whole [ScrubberPage] (which carries its OWN ScreenScaffold + gutter) inside
+                    // this page's scaffold (the double-scaffold bug). [LedBrightnessControl] is a self-contained
+                    // fill-bar + [− +] stepper that dispatches the CURRENT hue at the settled brightness, ONCE per
+                    // settle (gesture-end / stepper tap). 19-10 reuses this same control for the white-only page.
+                    LedBrightnessControl(
+                        value = brightness,
+                        enabled = enabled,
+                        onValueChange = { brightness = it },
+                        onSettle = { settled ->
+                            brightness = settled
+                            if (enabled) onColorSettle(hue, settled)
+                        },
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
                     failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
                 }
             },
@@ -258,5 +258,122 @@ fun OutputLedContent(
                 }
             },
         )
+    }
+}
+
+/**
+ * The inline brightness control (19-09 GAP-A) — a self-contained 0..100 % fill-bar + `[− +]` stepper row that
+ * lives INSIDE the LED field's Column. It is NOT a [ScrubberPage] (which carries its own [ScreenScaffold] +
+ * gutter — nesting one inside the LED page's scaffold was the GAP-A double-scaffold bug); it is a single inline
+ * widget so the LED page has exactly ONE scaffold.
+ *
+ * Settle semantics mirror [ScrubberActions.OnSettle]: [onValueChange] fires continuously as the user drags/steps
+ * (cheap live preview, no dispatch) and [onSettle] fires EXACTLY ONCE per gesture-end (pointer-up) or stepper
+ * tap — never per scrub frame (Adreno-320 budget). The fill-bar gesture reuses the same WR-01 single
+ * `awaitEachGesture` + [fractionFromX] pure mapping as [ScrubberPage], so a tap at x and a drag to x agree.
+ *
+ * 19-10 (GAP-B white-only LED page) REUSES this composable verbatim for the brightness-only light, dispatching
+ * the WHITE channel instead of an RGB hue. Keep it reusable: value in, settled value out, no LED-specific logic.
+ *
+ * @param value         current brightness 0..100 (caller-owned).
+ * @param onValueChange live preview as the user scrubs/steps (no dispatch).
+ * @param onSettle      dispatched ONCE per gesture-end / stepper tap with the settled value.
+ * @param enabled       when false the control is inert (busy lock).
+ */
+@Composable
+internal fun LedBrightnessControl(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onSettle: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val t = LocalTokens.current
+    val range = 0f..100f
+    val step = 1f
+    var barWidthPx by remember { mutableFloatStateOf(0f) }
+
+    fun set(next: Float) {
+        if (!enabled) return
+        onValueChange(next.coerceIn(range.start, range.endInclusive))
+    }
+
+    fun setFromX(x: Float) {
+        if (barWidthPx <= 0f) return
+        set(range.start + fractionFromX(x, barWidthPx) * (range.endInclusive - range.start))
+    }
+
+    fun settle(v: Float) {
+        if (enabled) onSettle(v.coerceIn(range.start, range.endInclusive))
+    }
+
+    val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+    val display = value.roundToInt().toString()
+
+    Column(modifier) {
+        // Horizontal fill-bar scrubber (mirrors ScrubberPage's fill-bar; horizontal here to share the LED field
+        // with the wheel above). Drag/tap anywhere to set; settle dispatches once on pointer-up.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(t.rCard))
+                .background(t.surface2)
+                .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
+                .onSizeChanged { barWidthPx = it.width.toFloat() }
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        setFromX(down.position.x)
+                        down.consume()
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { change ->
+                                if (change.pressed) {
+                                    setFromX(change.position.x)
+                                    change.consume()
+                                }
+                            }
+                        } while (event.changes.any { it.pressed })
+                        // Gesture END — settle once (HIGH-3), never per move frame.
+                        settle(value)
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            // Accent-tinted fill tracks the value (left-anchored).
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction)
+                    .background(t.accentSoft),
+            )
+            Text(
+                text = "$display%",
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(40f, t.fs).sp,
+            )
+        }
+        // ± stepper row (keyboard-free): each tap is itself a settle (ends a discrete adjustment).
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedControl(
+                label = "−",
+                onClick = { val n = (value - step).coerceIn(range.start, range.endInclusive); set(n); settle(n) },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Neutral,
+            )
+            OutlinedControl(
+                label = "+",
+                onClick = { val n = (value + step).coerceIn(range.start, range.endInclusive); set(n); settle(n) },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Neutral,
+            )
+        }
     }
 }
