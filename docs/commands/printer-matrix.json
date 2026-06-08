@@ -2775,6 +2775,106 @@
           "evidence": "object firmware_retraction NOT listed in /printer/objects/list capture (built blind, D-12); see not_on_printers."
         }
       ]
+    },
+    {
+      "catalog_id": "KGC-SET_FAN_SPEED-OUT",
+      "name": "SET_FAN_SPEED",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setGenericFan has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. fan_generic FILTER_fan IS listed in the ender5plus /printer/objects/list capture, so the descriptor surfaces a generic fan here.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setGenericFan has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. No fan_generic object is listed in the ender3 /printer/objects/list capture, so the descriptor surfaces no generic fan there.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_LED",
+      "name": "SET_LED",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setLed has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. led chamber_light and neopixel expanderPixel ARE listed in the ender5plus /printer/objects/list capture, so the descriptor surfaces LED outputs here.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setLed has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. No led or neopixel object is listed in the ender3 /printer/objects/list capture, so the descriptor surfaces no LED output there.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_SERVO-OUT",
+      "name": "SET_SERVO",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setServo has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. servo camera_servo and servo camera_servo_y ARE listed in the ender5plus /printer/objects/list capture, so the descriptor surfaces servo outputs here.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setServo has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. No servo object is listed in the ender3 /printer/objects/list capture, so the descriptor surfaces no servo output there.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-SET_PIN-OUT",
+      "name": "SET_PIN",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setOutputPin has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. Multiple output_pin objects (bed_safety_switch, mosfet2, mosfet3, virtual_pause) ARE listed in the ender5plus /printer/objects/list capture, so the descriptor surfaces output pins here.",
+          "caveat": "Not executed during the read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "runtime_unconditional",
+          "evidence": "CommandRegistry setOutputPin has an Always predicate; runtime descriptor discovery (19-04) is the source of truth. output_pin ignore_m600 IS listed in the ender3 /printer/objects/list capture, so the descriptor surfaces an output pin here.",
+          "caveat": "Not executed during the read-only capture."
+        }
+      ]
     }
   ],
   "not_on_printers": [

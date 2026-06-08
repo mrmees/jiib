@@ -4174,6 +4174,152 @@
       "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
     },
     {
+      "id": "KGC-SET_FAN_SPEED-OUT",
+      "catalog_id": "KGC-SET_FAN_SPEED-OUT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "SET_FAN_SPEED",
+      "category": "output",
+      "purpose": "Set a generic (`fan_generic`) fan speed; BARE section name (HIGH-1).",
+      "params": [
+        "FAN",
+        "SPEED"
+      ],
+      "key_params": [
+        "FAN",
+        "SPEED"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/Config_Reference.html#fan_generic",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "always"
+      },
+      "predicate": {
+        "type": "always"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry (setGenericFan) for current Dinghy runtime sends; Always predicate — runtime descriptor discovery (19-04) is the source of truth for which fans the UI offers."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Sent only when the runtime descriptor discovery surfaces a matching fan_generic output."
+    },
+    {
+      "id": "KGC-SET_LED",
+      "catalog_id": "KGC-SET_LED",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "SET_LED",
+      "category": "output",
+      "purpose": "Set an LED/neopixel color; BARE section name (HIGH-1); D-12 Off = all-zero.",
+      "params": [
+        "LED",
+        "RED",
+        "GREEN",
+        "BLUE",
+        "WHITE"
+      ],
+      "key_params": [
+        "LED",
+        "RED",
+        "GREEN",
+        "BLUE"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/Config_Reference.html#led",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "always"
+      },
+      "predicate": {
+        "type": "always"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry (setLed) for current Dinghy runtime sends; Always predicate — runtime descriptor discovery (19-04) is the source of truth for which led/neopixel outputs the UI offers."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Sent only when the runtime descriptor discovery surfaces a matching led/neopixel output."
+    },
+    {
+      "id": "KGC-SET_SERVO-OUT",
+      "catalog_id": "KGC-SET_SERVO-OUT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "SET_SERVO",
+      "category": "output",
+      "purpose": "Set a servo angle, or disable it via `WIDTH=0`; BARE section name (HIGH-1).",
+      "params": [
+        "SERVO",
+        "ANGLE",
+        "WIDTH"
+      ],
+      "key_params": [
+        "SERVO",
+        "ANGLE"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/Config_Reference.html#servo",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "always"
+      },
+      "predicate": {
+        "type": "always"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry (setServo) for current Dinghy runtime sends; Always predicate — runtime descriptor discovery (19-04) is the source of truth for which servo outputs the UI offers."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Sent only when the runtime descriptor discovery surfaces a matching servo output."
+    },
+    {
+      "id": "KGC-SET_PIN-OUT",
+      "catalog_id": "KGC-SET_PIN-OUT",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "SET_PIN",
+      "category": "output",
+      "purpose": "Set a digital or PWM `output_pin` (also serves `pwm_tool`); BARE section name (HIGH-1).",
+      "params": [
+        "PIN",
+        "VALUE"
+      ],
+      "key_params": [
+        "PIN",
+        "VALUE"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/Config_Reference.html#output_pin",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "always"
+      },
+      "predicate": {
+        "type": "always"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry (setOutputPin) for current Dinghy runtime sends; Always predicate — runtime descriptor discovery (19-04) is the source of truth for which output_pin/pwm_tool outputs the UI offers."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Sent only when the runtime descriptor discovery surfaces a matching output_pin/pwm_tool output."
+    },
+    {
       "id": "KGC-SET_SERVO",
       "catalog_id": "KGC-SET_SERVO",
       "source_api": "klipper_gcode",
