@@ -1,7 +1,10 @@
 package works.mees.dinghy.net
 
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import works.mees.dinghy.config.ConnectionConfig
+import works.mees.dinghy.state.NativeTransport
+import works.mees.dinghy.state.Webcam
 
 /**
  * The D-09 webcam URL resolver/rewriter — the ONE genuinely hand-rolled networking helper of Phase 10
@@ -76,3 +79,76 @@ fun redactWebcamUrl(url: String): String =
  */
 fun surfaceWebcamUrl(url: String?): String =
     if (url.isNullOrBlank()) "" else redactWebcamUrl(url)
+
+/** MediaMTX native-transport ports, VERIFIED against ravens-perch `stream_manager.py` (CAM-13). */
+private const val PORT_RTSP = 8554
+private const val PORT_HLS = 8888
+
+/**
+ * The ravens-perch `extra_data` keys carrying an EXPLICIT native-transport URL (D-12 explicit path).
+ * UNBUILT in ravens-perch today (`register_camera()` passes no `extra_data` — re-verified in source),
+ * so [nativeStreamUrlFor]'s explicit read lies DORMANT until ravens-perch ships the tag (D-14,
+ * non-blocking — the derive fallback covers both targets now). Reading them is a tolerant key lookup.
+ */
+private const val EXTRA_NATIVE_RTSP = "ravens_perch_native_rtsp"
+private const val EXTRA_NATIVE_HLS = "ravens_perch_native_hls"
+
+/**
+ * Derive a Media3-playable native-transport URL from a cam's WebRTC/HTTP `stream_url` by swapping ONLY
+ * the port (and, for RTSP, the scheme) while KEEPING the path segment parsed OUT of [webrtcStreamUrl]
+ * (CAM-13, D-11/D-12 derive-from-convention).
+ *
+ * ⚠ THE LANDMINE (RESEARCH-flagged, highest-leverage correctness item): the path comes from
+ * `stream_url`, NEVER from the webcam `name`. Moonraker's `name` = `friendly_name.replace(' ','_').lower()`
+ * but the MediaMTX `path` (the last segment of `stream_url`) = `camera_id.replace(' ','_').lower()` — they
+ * are DIFFERENT identifiers; reconstructing `:8554/<name>` would 404/timeout. We parse the existing
+ * `stream_url` with [okhttp3.HttpUrl] (NEVER string-concat the host/port) and reuse its `encodedPath`.
+ *
+ * Transform (ports VERIFIED against ravens-perch `stream_manager.py`):
+ *  - [NativeTransport.Rtsp] → `rtsp://<host>:8554/<path>` (scheme→rtsp, port :8889→:8554, trailing slash dropped)
+ *  - [NativeTransport.Hls]  → `http://<host>:8888/<path>/` (http kept, port :8889→:8888, trailing slash kept)
+ *
+ * Fail-safe (Security V5): a null/blank/un-parseable [webrtcStreamUrl], or one whose path is blank,
+ * returns `null` → the caller treats `null` as "no native URL" → the rung falls through. NEVER throws.
+ *
+ * Pure — no Android, no I/O, no logging side effects. [webrtcStreamUrl] is expected to ALREADY be the
+ * absolute, loopback-rewritten URL (route it through [resolveWebcamUrl] first — see [nativeStreamUrlFor]).
+ */
+fun deriveNativeStreamUrl(webrtcStreamUrl: String?, transport: NativeTransport): String? {
+    val url = webrtcStreamUrl?.trim()?.toHttpUrlOrNull() ?: return null
+    val path = url.encodedPath.trim('/') // the single MediaMTX path segment from stream_url, never `name`
+    if (path.isBlank()) return null
+    return when (transport) {
+        NativeTransport.Rtsp -> "rtsp://${url.host}:$PORT_RTSP/$path"
+        NativeTransport.Hls -> "http://${url.host}:$PORT_HLS/$path/"
+    }
+}
+
+/**
+ * Resolve the native-transport ([transport]) stream URL for [cam] — the D-12 "explicit-if-present, else
+ * derive-from-convention" policy:
+ *  1. EXPLICIT (prefer-if-present, D-12/D-14): read an explicit native URL out of `cam.extra_data`
+ *     ([EXTRA_NATIVE_RTSP] / [EXTRA_NATIVE_HLS]). Tolerant — a missing key, a non-string value, or a
+ *     blank value falls through to the derive (never throws, never fabricates). DORMANT today (ravens-perch
+ *     ships no tag yet), so this is the layered enhancement that activates once the tag exists.
+ *  2. DERIVE (fallback, the ONLY path that works today): resolve `cam.stream_url` to its absolute,
+ *     loopback-rewritten form via [resolveWebcamUrl] (preserving the D-09 host rewrite), then
+ *     [deriveNativeStreamUrl] the port/scheme swap from that resolved URL.
+ *
+ * Returns `null` when neither path yields a URL (rung falls through). Pure (the resolve/derive are pure).
+ */
+fun nativeStreamUrlFor(cam: Webcam, transport: NativeTransport, cfg: ConnectionConfig): String? {
+    // (1) Explicit ravens-perch tag — prefer if present, tolerant of missing/garbage.
+    val explicitKey = when (transport) {
+        NativeTransport.Rtsp -> EXTRA_NATIVE_RTSP
+        NativeTransport.Hls -> EXTRA_NATIVE_HLS
+    }
+    val explicit = runCatching { cam.extraData[explicitKey]?.jsonPrimitive?.content }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
+    if (explicit != null) return explicit
+
+    // (2) Derive from the resolved (absolute, loopback-rewritten) stream_url.
+    val resolved = resolveWebcamUrl(cam.streamUrl, cfg) ?: return null
+    return deriveNativeStreamUrl(resolved, transport)
+}
