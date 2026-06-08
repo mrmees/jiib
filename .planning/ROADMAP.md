@@ -75,7 +75,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first. (completed 2026-06-07)
 - [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
 - [x] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe (completed 2026-06-08)
-- [ ] **Phase 21: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
+- [ ] **Phase 21: Native H.264 Camera Streaming (MediaMTX)** - Real camera for the project's own MediaMTX-backed printers (Ravens Perch + crowsnest) via native Media3/ExoPlayer H.264 over RTSP/HLS, extending the Phase-10 webcam rung-ladder; WebRTC a deferred fallback (spike-gated, see 21-CONTEXT); perf-gated to the Adreno-320 floor
 - [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
@@ -1000,7 +1000,7 @@ Plans:
 **UI hint**: yes
 **Research note**: STANDARD — confirm exact `machine.system_info` / `machine.proc_stats` field shapes (incl. Pi throttle flags vs RockPro64 temp-fallback) against the Moonraker API on BOTH real SBCs; some shapes partly captured in `docs/moonraker-capabilities.md`. Full design locked in `20-system-info-staging.md`.
 
-### Phase 21: WebRTC Camera Streaming
+### Phase 21: Native H.264 Camera Streaming (MediaMTX)
 
 **Goal**: Real camera support for the project's OWN hardware. Both target printers expose WebRTC-only camera stacks (go2rtc / camera-streamer / MediaMTX), so Phase 10's MJPEG path — though correct and fixture-proven — never renders a live frame on them. This phase adds a WebRTC client (negotiated via the camera's WHEP/go2rtc endpoint, enumerated through Moonraker `/server/webcams/list`) and presents the low-latency stream on-device, EXTENDING Phase 10's webcam plumbing/rung-ladder rather than replacing it. Mindful of the Adreno-320 floor: hardware-accelerated decode where available, and the feature stays amber-flagged/perf-gated like the existing camera BETA.
 **Depends on**: Phase 20

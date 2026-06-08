@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-06-08T15:24:28.065Z"
+last_updated: "2026-06-08T15:29:00.532Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
@@ -256,6 +256,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 - Phase 18.1 inserted after Phase 18: Icon System Conformance — app-wide real-Material-Symbols icon-source policy + font refresh; pulled icon-source portion forward from Phase 22 (URGENT)
 - Phase 18.2 inserted after Phase 18.1: jiib Rebrand — user-facing brand swap (launcher icon + app label + wordmark)
 - Phase 18.3 inserted after Phase 18.2: Color-Reactive Spool Icon — custom spool glyph tinted by filament color (THEME-01 exception)
+- Phase 21 edited: renamed: 'WebRTC Camera Streaming' → 'Native H.264 Camera Streaming (MediaMTX)' (Media3 pivot per 21-CONTEXT; WebRTC now deferred fallback)
 
 ### Decisions
 
