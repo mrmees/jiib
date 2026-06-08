@@ -84,6 +84,17 @@
             android:exported="true" />
 
         <!--
+          Phase 21 (CAM-10): THROWAWAY D-02 spike harness. EXPORTED so adb "am start" can launch it
+          with the stream URL + transport as intent extras (no launcher icon, it is scratch code,
+          deleted in plan 21-04). Bypasses the holder/WebcamFeed; measures glass-to-glass latency,
+          decoder name (OMX.qcom hardware vs OMX.google software), and the SPS/PPS-in-fmtp signal on
+          the real Adreno 320. Launch contract is documented in SpikeActivity.kt KDoc.
+        -->
+        <activity
+            android:name=".spike.SpikeActivity"
+            android:exported="true" />
+
+        <!--
           The started foreground service that owns the Moonraker spine (04-03). NOT exported and NOT
           bound — state is process-held in AppContainer; the Activity collects StateFlow<SpineHandle?>.
           specialUse subtype is a free-text justification (no Play review; sideloaded APK).
