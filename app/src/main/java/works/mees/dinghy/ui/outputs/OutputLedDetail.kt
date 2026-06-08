@@ -124,12 +124,26 @@ fun OutputLedDetail(
         h to (v * 100f)
     }
 
+    // GAP-B: a white-only LED seeds its brightness from the live WHITE component (color_data[0][3]),
+    // NOT the brightest RGB channel (which is 0 on a white-only light).
+    val seedWhiteBrightness = remember(colorData) {
+        (colorData?.getOrNull(3)?.toFloat() ?: 0f) * 100f
+    }
+
     fun dispatchColor(hue: Float, brightnessPct: Float) {
         val (r, g, b) = hsvToRgb(hue, 1f, (brightnessPct / 100f).coerceIn(0f, 1f))
         // markPending the LED's reached() target = the brightest channel (matches OutputsHolder.reached()).
         holder.markPending(descriptor.objectKey, maxOf(r, g, b).toDouble())
         // WHITE-CHANNEL POLICY: every color dispatch sends WHITE=0 (T-19-06-05).
         dispatchCommand(CommandRegistry.setLed, SetLedArgs(descriptor.commandName, r, g, b, w = 0f))
+    }
+
+    // GAP-B: a white-only LED dispatches the WHITE channel (RGB=0). The white fraction is the max channel
+    // when r=g=b=0, so markPending it to match OutputsHolder.reached() (color_data[0].max()).
+    fun dispatchWhite(brightnessPct: Float) {
+        val white = (brightnessPct / 100f).coerceIn(0f, 1f)
+        holder.markPending(descriptor.objectKey, white.toDouble())
+        dispatchCommand(CommandRegistry.setLed, SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = white))
     }
 
     fun dispatchOff() {
@@ -139,11 +153,14 @@ fun OutputLedDetail(
 
     OutputLedContent(
         prettyName = descriptor.prettyName,
+        ledHasRgb = descriptor.ledHasRgb,
+        ledHasWhite = descriptor.ledHasWhite,
         initialHue = seedHue,
-        initialBrightness = seedBrightness,
+        initialBrightness = if (descriptor.ledHasRgb) seedBrightness else seedWhiteBrightness,
         enabled = !busy,
         failureText = failureText,
         onColorSettle = { hue, brightness -> if (busy.not()) dispatchColor(hue, brightness) },
+        onWhiteSettle = { brightness -> if (busy.not()) dispatchWhite(brightness) },
         onOff = { if (busy.not()) dispatchOff() },
         onBack = onBack,
         modifier = modifier,
@@ -151,9 +168,14 @@ fun OutputLedDetail(
 }
 
 /**
- * The pure, container-free LED rendering surface shared by the live entry and the @Preview seam. Owns the
- * hue wheel + brightness scrubber + the live swatch + Off + Back; the hue/brightness working state lives here
- * so a settle (wheel or brightness) dispatches the CURRENT hue+brightness pair.
+ * The pure, container-free LED rendering surface shared by the live entry and the @Preview seam. It branches
+ * on channel capability (GAP-B):
+ *  - RGB-capable ([ledHasRgb] = true): hue wheel + brightness + swatch; a settle dispatches the CURRENT
+ *    hue+brightness pair via [onColorSettle] (WHITE=0, unchanged from 19-09).
+ *  - white/brightness-only ([ledHasRgb] = false): NO hue wheel — a brightness control alone + a grey/white
+ *    swatch; a settle dispatches the WHITE channel via [onWhiteSettle].
+ * The hue/brightness working state lives here. [ledHasWhite] is informational for now (RGBW lights still use
+ * the RGB wheel in v1 per the UAT fix direction).
  */
 @Composable
 fun OutputLedContent(
@@ -166,14 +188,23 @@ fun OutputLedContent(
     onOff: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    ledHasRgb: Boolean = true,
+    ledHasWhite: Boolean = false,
+    onWhiteSettle: (brightnessPct: Float) -> Unit = {},
 ) {
     val t = LocalTokens.current
     var hue by remember(initialHue) { mutableFloatStateOf(initialHue) }
     var brightness by remember(initialBrightness) { mutableFloatStateOf(initialBrightness) }
 
-    // The live preview swatch — the LITERAL chosen color (THEME-01 data-color carve-out).
-    val (pr, pg, pb) = hsvToRgb(hue, 1f, (brightness / 100f).coerceIn(0f, 1f))
-    val swatch = Color(pr, pg, pb)
+    // The live preview swatch — the LITERAL chosen color (THEME-01 data-color carve-out). For an RGB LED it
+    // is the chosen hue; for a white-only LED it is a grey/white scaled by the brightness (GAP-B — not a hue).
+    val swatch = if (ledHasRgb) {
+        val (pr, pg, pb) = hsvToRgb(hue, 1f, (brightness / 100f).coerceIn(0f, 1f))
+        Color(pr, pg, pb)
+    } else {
+        val w = (brightness / 100f).coerceIn(0f, 1f)
+        Color(w, w, w)
+    }
 
     Box(modifier.fillMaxSize().background(t.bg)) {
         ScreenScaffold(
@@ -204,14 +235,19 @@ fun OutputLedContent(
                                 .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCtrl)),
                         )
                     }
-                    ColorWheel(
-                        hue = hue,
-                        onHandleMove = { hue = it }, // cheap repaint only (no dispatch).
-                        onSettle = { settled ->
-                            hue = settled
-                            if (enabled) onColorSettle(settled, brightness)
-                        },
-                    )
+                    // GAP-B: the hue wheel renders ONLY for an RGB-capable LED. A white/brightness-only LED
+                    // (the owner's E5 chamber light) shows the brightness control alone — no hue wheel, and it
+                    // drives the WHITE channel so value changes actually reach the hardware.
+                    if (ledHasRgb) {
+                        ColorWheel(
+                            hue = hue,
+                            onHandleMove = { hue = it }, // cheap repaint only (no dispatch).
+                            onSettle = { settled ->
+                                hue = settled
+                                if (enabled) onColorSettle(settled, brightness)
+                            },
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.output_led_brightness),
                         color = t.text2,
@@ -219,18 +255,19 @@ fun OutputLedContent(
                         fontWeight = FontWeight.Medium,
                         fontSize = fsSp(16f, t.fs).sp,
                     )
-                    // GAP-A (19-09): the brightness control is now an INLINE control inside the LED field — it
-                    // no longer nests a whole [ScrubberPage] (which carries its OWN ScreenScaffold + gutter) inside
-                    // this page's scaffold (the double-scaffold bug). [LedBrightnessControl] is a self-contained
-                    // fill-bar + [− +] stepper that dispatches the CURRENT hue at the settled brightness, ONCE per
-                    // settle (gesture-end / stepper tap). 19-10 reuses this same control for the white-only page.
+                    // GAP-A (19-09): the brightness control is an INLINE control inside the LED field — it does
+                    // not nest a whole [ScrubberPage] (the double-scaffold bug). [LedBrightnessControl] is a
+                    // self-contained fill-bar + [− +] stepper that dispatches ONCE per settle (gesture-end /
+                    // stepper tap). GAP-B (19-10) reuses the SAME control for the white-only page — the only
+                    // difference is the settle goes to the WHITE channel instead of the RGB hue.
                     LedBrightnessControl(
                         value = brightness,
                         enabled = enabled,
                         onValueChange = { brightness = it },
                         onSettle = { settled ->
                             brightness = settled
-                            if (enabled) onColorSettle(hue, settled)
+                            if (!enabled) return@LedBrightnessControl
+                            if (ledHasRgb) onColorSettle(hue, settled) else onWhiteSettle(settled)
                         },
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )

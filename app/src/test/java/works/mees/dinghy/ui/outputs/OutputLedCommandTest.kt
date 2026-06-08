@@ -21,6 +21,10 @@ class OutputLedCommandTest {
         return PrinterCommands.setLed(name, r, g, b, w = 0f)
     }
 
+    /** Mirror the white-only page (GAP-B): brightness → setLed(name, 0,0,0, w = brightness/100). */
+    private fun whiteCommand(name: String, brightnessPct: Float): String =
+        PrinterCommands.setLed(name, 0f, 0f, 0f, w = (brightnessPct / 100f).coerceIn(0f, 1f))
+
     @Test
     fun `red full brightness is RED=1 with WHITE=0`() {
         assertEquals(
@@ -61,6 +65,30 @@ class OutputLedCommandTest {
         val cmd = ledCommand("FILTER_led", hue = 240f, brightnessPct = 100f)
         assertTrue("must use bare name: $cmd", cmd.startsWith("SET_LED LED=FILTER_led "))
         assertTrue("must not carry a family prefix", !cmd.contains("LED=led "))
+    }
+
+    @Test
+    fun `white-only brightness drives the WHITE channel (GAP-B)`() {
+        assertEquals(
+            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0.8",
+            whiteCommand("caselight", brightnessPct = 80f),
+        )
+    }
+
+    @Test
+    fun `white-only Off is all-zero with WHITE=0`() {
+        assertEquals(
+            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0",
+            whiteCommand("caselight", brightnessPct = 0f),
+        )
+    }
+
+    @Test
+    fun `white-only command uses the BARE name (HIGH-1)`() {
+        val cmd = whiteCommand("FILTER_led", brightnessPct = 100f)
+        assertTrue("must use bare name: $cmd", cmd.startsWith("SET_LED LED=FILTER_led "))
+        assertTrue("white channel present", cmd.endsWith("WHITE=1"))
+        assertTrue("RGB channels zero", cmd.contains("RED=0 GREEN=0 BLUE=0"))
     }
 
     @Test
