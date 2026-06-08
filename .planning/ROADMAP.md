@@ -1037,23 +1037,73 @@ Plans:
 **UI hint**: yes
 **Research note**: The pivot (D-01) is grounded in `research/webrtc-vs-media3-feasibility.md` (footprint win proven, latency win NOT — hence the D-02 spike). The three spike-gated unknowns (glass-to-glass latency on the real Adreno 320, OMX.qcom hardware decode, SPS/PPS-in-fmtp in MediaMTX's RTSP SDP) are MEASURED on-device, not assumed.
 
-### Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
+### Phase 22: Performance & Architecture Refactor
 
-**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), a LIGHT final whole-app UI-conformance re-sweep of the late surfaces against `docs/ui_design/` LAW (the conformance net moved to Phase 15 for the existing surfaces; this catches drift in 16–21's new screens) — and the exhaustive `@Preview` + string + icon-call-site **tokenization backfill** (deferred here from Phase 18; the icon SOURCE/font conformance was pulled forward to Phase 18.1) runs as ONE co-sequenced per-screen pass, plus the optional `compose-preview-screenshot` regression bolt-on, the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
+**Goal**: With the feature set essentially complete (Phases 1–21), refactor for efficiency BEFORE ship — the Adreno 320 floor device (flox) is starting to show navigation/interaction lag, signalling an approaching performance ceiling. Driven by a release-mode profiling audit on flox (debug Compose lies 5–10× about jank): identify the screens that cause unusual load during navigation and use, then fix the hot paths — recomposition discipline (`@Stable`/`@Immutable`, `derivedStateOf`, state hoisting, `collectAsStateWithLifecycle`), state-plumbing efficiency, overdraw from stacked outline+glow layers, the three AndroidView interop surfaces (Files list, live temp graph, Console scrollback), and image/thumbnail/webcam decode. An engineering phase measured against the floor perf budget, not taste; visual behavior unchanged.
 **Depends on**: Phase 21
+**Requirements**: — (cross-cutting refactor; measured against the ADR-0001 floor perf budget, no new requirement IDs)
+**Success Criteria** (what must be TRUE):
+
+  1. Measured improvement on flox in RELEASE mode: the screens the profiling audit flags as causing navigation/interaction lag show reduced jank — no frozen frames, responsive per the ADR-0001 Addendum-2 reframed perf gate — verified on-device before/after via `gfxinfo framestats` (or equivalent)
+  2. Recomposition hygiene on the hot screens: socket-driven state objects are `@Stable`/`@Immutable`, rapidly-changing values (temps) are read as low in the tree as possible, list params use `ImmutableList`, derived values use `derivedStateOf` — verified via Layout-Inspector recomposition counts
+  3. Overdraw on the heaviest screens is reduced (stacked outline+glow layers flattened where possible) WITHOUT violating the outline-led aesthetic or the no-continuous-animation budget
+  4. The three AndroidView surfaces (Files / temp-graph / console) and the image/webcam decode paths are confirmed leak-free and not GC-churning under sustained use
+  5. No functional regressions: the full host unit suite is green and the connect → monitor → control-a-print loop still works on flox
+
+**Plans**: TBD
+**UI hint**: no
+**Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
+
+### Phase 23: Interaction Coherence & Page Overhauls
+
+**Goal**: Unify the app's interaction grammar — today interactions feel disjointed across screens (scrubber vs stepper, back/confirm behavior, drawer, etc.) — and give the specific pages that need major overhauls a redesign so they land where the owner wants them. The exact page list and the interaction-inconsistency catalog come from the `/gsd-ui-review` audit. All redesigns route through the `docs/ui_design/` LAW (Focus/Field/Gutter, outline-led touch-first controls, button-intent colors) and the Phase-15 theme system. Sequenced AFTER the refactor so redesigns land on optimized plumbing, not code about to be ripped up; if a screen needs both, it is tackled once (overhaul + optimize together).
+**Depends on**: Phase 22
+**Requirements**: — (UX consistency; maps to the `docs/ui_design/` LAW, no new requirement IDs)
+**Success Criteria** (what must be TRUE):
+
+  1. The interaction grammar is consistent across the app — the inconsistencies catalogued by the audit (scrubber/stepper, back-button, confirm-guard, drawer, etc.) are reconciled to ONE model documented against `docs/ui_design/` LAW
+  2. Each page the audit flags for major overhaul is redesigned and owner-approved on flox in BOTH orientations
+  3. Every redesigned surface passes token purity (no raw colors), button-intent colors, and the Focus/Field/Gutter grammar
+  4. `@Preview` matrices + tokenized strings/icons ship with each redesigned screen (preview-first / tokenized-first convention)
+  5. No functional regressions on the affected screens (host tests green; on-device smoke)
+
+**Plans**: TBD
+**UI hint**: yes
+**Research note**: STANDARD — design contract via `/gsd-ui-phase` against the existing LAW + `reference/hifi.css`; the audit + `/gsd-ui-review` supply the page list and the inconsistency catalog.
+
+### Phase 24: Touch-Target / Scaling / Rotation Conformance Sweep
+
+**Goal**: A full-app, systematic conformance pass — every screen measured against three cross-cutting rules and fixed where it violates: (a) ≥64px touch targets, (b) the `fsSp` S/M/L text-size scale (recurring trap: fonts picked too small), (c) portrait+landscape rotation correctness (config-change/relayout bugs, plus the known H.264-while-rotating limitation). ABSORBS and expands the LIGHT late-surface conformance sweep + the deferred `@Preview`/string/icon tokenization backfill that used to live in Ship — now a whole-app pass. Checklist-driven and verifiable, distinct from Phase 23's per-page creative redesign.
+**Depends on**: Phase 23
+**Requirements**: — (conformance; maps to the `docs/ui_design/` LAW + Phase-15 theme system)
+**Success Criteria** (what must be TRUE):
+
+  1. Every interactive target across all screens meets ≥64px (or a documented LAW exception), verified screen-by-screen
+  2. Every screen honors the `fsSp` S/M/L scale at all three text sizes with no clipping/overflow (floor 15sp metadata → 30sp+ focus per the established scale)
+  3. Every screen renders correctly in BOTH portrait and landscape (Focus/Field/Gutter responsive rules), rotation config-change handling verified on flox — the H.264-while-rotating limitation is either fixed (re-prepare on surface-size change, Phase-21 CR-01) or explicitly documented as a known v1 constraint
+  4. The exhaustive `@Preview` + string + icon-call-site tokenization backfill (deferred from Phase 18) is completed for the late surfaces in the SAME per-screen pass
+  5. The conformance checklist runs against the COMPLETE app (all surfaces incl. calibration/webcam/spool/prompt/output/sysinfo), in release mode on flox, both orientations; host tests green, no functional regressions
+
+**Plans**: TBD
+**UI hint**: yes
+**Research note**: STANDARD — measures against the existing LAW + `reference/hifi.css`; the H.264 re-prepare-on-surface-size-change fix was already scoped (Phase-21 CR-01 deferral).
+
+### Phase 25: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
+
+**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), the full "looks done but isn't" checklist against the complete app, and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. The full-app UI-conformance pass + the deferred `@Preview`/string/icon tokenization backfill that used to live here MOVED to Phase 24 (conformance) and Phase 23 (overhauls). Explicitly a verification-and-release phase.
+**Depends on**: Phase 24
 **Requirements**: PKG-01, PKG-03
 **Success Criteria** (what must be TRUE):
 
   1. **Print-loop robustness (deferred from Job Status):** yank Wi-Fi mid-print and restore it, and the print surface restores correct (non-stale) state from a fresh `objects.query` rather than lying about a finished/paused print (reconnect resync, re-exercising CONN-04 against a live print); relaunching the app mid-print restores the correct state from a fresh query (process-death recovery, PKG-03)
   2. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), and `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake
   3. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
-  4. **Light final UI-conformance sweep + deferred backfill:** the late surfaces (Phases 16–21) pass the per-screen conformance checklist — done in the SAME per-screen pass that adds each screen's `@Preview` and extracts its strings/icons (the exhaustive backfill deferred from Phase 18) against `docs/ui_design/` LAW + the Phase-15 theme system (token purity / button-intent / Focus-Field-Gutter / ≥64px targets / `fsSp` scale / dark-light-custom) on flox in both orientations — no whole-app re-audit, just the screens added after Phase 15
-  5. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
-  6. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
+  4. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
+  5. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
 
 **Plans**: TBD
-**UI hint**: yes
-**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented; the conformance re-sweep audits against the existing UI LAW + `reference/hifi.css`.
+**UI hint**: no
+**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented.
 
 ## Progress
 
@@ -1085,6 +1135,20 @@ phases → 22 total. Run order = **17 Fine-Tune (UAT pending) → 18 Preview/Tok
 20 System Info → 21 WebRTC → 22 Release & Ship**. Primary spec = the two `../parallel_dinghy/phase-*-staging.md`
 notes.
 
+**Inserted + renumbered 2026-06-08 (pre-ship quality pass — 3 phases):** with Phases 1–21 complete, the owner
+flagged two pre-ship focus areas — (a) the app's look/feel is disjointed (inconsistent interaction grammar, a
+few pages needing major overhauls, plus a complete pass needed on touch targets / scaling / rotation) and (b)
+performance is showing navigation/interaction lag on the flox floor device, with an approaching perf ceiling
+now that the feature set is known. Three new INTEGER phases were inserted before Ship (clean renumber — Ship had
+no plan dir): **22 Performance & Architecture Refactor → 23 Interaction Coherence & Page Overhauls → 24
+Touch-Target / Scaling / Rotation Conformance Sweep → 25 Release Hardening & Ship (LAST)**. Old Ship 22→25; its
+LIGHT late-surface conformance sweep + deferred tokenization backfill MOVED into the new Phase 24 (now a
+full-app pass). PKG-01/03 follow Ship to Phase 25. Rationale: refactor BEFORE the visual overhauls so redesigns
+land on optimized plumbing (22↔23 order may flip per the audit if the slow screens ARE the overhaul screens);
+design/creative redesign (23) kept separate from the mechanical full-app conformance sweep (24) for clean
+verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` audit feeds the scope of 22–24.
+22 phases → 25 total.
+
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
@@ -1108,11 +1172,14 @@ notes.
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
+| 22. Performance & Architecture Refactor | 0/TBD | Not started | - |
+| 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
+| 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
 
-The 22 phases above are the **v1 milestone** (ships once at Phase 22). Subsequent milestones are seeded
+The 25 phases above are the **v1 milestone** (ships once at Phase 25). Subsequent milestones are seeded
 here and formalized via `/gsd-new-milestone` when v1 ships — not planned in detail yet.
 
 ### v2 — Beyond the Functional Core
