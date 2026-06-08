@@ -445,14 +445,17 @@ Moonraker shape, not an idealized mock. This directly closes the [[dinghy-displa
 | A3 | servo "disable" via `WIDTH=0` is acceptable; some servos need a different disable | §7 | LOW — staging marks disable optional; angle scrubber is the primary control |
 | A4 | HSV-with-fixed-saturation (hue+brightness) is sufficient for v1 LED control | Don't-Hand-Roll | MEDIUM — owner may want full saturation; flagged as a planner decision, ColorWheel is hue-only today |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **LED saturation control?** ColorWheel is hue-only. Recommend hue + brightness (fixed saturation=1.0) for
    v1 — reuses ColorWheel verbatim. Planner/owner confirm if full RGB/saturation is wanted. (Low risk — can extend later.)
+   — **RESOLVED:** fixed saturation=1.0 (hue + brightness) for v1, encoded in plan 19-03 `hsvToRgb` action / 19-06 LED detail.
 2. **ScrubberPage immediate-dispatch wiring.** Dispatch on settle (pointer-up) vs on Apply — recommend
    on-settle to honor "no Apply flow." Planner picks the exact wiring (a small ScrubberPage usage choice, not a new component).
+   — **RESOLVED:** dispatch-on-settle (ColorWheel `onSettle` cadence), encoded in plan 19-06.
 3. **Pretty-name camelCase** (`expanderPixel`→"Expanderpixel") — recommend NOT splitting camelCase (lossy);
    accept it. Confirm acceptable.
+   — **RESOLVED:** do NOT split camelCase; prettify = strip family prefix + underscores→spaces + title-case, encoded in plan 19-04.
 
 ## Environment Availability
 

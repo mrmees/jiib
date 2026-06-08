@@ -935,16 +935,30 @@ Plans:
   3. Read-only or absent outputs degrade gracefully; no control sends a command the printer can't accept
   4. Proven live against the real printers' actual fan/pin/LED configuration
 
-**Plans**: 8 plans (5 waves)
-Plans:
+**Plans**: 8 plans (5 waves)Plans:
+**Wave 1**
+
 - [ ] 19-01-PLAN.md — Output icons: register D-01..D-07 ligatures, reassign part-fan→air (D-08), D-09 ligature gate
 - [ ] 19-02-PLAN.md — Wave-0: real Moonraker fixtures (E5P/E3P) + compiling RED scaffolds
 - [ ] 19-03-PLAN.md — PrinterCommands output builders + clamp authority + hsvToRgb helper
 - [ ] 19-04-PLAN.md — Discovery (configfile.settings gate) + live-value reducer + outputsPresent (D-10)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 19-05-PLAN.md — OutputsHolder + flat Outputs list + preview matrix
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 19-06-PLAN.md — Per-type detail pages (scrubber/LED+Off D-12/pin toggle), immediate settle-dispatch
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 19-07-PLAN.md — Shell wiring: Dest.Outputs, drawer tile hidden-when-empty (D-10/D-11), suppression
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 19-08-PLAN.md — On-device UAT on flox + live E5P/E3P (SC-4)
+
 **UI hint**: yes
 **Research note**: STANDARD — SET_FAN_SPEED / SET_PIN / SET_LED + the corresponding status objects verified against the Klipper config reference.
 
