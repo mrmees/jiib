@@ -11,11 +11,11 @@ gap-closure plan, NOT a phase-complete mark.
 
 | # | SBC | Check | Result | Notes |
 |---|-----|-------|--------|-------|
-| 1 | RPi 4 (E5, .120) | Drawer System Info tile shows the `pulse_alert` glyph; tapping it opens the page. | ⬜ PENDING | |
-| 2 | RPi 4 | Focus: host model reads "Raspberry Pi 4 Model B Rev 1.4"; CPU temp = sane whole °C that UPDATES (~1 Hz); uptime = compact days/hours; health chip = healthy (go/shapeless) shape. | ⬜ PENDING | |
-| 3 | RPi 4 | Field Host: CPU model + 4 cores; Total RAM ~7.6 GB; Distro "Debian GNU/Linux 12 (bookworm)"; Kernel "6.12.87+rpt-rpi-v8". Live load: CPU % + memory used/total update ~1 Hz. | ⬜ PENDING | |
-| 4 | RockPro64 (E3, .121) | Switch the app to the E3; the page re-resolves to the new host. | ⬜ PENDING | |
-| 5 | RockPro64 | Focus: host-model row degrades gracefully (model empty → "—" or distro-name label "Armbian 25.11.2 noble"); CPU temp updates; health chip uses the TEMP-FALLBACK and reads the SAME three shape-coded states as the Pi (idle → healthy/go, temp < 70). Field: 6 cores, ~3.8 GB RAM, Armbian distro, rockchip64 kernel. | ⬜ PENDING | |
-| 6 | Both | Chip MEANS THE SAME on both hosts (same shapes, same go/warn/caution semantics); nothing crashes; Back returns cleanly; no janky/empty page on either SBC. | ⬜ PENDING | |
+| 1 | RPi 4 (E5, .120) | Drawer System Info tile shows the `pulse_alert` glyph; tapping it opens the page. | ✅ PASS | |
+| 2 | RPi 4 | Focus: host model reads "Raspberry Pi 4 Model B Rev 1.4"; CPU temp = sane whole °C that UPDATES (~1 Hz); uptime = compact days/hours; health chip = healthy (go/shapeless) shape. | ✅ PASS | |
+| 3 | RPi 4 | Field Host: CPU model + 4 cores; Total RAM ~7.6 GB; Distro "Debian GNU/Linux 12 (bookworm)"; Kernel "6.12.87+rpt-rpi-v8". Live load: CPU % + memory used/total update ~1 Hz. | ✅ PASS | |
+| 4 | RockPro64 (E3, .121) | Switch the app to the E3; the page re-resolves to the new host. | ✅ PASS | |
+| 5 | RockPro64 | Focus: host-model row degrades gracefully (model empty → "—" or distro-name label "Armbian 25.11.2 noble"); CPU temp updates; health chip uses the TEMP-FALLBACK and reads the SAME three shape-coded states as the Pi (idle → healthy/go, temp < 70). Field: 6 cores, ~3.8 GB RAM, Armbian distro, rockchip64 kernel. | ✅ PASS | |
+| 6 | Both | Chip MEANS THE SAME on both hosts (same shapes, same go/warn/caution semantics); nothing crashes; Back returns cleanly; no janky/empty page on either SBC. | ✅ PASS | Owner observed Back returns to home (PrintStatus), not the drawer. Confirmed this is the **app-wide by-design nav grammar** (`ShellNavState.navigateTo` pushes the caller; `goBack` pops to it — every drawer-launched screen returns to its caller, the drawer is a transient overlay). Owner accepted as-is 2026-06-08; NOT a defect. A global drawer-return change, if ever wanted, is a separate nav-LAW phase. |
 
-**Owner sign-off:** ⬜ PENDING — reply "approved" (or list failing check numbers to spawn gap closure).
+**Owner sign-off:** ✅ APPROVED 2026-06-08 — both SBCs walked; page + cross-host shape-coded health verified. Only observation (Back → home) confirmed as the by-design app-wide caller-return convention and **accepted as-is**.

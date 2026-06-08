@@ -105,7 +105,7 @@ Requirements for the initial release: the functional print-control core, testabl
 - [x] **SYS-02**: User sees **live host load** — CPU load %, memory used/available, CPU temp — updating at a throttled display cadence via the free 1 Hz `notify_proc_stat_update` push channel (consumed, not a dedicated poll loop — Phase-13 cadence contract, SC-2)
 - [x] **SYS-03**: User sees a **host-health summary** — hostname/host model, CPU temp, host uptime, and a shape-coded **health chip** (Phase-15.1 status shapes) that is throttle-authoritative on Pi hosts (`throttled_state` bits) and CPU-temp-fallback on non-Pi hosts (D-12: warn ≥70 °C, caution ≥80 °C); throttle + uptime sourced from a one-shot `machine.proc_stats` query (both fields are OMITTED from the push)
 - [x] **SYS-04**: Missing/unsupported fields **degrade to `—`** (labeled row stays present, layout stable across both SBCs); the page never blocks or crashes on a sparse or older Moonraker, an empty-string field, or a `null` `throttled_state` (SC-3)
-- [ ] **SYS-05**: Verified on-device against **both** real printers (RPi 4 / Ender 5 Plus and RockPro64 / Ender 3) — identity rows, live load cadence, CPU temp, and the health-chip shape read correctly and the chip means the same thing on both (SC-4)
+- [x] **SYS-05**: Verified on-device against **both** real printers (RPi 4 / Ender 5 Plus and RockPro64 / Ender 3) — identity rows, live load cadence, CPU temp, and the health-chip shape read correctly and the chip means the same thing on both (SC-4)
 
 ### Packaging
 
