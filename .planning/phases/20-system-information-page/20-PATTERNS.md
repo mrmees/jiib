@@ -2,7 +2,6 @@
 
 **Mapped:** 2026-06-08
 **Files analyzed:** 11 new/modified
-**Analogs found:** 11 / 11 (every new/modified file has a concrete in-repo analog)
 
 This page is **read-only, additive, and reuse-first** — there is no greenfield architecture. Every
 file below copies an existing, shipped pattern. The planner can write grounded `<read_first>` and
@@ -114,12 +113,17 @@ when (method) {
     /* klippy events ... */
     JsonRpcMethods.NOTIFY_ACTIVE_SPOOL_SET -> { spoolNotifyParam(obj)?.let { _activeSpoolSet.tryEmit(it) } }
     JsonRpcMethods.NOTIFY_SPOOLMAN_STATUS_CHANGED -> { spoolNotifyParam(obj)?.let { _spoolmanStatusChanged.tryEmit(it) } }
-    // ... the live notify golden interleaves nine `notify_proc_stat_update` frames ...
+    // ... the live notify golden interleaves ten `notify_proc_stat_update` frames ...
     // they MUST fall through this `else` untouched (T-11-04).
     else -> Unit
 }
 ```
 → add `JsonRpcMethods.NOTIFY_PROC_STAT_UPDATE -> { procStatParam(obj)?.let { _procStatUpdates.tryEmit(it) } }`.
+
+> **⚠ Stale source comment** (JsonRpcClient.kt ~line 215): the existing `else`-branch comment near the
+> proc-stat fall-through reads "nine" frames, but `SpoolmanNotifyRouterTest.kt:109` actually asserts
+> **ten** proc-stat frames. When 20-03 T-11-04 edits this route, correct that source comment to "ten"
+> so the code matches the test's real assertion count (an executor must not trust the stale comment).
 
 **`params[0]` extraction helper** — copy `spoolNotifyParam` (JsonRpcClient.kt lines 255-257), which
 already pulls element [0] of the params array null-safely:
@@ -213,6 +217,11 @@ DrawerTileSpec(label = "Console", symbol = "terminal", dest = Dest.Console),
 the capability-gated Webcam/Spool tiles). `pulse_alert` is unique among `DRAWER_TILES` glyphs
 (icon-no-repeat law — the old stub's `memory` is reused as the D-06 per-ROW glyph, which is fine —
 the no-repeat law is per-surface; verify the drawer set has no other `pulse_alert`).
+
+> **⚠ No dead-tap window** (Codex review): the drawer tile must NEVER go live in a commit that lacks a
+> matching AppShell `when(dest)` routing branch — otherwise tapping System Info routes nowhere. The
+> stub-flip and the AppShell `Dest.SystemInfo` branch must land in the SAME commit (20-04 collapses
+> them into one task). See 20-04 Task 1/2.
 
 > **Per the OUTPUT_SYMBOL precedent** (AppDrawer.kt line 161): the Output tile sources its glyph from
 > the `DinghyIcons.OutputSection` token rather than a hand-typed literal. If a `DinghyIcons` token is
@@ -328,6 +337,13 @@ val all: List<CommandSpec<*>> = listOf(
 > WITHOUT the two JSON rows below fails `CommandCatalogDriftTest.registryCommandsHaveMatrixAvailabilityRows`.
 > Do all three edits (registry + catalog + matrix) in the SAME wave.
 
+> **⚠ Drift test does NOT enforce the `registered: true` flip** (Codex review): the drift test verifies
+> a catalog row + matrix row EXIST for each registered ID, but it does NOT assert
+> `runtime_registry.registered == true`. An executor could register the spec, satisfy the drift test,
+> and still leave the catalog row flagged reference-only — a silent inconsistency no test catches.
+> 20-03 makes the `registered: true` flip for BOTH IDs a separately-checkable acceptance criterion
+> (explicit grep/jq assertion), not implicit in "add the spec".
+
 ---
 
 ### `docs/commands/catalog.json` (modify — flip reference rows to registered)
@@ -343,7 +359,9 @@ flip `runtime_registry` to registered (RESEARCH Drift Rows §1):
 }
 ```
 > `id` MUST equal `catalog_id` (`catalogEntriesHavePlanRequiredShape` asserts this — already satisfied,
-> don't break it). The drift test does not assert on `runtime_registry.status` value, but keep it accurate.
+> don't break it). The drift test does NOT assert on `runtime_registry.status`/`registered` value, so
+> 20-03 adds an explicit grep/jq acceptance check that BOTH rows carry `registered: true` (see the
+> drift-gate note above).
 
 ---
 
