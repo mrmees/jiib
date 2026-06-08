@@ -237,7 +237,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CAM-14 (ExoPlayer leak-free lifecycle/release, D-08; ⊂ CAM-01) | Phase 21 | Planned |
 | CAM-15 (SurfaceView render host via AndroidView; ⊂ CAM-01) | Phase 21 | Planned |
 | CAM-16 (RTSP forced TCP interleaving; ⊂ CAM-01) | Phase 21 | Planned |
-| CAM-17 (on-device UAT both printers: latency/decode/no-leak/no-crash, D-08/D-20; ⊂ CAM-01) | Phase 21 | Planned |
+| CAM-17 (on-device UAT both printers: latency/decode/no-leak/no-crash, D-08/D-20; ⊂ CAM-01) | Phase 21 | Complete (E5+ core PASS on flox/release; E3/crowsnest live verification owner-deferred to Phase 22 — no crowsnest instance running) |
 | SPOOL-01 | Phase 11 | Complete |
 | SPOOL-02 (active-spool Status card; ⊂ SPOOL-01) | Phase 11 | Complete |
 | SPOOL-03 (picker + filters in Dest.Spool; ⊂ SPOOL-01) | Phase 11 | Complete |

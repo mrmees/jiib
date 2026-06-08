@@ -75,7 +75,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first. (completed 2026-06-07)
 - [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
 - [x] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe (completed 2026-06-08)
-- [ ] **Phase 21: Native H.264 Camera Streaming (MediaMTX)** - Real camera for the project's own MediaMTX-backed printers (Ravens Perch + crowsnest) via native Media3/ExoPlayer H.264 over RTSP/HLS, extending the Phase-10 webcam rung-ladder; WebRTC a deferred fallback (spike-gated, see 21-CONTEXT); perf-gated to the Adreno-320 floor
+- [x] **Phase 21: Native H.264 Camera Streaming (MediaMTX)** - Real camera for the project's own MediaMTX-backed printers (Ravens Perch + crowsnest) via native Media3/ExoPlayer H.264 over RTSP/HLS, extending the Phase-10 webcam rung-ladder; WebRTC a deferred fallback (spike-gated, see 21-CONTEXT); perf-gated to the Adreno-320 floor (completed 2026-06-08)
 - [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
 ## Phase Details
@@ -1032,7 +1032,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 21-05-PLAN.md — Load-bearing on-device UAT on BOTH printers (D-08): live H.264 + latency + no-leak + fallback + the three D-20 fold-ins
+- [x] 21-05-PLAN.md — Load-bearing on-device UAT on BOTH printers (D-08): live H.264 + latency + no-leak + fallback + the three D-20 fold-ins
 
 **UI hint**: yes
 **Research note**: The pivot (D-01) is grounded in `research/webrtc-vs-media3-feasibility.md` (footprint win proven, latency win NOT — hence the D-02 spike). The three spike-gated unknowns (glass-to-glass latency on the real Adreno 320, OMX.qcom hardware decode, SPS/PPS-in-fmtp in MediaMTX's RTSP SDP) are MEASURED on-device, not assumed.
@@ -1107,7 +1107,7 @@ notes.
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
-| 21. WebRTC Camera Streaming | 4/5 | In Progress|  |
+| 21. WebRTC Camera Streaming | 5/5 | Complete   | 2026-06-08 |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
