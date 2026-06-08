@@ -42,7 +42,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | **Persistence (settings)** | **DataStore (Preferences)** | HIGH |
 | **Charting (temp history)** | **Custom Compose `Canvas`** for live temp graphs; **Vico** only if you want full axis/legend chrome | MEDIUM |
 | **Camera (later phase)** | OkHttp multipart MJPEG decode → Compose `Image`; defer WebRTC | MEDIUM |
-| **Build** | minSdk 23 / targetSdk 35 / compileSdk 35, AGP 8.7.x, Kotlin 2.1.x, **pin a known-good Compose BOM** | HIGH |
+| **Build** | minSdk 23 / targetSdk 35 / **compileSdk 36** (bumped 35→36 in Phase 21 — required by media3 1.10.1's AAR metadata; AGP 8.7.x accepts it with a warn-only "max recommended 35"; still NOT the AGP-9 / compileSdk-37 / Compose-1.12 jump), AGP 8.7.x, Kotlin 2.1.x, **pin a known-good Compose BOM** | HIGH |
 ## The Big Decision: Compose vs Views on Adreno 320 / 2GB / 1920×1200 / API 23
 - Ship a **Baseline Profile** from day one.
 - Build/profile in **release mode** — debug Compose is 5–10× slower and will lie to you about jank.
@@ -74,7 +74,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 ### Development Tools
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| **Android Gradle Plugin (AGP)** | Build | **Pin 8.7.x.** Do NOT jump to AGP 9 yet — Compose 1.12 will require compileSdk 37 + AGP 9; stay on the 8.x / compileSdk 35 line for stability. |
+| **Android Gradle Plugin (AGP)** | Build | **Pin 8.7.x.** Do NOT jump to AGP 9 yet — Compose 1.12 will require compileSdk 37 + AGP 9; stay on the 8.x line for stability. **compileSdk is 36 as of Phase 21** (media3 1.10.1's AAR metadata mandates ≥36; AGP 8.7.0 accepts 36 warn-only) — this is an accepted middle step on the 8.x line, NOT the forbidden AGP-9 / compileSdk-37 / Compose-1.12 jump. |
 | **Gradle Version Catalog** (`libs.versions.toml`) | Dependency management | Pin every version. This project's whole risk profile is "modern libs silently dropping API 23" — a version catalog makes the floor auditable. |
 | **Macrobenchmark module** | Measure real startup/jank (primary); generate a Baseline Profile (only useful on API 24+ devices) | Run on a *real Nexus 7 or equivalent old device*, in release mode. Emulators lie about old-GPU performance. NOTE: frame metrics (`FrameTimingMetric`) may not work on API 23 — fall back to raw `gfxinfo framestats` on-device. |
 | **`apksigner` / signing config** | Sign release APK for GitHub Releases | Generate a keystore, commit signing to CI (GitHub Actions), publish the signed APK as a release asset. No Play App Signing (no Play). |
@@ -110,7 +110,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
 | **Any library requiring minSdk 24+ or 26+** | Hard-breaks the Nexus 7 floor. *Check every dependency's minSdk* — this is the project's central trap. | minSdk-23 libs (the post-June-2025 AndroidX baseline is exactly 23, so most current libs are fine). |
-| **Bleeding-edge Compose 1.12 / AGP 9 / compileSdk 37** | Compose 1.12 will require compileSdk 37 + AGP 9 — needless churn and instability for this project. | Pin Compose BOM 2026.05 (Compose 1.11), AGP 8.7.x, compileSdk 35. |
+| **Bleeding-edge Compose 1.12 / AGP 9 / compileSdk 37** | Compose 1.12 will require compileSdk 37 + AGP 9 — needless churn and instability for this project. (compileSdk **36** is fine and in use since Phase 21 for media3 1.10.1 — it does NOT cross into the 37/AGP-9 line.) | Pin Compose BOM 2026.05 (Compose 1.11), AGP 8.7.x, compileSdk 36. |
 | **Gson** | Reflection-based, slow on weak CPU, large, legacy. | kotlinx.serialization. |
 | **MPAndroidChart** | Heavy, View-based, GC-churn on live updates, near-unmaintained. | Custom Compose Canvas (or Vico). |
 | **Scarlet (Tinder websocket)** | Unmaintained; unnecessary abstraction. | OkHttp websocket + thin JSON-RPC layer. |
@@ -124,7 +124,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | AndroidX (Activity 1.9+, Lifecycle 2.8+, Compose Material) | **minSdk 23** | Floor raised from 21→23 in **June 2025**. 23 is supported; <23 is *not* on current releases. This is why your floor is safe. |
 | Coil 3.x | **minSdk 23** | Coil 3 raised its floor to exactly 23; fixed large-PNG OOM on API ≤23. Perfect match. |
 | Compose Compiler | == Kotlin version (2.0+) | Apply the `kotlin.plugin.compose` Gradle plugin; don't pin a separate compiler version. |
-| Compose BOM 2026.05 (Compose 1.11) | AGP 8.x, compileSdk 35 | **Compose 1.12 jumps to compileSdk 37 / AGP 9 — stay on 1.11 line.** |
+| Compose BOM 2026.05 (Compose 1.11) | AGP 8.x, compileSdk 36 | **Compose 1.12 jumps to compileSdk 37 / AGP 9 — stay on 1.11 line.** (compileSdk 36 since Phase 21 for media3 1.10.1 is still the 8.x / 1.11 line.) |
 | DataStore 1.1.x | minSdk 23 (AndroidX default) | Coroutine-safe settings store. |
 | OkHttp 4.12 / Retrofit 2.11 | minSdk 21 | Comfortably below your floor; one stack serves both websocket and REST. |
 | kotlinx.serialization 1.7 + Retrofit converter | Retrofit 2.11, Kotlin 2.1 | Use `converter-kotlinx-serialization`; no kapt/KSP needed. |

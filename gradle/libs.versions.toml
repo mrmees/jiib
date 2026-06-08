@@ -9,22 +9,30 @@
 # stop a *transitive* dep from raising the MERGED-manifest minSdk.
 #
 # Build quartet is VERIFIED (01-RESEARCH.md): Kotlin 2.1.21 / AGP 8.7.0 /
-# Gradle 8.9 / compileSdk 35 / build-tools 34 / Compose BOM 2026.05.00 (STABLE
+# Gradle 8.9 / compileSdk 36 / build-tools 34 / Compose BOM 2026.05.00 (STABLE
 # channel → Compose UI 1.11.1).  Do NOT bump composeBom to an alpha channel —
 # the 2026.05.00 *alpha* points at the next Compose minor / compileSdk 37 /
 # AGP 9 line, the exact churn this project avoids.  No dynamic ("+") versions.
+#
+# compileSdk NOTE (Phase 21): bumped 35→36 because media3 1.10.1's AAR metadata
+# HARD-REQUIRES compileSdkVersion >= 36 (checkDebugAarMetadata fails at 35 — the
+# earlier "compileSdk 35 in range" claim was factually wrong). AGP 8.7.0 accepts
+# compileSdk 36 (emits a non-fatal "max recommended 35" warning). This is an
+# accepted middle step — it is DISTINCT from and does NOT cross the still-forbidden
+# AGP-9 / compileSdk-37 / Compose-1.12 line. targetSdk stays 35; the minSdk-23
+# Nexus 7 floor is UNCHANGED and PROVEN green by verifyMinSdkRelease after media3.
 # =============================================================================
 
 [versions]
 # --- Build quartet (VERIFIED) ---
 kotlin = "2.1.21"            # Kotlin 2.1.x ↔ Gradle 8.7–8.10; 2.1.21 fixes a >8.7 test-fixtures bug
-agp = "8.7.0"               # requires Gradle 8.9 + JDK 17+, build-tools 34, compileSdk ≤ 35
+agp = "8.7.0"               # requires Gradle 8.9 + JDK 17+, build-tools 34; accepts compileSdk 36 (warn-only)
 composeBom = "2026.05.00"   # STABLE channel → Compose UI 1.11.1 (NOT the alpha channel)
 
 # --- SDK levels (also set in app/build.gradle.kts; mirrored here for audit) ---
 minSdk = "23"               # Nexus 7 2013 floor — asserted on the MERGED manifest by verifyMinSdk
 targetSdk = "35"
-compileSdk = "35"
+compileSdk = "36"            # :app bumped 35→36 for media3 1.10.1 AAR metadata (see header NOTE); :macrobenchmark stays 35
 
 # --- AndroidX (minSdk-23 baseline since June 2025) ---
 activity = "1.9.3"
@@ -59,6 +67,16 @@ zxingCore = "3.3.3"
 # theme base, and custom token deltas. AndroidX 1.1.x line is minSdk-23-safe (June-2025 floor);
 # the MERGED-manifest floor is PROVEN by verifyMinSdk after adding it (RESEARCH Pitfall 6).
 datastore = "1.1.7"
+
+# --- Media3 / ExoPlayer H.264 transport (Phase 21, CAM-11/13/14/16 — D-01/D-09) ---
+# Pin 1.10.1 = latest stable (2026-05-12); any >= 1.10.0 carries the load-bearing fix. The RTSP
+# H.264 access-unit-spanning-multiple-RTP-packets corruption (the printers' 720p / 1s-GOP keyframes,
+# RESEARCH Pitfall 4 / androidx/media #3121) was a 1.9.x REGRESSION, FIXED in 1.10.0 — NOT broken in
+# 1.10.0. CONFIRM the fix is present in the resolved artifact rather than trusting the version string.
+# minSdk 23 since 1.9.0 (Dec 2025) == our Nexus 7 floor; the MERGED-manifest floor is PROVEN by
+# verifyMinSdkRelease after wiring (a transitive dep could move it — the project's central trap).
+# Artifacts resolve from Google Maven (google() in settings.gradle.kts), NOT Maven Central.
+media3 = "1.10.1"
 
 # --- Measurement tooling (:macrobenchmark) ---
 benchmarkMacro = "1.3.3"
@@ -116,6 +134,15 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCo
 
 # --- Persistence (THEME-02/D-02) ---
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Media3 / ExoPlayer H.264 transport (Phase 21) ---
+# Three first-party AndroidX media3 artifacts (all version.ref = media3). Deliberately NOT including
+# media3-ui / media3-ui-compose / media3-datasource extras — the project hosts its own SurfaceView
+# (footprint discipline, RESEARCH "Deliberately NOT included"). -hls is in NOW because the spike
+# (plan 02) measures both transports. media3-common is pulled transitively by media3-exoplayer.
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-exoplayer-rtsp = { group = "androidx.media3", name = "media3-exoplayer-rtsp", version.ref = "media3" }
+media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", version.ref = "media3" }
 
 # --- Measurement (:macrobenchmark) ---
 benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }

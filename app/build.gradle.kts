@@ -25,7 +25,10 @@ fun devProp(key: String, default: String): String =
 
 android {
     namespace = "works.mees.dinghy"
-    compileSdk = 35                                  // VERIFIED in-range for AGP 8.7
+    compileSdk = 36                                  // bumped 35→36 (Phase 21): media3 1.10.x AAR metadata
+                                                     // MANDATES compileSdkVersion >= 36. AGP 8.7.0 accepts it
+                                                     // (warns "max recommended 35" — non-fatal); merged-manifest
+                                                     // minSdk floor stays 23 (PROVEN by verifyMinSdkRelease).
 
     defaultConfig {
         applicationId = "works.mees.dinghy"
@@ -149,6 +152,15 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.zxing.core)
+
+    // --- Media3 / ExoPlayer H.264 transport (CAM-11/13/14/16, Phase 21 — D-01/D-09) ---
+    // media3 >=1.10.1 (floor == 23, PROVEN by verifyMinSdkRelease); the RTSP multi-RTP-packet H.264
+    // access-unit fix is PRESENT (a 1.9.x regression fixed in 1.10.0 — confirm in the resolved
+    // artifact, don't trust the version string). Raw SurfaceView host — NO media3-ui (footprint
+    // discipline). -hls is in for the spike (plan 02 measures both transports). Google Maven only.
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.rtsp)
+    implementation(libs.media3.exoplayer.hls)
 
     // --- Persistence (THEME-02/D-02): S/M/L --fs + theme base + custom token deltas ---
     implementation(libs.androidx.datastore.preferences)
