@@ -74,7 +74,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only. (completed 2026-06-07)
 - [x] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first. (completed 2026-06-07)
 - [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
-- [ ] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
+- [x] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe (completed 2026-06-08)
 - [ ] **Phase 21: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
 - [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
 
@@ -996,7 +996,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; on-device gate)*
 
-- [ ] 20-04-PLAN.md — UI: owner-locked icon slate + live drawer tile + Dest route + the read-only screen (Focus summary + Field detail + shape chip) + AppShell wiring + cross-SBC on-device UAT (SYS-01..05)
+- [x] 20-04-PLAN.md — UI: owner-locked icon slate + live drawer tile + Dest route + the read-only screen (Focus summary + Field detail + shape chip) + AppShell wiring + cross-SBC on-device UAT (SYS-01..05)
 **UI hint**: yes
 **Research note**: STANDARD — confirm exact `machine.system_info` / `machine.proc_stats` field shapes (incl. Pi throttle flags vs RockPro64 temp-fallback) against the Moonraker API on BOTH real SBCs; some shapes partly captured in `docs/moonraker-capabilities.md`. Full design locked in `20-system-info-staging.md`.
 
@@ -1085,7 +1085,7 @@ notes.
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
-| 20. System Information Page | 3/4 | In Progress|  |
+| 20. System Information Page | 4/4 | Complete   | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
