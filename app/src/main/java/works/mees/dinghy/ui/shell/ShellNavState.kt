@@ -87,8 +87,26 @@ class ShellNavState(startDest: Dest? = null) {
     var spoolPrefilter by mutableStateOf<SpoolPrefilterSeed?>(null)
 
     fun navigateTo(target: Dest) {
-        if (target == dest) return
+        // Re-selecting the CURRENT dest (e.g. tapping its own drawer tile while already inside it) is NOT a
+        // new back entry, so it does not touch [backStack] — but it MUST still run the per-dest entry-reset
+        // so the destination snaps back to its entry surface (the Hub / hub / bookmarked launcher) instead of
+        // a stale sub-page (17-08 / UAT Check 8 / REVIEW #6). Without this, re-entering Fine-Tune from the
+        // drawer while on the Motion sub-page left the stale MotionScreen rendered.
+        if (target == dest) {
+            applyEntryReset(target)
+            return
+        }
         if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
+        applyEntryReset(target)
+        dest = target
+    }
+
+    /**
+     * The per-dest ENTRY-RESET side-effects, run on EVERY entry into a destination — both a dest change AND
+     * a same-dest re-selection ([navigateTo]). Each branch clears that destination's sub-nav so re-entering
+     * it always lands on its entry surface, never a stale sub-page (17-08, REVIEW #6).
+     */
+    private fun applyEntryReset(target: Dest) {
         // Entering the Macros surface always starts on the Bookmarked launcher with no popup open.
         if (target == Dest.Macros) {
             macroShowSystem = false
@@ -104,7 +122,6 @@ class ShellNavState(startDest: Dest? = null) {
         if (target == Dest.FineTune) {
             fineTuneGroup = null
         }
-        dest = target
     }
 
     fun goBack() {
