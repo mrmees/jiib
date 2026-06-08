@@ -143,6 +143,20 @@ Owner-chosen environmental deferrals — track and re-verify in the Phase-22 pre
 - **SC5 live MJPEG/snapshot fallback** — every cam on both printers is H.264 (`webrtc-mediamtx`); there
   is no non-H.264 cam to exercise the live fall-through. Covered by Phase-10 MJPEG host tests + the
   composite fall-through unit tests; re-verify live if/when a non-H.264 cam exists.
+- **Rotation-while-playing blanks the H.264 feed (CR-01, partially mitigated)** — root cause: on
+  orientation change the `Media3SurfaceHost` SurfaceView is destroyed + recreated at a very different
+  size (landscape full-focus ≈ full-screen → portrait stacked ≈ half-screen), and the Adreno-320 qcom
+  decoder cannot renegotiate its output buffers into the resized surface mid-stream (`freeAllBuffers:
+  buffers freed while being dequeued` / `setPortMode DynamicANWBuffer -1010`). Fixes already landed:
+  lifetime surface re-attach (`d3f9d2c`) + holder no longer re-keys on rotation so the player survives
+  (`AppShell`, this commit) — these removed the prior player-thrash loop. The remaining live-rotation
+  blank needs a proper fix (e.g. force a re-prepare / recreate the video output on a surface-size change,
+  or pin the surface size). **The feed works correctly in BOTH orientations on a fresh screen entry** —
+  only mid-playback rotation blanks (recoverable via nav-away + back). Acceptable v1 known-limitation;
+  fix in the Phase-22 pre-release pass.
+- **Code-review WR-05/WR-06** (advisory): H.264 attempt is re-litigated on every transient retry (full
+  ExoPlayer build/release per cycle on the 2 GB device — consider a verified-bad latch); provider/holder
+  coordinated by two independent `remember`s. See `21-REVIEW.md`.
 
 ## Non-blocking follow-ups (recorded, NOT fixed here)
 
