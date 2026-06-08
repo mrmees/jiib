@@ -971,7 +971,7 @@ Plans:
 
 **Goal**: A read-only, at-a-glance **host-health/diagnostics** page for the **printer host** (the SBC running Klipper + Moonraker for the active printer) — `machine.system_info` / `machine.proc_stats`: host identity (CPU model/cores, RAM, distro, kernel), live load (CPU %, memory used/available), and a host-health summary (hostname, CPU temp, throttle/health state, uptime). No control surface — a diagnostics/health view that reuses the central subscribe and the existing label:value render primitives. **Versions live in About; disk/network are out of scope** (owner-narrowed — see `20-system-info-staging.md`).
 **Depends on**: Phase 19
-**Requirements**: *(new SYS-* family — defined at phase discuss)*
+**Requirements**: SYS-01, SYS-02, SYS-03, SYS-04, SYS-05 *(coined at Phase-20 planning 2026-06-08; host-health-only — promotes the v2 umbrella SYS-01)*
 **Success Criteria** (what must be TRUE):
 
   1. The page shows host system identity (CPU model/cores, total RAM, distro, kernel), live host load (CPU %, memory used/available), and a host-health summary (hostname, CPU temp, throttle/health state, uptime) sourced from Moonraker `machine.system_info` / `machine.proc_stats`
@@ -979,7 +979,24 @@ Plans:
   3. Missing/unsupported fields degrade gracefully ("—"); the page never blocks or crashes on a sparse/older Moonraker
   4. Verified against both real printers (different SBCs: RPi 4 vs RockPro64)
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+
+**Wave 0**
+
+- [ ] 20-01-PLAN.md — Fixtures (5 live captures, both SBCs/planes) + 5 RED scaffolds + SYS-* requirements + verify_ligatures gate (SYS-01..04)
+
+**Wave 1** *(blocked on Wave 0)*
+
+- [ ] 20-02-PLAN.md — Pure logic: system_info/proc-stat parsers + health-chip decision fn (throttle vs D-12 temp-fallback) + kB/uptime formatters (SYS-01..04)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 20-03-PLAN.md — Spine plumbing: notify_proc_stat_update route + T-11-04 golden update; register 2 query specs + catalog/matrix drift rows; 2 one-shot handshake seeds + SystemInfoHolder (SYS-01..03)
+
+**Wave 3** *(blocked on Wave 2; on-device gate)*
+
+- [ ] 20-04-PLAN.md — UI: owner-locked icon slate + live drawer tile + Dest route + the read-only screen (Focus summary + Field detail + shape chip) + AppShell wiring + cross-SBC on-device UAT (SYS-01..05)
 **UI hint**: yes
 **Research note**: STANDARD — confirm exact `machine.system_info` / `machine.proc_stats` field shapes (incl. Pi throttle flags vs RockPro64 temp-fallback) against the Moonraker API on BOTH real SBCs; some shapes partly captured in `docs/moonraker-capabilities.md`. Full design locked in `20-system-info-staging.md`.
 
