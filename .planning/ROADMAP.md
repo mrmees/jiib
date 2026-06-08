@@ -1016,7 +1016,7 @@ Plans:
 **Plans**: 5 plans (waves 1–5)
 **Wave 1**
 
-- [ ] 21-01-PLAN.md — Wire media3 1.10.1 (exoplayer + rtsp + hls) into the build, reconfirm the minSdk-23 floor, lay the four Wave-0 RED test scaffolds
+- [x] 21-01-PLAN.md — Wire media3 1.10.1 (exoplayer + rtsp + hls) into the build, reconfirm the minSdk-23 floor, lay the four Wave-0 RED test scaffolds
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -1107,7 +1107,7 @@ notes.
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
-| 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
+| 21. WebRTC Camera Streaming | 1/5 | In Progress|  |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
