@@ -110,7 +110,8 @@ fun settleDispatchCount(phases: List<ScrubPhase>): Int = phases.count { it == Sc
  * - [OnSettle] — the immediate-dispatch grammar (Phase-19 outputs, SC-2): NO Apply button. The value is
  *   dispatched via [onSettle] EXACTLY ONCE when a gesture ends (pointer-up) or a ± stepper is tapped — never
  *   on every intermediate scrub frame (Adreno-320 budget; mirrors [ColorWheel.onSettle]). The gutter is the
- *   ± stepper row + a single [onBack] Back button ([Intent.Neutral]).
+ *   ± stepper row + a single [onBack] Back button ([Intent.Neutral]) — OR, when [OnSettle.onOff] is supplied,
+ *   a two-button `[Off | Back]` row.
  */
 sealed interface ScrubberActions {
     data class ApplyCancel(
@@ -119,9 +120,20 @@ sealed interface ScrubberActions {
         val destructiveDismiss: Boolean = false,
     ) : ScrubberActions
 
+    /**
+     * @param onSettle  dispatched ONCE per gesture-end / stepper tap (never per scrub frame).
+     * @param onBack    the neutral Back exit.
+     * @param onOff      OPTIONAL Off action (GAP-A fix, 19-09). When non-null the gutter renders an Off button
+     *                  [Intent.Danger] (button-intent law: red = stop/cancel) IN THE GUTTER on the shared grid
+     *                  beside Back — it does NOT float over the scrubber value/track. When null the gutter keeps
+     *                  the original single full-width Back (no behavior change for callers that don't want an Off).
+     * @param offLabel  the Off button's label (callers always pass it when [onOff] is set; defaults to "Off").
+     */
     data class OnSettle(
         val onSettle: (Float) -> Unit,
         val onBack: () -> Unit,
+        val onOff: (() -> Unit)? = null,
+        val offLabel: String? = null,
     ) : ScrubberActions
 }
 
@@ -296,19 +308,44 @@ fun ScrubberPage(
                                 intent = Intent.Go,
                             )
                         }
-                    // OnSettle (HIGH-3): NO Apply button — just a single neutral Back. The value already
-                    // dispatched on settle (gesture-end / stepper tap); Back only leaves the page.
-                    is ScrubberActions.OnSettle ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(top = 12.dp),
-                        ) {
-                            OutlinedControl(
-                                label = "Back",
-                                onClick = actions.onBack,
-                                modifier = Modifier.fillMaxWidth(),
-                                intent = Intent.Neutral,
-                            )
+                    // OnSettle (HIGH-3): NO Apply button. The value already dispatched on settle (gesture-end /
+                    // stepper tap); Back only leaves the page. GAP-A (19-09): when an Off action is supplied the
+                    // gutter renders a two-button [Off | Back] row on the shared grid (red Danger Off | neutral
+                    // Back, ≥64px) — the Off no longer floats over the scrubber field. With no Off the original
+                    // single full-width Back is unchanged.
+                    is ScrubberActions.OnSettle -> {
+                        val onOff = actions.onOff
+                        if (onOff != null) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(top = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                OutlinedControl(
+                                    label = actions.offLabel ?: "Off",
+                                    onClick = onOff,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Danger,
+                                )
+                                OutlinedControl(
+                                    label = "Back",
+                                    onClick = actions.onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                )
+                            }
+                        } else {
+                            Row(
+                                Modifier.fillMaxWidth().padding(top = 12.dp),
+                            ) {
+                                OutlinedControl(
+                                    label = "Back",
+                                    onClick = actions.onBack,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    intent = Intent.Neutral,
+                                )
+                            }
                         }
+                    }
                 }
             }
         },
