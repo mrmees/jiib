@@ -1024,7 +1024,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 21-03-PLAN.md — Pure logic: Rung.H264 top rung + selectsH264Rung heuristic (D-09/D-10) + deriveNativeStreamUrl/explicit-tag (D-11/D-12); closes RungSelect + WebcamUrlDerive tests
+- [x] 21-03-PLAN.md — Pure logic: Rung.H264 top rung + selectsH264Rung heuristic (D-09/D-10) + deriveNativeStreamUrl/explicit-tag (D-11/D-12); closes RungSelect + WebcamUrlDerive tests
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -1107,7 +1107,7 @@ notes.
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
-| 21. WebRTC Camera Streaming | 2/5 | In Progress|  |
+| 21. WebRTC Camera Streaming | 3/5 | In Progress|  |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
