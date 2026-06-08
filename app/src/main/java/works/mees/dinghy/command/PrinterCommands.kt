@@ -134,6 +134,15 @@ object PrinterCommands {
     /** Clamp a square-corner-velocity (mm/s) to [SCV_MIN]..[SCV_MAX]. */
     fun clampScv(v: Double): Double = v.coerceIn(SCV_MIN, SCV_MAX)
 
+    /**
+     * Clamp a minimum-cruise-ratio (the WIRE ratio 0.0..1.0, NOT the display percent) to
+     * [MIN_CRUISE_RATIO_MIN]..[MIN_CRUISE_RATIO_MAX]. Added in the 17 code-review fix (WR-03) so the
+     * Min-cruise Reset's markPending target is clamp-symmetric with the wire path — the lone tuner that
+     * was bounded inline (in [setVelocityLimit]) WITHOUT a `clamp*` helper, breaking the 17-07 invariant
+     * that every markPending target routes through the SAME clamp authority the wire uses.
+     */
+    fun clampMinCruiseRatio(ratio: Double): Double = ratio.coerceIn(MIN_CRUISE_RATIO_MIN, MIN_CRUISE_RATIO_MAX)
+
     /** Clamp a pressure-advance (s) to [PA_MIN]..[PA_MAX]. */
     fun clampPressureAdvance(v: Double): Double = v.coerceIn(PA_MIN, PA_MAX)
 
@@ -360,7 +369,7 @@ object PrinterCommands {
         velocity?.let { append(" VELOCITY=${fmt(clampVelocity(it), 0)}") }
         accel?.let { append(" ACCEL=${fmt(clampAccel(it), 0)}") }
         minCruiseRatio?.let {
-            append(" MINIMUM_CRUISE_RATIO=${fmt(it.coerceIn(MIN_CRUISE_RATIO_MIN, MIN_CRUISE_RATIO_MAX), 2)}")
+            append(" MINIMUM_CRUISE_RATIO=${fmt(clampMinCruiseRatio(it), 2)}")
         }
         scv?.let { append(" SQUARE_CORNER_VELOCITY=${fmt(clampScv(it), 1)}") }
     }

@@ -236,7 +236,12 @@ private fun MotionContent(
                             },
                             onReset = vm.baselines.minCruise?.let { base ->
                                 {
-                                    markPending(FineTuneTuner.MIN_CRUISE, base * 100)
+                                    // 17 code-review fix (WR-03): clamp the markPending target through the
+                                    // SAME authority the wire uses (clampMinCruiseRatio) so the armed
+                                    // display percent equals the wire-clamped ratio×100 — clamp-symmetric
+                                    // with every other tuner's Reset (the holder then rounds to 2dp-ratio
+                                    // == integer-percent precision before arming).
+                                    markPending(FineTuneTuner.MIN_CRUISE, PrinterCommands.clampMinCruiseRatio(base) * 100)
                                     dispatchVelocityLimit(
                                         VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, base),
                                     )
