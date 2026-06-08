@@ -6073,9 +6073,9 @@
         "type": "always"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 20 System Information)."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",
@@ -6305,9 +6305,9 @@
         "type": "always"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Registered runtime CommandSpec in CommandRegistry (Phase 20 System Information)."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",

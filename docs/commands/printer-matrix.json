@@ -2875,6 +2875,52 @@
           "caveat": "Not executed during the read-only capture."
         }
       ]
+    },
+    {
+      "catalog_id": "MR-machine.system_info",
+      "name": "machine.system_info",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "machine/system_info probed 2026-06-08; returned cpu_info{model:'Raspberry Pi 4 Model B Rev 1.4',cpu_count:4,total_memory:8007452} + distribution{name,version,kernel_version}."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "machine/system_info probed 2026-06-08; returned cpu_info{model:'',cpu_count:6,total_memory:3945568} + distribution{Armbian/ubuntu 24.04, kernel 6.18.10-current-rockchip64}."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-machine.proc_stats",
+      "name": "machine.proc_stats",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "machine/proc_stats probed 2026-06-08; throttled_state{bits:0,flags:[]}, cpu_temp:64.757, system_uptime, system_memory, system_cpu_usage present."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "machine/proc_stats probed 2026-06-08; throttled_state:null (RockPro64 omits throttle), cpu_temp:53.333, system_uptime, system_memory, system_cpu_usage present."
+        }
+      ]
     }
   ],
   "not_on_printers": [

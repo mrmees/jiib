@@ -371,6 +371,28 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ComponentPresent("spoolman"),
     )
 
+    // --- Phase-20 System Information one-shot host-telemetry queries (SYS-01/02/03). Both no-args
+    // queries with Always availability — every Moonraker host exposes machine.* unconditionally (NO
+    // ComponentPresent gate). Seeded edge-driven per handshake; the 1 Hz live plane rides the
+    // notify_proc_stat_update push (NOT these). These supply identity (system_info) + throttle/uptime
+    // (proc_stats), both OMITTED from the push.
+
+    /** `machine.system_info` — static host identity (cpu_info, distribution). One-shot per handshake. */
+    val machineSystemInfo: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-machine.system_info",
+        method = "machine.system_info",
+        key = { "machine_system_info" },
+        params = { null },
+    )
+
+    /** `machine.proc_stats` — throttled_state + system_uptime (the push omits both). One-shot per handshake. */
+    val machineProcStats: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-machine.proc_stats",
+        method = "machine.proc_stats",
+        key = { "machine_proc_stats" },
+        params = { null },
+    )
+
     val emergencyStop: CommandSpec<Unit> = jsonRpc(
         catalogId = "MR-printer.emergency_stop",
         method = JsonRpcMethods.EMERGENCY_STOP,
@@ -771,6 +793,8 @@ object CommandRegistry {
         spoolmanGetSpoolId,
         spoolmanPostSpoolId,
         spoolmanProxy,
+        machineSystemInfo,
+        machineProcStats,
         emergencyStop,
         firmwareRestart,
         restart,
