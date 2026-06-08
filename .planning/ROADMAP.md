@@ -1002,19 +1002,24 @@ Plans:
 
 ### Phase 21: Native H.264 Camera Streaming (MediaMTX)
 
-**Goal**: Real camera support for the project's OWN hardware. Both target printers expose WebRTC-only camera stacks (go2rtc / camera-streamer / MediaMTX), so Phase 10's MJPEG path — though correct and fixture-proven — never renders a live frame on them. This phase adds a WebRTC client (negotiated via the camera's WHEP/go2rtc endpoint, enumerated through Moonraker `/server/webcams/list`) and presents the low-latency stream on-device, EXTENDING Phase 10's webcam plumbing/rung-ladder rather than replacing it. Mindful of the Adreno-320 floor: hardware-accelerated decode where available, and the feature stays amber-flagged/perf-gated like the existing camera BETA.
+**Goal**: Real camera support for the project's OWN MediaMTX-backed printers (Ravens Perch + crowsnest). Both printers' cameras emit WebRTC-class H.264 that Phase 10's MJPEG path — correct and fixture-proven — can never render (it dead-ends them at Rung 3 "Unsupported"). This phase extends the Phase-10 webcam rung-ladder with a new **H.264 rung decoded natively by AndroidX Media3/ExoPlayer over RTSP/HLS** (the SAME H.264 the cameras already produce, no `libwebrtc` blob — D-01), enumerated via Moonraker `/server/webcams/list`, presented low-latency on-device. WebRTC is the DEFERRED escape hatch (built only if the spike fails the latency bar — D-03). A throwaway on-device latency spike (D-02) is the gating first deliverable that settles RTSP-vs-HLS lead, SPS/PPS-in-fmtp, and whether the ~1–2 s bar is met. Mindful of the Adreno-320 floor: hardware-accelerated decode, amber-flagged/perf-gated like the existing camera BETA.
 **Depends on**: Phase 20
-**Requirements**: *(CAM-* WebRTC extension — defined at phase discuss; continues the CAM-01 lineage)*
+**Requirements**: CAM-10, CAM-11, CAM-12, CAM-13, CAM-14, CAM-15, CAM-16, CAM-17 (the H.264 extension to CAM-01; coined at Phase-21 planning)
 **Success Criteria** (what must be TRUE):
 
-  1. The app negotiates and renders a WebRTC camera stream from a go2rtc/camera-streamer source enumerated via Moonraker, reusing the Phase-10 webcam selection/rung-ladder
-  2. Live low-latency video shows on-device with correct aspect and no frozen frames, falling back to the existing MJPEG/snapshot rungs when WebRTC isn't offered
-  3. The decode respects the Adreno-320 floor (hardware decode where possible; perf-gated/amber-flagged) and releases cleanly on screen exit (no leaked PeerConnection/codec)
-  4. Proven live on the real Ender 5 Plus and/or Ender 3 WebRTC camera that the MJPEG path could not display
+  1. The app selects and renders a Media3 H.264 stream (RTSP/HLS over MediaMTX) enumerated via Moonraker, reusing the Phase-10 webcam selection/rung-ladder (heuristic-selects / decoder-verifies, preserving T-10-06)
+  2. Live low-latency video shows on-device with correct aspect and no frozen frames, falling back to the existing MJPEG/snapshot rungs when H.264 isn't offered
+  3. The decode respects the Adreno-320 floor (hardware decode; perf-gated/amber-flagged) and releases cleanly on screen exit (no leaked codec)
+  4. Proven live on the real Ender 5 Plus AND Ender 3 MediaMTX cameras that the MJPEG path could not display, meeting the ~1–2 s glass-to-glass bar (D-05/D-08)
 
-**Plans**: TBD
+**Plans**: 5 plans (waves 1–5)
+- [ ] 21-01-PLAN.md — Wire media3 1.10.1 (exoplayer + rtsp + hls) into the build, reconfirm the minSdk-23 floor, lay the four Wave-0 RED test scaffolds
+- [ ] 21-02-PLAN.md — THE GATING throwaway on-device spike (D-02): Media3 RTSP-vs-HLS glass-to-glass latency + decoder + APK delta on flox vs both printers; records the DECISION plans 03/04 consume
+- [ ] 21-03-PLAN.md — Pure logic: Rung.H264 top rung + selectsH264Rung heuristic (D-09/D-10) + deriveNativeStreamUrl/explicit-tag (D-11/D-12); closes RungSelect + WebcamUrlDerive tests
+- [ ] 21-04-PLAN.md — On-device player binding: Media3Feed (main-thread, forced-TCP, FeedOutcome) + Media3SurfaceHost + holder routing; reuses the reconnect machine; deletes the spike; closes the last two scaffolds
+- [ ] 21-05-PLAN.md — Load-bearing on-device UAT on BOTH printers (D-08): live H.264 + latency + no-leak + fallback + the three D-20 fold-ins
 **UI hint**: yes
-**Research note**: DEEPER — WebRTC on API-23 / Adreno-320 is heavy (the `org.webrtc`/libwebrtc footprint, WHEP/go2rtc signaling, hardware-decoder selection); the decode path + library size MUST be validated against the floor before committing (this is exactly why it was deferred from Phase 10).
+**Research note**: The pivot (D-01) is grounded in `research/webrtc-vs-media3-feasibility.md` (footprint win proven, latency win NOT — hence the D-02 spike). The three spike-gated unknowns (glass-to-glass latency on the real Adreno 320, OMX.qcom hardware decode, SPS/PPS-in-fmtp in MediaMTX's RTSP SDP) are MEASURED on-device, not assumed.
 
 ### Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
 
