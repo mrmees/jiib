@@ -244,6 +244,112 @@ class FineTuneHolderTest {
         assertFalse("group released once the newer flip times out", holder.vm.value.groupBusy)
     }
 
+    // --- 17 code-review regression (WR-01/WR-02): off-grid Reset must flip WITHOUT the timeout backstop --
+
+    /**
+     * SCV wire formats to 1dp (`fmt(...,1)`); an OFF-GRID config baseline (e.g. 4.05) reached via Reset
+     * arms the percent/value target the WIRE will echo back. BEFORE the precision fix, markPending armed
+     * the raw 4.05 while Klipper reports the 1dp-rounded 4.1, and `abs(4.1-4.05)=0.05` is NOT < the
+     * SCV epsilon 0.01 → the flip is never observed and the group stays busy for the full
+     * PENDING_FLIP_TIMEOUT_MS. With the fix the armed target is rounded to 4.1, so reported == target
+     * and the lock releases on the real flip (NO timeout advance in this test — it would still pass on a
+     * never-clearing bug only via the backstop, which we deliberately do not trigger).
+     */
+    @Test
+    fun offGridReset_scv_releasesOnFlip_withoutTimeoutBackstop() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("toolhead"))
+        store.seed(PrinterState(squareCornerVelocity = 5.0))
+        runCurrent()
+
+        // Reset to an OFF-GRID baseline 4.05 (config value off the 0.1 grid). The wire rounds to 1dp.
+        holder.markPending(FineTuneTuner.SCV, PrinterCommands.clampScv(4.05))
+        runCurrent()
+        assertNotNull("off-grid Reset arms a flip", holder.pendingStateFlip)
+        assertTrue("busy while the off-grid flip is pending", holder.vm.value.groupBusy)
+
+        // Klipper echoes the 1dp-rounded value (4.1). With the fix this EQUALS the armed (rounded) target.
+        store.seed(PrinterState(squareCornerVelocity = 4.1))
+        runCurrent()
+        assertNull("off-grid Reset flip clears on the real value WITHOUT the timeout backstop", holder.pendingStateFlip)
+        assertFalse("group released on the off-grid flip", holder.vm.value.groupBusy)
+    }
+
+    /**
+     * Pressure-advance wire formats to 3dp; an off-grid baseline 0.0237 rounds to 0.024 on the wire.
+     * BEFORE the fix the 3dp rounding error (0.0003) exceeds the PA epsilon (0.0001) → 8 s wedge.
+     */
+    @Test
+    fun offGridReset_pressureAdvance_releasesOnFlip_withoutTimeoutBackstop() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(backgroundScope)
+            val holder = FineTuneHolder(backgroundScope, store)
+            store.setCapabilities(caps("extruder"))
+            store.seed(PrinterState(pressureAdvance = 0.050))
+            runCurrent()
+
+            holder.markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(0.0237))
+            runCurrent()
+            assertNotNull("off-grid PA Reset arms a flip", holder.pendingStateFlip)
+
+            // Klipper echoes the 3dp-rounded value 0.024.
+            store.seed(PrinterState(pressureAdvance = 0.024))
+            runCurrent()
+            assertNull("off-grid PA Reset clears on the 3dp-rounded value (no backstop)", holder.pendingStateFlip)
+            assertFalse("group released", holder.vm.value.groupBusy)
+        }
+
+    /**
+     * Smooth-time wire formats to 2dp; an off-grid baseline 0.037 rounds to 0.04 on the wire. BEFORE the
+     * fix the 2dp rounding error (0.003) exceeds the smooth epsilon (0.001) → 8 s wedge.
+     */
+    @Test
+    fun offGridReset_smoothTime_releasesOnFlip_withoutTimeoutBackstop() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(backgroundScope)
+            val holder = FineTuneHolder(backgroundScope, store)
+            store.setCapabilities(caps("extruder"))
+            store.seed(PrinterState(smoothTime = 0.010))
+            runCurrent()
+
+            holder.markPending(FineTuneTuner.SMOOTH_TIME, PrinterCommands.clampSmoothTime(0.037))
+            runCurrent()
+            assertNotNull("off-grid smooth Reset arms a flip", holder.pendingStateFlip)
+
+            // Klipper echoes the 2dp-rounded value 0.04.
+            store.seed(PrinterState(smoothTime = 0.04))
+            runCurrent()
+            assertNull("off-grid smooth Reset clears on the 2dp-rounded value (no backstop)", holder.pendingStateFlip)
+            assertFalse("group released", holder.vm.value.groupBusy)
+        }
+
+    /**
+     * WR-03: the Min-cruise Reset now routes its markPending target through [PrinterCommands.clampMinCruiseRatio]
+     * (× 100 for the display percent), clamp-symmetric with the wire. An off-grid baseline ratio 0.123
+     * (12.3%) rounds to the integer percent 12 the wire's 2dp-ratio echoes back, releasing on the flip.
+     */
+    @Test
+    fun offGridReset_minCruise_releasesOnFlip_withoutTimeoutBackstop() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(backgroundScope)
+            val holder = FineTuneHolder(backgroundScope, store)
+            store.setCapabilities(caps("toolhead"))
+            store.seed(PrinterState(minimumCruiseRatio = 0.5)) // 50%
+            runCurrent()
+
+            // Reset target = clampMinCruiseRatio(0.123) * 100 = 12.3 → rounded to integer percent 12.
+            holder.markPending(FineTuneTuner.MIN_CRUISE, PrinterCommands.clampMinCruiseRatio(0.123) * 100)
+            runCurrent()
+            assertNotNull("off-grid min-cruise Reset arms a flip", holder.pendingStateFlip)
+
+            // Klipper echoes ratio 0.12 (2dp) → display 12%.
+            store.seed(PrinterState(minimumCruiseRatio = 0.12))
+            runCurrent()
+            assertNull("off-grid min-cruise Reset clears on the 2dp-ratio value (no backstop)", holder.pendingStateFlip)
+            assertFalse("group released", holder.vm.value.groupBusy)
+        }
+
     @Test
     fun reset_isNoOp_whenBaselineNull() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
