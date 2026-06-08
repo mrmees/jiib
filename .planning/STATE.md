@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-last_updated: "2026-06-08T05:52:42.798Z"
+last_updated: "2026-06-08T06:01:48.438Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
   completed_phases: 22
   total_plans: 160
-  completed_plans: 157
+  completed_plans: 158
   percent: 79
 ---
 
@@ -238,6 +238,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 19 P06 | 30min | 2 tasks | 13 files |
 | Phase 19 P07 | 15 | 2 tasks | 4 files |
 | Phase 19 P19-09 | 4m | 3 tasks | 3 files |
+| Phase 19 P19-10 | ~6 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -435,6 +436,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Output drawer tile uses D-10 HIDE-not-grey (pure visibleDrawerTiles filter), diverging from the Webcam/Spool shown-but-greyed gate
 - [Phase ?]: Dest.Outputs hosts a shell-local list<->detail back-stack (selectedOutputKey), mirroring Dest.Calibration — not new top-level Dests
 - [Phase ?]: 19-09 GAP-A: Off moved to scrubber gutter ([Off Danger | Back Neutral]) via optional OnSettle.onOff slot (no overlay); LED page collapsed to ONE ScreenScaffold via new internal reusable LedBrightnessControl (consumed by 19-10).
+- [Phase ?]: 19-10: per-LED channel capability (ledHasRgb/ledHasWhite) derived from configfile.settings; LED page branches RGB wheel vs white-only brightness; white-only drives the WHITE channel (GAP-B fixed)
 
 ### Pending Todos
 
@@ -472,7 +474,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-08T05:52:21.617Z
+Last session: 2026-06-08T06:01:36.086Z
 Stopped at: Completed 19-03-PLAN.md
 Resume file: 
 None
