@@ -97,6 +97,21 @@ object DinghyIcons {
     // D-07: the Outputs section / App-Drawer tile glyph.
     val OutputSection = DinghyIcon(IconRef.Ligature("output"), alternate = "output_section")
 
+    // --- Phase-20 System-Information glyphs (D-01..D-10, OWNER-LOCKED — never invent/substitute, icon
+    // law [[dinghy-never-pick-icons-ask]]). The whole slate resolves in the bundled v2.944 Material
+    // Symbols ttf (20-RESEARCH Icon Ligature Gate). D-03 (CPU temp) REUSES the existing
+    // LauncherTemperature (thermostat) token and D-09 (CPU load) REUSES the existing Speed (speed)
+    // token — re-registering those ligatures under a new name would trip the iconRef uniqueness guard,
+    // so they are NOT re-added here. ---
+    val SysInfoTile = DinghyIcon(IconRef.Ligature("pulse_alert"), alternate = "sysinfo_tile")        // D-01 drawer tile
+    val SysInfoHost = DinghyIcon(IconRef.Ligature("dns"), alternate = "sysinfo_host")                 // D-02 hostname/model
+    val SysInfoUptime = DinghyIcon(IconRef.Ligature("schedule"), alternate = "sysinfo_uptime")        // D-04 uptime
+    val SysInfoCpu = DinghyIcon(IconRef.Ligature("developer_board"), alternate = "sysinfo_cpu")       // D-05 CPU model/cores
+    val SysInfoRam = DinghyIcon(IconRef.Ligature("memory"), alternate = "sysinfo_ram")                // D-06 total RAM
+    val SysInfoDistro = DinghyIcon(IconRef.Ligature("deployed_code"), alternate = "sysinfo_distro")   // D-07 distro
+    val SysInfoKernel = DinghyIcon(IconRef.Ligature("code_blocks"), alternate = "sysinfo_kernel")     // D-08 kernel
+    val SysInfoMemUsage = DinghyIcon(IconRef.Ligature("data_usage"), alternate = "sysinfo_mem_usage") // D-10 memory used/total
+
     // --- FineTune exemplar glyphs (18-06) ---
     // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
     // NOT a hand-traced local vector. The font is already a shipped dependency used app-wide (PrintStatus
@@ -133,5 +148,7 @@ object DinghyIcons {
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
+        SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
+        SysInfoKernel, SysInfoMemUsage,
     )
 }

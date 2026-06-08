@@ -161,6 +161,14 @@ internal data class DrawerTileSpec(
 internal val OUTPUT_SYMBOL: String = (DinghyIcons.OutputSection.primary as IconRef.Ligature).name
 
 /**
+ * The `pulse_alert` ligature SOURCED FROM the owner-locked [DinghyIcons.SysInfoTile] token (D-01) — NOT a
+ * hand-typed string (the [OUTPUT_SYMBOL] precedent). Any future remap of the System-Info tile glyph in
+ * [DinghyIcons] flows here automatically. `pulse_alert` is UNIQUE among the [DRAWER_TILES] glyph set
+ * (icon-no-repeat law). The registry guarantees this is a [IconRef.Ligature]; the cast is total.
+ */
+internal val SYSINFO_SYMBOL: String = (DinghyIcons.SysInfoTile.primary as IconRef.Ligature).name
+
+/**
  * PURE, host-testable (non-@Composable) drawer-tile filter — the D-10 HIDE-not-grey decision lives here so
  * it is unit-testable without Compose (mirrors the host-testable seams elsewhere in the app). The Output
  * tile ([Dest.Outputs]) is FILTERED OUT entirely when [outputsEnabled] is false (D-10: a printer with zero
@@ -236,7 +244,13 @@ internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // law; `bolt` is now freed — it backs the launcher Macros glyph elsewhere). Only System Info remains a
     // greyed forward-stub (P20).
     DrawerTileSpec(label = "Output", symbol = OUTPUT_SYMBOL, dest = Dest.Outputs),
-    DrawerTileSpec(label = "System Info", symbol = "memory", dest = null),
+    // System Info (Phase 20, SYS-01..05) is now LIVE — the read-only printer-host health page
+    // (Dest.SystemInfo). Always shown (the host always exists, so no capability gate like Webcam/Spool).
+    // The symbol is SOURCED FROM the owner-locked [DinghyIcons.SysInfoTile] token ([SYSINFO_SYMBOL] =
+    // `pulse_alert`, D-01) so the icon-law glyph can never drift from a typo'd literal. `pulse_alert` is
+    // unique among DRAWER_TILES glyphs (icon-no-repeat law). The matching AppShell Dest.SystemInfo routing
+    // branch lands in the SAME commit (no dead-tap window — Codex atomicity rule).
+    DrawerTileSpec(label = "System Info", symbol = SYSINFO_SYMBOL, dest = Dest.SystemInfo),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
 

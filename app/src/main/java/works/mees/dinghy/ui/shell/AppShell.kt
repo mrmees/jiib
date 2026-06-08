@@ -812,6 +812,10 @@ fun AppShell(
                     }
                 }
             }
+            // Dest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. Task 1 lands
+            // this placeholder ONLY so the live drawer tile always resolves to a handler (no dead-tap window,
+            // Codex atomicity); Task 2 replaces the body with the real SystemInformationScreen wiring.
+            Dest.SystemInfo -> Box(Modifier.fillMaxSize())
             // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
             // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
             // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
