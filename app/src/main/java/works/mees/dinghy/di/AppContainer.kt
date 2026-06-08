@@ -296,6 +296,24 @@ class AppContainer(
         _spine.value = handle
     }
 
+    private val _systemInfoHolder =
+        MutableStateFlow<works.mees.dinghy.systeminfo.SystemInfoHolder?>(null)
+
+    /**
+     * The current session's [works.mees.dinghy.systeminfo.SystemInfoHolder] (Phase 20 System
+     * Information), or `null` when idle. Constructed per session by the service alongside the spine —
+     * it needs the JsonRpcClient's `procStatUpdates` push flow (not carried on the SpineHandle data
+     * class), so it is published on its own slot. The System Information screen (Plan 04) collects its
+     * identity/procStats/live StateFlows off this.
+     */
+    val systemInfoHolder: StateFlow<works.mees.dinghy.systeminfo.SystemInfoHolder?> =
+        _systemInfoHolder.asStateFlow()
+
+    /** Publish the per-session SystemInfoHolder (`null` = idle). Called only by the service. */
+    fun publishSystemInfoHolder(holder: works.mees.dinghy.systeminfo.SystemInfoHolder?) {
+        _systemInfoHolder.value = holder
+    }
+
     // ---- Derived per-field convenience flows (always read off the whole current handle) ------------
 
     /** Live printer state; falls back to an empty default when idle (no session). */

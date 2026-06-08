@@ -35,6 +35,9 @@ import works.mees.dinghy.command.request
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.systeminfo.ProcStatQuery
+import works.mees.dinghy.systeminfo.SystemInfo
+import works.mees.dinghy.systeminfo.from
 import works.mees.dinghy.state.Screw
 import works.mees.dinghy.state.ScrewConfig
 import works.mees.dinghy.state.deriveCapabilities
@@ -471,6 +474,21 @@ class MoonrakerSession(
             val storeResult = rpc.request(CommandRegistry.temperatureStore, Unit)
             val backfill = parseTemperatureStore(storeResult.jsonObject, capabilities.heaters.toSet())
             store.setTemperatureBackfill(backfill)
+        }
+        runCatching {
+            // machine.system_info: static host identity (SYS-01, Phase 20). One-shot per handshake; rides
+            // the reconnect + notify_klippy_ready reruns (NO poll loop — cadence contract Rule 3). The
+            // result IS the object that CONTAINS the `system_info` key (SystemInfo.from walks `.system_info`).
+            // Best-effort: a host lacking the endpoint leaves the seam at null → the page degrades to "—".
+            val sysResult = rpc.request(CommandRegistry.machineSystemInfo, Unit)
+            store.setSystemInfo(SystemInfo.from(sysResult.jsonObject))
+        }
+        runCatching {
+            // machine.proc_stats: the ONLY source of throttled_state + system_uptime (the 1 Hz push omits
+            // both — SYS-02/03, Phase 20). One-shot per handshake (edge-driven, NO poll). The result object
+            // is read at top level by ProcStatQuery.from. Best-effort like the rest of this block.
+            val procResult = rpc.request(CommandRegistry.machineProcStats, Unit)
+            store.setProcStatQuery(ProcStatQuery.from(procResult.jsonObject))
         }
         runCatching {
             // gcode_store: console-history backfill (08-04, CONS-02 / D-02). REPLACE semantics — each

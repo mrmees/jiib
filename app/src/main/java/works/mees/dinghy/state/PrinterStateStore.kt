@@ -12,6 +12,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import works.mees.dinghy.outputs.OutputDescriptor
+import works.mees.dinghy.systeminfo.ProcStatQuery
+import works.mees.dinghy.systeminfo.SystemInfo
 import works.mees.dinghy.ui.console.ConsoleLine
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -84,6 +86,21 @@ class PrinterStateStore(
     private val _temperatureBackfill = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
     /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
+
+    private val _systemInfo = MutableStateFlow<SystemInfo?>(null)
+    /**
+     * `machine.system_info` static host identity (SYS-01, Phase 20) — one-shot per handshake, NOT the
+     * throttled hot path. Null until/unless the read lands; carries forward to late collectors. The
+     * SystemInfoHolder forwards this off the SpineHandle.
+     */
+    val systemInfo: StateFlow<SystemInfo?> = _systemInfo.asStateFlow()
+
+    private val _procStatQuery = MutableStateFlow<ProcStatQuery?>(null)
+    /**
+     * `machine.proc_stats` query result (SYS-02/03, Phase 20) — the ONLY source of throttled_state +
+     * system_uptime (the 1 Hz push omits both). One-shot per handshake, NOT the throttled hot path.
+     */
+    val procStatQuery: StateFlow<ProcStatQuery?> = _procStatQuery.asStateFlow()
 
     private val _consoleBackfill = MutableStateFlow<List<ConsoleLine>>(emptyList())
     /**
@@ -290,6 +307,16 @@ class PrinterStateStore(
     /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */
     fun setTemperatureBackfill(backfill: Map<String, FloatArray>) {
         _temperatureBackfill.value = backfill
+    }
+
+    /** One-shot at (re)handshake: `machine.system_info` host identity (SYS-01). NOT the throttled hot path. */
+    fun setSystemInfo(info: SystemInfo) {
+        _systemInfo.value = info
+    }
+
+    /** One-shot at (re)handshake: `machine.proc_stats` throttle+uptime (SYS-02/03). NOT the throttled hot path. */
+    fun setProcStatQuery(query: ProcStatQuery) {
+        _procStatQuery.value = query
     }
 
     /**

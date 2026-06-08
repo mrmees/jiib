@@ -104,6 +104,7 @@ class MoonrakerService : Service() {
                 publishIdle = {
                     container.bindSessionControl(null)
                     container.publishSpine(null)
+                    container.publishSystemInfoHolder(null)
                     updateNotification("Set up printer")
                 },
             )
@@ -216,6 +217,10 @@ class MoonrakerService : Service() {
             minExtrudeTemp = store.minExtrudeTemp,
             maxExtrudeDistance = store.maxExtrudeDistance,
             temperatureBackfill = store.temperatureBackfill,
+            // One-shot-per-handshake host telemetry (Phase 20 System Information) — forwarded off the
+            // store like the other one-shots; the SystemInfoHolder (built below) consumes them.
+            systemInfo = store.systemInfo,
+            procStatQuery = store.procStatQuery,
             httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).
@@ -227,6 +232,18 @@ class MoonrakerService : Service() {
         )
         // Atomic publication (review #6): the WHOLE handle swaps in one assignment.
         container.publishSpine(handle)
+
+        // System Information holder (Phase 20, SYS-01/02/03) — dedicated host-telemetry holder off the
+        // printer hot path (Open Q2). Built per session from the just-published handle's one-shot
+        // identity/proc-stat StateFlows + the session rpc's ~1 Hz proc-stat push (procStatUpdates). The
+        // screen (Plan 04) collects its identity/procStats/live flows off the container.
+        container.publishSystemInfoHolder(
+            works.mees.dinghy.systeminfo.SystemInfoHolder(
+                scope = serviceScope,
+                spine = handle,
+                procStatUpdates = rpc.procStatUpdates,
+            ),
+        )
         // Narrow reconnect/restart surface (review #1) — forwards to THIS session/dispatcher.
         container.bindSessionControl(object : SessionControl {
             override fun requestReconnectNow() = session.requestReconnectNow()

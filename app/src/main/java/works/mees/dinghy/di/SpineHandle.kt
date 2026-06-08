@@ -1,6 +1,8 @@
 package works.mees.dinghy.di
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
@@ -10,6 +12,8 @@ import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.spool.SpoolmanClient
+import works.mees.dinghy.systeminfo.ProcStatQuery
+import works.mees.dinghy.systeminfo.SystemInfo
 import works.mees.dinghy.spool.SpoolmanStatus
 import works.mees.dinghy.ui.files.FileBrowserClient
 
@@ -59,6 +63,21 @@ data class SpineHandle(
     val maxExtrudeDistance: StateFlow<Float?>,
     /** Per-sensor temperature_store backfill (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>>,
+    /**
+     * `machine.system_info` static host identity (SYS-01, Phase 20) — forwarded straight off the store
+     * like [temperatureBackfill]. Seeded ONCE per handshake (NOT the throttled hot path); a StateFlow
+     * carries the value forward to a late collector. The [works.mees.dinghy.systeminfo.SystemInfoHolder]
+     * consumes this for the page's identity rows. Defaults to a null-seeded StateFlow so the headless
+     * test construction sites build without it; the live service always forwards the store flow.
+     */
+    val systemInfo: StateFlow<SystemInfo?> = MutableStateFlow(null).asStateFlow(),
+    /**
+     * `machine.proc_stats` query result (SYS-02/03, Phase 20) — the ONLY source of throttle+uptime (the
+     * 1 Hz push omits both). Forwarded off the store; seeded once per handshake. The SystemInfoHolder
+     * consumes this for the health chip + uptime row. Defaults to a null-seeded StateFlow for the
+     * headless test sites; the live service forwards the store flow.
+     */
+    val procStatQuery: StateFlow<ProcStatQuery?> = MutableStateFlow(null).asStateFlow(),
     /**
      * The `http://host:port` REST base (from `cfg.httpBase`) — the UI joins this with a metadata
      * `relative_path` to build the gcode thumbnail URL (260601-sip Inc 2). Carried on the handle so
