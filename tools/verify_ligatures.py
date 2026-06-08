@@ -66,12 +66,16 @@ NEEDED = {
     "storefront", "timer_arrow_down", "timer_arrow_up", "donut_large", "pause_circle",
     "inventory_2", "palette", "calendar_add_on", "check_circle", "archive", "print_connect",
     "thermostat", "open_with", "output_circle", "tune", "database", "bolt", "terminal",
-    "more_horiz", "mode_fan", "speed", "keyboard_return", "arrow_shape_up_stack_2", "sprint",
+    "more_horiz", "speed", "keyboard_return", "arrow_shape_up_stack_2", "sprint",
     "directions_boat", "rounded_corner", "avg_time", "input_circle",
     # D-08 conversion targets (drawables flipping to ligatures in later 18.1 waves)
     "disabled_by_default", "warning", "compress", "expand", "detector", "lock",
     "lock_open_right", "add", "remove", "arrow_upward", "arrow_downward",
     "text_select_move_forward_word",
+    # Phase-19 D-09 gate: the 7 owner-locked output glyphs (D-01..D-07) + `air` (the D-08
+    # part-cooling-fan reassignment target). `mode_fan` was removed above — no IconRef.Ligature
+    # references it after the D-08 reassignment. All 8 verified resolvable in the v2.944 ttf (19-RESEARCH).
+    "mode_heat", "mode_fan_2", "lightbulb_2", "cyclone", "check_box", "vital_signs", "output", "air",
 }
 
 
