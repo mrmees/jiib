@@ -85,7 +85,7 @@ class WebcamUnsupportedCardTest {
         val resolver = ThemeResolver()
         composeRule.setContent {
             DinghyTheme(resolver) {
-                WebcamScreen(holder = holder, onBack = {})
+                WebcamScreen(holder = holder, surfaceProvider = works.mees.dinghy.render.Media3SurfaceProvider(), onBack = {})
             }
         }
 

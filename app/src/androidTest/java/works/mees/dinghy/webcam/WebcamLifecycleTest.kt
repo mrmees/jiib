@@ -96,7 +96,7 @@ class WebcamLifecycleTest {
         composeRule.setContent {
             DinghyTheme(resolver) {
                 if (pageVisible) {
-                    WebcamScreen(holder = holder, onBack = {})
+                    WebcamScreen(holder = holder, surfaceProvider = works.mees.dinghy.render.Media3SurfaceProvider(), onBack = {})
                 }
             }
         }

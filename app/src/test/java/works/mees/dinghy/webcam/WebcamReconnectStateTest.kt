@@ -276,6 +276,97 @@ class WebcamReconnectStateTest {
     }
 
     @Test
+    fun h264Composite_decoderFallThrough_withWorkingLowerRung_showsFrames_deadEndsOnlyWhenLowerAlsoDead() = runTest {
+        // Phase 21 (D-10 / SC2 / T-21-04-01): the H.264 attempt fails DECODER-unsupported, but the cam has a
+        // working lower rung (snapshot). The COMPOSITE feed must fall through IN-FEED — the holder shows the
+        // snapshot frame and must NOT dead-end while the lower rung is viable. Only once the lower rung is
+        // ALSO dead does the holder reach DeadEnd. We prove BOTH halves with one cam: the lower rung yields a
+        // frame then goes Transient (alive) for the first invocation, then Terminal (dead) on the next.
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        // An H.264-SELECTED cam (rtsp:// stream_url → selectsH264Rung true) that also has a snapshot.
+        val h264Cam = listOf(Webcam(name = "h264", uid = "h264", streamUrl = "rtsp://h/3", snapshotUrl = "http://h/snap"))
+        val webcams = MutableStateFlow(h264Cam)
+
+        // The injected H.264 attempt ALWAYS reports a decoder failure → the composite falls through.
+        val attempt = works.mees.dinghy.ui.webcam.H264Attempt { _ ->
+            works.mees.dinghy.ui.webcam.H264AttemptResult.FallThrough
+        }
+        // The lower rung: first run yields a snapshot frame + Transient (alive); the SECOND run is Terminal
+        // (the snapshot died too) — proving DeadEnd is reached ONLY when the lower rung is also dead.
+        val lowerRuns = AtomicInteger(0)
+        val lower = WebcamFeed<String> { _, onFrame ->
+            val n = lowerRuns.incrementAndGet()
+            if (n == 1) {
+                onFrame("SNAPSHOT-FRAME")
+                FeedOutcome.Transient
+            } else {
+                FeedOutcome.Terminal
+            }
+        }
+        val composite = works.mees.dinghy.ui.webcam.compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+
+        val holder = WebcamHolder(
+            scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
+            profileId = "h", feed = composite, backoffRng = Random(0),
+        )
+        holder.start()
+
+        // First composite run: H.264 decoder fails → falls through → snapshot frame flows → Transient.
+        // The holder shows the frame and goes Reconnecting (NOT DeadEnd — the lower rung was viable).
+        testScheduler.advanceTimeBy(10)
+        testScheduler.runCurrent()
+        assertEquals("decoder fall-through yielded the snapshot frame (in-feed fall-through)", "SNAPSHOT-FRAME", holder.vm.value.frame)
+        assertEquals("a viable lower rung is Reconnecting, NOT a dead-end", WebcamView.Mode.Reconnecting, holder.vm.value.mode)
+
+        // Backoff + retry: the second composite run falls through to a now-DEAD lower rung → Terminal → DeadEnd.
+        testScheduler.advanceTimeBy(30_000)
+        testScheduler.runCurrent()
+        assertEquals("DeadEnd ONLY once the lower rung is ALSO dead (D-10)", WebcamView.Mode.DeadEnd, holder.vm.value.mode)
+        assertTrue("the lower rung was retried (fall-through is in-feed, not a holder Terminal short-circuit)", lowerRuns.get() >= 2)
+
+        holder.cancel()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+    }
+
+    @Test
+    fun h264Composite_networkTransient_backsOffAndRetries_reusesReconnectMachineVerbatim() = runTest {
+        // Phase 21: a composite H.264 feed whose attempt returns NETWORK-transient maps to FeedOutcome.Transient
+        // — the holder's EXISTING reconnect machine backs off + retries (proving the machine is reused verbatim,
+        // no new H.264-specific branch in drive()). The lower rung is never engaged on a network error.
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        val h264Cam = listOf(Webcam(name = "h264", uid = "h264", streamUrl = "rtsp://h/3"))
+        val webcams = MutableStateFlow(h264Cam)
+
+        val attemptRuns = AtomicInteger(0)
+        val attempt = works.mees.dinghy.ui.webcam.H264Attempt { _ ->
+            attemptRuns.incrementAndGet()
+            works.mees.dinghy.ui.webcam.H264AttemptResult.Transient // network hiccup → retry the H.264 rung
+        }
+        var lowerReached = false
+        val lower = WebcamFeed<String> { _, _ -> lowerReached = true; FeedOutcome.Terminal }
+        val composite = works.mees.dinghy.ui.webcam.compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+
+        val holder = WebcamHolder(
+            scope = scope, webcams = webcams, webcamPrefs = prefs(scope),
+            profileId = "h", feed = composite, backoffRng = Random(0),
+        )
+        holder.start()
+        testScheduler.advanceTimeBy(10)
+        testScheduler.runCurrent()
+        assertEquals("a network-transient H.264 attempt is Reconnecting (the reused machine)", WebcamView.Mode.Reconnecting, holder.vm.value.mode)
+
+        testScheduler.advanceTimeBy(30_000)
+        testScheduler.runCurrent()
+        assertTrue("the H.264 rung was RETRIED under backoff (reconnect machine reused verbatim)", attemptRuns.get() >= 2)
+        assertTrue("a network error retries H.264 — the lower rung is NOT engaged", !lowerReached)
+
+        holder.cancel()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+    }
+
+    @Test
     fun defaultPick_resolvesToFirstCam_whenNoPreference() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val scope = CoroutineScope(SupervisorJob() + dispatcher)

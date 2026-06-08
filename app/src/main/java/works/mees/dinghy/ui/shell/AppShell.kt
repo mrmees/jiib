@@ -97,7 +97,8 @@ import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
 import works.mees.dinghy.ui.webcam.WebcamHolder
 import works.mees.dinghy.ui.webcam.WebcamScreen
-import works.mees.dinghy.ui.webcam.webcamBitmapHolder
+import works.mees.dinghy.ui.webcam.webcamMedia3Holder
+import works.mees.dinghy.render.Media3SurfaceProvider
 import works.mees.dinghy.config.ConnectionConfig
 import android.graphics.Bitmap
 
@@ -235,8 +236,16 @@ fun AppShell(
     // holder owns the long-lived decode/poll/retry loops; the shell binds page-visibility (below) and
     // cancels on spine rebuild (the WR-01 leak-cancel — a reconnect MUST tear down the old loops or they
     // leak + keep streaming after the session swapped). Process-scoped client/prefs survive reconnects.
+    // Phase 21: the H.264 rung's SurfaceView bridge — re-keyed WITH the holder so a printer/config swap
+    // gets a fresh provider (the old one is abandoned with the old holder; the host re-registers on
+    // recompose). The Media3SurfaceHost (rendered for H.264 cams in WebcamScreen) registers its SurfaceView
+    // here; the composite feed (built into the holder below) awaits it before attaching the player.
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val webcamSurfaceProvider = remember(store, activeCfg.host, activeProfileId, viewWidthPx, viewHeightPx) {
+        Media3SurfaceProvider()
+    }
     val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId, viewWidthPx, viewHeightPx) {
-        webcamBitmapHolder(
+        webcamMedia3Holder(
             scope = scope,
             webcams = webcams,
             webcamPrefs = container.webcamPrefs,
@@ -245,6 +254,8 @@ fun AppShell(
             sharedClient = container.webcamHttpClient,
             viewWidthPx = viewWidthPx,
             viewHeightPx = viewHeightPx,
+            context = appContext,
+            surfaceProvider = webcamSurfaceProvider,
         )
     }
     // WR-01 leak-cancel: when `remember(...)` swaps the holder on a spine rebuild (reconnect) or a config
@@ -733,6 +744,7 @@ fun AppShell(
             }
             Dest.Webcam -> WebcamScreen(
                 holder = webcamHolder,
+                surfaceProvider = webcamSurfaceProvider,
                 onBack = { goBack() },
             )
             Dest.Spool -> SpoolScreen(

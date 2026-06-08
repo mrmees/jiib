@@ -29,9 +29,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.render.Media3SurfaceHost
+import works.mees.dinghy.render.Media3SurfaceProvider
 import works.mees.dinghy.render.WebcamView
 import works.mees.dinghy.render.WebcamViewHost
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.state.selectsH264Rung
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -65,12 +68,21 @@ import works.mees.dinghy.theme.fsSp
  * and stops it on dispose (nav away) — NO wasted decode/bandwidth off-page. The shell (plan 10-07) adds
  * the spine-rebuild `cancel()` (WR-01) on top of this.
  *
+ * ## H.264 rung (Phase 21)
+ * For an H.264-SELECTED cam ([selectsH264Rung]) whose native stream is playing live (no Bitmap frame), the
+ * Focus hosts [Media3SurfaceHost] (a raw SurfaceView + the required controls drawn as a sibling overlay
+ * ABOVE it — the SurfaceView punches through, so the chrome cannot be on the surface; the spike decision).
+ * The instant the composite feed falls through to MJPEG/Snapshot (a Bitmap frame arrives) the Focus
+ * switches to the existing [WebcamViewHost] Bitmap path — the same `DisposableEffect` lifecycle holds.
+ *
  * @param holder the Bitmap-bound orchestration holder (selected cam + frame + mode + cam list).
+ * @param surfaceProvider the H.264 SurfaceView bridge shared with the composite feed (Phase 21).
  * @param onBack invoked by the neutral Back gutter tile (D-10).
  */
 @Composable
 fun WebcamScreen(
     holder: WebcamHolder<Bitmap>,
+    surfaceProvider: Media3SurfaceProvider,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -99,6 +111,7 @@ fun WebcamScreen(
                 FeedFocus(
                     vm = vm,
                     tokens = t,
+                    surfaceProvider = surfaceProvider,
                     // Full-focus (no Field) + multiple cams → tap the feed to cycle (camera_feed note).
                     onCycle = if (!showField && vm.multiCam) holder::cycleCam else null,
                     modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -138,27 +151,45 @@ fun WebcamScreen(
 private fun FeedFocus(
     vm: WebcamVm<Bitmap>,
     tokens: ThemeTokens,
+    surfaceProvider: Media3SurfaceProvider,
     onCycle: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val cam = vm.selected
+    // The cycle overlay shows in full-focus (no Field) with multiple cams — i.e. when tap-to-cycle is wired.
+    // With a Field the picker IS the cam chooser, so the in-feed overlay is suppressed.
+    val showCycleOverlay = onCycle != null
     var box = modifier
     if (onCycle != null) box = box.clickable(onClick = onCycle) // tap the feed cycles cams (camera_feed)
     Box(box) {
-        WebcamViewHost(
-            tokens = tokens,
-            frame = vm.frame,
-            mode = vm.mode,
-            camName = vm.camName,
-            serviceName = vm.serviceName,
-            // The cycle overlay shows in full-focus (no Field) with multiple cams — i.e. when tap-to-cycle
-            // is wired. With a Field the picker IS the cam chooser, so the in-feed overlay is suppressed.
-            multiCam = onCycle != null,
-            flipHorizontal = cam?.flipHorizontal ?: false,
-            flipVertical = cam?.flipVertical ?: false,
-            rotation = cam?.safeRotation ?: 0,
-            modifier = Modifier.fillMaxSize(),
-        )
+        // H.264 rung (Phase 21): an H.264-selected cam playing LIVE (no Bitmap frame yet/at all) renders on
+        // the SurfaceView via Media3SurfaceHost. The MOMENT the composite feed falls through to MJPEG/Snapshot
+        // a Bitmap frame arrives → switch to the WebcamViewHost Bitmap path (which draws frame + chrome).
+        val isLiveH264 = selectsH264Rung(cam ?: Webcam()) && vm.frame == null
+        if (isLiveH264) {
+            Media3SurfaceHost(
+                surfaceProvider = surfaceProvider,
+                tokens = tokens,
+                mode = vm.mode,
+                camName = vm.camName,
+                serviceName = vm.serviceName,
+                multiCam = showCycleOverlay,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            WebcamViewHost(
+                tokens = tokens,
+                frame = vm.frame,
+                mode = vm.mode,
+                camName = vm.camName,
+                serviceName = vm.serviceName,
+                multiCam = showCycleOverlay,
+                flipHorizontal = cam?.flipHorizontal ?: false,
+                flipVertical = cam?.flipVertical ?: false,
+                rotation = cam?.safeRotation ?: 0,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 

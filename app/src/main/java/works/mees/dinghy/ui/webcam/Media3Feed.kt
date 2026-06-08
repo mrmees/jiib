@@ -21,6 +21,7 @@ import works.mees.dinghy.net.surfaceWebcamUrl
 import works.mees.dinghy.render.Media3SurfaceProvider
 import works.mees.dinghy.state.NativeTransport
 import works.mees.dinghy.state.ResolvedWebcam
+import works.mees.dinghy.state.selectsH264Rung
 import works.mees.dinghy.net.nativeStreamUrlFor
 
 /**
@@ -135,6 +136,13 @@ fun <T> compositeMedia3Feed(
     h264Attempt: H264Attempt,
     lowerRung: WebcamFeed<T>,
 ): WebcamFeed<T> = WebcamFeed { cam, onFrame ->
+    // Route per cam (D-09/D-10): only an H.264-SELECTED cam (the service/scheme HINT — [selectsH264Rung])
+    // takes the native attempt; everything else goes straight to the existing MJPEG/Snapshot probe path.
+    // A bad/hostile service can only mis-SELECT (then the decoder verifies + falls through), never force a
+    // fatal mis-decode (T-21-04-01).
+    if (!selectsH264Rung(cam.webcam)) {
+        return@WebcamFeed lowerRung.run(cam, onFrame)
+    }
     when (h264Attempt.attempt(cam)) {
         H264AttemptResult.Transient -> FeedOutcome.Transient
         H264AttemptResult.Cancelled -> FeedOutcome.Cancelled
@@ -235,6 +243,46 @@ fun media3CompositeBitmapFeed(
 ): WebcamFeed<Bitmap> = compositeMedia3Feed(
     h264Attempt = realH264Attempt(context, cfg, transport, surfaceProvider),
     lowerRung = bitmapFeed(cfg, sharedClient, viewWidthPx, viewHeightPx),
+)
+
+/**
+ * Build the PRODUCTION webcam holder with the H.264-first composite feed (`T = Bitmap`) — the Phase-21
+ * analog of [webcamBitmapHolder]. An H.264-SELECTED cam ([selectsH264Rung]) is played via Media3 over the
+ * recorded LEAD transport (RTSP) on the host SurfaceView, falling through to MJPEG/Snapshot on a decoder
+ * failure; every other cam goes straight to the existing [bitmapFeed] probe path. The reconnect machine
+ * ([WebcamHolder.drive]/[WebcamHolder.cancel]/[FeedOutcome]) is REUSED VERBATIM — only the feed changes.
+ *
+ * The IO [WebcamHolder.driverContext] is kept for orchestration; only the player ops marshal to the main
+ * thread (inside [realH264Attempt], the flagged divergence). The [surfaceProvider] is shared with the
+ * [works.mees.dinghy.render.Media3SurfaceHost] the screen renders for H.264 cams.
+ */
+fun webcamMedia3Holder(
+    scope: kotlinx.coroutines.CoroutineScope,
+    webcams: kotlinx.coroutines.flow.StateFlow<List<works.mees.dinghy.state.Webcam>>,
+    webcamPrefs: WebcamPrefs,
+    cfg: ConnectionConfig,
+    profileId: String,
+    sharedClient: okhttp3.OkHttpClient,
+    viewWidthPx: Int,
+    viewHeightPx: Int,
+    context: Context,
+    surfaceProvider: Media3SurfaceProvider,
+): WebcamHolder<Bitmap> = WebcamHolder(
+    scope = scope,
+    webcams = webcams,
+    webcamPrefs = webcamPrefs,
+    profileId = profileId,
+    feed = media3CompositeBitmapFeed(
+        context = context,
+        cfg = cfg,
+        sharedClient = sharedClient,
+        viewWidthPx = viewWidthPx,
+        viewHeightPx = viewHeightPx,
+        surfaceProvider = surfaceProvider,
+    ),
+    // The blocking probe/decode/poll runs off the main thread (the holder is built on a main-thread Compose
+    // scope); ONLY the ExoPlayer ops marshal back to Main inside realH264Attempt (the flagged divergence).
+    driverContext = Dispatchers.IO,
 )
 
 /** Ensure WebcamClients stays referenced for the lower-rung client split (documents the shared stack). */

@@ -25,6 +25,7 @@ import works.mees.dinghy.render.WebcamView
 import works.mees.dinghy.state.ResolvedWebcam
 import works.mees.dinghy.state.Rung
 import works.mees.dinghy.state.Webcam
+import works.mees.dinghy.state.selectsH264Rung
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -251,10 +252,14 @@ class WebcamHolder<T>(
         val preferred = preferredId?.let { id -> cams.firstOrNull { camIdOf(it) == id } }
         val cam = explicit ?: preferred ?: cams.first()
 
-        // The feed resolves the rung itself (probe); the holder hands it the cam + resolved URLs. The
-        // rung here is a provisional Snapshot-vs-Live hint (refined by the feed's probe); URLs are the
-        // load-bearing part (D-09). Resolution needs the ConnectionConfig — supplied to the feed.
-        return ResolvedWebcam(webcam = cam, rung = Rung.Mjpeg)
+        // The feed resolves the rung itself (probe); the holder hands it the cam + a PROVISIONAL rung hint.
+        // For a cam whose service/scheme HINT [selectsH264Rung] (webrtc-mediamtx / rtsp:// stream_url, D-09)
+        // the provisional rung is [Rung.H264] — the composite Media3 feed ATTEMPTS H.264 first and, on a
+        // decoder failure, falls through to MJPEG/Snapshot IN-FEED (the decoder VERIFIES, D-10). For every
+        // other cam it stays [Rung.Mjpeg] (the existing Content-Type probe authority decides Mjpeg/Snapshot).
+        // The rung here is only a hint (refined by the feed); the resolved URLs are the load-bearing part.
+        val provisionalRung = if (selectsH264Rung(cam)) Rung.H264 else Rung.Mjpeg
+        return ResolvedWebcam(webcam = cam, rung = provisionalRung)
     }
 
     private companion object {
