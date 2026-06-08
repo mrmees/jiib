@@ -653,9 +653,9 @@ private fun PrintStatusFocus(
                     modifier = Modifier.fillMaxSize(),
                 )
                 // Preview slot: ~90% of the ring, circle-clipped (corners drop — preview isn't edge-to-edge).
-                // Idle → the Benchy no-job image (theme-accent tinted). Printing → the gcode thumbnail
+                // Idle → the jiib brand mark (theme-accent tinted). Printing → the gcode thumbnail
                 // (Coil 3) when a metadata thumbnail URL is available, else the center stays EMPTY (the
-                // ring + % still read — never show Benchy while printing).
+                // ring + % still read — never show the brand mark while printing).
                 val thumbRel = metadata?.largestThumbRelPath
                 val filename = state.printFilename
                 Box(
@@ -664,10 +664,10 @@ private fun PrintStatusFocus(
                 ) {
                     if (!printing) {
                         Icon(
-                            painter = painterResource(R.drawable.benchy),
+                            painter = painterResource(R.drawable.jiib_icon),
                             contentDescription = null,
                             tint = t.accent2,
-                            modifier = Modifier.fillMaxWidth().aspectRatio(1600f / 900f),
+                            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                         )
                     } else if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
                         // D-05/D-02 preview branch: a Coil AsyncImage never loads under @Preview
@@ -1022,12 +1022,12 @@ private fun StandbyFocus(
     val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
     Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-        // App-icon base (faint backdrop): the Benchy brand image (default; per-printer user-brandable per
-        // the staging note). ContentScale.Crop FILLS the focus region in BOTH orientations — Icon's hard
-        // Fit left big margins on the tall landscape half-focus (2026-06-06 UAT); Crop scales the 16:9 art
-        // to cover and trims the decorative margins. Themed via accent2 tint, faint under the glance list.
+        // App-icon base (faint backdrop): the jiib brand mark. ContentScale.Crop FILLS the focus region
+        // in BOTH orientations — Icon's hard Fit left big margins on the tall landscape half-focus
+        // (2026-06-06 UAT); Crop scales the art to cover and trims the decorative margins. Themed via
+        // accent2 tint, faint under the glance list.
         Image(
-            painter = painterResource(R.drawable.benchy),
+            painter = painterResource(R.drawable.jiib_icon),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             colorFilter = ColorFilter.tint(t.accent2),
