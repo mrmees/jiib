@@ -1,24 +1,31 @@
 <!-- jiib brand mark — full-bleed, tintable single-fill VectorDrawable for in-app use
      (Print Status home surface). Geometry reused VERBATIM from ic_jiib_foreground.xml
      (which converted img/jiib_icon.svg: 3 sail paths + 3 two-arc circle paths during the
-     18.2 rebrand). The launcher safe-zone <group> scale/translate inset is DROPPED so the
-     mark draws at native coordinates and fills the viewport. Native span ~x:66.5–471,
-     y:20.1–382.4 → square 480x480 viewport keeps the mark's 1:1 aspect full-bleed.
+     18.2 rebrand). The launcher safe-zone <group> inset is DROPPED.
+
+     CENTERING (option 1): native ink bbox is x:66.5–471 (404.5 wide) × y:20.2–382.4 (362.2 tall)
+     — off-center in the old 480 box. Viewport is now a SQUARE 405x405 (= the wider ink axis) so
+     the mark is edge-to-edge horizontally and renders 1:1 in the square ring-center call-site
+     (aspectRatio(1f)) with NO stretch; the <group> translate (-66.5, +1.0) recenters the verbatim
+     paths (x → 0..404.5, y centered with ~21px top/bottom margin). Paths kept verbatim so no
+     bezier coords are hand-edited.
      All six paths use a single solid white fill so a Compose Icon tint / ColorFilter.tint
      recolors the whole mark at the call-site (same pattern as benchy.xml). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="480dp" android:height="480dp"
-    android:viewportWidth="480" android:viewportHeight="480">
-    <path android:pathData="M 149.596 323.065 C 201.351 291.839 247.606 254.104 290.477 212.107 C 330.272 173.127 366.569 131.087 399.479 86.16 C 415.452 64.357 430.933 42.193 446.66 20.157 C 443.747 29.631 440.942 39.267 437.834 48.806 C 417.645 110.839 390.544 169.719 355.484 224.716 C 341.858 246.085 326.232 266.182 311.301 286.701 C 309.947 288.567 307.135 290.041 304.798 290.418 C 274.317 295.344 244.753 303.764 215.704 313.957 C 177.036 327.526 138.544 341.587 99.968 355.443 C 90.044 359.008 80.128 362.611 70.193 366.146 C 69.049 366.553 67.797 366.629 66.5 366.578 C 95.024 353.806 122.623 339.362 149.596 323.065 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M 440.629 154.992 C 450.809 140.285 460.82 125.827 470.923 111.235 C 465.554 134.446 458.923 157.176 450.876 179.506 C 438.53 213.751 423.667 246.768 404.24 277.655 C 402.071 281.106 400.021 282.19 395.872 281.794 C 373.658 279.679 351.647 281.978 329.764 285.826 C 328.528 286.043 327.292 286.274 324.818 286.725 C 367.874 245.86 406.475 202.569 440.629 154.992 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M 371.253 303.558 C 398.099 301.333 424.497 301.023 450.09 305.402 C 432.05 314.679 413.725 324.111 394.965 333.761 C 387.529 327.875 377.723 327.375 368.001 326.939 C 346.904 325.997 326.021 328.452 305.203 331.469 C 243.915 340.357 183.947 355.323 124.192 371.25 C 110.734 374.839 97.319 378.595 83.869 382.236 C 82.413 382.63 80.89 382.776 79.221 382.375 C 88.665 378.742 98.073 374.999 107.566 371.492 C 157.118 353.18 207.253 336.689 258.55 323.92 C 295.541 314.716 332.855 307.233 371.253 303.558 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M 245.674 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M 300.036 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M 353.551 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
-        android:fillColor="#FFFFFFFF" />
+    android:width="405dp" android:height="405dp"
+    android:viewportWidth="405" android:viewportHeight="405">
+    <group android:translateX="-66.5" android:translateY="1.0">
+        <path android:pathData="M 149.596 323.065 C 201.351 291.839 247.606 254.104 290.477 212.107 C 330.272 173.127 366.569 131.087 399.479 86.16 C 415.452 64.357 430.933 42.193 446.66 20.157 C 443.747 29.631 440.942 39.267 437.834 48.806 C 417.645 110.839 390.544 169.719 355.484 224.716 C 341.858 246.085 326.232 266.182 311.301 286.701 C 309.947 288.567 307.135 290.041 304.798 290.418 C 274.317 295.344 244.753 303.764 215.704 313.957 C 177.036 327.526 138.544 341.587 99.968 355.443 C 90.044 359.008 80.128 362.611 70.193 366.146 C 69.049 366.553 67.797 366.629 66.5 366.578 C 95.024 353.806 122.623 339.362 149.596 323.065 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 440.629 154.992 C 450.809 140.285 460.82 125.827 470.923 111.235 C 465.554 134.446 458.923 157.176 450.876 179.506 C 438.53 213.751 423.667 246.768 404.24 277.655 C 402.071 281.106 400.021 282.19 395.872 281.794 C 373.658 279.679 351.647 281.978 329.764 285.826 C 328.528 286.043 327.292 286.274 324.818 286.725 C 367.874 245.86 406.475 202.569 440.629 154.992 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 371.253 303.558 C 398.099 301.333 424.497 301.023 450.09 305.402 C 432.05 314.679 413.725 324.111 394.965 333.761 C 387.529 327.875 377.723 327.375 368.001 326.939 C 346.904 325.997 326.021 328.452 305.203 331.469 C 243.915 340.357 183.947 355.323 124.192 371.25 C 110.734 374.839 97.319 378.595 83.869 382.236 C 82.413 382.63 80.89 382.776 79.221 382.375 C 88.665 378.742 98.073 374.999 107.566 371.492 C 157.118 353.18 207.253 336.689 258.55 323.92 C 295.541 314.716 332.855 307.233 371.253 303.558 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 245.674 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 300.036 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
+            android:fillColor="#FFFFFFFF" />
+        <path android:pathData="M 353.551 361.2 a 13.72 13.72 0 1 0 27.44 0 a 13.72 13.72 0 1 0 -27.44 0 Z"
+            android:fillColor="#FFFFFFFF" />
+    </group>
 </vector>
