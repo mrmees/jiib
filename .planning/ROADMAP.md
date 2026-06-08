@@ -984,7 +984,7 @@ Plans:
 
 **Wave 0**
 
-- [ ] 20-01-PLAN.md — Fixtures (5 live captures, both SBCs/planes) + 5 RED scaffolds + SYS-* requirements + verify_ligatures gate (SYS-01..04)
+- [x] 20-01-PLAN.md — Fixtures (5 live captures, both SBCs/planes) + 5 RED scaffolds + SYS-* requirements + verify_ligatures gate (SYS-01..04)
 
 **Wave 1** *(blocked on Wave 0)*
 
@@ -1085,7 +1085,7 @@ notes.
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
-| 20. System Information Page | 0/TBD | Not started | - |
+| 20. System Information Page | 1/4 | In Progress|  |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
