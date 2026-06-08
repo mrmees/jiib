@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.RetractionArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
@@ -82,6 +83,20 @@ fun FwRetractionScreen(
         dispatcher?.dispatch(command, args)
     }
 
+    // 17-07 (WARN 4, BUILD-BLIND): clamp the markPending target per tuner against the EXISTING
+    // PrinterCommands.*_MIN/*_MAX consts (the setRetraction builder re-clamps the full set identically),
+    // so an at-cap '+' (e.g. retract length at RETRACT_LEN_MAX, tap '+') feeds markPending the same value
+    // the wire sends — the skip-arm guard then treats it as the no-op it is, instead of wedging the lock.
+    fun clampRetractionTarget(tuner: FineTuneTuner, value: Double): Double = when (tuner) {
+        FineTuneTuner.RETRACT_LENGTH ->
+            value.coerceIn(PrinterCommands.RETRACT_LEN_MIN, PrinterCommands.RETRACT_LEN_MAX)
+        FineTuneTuner.UNRETRACT_EXTRA_LENGTH ->
+            value.coerceIn(PrinterCommands.UNRETRACT_EXTRA_MIN, PrinterCommands.UNRETRACT_EXTRA_MAX)
+        FineTuneTuner.RETRACT_SPEED, FineTuneTuner.UNRETRACT_SPEED ->
+            value.coerceIn(PrinterCommands.RETRACT_SPEED_MIN.toDouble(), PrinterCommands.RETRACT_SPEED_MAX.toDouble())
+        else -> value
+    }
+
     // Re-send all four fields, overriding ONE; the others hold their live values (0 fallback if unread).
     fun send(
         tuner: FineTuneTuner,
@@ -91,7 +106,7 @@ fun FwRetractionScreen(
         retractSpeed: Double = vm.retractSpeed ?: 0.0,
         unretractSpeed: Double = vm.unretractSpeed ?: 0.0,
     ) {
-        holder.markPending(tuner, target)
+        holder.markPending(tuner, clampRetractionTarget(tuner, target))
         dispatchCommand(
             CommandRegistry.setRetraction,
             RetractionArgs(

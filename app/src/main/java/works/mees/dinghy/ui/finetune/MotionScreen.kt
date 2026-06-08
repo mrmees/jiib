@@ -22,6 +22,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.SpeedFactorArgs
 import works.mees.dinghy.command.VelocityLimitArgs
 import works.mees.dinghy.command.dispatch
@@ -163,17 +164,17 @@ private fun MotionContent(
                             onDecrement = {
                                 val cur = vm.speedPct ?: return@FineTuneTile
                                 val target = cur - SPEED_STEP
-                                markPending(FineTuneTuner.SPEED, target.toDouble())
+                                markPending(FineTuneTuner.SPEED, PrinterCommands.clampSpeedPct(target).toDouble())
                                 dispatchSpeed(SpeedFactorArgs(target))
                             },
                             onIncrement = {
                                 val cur = vm.speedPct ?: return@FineTuneTile
                                 val target = cur + SPEED_STEP
-                                markPending(FineTuneTuner.SPEED, target.toDouble())
+                                markPending(FineTuneTuner.SPEED, PrinterCommands.clampSpeedPct(target).toDouble())
                                 dispatchSpeed(SpeedFactorArgs(target))
                             },
                             onReset = {
-                                markPending(FineTuneTuner.SPEED, 100.0)
+                                markPending(FineTuneTuner.SPEED, PrinterCommands.clampSpeedPct(100).toDouble())
                                 dispatchSpeed(SpeedFactorArgs(100))
                             },
                             enabled = enabled,

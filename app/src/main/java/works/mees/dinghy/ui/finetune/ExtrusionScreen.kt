@@ -26,6 +26,7 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.FanArgs
 import works.mees.dinghy.command.FlowFactorArgs
 import works.mees.dinghy.command.PressureAdvanceArgs
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -170,17 +171,17 @@ private fun ExtrusionContent(
                             onDecrement = {
                                 val cur = vm.flowPct ?: return@FineTuneTile
                                 val target = cur - FLOW_STEP
-                                markPending(FineTuneTuner.FLOW, target.toDouble())
+                                markPending(FineTuneTuner.FLOW, PrinterCommands.clampFlowPct(target).toDouble())
                                 dispatchFlow(FlowFactorArgs(target))
                             },
                             onIncrement = {
                                 val cur = vm.flowPct ?: return@FineTuneTile
                                 val target = cur + FLOW_STEP
-                                markPending(FineTuneTuner.FLOW, target.toDouble())
+                                markPending(FineTuneTuner.FLOW, PrinterCommands.clampFlowPct(target).toDouble())
                                 dispatchFlow(FlowFactorArgs(target))
                             },
                             onReset = {
-                                markPending(FineTuneTuner.FLOW, 100.0)
+                                markPending(FineTuneTuner.FLOW, PrinterCommands.clampFlowPct(100).toDouble())
                                 dispatchFlow(FlowFactorArgs(100))
                             },
                             enabled = enabled,
@@ -201,7 +202,7 @@ private fun ExtrusionContent(
                             onDecrement = {
                                 val cur = vm.pressureAdvance ?: return@FineTuneTile
                                 val target = (cur - PA_STEP).coerceAtLeast(0.0)
-                                markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
+                                markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(target))
                                 dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, target),
                                 )
@@ -209,14 +210,14 @@ private fun ExtrusionContent(
                             onIncrement = {
                                 val cur = vm.pressureAdvance ?: return@FineTuneTile
                                 val target = cur + PA_STEP
-                                markPending(FineTuneTuner.PRESSURE_ADVANCE, target)
+                                markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(target))
                                 dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, target),
                                 )
                             },
                             onReset = vm.baselines.pressureAdvance?.let { base ->
                                 {
-                                    markPending(FineTuneTuner.PRESSURE_ADVANCE, base)
+                                    markPending(FineTuneTuner.PRESSURE_ADVANCE, PrinterCommands.clampPressureAdvance(base))
                                     dispatchPressureAdvance(
                                         PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, base),
                                     )
@@ -238,7 +239,7 @@ private fun ExtrusionContent(
                             onDecrement = {
                                 val cur = vm.smoothTime ?: return@FineTuneTile
                                 val target = (cur - SMOOTH_STEP).coerceAtLeast(0.0)
-                                markPending(FineTuneTuner.SMOOTH_TIME, target)
+                                markPending(FineTuneTuner.SMOOTH_TIME, PrinterCommands.clampSmoothTime(target))
                                 dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, target),
                                 )
@@ -246,14 +247,14 @@ private fun ExtrusionContent(
                             onIncrement = {
                                 val cur = vm.smoothTime ?: return@FineTuneTile
                                 val target = cur + SMOOTH_STEP
-                                markPending(FineTuneTuner.SMOOTH_TIME, target)
+                                markPending(FineTuneTuner.SMOOTH_TIME, PrinterCommands.clampSmoothTime(target))
                                 dispatchPressureAdvance(
                                     PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, target),
                                 )
                             },
                             onReset = vm.baselines.smoothTime?.let { base ->
                                 {
-                                    markPending(FineTuneTuner.SMOOTH_TIME, base)
+                                    markPending(FineTuneTuner.SMOOTH_TIME, PrinterCommands.clampSmoothTime(base))
                                     dispatchPressureAdvance(
                                         PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, base),
                                     )

@@ -2,6 +2,7 @@ package works.mees.dinghy.ui.finetune
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.VelocityLimitArgs
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 
@@ -36,6 +37,19 @@ internal fun fmtValue(v: Double?, decimals: Int): String {
 }
 
 /**
+ * Map a [VelocityLimitArgs] field const to the matching [PrinterCommands] clamp (17-07) so the
+ * markPending target equals the value the wire will actually send. MIN_CRUISE_RATIO passes through
+ * unchanged (this tile is never used for it — Min-cruise has its own percent-display path), per
+ * completeness.
+ */
+private fun clampVelocityLimitTarget(field: String, value: Double): Double = when (field) {
+    VelocityLimitArgs.VELOCITY -> PrinterCommands.clampVelocity(value)
+    VelocityLimitArgs.ACCEL -> PrinterCommands.clampAccel(value)
+    VelocityLimitArgs.SCV -> PrinterCommands.clampScv(value)
+    else -> value
+}
+
+/**
  * A motion-limit value tile bound to ONE [VelocityLimitArgs] field (Max velocity / Max accel / SCV —
  * Min-cruise has its own percent-display path). Computes the target from the live [value] + [step],
  * marks the pendingStateFlip via [markPending] (D-15), then dispatches via [dispatch]. [baseline]-driven
@@ -60,7 +74,10 @@ internal fun VelocityLimitTile(
     modifier: Modifier = Modifier,
 ) {
     fun nudge(target: Double) {
-        markPending(tuner, target)
+        // 17-07: feed markPending the SAME clamp the wire builder applies, so an at-cap '+' is a true
+        // no-op (skip-arm fires) instead of arming an unreachable flip. The dispatch arg is unchanged
+        // (the setVelocityLimit builder re-clamps identically).
+        markPending(tuner, clampVelocityLimitTarget(field, target))
         dispatch(VelocityLimitArgs(field, target))
     }
     FineTuneTile(
