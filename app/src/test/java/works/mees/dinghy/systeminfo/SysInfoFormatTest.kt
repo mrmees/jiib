@@ -1,42 +1,57 @@
-// RED scaffold (Phase 20 Wave 0 / Plan 20-01) — turns GREEN in Plan 02 (the pure formatter fns).
+// GREEN (Plan 20-02) — live assertions for the kB->GB / kB->MB / compact-uptime formatters.
 package works.mees.dinghy.systeminfo
 
-import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Wave-0 RED scaffold (20-01) — turned GREEN by Plan 02 (the pure formatter fns).
- *
  * SYS-03 formatting contract (LOCKED by the staging doc / RESEARCH Field-Mapping Table). Every
  * memory field across both endpoints is in kB (memory_units == "kB").
  *
  *   - kB -> GB : ÷ 1024² , e.g. 8007452 kB -> "7.6 GB" (total RAM row locks GB).
- *   - kB -> MB : ÷ 1024  , for the live "used / total" auto-scaled memory row (staging "612 MB / 3.8 GB").
- *   - uptime : compact "2d 3h 14m", DROPPING leading-zero units. Under a day -> "3h 14m"
- *              (no "0d"); under an hour -> "14m". Source = proc_stats.system_uptime (HOST uptime).
- *   - cpu load : integer %, e.g. 29.31 -> "29%".  cpu temp : whole °C, e.g. 64.757 -> "65°C".
- *   - cores : integer.
- *
- * Production symbols referenced (NOT YET BUILT → RED): the kB->GB / kB->MB / uptime-compact
- * formatter fns in `works.mees.dinghy.systeminfo` — Plan 02 introduces them.
+ *   - kB -> MB : ÷ 1024  , for the live "used / total" auto-scaled memory row.
+ *   - uptime : compact "2d 3h 14m", DROPPING leading-zero units. Under a day -> "3h 14m"; under an
+ *              hour -> "14m".
+ *   - cpu load : integer % ; cpu temp : whole °C ; cores : integer.
+ *   - every formatter returns "—" on null (SYS-04 degrade).
  */
 class SysInfoFormatTest {
 
     @Test
     fun kbToGb() {
-        // 8007452 kB -> "7.6 GB" ; 3945568 kB -> "3.8 GB".
-        assumeTrue("Plan 02 implements the kB->GB formatter in works.mees.dinghy.systeminfo", false)
+        assertEquals("7.6 GB", formatGb(8007452L))
+        assertEquals("3.8 GB", formatGb(3945568L))
     }
 
     @Test
     fun kbToMb() {
-        // used/available live row auto-scaled, kB -> MB (÷1024), e.g. "612 MB / 3.8 GB".
-        assumeTrue("Plan 02 implements the kB->MB formatter in works.mees.dinghy.systeminfo", false)
+        // used/total auto-scaled: used < 1 GB renders MB, total renders GB.
+        // 761312 kB / 1024 = 743.47 -> 743 MB (the staging "744 MB" was illustrative).
+        assertEquals("743 MB / 7.6 GB", formatMemoryUsedOverTotal(761312L, 8007452L))
+        assertEquals("1.1 GB / 3.8 GB", formatMemoryUsedOverTotal(1131288L, 3945568L))
     }
 
     @Test
     fun uptimeCompactDropsLeadingZeroUnits() {
-        // "2d 3h 14m" when days>0 ; under a day -> "3h 14m" (no leading "0d 00h").
-        assumeTrue("Plan 02 implements the compact-uptime formatter in works.mees.dinghy.systeminfo", false)
+        assertEquals("2d 3h 14m", formatUptime((2 * 86_400 + 3 * 3_600 + 14 * 60).toDouble()))
+        assertEquals("3h 14m", formatUptime((3 * 3_600 + 14 * 60).toDouble()))
+        assertEquals("14m", formatUptime((14 * 60).toDouble()))
+    }
+
+    @Test
+    fun cpuLoadAndTempAndCores() {
+        assertEquals("29%", formatCpuLoad(29.31f))
+        assertEquals("65°C", formatTemp(64.757f))
+        assertEquals("4", formatCores(4))
+    }
+
+    @Test
+    fun nullInputRendersDash() {
+        assertEquals("—", formatGb(null))
+        assertEquals("—", formatMemoryUsedOverTotal(null, 8007452L))
+        assertEquals("—", formatUptime(null))
+        assertEquals("—", formatCpuLoad(null))
+        assertEquals("—", formatTemp(null))
+        assertEquals("—", formatCores(null))
     }
 }
