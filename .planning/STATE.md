@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-last_updated: "2026-06-08T01:31:53.445Z"
+last_updated: "2026-06-08T01:40:14.583Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
   completed_phases: 21
   total_plans: 150
-  completed_plans: 148
+  completed_plans: 149
   percent: 75
 ---
 
@@ -415,6 +415,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 18.3-02: band geometry pinned to spool.xml fractions (left .34/right .66/top .18/bottom .82); explicit Brush.linearGradient start/end bound to the band rect (Pitfall 4); static brush in DrawScope, no remember-cache
 - [Phase ?]: 18.3-02: swatch-count branch factored into a pure sealed BandRender + bandRenderFor() (0->Empty/1->Solid/2+->Gradient first-two only, D-09) so it is host-tested without a Compose harness
 - [Phase 17/17-08]: ShellNavState.navigateTo() runs the per-dest ENTRY-RESET (extracted to applyEntryReset(target)) on a same-dest re-selection BEFORE the no-push early-return — re-entering Fine-Tune/Calibration/Macros from its own drawer tile always lands on its entry surface (Hub/hub/launcher), never a stale sub-page (UAT Check 8 / REVIEW #6); same-dest re-selection still pushes NO backStack entry. DEFERRED (test-only, not a blocker): FineTuneNavTest swipeUp() spreads ~800px over ~12 events so no per-event dragAmount clears SWIPE_UP_THRESHOLD_PX=80f → drawer never opens in-test; pre-existing harness defect, manual flox eyeball was the authoritative on-device gate (owner-approved).
+- [Phase 17]: Phase 17 UAT RESOLVED 8/8 (2026-06-07): initial on-device run 6 PASS/2 FAIL; both gaps fixed (Check 6 busy-lock wedge -> 17-07; Check 8 same-dest re-entry -> 17-08) and on-device re-verified on flox, owner-approved. 17-UAT.md status: resolved.
+- [Phase 17]: Plan 17-06 CLOSED (2026-06-07): SUMMARY written from git evidence (2c4cbc4 nav wiring, 8b06c7f UAT scaffold, 73296fd landscape label-drop fix). Phase-17 header/verification remains orchestrator-owned (NOT marked complete here).
 
 ### Pending Todos
 

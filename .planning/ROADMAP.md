@@ -782,7 +782,7 @@ Plans:
 
 **Wave 3** *(blocked on 17-05; on-device gate)*
 
-- [ ] 17-06-PLAN.md — Nav wiring (Dest.FineTune + AppShell hub→group sub-nav + drawer tile + Print-Status Tune entry) + instrumented nav test + on-device Motion/Extrusion state-flip + Adreno-320 perf UAT (autonomous:false; FW-retraction excluded — build-blind) (TUNE-01)
+- [x] 17-06-PLAN.md — Nav wiring (Dest.FineTune + AppShell hub→group sub-nav + drawer tile + Print-Status Tune entry) + instrumented nav test + on-device Motion/Extrusion state-flip + Adreno-320 perf UAT (autonomous:false; FW-retraction excluded — build-blind) (TUNE-01)
 
 **Wave 4** *(gap-closure from 17-UAT.md — parallel, disjoint files)*
 
@@ -1037,7 +1037,7 @@ notes.
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
-| 17. Fine-Tune / Live-Adjust Panel | 7/8 | In Progress|  |
+| 17. Fine-Tune / Live-Adjust Panel | 8/8 | In Progress|  |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
