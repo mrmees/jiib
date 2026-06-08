@@ -110,6 +110,29 @@ data class RetractionArgs(
     val unretractSpeed: Int,
 )
 
+// --- Phase-19 generic-output args (SC-2/SC-3) -------------------------------------------------------
+// EVERY [name] is the BARE Klipper section name (HIGH-1) — the family prefix never reaches the wire.
+// The dispatchKey is scoped per-output (`set_output_<family>_<name>`) so two outputs never busy-collide.
+
+/** Generic-fan (`fan_generic`) nudge — [name] BARE, [pct] DISPLAYED percent; [PrinterCommands.setGenericFan] clamps. */
+data class SetGenericFanArgs(val name: String, val pct: Int)
+
+/** LED (`led`/`neopixel`/…) set — [name] BARE, channels 0f..1f; [w] non-null only on a white-channel LED. D-12 Off = all-zero. */
+data class SetLedArgs(val name: String, val r: Float, val g: Float, val b: Float, val w: Float? = null)
+
+/**
+ * Servo set/disable — [name] BARE. When [disable] is true the servo is turned off (`WIDTH=0`); otherwise
+ * it is set to [deg] clamped to 0..[maxDeg]. One args type folds both forms so the page's Off affordance
+ * dispatches the same spec.
+ */
+data class SetServoArgs(val name: String, val deg: Int = 0, val maxDeg: Int = PrinterCommands.SERVO_ANGLE_DEFAULT_MAX, val disable: Boolean = false)
+
+/**
+ * `output_pin`/`pwm_tool` set — [name] BARE. [pwm] selects the form: true → `setPinPwm(name, pct)`;
+ * false → `setPinDigital(name, on)`. One spec serves digital + PWM output_pin AND pwm_tool (no dedicated pwm-tool command).
+ */
+data class SetOutputPinArgs(val name: String, val pwm: Boolean, val pct: Int = 0, val on: Boolean = false)
+
 object CommandRegistry {
     private val jsonRpcSemantics = CommandSemantics(
         success = "JSON-RPC result acknowledges the request.",
@@ -675,6 +698,56 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("firmware_retraction"),
     )
 
+    // --- Phase-19 generic-output specs (SC-2/SC-3, HIGH-2 — dispatched through the catalog) --------
+    //
+    // Every output family is a typed CommandSpec delegating BYTE-IDENTICALLY to the Task-1 PrinterCommands
+    // builder (D-11 drift contract — the registry NEVER re-templates the string). args carry the BARE
+    // section name (HIGH-1). dispatchKey is scoped per-output so two outputs never busy-collide. Availability
+    // is `Always`: the runtime descriptor discovery (19-04) is the SOURCE OF TRUTH for what the UI offers —
+    // the registry spec does not re-derive object presence, so it does not duplicate the descriptor gate.
+    // heater_generic reuses the EXISTING [setHeater] spec (the descriptor mapping passes the bare name).
+
+    /** `SET_FAN_SPEED FAN=<name> SPEED=<0..1>` — a generic (`fan_generic`) fan. BARE name (HIGH-1). */
+    val setGenericFan: CommandSpec<SetGenericFanArgs> = gcode(
+        catalogId = "KGC-SET_FAN_SPEED-OUT",
+        key = { "set_output_fan_${it.name}" },
+        gcode = { args -> PrinterCommands.setGenericFan(args.name, args.pct) },
+        availability = AvailabilityPredicate.Always,
+    )
+
+    /** `SET_LED LED=<name> RED=.. GREEN=.. BLUE=.. [WHITE=..]` — an LED/neopixel. BARE name (HIGH-1); D-12 Off = all-zero. */
+    val setLed: CommandSpec<SetLedArgs> = gcode(
+        catalogId = "KGC-SET_LED",
+        key = { "set_output_led_${it.name}" },
+        gcode = { args -> PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w) },
+        availability = AvailabilityPredicate.Always,
+    )
+
+    /** `SET_SERVO SERVO=<name> ANGLE=<…>` / `WIDTH=0` (disable) — a servo. BARE name (HIGH-1). */
+    val setServo: CommandSpec<SetServoArgs> = gcode(
+        catalogId = "KGC-SET_SERVO-OUT",
+        key = { "set_output_servo_${it.name}" },
+        gcode = { args ->
+            if (args.disable) PrinterCommands.setServoDisable(args.name)
+            else PrinterCommands.setServoAngle(args.name, args.deg, args.maxDeg)
+        },
+        availability = AvailabilityPredicate.Always,
+    )
+
+    /**
+     * `SET_PIN PIN=<name> VALUE=<…>` — one spec serves digital + PWM `output_pin` AND `pwm_tool` (no
+     * dedicated pwm-tool command). Branches on [SetOutputPinArgs.pwm]. BARE name (HIGH-1).
+     */
+    val setOutputPin: CommandSpec<SetOutputPinArgs> = gcode(
+        catalogId = "KGC-SET_PIN-OUT",
+        key = { "set_output_pin_${it.name}" },
+        gcode = { args ->
+            if (args.pwm) PrinterCommands.setPinPwm(args.name, args.pct)
+            else PrinterCommands.setPinDigital(args.name, args.on)
+        },
+        availability = AvailabilityPredicate.Always,
+    )
+
     val all: List<CommandSpec<*>> = listOf(
         identify,
         oneshotToken,
@@ -736,6 +809,10 @@ object CommandRegistry {
         setPressureAdvance,
         setFan,
         setRetraction,
+        setGenericFan,
+        setLed,
+        setServo,
+        setOutputPin,
     )
 
     private fun objectsParam(objects: Set<String>): JsonElement = buildJsonObject {

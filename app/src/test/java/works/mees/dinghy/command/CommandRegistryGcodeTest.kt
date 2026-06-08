@@ -187,6 +187,83 @@ class CommandRegistryGcodeTest {
         )
     }
 
+    // --- Phase-19 generic-output specs (GREEN — implemented in 19-03) -----------------------------
+    //
+    // HIGH-2: every output family is dispatched through a registered CommandSpec (NOT a raw GCODE_SCRIPT
+    // string), each delegating BYTE-IDENTICALLY to its PrinterCommands builder (D-11 drift contract).
+
+    @Test
+    fun outputSpecs_inAll() {
+        assertTrue(CommandRegistry.setGenericFan in CommandRegistry.all)
+        assertTrue(CommandRegistry.setLed in CommandRegistry.all)
+        assertTrue(CommandRegistry.setServo in CommandRegistry.all)
+        assertTrue(CommandRegistry.setOutputPin in CommandRegistry.all)
+    }
+
+    @Test
+    fun setGenericFan_wrapsBuilderByteIdentically_andBareName() {
+        assertRegistryScript(
+            CommandRegistry.setGenericFan,
+            SetGenericFanArgs("FILTER_fan", 50),
+            PrinterCommands.setGenericFan("FILTER_fan", 50),
+        )
+        // HIGH-1 wire-guard: the produced script must NOT carry the family prefix.
+        val script = CommandRegistry.setGenericFan.params(SetGenericFanArgs("FILTER_fan", 50))!!
+            .jsonObject["script"]!!.jsonPrimitive.content
+        assertTrue("registry fan script leaked the family prefix", !script.contains("fan_generic"))
+    }
+
+    @Test
+    fun setLed_wrapsBuilderByteIdentically_colorAndOff() {
+        assertRegistryScript(
+            CommandRegistry.setLed,
+            SetLedArgs("chamber_light", 1f, 0.5f, 0f),
+            PrinterCommands.setLed("chamber_light", 1f, 0.5f, 0f),
+        )
+        // D-12 Off (all-zero incl. WHITE).
+        assertRegistryScript(
+            CommandRegistry.setLed,
+            SetLedArgs("chamber_light", 0f, 0f, 0f, 0f),
+            PrinterCommands.setLed("chamber_light", 0f, 0f, 0f, 0f),
+        )
+    }
+
+    @Test
+    fun setServo_wrapsBuilderByteIdentically_angleAndDisable() {
+        assertRegistryScript(
+            CommandRegistry.setServo,
+            SetServoArgs("camera_servo", deg = 90, maxDeg = 180),
+            PrinterCommands.setServoAngle("camera_servo", 90, 180),
+        )
+        assertRegistryScript(
+            CommandRegistry.setServo,
+            SetServoArgs("camera_servo", disable = true),
+            PrinterCommands.setServoDisable("camera_servo"),
+        )
+    }
+
+    @Test
+    fun setOutputPin_wrapsBuilderByteIdentically_pwmAndDigital() {
+        assertRegistryScript(
+            CommandRegistry.setOutputPin,
+            SetOutputPinArgs("mosfet2", pwm = true, pct = 50),
+            PrinterCommands.setPinPwm("mosfet2", 50),
+        )
+        assertRegistryScript(
+            CommandRegistry.setOutputPin,
+            SetOutputPinArgs("mosfet2", pwm = false, on = true),
+            PrinterCommands.setPinDigital("mosfet2", true),
+        )
+    }
+
+    @Test
+    fun outputSpecs_useDistinctPerOutputDispatchKeys() {
+        assertEquals("set_output_fan_FILTER_fan", CommandRegistry.setGenericFan.dispatchKey(SetGenericFanArgs("FILTER_fan", 50)))
+        assertEquals("set_output_led_chamber_light", CommandRegistry.setLed.dispatchKey(SetLedArgs("chamber_light", 0f, 0f, 0f)))
+        assertEquals("set_output_servo_camera_servo", CommandRegistry.setServo.dispatchKey(SetServoArgs("camera_servo")))
+        assertEquals("set_output_pin_mosfet2", CommandRegistry.setOutputPin.dispatchKey(SetOutputPinArgs("mosfet2", pwm = false)))
+    }
+
     private fun <P> assertRegistryScript(
         spec: CommandSpec<P>,
         args: P,

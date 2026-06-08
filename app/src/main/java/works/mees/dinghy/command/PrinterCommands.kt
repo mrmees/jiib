@@ -528,8 +528,8 @@ object PrinterCommands {
     fun setPinDigital(name: String, on: Boolean): String = "SET_PIN PIN=$name VALUE=${if (on) 1 else 0}"
 
     /**
-     * `SET_PIN PIN=<name> VALUE=<0..1>` — a PWM `output_pin` (and `pwm_tool`: there is NO SET_PWM_TOOL
-     * command, so a pwm_tool routes through SET_PIN too). [pct] is the DISPLAYED percent, clamped 0..100
+     * `SET_PIN PIN=<name> VALUE=<0..1>` — a PWM `output_pin` (and `pwm_tool`: there is no dedicated
+     * pwm-tool command, so a pwm_tool routes through SET_PIN too). [pct] is the DISPLAYED percent, clamped 0..100
      * then scaled to the 0..1 wire VALUE (2dp). BARE [name] (HIGH-1).
      */
     fun setPinPwm(name: String, pct: Int): String =
