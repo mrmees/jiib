@@ -83,6 +83,7 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
+import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
 import works.mees.dinghy.ui.outputs.OutputLedDetail
 import works.mees.dinghy.ui.outputs.OutputPinDetail
 import works.mees.dinghy.ui.outputs.OutputScrubberDetail
@@ -325,6 +326,14 @@ fun AppShell(
         }
     }
 
+    // ---- System Information holder (20-04) ----------------------------------------------------------
+    // The dedicated per-session read-only host-telemetry holder (off the printer hot path — host CPU
+    // telemetry is NOT Klipper state, 20-03 Q2). Published on its OWN AppContainer slot (NOT carried on
+    // the SpineHandle — its procStatUpdates dependency lives on the JsonRpcClient), so it is collected
+    // directly here rather than re-keyed off `store`. Null while idle → the screen renders the degraded
+    // all-"—" state. The screen dispatches nothing back (read-only).
+    val systemInfoHolder by container.systemInfoHolder.collectAsStateWithLifecycle()
+
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
     // when the spine rebuilds (reconnect), mirroring the Phase-5 control holders above. The dispatcher
@@ -538,6 +547,11 @@ fun AppShell(
                         // Field — a full-canvas vertical-drag detector would fight the list scroll (the Files
                         // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit (D-10).
                         Dest.Outputs,
+                        // SystemInfo joins the swipe-suppress set (20-04): the page is a scrollable Field
+                        // (a full-canvas vertical-drag detector would fight the content scroll, the Files
+                        // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit
+                        // (staging doc: suppress the global drawer on this screen, matching About).
+                        Dest.SystemInfo,
                         Dest.Devices, Dest.Theme, Dest.Settings, Dest.About,
                     )
                 ) {
@@ -812,10 +826,14 @@ fun AppShell(
                     }
                 }
             }
-            // Dest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. Task 1 lands
-            // this placeholder ONLY so the live drawer tile always resolves to a handler (no dead-tap window,
-            // Codex atomicity); Task 2 replaces the body with the real SystemInformationScreen wiring.
-            Dest.SystemInfo -> Box(Modifier.fillMaxSize())
+            // Dest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. The holder is
+            // the per-session SystemInfoHolder off AppContainer.systemInfoHolder (null while idle → the
+            // degraded all-"—" state). Back-only gutter; the drawer is suppressed on-screen (swipe-suppress
+            // set below). Mirrors Dest.About / Dest.Console arming.
+            Dest.SystemInfo -> SystemInformationScreen(
+                holder = systemInfoHolder,
+                onBack = { goBack() },
+            )
             // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
             // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
             // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
