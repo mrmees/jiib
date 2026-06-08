@@ -259,7 +259,38 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         s = s.copy(temperatureSensors = s.temperatureSensors + sensorUpdates)
     }
 
+    // Phase-19 Output Controls (SC-1/SC-3). Reduce each present NON-heater output family's live fields into
+    // PrinterState.outputs keyed by the FULL objectKey. RAW values, NO scaling (Pitfall 1 — the holder
+    // scales). UPDATE-ON-PRESENT merge onto the retained value (mirrors the temperature_sensor loop): only a
+    // PRESENT field is touched, an absent field RETAINS prior (SC-3 graceful degrade — never clobbered).
+    // heater_generic is DELIBERATELY excluded here — it is single-sourced through the heaters map above
+    // (MEDIUM review fix: the two sources must never diverge). The objectKey here is the SAME key
+    // OutputsGate.parseOutputs derives, so the descriptor + live value join by key downstream.
+    val outputUpdates = mutableMapOf<String, OutputLiveValue>()
+    for ((key, value) in status) {
+        if (!isReducedOutputObject(key)) continue
+        val obj = (value as? JsonObject) ?: continue
+        val prev = s.outputs[key] ?: OutputLiveValue()
+        outputUpdates[key] = prev.copy(
+            speed = obj.doubleOrNullAt("speed") ?: prev.speed,
+            value = obj.doubleOrNullAt("value") ?: prev.value,
+            colorData = obj.double2dListOrNull("color_data") ?: prev.colorData,
+        )
+    }
+    if (outputUpdates.isNotEmpty()) {
+        s = s.copy(outputs = s.outputs + outputUpdates)
+    }
+
     return s
+}
+
+/**
+ * NON-heater output families reduced into [PrinterState.outputs] (Phase 19). heater_generic is EXCLUDED —
+ * it is single-sourced via the heaters map ([isHeaterObject]); fan/led/servo/pin/pwm_tool flow here.
+ */
+private fun isReducedOutputObject(name: String): Boolean {
+    val family = name.substringBefore(' ')
+    return family != "heater_generic" && family in works.mees.dinghy.outputs.OutputsGate.WHITELIST
 }
 
 private fun isHeaterObject(name: String): Boolean =

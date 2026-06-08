@@ -172,6 +172,47 @@ data class PrinterState(
      * merge-onto-retained like bed_mesh/manual_probe (a partial diff retains omitted fields).
      */
     val firmwareRetraction: FirmwareRetractionObject? = null,
+
+    /**
+     * Phase-19 Output Controls live values (SC-1/SC-3), keyed by the FULL `objectKey` (the same key
+     * [works.mees.dinghy.outputs.OutputDescriptor.objectKey] carries — the state/busy/dispatch key).
+     * Carries ONLY the NON-heater output families: fan_generic→[OutputLiveValue.speed],
+     * led/neopixel/dotstar/pca*→[OutputLiveValue.colorData], servo/output_pin/pwm_tool→[OutputLiveValue.value].
+     *
+     * SINGLE-SOURCE for heater_generic (MEDIUM review fix): heater_generic temp/target flow through the
+     * existing [heaters] map (the one existing source the Outputs holder reads), NOT this map — the two
+     * sources must never diverge. So [OutputLiveValue.temperature]/[target] exist for completeness but are
+     * NOT populated by the reducer for heater_generic; the holder reads heater_generic from [heaters].
+     *
+     * RAW values, NO scaling (Pitfall 1): speed/value are the wire 0.0..1.0; the holder scales to % at the
+     * display boundary. Update-on-present merge (like [temperatureSensors]): a partial diff updates only the
+     * present field; an absent field RETAINS its prior value (never clobbered) so a row degrades gracefully
+     * (SC-3 — hides the value, stays tappable) instead of flickering to a default.
+     */
+    val outputs: Map<String, OutputLiveValue> = emptyMap(),
+)
+
+/**
+ * One generic output's live values (Phase 19), all NULLABLE (null = unreported → the row hides that value
+ * but stays tappable, SC-3). RAW wire values — NO scaling here (Pitfall 1); the holder scales to %.
+ *
+ * Which field a family populates (19-RESEARCH § "Live status field map"):
+ *  - fan_generic                       → [speed]      (0.0..1.0)
+ *  - led/neopixel/dotstar/pca9533/pca9632 → [colorData]  (`[[r,g,b,w], ...]`; index 0 = whole strip)
+ *  - servo/output_pin/pwm_tool         → [value]      (0.0..1.0, or the PWM duty)
+ *  - heater_generic                    → [temperature]/[target] — NOT populated here; read from [heaters].
+ */
+data class OutputLiveValue(
+    /** fan_generic `.speed` (RAW 0.0..1.0). Null until reported. */
+    val speed: Double? = null,
+    /** heater_generic `.temperature` — single-sourced via [PrinterState.heaters]; not reduced here. */
+    val temperature: Double? = null,
+    /** heater_generic `.target` — single-sourced via [PrinterState.heaters]; not reduced here. */
+    val target: Double? = null,
+    /** servo/output_pin/pwm_tool `.value` (RAW 0.0..1.0 / PWM duty). Null until reported. */
+    val value: Double? = null,
+    /** led/neopixel `.color_data` (`[[r,g,b,w], ...]`; index 0 = whole strip). Null until reported. */
+    val colorData: List<List<Double>>? = null,
 )
 
 /**

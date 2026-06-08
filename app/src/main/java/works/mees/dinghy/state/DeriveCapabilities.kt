@@ -98,6 +98,13 @@ fun deriveSubscribeSet(objects: List<String>): Set<String> {
             name.startsWith("heater_generic ") -> result += name
             // Phase 16: temperature_sensor objects (chamber/mcu/host probes) for the Standby glance metric.
             name.startsWith("temperature_sensor ") -> result += name
+            // Phase 19 Output Controls (SC-1 / 19-04): every detected object whose first token ∈ the output
+            // WHITELIST is subscribed so its live status diffs (speed/value/color_data/temperature) reach the
+            // reducer. Built HERE from objects.list (before the configfile read) — the single owner of the
+            // subscribe set — NOT in ad-hoc session code (the HIGH/MEDIUM review fix). Intersect-with-detected
+            // is the function's contract (A3), so we only subscribe outputs the printer actually defines.
+            // heater_generic is already added above (its own clause) and flows through the heaters map.
+            name.substringBefore(' ') in works.mees.dinghy.outputs.OutputsGate.WHITELIST -> result += name
         }
     }
 

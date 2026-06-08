@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import works.mees.dinghy.outputs.OutputDescriptor
 import works.mees.dinghy.ui.console.ConsoleLine
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -126,6 +127,18 @@ class PrinterStateStore(
      * that belt-and-braces hook is the holder's (09-04) concern; the config one-shot here is its companion.
      */
     val screwsTiltConfig: StateFlow<ScrewConfig?> = _screwsTiltConfig.asStateFlow()
+
+    private val _outputDescriptors = MutableStateFlow<List<OutputDescriptor>>(emptyList())
+    /**
+     * The discovered controllable outputs (Phase 19, SC-1) — the result of
+     * [works.mees.dinghy.outputs.OutputsGate.parseOutputs] over the SINGLE existing one-shot `configfile`
+     * query (Pitfall 3 — no duplicate query), modeled on the [screwsTiltConfig] seam. Re-emitted on EVERY
+     * (re)handshake (deterministic on-connect fullness, NOT the throttled hot path). CLEARED to empty on the
+     * configfile read-FAILURE path AND before each re-read (clear-on-switch, T-19-04-04) so a printer switch
+     * or a failed read NEVER leaves stale hardware controls visible. The D-10 drawer-tile gate
+     * ([works.mees.dinghy.di.AppContainer.outputsPresent]) derives off non-empty-ness here.
+     */
+    val outputDescriptors: StateFlow<List<OutputDescriptor>> = _outputDescriptors.asStateFlow()
 
     // ---- Phase-17 Fine-Tune reset baselines (TUNE-05 / D-16) ------------------------------------
     // Read ONCE at handshake from `configfile.settings.<section>` via the SAME existing one-shot
@@ -314,6 +327,15 @@ class PrinterStateStore(
      */
     fun setScrewsTiltConfig(config: ScrewConfig?) {
         _screwsTiltConfig.value = config
+    }
+
+    /**
+     * One-shot at (re)handshake: the discovered controllable outputs (Phase 19, SC-1) from the single
+     * `configfile` query (Pitfall 3). Called with the parsed list on success, and with `emptyList()` on the
+     * read-FAILURE path AND before each re-read (clear-on-switch, T-19-04-04). NOT the throttled hot path.
+     */
+    fun setOutputDescriptors(descriptors: List<OutputDescriptor>) {
+        _outputDescriptors.value = descriptors
     }
 
     // ---- Phase-17 Fine-Tune reset-baseline setters (TUNE-05 / D-16) -----------------------------

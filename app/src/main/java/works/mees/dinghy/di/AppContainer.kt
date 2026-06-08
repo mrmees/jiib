@@ -367,6 +367,16 @@ class AppContainer(
     val spoolmanPresent: Flow<Boolean> = capabilities.map { it.hasComponent("spoolman") }
 
     /**
+     * Whether the connected printer exposes ANY controllable output (Phase 19, D-10 / SC-1) — the drawer
+     * Output-tile greyed-gating input, the role [spoolmanPresent] plays for the Spool tile. Derived off the
+     * current session's store-backed [works.mees.dinghy.state.PrinterStateStore.outputDescriptors] so it
+     * always reflects the CURRENT session (the descriptors are cleared on switch/failure); false when idle.
+     */
+    val outputsPresent: Flow<Boolean> =
+        spine.flatMapLatest { it?.store?.outputDescriptors ?: flowOf(emptyList()) }
+            .map { it.isNotEmpty() }
+
+    /**
      * The current session's lean Spoolman INVENTORY reader (SPOOL-02/03, plan 11-06), or null when idle.
      * The Spool picker holder reads its list/filter inventory through this — the role [fileBrowser]
      * plays for the Files picker. Synchronous snapshot access mirrors [currentFileBrowser]: the shell

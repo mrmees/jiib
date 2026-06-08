@@ -487,6 +487,10 @@ class MoonrakerSession(
             // best-effort — never breaks Connected (the read already happened after subscribe).
             store.setGcodeBackfillFailed()
         }
+        // Phase-19 clear-on-switch (T-19-04-04): clear output descriptors BEFORE the (re)read so a printer
+        // switch or a failed read NEVER leaves stale hardware controls visible during the transition window.
+        // The success path below re-emits the freshly-parsed list; the .onFailure re-clears.
+        store.setOutputDescriptors(emptyList())
         runCatching {
             // configfile (ONE one-shot query, NOT live subscribe; Pitfall 3 — no duplicate configfile
             // query): TWO consumers off the SAME result.status.configfile.settings —
@@ -544,6 +548,24 @@ class MoonrakerSession(
                 ?.toMap()
                 ?: emptyMap()
             store.setMacroBodies(macroBodies)
+
+            // (e) Phase-19 Output Controls discovery (SC-1) — the 5th consumer off the SAME one-shot
+            // configfile result (Pitfall 3, no extra query). parseOutputs intersects the lowercased settings
+            // sections with the case-PRESERVED live objects already derived from objects.list this handshake
+            // (capabilities.objects), so commands use the wire-correct case (HIGH-1). A null settings (read/
+            // parse failure) clears to empty (clear-on-failure, T-19-04-04). Re-emits on every reconnect.
+            store.setOutputDescriptors(
+                if (settings != null) {
+                    works.mees.dinghy.outputs.OutputsGate.parseOutputs(settings, capabilities.objects)
+                } else {
+                    emptyList()
+                },
+            )
+        }.onFailure {
+            // configfile read FAILED entirely → clear output descriptors so a printer switch / failed read
+            // never leaves stale hardware controls visible (clear-on-failure, T-19-04-04). Best-effort like
+            // the rest of this block — the handshake already reached subscribe above.
+            store.setOutputDescriptors(emptyList())
         }
     }
 
