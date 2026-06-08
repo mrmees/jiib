@@ -787,7 +787,7 @@ Plans:
 **Wave 4** *(gap-closure from 17-UAT.md — parallel, disjoint files)*
 
 - [x] 17-07-PLAN.md — GAP 1 (Check 6, MAJOR): fix the Fine-Tune busy-lock permanent wedge at a clamp ceiling — single-source clamp authority in PrinterCommands fed to markPending + skip-arm guard + bounded timeout backstop + regression test (TUNE-03/04)
-- [ ] 17-08-PLAN.md — GAP 2 (Check 8, MINOR): ShellNavState.navigateTo runs per-dest entry resets on same-dest re-selection so Fine-Tune (and Calibration/Macros) reset to Hub on re-entry; turns the RED instrumented FineTuneNavTest GREEN (autonomous:false; on-device flox) (TUNE-01)
+- [x] 17-08-PLAN.md — GAP 2 (Check 8, MINOR): ShellNavState.navigateTo runs per-dest entry resets on same-dest re-selection so Fine-Tune (and Calibration/Macros) reset to Hub on re-entry; turns the RED instrumented FineTuneNavTest GREEN (autonomous:false; on-device flox) (TUNE-01)
 
 **UI hint**: yes
 **Research note**: STANDARD — M220 / M221 / M204 / SET_VELOCITY_LIMIT / SET_PRESSURE_ADVANCE / SET_RETRACTION / SET_FAN_SPEED verified against Klipper docs; reuses the command primitive + a new C2-derived value tile (NOT the scrubber); speed_factor/extrude_factor already in PrinterState, the rest (pressure_advance, fan.speed, toolhead limits, firmware_retraction) are new reducer fields. See 17-CONTEXT.md + 17-RESEARCH/PATTERNS/VALIDATION.
@@ -1037,7 +1037,7 @@ notes.
 | 14. Multi-Printer Switching | 6/6 | Complete    | 2026-06-05 |
 | 15. Theme System & Settings Redesign | 7/7 | Complete    | 2026-06-05 |
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
-| 17. Fine-Tune / Live-Adjust Panel | 6/8 | In Progress|  |
+| 17. Fine-Tune / Live-Adjust Panel | 7/8 | In Progress|  |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 0/TBD | Not started | - |
 | 20. System Information Page | 0/TBD | Not started | - |
