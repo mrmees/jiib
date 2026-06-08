@@ -70,7 +70,7 @@ throttle flags (Ender 3 / RockPro64) it falls back to CPU-temp thresholds with f
   the cutoff numbers are LOCKED (not "defer to research").
 
 ### SC-1 rescope (APPLIED this session)
-- **D-13:** ROADMAP Phase-20 **SC-1 was rewritten** to host-health-only (dropped versions/disk/
+- **D-13 [informational]:** ROADMAP Phase-20 **SC-1 was rewritten** to host-health-only (dropped versions/disk/
   network); the **Goal** and **Research note** lines were updated to match. The staging doc was
   **copied into the repo** at `.planning/phases/20-system-information-page/20-system-info-staging.md`
   so downstream agents can read it. No further ROADMAP action needed before planning.
