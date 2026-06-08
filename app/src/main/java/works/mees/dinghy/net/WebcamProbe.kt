@@ -145,6 +145,15 @@ class WebcamProbe(
                 response.close()
                 ProbeResult.Unsupported(terminal = true)
             }
+
+            // UNREACHABLE by construction: the Content-Type byte probe (`rungFor`) is service-BLIND and
+            // NEVER emits Rung.H264 (D-10 / T-10-06 — H.264 is selected up front by `selectsH264Rung`,
+            // not by this GET probe). The branch exists only to satisfy `when` exhaustiveness now that
+            // Rung.H264 is a member; if it were ever hit it falls through defensively like Unsupported.
+            Rung.H264 -> {
+                response.close()
+                ProbeResult.Unsupported(terminal = true)
+            }
         }
     }
 

@@ -53,10 +53,21 @@ data class Webcam(
 }
 
 /**
- * The decode rung selected for a cam (D-01 three-rung fallback ladder). The numeric [tier] mirrors the
- * D-01 rung numbers (1 = live MJPEG, 2 = snapshot poll, 3 = unsupported/unreachable).
+ * The decode rung selected for a cam (D-01/D-09 fallback ladder). The numeric [tier] mirrors the rung
+ * order (0 = native H.264, 1 = live MJPEG, 2 = snapshot poll, 3 = unsupported/unreachable) — lower is
+ * better, so the ladder walks best→worst by ascending [tier].
  */
 enum class Rung(val tier: Int) {
+    /**
+     * Rung 0 (the new top/preferred rung, D-09): a native-H.264 stream decoded by Media3 over RTSP
+     * (lead) / HLS (fallback). UNLIKE the lower rungs, this rung is NOT chosen by the HTTP Content-Type
+     * probe ([rungFor], which stays service-blind — T-10-06): it is SELECTED up front by the
+     * [selectsH264Rung] `service`/scheme HINT and then VERIFIED by the decoder (D-10) — a hostile/wrong
+     * service can only mis-select, never force a fatal mis-decode; a bad guess just falls through to the
+     * MJPEG/Snapshot rungs.
+     */
+    H264(0),
+
     /** Rung 1: the stream is a decodable `multipart/x-mixed-replace` MJPEG body. */
     Mjpeg(1),
 
@@ -66,6 +77,38 @@ enum class Rung(val tier: Int) {
     /** Rung 3: no usable stream AND no usable snapshot (WebRTC-only, 401/403/404, or unreachable). */
     Unsupported(3),
 }
+
+/**
+ * The native transport a [Rung.H264] stream is played over (D-04, settled by the 21-02 spike):
+ * [Rtsp] is the LEAD (lower glass-to-glass latency on the MediaMTX stack), [Hls] the FALLBACK. The
+ * derive transform ([works.mees.dinghy.net.deriveNativeStreamUrl]) takes this as a parameter to choose
+ * the port/scheme swap. Co-located with [Rung] (the model + its consumers in one place — the existing
+ * [ResolvedWebcam] precedent).
+ */
+enum class NativeTransport {
+    /** RTSP over interleaved RTP/TCP (`rtsp://host:8554/<path>`) — the lead transport (D-04). */
+    Rtsp,
+
+    /** HLS over HTTP (`http://host:8888/<path>/`) — the fallback transport (D-04). */
+    Hls,
+}
+
+/**
+ * Pure D-09/D-10 H.264-rung SELECTOR — a HINT ONLY, never an authority (T-10-06 preserved by
+ * decoder-verify). RTSP/WHEP cannot be Content-Type-probed (different protocol / a POST), so unlike
+ * [rungFor] (which is the byte-probe authority for MJPEG/Snapshot and must stay service-blind), the
+ * H.264 rung is *selected* from the cam's `service`/`stream_url` hints and the Media3 decoder then
+ * *verifies* it (errors → fall through to the next rung).
+ *
+ * Returns `true` when:
+ *  - [Webcam.service] starts with `webrtc` (case-insensitive) — the de-facto `webrtc-mediamtx` signal, OR
+ *  - [Webcam.streamUrl] starts with `rtsp://` (case-insensitive) — an already-native stream URL.
+ *
+ * Pure: no Android, no I/O — host-testable like [rungFor].
+ */
+fun selectsH264Rung(cam: Webcam): Boolean =
+    cam.service.startsWith("webrtc", ignoreCase = true) ||
+        cam.streamUrl?.startsWith("rtsp://", ignoreCase = true) == true
 
 /**
  * Pure D-02 rung selector: the HTTP **Content-Type is the source of truth**; the `/server/webcams/list`
