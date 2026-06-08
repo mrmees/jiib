@@ -240,11 +240,17 @@ fun AppShell(
     // gets a fresh provider (the old one is abandoned with the old holder; the host re-registers on
     // recompose). The Media3SurfaceHost (rendered for H.264 cams in WebcamScreen) registers its SurfaceView
     // here; the composite feed (built into the holder below) awaits it before attaching the player.
+    // CR-01: view-px (screenWidthDp/HeightDp) are DELIBERATELY EXCLUDED from these keys — they swap on
+    // orientation change, and re-keying here would tear down + rebuild the ExoPlayer on every rotation
+    // (the player-thrash / black-feed bug). The player must SURVIVE rotation; the Media3SurfaceHost's
+    // SurfaceView swap is handled by the feed's lifetime surface-collect (re-attach). The view-px below
+    // are captured once (first orientation) and feed only the MJPEG-fallback downscale, which tolerates
+    // stale px safely (it can only over-downscale, never an OOM risk on the 2 GB floor).
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val webcamSurfaceProvider = remember(store, activeCfg.host, activeProfileId, viewWidthPx, viewHeightPx) {
+    val webcamSurfaceProvider = remember(store, activeCfg.host, activeProfileId) {
         Media3SurfaceProvider()
     }
-    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId, viewWidthPx, viewHeightPx) {
+    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId) {
         webcamMedia3Holder(
             scope = scope,
             webcams = webcams,
