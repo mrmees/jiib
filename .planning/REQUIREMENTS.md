@@ -244,11 +244,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PROMPT-03 (prompt_end/footer/re-entrancy + never-wedge Console; ⊂ PROMPT-01/SC-3) | Phase 12 | Complete |
 | PROMPT-04 (provable with a real macro-examples.cfg run; ⊂ PROMPT-01/SC-4) | Phase 12 | Complete |
 | MULTI-01 (managed profiles + switcher + spine rebind on switch) | Phase 14 | Complete |
-| SYS-01 (host identity from machine.system_info) | Phase 20 | Planned |
-| SYS-02 (live load via notify_proc_stat_update push) | Phase 20 | Planned |
-| SYS-03 (health summary + shape-coded chip; throttle/temp-fallback) | Phase 20 | Planned |
-| SYS-04 (graceful degradation to `—`, never crash) | Phase 20 | Planned |
-| SYS-05 (on-device cross-SBC UAT — RPi 4 + RockPro64) | Phase 20 | Planned |
+| SYS-01 (host identity from machine.system_info) | Phase 20 | Complete |
+| SYS-02 (live load via notify_proc_stat_update push) | Phase 20 | Complete |
+| SYS-03 (health summary + shape-coded chip; throttle/temp-fallback) | Phase 20 | Complete |
+| SYS-04 (graceful degradation to `—`, never crash) | Phase 20 | Complete |
+| SYS-05 (on-device cross-SBC UAT — RPi 4 + RockPro64) | Phase 20 | Complete |
 | PKG-01 | Phase 21 | Pending |
 | PKG-03 | Phase 21 | Pending |
 
