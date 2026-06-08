@@ -75,10 +75,27 @@ object DinghyIcons {
     val Nozzle = DinghyIcon(IconRef.Drawable(R.drawable.nozzle), alternate = "nozzle")
     val HeatBed = DinghyIcon(IconRef.Drawable(R.drawable.heat_bed), alternate = "heat_bed")
 
-    // FanMode/Speed render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) — the
-    // bundled ttf carries `mode_fan`/`speed`, so no local vector is needed (260607-fts).
-    val FanMode = DinghyIcon(IconRef.Ligature("mode_fan"), alternate = "fan_mode")
+    // FanMode (the PART-COOLING fan, Fine-Tune) renders the OFFICIAL Material Symbols `air` glyph via the
+    // bundled font (Ligature). Phase 19 D-08 reassigned it from `mode_fan` → `air` (owner-directed cross-phase
+    // side-change): `mode_fan_2` is now the Phase-19 generic-fan OUTPUT glyph (OutputFan), so the part-cooling
+    // fan moves to `air` to keep the two fans visually distinct. The bundled ttf carries `air`/`speed`, so no
+    // local vector is needed. Sole consumer: ExtrusionScreen.kt (the part-fan Fine-Tune tile).
+    val FanMode = DinghyIcon(IconRef.Ligature("air"), alternate = "fan_mode")
     val Speed = DinghyIcon(IconRef.Ligature("speed"), alternate = "speed")
+
+    // --- Phase-19 output-type glyphs (D-01..D-07, OWNER-LOCKED — never invent/substitute, icon law).
+    // The Wave-2 detail rows reference these tokens symbolically (never raw ligature strings) so each
+    // output family resolves to its owner-chosen glyph behind the verify_ligatures.py resolution gate (D-09). ---
+    val OutputHeater = DinghyIcon(IconRef.Ligature("mode_heat"), alternate = "output_heater")
+    val OutputFan = DinghyIcon(IconRef.Ligature("mode_fan_2"), alternate = "output_fan")
+    // D-03: shared by led / neopixel / dotstar / pca9533 / pca9632 (every LED-class output family).
+    val OutputLed = DinghyIcon(IconRef.Ligature("lightbulb_2"), alternate = "output_led")
+    val OutputServo = DinghyIcon(IconRef.Ligature("cyclone"), alternate = "output_servo")
+    // D-05: both the digital and PWM output_pin variants share this row glyph.
+    val OutputPin = DinghyIcon(IconRef.Ligature("check_box"), alternate = "output_pin")
+    val OutputPwmTool = DinghyIcon(IconRef.Ligature("vital_signs"), alternate = "output_pwm_tool")
+    // D-07: the Outputs section / App-Drawer tile glyph.
+    val OutputSection = DinghyIcon(IconRef.Ligature("output"), alternate = "output_section")
 
     // --- FineTune exemplar glyphs (18-06) ---
     // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
@@ -115,5 +132,6 @@ object DinghyIcons {
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
+        OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
     )
 }
