@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 phase: 17-fine-tune-live-adjust-panel
 plan: 17-06
 deferred: false
@@ -7,8 +7,8 @@ deferred_by: owner
 deferred_on: 2026-06-06
 resumed_on: 2026-06-08
 resume_when: "Matthew back at the computer with flox on a live printer (E5/E3)"
-result: "6 PASS, 2 FAIL (Check 6 reject-path lock — major; Check 8 instrumented nav test — minor/likely test drift)"
-updated: 2026-06-08
+result: "8/8 — initial run 6 PASS / 2 FAIL; both gaps fixed (Check 6 -> 17-07, Check 8 -> 17-08) and on-device re-verified on flox (owner-approved 2026-06-07)"
+updated: 2026-06-07
 ---
 
 # Phase 17 — On-Device UAT (Fine-Tune / Live-Adjust)
@@ -86,8 +86,8 @@ Visual review of layout/entry/orientation already done remotely via screenshots 
   value actually **flips to the commanded target** (state-flip, not just the ack), then re-enables.
 - **Expected:** group locks on dispatch; unlocks only when the value reaches target (or on failure).
 
-### 6 — Reject path (G1 / T-17-06-01) — FAIL (issue)
-result: issue
+### 6 — Reject path (G1 / T-17-06-01) — RESOLVED (was FAIL; fixed by 17-07, on-device re-verified 2026-06-07)
+result: resolved
 reported: "Pushing extrusion flow above Klipper's 150% cap: NO error toast appears at all. The whole Fine-Tune group just locks into the inactive/busy (dimmed) state and stays there permanently. Leaving + re-entering Fine-Tune does NOT recover it; reverting the value down does NOT recover it. Only closing and reopening the app restores the controls. App does not crash. (Originally reached via Fluidd setting flow >150%, then jiib blocked — same underlying bug.)"
 severity: major
 root_cause_hypothesis: "PRIMARY: the JSON-RPC request for the rejected command never completes — when Klipper returns an *error* response for the request id, jiib does not resolve that request's CompletableDeferred exceptionally, so the awaiting coroutine hangs forever. Result: (a) no toast (no exception is ever thrown to surface one), and (b) the busy-lock engaged on dispatch never releases (neither success-flip nor error path fires). No timeout backstop on the await; process restart is the only reset. SECONDARY (if the error IS thrown but swallowed): the RpcError catch path neither shows the toast nor clears the per-group busy/pending lock. Diagnosis must confirm which — inspect the JSON-RPC response router's error branch and the Fine-Tune command dispatch/await + lock-release wiring."
@@ -101,8 +101,8 @@ root_cause_hypothesis: "PRIMARY: the JSON-RPC request for the rejected command n
   screens, LOW perf risk.
 - **Expected:** no frozen frames; taps respond promptly.
 
-### 8 — Instrumented nav test on-device (REVIEW #8, where feasible) — FAIL (1 of 2)
-result: issue
+### 8 — Instrumented nav test on-device (REVIEW #8, where feasible) — RESOLVED (was FAIL; product fix by 17-08, on-device re-verified 2026-06-07; instrumented-test harness defect deferred)
+result: resolved
 reported: "Ran on flox (build 7ed8e70). 2 tests: 1 PASS, 1 FAIL. FAIL = reEnteringFineTune_opensHub_notStaleGroupPage — AssertionError: hasText('Motion') is not displayed after re-entry. NOTE: manual Check 1 (reset-to-Hub on re-entry) PASSED on the SAME build, so product behavior is correct on-device → most likely test drift from the 18.x rebrand/icon changes (Tune-button matcher or Hub-tile content the test keys on changed), NOT a product regression. Needs diagnosis to confirm test-only vs real."
 severity: minor
 root_cause_hypothesis: "Test infrastructure drift: FineTuneNavTest's navigation/assertion matchers (Tune-button finder or Hub 'Motion' tile text/semantics) likely changed across Phase 18.1 (icon conformance) / 18.2 (jiib rebrand) / 18.3 (spool icon), so the re-entry test fails to drive to or recognize the Hub. The first-entry test still passes, which argues the Hub renders fine — pointing at the re-entry test's specific navigation steps, not product nav. Diagnosis must read FineTuneNavTest + the current Tune-button/Hub composables to confirm test-only fix vs genuine reset-to-Hub regression in the tested code path."
@@ -120,17 +120,18 @@ root_cause_hypothesis: "Test infrastructure drift: FineTuneNavTest's navigation/
 | 3 Extrusion + cold + cap-gate | PASS | Flow/PA/fan flip; Flow+PA enabled cold; no FW-retraction entry (cap-gated) |
 | 4 Long-press reset | PASS | Speed→100%, Max accel→baseline; part-fan + baseline-absent = no-op |
 | 5 Busy-lock holds to state-flip | PASS | Group locks on dispatch, unlocks only when reported value reaches target |
-| 6 Reject path | **FAIL** | NO toast at all + controls lock & dim permanently on reject (>150% flow); no crash; only app restart recovers (see Gaps) |
+| 6 Reject path | **RESOLVED** | Was FAIL (permanent busy-lock wedge at clamp ceiling, no toast). Fixed by 17-07; on-device re-verified on flox — at-cap '+' no longer wedges. Owner-approved 2026-06-07 |
 | 7 Perf no-frozen-frames | PASS | Responsive on live E5 print, no frozen frames while nudging |
-| 8 Instrumented nav test on-device | **FAIL (1/2)** | reEnteringFineTune_opensHub_notStaleGroupPage RED (hasText 'Motion' not displayed); other test GREEN; manual Check 1 PASSED on same build → likely test drift (see Gaps) |
+| 8 Instrumented nav test on-device | **RESOLVED** | Was FAIL — real product bug (same-dest re-entry skipped reset-to-Hub). Fixed by 17-08; on-device re-verified on flox — re-entry lands on Hub. Owner-approved 2026-06-07. (Instrumented FineTuneNavTest still RED on a pre-existing swipe-gesture harness defect — deferred test-hardening; manual eyeball was the authoritative gate) |
 
-**Overall:** FAIL — Check 6 (reject path) bug → gap-closure plan required (NOT phase-complete).
+**Overall:** RESOLVED — 8/8. Initial run 6 PASS / 2 FAIL; both gaps fixed (Check 6 → 17-07, Check 8 → 17-08) and on-device re-verified on flox (owner-approved 2026-06-07).
 
 ## Gaps
 
 ```yaml
 - truth: "Nudging a Fine-Tune value Klipper rejects (e.g. flow >150% extrude cap) shows a non-fatal error toast, the readout does not move, the whole-group busy-lock RELEASES, and the app does not crash (G1 / REVIEW #2)."
-  status: failed
+  status: resolved
+  resolution: "Fixed by plan 17-07 (commits 5301c83 + f0d96f9; 17-07-SUMMARY.md) — single-source clamp authority in PrinterCommands + clamped markPending targets at every tuner call site + per-tuner strict-< float epsilon (step*0.1) replacing the flat FLIP_TOLERANCE=0.5 + a seq-guarded bounded-timeout backstop. ON-DEVICE RE-VERIFIED on flox: nudging Flow to the 150% cap and tapping '+' at the cap no longer wedges the group (stays responsive). Owner-approved 2026-06-07."
   reason: "User reported (live E5, build 7ed8e70): rejecting >150% flow shows NO toast at all; the controls just lock and dim permanently. App does NOT crash. Leaving+re-entering Fine-Tune and reverting the value both fail to recover; only closing+reopening the app clears it. (Originally surfaced via Fluidd setting flow >150% then jiib blocking — same underlying bug.)"
   severity: major
   test: 6
@@ -139,7 +140,8 @@ root_cause_hypothesis: "Test infrastructure drift: FineTuneNavTest's navigation/
   missing: []
 
 - truth: "FineTuneNavTest.reEnteringFineTune_opensHub_notStaleGroupPage passes on flox — re-entering Fine-Tune lands on the Hub (Motion/Extrusion shown), not a stale group page (REVIEW #8)."
-  status: failed
+  status: resolved
+  resolution: "Fixed by plan 17-08 (commit 2bebae0; 17-08-SUMMARY.md) — ShellNavState.navigateTo() now runs the per-dest entry-reset side-effects (extracted into applyEntryReset(target)) on a same-dest re-selection BEFORE the no-push early-return, so re-entering Fine-Tune from its own drawer tile while inside Motion snaps to the Hub; one-spot fix also closes the identical latent Calibration + Macros holes. ON-DEVICE RE-VERIFIED on flox: re-entering Fine-Tune while inside Motion lands on the Hub. Owner-approved 2026-06-07. NOTE: the instrumented FineTuneNavTest still fails on a pre-existing swipe-gesture harness defect (swipeUp never clears AppShell's 80px single-event SWIPE_UP_THRESHOLD_PX); owner used manual eyeball as the authoritative gate, instrumented-test hardening deferred to a separate pass."
   reason: "Instrumented run on flox (build 7ed8e70): test RED with AssertionError hasText('Motion') not displayed after re-entry. The sibling first-entry test PASSED, and manual Check 1 (same behavior) PASSED on the same build — so product nav is correct; the test itself appears stale."
   severity: minor
   test: 8
