@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-08T03:38:43.934Z"
+last_updated: "2026-06-08T03:44:26.549Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
   completed_phases: 22
   total_plans: 158
-  completed_plans: 150
+  completed_plans: 151
   percent: 79
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 19 (output-controls-fans-lights-generic-pins) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
   → **Plan 19-01 (Wave 0: output-type icon registry + D-08 fan reassignment) EXECUTED + COMPLETE 2026-06-08.** Icon foundation for Phase 19. Task 1 `8a6211a` (feat — registered 7 owner-locked output-type tokens in `DinghyIcons`: `OutputHeater`→`mode_heat` [D-01], `OutputFan`→`mode_fan_2` [D-02], `OutputLed`→`lightbulb_2` [D-03, led/neopixel/dotstar/pca9533/pca9632], `OutputServo`→`cyclone` [D-04], `OutputPin`→`check_box` [D-05, digital+PWM output_pin], `OutputPwmTool`→`vital_signs` [D-06], `OutputSection`→`output` [D-07, Outputs section/drawer tile]; each with a unique `alternate`; all 7 added to the explicit `DinghyIcons.all` drift-guard list. D-08 cross-phase reassignment: `FanMode` flipped `mode_fan`→`air` — the part-cooling fan glyph — keeping the val name + `alternate="fan_mode"` so its SOLE consumer `ExtrusionScreen.kt:271` needed NO call-site edit [symbolic ref]; `mode_fan_2` now owns the generic-fan OUTPUT glyph. `:app:compileDebugKotlin` GREEN). Task 2 `87913d2` (test — extended `verify_ligatures.py` NEEDED with the 8 D-09 glyphs [`mode_heat`/`mode_fan_2`/`lightbulb_2`/`cyclone`/`check_box`/`vital_signs`/`output`/`air`] + REMOVED `mode_fan` [no `IconRef.Ligature` references it post-reassignment]; gate exits 0 `missing: []`, all 8 resolve in the v2.944 bundled ttf. `DinghyIconsTest` needed NO edit — it derives uniqueness/drift checks dynamically from `DinghyIcons.all` — and stayed GREEN with the 7 new ligature-backed entries). grep proofs: zero `IconRef.Ligature("mode_fan")` in `app/src/main`, exactly one `DinghyIcons.FanMode` consumer (no regression site). 0 deviations. SUMMARY `19-01-SUMMARY.md`. SC-1/SC-2 satisfied at the icon-registry layer; Wave-2 detail rows reference `DinghyIcons.Output*` tokens symbolically behind the D-09 gate. **Phase 19: 1/8 plans complete.**
   → **Plan 17-08 (GAP 2 / UAT Check 8, MINOR — same-dest re-entry entry-reset) EXECUTED + COMPLETE & on-device flox-APPROVED 2026-06-08.** Continuation close-out after the blocking on-device checkpoint resolved. Task 1 `2bebae0` (fix — `ShellNavState.navigateTo()`: extracted the three per-dest ENTRY-RESET side-effects [Macros `macroShowSystem=false`+`macroPopupFor=null`; Calibration `calibrationRoutine=null`; Fine-Tune `fineTuneGroup=null`] into a private `applyEntryReset(target)` helper, then made `navigateTo()` run it on a **same-dest re-selection BEFORE the no-push early-return** instead of an unconditional return that skipped it. One-spot fix closes the Fine-Tune stale-sub-page hole [re-entering Fine-Tune from its drawer tile while on the Motion sub-page now snaps to the Hub] AND the identical latent Calibration + Macros holes — REVIEW #6 holds for EVERY entry path. Dest-change `backStack` semantics unchanged [PrintStatus clears, else push the outgoing dest]; same-dest re-selection still pushes NO back entry. Host unit suite GREEN + androidTest sourceset compiles). **Task 2 = `checkpoint:human-verify` ON-DEVICE flox → APPROVED:** owner Matthew manually verified on flox (debug build with the fix installed) — swipe up → Fine-Tune tile → Motion → swipe up → Fine-Tune tile again → lands on the **Hub** (not the stale Motion page); replied "approved". **DEFERRED follow-up (test-only, surfaces in /gsd-progress, NOT a blocker):** the instrumented `FineTuneNavTest` (both methods) FAILED on flox — but NOT at the assertion under test; they die at the `openFineTuneViaDrawer()` setup because `performTouchInput { swipeUp() }` spreads ~800px over ~12 events so no single per-event `dragAmount` clears AppShell's `SWIPE_UP_THRESHOLD_PX = 80f`, so the drawer never opens in the test. This is a **pre-existing test-harness gesture defect** (this instrumented test compiled but was never device-run before 17-08), independent of the 17-08 fix and affecting the baseline equally. Owner chose manual eyeball as the authoritative on-device gate and deferred the instrumented-test fix to a separate test-hardening pass; `FineTuneNavTest.kt` was intentionally NOT modified in this plan. 0 deviations. SUMMARY `17-08-SUMMARY.md` (`31a9226`). TUNE-01 closed. **Both Phase-17 gap-closure plans (17-07 busy-lock wedge + 17-08 same-dest re-entry) now executed + on-device-approved; Phase-17 closure [17-06 on-device UAT SUMMARY + verifier] remains orchestrator-owned — do NOT mark the phase verified here.**
@@ -232,6 +232,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 17 P07 | 25 | 2 tasks | 8 files |
 | Phase 17 P17-08 | 10 | 2 tasks | 1 files |
 | Phase 19 P01 | 6 | 2 tasks | 2 files |
+| Phase 19 P02 | 8min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -420,6 +421,8 @@ Recent decisions affecting current work:
 - [Phase 17/17-08]: ShellNavState.navigateTo() runs the per-dest ENTRY-RESET (extracted to applyEntryReset(target)) on a same-dest re-selection BEFORE the no-push early-return — re-entering Fine-Tune/Calibration/Macros from its own drawer tile always lands on its entry surface (Hub/hub/launcher), never a stale sub-page (UAT Check 8 / REVIEW #6); same-dest re-selection still pushes NO backStack entry. DEFERRED (test-only, not a blocker): FineTuneNavTest swipeUp() spreads ~800px over ~12 events so no per-event dragAmount clears SWIPE_UP_THRESHOLD_PX=80f → drawer never opens in-test; pre-existing harness defect, manual flox eyeball was the authoritative on-device gate (owner-approved).
 - [Phase 17]: Phase 17 UAT RESOLVED 8/8 (2026-06-07): initial on-device run 6 PASS/2 FAIL; both gaps fixed (Check 6 busy-lock wedge -> 17-07; Check 8 same-dest re-entry -> 17-08) and on-device re-verified on flox, owner-approved. 17-UAT.md status: resolved.
 - [Phase 17]: Plan 17-06 CLOSED (2026-06-07): SUMMARY written from git evidence (2c4cbc4 nav wiring, 8b06c7f UAT scaffold, 73296fd landscape label-drop fix). Phase-17 header/verification remains orchestrator-owned (NOT marked complete here).
+- [Phase ?]: 19-02: output parser tests anchor to UNMODIFIED live Moonraker captures (E5P rich + E3P sparse), not idealized mocks; case-recovery (settings lowercased vs objects.list case-preserved) is real-data-proven
+- [Phase ?]: 19-02: Wave-0 RED scaffolds use typed fail() bodies with zero refs to unbuilt symbols so the whole test sourceset compiles before --tests filters (per-class scoped, HIGH-4 non-bricking)
 
 ### Pending Todos
 
@@ -457,7 +460,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-08T03:38:38.350Z
+Last session: 2026-06-08T03:44:09.677Z
 Stopped at: Phase 19 context gathered
 Resume file: 
 None

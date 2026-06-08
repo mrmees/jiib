@@ -939,7 +939,7 @@ Plans:
 **Wave 1**
 
 - [x] 19-01-PLAN.md — Output icons: register D-01..D-07 ligatures, reassign part-fan→air (D-08), D-09 ligature gate
-- [ ] 19-02-PLAN.md — Wave-0: real Moonraker fixtures (E5P/E3P) + compiling RED scaffolds
+- [x] 19-02-PLAN.md — Wave-0: real Moonraker fixtures (E5P/E3P) + compiling RED scaffolds
 - [ ] 19-03-PLAN.md — PrinterCommands output builders + clamp authority + hsvToRgb helper
 - [ ] 19-04-PLAN.md — Discovery (configfile.settings gate) + live-value reducer + outputsPresent (D-10)
 
@@ -1062,7 +1062,7 @@ notes.
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
-| 19. Output Controls — Fans, Lights & Generic Pins | 1/8 | In Progress|  |
+| 19. Output Controls — Fans, Lights & Generic Pins | 2/8 | In Progress|  |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
