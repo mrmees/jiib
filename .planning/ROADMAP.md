@@ -997,6 +997,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2; on-device gate)*
 
 - [x] 20-04-PLAN.md — UI: owner-locked icon slate + live drawer tile + Dest route + the read-only screen (Focus summary + Field detail + shape chip) + AppShell wiring + cross-SBC on-device UAT (SYS-01..05)
+
 **UI hint**: yes
 **Research note**: STANDARD — confirm exact `machine.system_info` / `machine.proc_stats` field shapes (incl. Pi throttle flags vs RockPro64 temp-fallback) against the Moonraker API on BOTH real SBCs; some shapes partly captured in `docs/moonraker-capabilities.md`. Full design locked in `20-system-info-staging.md`.
 
@@ -1013,11 +1014,26 @@ Plans:
   4. Proven live on the real Ender 5 Plus AND Ender 3 MediaMTX cameras that the MJPEG path could not display, meeting the ~1–2 s glass-to-glass bar (D-05/D-08)
 
 **Plans**: 5 plans (waves 1–5)
+**Wave 1**
+
 - [ ] 21-01-PLAN.md — Wire media3 1.10.1 (exoplayer + rtsp + hls) into the build, reconfirm the minSdk-23 floor, lay the four Wave-0 RED test scaffolds
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 21-02-PLAN.md — THE GATING throwaway on-device spike (D-02): Media3 RTSP-vs-HLS glass-to-glass latency + decoder + APK delta on flox vs both printers; records the DECISION plans 03/04 consume
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 21-03-PLAN.md — Pure logic: Rung.H264 top rung + selectsH264Rung heuristic (D-09/D-10) + deriveNativeStreamUrl/explicit-tag (D-11/D-12); closes RungSelect + WebcamUrlDerive tests
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 21-04-PLAN.md — On-device player binding: Media3Feed (main-thread, forced-TCP, FeedOutcome) + Media3SurfaceHost + holder routing; reuses the reconnect machine; deletes the spike; closes the last two scaffolds
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 21-05-PLAN.md — Load-bearing on-device UAT on BOTH printers (D-08): live H.264 + latency + no-leak + fallback + the three D-20 fold-ins
+
 **UI hint**: yes
 **Research note**: The pivot (D-01) is grounded in `research/webrtc-vs-media3-feasibility.md` (footprint win proven, latency win NOT — hence the D-02 spike). The three spike-gated unknowns (glass-to-glass latency on the real Adreno 320, OMX.qcom hardware decode, SPS/PPS-in-fmtp in MediaMTX's RTSP SDP) are MEASURED on-device, not assumed.
 
