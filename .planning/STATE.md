@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-08T04:33:15.648Z"
+status: verifying
+last_updated: "2026-06-08T04:41:46.463Z"
 last_activity: 2026-06-08
 progress:
   total_phases: 28
   completed_phases: 22
   total_plans: 158
-  completed_plans: 155
+  completed_plans: 156
   percent: 79
 ---
 
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 19 (output-controls-fans-lights-generic-pins) — EXECUTING
-Plan: 7 of 8
-Status: Ready to execute
+Plan: 8 of 8
+Status: Phase complete — ready for verification
   → **Plan 19-01 (Wave 0: output-type icon registry + D-08 fan reassignment) EXECUTED + COMPLETE 2026-06-08.** Icon foundation for Phase 19. Task 1 `8a6211a` (feat — registered 7 owner-locked output-type tokens in `DinghyIcons`: `OutputHeater`→`mode_heat` [D-01], `OutputFan`→`mode_fan_2` [D-02], `OutputLed`→`lightbulb_2` [D-03, led/neopixel/dotstar/pca9533/pca9632], `OutputServo`→`cyclone` [D-04], `OutputPin`→`check_box` [D-05, digital+PWM output_pin], `OutputPwmTool`→`vital_signs` [D-06], `OutputSection`→`output` [D-07, Outputs section/drawer tile]; each with a unique `alternate`; all 7 added to the explicit `DinghyIcons.all` drift-guard list. D-08 cross-phase reassignment: `FanMode` flipped `mode_fan`→`air` — the part-cooling fan glyph — keeping the val name + `alternate="fan_mode"` so its SOLE consumer `ExtrusionScreen.kt:271` needed NO call-site edit [symbolic ref]; `mode_fan_2` now owns the generic-fan OUTPUT glyph. `:app:compileDebugKotlin` GREEN). Task 2 `87913d2` (test — extended `verify_ligatures.py` NEEDED with the 8 D-09 glyphs [`mode_heat`/`mode_fan_2`/`lightbulb_2`/`cyclone`/`check_box`/`vital_signs`/`output`/`air`] + REMOVED `mode_fan` [no `IconRef.Ligature` references it post-reassignment]; gate exits 0 `missing: []`, all 8 resolve in the v2.944 bundled ttf. `DinghyIconsTest` needed NO edit — it derives uniqueness/drift checks dynamically from `DinghyIcons.all` — and stayed GREEN with the 7 new ligature-backed entries). grep proofs: zero `IconRef.Ligature("mode_fan")` in `app/src/main`, exactly one `DinghyIcons.FanMode` consumer (no regression site). 0 deviations. SUMMARY `19-01-SUMMARY.md`. SC-1/SC-2 satisfied at the icon-registry layer; Wave-2 detail rows reference `DinghyIcons.Output*` tokens symbolically behind the D-09 gate. **Phase 19: 1/8 plans complete.**
   → **Plan 17-08 (GAP 2 / UAT Check 8, MINOR — same-dest re-entry entry-reset) EXECUTED + COMPLETE & on-device flox-APPROVED 2026-06-08.** Continuation close-out after the blocking on-device checkpoint resolved. Task 1 `2bebae0` (fix — `ShellNavState.navigateTo()`: extracted the three per-dest ENTRY-RESET side-effects [Macros `macroShowSystem=false`+`macroPopupFor=null`; Calibration `calibrationRoutine=null`; Fine-Tune `fineTuneGroup=null`] into a private `applyEntryReset(target)` helper, then made `navigateTo()` run it on a **same-dest re-selection BEFORE the no-push early-return** instead of an unconditional return that skipped it. One-spot fix closes the Fine-Tune stale-sub-page hole [re-entering Fine-Tune from its drawer tile while on the Motion sub-page now snaps to the Hub] AND the identical latent Calibration + Macros holes — REVIEW #6 holds for EVERY entry path. Dest-change `backStack` semantics unchanged [PrintStatus clears, else push the outgoing dest]; same-dest re-selection still pushes NO back entry. Host unit suite GREEN + androidTest sourceset compiles). **Task 2 = `checkpoint:human-verify` ON-DEVICE flox → APPROVED:** owner Matthew manually verified on flox (debug build with the fix installed) — swipe up → Fine-Tune tile → Motion → swipe up → Fine-Tune tile again → lands on the **Hub** (not the stale Motion page); replied "approved". **DEFERRED follow-up (test-only, surfaces in /gsd-progress, NOT a blocker):** the instrumented `FineTuneNavTest` (both methods) FAILED on flox — but NOT at the assertion under test; they die at the `openFineTuneViaDrawer()` setup because `performTouchInput { swipeUp() }` spreads ~800px over ~12 events so no single per-event `dragAmount` clears AppShell's `SWIPE_UP_THRESHOLD_PX = 80f`, so the drawer never opens in the test. This is a **pre-existing test-harness gesture defect** (this instrumented test compiled but was never device-run before 17-08), independent of the 17-08 fix and affecting the baseline equally. Owner chose manual eyeball as the authoritative on-device gate and deferred the instrumented-test fix to a separate test-hardening pass; `FineTuneNavTest.kt` was intentionally NOT modified in this plan. 0 deviations. SUMMARY `17-08-SUMMARY.md` (`31a9226`). TUNE-01 closed. **Both Phase-17 gap-closure plans (17-07 busy-lock wedge + 17-08 same-dest re-entry) now executed + on-device-approved; Phase-17 closure [17-06 on-device UAT SUMMARY + verifier] remains orchestrator-owned — do NOT mark the phase verified here.**
   → **Plan 18.3-03 (Wave 0: document the THEME-01 spool-band carve-out) EXECUTED + COMPLETE 2026-06-07.** Docs-only (SC3 / D-10). Commit `8fa948f` EXTENDED the existing `docs/ui_design/THEMING.md` §"Carve-out: macro-authored PromptMarkup author-hex (D-03)" with a "Second instance: the color-reactive spool glyph's filament band" subsection — names the spool band as the second instance of the same "filament color is DATA, not chrome" exception (NOT a new rule), scopes it to the **BAND ONLY** (spool body/flanges + neutral keyline + all chrome stay `--text`/`--text2`/`--outline` token-routed; empty-spool fallback = pure token chrome), records the band renders the EXACT filament hex (never clamped) with legibility from the neutral keyline (framing, not distortion), and documents that `brandTint`'s WCAG-3:1 clamp was **considered and REJECTED** for the band (would lie about true color; stays brand-chrome-only). Same extension made literal in the `docs/ui_design/CLAUDE.md` "Token carve-out" bullet — its existing "a Spoolman spool's filament color" precedent now literally sanctions the spool glyph band (band-only; body+keyline token-routed; D-02/D-05/D-10). grep gate PASS (both files mention spool+band in carve-out context); all 4 must-have truths met; 0 deviations. SUMMARY `18.3-03-SUMMARY.md`. This is the documentation half of the THEME-01 exception that the implementation plans (01/02/04: custom vector glyph + band reactivity + surface wiring) ride on.
@@ -236,6 +236,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 19 P03 | ~12min | 3 tasks | 6 files |
 | Phase 19 P04 | 22min | 2 tasks | 10 files |
 | Phase 19 P06 | 30min | 2 tasks | 13 files |
+| Phase 19 P07 | 15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -430,6 +431,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 19-04: OutputDescriptor carries HIGH-1 objectKey/commandName split; outputs discovered via 5th configfile consumer (no new query) with clear-on-failure; outputsPresent gates D-10
 - [Phase 19]: 19-05: OutputsHolder per-family reached() — servo timeout-only (PWM is not the commanded angle); markPending fed the clamped wire value (17-07)
 - [Phase ?]: 19-06: ScrubberPage sealed ScrubberActions (ApplyCancel|OnSettle) HIGH-3 settle-dispatch; output detail pages dispatch via CommandRegistry (HIGH-2) from bare commandName (HIGH-1); LED WHITE=0 on every color dispatch (D-12 Off all-zero)
+- [Phase ?]: Output drawer tile uses D-10 HIDE-not-grey (pure visibleDrawerTiles filter), diverging from the Webcam/Spool shown-but-greyed gate
+- [Phase ?]: Dest.Outputs hosts a shell-local list<->detail back-stack (selectedOutputKey), mirroring Dest.Calibration — not new top-level Dests
 
 ### Pending Todos
 
@@ -467,7 +470,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-08T04:33:10.302Z
+Last session: 2026-06-08T04:41:17.377Z
 Stopped at: Completed 19-03-PLAN.md
 Resume file: 
 None

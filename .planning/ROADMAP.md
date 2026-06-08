@@ -953,7 +953,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 19-07-PLAN.md — Shell wiring: Dest.Outputs, drawer tile hidden-when-empty (D-10/D-11), suppression
+- [x] 19-07-PLAN.md — Shell wiring: Dest.Outputs, drawer tile hidden-when-empty (D-10/D-11), suppression
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -1062,7 +1062,7 @@ notes.
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
-| 19. Output Controls — Fans, Lights & Generic Pins | 6/8 | In Progress|  |
+| 19. Output Controls — Fans, Lights & Generic Pins | 7/8 | In Progress|  |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
