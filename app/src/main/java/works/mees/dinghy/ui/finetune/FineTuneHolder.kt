@@ -77,6 +77,16 @@ class FineTuneHolder(
     /** The bounded self-clear timer for the CURRENT armed flip (cancelled/replaced on each arm). */
     private var timeoutJob: Job? = null
 
+    /**
+     * The last printer state the combine collector actually observed (17 code-review fix, WR-04). The
+     * `reached`/clear logic runs inside the combine over the THROTTLED `store.printerState`, which can lag
+     * the raw `StateFlow.value`. [markPending]'s skip-arm must compare against THIS same throttled
+     * snapshot — not the raw value — so a `+` tap can't read an already-moved raw state, compute
+     * `current ≈ target`, and drop the arm while a dispatch the combine hasn't seen yet is still on the
+     * wire. Written from the combine collector (main-confined, same single thread markPending runs on).
+     */
+    private var lastObservedState: PrinterState? = null
+
     /** The outstanding state-flip the group busy lock waits on (null = none). */
     private val _pendingStateFlip = MutableStateFlow<PendingStateFlip?>(null)
     /** Public read for the screen / tests: the tuner+target the group is still waiting to flip. */
@@ -123,6 +133,9 @@ class FineTuneHolder(
                 _inFlight,
                 _pendingStateFlip,
             ) { state, caps, baselines, inFlight, pending ->
+                // WR-04: record the throttled state the combine actually sees so markPending's skip-arm
+                // compares against the SAME snapshot reached() does (not the racing raw StateFlow.value).
+                lastObservedState = state
                 // Clear the pending flip the instant the printer-object value reaches the target (D-15).
                 val stillPending = pending?.takeUnless { reached(state, it) }
                 if (stillPending !== pending) {
@@ -154,15 +167,26 @@ class FineTuneHolder(
      * flip can wedge the group permanently.
      */
     fun markPending(tuner: FineTuneTuner, target: Double) {
-        val current = currentFor(store.printerState.value, tuner)
-        if (current != null && abs(current - target) < toleranceFor(tuner)) {
+        // 17 code-review fix (WR-01/WR-02): arm the value the WIRE will actually report, not the raw
+        // double. The wire builder formats each field to a fixed display precision (SCV→1dp, PA→3dp,
+        // smooth→2dp, etc.); an OFF-GRID live value (a config baseline reached via Reset, e.g. SCV 4.05)
+        // would otherwise arm a target the rounded wire value can never land within the tight step×0.1
+        // epsilon of — wedging the group for the full PENDING_FLIP_TIMEOUT_MS backstop. Rounding the
+        // armed target to the SAME precision Klipper will echo back makes reported == target exactly, so
+        // an on-grid Reset reliably flips. On-grid inputs round to themselves (no behaviour change).
+        val rounded = roundToWirePrecision(tuner, target)
+        // WR-04: read the throttled state the combine last observed (falling back to the raw value before
+        // the first emission) so the skip-arm and reached() agree — a pending flip is never dropped while
+        // an in-flight dispatch the combine hasn't re-emitted for is still on the wire.
+        val current = currentFor(lastObservedState ?: store.printerState.value, tuner)
+        if (current != null && abs(current - rounded) < toleranceFor(tuner)) {
             // True no-op (clamped at-cap target ≈ already-reported value): do not arm a flip.
             timeoutJob?.cancel()
             _pendingStateFlip.value = null
             return
         }
         timeoutJob?.cancel()
-        val armed = PendingStateFlip(tuner, target, seq = ++flipSeq)
+        val armed = PendingStateFlip(tuner, rounded, seq = ++flipSeq)
         _pendingStateFlip.value = armed
         timeoutJob = scope.launch {
             delay(PENDING_FLIP_TIMEOUT_MS)
@@ -217,6 +241,39 @@ class FineTuneHolder(
         FineTuneTuner.UNRETRACT_EXTRA_LENGTH -> RETRACT_LEN_STEP * 0.1
         FineTuneTuner.RETRACT_SPEED -> RETRACT_SPEED_STEP.toDouble() * 0.1
         FineTuneTuner.UNRETRACT_SPEED -> RETRACT_SPEED_STEP.toDouble() * 0.1
+    }
+
+    /**
+     * The number of decimal places the WIRE builder formats this tuner's value to, expressed in the
+     * holder's DISPLAY unit (17 code-review fix, WR-01/WR-02). [markPending] rounds the armed target to
+     * this precision so the optimistic flip target equals the value Klipper will echo back — an off-grid
+     * Reset can no longer arm a target the rounded wire value can never reach within [toleranceFor].
+     *
+     * Precisions trace [works.mees.dinghy.command.PrinterCommands] `fmt(..., N)` calls:
+     * SCV `fmt(...,1)`→1dp; PA `fmt(...,3)`→3dp; smooth `fmt(...,2)`→2dp; velocity/accel `fmt(...,0)`→0dp;
+     * retraction lengths `fmt(...,1)`→1dp; speeds/percents are ints→0dp. MIN_CRUISE is a 2dp RATIO on the
+     * wire, but the holder's display unit is the percent (ratio×100), so 2dp-ratio == 0dp-percent.
+     */
+    private fun wirePrecisionFor(tuner: FineTuneTuner): Int = when (tuner) {
+        FineTuneTuner.SPEED -> 0
+        FineTuneTuner.MAX_VELOCITY -> 0
+        FineTuneTuner.MAX_ACCEL -> 0
+        FineTuneTuner.MIN_CRUISE -> 0 // display percent; wire ratio is 2dp == integer percent.
+        FineTuneTuner.SCV -> 1
+        FineTuneTuner.FLOW -> 0
+        FineTuneTuner.PRESSURE_ADVANCE -> 3
+        FineTuneTuner.SMOOTH_TIME -> 2
+        FineTuneTuner.PART_FAN -> 0
+        FineTuneTuner.RETRACT_LENGTH -> 1
+        FineTuneTuner.UNRETRACT_EXTRA_LENGTH -> 1
+        FineTuneTuner.RETRACT_SPEED -> 0
+        FineTuneTuner.UNRETRACT_SPEED -> 0
+    }
+
+    /** Round [value] to [wirePrecisionFor] decimal places (banker-free half-up), matching the wire grid. */
+    private fun roundToWirePrecision(tuner: FineTuneTuner, value: Double): Double {
+        val factor = TEN_POW[wirePrecisionFor(tuner)]
+        return (value * factor).roundToInt() / factor
     }
 
     /** True once the reduced [state] value for the pending [flip].tuner reaches its target (STRICT-< eps). */
@@ -274,5 +331,8 @@ class FineTuneHolder(
          * whole-group busy lock can never wedge forever. `internal` so the test can advance past it.
          */
         internal const val PENDING_FLIP_TIMEOUT_MS = 8_000L
+
+        /** 10^n for n in 0..3 — the wire precisions [wirePrecisionFor] yields (avoids `Math.pow` churn). */
+        private val TEN_POW: DoubleArray = doubleArrayOf(1.0, 10.0, 100.0, 1000.0)
     }
 }
