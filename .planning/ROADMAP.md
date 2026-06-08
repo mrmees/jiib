@@ -1028,7 +1028,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 21-04-PLAN.md — On-device player binding: Media3Feed (main-thread, forced-TCP, FeedOutcome) + Media3SurfaceHost + holder routing; reuses the reconnect machine; deletes the spike; closes the last two scaffolds
+- [x] 21-04-PLAN.md — On-device player binding: Media3Feed (main-thread, forced-TCP, FeedOutcome) + Media3SurfaceHost + holder routing; reuses the reconnect machine; deletes the spike; closes the last two scaffolds
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -1107,7 +1107,7 @@ notes.
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
-| 21. WebRTC Camera Streaming | 3/5 | In Progress|  |
+| 21. WebRTC Camera Streaming | 4/5 | In Progress|  |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
