@@ -89,6 +89,16 @@ class JsonRpcClient(
      */
     val spoolmanStatusChanged: SharedFlow<JsonObject> = _spoolmanStatusChanged.asSharedFlow()
 
+    private val _procStatUpdates = MutableSharedFlow<JsonObject>(extraBufferCapacity = SPOOLMAN_BUFFER)
+    /**
+     * `notify_proc_stat_update` payloads — element [0] of the 1-element params array (the host
+     * telemetry object: `cpu_temp` + `system_cpu_usage` + `system_memory`, OMITS `throttled_state`/
+     * `system_uptime`). The free ~1 Hz host push (Phase 20 System Information); previously dropped at
+     * the dispatch `else`. A thin router — the raw params[0] JsonObject is emitted and
+     * [works.mees.dinghy.systeminfo.SystemInfoHolder] runs `ProcStatLive.fromPush` on it.
+     */
+    val procStatUpdates: SharedFlow<JsonObject> = _procStatUpdates.asSharedFlow()
+
     /** Bind the active socket connection (call on [SocketEvent.Open]). */
     fun bind(connection: RpcConnection) {
         this.connection = connection
@@ -211,9 +221,13 @@ class JsonRpcClient(
             JsonRpcMethods.NOTIFY_SPOOLMAN_STATUS_CHANGED -> {
                 spoolNotifyParam(obj)?.let { _spoolmanStatusChanged.tryEmit(it) }
             }
+            JsonRpcMethods.NOTIFY_PROC_STAT_UPDATE -> {
+                // The free ~1 Hz host-telemetry push (Phase 20). Route params[0] to procStatUpdates —
+                // the live notify golden interleaves ten such frames around the spoolman pushes; they
+                // now reach this flow AND still never reach activeSpoolSet (T-11-04 golden, 20-03).
+                procStatParam(obj)?.let { _procStatUpdates.tryEmit(it) }
+            }
             // Any other notify_* is unmodeled here; drop it (a later wave may add routing).
-            // The live notify golden interleaves nine `notify_proc_stat_update` frames around the
-            // spoolman pushes — they MUST fall through this `else` untouched (T-11-04).
             else -> Unit
         }
     }
@@ -253,6 +267,15 @@ class JsonRpcClient(
      * malformed/non-object/empty params yields null so the route drops the frame, never throws.
      */
     private fun spoolNotifyParam(obj: JsonObject): JsonObject? = runCatching {
+        obj["params"]?.jsonArray?.firstOrNull()?.jsonObject
+    }.getOrNull()
+
+    /**
+     * Extract a `notify_proc_stat_update` payload — element [0] of the 1-element params array (the host
+     * telemetry object). Null-safe (mirrors [spoolNotifyParam]): a malformed/non-object/empty params
+     * yields null so the route drops the frame, never throws.
+     */
+    private fun procStatParam(obj: JsonObject): JsonObject? = runCatching {
         obj["params"]?.jsonArray?.firstOrNull()?.jsonObject
     }.getOrNull()
 

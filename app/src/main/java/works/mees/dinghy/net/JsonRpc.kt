@@ -157,6 +157,12 @@ object JsonRpcMethods {
     const val NOTIFY_ACTIVE_SPOOL_SET = "notify_active_spool_set"
     const val NOTIFY_SPOOLMAN_STATUS_CHANGED = "notify_spoolman_status_changed"
 
+    // Phase-20 System Information: the free ~1 Hz host-telemetry push (cpu_temp / system_cpu_usage /
+    // system_memory). params is a 1-ELEMENT array `[{...}]`. The push OMITS throttled_state +
+    // system_uptime (those come from the one-shot machine.proc_stats QUERY). Previously dropped at
+    // the dispatch `else`; now routed to JsonRpcClient.procStatUpdates (20-03 Task 1).
+    const val NOTIFY_PROC_STAT_UPDATE = "notify_proc_stat_update"
+
     /** JSON-RPC error code Moonraker returns from `identify` when credentials are missing/invalid. */
     const val CODE_INVALID_PARAMS = -32602
 }

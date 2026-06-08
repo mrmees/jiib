@@ -4,6 +4,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -26,8 +27,9 @@ import works.mees.dinghy.net.MoonrakerJson
  *  - `notify_active_spool_set` routes to [JsonRpcClient.activeSpoolSet] reading `params[0].spool_id`;
  *  - `notify_spoolman_status_changed` routes to [JsonRpcClient.spoolmanStatusChanged] reading
  *    `params[0].spoolman_connected`;
- *  - unrelated `notify_proc_stat_update` frames are IGNORED (fall through `else -> Unit`) — the
- *    active-spool flow only ever sees the two spool ids, never a proc-stat frame.
+ *  - `notify_proc_stat_update` frames now route to [JsonRpcClient.procStatUpdates] (Phase 20, 20-03) —
+ *    they reach that flow AND still never reach the active-spool flow (which only ever sees the two
+ *    spool ids).
  *
  * The bounded SharedFlows have no replay, so a collector is subscribed in [backgroundScope] BEFORE the
  * frames are dispatched (with [advanceUntilIdle] flushing the virtual-time scheduler between).
@@ -67,7 +69,7 @@ class SpoolmanNotifyRouterTest {
         advanceUntilIdle()
 
         // Router must have routed BOTH active-spool-set frames in order (3 then 5) and ONLY those —
-        // the nine proc_stat frames never reach this flow.
+        // the ten proc_stat frames never reach this flow.
         assertEquals("router must read params[0].spool_id for both frames in order", listOf(3, 5), collected)
     }
 
@@ -92,17 +94,23 @@ class SpoolmanNotifyRouterTest {
     }
 
     @Test
-    fun ignoresUnrelatedProcStatNotifications() = runTest {
+    fun routesProcStatToProcStatUpdatesAndNeverToActiveSpool() = runTest {
         val client = JsonRpcClient()
-        val seen = mutableListOf<Int?>()
+        // (a) proc-stat frames now route to procStatUpdates (Phase 20); (b) they STILL never reach
+        // the active-spool flow. Subscribe to BOTH before dispatch (no replay).
+        val procStatSeen = mutableListOf<JsonObject>()
+        val spoolSeen = mutableListOf<Int?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            client.procStatUpdates.collect { procStatSeen += it }
+        }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             client.activeSpoolSet.collect { params ->
-                seen += params["spool_id"]?.jsonPrimitive?.intOrNull
+                spoolSeen += params["spool_id"]?.jsonPrimitive?.intOrNull
             }
         }
         advanceUntilIdle()
 
-        // Dispatch ONLY the proc_stat frames from the golden — none must reach the active-spool flow.
+        // Dispatch ONLY the proc_stat frames from the golden.
         val procStatFrames = goldenNotifications().filter {
             it.jsonObject["method"]?.jsonPrimitive?.content == "notify_proc_stat_update"
         }
@@ -112,6 +120,10 @@ class SpoolmanNotifyRouterTest {
         }
         advanceUntilIdle()
 
-        assertEquals("unrelated notify_proc_stat_update must be ignored (else -> Unit)", emptyList<Int?>(), seen)
+        // (a) all ten proc-stat frames reached procStatUpdates, each carrying the host telemetry shape.
+        assertEquals("all ten proc-stat frames must reach procStatUpdates", 10, procStatSeen.size)
+        assertNotNull("proc-stat payload carries cpu_temp", procStatSeen.first()["cpu_temp"])
+        // (b) NONE reached the active-spool flow (no regression).
+        assertEquals("proc-stat frames must never reach activeSpoolSet", emptyList<Int?>(), spoolSeen)
     }
 }
