@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-08T01:40:14.583Z"
+status: ready_to_plan
+last_updated: 2026-06-08T02:02:47.292Z
 last_activity: 2026-06-08
 progress:
   total_phases: 28
@@ -11,6 +11,7 @@ progress:
   total_plans: 150
   completed_plans: 149
   percent: 75
+stopped_at: Phase 17 complete (8/8) — ready to discuss Phase 18
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 17 — fine-tune-live-adjust-panel
+**Current focus:** Phase 18 — preview harness tokenization foundation
 
 ## Current Position
 
-Phase: 17 (fine-tune-live-adjust-panel) — EXECUTING
-Plan: 3 of 8
-Status: Gap-closure plans 17-07 + 17-08 COMPLETE; awaiting Phase-17 close (17-06 on-device UAT SUMMARY + verifier, orchestrator-owned)
+Phase: 18
+Plan: Not started
+Status: Ready to plan
   → **Plan 17-08 (GAP 2 / UAT Check 8, MINOR — same-dest re-entry entry-reset) EXECUTED + COMPLETE & on-device flox-APPROVED 2026-06-08.** Continuation close-out after the blocking on-device checkpoint resolved. Task 1 `2bebae0` (fix — `ShellNavState.navigateTo()`: extracted the three per-dest ENTRY-RESET side-effects [Macros `macroShowSystem=false`+`macroPopupFor=null`; Calibration `calibrationRoutine=null`; Fine-Tune `fineTuneGroup=null`] into a private `applyEntryReset(target)` helper, then made `navigateTo()` run it on a **same-dest re-selection BEFORE the no-push early-return** instead of an unconditional return that skipped it. One-spot fix closes the Fine-Tune stale-sub-page hole [re-entering Fine-Tune from its drawer tile while on the Motion sub-page now snaps to the Hub] AND the identical latent Calibration + Macros holes — REVIEW #6 holds for EVERY entry path. Dest-change `backStack` semantics unchanged [PrintStatus clears, else push the outgoing dest]; same-dest re-selection still pushes NO back entry. Host unit suite GREEN + androidTest sourceset compiles). **Task 2 = `checkpoint:human-verify` ON-DEVICE flox → APPROVED:** owner Matthew manually verified on flox (debug build with the fix installed) — swipe up → Fine-Tune tile → Motion → swipe up → Fine-Tune tile again → lands on the **Hub** (not the stale Motion page); replied "approved". **DEFERRED follow-up (test-only, surfaces in /gsd-progress, NOT a blocker):** the instrumented `FineTuneNavTest` (both methods) FAILED on flox — but NOT at the assertion under test; they die at the `openFineTuneViaDrawer()` setup because `performTouchInput { swipeUp() }` spreads ~800px over ~12 events so no single per-event `dragAmount` clears AppShell's `SWIPE_UP_THRESHOLD_PX = 80f`, so the drawer never opens in the test. This is a **pre-existing test-harness gesture defect** (this instrumented test compiled but was never device-run before 17-08), independent of the 17-08 fix and affecting the baseline equally. Owner chose manual eyeball as the authoritative on-device gate and deferred the instrumented-test fix to a separate test-hardening pass; `FineTuneNavTest.kt` was intentionally NOT modified in this plan. 0 deviations. SUMMARY `17-08-SUMMARY.md` (`31a9226`). TUNE-01 closed. **Both Phase-17 gap-closure plans (17-07 busy-lock wedge + 17-08 same-dest re-entry) now executed + on-device-approved; Phase-17 closure [17-06 on-device UAT SUMMARY + verifier] remains orchestrator-owned — do NOT mark the phase verified here.**
   → **Plan 18.3-03 (Wave 0: document the THEME-01 spool-band carve-out) EXECUTED + COMPLETE 2026-06-07.** Docs-only (SC3 / D-10). Commit `8fa948f` EXTENDED the existing `docs/ui_design/THEMING.md` §"Carve-out: macro-authored PromptMarkup author-hex (D-03)" with a "Second instance: the color-reactive spool glyph's filament band" subsection — names the spool band as the second instance of the same "filament color is DATA, not chrome" exception (NOT a new rule), scopes it to the **BAND ONLY** (spool body/flanges + neutral keyline + all chrome stay `--text`/`--text2`/`--outline` token-routed; empty-spool fallback = pure token chrome), records the band renders the EXACT filament hex (never clamped) with legibility from the neutral keyline (framing, not distortion), and documents that `brandTint`'s WCAG-3:1 clamp was **considered and REJECTED** for the band (would lie about true color; stays brand-chrome-only). Same extension made literal in the `docs/ui_design/CLAUDE.md` "Token carve-out" bullet — its existing "a Spoolman spool's filament color" precedent now literally sanctions the spool glyph band (band-only; body+keyline token-routed; D-02/D-05/D-10). grep gate PASS (both files mention spool+band in carve-out context); all 4 must-have truths met; 0 deviations. SUMMARY `18.3-03-SUMMARY.md`. This is the documentation half of the THEME-01 exception that the implementation plans (01/02/04: custom vector glyph + band reactivity + surface wiring) ride on.
   → **Plan 18.2-05 (Wave 3: SC-4 de-brand audit + build/test gates + on-device sign-off) — COMPLETE & on-device flox-APPROVED 2026-06-07.** The CLOSING plan of Phase 18.2 (5/5). Task 1 `252e749` (fix — GalleryScreen debug `SectionHeader` "Dinghy Display — Component Gallery (debug)" → "jiib — Component Gallery (debug)"; wrote `18.2-DEBRAND-AUDIT.md` classifying EVERY `Dinghy Display`/`dinghy` hit in `app/src/main` as FIXED [Splash/About=18.2-04; manifest label×2 + MoonrakerService notif title=18.2-02; gallery=this plan] or OUT-OF-SCOPE [MoonrakerSession `clientName`/`clientUrl` = JSON-RPC connection identity recorded server-side only — CONSCIOUS retention per CONTEXT package/repo boundary, NOT a miss; ScreenScaffold KDoc comment; locked `Dinghy*` package/class/theme symbols + applicationId]; concluded zero user-visible "Dinghy Display" strings remain = SC-4). Task 2 `ebd5a12` (test — SC-4 grep gate PASS: only 2 survivors [ScreenScaffold comment + MoonrakerSession clientName], both on the documented allow-list; NONE in any string-resource body, manifest `android:label`, Compose `Text`/`SectionLabel`/`SectionHeader`/`setContentTitle`, or drawable. `:app:assembleRelease` BUILD SUCCESSFUL exit 0 via gw.bat [SC-5, unsigned — signing deferred PKG-01/Phase 8]. `:app:testDebugUnitTest` GREEN exit 0, no regression incl. 18.2-02 BrandTintTest. Gate results appended to the audit). **Task 3 = `checkpoint:human-verify` ON-DEVICE flox (LineageOS 18.1/API 30, genuine Adreno 320) → APPROVED:** debug APK built+installed via `installDebug` (BUILD SUCCESSFUL on device); owner confirmed all FIVE user-facing brand surfaces render correctly — launcher icon (white jiib sail on navy, square+round masks, v26 STATIC navy+white path NOT Material You tint), app/drawer label + recents title = "jiib", FGS notification title = "jiib", splash stacked lockup (accent-tinted, legible), About wordmark + tagline + jib-explainer note. SC-1/SC-2/SC-3 confirmed on-device; combined with Task-2's SC-4/SC-5 closure, **all Phase-18.2 success criteria met on the real hardware floor**. 0 deviations. Sign-off recorded in `18.2-DEBRAND-AUDIT.md`; SUMMARY `18.2-05-SUMMARY.md`. **Phase 18.2 execution COMPLETE (5/5); orchestrator runs phase verification next (do NOT mark the phase verified here).**
@@ -67,7 +68,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 112
+- Total plans completed: 120
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -92,6 +93,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 18 | 6 | - | - |
 | 18.1 | 4 | - | - |
 | 18.2 | 5 | - | - |
+| 17 | 8 | - | - |
 
 **Recent Trend:**
 
