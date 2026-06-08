@@ -47,6 +47,15 @@ class OutputsHolderTest {
         pwm = true, servoAngleMax = 180f, readOnly = false,
     )
 
+    private fun whiteOnlyLed(
+        key: String = "led chamber_light",
+        name: String = "chamber_light",
+    ) = OutputDescriptor(
+        objectKey = key, family = "led", commandName = name, prettyName = name,
+        pwm = false, servoAngleMax = 180f, readOnly = false,
+        ledHasRgb = false, ledHasWhite = true,
+    )
+
     private fun rowFor(rows: List<OutputRowVm>, key: String): OutputRowVm =
         rows.first { it.descriptor.objectKey == key }
 
@@ -157,6 +166,26 @@ class OutputsHolderTest {
         store.seed(PrinterState(outputs = mapOf("fan_generic FILTER_fan" to OutputLiveValue(speed = wire))))
         runCurrent()
         assertFalse("fan busy clears the instant live .speed reaches the wire target (confirm-from-live)", rowFor(holder.rows.value, "fan_generic FILTER_fan").busy)
+    }
+
+    @Test
+    fun whiteOnlyLedSwatchIsGreyNotBlack() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = OutputsHolder(backgroundScope, store)
+        store.setOutputDescriptors(listOf(whiteOnlyLed()))
+        // A white-only LED reports [r,g,b,w] = [0,0,0,0.8].
+        store.seed(PrinterState(outputs = mapOf("led chamber_light" to OutputLiveValue(colorData = listOf(listOf(0.0, 0.0, 0.0, 0.8))))))
+        runCurrent()
+
+        val row = rowFor(holder.rows.value, "led chamber_light")
+        assertEquals("white component drives brightness % ", "80%", row.displayValue)
+        val argb = row.swatchColor
+        assertNotNull("white-only LED has a swatch", argb)
+        val r = ((argb!! shr 16) and 0xFF).toInt()
+        val g = ((argb shr 8) and 0xFF).toInt()
+        val b = (argb and 0xFF).toInt()
+        assertTrue("swatch is grey/white (R==G==B)", r == g && g == b)
+        assertTrue("swatch is NOT black (lit white LED reads bright)", r > 0)
     }
 
     @Test

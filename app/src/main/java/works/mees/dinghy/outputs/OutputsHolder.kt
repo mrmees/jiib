@@ -185,8 +185,18 @@ class OutputsHolder(
 
             descriptor.family in LED_FAMILIES -> {
                 val rgbw = live?.colorData?.getOrNull(0)
-                if (rgbw != null) swatch = packArgb(rgbw)
-                // Brightness = the brightest channel of the strip's first pixel (0..1 → %).
+                if (rgbw != null) {
+                    // GAP-B: a white-only LED ([r,g,b,w] = [0,0,0,w]) must NOT pack as black — surface a
+                    // grey/white swatch scaled by the WHITE component so a lit white-only LED reads bright.
+                    swatch = if (!descriptor.ledHasRgb && descriptor.ledHasWhite) {
+                        val w = rgbw.getOrElse(3) { 0.0 }
+                        packArgb(listOf(w, w, w))
+                    } else {
+                        packArgb(rgbw)
+                    }
+                }
+                // Brightness = the brightest channel of the strip's first pixel (0..1 → %). For a white-only
+                // LED the white component IS the max channel (r=g=b=0), so this stays correct.
                 rgbw?.maxOrNull()?.let { "${pct(it)}%" }
             }
 

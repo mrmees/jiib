@@ -23,11 +23,30 @@ import works.mees.dinghy.ui.outputs.OutputToggleControl
 @Composable
 private fun LedCell() = OutputLedContent(
     prettyName = "Case Light",
+    ledHasRgb = true,
+    ledHasWhite = false,
     initialHue = 210f,
     initialBrightness = 80f,
     enabled = true,
     failureText = null,
     onColorSettle = { _, _ -> },
+    onWhiteSettle = {},
+    onOff = {},
+    onBack = {},
+)
+
+/** GAP-B: a white/brightness-only LED — brightness control ONLY, no hue wheel, grey/white swatch. */
+@Composable
+private fun WhiteOnlyLedCell() = OutputLedContent(
+    prettyName = "Chamber Light",
+    ledHasRgb = false,
+    ledHasWhite = true,
+    initialHue = 0f,
+    initialBrightness = 80f,
+    enabled = true,
+    failureText = null,
+    onColorSettle = { _, _ -> },
+    onWhiteSettle = {},
     onOff = {},
     onBack = {},
 )
@@ -116,6 +135,16 @@ private fun LedHighContrastLight() = PreviewBox(highContrastLight) { LedCell() }
 @Nexus7Previews
 @Composable
 private fun LedFsLargeOverflow() = PreviewBox(fsLargeSeed) { LedCell() }
+
+/** GAP-B: white-only LED — brightness-only (NO hue wheel), grey/white swatch. */
+@Nexus7Previews
+@Composable
+private fun WhiteOnlyLedColorfulDark() = PreviewBox(colorfulDark) { WhiteOnlyLedCell() }
+
+/** White-only LED fs = L overflow shot. */
+@Nexus7Previews
+@Composable
+private fun WhiteOnlyLedFsLargeOverflow() = PreviewBox(fsLargeSeed) { WhiteOnlyLedCell() }
 
 // --- Scrubber detail (fan + heater) -----------------------------------------------------------------
 
