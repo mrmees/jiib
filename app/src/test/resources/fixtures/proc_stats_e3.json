@@ -1,0 +1,7 @@
+{
+  "throttled_state": null,
+  "cpu_temp": 53.333,
+  "system_uptime": 1178981.142290853,
+  "system_memory": { "total": 3945568, "available": 2814280, "used": 1131288 },
+  "system_cpu_usage": { "cpu": 33.33, "cpu0": 37.89 }
+}

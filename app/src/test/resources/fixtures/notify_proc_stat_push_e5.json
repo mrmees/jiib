@@ -1,0 +1,8 @@
+{
+  "cpu_temp": 64.757,
+  "moonraker_stats": { "time": 312773.755726872, "cpu_usage": 1.43, "memory": 70728, "mem_units": "kB" },
+  "network": { "eth0": { "rx_bytes": 123456789, "tx_bytes": 98765432, "bandwidth": 1024.0 } },
+  "system_cpu_usage": { "cpu": 29.31, "cpu0": 33.68, "cpu1": 28.12, "cpu2": 23.23, "cpu3": 33.0 },
+  "system_memory": { "total": 8007452, "available": 7246140, "used": 761312 },
+  "websocket_connections": 2
+}

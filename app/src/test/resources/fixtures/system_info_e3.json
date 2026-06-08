@@ -1,0 +1,19 @@
+{
+  "system_info": {
+    "cpu_info": {
+      "cpu_count": 6,
+      "bits": "64bit",
+      "processor": "aarch64",
+      "cpu_desc": "",
+      "model": "",
+      "total_memory": 3945568,
+      "memory_units": "kB"
+    },
+    "distribution": {
+      "name": "Armbian 25.11.2 noble",
+      "id": "ubuntu",
+      "version": "24.04",
+      "kernel_version": "6.18.10-current-rockchip64"
+    }
+  }
+}
