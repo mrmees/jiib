@@ -1,58 +1,130 @@
 package works.mees.dinghy.webcam
 
-import org.junit.Assert.fail
+import androidx.media3.common.PlaybackException
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.state.ResolvedWebcam
+import works.mees.dinghy.state.Rung
+import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.ui.webcam.FeedOutcome
+import works.mees.dinghy.ui.webcam.H264Attempt
+import works.mees.dinghy.ui.webcam.H264AttemptResult
+import works.mees.dinghy.ui.webcam.WebcamFeed
+import works.mees.dinghy.ui.webcam.classifyPlaybackException
+import works.mees.dinghy.ui.webcam.compositeMedia3Feed
 
 /**
- * WAVE-0 RED SCAFFOLD (Phase 21, CAM-14) — fails until plan 21-04 maps media3 PlaybackException → outcome.
+ * Typed assertions (Phase 21, CAM-14) — REPLACES the plan-21-01 runtime-RED scaffold.
  *
- * Behavior this file pins (converted to live assertions by 21-04):
- *  - A media3 NETWORK error (ERROR_CODE_IO_NETWORK_CONNECTION_FAILED / ..._TIMEOUT) maps to
- *    [FeedOutcome.Transient] — the H.264 rung is RETRIED with backoff (a Wi-Fi hiccup, not a dead cam).
- *  - A DECODER-class error (decoder init failed / format unsupported / renderer-init) is classified as a
- *    "DECODER-VERIFIES" failure: the COMPOSITE feed FALLS THROUGH to the lower rungs (MJPEG → Snapshot)
- *    WITHIN the same run() — it must NOT short-circuit to [FeedOutcome.Terminal] while a lower rung is
- *    still viable. [FeedOutcome.Terminal] is reached ONLY when the lower rungs are ALSO dead.
- *  - Cancellation (page background / nav / spine rebuild) → [FeedOutcome.Cancelled] (clean exit, WR-01).
+ * Two layers are proven here WITHOUT a real ExoPlayer (the player attempt is behind the [H264Attempt] seam,
+ * the on-device property is plan-21-05's gate):
  *
- * Worked stub case (21-04 turns this into a live composite-feed assertion): a decoder-unsupported H.264
- * cam that ALSO has a working snapshot → snapshot frames flow (rung-2 fallback), and Terminal is returned
- * ONLY if the snapshot rung is also dead.
+ *  1. The PlaybackException CLASSIFICATION ([classifyPlaybackException]):
+ *     - a NETWORK error (ERROR_CODE_IO_NETWORK_CONNECTION_FAILED / ..._TIMEOUT) → [H264AttemptResult.Transient]
+ *       (the H.264 rung is RETRIED with backoff — a Wi-Fi hiccup, not a dead cam);
+ *     - a DECODER-class error (decoder init / format unsupported) → [H264AttemptResult.FallThrough]
+ *       (the COMPOSITE feed falls through to the lower MJPEG/Snapshot rungs WITHIN the same run()).
  *
- * COMPILE DISCIPLINE (project wave-0 rule): references ONLY the existing [FeedOutcome] enum. Does NOT
- * import androidx.media3 PlaybackException nor any unbuilt mapper — 21-04 introduces both and replaces
- * these `fail(...)` bodies with typed assertions against the real exception codes.
+ *  2. The COMPOSITE feed's fall-through ([compositeMedia3Feed]) with an injected attempt + lower rung:
+ *     - network → Transient (the holder retries the H.264 rung);
+ *     - decoder FallThrough + a working lower rung (snapshot frames flow) → those frames flow and the
+ *       outcome is whatever the lower rung returns — NOT a short-circuit Terminal while a lower rung is viable;
+ *     - decoder FallThrough + a DEAD lower rung → Terminal (only when the lower rung is also dead);
+ *     - cancellation → Cancelled (clean exit, WR-01).
  */
 class Media3FeedOutcomeTest {
 
+    private val h264Cam = ResolvedWebcam(
+        webcam = Webcam(name = "cam1", uid = "cam1", streamUrl = "rtsp://h/3", snapshotUrl = "http://h/snap"),
+        rung = Rung.H264,
+    )
+
+    // --- Layer 1: PlaybackException classification -------------------------------------------------
+
     @Test
-    fun `network connection failure maps to Transient (retry the H264 rung)`() {
-        // Existing enum sanity — the target outcome value already exists; the mapper does not.
-        check(FeedOutcome.Transient.name == "Transient")
-        fail("not yet implemented — 21-04: assert IO_NETWORK_CONNECTION_FAILED → FeedOutcome.Transient")
+    fun `network connection failure classifies as Transient (retry the H264 rung)`() {
+        assertEquals(
+            H264AttemptResult.Transient,
+            classifyPlaybackException(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED),
+        )
     }
 
     @Test
-    fun `network timeout maps to Transient`() {
-        fail("not yet implemented — 21-04: assert IO_NETWORK_CONNECTION_TIMEOUT → FeedOutcome.Transient")
+    fun `network timeout classifies as Transient`() {
+        assertEquals(
+            H264AttemptResult.Transient,
+            classifyPlaybackException(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT),
+        )
     }
 
     @Test
-    fun `decoder-unsupported on an H264 cam with a working snapshot falls through to snapshot frames`() {
-        // The load-bearing case: decoder failure must NOT short-circuit to Terminal while rung-2 is viable.
-        check(FeedOutcome.Terminal.name == "Terminal")
-        fail("not yet implemented — 21-04: assert a decoder error falls the COMPOSITE feed through to the snapshot rung (frames flow), NOT Terminal")
+    fun `decoder init failure classifies as FallThrough (NOT Terminal while a lower rung is viable)`() {
+        assertEquals(
+            H264AttemptResult.FallThrough,
+            classifyPlaybackException(PlaybackException.ERROR_CODE_DECODER_INIT_FAILED),
+        )
+        assertEquals(
+            H264AttemptResult.FallThrough,
+            classifyPlaybackException(PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED),
+        )
+    }
+
+    // --- Layer 2: composite fall-through (injected attempt + lower rung, no real player) -----------
+
+    @Test
+    fun `network error returns Transient — the holder retries the H264 rung`() = runTest {
+        val attempt = H264Attempt { _ -> H264AttemptResult.Transient }
+        // A lower rung that would yield frames if reached — it must NOT be reached on a network error.
+        var lowerReached = false
+        val lower = WebcamFeed<android.graphics.Bitmap> { _, _ -> lowerReached = true; FeedOutcome.Transient }
+
+        val feed = compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+        val outcome = feed.run(h264Cam) {}
+
+        assertEquals(FeedOutcome.Transient, outcome)
+        assertTrue("a network error retries the H.264 rung — the lower rung is NOT engaged", !lowerReached)
     }
 
     @Test
-    fun `decoder failure returns Terminal only when the lower rungs are also dead`() {
-        fail("not yet implemented — 21-04: assert Terminal ONLY when MJPEG + Snapshot rungs are also unusable")
+    fun `decoder-unsupported with a working snapshot falls through to snapshot frames`() = runTest {
+        // The load-bearing case (D-10 / SC2): a decoder failure must NOT short-circuit to Terminal while
+        // the snapshot rung is viable — it falls through IN-FEED and the snapshot frames flow.
+        val attempt = H264Attempt { _ -> H264AttemptResult.FallThrough }
+        val frames = mutableListOf<String>()
+        val lower = WebcamFeed<String> { _, onFrame ->
+            onFrame("SNAPSHOT-FRAME") // the working lower rung yields frames
+            FeedOutcome.Transient     // …and behaves like a live snapshot poll (transient, keeps retrying)
+        }
+
+        val feed = compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+        val outcome = feed.run(h264Cam) { frames += it }
+
+        assertEquals("snapshot frames flowed through the composite (fell through in-feed)", listOf("SNAPSHOT-FRAME"), frames)
+        assertEquals("the outcome is the lower rung's outcome, NOT a short-circuit Terminal", FeedOutcome.Transient, outcome)
     }
 
     @Test
-    fun `cancellation maps to Cancelled (clean exit WR-01)`() {
-        check(FeedOutcome.Cancelled.name == "Cancelled")
-        fail("not yet implemented — 21-04: assert a cancelled playback scope → FeedOutcome.Cancelled")
+    fun `decoder failure returns Terminal only when the lower rung is also dead`() = runTest {
+        val attempt = H264Attempt { _ -> H264AttemptResult.FallThrough }
+        // The lower rung is ALSO dead (no MJPEG, no reachable snapshot) → Terminal.
+        val lower = WebcamFeed<String> { _, _ -> FeedOutcome.Terminal }
+
+        val feed = compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+        val outcome = feed.run(h264Cam) {}
+
+        assertEquals("Terminal ONLY when H.264 AND the lower rungs are all exhausted", FeedOutcome.Terminal, outcome)
+    }
+
+    @Test
+    fun `cancellation maps to Cancelled (clean exit WR-01)`() = runTest {
+        val attempt = H264Attempt { _ -> H264AttemptResult.Cancelled }
+        val lower = WebcamFeed<String> { _, _ -> FeedOutcome.Transient }
+
+        val feed = compositeMedia3Feed(h264Attempt = attempt, lowerRung = lower)
+        val outcome = feed.run(h264Cam) {}
+
+        assertEquals(FeedOutcome.Cancelled, outcome)
     }
 }
