@@ -1,29 +1,22 @@
-// RED scaffold (Phase 20 Wave 0 / Plan 20-01) — turns GREEN in Plan 02 (ProcStatLive.fromPush).
+// GREEN (Plan 20-02) — live assertions against the captured notify_proc_stat_update push frame.
 package works.mees.dinghy.systeminfo
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import works.mees.dinghy.net.MoonrakerJson
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /**
- * Wave-0 RED scaffold (20-01) — turned GREEN by Plan 02 (`ProcStatLive.fromPush(...)`).
- *
  * SYS-02. Walks the REAL captured `notify_proc_stat_update` params[0] frame committed as
  * `/fixtures/notify_proc_stat_push_e5.json` (captured live 2026-06-08 on the E5 wire).
  *
  * REAL-SHAPE CONTRACT this test pins (RESEARCH Pitfall 1 — the single most important finding):
- *   - The PUSH frame carries cpu_temp, system_cpu_usage, system_memory, moonraker_stats,
- *     network, websocket_connections.
+ *   - The PUSH frame carries cpu_temp, system_cpu_usage, system_memory, moonraker_stats, etc.
  *   - The PUSH frame OMITS `throttled_state` AND `system_uptime` — those exist ONLY in the
  *     one-shot machine.proc_stats QUERY result. The push parser MUST tolerate their absence
  *     and must NOT source throttle/uptime from here.
- *
- * Production symbol referenced (NOT YET BUILT → RED): `ProcStatLive.fromPush(jsonObject)` in
- * `works.mees.dinghy.systeminfo` — Plan 02 introduces it.
  */
 class ProcStatPushTest {
 
@@ -35,22 +28,22 @@ class ProcStatPushTest {
 
     @Test
     fun pushParsesCpuTempLoadMem() {
-        // Fixture-shape assertion: the live keys the push parser will read are present — idiom (a).
-        val push = pushFixture()
-        assertTrue("push carries cpu_temp", push.containsKey("cpu_temp"))
-        assertTrue("push carries system_cpu_usage", push.containsKey("system_cpu_usage"))
-        assertTrue("push carries system_memory", push.containsKey("system_memory"))
-        // Behavior pending Plan 02: ProcStatLive.fromPush(push) -> cpuTemp=64.757, load(cpu)=29.31, mem used/avail.
-        assumeTrue("Plan 02 implements works.mees.dinghy.systeminfo.ProcStatLive.fromPush(...)", false)
+        val live = ProcStatLive.fromPush(pushFixture())
+        assertEquals(64.757f, live.cpuTemp!!, 0.001f)
+        assertEquals(29.31f, live.cpuLoadPercent!!, 0.001f)
+        assertEquals(761312L, live.memUsedKb)
+        assertEquals(8007452L, live.memTotalKb)
+        assertEquals(7246140L, live.memAvailableKb)
     }
 
     @Test
     fun pushParserDoesNotRequireThrottleOrUptime() {
-        // idiom (a): the live push genuinely OMITS both — the parser must not depend on them.
         val push = pushFixture()
+        // The live push genuinely OMITS both — the parser must not depend on them.
         assertFalse("push MUST NOT carry throttled_state", push.containsKey("throttled_state"))
         assertFalse("push MUST NOT carry system_uptime", push.containsKey("system_uptime"))
-        // Behavior pending Plan 02: ProcStatLive.fromPush(push) succeeds with throttle/uptime sourced elsewhere.
-        assumeTrue("Plan 02 implements works.mees.dinghy.systeminfo.ProcStatLive.fromPush(...)", false)
+        // fromPush succeeds anyway — throttle/uptime are sourced from the query, not here.
+        val live = ProcStatLive.fromPush(push)
+        assertEquals(64.757f, live.cpuTemp!!, 0.001f)
     }
 }

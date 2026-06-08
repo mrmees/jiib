@@ -1,30 +1,25 @@
-// RED scaffold (Phase 20 Wave 0 / Plan 20-01) — turns GREEN in Plan 02 (SystemInfo.from).
+// GREEN (Plan 20-02) — live assertions against the both-SBC system_info fixtures.
 package works.mees.dinghy.systeminfo
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import works.mees.dinghy.net.MoonrakerJson
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /**
- * Wave-0 RED scaffold (20-01) — turned GREEN by Plan 02 (`SystemInfo.from(...)`).
- *
  * SYS-01. Walks the REAL `machine.system_info.result.system_info` shape committed as
  * `/fixtures/system_info_e5.json` (RPi4) and `/fixtures/system_info_e3.json` (RockPro64),
  * captured live 2026-06-08 from both printers.
  *
  * REAL-SHAPE CONTRACT this test pins (the mock-vs-reality traps — 20-RESEARCH):
  *   - `cpu_info.model` is "Raspberry Pi 4 Model B Rev 1.4" on the Pi but the EMPTY STRING ""
- *     on the RockPro64 (NOT null, NOT absent) → degrade to "—".
- *   - `kernel_version` lives UNDER `distribution`, NOT at the top level of system_info
- *     (RESEARCH Pitfall 3). A top-level read yields nothing.
+ *     on the RockPro64 (NOT null, NOT absent) → degrade to null (UI "—").
+ *   - `kernel_version` lives UNDER `distribution`, NOT at the top level of system_info (Pitfall 3).
  *   - `cpu_info.cpu_count` is the integer core count (4 on E5, 6 on E3).
  *   - memory is in kB (`memory_units` == "kB").
- *
- * Production symbol referenced (NOT YET BUILT → RED): `SystemInfo.from(jsonObject)` in
- * `works.mees.dinghy.systeminfo` — Plan 02 introduces it.
  */
 class SystemInfoParseTest {
 
@@ -40,36 +35,30 @@ class SystemInfoParseTest {
 
     @Test
     fun e5_parsesModelAndCpuCount() {
-        // Fixture-shape assertion (proves the resource loads + carries the expected keys) — idiom (a).
-        val root = systemInfoE5()
-        val cpu = root["system_info"]!!.jsonObject["cpu_info"]!!.jsonObject
-        assertTrue("E5 cpu_info has model + cpu_count", cpu.containsKey("model") && cpu.containsKey("cpu_count"))
-        // Behavior assertion pending Plan 02: SystemInfo.from(root).model == "Raspberry Pi 4 Model B Rev 1.4"
-        // and SystemInfo.from(root).cpuCount == 4.
-        assumeTrue("Plan 02 implements works.mees.dinghy.systeminfo.SystemInfo.from(...)", false)
+        val info = SystemInfo.from(systemInfoE5())
+        assertEquals("Raspberry Pi 4 Model B Rev 1.4", info.model)
+        assertEquals(4, info.cpuCount)
+        assertEquals(8007452L, info.totalMemoryKb)
+        assertEquals("aarch64", info.processor)
+        assertEquals("Debian GNU/Linux 12 (bookworm)", info.distroName)
     }
 
     @Test
     fun e3_emptyModelDegrades() {
-        // The RockPro64 model is the empty string "" (RESEARCH Pitfall 4) — degrade-to-"—".
-        val root = systemInfoE3()
-        val model = root["system_info"]!!.jsonObject["cpu_info"]!!.jsonObject["model"].toString()
-        assertTrue("E3 model is the empty string \"\", not null/absent", model == "\"\"")
-        // Behavior pending Plan 02: SystemInfo.from(root).model renders "—" (blank string treated as missing).
-        assumeTrue("Plan 02 implements works.mees.dinghy.systeminfo.SystemInfo.from(...)", false)
+        // The RockPro64 model is the empty string "" — degrade-to-null (UI "—").
+        val info = SystemInfo.from(systemInfoE3())
+        assertNull("blank model string is treated as missing", info.model)
+        assertEquals(6, info.cpuCount)
+        assertEquals("Armbian 25.11.2 noble", info.distroName)
+        assertEquals("6.18.10-current-rockchip64", info.kernel)
     }
 
     @Test
     fun kernelComesFromDistributionNotTopLevel() {
-        // kernel_version is UNDER distribution (RESEARCH Pitfall 3) — NOT system_info top-level.
-        val root = systemInfoE5()
-        val sysInfo = root["system_info"]!!.jsonObject
+        // kernel_version is UNDER distribution (Pitfall 3) — NOT a system_info top-level key.
+        val sysInfo = systemInfoE5()["system_info"]!!.jsonObject
         assertTrue("kernel_version is NOT a top-level system_info key", !sysInfo.containsKey("kernel_version"))
-        assertTrue(
-            "kernel_version lives under distribution",
-            sysInfo["distribution"]!!.jsonObject.containsKey("kernel_version")
-        )
-        // Behavior pending Plan 02: SystemInfo.from(root).kernel == "6.12.87+rpt-rpi-v8".
-        assumeTrue("Plan 02 implements works.mees.dinghy.systeminfo.SystemInfo.from(...)", false)
+        val info = SystemInfo.from(systemInfoE5())
+        assertEquals("6.12.87+rpt-rpi-v8", info.kernel)
     }
 }
