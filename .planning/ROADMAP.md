@@ -988,7 +988,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0)*
 
-- [ ] 20-02-PLAN.md — Pure logic: system_info/proc-stat parsers + health-chip decision fn (throttle vs D-12 temp-fallback) + kB/uptime formatters (SYS-01..04)
+- [x] 20-02-PLAN.md — Pure logic: system_info/proc-stat parsers + health-chip decision fn (throttle vs D-12 temp-fallback) + kB/uptime formatters (SYS-01..04)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -1085,7 +1085,7 @@ notes.
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
-| 20. System Information Page | 1/4 | In Progress|  |
+| 20. System Information Page | 2/4 | In Progress|  |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
