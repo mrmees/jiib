@@ -73,7 +73,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 18.1: Icon System Conformance** (INSERTED) - Apply Phase 18's icon-source policy app-wide: refresh the bundled Material Symbols font to a current cut, convert remaining hand-traced Material-Symbol-wannabe drawables (status octagon/triangle + others) to font ligatures (or official Google vectors where the font lacks them), keep ONLY genuinely-custom printer-domain glyphs (nozzle/bed/tilt/spool), and mop up cosmetic KDoc doc-link warnings. Pulls the icon-SOURCE-conformance portion forward from Phase 22. (completed 2026-06-07)
 - [x] **Phase 18.2: jiib Rebrand** (INSERTED) - Replace the user-facing "Dinghy Display" brand with "jiib": swap the launcher icon to `img/jiib_icon.svg` (adaptive icon), rename the app label, and apply the wordmark/stacked lockup to in-app branding surfaces. Repo + package name stay unchanged — user-facing brand only. (completed 2026-06-07)
 - [x] **Phase 18.3: Color-Reactive Spool Icon** (INSERTED) - Author a custom spool glyph (Material Symbols lacks one) to replace the `database` placeholder, tinted by the loaded filament's actual color (a documented THEME-01 exception). Needs `/gsd-discuss-phase 18.3` first. (completed 2026-06-07)
-- [ ] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive
+- [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
 - [ ] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe
 - [ ] **Phase 21: WebRTC Camera Streaming** - Real camera for the project's own WebRTC-only printers (go2rtc/camera-streamer via WHEP), extending the Phase-10 webcam rung-ladder; perf-gated to the Adreno-320 floor
 - [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
@@ -957,7 +957,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 19-08-PLAN.md — On-device UAT on flox + live E5P/E3P (SC-4)
+- [x] 19-08-PLAN.md — On-device UAT on flox + live E5P/E3P (SC-4)
 
 **Gap closure** *(from 19-UAT on-device gate — 2 MAJOR gaps)*
 
@@ -1067,7 +1067,7 @@ notes.
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
-| 19. Output Controls — Fans, Lights & Generic Pins | 9/10 | In Progress|  |
+| 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
