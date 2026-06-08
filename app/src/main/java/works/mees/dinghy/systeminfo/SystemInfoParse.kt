@@ -4,11 +4,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 /**
@@ -113,7 +111,7 @@ private fun JsonObject.throttledStateOrNull(): ThrottledState? {
     val obj = el as? JsonObject ?: return null
     val bits = obj.intOrNullAt("bits") ?: 0
     val flags = (obj["flags"] as? JsonArray)
-        ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+        ?.mapNotNull { (it as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content }
         ?: emptyList()
     return ThrottledState(bits = bits, flags = flags)
 }
