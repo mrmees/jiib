@@ -763,7 +763,7 @@ Plans:
   4. Proven on a real in-progress print on the Ender 5 Plus: change speed/flow (and a motion-limit + pressure advance) mid-print and observe the effect
 
 **Requirements**: TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05, TUNE-06, TUNE-07 (new family coined at planning, mapped to the 4 Success Criteria + CONTEXT D-01..D-21)
-**Plans**: 6 plans
+**Plans**: 8 plans (6 + 2 gap-closure)
 Plans:
 
 **Wave 0**
@@ -783,6 +783,11 @@ Plans:
 **Wave 3** *(blocked on 17-05; on-device gate)*
 
 - [ ] 17-06-PLAN.md — Nav wiring (Dest.FineTune + AppShell hub→group sub-nav + drawer tile + Print-Status Tune entry) + instrumented nav test + on-device Motion/Extrusion state-flip + Adreno-320 perf UAT (autonomous:false; FW-retraction excluded — build-blind) (TUNE-01)
+
+**Wave 4** *(gap-closure from 17-UAT.md — parallel, disjoint files)*
+
+- [ ] 17-07-PLAN.md — GAP 1 (Check 6, MAJOR): fix the Fine-Tune busy-lock permanent wedge at a clamp ceiling — single-source clamp authority in PrinterCommands fed to markPending + skip-arm guard + bounded timeout backstop + regression test (TUNE-03/04)
+- [ ] 17-08-PLAN.md — GAP 2 (Check 8, MINOR): ShellNavState.navigateTo runs per-dest entry resets on same-dest re-selection so Fine-Tune (and Calibration/Macros) reset to Hub on re-entry; turns the RED instrumented FineTuneNavTest GREEN (autonomous:false; on-device flox) (TUNE-01)
 
 **UI hint**: yes
 **Research note**: STANDARD — M220 / M221 / M204 / SET_VELOCITY_LIMIT / SET_PRESSURE_ADVANCE / SET_RETRACTION / SET_FAN_SPEED verified against Klipper docs; reuses the command primitive + a new C2-derived value tile (NOT the scrubber); speed_factor/extrude_factor already in PrinterState, the rest (pressure_advance, fan.speed, toolhead limits, firmware_retraction) are new reducer fields. See 17-CONTEXT.md + 17-RESEARCH/PATTERNS/VALIDATION.
