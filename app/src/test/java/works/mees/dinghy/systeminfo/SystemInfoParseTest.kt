@@ -28,16 +28,20 @@ import org.junit.Test
  */
 class SystemInfoParseTest {
 
-    private fun systemInfoFixture(name: String): JsonObject {
-        val res = javaClass.getResource("/fixtures/$name")
-            ?: error("fixture /fixtures/$name missing from test classpath")
+    private fun loadFixture(path: String): JsonObject {
+        val res = javaClass.getResource(path)
+            ?: error("fixture $path missing from test classpath")
         return MoonrakerJson.parseToJsonElement(res.readText()).jsonObject
     }
+
+    // Explicit literal getResource("/fixtures/system_info_*") call-sites (key-link to the fixtures).
+    private fun systemInfoE5(): JsonObject = loadFixture("/fixtures/system_info_e5.json")
+    private fun systemInfoE3(): JsonObject = loadFixture("/fixtures/system_info_e3.json")
 
     @Test
     fun e5_parsesModelAndCpuCount() {
         // Fixture-shape assertion (proves the resource loads + carries the expected keys) — idiom (a).
-        val root = systemInfoFixture("system_info_e5.json")
+        val root = systemInfoE5()
         val cpu = root["system_info"]!!.jsonObject["cpu_info"]!!.jsonObject
         assertTrue("E5 cpu_info has model + cpu_count", cpu.containsKey("model") && cpu.containsKey("cpu_count"))
         // Behavior assertion pending Plan 02: SystemInfo.from(root).model == "Raspberry Pi 4 Model B Rev 1.4"
@@ -48,7 +52,7 @@ class SystemInfoParseTest {
     @Test
     fun e3_emptyModelDegrades() {
         // The RockPro64 model is the empty string "" (RESEARCH Pitfall 4) — degrade-to-"—".
-        val root = systemInfoFixture("system_info_e3.json")
+        val root = systemInfoE3()
         val model = root["system_info"]!!.jsonObject["cpu_info"]!!.jsonObject["model"].toString()
         assertTrue("E3 model is the empty string \"\", not null/absent", model == "\"\"")
         // Behavior pending Plan 02: SystemInfo.from(root).model renders "—" (blank string treated as missing).
@@ -58,7 +62,7 @@ class SystemInfoParseTest {
     @Test
     fun kernelComesFromDistributionNotTopLevel() {
         // kernel_version is UNDER distribution (RESEARCH Pitfall 3) — NOT system_info top-level.
-        val root = systemInfoFixture("system_info_e5.json")
+        val root = systemInfoE5()
         val sysInfo = root["system_info"]!!.jsonObject
         assertTrue("kernel_version is NOT a top-level system_info key", !sysInfo.containsKey("kernel_version"))
         assertTrue(
