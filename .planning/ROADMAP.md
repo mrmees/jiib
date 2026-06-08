@@ -935,7 +935,7 @@ Plans:
   3. Read-only or absent outputs degrade gracefully; no control sends a command the printer can't accept
   4. Proven live against the real printers' actual fan/pin/LED configuration
 
-**Plans**: 8 plans (5 waves)Plans:
+**Plans**: 8 plans (5 waves) + 2 gap-closure plans (2 waves)Plans:
 **Wave 1**
 
 - [x] 19-01-PLAN.md — Output icons: register D-01..D-07 ligatures, reassign part-fan→air (D-08), D-09 ligature gate
@@ -958,6 +958,11 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [ ] 19-08-PLAN.md — On-device UAT on flox + live E5P/E3P (SC-4)
+
+**Gap closure** *(from 19-UAT on-device gate — 2 MAJOR gaps)*
+
+- [ ] 19-09-PLAN.md — GAP-A: ScrubberPage gutter Off-slot + remove scrubber Off-overlay + single-scaffold LED layout (SC-2)
+- [ ] 19-10-PLAN.md — GAP-B: per-LED channel-capability detection + white-only brightness-slider page (WHITE channel) vs RGB wheel (SC-2/SC-3)
 
 **UI hint**: yes
 **Research note**: STANDARD — SET_FAN_SPEED / SET_PIN / SET_LED + the corresponding status objects verified against the Klipper config reference.
