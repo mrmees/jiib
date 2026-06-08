@@ -33,6 +33,18 @@ data class OutputDescriptor(
     val servoAngleMax: Float,
     /** Read-only when a `static_value` is configured (static pin) — surfaced but not commandable (SC-3). */
     val readOnly: Boolean,
+    /**
+     * GAP-B channel capability — true when this LED can take an RGB write (a pin-based `[led]` with
+     * red/green/blue pins, or a `color_order` token carrying R/G/B, or a fixed RGBW driver). Derived from
+     * `configfile.settings` by [parseOutputs]. Defaults `false` (non-LED families and unrecognized sections).
+     */
+    val ledHasRgb: Boolean = false,
+    /**
+     * GAP-B channel capability — true when this LED has a dedicated white channel (a `white_pin` on a
+     * pin-based `[led]`, or a `color_order` token carrying "W", or a fixed RGBW driver). Derived from
+     * `configfile.settings` by [parseOutputs]. Defaults `false`.
+     */
+    val ledHasWhite: Boolean = false,
 ) {
     companion object {
         /** Klipper's default `maximum_servo_angle` when the section omits it. */

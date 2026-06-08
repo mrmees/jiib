@@ -1,7 +1,10 @@
 package works.mees.dinghy.outputs
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -66,6 +69,11 @@ object OutputsGate {
                 val section = value as? JsonObject ?: return@mapNotNull null
                 val commandName = objectKey.substringAfter(' ')
 
+                // GAP-B: derive per-LED channel capability from the settings section (only for LED families).
+                val (ledHasRgb, ledHasWhite) =
+                    if (family in OutputsHolder.LED_FAMILIES) ledCapability(family, section)
+                    else false to false
+
                 OutputDescriptor(
                     objectKey = objectKey,
                     family = family,
@@ -75,12 +83,67 @@ object OutputsGate {
                     servoAngleMax = section.floatOrNull("maximum_servo_angle")
                         ?: OutputDescriptor.DEFAULT_SERVO_ANGLE_MAX,
                     readOnly = section.containsKey("static_value"),
+                    ledHasRgb = ledHasRgb,
+                    ledHasWhite = ledHasWhite,
                 )
             }
             .sortedBy { it.prettyName }
 
     /** D-10 input: does the printer expose ANY controllable output? */
     fun hasAnyOutput(descriptors: List<OutputDescriptor>): Boolean = descriptors.isNotEmpty()
+
+    /** Pin-based "dumb" PWM LED — capability comes from its red/green/blue/white pins. */
+    private const val FAMILY_LED = "led"
+    /** Fixed 4-channel RGBW driver (Codex SS-1: no `*_pin`, no `color_order`). */
+    private const val FAMILY_PCA9533 = "pca9533"
+
+    /**
+     * GAP-B (T-19-10-01 / T-19-10-04): derive `(ledHasRgb, ledHasWhite)` for an LED [family] from its
+     * settings [section]. Three shapes:
+     *  - pin-based `led`: red/green/blue pin present ⇒ RGB; white_pin present ⇒ white (an RGBW `[led]` is both).
+     *  - color_order families (`neopixel`/`dotstar`/`pca9632`): a token with R/G/B ⇒ RGB; a token with "W" ⇒
+     *    white. Handles array AND scalar `color_order` shapes. Absent `color_order` defaults RGBW-capable —
+     *    `pca9632`'s Klipper default order is RGBW; neopixel/dotstar are RGB by definition.
+     *  - fixed driver `pca9533`: a 4-channel RGBW driver with no pins/order ⇒ both flags directly (Codex SS-1).
+     *  - FALLBACK: an LED that matches none of the above defaults RGB-capable so we never hide ALL controls
+     *    (RGB is the safe superset; a no-op RGB write is the pre-fix behavior, not a regression).
+     */
+    private fun ledCapability(family: String, section: JsonObject): Pair<Boolean, Boolean> = when (family) {
+        FAMILY_LED -> {
+            val rgb = section.containsKey("red_pin") ||
+                section.containsKey("green_pin") ||
+                section.containsKey("blue_pin")
+            val white = section.containsKey("white_pin")
+            // FALLBACK: a bare [led] with neither set defaults RGB-capable (never hide all controls).
+            if (!rgb && !white) true to false else rgb to white
+        }
+        FAMILY_PCA9533 -> true to true // fixed RGBW driver — no pins, no color_order (Codex SS-1).
+        else -> {
+            // color_order families (neopixel / dotstar / pca9632).
+            val tokens = section.colorOrderTokens()
+            if (tokens.isEmpty()) {
+                // Absent color_order: pca9632 defaults RGBW; neopixel/dotstar are RGB by definition.
+                true to (family == "pca9632")
+            } else {
+                val rgb = tokens.any { tok -> tok.any { it == 'R' || it == 'G' || it == 'B' } }
+                val white = tokens.any { tok -> tok.contains('W') }
+                // FALLBACK guard: a recognized-but-unparseable order still shows RGB.
+                if (!rgb && !white) true to false else rgb to white
+            }
+        }
+    }
+
+    /**
+     * The upper-cased `color_order` tokens from either a JSON array (`["GRB"]`, the Klipper shape) or a
+     * scalar string (`"GRB"`), or empty when absent/unrecognized. Defensive (T-19-10-04).
+     */
+    private fun JsonObject.colorOrderTokens(): List<String> {
+        return when (val co = this["color_order"]) {
+            is JsonArray -> co.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.uppercase() }
+            is JsonPrimitive -> co.contentOrNull?.uppercase()?.let { listOf(it) } ?: emptyList()
+            else -> emptyList()
+        }
+    }
 
     /**
      * Prettify a bare section name: split on `_`/`-`/whitespace only, title-case each token, collapse

@@ -160,6 +160,77 @@ class OutputsGateTest {
     }
 
     @Test
+    fun ledChannelCapabilityFromRealFixtures() {
+        // GAP-B: per-LED channel capability is derived from configfile.settings.
+        val byKey = e5p().associateBy { it.objectKey }
+
+        // `led chamber_light` has ONLY white_pin (no red/green/blue) → white/brightness-only.
+        val chamber = byKey["led chamber_light"] ?: error("led chamber_light missing")
+        assertFalse("white-only LED has no RGB capability", chamber.ledHasRgb)
+        assertTrue("white-only LED has the white channel", chamber.ledHasWhite)
+
+        // `neopixel expanderPixel` color_order ["GRB"] → RGB-capable, no white.
+        val expander = byKey["neopixel expanderPixel"] ?: error("neopixel expanderPixel missing")
+        assertTrue("GRB neopixel is RGB-capable", expander.ledHasRgb)
+        assertFalse("GRB neopixel has no white channel", expander.ledHasWhite)
+    }
+
+    @Test
+    fun ledCapabilityDerivationCases() {
+        // [led] with red/green/blue pins → RGB; adding white_pin → RGBW (both flags).
+        val rgb = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"led rgb_strip":{"red_pin":"a","green_pin":"b","blue_pin":"c"}}""") as JsonObject,
+            setOf("led rgb_strip"),
+        ).single()
+        assertTrue(rgb.ledHasRgb)
+        assertFalse(rgb.ledHasWhite)
+
+        val rgbw = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"led rgbw_strip":{"red_pin":"a","green_pin":"b","blue_pin":"c","white_pin":"d"}}""") as JsonObject,
+            setOf("led rgbw_strip"),
+        ).single()
+        assertTrue(rgbw.ledHasRgb)
+        assertTrue(rgbw.ledHasWhite)
+
+        // color_order containing W (e.g. "RGBW") → RGB AND white.
+        val neoRgbw = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"neopixel rgbw_pixel":{"color_order":["GRBW"]}}""") as JsonObject,
+            setOf("neopixel rgbw_pixel"),
+        ).single()
+        assertTrue(neoRgbw.ledHasRgb)
+        assertTrue(neoRgbw.ledHasWhite)
+
+        // pure "W" color_order → white-only.
+        val whiteOnly = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"neopixel w_pixel":{"color_order":["W"]}}""") as JsonObject,
+            setOf("neopixel w_pixel"),
+        ).single()
+        assertFalse(whiteOnly.ledHasRgb)
+        assertTrue(whiteOnly.ledHasWhite)
+
+        // pca9533 (fixed 4-channel RGBW driver, no pins / no color_order) → both flags (Codex SS-1).
+        val pca9533 = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"pca9533 leds":{}}""") as JsonObject,
+            setOf("pca9533 leds"),
+        ).single()
+        assertTrue(pca9533.ledHasRgb)
+        assertTrue(pca9533.ledHasWhite)
+
+        // pca9632 with no color_order → Klipper defaults RGBW (Codex SS-1).
+        val pca9632 = OutputsGate.parseOutputs(
+            Json.parseToJsonElement("""{"pca9632 leds":{}}""") as JsonObject,
+            setOf("pca9632 leds"),
+        ).single()
+        assertTrue(pca9632.ledHasRgb)
+        assertTrue(pca9632.ledHasWhite)
+
+        // Non-LED family → both flags default false.
+        val fan = e5p().single { it.family == "fan_generic" }
+        assertFalse(fan.ledHasRgb)
+        assertFalse(fan.ledHasWhite)
+    }
+
+    @Test
     fun sparseFixtureSingleOutputPin() {
         // E3P is the sparse case: a single virtual output_pin (`output_pin ignore_m600`).
         val e3p = OutputsGate.parseOutputs(
