@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 18-preview-harness-tokenization-foundation
 source: [18-VERIFICATION.md, 18-04-PLAN.md]
 started: 2026-06-06
@@ -8,7 +8,7 @@ updated: 2026-06-07
 
 ## Current Test
 
-[testing complete — 5/6 passed, 1 deferred to on-device; Test 1 issue found + fixed]
+[testing complete — 5/6 passed, Test 6 accepted-deferred (on-device-only en-XA, owner sign-off 2026-06-07); Test 1 issue found + fixed]
 
 ## Tests
 
@@ -40,9 +40,10 @@ note (NOT a Phase-18 regression): Temperature showed "No heaters" while PrintSta
 
 ### 6. Pseudolocale en-XA sweep
 expected: Tokenized exemplar strings show accented/expanded pseudo-text under en-XA; deferred literals (ScanSurface, FwRetraction) stay plain English.
-result: blocked
+result: accepted-deferred
 blocked_by: on-device-only
 reason: "Android Studio's Compose preview does NOT apply AAPT2 pseudolocalization for `locale=\"en-XA\"` — it renders the base English strings (the `*PseudolocaleSpotCheck` panels show plain English in Studio, which is expected layoutlib behavior, not a code/tokenization defect). The authoritative en-XA check is on-device: Settings → Languages → add English (XA), then glance at a tokenized screen. Deferred to a future device session — lowest-stakes check; tokenization is already proven (strings resolve via R.string, build green)."
+resolution: "Owner accepted as deferred 2026-06-07 (/gsd-verify-work 18, close-out). Not a blocker — tokenization is proven by R.string resolution + green build; the en-XA glance is an optional layout-stress confirmation, naturally re-checkable during the Phase-22 on-device release pass."
 
 ## Summary
 
@@ -51,7 +52,8 @@ passed: 5
 issues: 0
 pending: 0
 skipped: 0
-blocked: 1
+blocked: 0
+accepted_deferred: 1  # Test 6 en-XA on-device sweep — owner sign-off 2026-06-07
 
 ## Gaps
 
