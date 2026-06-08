@@ -949,7 +949,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 19-06-PLAN.md — Per-type detail pages (scrubber/LED+Off D-12/pin toggle), immediate settle-dispatch
+- [x] 19-06-PLAN.md — Per-type detail pages (scrubber/LED+Off D-12/pin toggle), immediate settle-dispatch
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -1062,7 +1062,7 @@ notes.
 | 16. Home / Print-Status Redesign | 8/8 | Complete    | 2026-06-06 |
 | 17. Fine-Tune / Live-Adjust Panel | 8/8 | Complete    | 2026-06-08 |
 | 18. Preview Harness & Tokenization Foundation | 6/7 | Complete    | 2026-06-07 |
-| 19. Output Controls — Fans, Lights & Generic Pins | 5/8 | In Progress|  |
+| 19. Output Controls — Fans, Lights & Generic Pins | 6/8 | In Progress|  |
 | 20. System Information Page | 0/TBD | Not started | - |
 | 21. WebRTC Camera Streaming | 0/TBD | Not started | - |
 | 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
