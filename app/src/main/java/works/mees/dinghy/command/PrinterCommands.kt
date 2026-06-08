@@ -149,6 +149,36 @@ object PrinterCommands {
     /** Clamp a smooth-time (s) to [SMOOTH_MIN]..[SMOOTH_MAX]. */
     fun clampSmoothTime(v: Double): Double = v.coerceIn(SMOOTH_MIN, SMOOTH_MAX)
 
+    // --- Phase-19 output-control clamp bounds + authority (SC-2/SC-3, 17-07 lesson) ----------------
+    // Generic outputs (fan_generic / led / servo / output_pin / pwm_tool). UI works in 0..100% and
+    // degrees; the wire takes 0..1 (SPEED/VALUE/RED…), 0/1 (digital pin), or a clamped servo angle.
+    // EVERY builder clamps BEFORE format here (single-source clamp authority — ASVS V5, T-19-03-01),
+    // and the markPending wire helpers ([outputPctToWire]) return the SAME clamped value the wire sends
+    // so an optimistic state-flip target can never disagree with the dispatched command (T-19-03-02,
+    // the 17-07 busy-lock-wedge invariant). HIGH-1: every builder's `name` is the BARE Klipper section
+    // name (e.g. `FILTER_fan`), NEVER the full object key (`fan_generic FILTER_fan`) — the family
+    // prefix never reaches the wire (T-19-03-04).
+
+    /** Generic-output percent (fan/pwm-pin/pwm-tool display unit) bounds. */
+    const val OUTPUT_PCT_MIN = 0
+    const val OUTPUT_PCT_MAX = 100
+
+    /** Default servo angle ceiling (degrees) when a descriptor carries no explicit max. */
+    const val SERVO_ANGLE_DEFAULT_MAX = 180
+
+    /** Clamp a generic-output percent to [OUTPUT_PCT_MIN]..[OUTPUT_PCT_MAX] (display unit). */
+    fun clampOutputPct(pct: Int): Int = pct.coerceIn(OUTPUT_PCT_MIN, OUTPUT_PCT_MAX)
+
+    /** Clamp a servo angle to 0..[maxDeg] (per-descriptor ceiling; default [SERVO_ANGLE_DEFAULT_MAX]). */
+    fun clampServoAngle(deg: Int, maxDeg: Int = SERVO_ANGLE_DEFAULT_MAX): Int = deg.coerceIn(0, maxDeg)
+
+    /**
+     * The clamped 0..1 WIRE value a display percent maps to — the SAME value [setGenericFan]/[setPinPwm]
+     * format onto the wire. Wave-2 holders compute their optimistic markPending target through THIS helper
+     * so the pending target equals the dispatched wire value (17-07 — a mismatch wedges the busy lock).
+     */
+    fun outputPctToWire(pct: Int): Double = clampOutputPct(pct) / 100.0
+
     // --- Constant action gcodes -------------------------------------------------------------------
     /** Turn off every heater (Temp-panel Cooldown). */
     const val COOLDOWN = "TURN_OFF_HEATERS"
@@ -452,6 +482,58 @@ object PrinterCommands {
 
     /** `BED_MESH_PROFILE REMOVE=<name>`. [name] is allowlist-validated by [sanitizeProfileName] (T-09-02-02). */
     fun bedMeshProfileRemove(name: String): String = "BED_MESH_PROFILE REMOVE=${sanitizeProfileName(name)}"
+
+    // --- Phase-19 generic-output builders (SC-2/SC-3, HIGH-1 bare name) ---------------------------
+    // Each [name] is the BARE Klipper section name only — interpolated directly after FAN=/LED=/PIN=/
+    // SERVO= with NO family prefix. UI percents clamp to 0..100 then /100 → wire 0..1 via [fmt] (the
+    // single numeric chokepoint, Locale.US, trailing-zero-stripped). heater_generic reuses [setHeater].
+
+    /**
+     * `SET_FAN_SPEED FAN=<name> SPEED=<0..1>` — a generic (`fan_generic`) fan. [pct] is the DISPLAYED
+     * percent, clamped 0..100 then scaled to the 0..1 wire SPEED (2dp). [name] is the BARE section name
+     * (HIGH-1) — `setGenericFan("FILTER_fan", 50)` → `SET_FAN_SPEED FAN=FILTER_fan SPEED=0.5`.
+     */
+    fun setGenericFan(name: String, pct: Int): String =
+        "SET_FAN_SPEED FAN=$name SPEED=${fmt(outputPctToWire(pct), 2)}"
+
+    /**
+     * `SET_LED LED=<name> RED=<0..1> GREEN=<0..1> BLUE=<0..1> [WHITE=<0..1>]` — an addressable/PWM LED
+     * (`led`/`neopixel`/`dotstar`/`pca…`). Each channel clamped 0f..1f (2dp). WHITE is appended ONLY when
+     * [w] is non-null. LED Off (D-12) = `setLed(name, 0f, 0f, 0f, 0f)` → all channels 0. BARE [name] (HIGH-1).
+     */
+    fun setLed(name: String, r: Float, g: Float, b: Float, w: Float? = null): String = buildString {
+        append("SET_LED LED=$name")
+        append(" RED=${fmt(r.coerceIn(0f, 1f).toDouble(), 2)}")
+        append(" GREEN=${fmt(g.coerceIn(0f, 1f).toDouble(), 2)}")
+        append(" BLUE=${fmt(b.coerceIn(0f, 1f).toDouble(), 2)}")
+        w?.let { append(" WHITE=${fmt(it.coerceIn(0f, 1f).toDouble(), 2)}") }
+    }
+
+    /**
+     * `SET_SERVO SERVO=<name> ANGLE=<0..maxDeg>` — set a servo to a clamped angle. [maxDeg] is the
+     * per-descriptor ceiling (default [SERVO_ANGLE_DEFAULT_MAX]). BARE [name] (HIGH-1).
+     */
+    fun setServoAngle(name: String, deg: Int, maxDeg: Int = SERVO_ANGLE_DEFAULT_MAX): String =
+        "SET_SERVO SERVO=$name ANGLE=${clampServoAngle(deg, maxDeg)}"
+
+    /**
+     * `SET_SERVO SERVO=<name> WIDTH=0` — the servo Off/disable form (RESEARCH § Per-Type Control-Page
+     * Shape Mapping). Every output page has an Off/zero affordance; this is the servo's. BARE [name].
+     */
+    fun setServoDisable(name: String): String = "SET_SERVO SERVO=$name WIDTH=0"
+
+    /**
+     * `SET_PIN PIN=<name> VALUE=<0|1>` — a DIGITAL `output_pin`. BARE [name] (HIGH-1).
+     */
+    fun setPinDigital(name: String, on: Boolean): String = "SET_PIN PIN=$name VALUE=${if (on) 1 else 0}"
+
+    /**
+     * `SET_PIN PIN=<name> VALUE=<0..1>` — a PWM `output_pin` (and `pwm_tool`: there is NO SET_PWM_TOOL
+     * command, so a pwm_tool routes through SET_PIN too). [pct] is the DISPLAYED percent, clamped 0..100
+     * then scaled to the 0..1 wire VALUE (2dp). BARE [name] (HIGH-1).
+     */
+    fun setPinPwm(name: String, pct: Int): String =
+        "SET_PIN PIN=$name VALUE=${fmt(outputPctToWire(pct), 2)}"
 
     /** Wrap a gcode string into the `{"script": <gcode>}` [JsonElement] `printer.gcode.script` carries. */
     fun scriptParams(gcode: String): JsonElement = buildJsonObject { put("script", gcode) }
