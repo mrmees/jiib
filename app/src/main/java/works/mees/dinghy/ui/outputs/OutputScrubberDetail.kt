@@ -252,8 +252,9 @@ fun OutputScrubberContent(
             return@Box
         }
 
-        // The scrubber owns the full screen (its own ScreenScaffold + opaque scrim). Off + failure toast
-        // float over the field via the overlay column below.
+        // GAP-A (19-09): the scrubber owns the full screen (its own ScreenScaffold + opaque scrim) INCLUDING
+        // its own gutter. The Off action is routed THROUGH the ScrubberPage gutter slot ([Off | Back] on the
+        // shared grid) — there is NO overlay Column floating over the scrubber value/track anymore.
         ScrubberPage(
             label = prettyName,
             value = currentValue.coerceIn(range.start, range.endInclusive),
@@ -263,12 +264,19 @@ fun OutputScrubberContent(
             actions = ScrubberActions.OnSettle(
                 onSettle = { if (enabled) onSettle(it) },
                 onBack = onBack,
+                onOff = { if (enabled) onOff() },
+                offLabel = stringResource(R.string.output_off),
             ),
         )
 
-        // Off action + heater current-temp + failure toast overlaid at the top of the field.
+        // Heater current-temp readout + transient failure toast, TOP-anchored so they don't overlap the
+        // scrubber's centered value/track (GAP-A: no longer the same vertical center as the value). The Off
+        // button now lives in the gutter, not here.
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+            Modifier
+                .align(androidx.compose.ui.Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (type == OutputScrubberType.HEATER && heaterTemp != null) {
@@ -280,12 +288,6 @@ fun OutputScrubberContent(
                     fontSize = fsSp(16f, t.fs).sp,
                 )
             }
-            OutlinedControl(
-                label = stringResource(R.string.output_off),
-                onClick = { if (enabled) onOff() },
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Danger,
-            )
             failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         }
     }
