@@ -1,9 +1,9 @@
 ---
-status: pending
+status: diagnosed
 phase: 19-output-controls-fans-lights-generic-pins
 plan: 19-08
 deferred: false
-result: "awaiting owner on-device gate — code built, host suite green (848/0/0), D-09 ligatures green, debug APK installed on flox"
+result: "owner ran on-device 2026-06-08: fans/output_pins/servo functionally work; 2 gaps found — (A) Off button overlays the scrubber on every scrubber detail page; (B) LED page ignores channel capability (shows RGB on a white-only light, value changes have no effect). Phase NOT complete — 2 gap-closure plans needed."
 updated: 2026-06-08
 ---
 
@@ -51,67 +51,102 @@ Quick capture (from any shell on the network):
 
 > Record `PASS` / `FAIL` + notes per check. Leave PENDING until run.
 
-### 1 — Output tile present + list filtered (SC-1) — PENDING
-- Swipe up → confirm the **Output** tile is present (icon = the `output` glyph) and tap it.
-- List shows ONLY whitelisted outputs (Filter Fan, Chamber Light, Expanderpixel, Camera Servo, Mosfet pins,
-  virtual pins) — **NO** nozzle/bed/part-fan/temperature sensors.
+### 1 — Output tile present + list filtered (SC-1) — PASS
+- Owner reports the Output tile present and the outputs list shows the expected whitelisted outputs.
 
-### 2 — Filter Fan (fan_generic), state flip (SC-2) — PENDING
-- Open → scrub to ~50% → release → fan responds; row value updates to ~50% (state flip).
-- **gcode_store evidence (REQUIRED):**
-  ```
-  (paste SET_FAN_SPEED FAN=... S=... line here)
-  ```
+### 2 — Filter Fan (fan_generic), state flip (SC-2) — PASS (function) / blocked by GAP-A (layout)
+- Fan responds and the row flips. Functional. BUT the Off button overlays the scrubber (GAP-A).
+- gcode_store wire evidence: NOT captured this run — to capture at the post-fix re-UAT.
 
-### 3 — Chamber Light / Expanderpixel (LED), color + Off (D-12) — PENDING
-- Open → pick a hue + brightness → release → strip changes color; row shows swatch + brightness.
-- Tap **Off** → strip goes dark.
-- **gcode_store evidence (REQUIRED):**
-  ```
-  (paste SET_LED LED=... ... WHITE=0 line here)
-  ```
+### 3 — Chamber Light / Expanderpixel (LED), color + Off (D-12) — FAIL (GAP-B)
+- The chamber light is a **white/brightness-only** LED (`led chamber_light` has only `white_pin`, no
+  red/green/blue). The page shows the RGB hue wheel and dispatches RGB with WHITE=0, so color/value changes
+  have **no visible effect** and there's no way to drive the white channel. See GAP-B.
 
-### 4 — A Mosfet (output_pin), toggle/PWM (SC-2) — PENDING
-- Open → toggle On/Off (digital) or scrub % (PWM) → pin responds; row reflects it.
-- **gcode_store evidence (REQUIRED):**
-  ```
-  (paste SET_PIN PIN=... VALUE=... line here)
-  ```
+### 4 — A Mosfet (output_pin), toggle/PWM (SC-2) — PASS (function) / blocked by GAP-A (layout)
+- Pin responds and the row reflects it. Functional. Off-button overlay (GAP-A) present on the PWM scrubber.
+- gcode_store wire evidence: NOT captured this run — to capture at the post-fix re-UAT.
 
-### 5 — Camera Servo, angle + value degrade (SC-3) + Off — PENDING
-- Open → set an angle → servo moves; the row **hides** the value (servo value isn't the commanded angle).
-- Tap **Off** → servo disables (WIDTH=0).
-- **gcode_store evidence (REQUIRED):**
-  ```
-  (paste SET_SERVO SERVO=... ANGLE=.../WIDTH=0 line here)
-  ```
+### 5 — Camera Servo, angle + value degrade (SC-3) + Off — PASS (function) / blocked by GAP-A (layout)
+- Servo moves; row degrades the value. Functional. Off-button overlay (GAP-A) present.
+- gcode_store wire evidence: NOT captured this run — to capture at the post-fix re-UAT.
 
 ### 6 — Failure path (toast-stay) — PENDING
-- Trigger a failure (e.g. while disconnected, or an intentionally bad case) → a toast shows and you STAY on
-  the page (no nav away).
+- Not explicitly reported this run. Re-verify at post-fix re-UAT.
 
 ### 7 — Mid-print availability (optional, if convenient) — PENDING
-- Controls work WHILE the printer is printing (no print-state lockout).
+- Not tested this run.
 
-### 8 — Perf / responsiveness (Adreno-320) — PENDING
-- List scrolls and detail pages respond without frozen frames.
+### 8 — Perf / responsiveness (Adreno-320) — PASS (implied)
+- No jank/frozen-frame complaints from the owner walk.
 
 ## Checks — E3P (192.168.1.121:7125, sparse config)
 
 ### 9 — Tile NOT hidden when exactly one output (D-10) — PENDING
-- Confirm the **Output** tile IS present (≥1 output) and the list shows the single sparse output
-  (Ignore M600) — proving the tile is not hidden when exactly one output exists.
+- Not explicitly reported this run. Re-verify at post-fix re-UAT.
 
 ## Summary
 
 total: 9
-passed: 0
-issues: 0
-pending: 9
+passed: 4
+issues: 2
+pending: 3
 skipped: 0
 blocked: 0
 accepted-exclusions: 1 (heater_generic — automated-only, no live printer exposes one)
 
 ## Gaps
 
-(none recorded yet — populated on any FAIL)
+### GAP-A — Off button overlays the scrubber on every scrubber detail page (layout)
+- **status:** failed
+- **severity:** major (affects every scrubber detail: fan, servo, PWM output_pin, pwm_tool, heater, and the
+  LED brightness sub-scrubber)
+- **symptom (owner):** "off button is overlaid on top of every scrubber instead of having its own space."
+- **root cause:** `ScrubberActions.OnSettle` (in `designsystem/ScrubberPage.kt`) has NO slot for an Off
+  action — its gutter is only `[− +]` steppers + a single full-width Back. So
+  `ui/outputs/OutputScrubberDetail.kt` `OutputScrubberContent` renders the Off button in a separate `Column`
+  that is a **Box sibling overlaid on top of the full-screen `ScrubberPage` field** (the code comment says
+  "float over the field"), colliding with the scrubber's value/track. `OutputLedDetail.kt` compounds it by
+  **nesting a whole `ScrubberPage`** (its own `ScreenScaffold` + gutter) inside the LED page's scaffold field
+  (the double-scaffold the 19-06 SUMMARY already flagged as a layout-refinement candidate).
+- **fix direction:** extend `ScrubberActions.OnSettle` with an optional `onOff` (+ label) that renders the Off
+  button **in the gutter** beside Back (red Danger | neutral Back, ≥64px, on the shared grid — button-intent
+  law). Remove the overlay `Column` from `OutputScrubberContent` (keep the transient failure toast + the
+  heater current-temp readout placed sanely, not floating). Re-home the LED brightness control so it does not
+  nest a second `ScreenScaffold`/gutter inside the LED field.
+- **files (likely):** `app/src/main/java/works/mees/dinghy/designsystem/ScrubberPage.kt`,
+  `app/src/main/java/works/mees/dinghy/ui/outputs/OutputScrubberDetail.kt`,
+  `app/src/main/java/works/mees/dinghy/ui/outputs/OutputLedDetail.kt`, the existing call sites in
+  ApplyCancel mode are unaffected (optional param). Update previews + `OutputScrubberSettleTest`.
+
+### GAP-B — LED page ignores channel capability (white-only light shown an ineffective RGB control)
+- **status:** failed
+- **severity:** major (LED control is non-functional on a white/brightness-only LED — the owner's E5 chamber
+  light)
+- **symptom (owner):** "should be able to detect if a light is rgb applicable and not show that control if
+  not. My e5 chamber light is brightness control only, and there is no way to change it to white, so value
+  adjustments have no effect. Brightness should be a slider with step adjustment."
+- **root cause:** the channel capability is knowable from `configfile.settings` but is not captured:
+  - `led chamber_light` → only `white_pin` (no `red_pin`/`green_pin`/`blue_pin`) ⇒ **white/brightness-only**.
+  - `neopixel expanderpixel` → `color_order: ["GRB"]` ⇒ **RGB-capable** (no white).
+  `OutputDescriptor` (built in 19-04 `outputs/OutputsGate.parseOutputs`) carries no channel info, and
+  `OutputLedDetail` unconditionally renders the hue wheel and dispatches `SET_LED ... WHITE=0`, so on a
+  white-only LED the RGB write is a no-op on the hardware.
+- **fix direction:**
+  1. In `parseOutputs`, derive per-LED channel capability from `configfile.settings` — for `[led]`/`[pca9533]`
+     etc.: presence of `red_pin`/`green_pin`/`blue_pin` (RGB) and `white_pin` (white); for
+     `[neopixel]`/`[dotstar]`: parse `color_order` (e.g. "GRB"/"RGB" ⇒ RGB; "GRBW"/"RGBW" ⇒ RGB+W;
+     "W"/white-only ⇒ white). Capture on `OutputDescriptor` (e.g. `ledHasRgb`, `ledHasWhite`).
+  2. `OutputLedDetail`: if **RGB-capable** → hue wheel + brightness (existing path, layout fixed per GAP-A);
+     if **white/brightness-only** → render a brightness **slider with step adjustment** ONLY (no hue wheel),
+     dispatching the WHITE channel: `setLed(name, 0, 0, 0, w = brightness)` (clamp 0..1). Off stays all-zero.
+     (RGBW lights: RGB wheel + brightness in v1; a separate white channel is out of scope unless trivial.)
+  3. Seed brightness from the live `color_data[0]` white component for white-only; reflect on the row swatch
+     (a white/grey swatch for white-only, not a colored chip).
+- **files (likely):** `app/src/main/java/works/mees/dinghy/outputs/OutputDescriptor.kt`,
+  `app/src/main/java/works/mees/dinghy/outputs/OutputsGate.kt`,
+  `app/src/main/java/works/mees/dinghy/ui/outputs/OutputLedDetail.kt` (and possibly the row swatch in
+  `OutputsHolder`/`OutputsScreen`). New gate tests off the real E5 fixtures (chamber_light=white-only,
+  expanderpixel=RGB) — the fixtures already exist from 19-02. Update LED previews.
+- **note:** re-capture the REQUIRED fan/LED/pin/servo `/server/gcode_store` wire evidence at the post-fix
+  re-UAT (deferred this run).
