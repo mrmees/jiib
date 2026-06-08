@@ -85,6 +85,20 @@ class WebcamUrlResolverTest {
     }
 
     @Test
+    fun emptyConfiguredHost_returnsNull_doesNotThrow() {
+        // REGRESSION (Phase 21 hotfix): an empty configured host makes httpBase = "http://:7125",
+        // which okhttp cannot parse. The old fallback `?: cfg.httpBase.toHttpUrl()` THREW
+        // IllegalArgumentException "Invalid URL host: \"\"" on Dispatchers.IO → whole-app crash on the
+        // webcam screen. The contract (c) requires returning null (no usable URL → rung-3) WITHOUT throwing.
+        val emptyHostCfg = ConnectionConfig(host = "", port = 7125)
+        // A perfectly non-blank raw URL — the failure was the BASE, not the raw input.
+        assertNull(resolveWebcamUrl("/webcam2/?action=stream", emptyHostCfg))
+        assertNull(resolveWebcamUrl("http://127.0.0.1:8080/?action=stream", emptyHostCfg))
+        // A blank host with whitespace is still an unparseable base — null, not a throw.
+        assertNull(resolveWebcamUrl("/x", ConnectionConfig(host = " ", port = 7125)))
+    }
+
+    @Test
     fun redact_masksTokenValue_leavesRestIntact() {
         val tokened =
             "http://192.168.1.121/cameras/snapshot/1.jpg?token=udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk"

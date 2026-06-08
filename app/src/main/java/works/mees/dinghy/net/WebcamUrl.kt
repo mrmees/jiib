@@ -1,6 +1,5 @@
 package works.mees.dinghy.net
 
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import works.mees.dinghy.config.ConnectionConfig
 
@@ -40,7 +39,10 @@ fun resolveWebcamUrl(raw: String?, cfg: ConnectionConfig): String? {
     if (raw.isNullOrBlank()) return null
 
     // (a) Join: HttpUrl.resolve handles BOTH an already-absolute raw and a relative path against the base.
-    val base = cfg.httpBase.toHttpUrlOrNull() ?: cfg.httpBase.toHttpUrl()
+    //     An UNPARSEABLE base (e.g. an empty configured host → httpBase = "http://:7125") yields no usable
+    //     URL → return null per this function's contract (c). Do NOT fall back to a throwing toHttpUrl() here:
+    //     that crashed the webcam screen with IllegalArgumentException "Invalid URL host: \"\"" on Dispatchers.IO.
+    val base = cfg.httpBase.toHttpUrlOrNull() ?: return null
     val resolved = base.resolve(raw.trim()) ?: return null
 
     // (b) Loopback rewrite — swap only the host; newBuilder() preserves scheme/port/path/query (?token=).
