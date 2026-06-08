@@ -140,9 +140,7 @@ fun <T> compositeMedia3Feed(
     // takes the native attempt; everything else goes straight to the existing MJPEG/Snapshot probe path.
     // A bad/hostile service can only mis-SELECT (then the decoder verifies + falls through), never force a
     // fatal mis-decode (T-21-04-01).
-    if (!selectsH264Rung(cam.webcam)) {
-        return@WebcamFeed lowerRung.run(cam, onFrame)
-    }
+    if (!selectsH264Rung(cam.webcam)) return@WebcamFeed lowerRung.run(cam, onFrame)
     when (h264Attempt.attempt(cam)) {
         H264AttemptResult.Transient -> FeedOutcome.Transient
         H264AttemptResult.Cancelled -> FeedOutcome.Cancelled

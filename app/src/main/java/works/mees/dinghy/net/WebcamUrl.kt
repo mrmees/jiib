@@ -1,5 +1,6 @@
 package works.mees.dinghy.net
 
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import works.mees.dinghy.config.ConnectionConfig
@@ -85,13 +86,34 @@ private const val PORT_RTSP = 8554
 private const val PORT_HLS = 8888
 
 /**
- * The ravens-perch `extra_data` keys carrying an EXPLICIT native-transport URL (D-12 explicit path).
- * UNBUILT in ravens-perch today (`register_camera()` passes no `extra_data` — re-verified in source),
- * so [nativeStreamUrlFor]'s explicit read lies DORMANT until ravens-perch ships the tag (D-14,
- * non-blocking — the derive fallback covers both targets now). Reading them is a tolerant key lookup.
+ * ravens-perch advertises explicit per-transport stream URLs under a NESTED `extra_data` object (the
+ * schema shipped by ravens-perch's `build_stream_extra_data()` — feat: send/advertise stream extra data):
+ *
+ *     "extra_data": { "ravens_perch": { "schema_version": 1, "camera_id": "3", "path": "3",
+ *         "streams": { "rtsp": { "url": "rtsp://host:8554/3", "protocol": "rtsp" },
+ *                      "hls":  { "url": "http://host:8888/3/", "protocol": "hls" }, … } } }
+ *
+ * These URLs are ABSOLUTE and authoritative — reading them needs NO [ConnectionConfig] and bypasses the
+ * derive (which fails when `stream_url` moved to the WebRTC `:8889` port AND when `cfg.httpBase` is blank).
+ * The transport→proto key map and the nested path `ravens_perch.streams.<proto>.url`.
+ *
+ * (Historical note: a prior build looked for FLAT keys `ravens_perch_native_rtsp` that ravens-perch never
+ * emitted — the explicit read was effectively dead, so every cam fell to the cfg-dependent derive. This
+ * reads the real nested contract; the derive remains the fallback for non-ravens-perch cams.)
  */
-private const val EXTRA_NATIVE_RTSP = "ravens_perch_native_rtsp"
-private const val EXTRA_NATIVE_HLS = "ravens_perch_native_hls"
+private fun NativeTransport.protoKey(): String = when (this) {
+    NativeTransport.Rtsp -> "rtsp"
+    NativeTransport.Hls -> "hls"
+}
+
+/** Read `extra_data.ravens_perch.streams.<proto>.url` (absolute, cfg-free). Tolerant: any missing/garbled node → null. */
+private fun explicitNativeStreamUrl(cam: Webcam, transport: NativeTransport): String? =
+    runCatching {
+        cam.extraData["ravens_perch"]?.jsonObject
+            ?.get("streams")?.jsonObject
+            ?.get(transport.protoKey())?.jsonObject
+            ?.get("url")?.jsonPrimitive?.content
+    }.getOrNull()?.takeIf { it.isNotBlank() }
 
 /**
  * Derive a Media3-playable native-transport URL from a cam's WebRTC/HTTP `stream_url` by swapping ONLY
@@ -138,17 +160,10 @@ fun deriveNativeStreamUrl(webrtcStreamUrl: String?, transport: NativeTransport):
  * Returns `null` when neither path yields a URL (rung falls through). Pure (the resolve/derive are pure).
  */
 fun nativeStreamUrlFor(cam: Webcam, transport: NativeTransport, cfg: ConnectionConfig): String? {
-    // (1) Explicit ravens-perch tag — prefer if present, tolerant of missing/garbage.
-    val explicitKey = when (transport) {
-        NativeTransport.Rtsp -> EXTRA_NATIVE_RTSP
-        NativeTransport.Hls -> EXTRA_NATIVE_HLS
-    }
-    val explicit = runCatching { cam.extraData[explicitKey]?.jsonPrimitive?.content }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
-    if (explicit != null) return explicit
+    // (1) Explicit ravens-perch nested URL — absolute + cfg-free; prefer if present.
+    explicitNativeStreamUrl(cam, transport)?.let { return it }
 
-    // (2) Derive from the resolved (absolute, loopback-rewritten) stream_url.
+    // (2) Derive from the resolved (absolute, loopback-rewritten) stream_url (legacy / non-ravens-perch cams).
     val resolved = resolveWebcamUrl(cam.streamUrl, cfg) ?: return null
     return deriveNativeStreamUrl(resolved, transport)
 }

@@ -114,43 +114,114 @@ class WebcamUrlDeriveTest {
         )
     }
 
-    @Test
-    fun `explicit extra_data transport tag is preferred over the heuristic derive`() {
-        // An explicit ravens-perch native-RTSP tag wins over the port-swap derive (D-12 prefer-if-present).
-        val explicitRtsp = "rtsp://192.168.1.120:8554/explicit-from-tag"
-        val cam = webcam(
-            streamUrl = "http://192.168.1.120:8889/0/",
-            extraData = JsonObject(mapOf("ravens_perch_native_rtsp" to JsonPrimitive(explicitRtsp))),
-        )
-        assertEquals(explicitRtsp, nativeStreamUrlFor(cam, NativeTransport.Rtsp, cfg))
-        // The HLS transport (no explicit HLS tag here) still falls through to the derive.
-        assertEquals(
-            "http://192.168.1.120:8888/0/",
-            nativeStreamUrlFor(cam, NativeTransport.Hls, cfg),
+    /**
+     * Build the REAL ravens-perch nested `extra_data` schema (the contract shipped by
+     * `build_stream_extra_data()`): `extra_data.ravens_perch.streams.<proto>.url`. This is the schema the
+     * code actually reads — the flat `ravens_perch_native_*` key the prior build looked for was NEVER emitted.
+     */
+    private fun ravensPerchExtra(rtspUrl: String? = null, hlsUrl: String? = null): JsonObject {
+        val streams = buildMap<String, JsonObject> {
+            if (rtspUrl != null) put("rtsp", JsonObject(mapOf("url" to JsonPrimitive(rtspUrl), "protocol" to JsonPrimitive("rtsp"))))
+            if (hlsUrl != null) put("hls", JsonObject(mapOf("url" to JsonPrimitive(hlsUrl), "protocol" to JsonPrimitive("hls"))))
+        }
+        return JsonObject(
+            mapOf(
+                "ravens_perch" to JsonObject(
+                    mapOf(
+                        "schema_version" to JsonPrimitive(1),
+                        "camera_id" to JsonPrimitive("3"),
+                        "path" to JsonPrimitive("3"),
+                        "streams" to JsonObject(streams),
+                    ),
+                ),
+            ),
         )
     }
 
     @Test
-    fun `a blank or non-string explicit tag falls through to the derive (tolerant)`() {
-        // Blank value → ignored, fall to derive.
-        val blankTag = webcam(
-            streamUrl = "http://192.168.1.120:8889/0/",
-            extraData = JsonObject(mapOf("ravens_perch_native_rtsp" to JsonPrimitive(""))),
-        )
-        assertEquals(
-            "rtsp://192.168.1.120:8554/0",
-            nativeStreamUrlFor(blankTag, NativeTransport.Rtsp, cfg),
-        )
-        // Non-string (object) value → ignored, fall to derive (never throws).
-        val garbageTag = webcam(
-            streamUrl = "http://192.168.1.120:8889/0/",
-            extraData = JsonObject(
-                mapOf("ravens_perch_native_rtsp" to JsonObject(mapOf("nested" to JsonPrimitive("x")))),
+    fun `explicit ravens-perch nested stream url is read verbatim, not derived (the shipped bug)`() {
+        // REGRESSION (21-05 on-device): the code reads extra_data.ravens_perch.streams.<proto>.url — the
+        // REAL nested schema. The prior build read FLAT keys ravens-perch never emitted → null → fell through
+        // to MJPEG → "Feed unavailable". Verified live on flox: playstation_eye + nozzle_tracker now play H.264.
+        val cam = webcam(
+            // stream_url is now the WebRTC :8889 URL; if we DERIVED from it we'd get a different (and, with an
+            // empty-host cfg, null) result — the explicit nested URL must win and be returned verbatim.
+            streamUrl = "http://192.168.1.120:8889/3/",
+            extraData = ravensPerchExtra(
+                rtspUrl = "rtsp://192.168.1.120:8554/3",
+                hlsUrl = "http://192.168.1.120:8888/3/",
             ),
         )
-        assertEquals(
-            "rtsp://192.168.1.120:8554/0",
-            nativeStreamUrlFor(garbageTag, NativeTransport.Rtsp, cfg),
+        // The EXPLICIT nested rtsp url, NOT a derived one.
+        assertEquals("rtsp://192.168.1.120:8554/3", nativeStreamUrlFor(cam, NativeTransport.Rtsp, cfg))
+        // And the explicit nested hls url.
+        assertEquals("http://192.168.1.120:8888/3/", nativeStreamUrlFor(cam, NativeTransport.Hls, cfg))
+    }
+
+    @Test
+    fun `explicit nested url is returned even with an empty-host cfg (cfg-independence — the exact ship failure)`() {
+        // The shipped failure mode: the webcam holder's cfg host is EMPTY (httpBase = "http://:7125",
+        // unparseable) even though the main connection works → the derive returned null → "Feed unavailable".
+        // The nested URL is ABSOLUTE + cfg-free, so it must resolve regardless of a broken cfg.
+        val emptyHostCfg = ConnectionConfig(host = "", port = 7125)
+        val cam = webcam(
+            streamUrl = "http://192.168.1.120:8889/3/",
+            extraData = ravensPerchExtra(
+                rtspUrl = "rtsp://192.168.1.120:8554/3",
+                hlsUrl = "http://192.168.1.120:8888/3/",
+            ),
         )
+        assertEquals("rtsp://192.168.1.120:8554/3", nativeStreamUrlFor(cam, NativeTransport.Rtsp, emptyHostCfg))
+        assertEquals("http://192.168.1.120:8888/3/", nativeStreamUrlFor(cam, NativeTransport.Hls, emptyHostCfg))
+    }
+
+    @Test
+    fun `a cam with no ravens-perch extra_data still derives via the fallback`() {
+        // Non-ravens-perch cam (no nested schema) → the explicit read yields null → fall to the port-swap derive.
+        val cam = webcam(streamUrl = "http://192.168.1.120:8889/0/")
+        assertEquals("rtsp://192.168.1.120:8554/0", nativeStreamUrlFor(cam, NativeTransport.Rtsp, cfg))
+        assertEquals("http://192.168.1.120:8888/0/", nativeStreamUrlFor(cam, NativeTransport.Hls, cfg))
+    }
+
+    @Test
+    fun `a missing transport in the nested schema falls through to the derive (tolerant)`() {
+        // Only an rtsp stream present → the HLS transport finds no nested url → falls to the derive.
+        val cam = webcam(
+            streamUrl = "http://192.168.1.120:8889/0/",
+            extraData = ravensPerchExtra(rtspUrl = "rtsp://192.168.1.120:8554/3"),
+        )
+        assertEquals("rtsp://192.168.1.120:8554/3", nativeStreamUrlFor(cam, NativeTransport.Rtsp, cfg))
+        // HLS has no nested url → derive from stream_url.
+        assertEquals("http://192.168.1.120:8888/0/", nativeStreamUrlFor(cam, NativeTransport.Hls, cfg))
+    }
+
+    @Test
+    fun `a blank or non-string nested url falls through to the derive (tolerant, never throws)`() {
+        // Blank nested url → ignored, fall to derive.
+        val blank = webcam(
+            streamUrl = "http://192.168.1.120:8889/0/",
+            extraData = ravensPerchExtra(rtspUrl = ""),
+        )
+        assertEquals("rtsp://192.168.1.120:8554/0", nativeStreamUrlFor(blank, NativeTransport.Rtsp, cfg))
+        // A garbled nested node (url is an object, not a string) → ignored, fall to derive (never throws).
+        val garbled = webcam(
+            streamUrl = "http://192.168.1.120:8889/0/",
+            extraData = JsonObject(
+                mapOf(
+                    "ravens_perch" to JsonObject(
+                        mapOf(
+                            "streams" to JsonObject(
+                                mapOf(
+                                    "rtsp" to JsonObject(
+                                        mapOf("url" to JsonObject(mapOf("nested" to JsonPrimitive("x")))),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        assertEquals("rtsp://192.168.1.120:8554/0", nativeStreamUrlFor(garbled, NativeTransport.Rtsp, cfg))
     }
 }
