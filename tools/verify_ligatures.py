@@ -76,6 +76,12 @@ NEEDED = {
     # part-cooling-fan reassignment target). `mode_fan` was removed above — no IconRef.Ligature
     # references it after the D-08 reassignment. All 8 verified resolvable in the v2.944 ttf (19-RESEARCH).
     "mode_heat", "mode_fan_2", "lightbulb_2", "cyclone", "check_box", "vital_signs", "output", "air",
+    # Phase-20 (System Information page) — the owner-locked D-01..D-10 slate. `thermostat` (D-03)
+    # and `speed` (D-09) are ALREADY in NEEDED above (LauncherTemperature / the speed entry) — the
+    # gate de-dups on the ligature string, so they are NOT re-added here. The 8 below are new-to-NEEDED.
+    # All 10 confirmed resolvable in the v2.944 bundled ttf (20-RESEARCH Icon Gate, D-11).
+    "pulse_alert", "dns", "schedule", "developer_board", "memory",
+    "deployed_code", "code_blocks", "data_usage",
 }
 
 
