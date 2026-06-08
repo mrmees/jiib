@@ -41,6 +41,8 @@ import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.SetSpoolArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.net.JsonRpcMethods
+import works.mees.dinghy.outputs.OutputDescriptor
+import works.mees.dinghy.outputs.OutputsHolder
 import works.mees.dinghy.prompt.PromptEngine
 import works.mees.dinghy.ui.prompt.PromptDialog
 import works.mees.dinghy.ui.prompt.flattenContentButtons
@@ -81,6 +83,11 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
+import works.mees.dinghy.ui.outputs.OutputLedDetail
+import works.mees.dinghy.ui.outputs.OutputPinDetail
+import works.mees.dinghy.ui.outputs.OutputScrubberDetail
+import works.mees.dinghy.ui.outputs.OutputScrubberType
+import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
@@ -289,6 +296,35 @@ fun AppShell(
     val drawerSpoolSwatches: List<Color> =
         activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
 
+    // ---- Outputs holder + capability gate (19-07) --------------------------------------------------
+    // The D-10 capability HIDE signal: the drawer Output tile is SHOWN only when the CURRENT session's
+    // printer reports ≥1 controllable output (false while idle). Spine-scoped (AppContainer.outputsPresent
+    // derives off the live store's outputDescriptors via flatMapLatest), so it idles to false on disconnect/
+    // printer-switch — never stale process state. Collected here and threaded into AppDrawer below; UNLIKE
+    // webcamEnabled/spoolEnabled (which GREY their tiles) this drives the HIDE-not-grey filter (D-10).
+    val outputsEnabled by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
+    // The per-session Outputs holder, re-keyed on the live store (the MoveHolder/calibration precedent) so a
+    // spine rebuild (reconnect) re-points it at the new session's descriptors + live values. While idle the
+    // empty fallback store backs it (no descriptors → an empty list). The holder is dispatch-free; the detail
+    // pages source the dispatcher from `container.dispatcher` (== spine?.dispatcher) themselves.
+    val outputsHolder = remember(store) { OutputsHolder(scope = scope, store = store) }
+    // The list↔detail LOCAL back-stack within Dest.Outputs (a single selected objectKey — null = the list,
+    // non-null = that output's detail page; mirrors Dest.Calibration's local hub↔routine stack, NOT new
+    // top-level Dests). Shell-local (like drawerOpen): a detail page is transient and need not survive a
+    // recovery Splash. The live descriptor list drives the SELECTION RESET below.
+    val outputRows by outputsHolder.rows.collectAsStateWithLifecycle()
+    var selectedOutputKey by remember(outputsHolder) { mutableStateOf<String?>(null) }
+    // SELECTION RESET (review MEDIUM): if the selected output's objectKey is NO LONGER in the live row list
+    // (output removed/renamed, or descriptors cleared on a printer switch per 19-04), pop back to the list so
+    // the user is never stranded on a dead detail page. Keyed on the row list so a descriptor-set change
+    // re-evaluates; nulls the selection the moment its key disappears.
+    androidx.compose.runtime.LaunchedEffect(outputRows, selectedOutputKey) {
+        val key = selectedOutputKey
+        if (key != null && outputRows.none { it.descriptor.objectKey == key }) {
+            selectedOutputKey = null
+        }
+    }
+
     // ---- Calibration holders (09-07) ---------------------------------------------------------------
     // The five headless calibration holders, each built off the SAME live per-session store and re-keyed
     // when the spine rebuilds (reconnect), mirroring the Phase-5 control holders above. The dispatcher
@@ -437,6 +473,12 @@ fun AppShell(
     BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
         nav.calibrationRoutine = null
     }
+    // Outputs sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration): an
+    // open per-output detail page returns to the list by clearing [selectedOutputKey]; from the list, Back
+    // falls through to the generic back-stack pop (leaving the Outputs surface).
+    BackHandler(enabled = !drawerOpen && dest == Dest.Outputs && selectedOutputKey != null) {
+        selectedOutputKey = null
+    }
     // Fine-Tune sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration):
     // an open group page (Motion/Extrusion/FwRetraction) returns to the Hub; from the Hub, Back falls
     // through to the generic back-stack pop (leaving the Fine-Tune surface).
@@ -492,6 +534,10 @@ fun AppShell(
                 if (!promptView.visible &&
                     dest !in setOf(
                         Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool,
+                        // Outputs joins the swipe-suppress set (19-07): the Outputs list is a scrollable
+                        // Field — a full-canvas vertical-drag detector would fight the list scroll (the Files
+                        // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit (D-10).
+                        Dest.Outputs,
                         Dest.Devices, Dest.Theme, Dest.Settings, Dest.About,
                     )
                 ) {
@@ -689,6 +735,83 @@ fun AppShell(
                 prefilter = nav.spoolPrefilter,
                 onPrefilterConsumed = { nav.spoolPrefilter = null },
             )
+            Dest.Outputs -> {
+                // The Outputs surface: the flat list (no selection) OR the selected output's per-type detail
+                // page. The list's onRowTap sets the LOCAL [selectedOutputKey]; each detail page's neutral Back
+                // (and system Back, above) pops back to the list by clearing it — a lean local back-stack within
+                // Dest.Outputs (NOT separate top-level Dests, mirroring Dest.Calibration). The selection RESETS
+                // to the list (LaunchedEffect above) when the selected objectKey leaves the live row list
+                // (removed/renamed/cleared-on-switch) so a removed output never strands the user on a dead page.
+                val selectedKey = selectedOutputKey
+                val selectedDescriptor: OutputDescriptor? =
+                    selectedKey?.let { k -> outputRows.firstOrNull { it.descriptor.objectKey == k }?.descriptor }
+                if (selectedDescriptor == null) {
+                    OutputsScreen(
+                        holder = outputsHolder,
+                        onRowTap = { key -> selectedOutputKey = key },
+                        onBack = { goBack() },
+                    )
+                } else {
+                    // Route to the right detail page by family/pwm (19-06 entry points). Live values are seeded
+                    // off the per-session printerState (RAW 0..1 → display units the page expects).
+                    val live = printerState.outputs[selectedDescriptor.objectKey]
+                    val popToList = { selectedOutputKey = null }
+                    when {
+                        selectedDescriptor.family == OutputsHolder.FAMILY_HEATER -> OutputScrubberDetail(
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            type = OutputScrubberType.HEATER,
+                            // heater_generic is single-sourced via `heaters` (19-04) — seed the current temp.
+                            currentValue = (printerState.heaters[selectedDescriptor.objectKey]?.target ?: 0.0)
+                                .toFloat(),
+                            onBack = popToList,
+                        )
+                        selectedDescriptor.family == OutputsHolder.FAMILY_FAN -> OutputScrubberDetail(
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            type = OutputScrubberType.FAN,
+                            currentValue = ((live?.speed ?: 0.0) * 100.0).toFloat(), // 0..1 → %
+                            onBack = popToList,
+                        )
+                        selectedDescriptor.family == OutputsHolder.FAMILY_SERVO -> OutputScrubberDetail(
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            type = OutputScrubberType.SERVO,
+                            // Servo `.value` is PWM, not the angle (SC-3) — seed from 0 (the page is dispatch-
+                            // only; the live angle can't be read back).
+                            currentValue = 0f,
+                            onBack = popToList,
+                        )
+                        selectedDescriptor.family == OutputsHolder.FAMILY_PWM_TOOL -> OutputScrubberDetail(
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            type = OutputScrubberType.PWM_TOOL,
+                            currentValue = ((live?.value ?: 0.0) * 100.0).toFloat(), // 0..1 → %
+                            onBack = popToList,
+                        )
+                        selectedDescriptor.family in OutputsHolder.LED_FAMILIES -> OutputLedDetail(
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            colorData = live?.colorData?.getOrNull(0),
+                            onBack = popToList,
+                        )
+                        else -> OutputPinDetail(
+                            // output_pin (digital → toggle, PWM → % scrubber; the page branches on pwm).
+                            container = container,
+                            holder = outputsHolder,
+                            descriptor = selectedDescriptor,
+                            currentPct = ((live?.value ?: 0.0) * 100.0).toFloat(),
+                            isOn = live?.value?.let { it >= 0.5 },
+                            onBack = popToList,
+                        )
+                    }
+                }
+            }
             // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
             // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
             // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
@@ -855,6 +978,7 @@ fun AppShell(
                 spoolEnabled = spoolEnabled,
                 spoolSwatches = drawerSpoolSwatches,
                 activeName = activeName,
+                outputsEnabled = outputsEnabled,
             )
         }
     }
