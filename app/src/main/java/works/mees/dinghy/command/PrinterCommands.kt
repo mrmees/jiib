@@ -250,10 +250,14 @@ object PrinterCommands {
 
     // --- Builders ---------------------------------------------------------------------------------
 
+    /** Single-source clamp authority for a heater target (17-07): the value a markPending optimistic flip
+     * must use so it equals the [setHeater] TARGET the wire carries. Clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
+    fun clampHeaterTarget(target: Int): Int = target.coerceIn(MIN_TEMP_C, MAX_TEMP_C)
+
     /** `SET_HEATER_TEMPERATURE HEATER=<heater> TARGET=<target>`. Works for any heater object name
      * (`extruder`, `heater_bed`, `heater_generic chamber`). [target] clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
     fun setHeater(heater: String, target: Int): String =
-        "SET_HEATER_TEMPERATURE HEATER=$heater TARGET=${target.coerceIn(MIN_TEMP_C, MAX_TEMP_C)}"
+        "SET_HEATER_TEMPERATURE HEATER=$heater TARGET=${clampHeaterTarget(target)}"
 
     /** Two newline-joined SET_HEATER_TEMPERATURE lines for the PRIMARY `extruder` + `heater_bed`
      * (v1 scope; multi-tool per-preset targeting deferred). Both targets clamped. */

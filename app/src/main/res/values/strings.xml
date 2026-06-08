@@ -180,5 +180,17 @@
     <string name="cd_output_glyph">Output</string>
     <!-- contentDescription for the LED color swatch chip (THEME-01 data-color carve-out). -->
     <string name="cd_output_swatch">Current color</string>
+    <!-- The immediate-dispatch Off/zero/disable action on every output detail page (D-12 / servo WIDTH=0). -->
+    <string name="output_off">Off</string>
+    <!-- A read-only (static_value) output: value shown, no control (SC-3). -->
+    <string name="output_read_only">Read-only output</string>
+    <!-- Heater detail current-temperature readout. %1$d = current temp in °C. -->
+    <string name="output_heater_current">Current: %1$d°C</string>
+    <!-- LED detail brightness label. -->
+    <string name="output_led_brightness">Brightness</string>
+    <!-- output_pin digital On/Off toggle: the On state action. -->
+    <string name="output_on">On</string>
+    <!-- contentDescription for the LED hue wheel (color picker, THEME-01 data-color carve-out). -->
+    <string name="cd_output_hue_wheel">Hue</string>
 
 </resources>

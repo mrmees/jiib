@@ -45,6 +45,7 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.ScrubberActions
 import works.mees.dinghy.designsystem.ScrubberPage
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -210,11 +211,13 @@ fun TemperatureScreen(
                 step = TEMP_STEP,
                 unit = "°C",
                 onValueChange = { /* live preview only; the printer is set on Apply */ },
-                onCancel = { scrubberTarget = null },
-                onApply = { v ->
-                    dispatchCommand(CommandRegistry.setHeater, SetHeaterArgs(sensor.name, v.roundToInt()))
-                    scrubberTarget = null
-                },
+                actions = ScrubberActions.ApplyCancel(
+                    onCancel = { scrubberTarget = null },
+                    onApply = { v ->
+                        dispatchCommand(CommandRegistry.setHeater, SetHeaterArgs(sensor.name, v.roundToInt()))
+                        scrubberTarget = null
+                    },
+                ),
             )
         }
 

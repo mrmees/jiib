@@ -63,10 +63,12 @@ import kotlin.math.roundToInt
  * @param step              the increment/decrement applied by the steppers.
  * @param unit              optional unit suffix shown after the value ("°C", "mm", "%").
  * @param onValueChange     called continuously as the user scrubs/steps (live preview).
- * @param onCancel          called when the user dismisses without applying.
- * @param onApply           called with the final value when the user commits.
- * @param destructiveDismiss opt-in: when true, Cancel is [Intent.Danger] (destructive-revert);
- *                          default false keeps it [Intent.Neutral].
+ * @param actions           the gutter-action mode — [ScrubberActions.ApplyCancel] (the default
+ *                          Cancel/Apply-commit grammar, unchanged) or [ScrubberActions.OnSettle]
+ *                          (HIGH-3: NO Apply step — the value dispatches ONCE on gesture-end/settle,
+ *                          gutter = stepper row + a single neutral Back). The OnSettle mode is what
+ *                          the Phase-19 output detail pages need: immediate-dispatch-on-settle, never
+ *                          per scrub frame.
  */
 /**
  * The pure offset→fraction mapping at the heart of the fill-bar scrubber (G-3). Maps a horizontal
@@ -84,18 +86,55 @@ internal fun fractionFromX(x: Float, barWidthPx: Float): Float {
     return (x / barWidthPx).coerceIn(0f, 1f)
 }
 
+/**
+ * The pure settle-decision at the heart of the OnSettle dispatch contract (HIGH-3 / T-19-06-02). Given a
+ * sequence of pointer phases for ONE gesture — any number of `move` frames bracketed by a single `up` — it
+ * returns the number of times the value should be dispatched. The contract: dispatch fires ONCE per
+ * gesture-END (`up`), NEVER on a `move` frame, so dragging across N positions yields exactly ONE dispatch.
+ *
+ * Extracted as a pure function (not inlined in the gesture loop) so [works.mees.dinghy.designsystem
+ * .ScrubberPage]'s "one call per gesture-end, not per scrub frame" guarantee is proven host-side without a
+ * full Compose/Robolectric harness — the coverage seam the plan asks for.
+ */
+enum class ScrubPhase { DOWN, MOVE, UP }
+
+fun settleDispatchCount(phases: List<ScrubPhase>): Int = phases.count { it == ScrubPhase.UP }
+
+/**
+ * The scrubber's gutter-action contract (HIGH-3). The page renders ONE of two action grammars; the value
+ * never changes how it's scrubbed, only how/when it commits.
+ *
+ * - [ApplyCancel] — the original two-button commit grammar: drag/step a working value, then COMMIT it on
+ *   Apply ([Intent.Go], green) or back out on Cancel ([Intent.Neutral] by default; [Intent.Danger] only when
+ *   [destructiveDismiss] — the rare destructive-revert). This is the DEFAULT (Fine-Tune / Temperature etc.).
+ * - [OnSettle] — the immediate-dispatch grammar (Phase-19 outputs, SC-2): NO Apply button. The value is
+ *   dispatched via [onSettle] EXACTLY ONCE when a gesture ends (pointer-up) or a ± stepper is tapped — never
+ *   on every intermediate scrub frame (Adreno-320 budget; mirrors [ColorWheel.onSettle]). The gutter is the
+ *   ± stepper row + a single [onBack] Back button ([Intent.Neutral]).
+ */
+sealed interface ScrubberActions {
+    data class ApplyCancel(
+        val onCancel: () -> Unit,
+        val onApply: (Float) -> Unit,
+        val destructiveDismiss: Boolean = false,
+    ) : ScrubberActions
+
+    data class OnSettle(
+        val onSettle: (Float) -> Unit,
+        val onBack: () -> Unit,
+    ) : ScrubberActions
+}
+
 @Composable
 fun ScrubberPage(
     label: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     step: Float,
+    actions: ScrubberActions,
     unit: String = "",
-    onValueChange: (Float) -> Unit,
-    onCancel: () -> Unit,
-    onApply: (Float) -> Unit,
+    onValueChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
-    destructiveDismiss: Boolean = false,
 ) {
     val t = LocalTokens.current
     // Local working value seeded from [value]; the caller commits on Apply. Keyed to [value]/[range]
@@ -124,6 +163,13 @@ fun ScrubberPage(
     fun setFromX(x: Float) {
         if (barWidthPx <= 0f) return
         set(range.start + fractionFromX(x, barWidthPx) * span)
+    }
+
+    // HIGH-3 settle: in OnSettle mode the value dispatches ONCE per gesture-end (pointer-up) or stepper
+    // tap — never per scrub frame. In ApplyCancel mode this is a no-op (commit happens on Apply). The
+    // settle-vs-frame decision is proven host-side by [shouldDispatchOnSettle] (OutputScrubberSettleTest).
+    fun settle() {
+        (actions as? ScrubberActions.OnSettle)?.onSettle?.invoke(working)
     }
 
     ScreenScaffold(
@@ -172,6 +218,10 @@ fun ScrubberPage(
                                         }
                                     }
                                 } while (event.changes.any { it.pressed })
+                                // Gesture END (last pointer up) — settle-dispatch ONCE (HIGH-3). A tap and a
+                                // drag-then-release both reach here exactly once, so OnSettle fires once per
+                                // gesture, never per move (the per-frame-spam threat T-19-06-02).
+                                settle()
                             }
                         },
                 ) {
@@ -208,40 +258,57 @@ fun ScrubberPage(
         },
         gutter = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                // Stepper row (hifi.css .adjrow): ±step, keyboard-free numeric entry.
+                // Stepper row (hifi.css .adjrow): ±step, keyboard-free numeric entry. In OnSettle mode a
+                // stepper tap is itself a settle (it ends a discrete adjustment), so it dispatches once.
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedControl(
                         label = "−",
-                        onClick = { set(working - step) },
+                        onClick = { set(working - step); settle() },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Neutral,
                     )
                     OutlinedControl(
                         label = "+",
-                        onClick = { set(working + step) },
+                        onClick = { set(working + step); settle() },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Neutral,
                     )
                 }
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedControl(
-                        label = "Cancel",
-                        onClick = onCancel,
-                        modifier = Modifier.weight(1f),
-                        intent = if (destructiveDismiss) Intent.Danger else Intent.Neutral,
-                    )
-                    OutlinedControl(
-                        label = "Apply",
-                        onClick = { onApply(working) },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
-                    )
+                when (actions) {
+                    is ScrubberActions.ApplyCancel ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            OutlinedControl(
+                                label = "Cancel",
+                                onClick = actions.onCancel,
+                                modifier = Modifier.weight(1f),
+                                intent = if (actions.destructiveDismiss) Intent.Danger else Intent.Neutral,
+                            )
+                            OutlinedControl(
+                                label = "Apply",
+                                onClick = { actions.onApply(working) },
+                                modifier = Modifier.weight(1f),
+                                intent = Intent.Go,
+                            )
+                        }
+                    // OnSettle (HIGH-3): NO Apply button — just a single neutral Back. The value already
+                    // dispatched on settle (gesture-end / stepper tap); Back only leaves the page.
+                    is ScrubberActions.OnSettle ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 12.dp),
+                        ) {
+                            OutlinedControl(
+                                label = "Back",
+                                onClick = actions.onBack,
+                                modifier = Modifier.fillMaxWidth(),
+                                intent = Intent.Neutral,
+                            )
+                        }
                 }
             }
         },
