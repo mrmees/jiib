@@ -383,10 +383,9 @@ fun AppShell(
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
-    val zTiltVm by zTiltHolder.vm.collectAsStateWithLifecycle()
-    val qglVm by qglHolder.vm.collectAsStateWithLifecycle()
-    val bedMeshVm by bedMeshHolder.vm.collectAsStateWithLifecycle()
-    val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+    // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
+    // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
+    // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
 
     // ---- Fine-Tune holder (17-06) ------------------------------------------------------------------
     // ONE FineTuneHolder per spine (re-keyed when the spine rebuilds (reconnect), mirroring the Phase-5
@@ -671,47 +670,30 @@ fun AppShell(
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.Z_TILT -> TiltScreen(
-                        vm = zTiltVm,
+                        container = container,
+                        holder = zTiltHolder,
                         variant = TiltVariant.ZTilt,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onRunDispatched = { zTiltHolder.markDispatched() },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onEnter = { zTiltHolder.reset() },
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
-                        vm = qglVm,
+                        container = container,
+                        holder = qglHolder,
                         variant = TiltVariant.Qgl,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onRunDispatched = { qglHolder.markDispatched() },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onEnter = { qglHolder.reset() },
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.BED_MESH -> BedMeshScreen(
-                        vm = bedMeshVm,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onCycleScaleMode = { bedMeshHolder.cycleScaleMode() },
+                        container = container,
+                        holder = bedMeshHolder,
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.PROBE_CALIBRATE -> ProbeCalibrateScreen(
-                        vm = probeCalibrateVm,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onStartDispatched = { },
-                        onEnter = {
-                            probeCalibrateHolder.reset()
-                            // z_offset is kept fresh by the handshake's configfile one-shot, which the
-                            // post-SAVE_CONFIG notify_klippy_ready re-handshake re-runs (Phase 13) — so a
-                            // just-applied SAVE_CONFIG shows without an app restart and without a redundant
-                            // page-open configfile re-query (cadence contract Rule 3, gated GREEN by
-                            // ProbeZOffsetFreshnessTest).
-                        },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onAbort = { probeCalibrateHolder.markAborted() },
+                        container = container,
+                        holder = probeCalibrateHolder,
+                        // z_offset is kept fresh by the handshake's configfile one-shot, which the
+                        // post-SAVE_CONFIG notify_klippy_ready re-handshake re-runs (Phase 13) — so a
+                        // just-applied SAVE_CONFIG shows without an app restart and without a redundant
+                        // page-open configfile re-query (cadence contract Rule 3, gated GREEN by
+                        // ProbeZOffsetFreshnessTest).
                         onBack = { nav.calibrationRoutine = null },
                     )
                 }
