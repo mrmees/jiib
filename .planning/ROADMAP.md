@@ -1094,7 +1094,30 @@ Plans:
   4. The pilot demonstrates the locked rules: unit grid, translucent-list/filled-controls, no-label grouping, icon-registry glyphs (Material Symbols by ligature, never auto-picked), sort-vs-filter + Field-takeover picker
   5. The new icon assignments are registered in `DinghyIcons.kt` + `img/material-icon-bucket.json` (sort, filter_list, expand_circle_up/down, output_circle=flow, reset_wrench, reset_settings) with the stale play_circle/stop_circle load-unload notes reconciled; the oklch caution-reads-red `color-mix` bug in `hifi.css` `.ctl.warn` fixed
 
-**Plans**: TBD
+**Plans**: 6 plans (waves 0-4)
+Plans:
+
+**Wave 0**
+
+- [ ] 23-01-PLAN.md — Wave-0 tooling/scaffolds: extend verify_ligatures.py for the 6 new ligatures, confirm DinghyIconsTest GREEN, write RED UnitGrid/ListRow/FillMeter test stubs that compile day-one
+
+**Wave 1** *(parallel — disjoint files)*
+
+- [ ] 23-02-PLAN.md — Docs: rewrite LAYOUT.md off the Gutter (Focus/Field + unit grid U + fill convention + foot-of-list + floating e-stop) + author COMPONENTS.md catalog + CLAUDE.md pointer (SC-1)
+- [ ] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug (SC-5)
+
+**Wave 2** *(blocked on Wave 0)*
+
+- [ ] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (pure formula + rememberUnitGrid, turns UnitGridTest GREEN) + ListBlock.kt (keyed edge-faded LazyColumn) + @Preview matrix (SC-2)
+
+**Wave 3** *(blocked on Waves 0/2/3-icons)*
+
+- [ ] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow + @Preview matrices (SC-2/SC-4)
+
+**Wave 4** *(blocked on Wave 3; on-device gate)*
+
+- [ ] 23-06-PLAN.md — PILOT: rebuild SpoolScreen onto the kit (no gutter, Field-takeover filter, FootButtonBar Load/Unload, DetailCard+FillMeter, FloatingEStop, U at root) + on-device flox owner approval BOTH orientations (SC-3/SC-4; autonomous:false)
+
 **UI hint**: yes
 **Research note**: COVERED — design language locked across sketches 001–004; consume `sketch-findings-dinghy-display` (auto-loads) + `.planning/notes/2026-06-09-*.md`. No new external research needed.
 
