@@ -222,7 +222,7 @@ image-slot{
 /* primary = accent outline + glow, still outline-led */
 .ctl.accent{ border-color:var(--accent-line); color:var(--accent-2); --ctl-glow:var(--accent-glow); }
 .ctl.accent:hover{ background:var(--accent-soft); }
-.ctl.warn{ border-color:color-mix(in oklch, var(--heat) 62%, var(--outline)); color:var(--heat); --ctl-glow:var(--heat-glow); }
+.ctl.warn{ border-color:var(--heat); color:var(--heat); --ctl-glow:var(--heat-glow); }
 .ctl.warn:hover{ background:var(--heat-soft); }
 .ctl.danger{ border-color:color-mix(in oklch, var(--stop) 66%, var(--outline)); color:var(--stop); --ctl-glow:var(--stop-glow); }
 .ctl.danger:hover{ background:var(--stop-soft); }
