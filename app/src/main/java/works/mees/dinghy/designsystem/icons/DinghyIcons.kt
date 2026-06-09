@@ -145,6 +145,16 @@ object DinghyIcons {
     val ResetWrench = DinghyIcon(IconRef.Ligature("reset_wrench"), alternate = "reset_wrench")
     val ResetSettings = DinghyIcon(IconRef.Ligature("reset_settings"), alternate = "reset_settings")
 
+    // --- Phase-23 SpoolScreen pilot glyphs (23-06, OWNER-LOCKED — from img/material-icon-bucket.json).
+    // All five ligatures verified present in the bundled v2.944 Material Symbols ttf.
+    // match_case = sort by name; calendar_clock = sort by date; experiment = filter by filament family.
+    // home = navigate to PrintStatus (foot button); qr_code = open QR scan (foot button).
+    val MatchCase = DinghyIcon(IconRef.Ligature("match_case"), alternate = "match_case")
+    val CalendarClock = DinghyIcon(IconRef.Ligature("calendar_clock"), alternate = "calendar_clock")
+    val Experiment = DinghyIcon(IconRef.Ligature("experiment"), alternate = "experiment")
+    val Home = DinghyIcon(IconRef.Ligature("home"), alternate = "home")
+    val QrCode = DinghyIcon(IconRef.Ligature("qr_code"), alternate = "qr_code")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -163,5 +173,6 @@ object DinghyIcons {
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
         Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings,
+        MatchCase, CalendarClock, Experiment, Home, QrCode,
     )
 }

@@ -167,6 +167,33 @@
     <string name="cd_spool_set_active">Set the selected spool active; long-press to unload</string>
     <!-- The live QR-scan camera surface (D-05 preview stand-in label). -->
     <string name="cd_spool_camera">Camera (live on device)</string>
+    <!-- 23-06 rebuild: new foot-button + estop contentDescriptions. -->
+    <string name="cd_spool_home">Go to home screen</string>
+    <string name="cd_spool_load">Load this spool</string>
+    <string name="cd_spool_unload">Unload the active spool</string>
+    <!-- 23-06 e-stop guard strings (reused from printstatus; separate keys so they can diverge). -->
+    <string name="spool_estop_guard_title">Emergency stop?</string>
+    <string name="spool_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
+    <string name="spool_estop_guard_confirm">Emergency stop</string>
+    <!-- 23-06 filter picker in-Field footer labels. -->
+    <string name="spool_filter_clear">Clear</string>
+    <string name="spool_filter_done">Done</string>
+    <!-- 23-06 fill meter label: remaining/original g · percent (e.g. "735/1000 g · 74%"). -->
+    <string name="spool_fill_meter_label">%1$d/%2$d g · %3$d%%</string>
+    <string name="spool_fill_meter_label_no_original">%1$d g</string>
+    <!-- 23-06 contentDescriptions for the filter/sort control rows. -->
+    <string name="cd_spool_sort">Sort spools</string>
+    <string name="cd_spool_filter">Filter spools</string>
+    <string name="cd_spool_sort_name">Sort by name</string>
+    <string name="cd_spool_sort_date">Sort by last used date</string>
+    <string name="cd_spool_sort_remaining">Sort by remaining weight</string>
+    <string name="cd_spool_filter_type">Filter by material type</string>
+    <string name="cd_spool_filter_color">Filter by color</string>
+    <string name="cd_spool_filter_mfg">Filter by manufacturer</string>
+    <!-- 23-06 empty state + loading strings. -->
+    <string name="spool_loading">Loading spools…</string>
+    <string name="spool_empty_no_match">No spools match. Clear filters to see your inventory.</string>
+    <string name="spool_error_load">Could not load spools.</string>
 
     <!-- Plurals proof (SC-3): count-aware quantity string. -->
     <plurals name="spool_count">

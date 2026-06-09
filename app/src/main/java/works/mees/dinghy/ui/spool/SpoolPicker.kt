@@ -13,15 +13,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -63,8 +60,9 @@ private val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
 )
 
 /**
- * The three filter CATEGORIES surfaced as buttons in the second filter row (Matthew, 2026-06-04). Each
- * opens a full-screen touch selector ([SpoolFilterPickerOverlay]) rather than an inline chip strip.
+ * The three filter CATEGORIES surfaced in the Field-takeover picker (23-06 redesign). Tapping a filter
+ * tile in the [FilterRow] swaps the Field in-place to show the option list for the selected category — no
+ * separate screen push. See [works.mees.dinghy.ui.spool.FieldMode.FilterPicker].
  *  - [TYPE] — fuzzy material families (D-05; multi-select).
  *  - [COLOR] — the palette swatches (D-06; single-select, slow two-step on tap).
  *  - [MFG] — manufacturer / vendor (single-select).
@@ -202,108 +200,6 @@ private fun CategoryButton(category: SpoolFilterCategory, active: Boolean, onCli
     )
 }
 
-/**
- * The full-screen touch selector for one [SpoolFilterCategory] (Matthew, 2026-06-04). A scrollable list of
- * big selectable option buttons (≥64dp), a category-scoped Clear, and a green Done. Type is multi-select
- * (D-05 families), Color single-select (D-06 swatch — the slow two-step fires on tap), MFG single-select.
- * All color via [LocalTokens]; option text floor 18sp (D-16).
- */
-@Composable
-fun SpoolFilterPickerOverlay(
-    category: SpoolFilterCategory,
-    state: SpoolPickerState,
-    onToggleMaterial: (String) -> Unit,
-    onToggleVendor: (String) -> Unit,
-    onTapSwatch: (String) -> Unit,
-    onMultiColor: () -> Unit,
-    onClear: () -> Unit,
-    onDone: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    Column(
-        modifier.fillMaxSize().background(t.bg).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "Filter — ${category.label}",
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
-        )
-        // Content fills the space between title and gutter. COLOR is a no-scroll fill grid (all swatches
-        // on ONE screen); TYPE / MFG are scrollable option lists (variable length).
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-            when (category) {
-                SpoolFilterCategory.COLOR -> ColorSwatchGrid(
-                    selectedHex = state.filters.colorSwatchHex,
-                    onTapSwatch = onTapSwatch,
-                    onMultiColor = onMultiColor,
-                    t = t,
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-                SpoolFilterCategory.TYPE -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MATERIAL_FAMILIES.forEach { (label, _) ->
-                        OptionButton(
-                            label = label,
-                            selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) },
-                            swatchHex = null,
-                            onClick = { onToggleMaterial(label) },
-                            t = t,
-                        )
-                    }
-                }
-
-                SpoolFilterCategory.MFG -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (state.vendors.isEmpty()) {
-                        Text(
-                            text = "No manufacturers found.",
-                            color = t.text2,
-                            fontFamily = Geist,
-                            fontSize = fsSp(17f, t.fs).sp,
-                            modifier = Modifier.padding(8.dp),
-                        )
-                    }
-                    state.vendors.forEach { vendor ->
-                        OptionButton(
-                            label = vendor,
-                            selected = state.filters.vendor.equals(vendor, ignoreCase = true),
-                            swatchHex = null,
-                            onClick = { onToggleVendor(vendor) },
-                            t = t,
-                        )
-                    }
-                }
-            }
-        }
-        // Gutter — category-scoped Clear (red) + Done (green).
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedControl(
-                label = "Clear",
-                onClick = onClear,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Danger,
-                symbol = "close",
-            )
-            OutlinedControl(
-                label = "Done",
-                onClick = onDone,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Go,
-                symbol = "check",
-            )
-        }
-    }
-}
-
 /** A choice in the Color grid: a named palette swatch or the Multi-color option. */
 private sealed interface ColorChoice {
     data class Named(val name: String, val hex: String) : ColorChoice
@@ -325,7 +221,7 @@ private val MULTICOLOR_BRUSH: Brush = Brush.sweepGradient(
  * = swatch over title; landscape = title to the LEFT of the swatch. Clearing color is the gutter Clear.
  */
 @Composable
-private fun ColorSwatchGrid(
+internal fun ColorSwatchGrid(
     selectedHex: String?,
     onTapSwatch: (String) -> Unit,
     onMultiColor: () -> Unit,
@@ -441,51 +337,6 @@ private fun ColorTile(
         ) {
             ColorSwatchCircle(choice, t, Modifier.fillMaxHeight(0.6f))
             TileLabel(Modifier)
-        }
-    }
-}
-
-/** One selectable option button (≥64dp; accent outline + soft fill + check when selected). */
-@Composable
-private fun OptionButton(
-    label: String,
-    selected: Boolean,
-    swatchHex: String?,
-    onClick: () -> Unit,
-    t: ThemeTokens,
-) {
-    val shape = RoundedCornerShape(t.rCtrl)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
-            .background(if (selected) t.accentSoft else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (swatchHex != null) {
-            Box(
-                Modifier.size(fsSp(24f, t.fs).dp).clip(CircleShape)
-                    .background(parseNormalizedHex(swatchHex) ?: t.surface2)
-                    .border(BorderStroke(1.dp, t.hair), CircleShape),
-            )
-        }
-        Text(
-            text = label,
-            color = if (selected) t.accent2 else t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        if (selected) {
-            MaterialSymbol("check", tint = t.accent2, sizeSp = fsSp(20f, t.fs))
         }
     }
 }

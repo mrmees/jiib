@@ -111,6 +111,22 @@ data class SpoolPrefilterSeed(
 )
 
 /**
+ * Controls whether the Field shows the spool list or an in-place filter picker (Field-takeover pattern,
+ * docs/ui_design/COMPONENTS.md §"Field-takeover picker"). No separate screen push — the Field swaps in place.
+ *
+ * - [Spools] — the normal spool list + FootButtonBar (default).
+ * - [FilterPicker] — the Field shows the option list for [category]; tapping an option or Done/Clear returns
+ *   to [Spools] by the caller setting `fieldMode = FieldMode.Spools`.
+ */
+sealed class FieldMode {
+    /** Normal spool-list Field. */
+    data object Spools : FieldMode()
+
+    /** In-place filter picker for [category]; the Field swaps to that facet's option list. */
+    data class FilterPicker(val category: SpoolFilterCategory) : FieldMode()
+}
+
+/**
  * The Spool-picker page state (SPOOL-03; docs/view_specific_notes/spoolman.md §Suggested UI state).
  * Mirrors [works.mees.dinghy.ui.files.FileBrowserState] — a plain value type the screen renders and the
  * holder mutators update. Every read degrades to empty/null (never throws); a malformed Spoolman row
@@ -118,6 +134,7 @@ data class SpoolPrefilterSeed(
  *
  * @property spools the current picker result rows.
  * @property selected the row whose detail fills the Focus (null = nothing selected → portrait stays Field).
+ * @property fieldMode controls whether the Field shows the spool list or an in-place filter picker (23-06).
  * @property materials/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
  * @property activeStatus the live active-spool status (D-10 reconciled) — drives "this is loaded" marks
  *   and the active-spool reconcile; null when unavailable/idle.
@@ -125,6 +142,7 @@ data class SpoolPrefilterSeed(
 data class SpoolPickerState(
     val spools: List<SpoolmanSpool> = emptyList(),
     val selected: SpoolmanSpool? = null,
+    val fieldMode: FieldMode = FieldMode.Spools,
     val filters: SpoolFilters = SpoolFilters(),
     val sortKey: SpoolSortKey = SpoolSortKey.NAME,
     val sortAscending: Boolean = SpoolSortKey.NAME.defaultAscending,
@@ -236,6 +254,16 @@ class SpoolHolder(
     /** Clear the selection (portrait collapses back to Field-only). */
     fun clearSelection() {
         _state.update { it.copy(selected = null) }
+    }
+
+    /** Open the in-place Field-takeover filter picker for [category] (23-06 FieldMode pattern). */
+    fun openFilterPicker(category: SpoolFilterCategory) {
+        _state.update { it.copy(fieldMode = FieldMode.FilterPicker(category)) }
+    }
+
+    /** Close the Field-takeover filter picker and return to the spool list. */
+    fun closeFilterPicker() {
+        _state.update { it.copy(fieldMode = FieldMode.Spools) }
     }
 
     /**

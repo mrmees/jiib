@@ -749,7 +749,9 @@ fun AppShell(
                 holder = spoolHolder,
                 dispatcher = dispatcher,
                 client = spoolmanClient,
-                onBack = { goBack() },
+                container = container,
+                // Home foot-button navigates to PrintStatus (the hub screen).
+                onHome = { navigateTo(Dest.PrintStatus) },
                 // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
                 // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).
                 onScan = { nav.scanActive = true },
