@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.runtime.remember
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableList
 import works.mees.dinghy.R
@@ -234,14 +235,17 @@ internal fun StatGrid(
             )
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Memoize the formatted strings on their integer-second keys so String allocation only
+            // happens when the second count actually changes, not on every 4 Hz recomposition (D-03).
+            val elapsedText = remember(state.printDuration.roundToInt()) { fmtDuration(state.printDuration) }
             IconValueCell(
                 icon = { sp -> DinghyIconView(DinghyIcons.TimerUp, tint = t.text2, sizeDp = sp.dp) },
-                value = fmtDuration(state.printDuration), valueColor = t.text,
+                value = elapsedText, valueColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             // Remaining = slicer-file estimate × (1 − live progress) → H:MM; "—" when estimate unknown.
             val remainingSeconds = metadata?.estimatedTime?.let { it * (1.0 - state.progress.coerceIn(0.0, 1.0)) }
-            val remaining = remainingSeconds?.takeIf { it > 0.0 }?.let { fmtDuration(it) } ?: "—"
+            val remaining = remember(remainingSeconds?.roundToInt()) { remainingSeconds?.takeIf { it > 0.0 }?.let { fmtDuration(it) } ?: "—" }
             IconValueCell(
                 icon = { sp -> DinghyIconView(DinghyIcons.TimerDown, tint = t.text2, sizeDp = sp.dp) },
                 value = remaining, valueColor = if (remaining != "—") t.text else t.text3,
@@ -652,7 +656,8 @@ internal fun SpoolmanPrintLine(
 @Composable
 internal fun TerminalStatsList(state: PrinterState, metadata: PrintMetadata?, modifier: Modifier = Modifier) {
     val file = state.printFilename.substringAfterLast('/').ifBlank { "—" }
-    val time = fmtDuration(state.printDuration.takeIf { it > 0.0 } ?: state.totalDuration)
+    val durationSrc = state.printDuration.takeIf { it > 0.0 } ?: state.totalDuration
+    val time = remember(durationSrc.roundToInt()) { fmtDuration(durationSrc) }
     val filament = state.filamentUsed.takeIf { it > 0.0 }?.let { "${fmt(it / 1000.0)} m" } ?: "—"
     val totalLayers = state.totalLayer ?: metadata?.layerCount
     val layers = when {
