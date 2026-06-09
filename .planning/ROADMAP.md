@@ -1055,7 +1055,7 @@ Plans:
 
 **Wave 0**
 
-- [ ] 22-01-PLAN.md — gfxinfo RELEASE baseline on flox (D-05/D-06 sweep) + add kotlinx-collections-immutable 0.3.8 + @Stable AppContainer (blocks every code wave)
+- [x] 22-01-PLAN.md — gfxinfo RELEASE baseline on flox (D-05/D-06 sweep) + add kotlinx-collections-immutable 0.3.8 + @Stable AppContainer (blocks every code wave)
 
 **Wave 1** *(blocked on Wave 0)*
 
@@ -1192,7 +1192,7 @@ verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` 
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Performance & Architecture Refactor | 0/TBD | Not started | - |
+| 22. Performance & Architecture Refactor | 1/7 | In Progress|  |
 | 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
