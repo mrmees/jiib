@@ -141,14 +141,43 @@ class WebcamView(context: Context) : View(context), ThemeableView {
     private var multiCam: Boolean = false
 
     /**
+     * The last [ThemeTokens] applied — used by [applyTokens] to short-circuit the full paint update +
+     * `invalidate()` on every recomposition when tokens are UNCHANGED (D-12 / AndroidView interop
+     * hygiene). `null` on construction forces the first call through unconditionally. Same guard
+     * rationale as [GraphView.lastTokens] — see that field's KDoc.
+     */
+    private var lastTokens: ThemeTokens? = null
+
+    // ── measureText caches (D-03 P2) — one (lastText, lastWidth) pair per draw-helper ────────────
+    // `paint.measureText(text)` calls into native font-metrics machinery; caching avoids remeasuring
+    // the same text string on every frame draw. These strings update infrequently (badge text is a
+    // constant; cycle cam-name and dead-end body change only on cam selection / state transitions).
+    // When the text IS different (a new cam name, or the service name just appeared), the old width
+    // is discarded and remeasured once. Each pair is per-helper because they use different paints.
+    // Note: `applyTokens` does NOT reset these caches — a token change (fs resize) changes
+    // `chromeTextPaint.textSize`, which makes the cached width stale. We therefore also track the
+    // paint's textSize at cache time and remeasure when it changes (via `lastBadgeTextSize`, etc.).
+
+    private var lastBadgeText = ""; private var lastBadgeWidth = 0f; private var lastBadgeTextSize = 0f
+    private var lastOverlayText = ""; private var lastOverlayWidth = 0f; private var lastOverlayTextSize = 0f
+    private var lastCardTitleText = ""; private var lastCardTitleWidth = 0f; private var lastCardTitleTextSize = 0f
+    private var lastCardBodyText = ""; private var lastCardBodyWidth = 0f; private var lastCardBodyTextSize = 0f
+    private var lastCycleText = ""; private var lastCycleWidth = 0f; private var lastCycleTextSize = 0f
+
+    /**
      * Push the active tokens (THEME-01): derive every chrome color from a role token + repaint. No raw
      * hex — backdrop=`--bg-2`, dim scrim=`--bg` (alpha), pill/card=`--surface-2`, card outline=`--outline`,
      * strong text=`--text`, body text=`--text-2`, burst glyph=`--accent-2`. The card title uses the strong
      * text token too (the screen owns the red Back intent in its gutter; nothing red is drawn IN the feed).
      * Type sizes are `--fs`-scaled via [fsSp] so the chrome tracks the S/M/L setting. The cutout radius is
      * re-derived from the `--r-card` token (the round-edges contract, camera_feed note).
+     *
+     * D-12 guard: returns early when [t] is structurally equal to the last-applied tokens — avoids a
+     * full chrome-paint update + `invalidate()` on every 4 Hz recomposition when tokens are unchanged.
      */
     override fun applyTokens(t: ThemeTokens) {
+        if (t == lastTokens) return
+        lastTokens = t
         backdropPaint.color = t.bg2.toArgb()
 
         dimPaint.color = t.bg.toArgb()
@@ -182,6 +211,10 @@ class WebcamView(context: Context) : View(context), ThemeableView {
      * A field swap + `invalidate()` — the heavy blit happens lazily in `onDraw`. Pass `null` to clear
      * (e.g. a hard dead-end with no last frame). The bitmap is owned/recycled by the decoder's drop-behind
      * seam (plan 10-06); the View only references it for the blit.
+     *
+     * Intentionally UNCONDITIONAL on genuine new frames (a new bitmap reference from the decoder's
+     * double-buffer = a real new frame that must be displayed). The reference-equality guard below
+     * only skips a re-push of the SAME bitmap object (an unrelated recomposition with the same frame).
      */
     fun setFrame(bitmap: Bitmap?) {
         // WR-03: the host's `update` block pushes setFrame(frame) on EVERY recomposition (theme change,
@@ -200,11 +233,18 @@ class WebcamView(context: Context) : View(context), ThemeableView {
      * [works.mees.dinghy.state.Webcam]). `rotation` MUST already be coerced to a legal {0,90,180,270}
      * angle (`Webcam.safeRotation`) — a non-legal value is folded to 0 here as a second guard so the
      * Matrix can never be fed nonsense. Repaints.
+     *
+     * D-12 guard: returns early when all three transform values are unchanged — avoids an `invalidate()`
+     * on every 4 Hz recomposition when the selected cam and its transform are stable.
      */
     fun setTransform(flipHorizontal: Boolean, flipVertical: Boolean, rotation: Int) {
+        val safeRotation = if (rotation == 90 || rotation == 180 || rotation == 270) rotation else 0
+        if (flipHorizontal == this.flipHorizontal &&
+            flipVertical == this.flipVertical &&
+            safeRotation == this.rotationDeg) return
         this.flipHorizontal = flipHorizontal
         this.flipVertical = flipVertical
-        this.rotationDeg = if (rotation == 90 || rotation == 180 || rotation == 270) rotation else 0
+        this.rotationDeg = safeRotation
         invalidate()
     }
 
@@ -212,8 +252,15 @@ class WebcamView(context: Context) : View(context), ThemeableView {
      * Set the chrome state (D-03/D-04/D-11 + the cycle overlay). [serviceName] feeds the dead-end card
      * text; [camName] feeds the cycle overlay; [multiCam] gates the cycle overlay (full-focus only).
      * Repaints.
+     *
+     * D-12 guard: returns early when all four chrome inputs are unchanged — avoids an `invalidate()` on
+     * every 4 Hz recomposition when the chrome state is stable.
      */
     fun setChrome(mode: Mode, camName: String, serviceName: String, multiCam: Boolean) {
+        if (mode == this.mode &&
+            camName == this.camName &&
+            serviceName == this.serviceName &&
+            multiCam == this.multiCam) return
         this.mode = mode
         this.camName = camName
         this.serviceName = serviceName
@@ -312,7 +359,12 @@ class WebcamView(context: Context) : View(context), ThemeableView {
     /** A small persistent corner pill at the top-right (the snapshot badge, D-03). */
     private fun drawCornerBadge(canvas: Canvas, viewW: Float, text: String) {
         val pad = CHROME_PAD * density
-        val textW = chromeTextPaint.measureText(text)
+        val curTextSize = chromeTextPaint.textSize
+        if (text != lastBadgeText || curTextSize != lastBadgeTextSize) {
+            lastBadgeText = text; lastBadgeTextSize = curTextSize
+            lastBadgeWidth = chromeTextPaint.measureText(text)
+        }
+        val textW = lastBadgeWidth
         val th = chromeTextPaint.textSize
         val pillH = th + 2f * (PILL_VPAD * density)
         val pillW = textW + 2f * (PILL_HPAD * density)
@@ -328,7 +380,12 @@ class WebcamView(context: Context) : View(context), ThemeableView {
 
     /** A centered text overlay (the "Reconnecting…" line, D-11) on its own pill for legibility. */
     private fun drawCenteredOverlay(canvas: Canvas, viewW: Float, viewH: Float, text: String) {
-        val textW = chromeTextPaint.measureText(text)
+        val curTextSize = chromeTextPaint.textSize
+        if (text != lastOverlayText || curTextSize != lastOverlayTextSize) {
+            lastOverlayText = text; lastOverlayTextSize = curTextSize
+            lastOverlayWidth = chromeTextPaint.measureText(text)
+        }
+        val textW = lastOverlayWidth
         val th = chromeTextPaint.textSize
         val pillH = th + 2f * (PILL_VPAD * density)
         val pillW = textW + 2f * (PILL_HPAD * density)
@@ -357,7 +414,17 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         val bodyH = chromeBodyPaint.textSize
         val lineGap = CARD_LINE_GAP * density
 
-        val contentW = maxOf(chromeTextPaint.measureText(title), chromeBodyPaint.measureText(body))
+        val curTitleTextSize = chromeTextPaint.textSize
+        if (title != lastCardTitleText || curTitleTextSize != lastCardTitleTextSize) {
+            lastCardTitleText = title; lastCardTitleTextSize = curTitleTextSize
+            lastCardTitleWidth = chromeTextPaint.measureText(title)
+        }
+        val curBodyTextSize = chromeBodyPaint.textSize
+        if (body != lastCardBodyText || curBodyTextSize != lastCardBodyTextSize) {
+            lastCardBodyText = body; lastCardBodyTextSize = curBodyTextSize
+            lastCardBodyWidth = chromeBodyPaint.measureText(body)
+        }
+        val contentW = maxOf(lastCardTitleWidth, lastCardBodyWidth)
         val cardW = minOf(contentW + 2f * hPad, viewW - 2f * (CHROME_PAD * density))
         val cardH = titleH + lineGap + bodyH + 2f * vPad
         val left = (viewW - cardW) / 2f
@@ -382,7 +449,12 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         val name = camName
         val th = chromeTextPaint.textSize
         val glyphSize = th
-        val textW = chromeTextPaint.measureText(name)
+        val curCycleTextSize = chromeTextPaint.textSize
+        if (name != lastCycleText || curCycleTextSize != lastCycleTextSize) {
+            lastCycleText = name; lastCycleTextSize = curCycleTextSize
+            lastCycleWidth = chromeTextPaint.measureText(name)
+        }
+        val textW = lastCycleWidth
         val pillH = th + 2f * (PILL_VPAD * density)
         val pillW = (PILL_HPAD * density) + glyphSize + (GLYPH_TEXT_GAP * density) + textW + (PILL_HPAD * density)
         val left = pad

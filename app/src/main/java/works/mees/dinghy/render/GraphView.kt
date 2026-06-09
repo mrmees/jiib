@@ -178,6 +178,15 @@ class GraphView(context: Context) : View(context), ThemeableView {
         }
 
     /**
+     * The last [ThemeTokens] applied — used by [applyTokens] to short-circuit the full paint update +
+     * `invalidate()` on every recomposition when tokens are UNCHANGED (D-12 / AndroidView interop
+     * hygiene). A dark→light or custom theme swap creates a new [ThemeTokens] instance with different
+     * [Color] / `pool` values → structural `==` returns `false` → recolor fires correctly (Pitfall 6).
+     * `null` on construction forces the first call through unconditionally.
+     */
+    private var lastTokens: ThemeTokens? = null
+
+    /**
      * Push the active tokens (D-05/D-06): recolor each pre-allocated trace paint from the accent-led
      * N-series rule [seriesColor][ThemeTokens.seriesColor] and repaint. No raw color literal — trace `i`
      * reads `t.seriesColor(i)`, so trace 0 (the primary/nozzle channel) is ACCENT in every palette mode,
@@ -190,8 +199,14 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * fill) — the lead trace is now accent, not pool[0], so it stays put across a mode switch and shares
      * one hue with both the Print-Status nozzle readout and the Temperature legend trace-0 (supersedes
      * Phase-15 D-2/D-13). `seriesColor` carries its own empty-pool guard (falls back to accent).
+     *
+     * D-12 guard: returns early (no paint update, no `invalidate()`) when [t] is structurally equal to
+     * the last-applied tokens — `ThemeTokens` is an `@Immutable data class` whose generated `equals()`
+     * covers EVERY field including `pool: List<Color>`, so the guard is correct.
      */
     override fun applyTokens(t: ThemeTokens) {
+        if (t == lastTokens) return
+        lastTokens = t
         for (i in 0 until MAX_TRACES) {
             linePaints[i].color = t.seriesColor(i).toArgb()
         }
