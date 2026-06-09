@@ -1099,7 +1099,7 @@ Plans:
 
 **Wave 0**
 
-- [ ] 23-01-PLAN.md — Wave-0 tooling/scaffolds: extend verify_ligatures.py for the 6 new ligatures, confirm DinghyIconsTest GREEN, write RED UnitGrid/ListRow/FillMeter test stubs that compile day-one
+- [x] 23-01-PLAN.md — Wave-0 tooling/scaffolds: extend verify_ligatures.py for the 6 new ligatures, confirm DinghyIconsTest GREEN, write RED UnitGrid/ListRow/FillMeter test stubs that compile day-one
 
 **Wave 1** *(parallel — disjoint files)*
 
@@ -1307,7 +1307,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
-| 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
+| 23. Interaction Coherence & Page Overhauls | 1/6 | In Progress|  |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
