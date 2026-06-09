@@ -1112,7 +1112,7 @@ Plans:
 
 **Wave 3** *(blocked on Waves 0/2/3-icons)*
 
-- [ ] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow (compound leading-type-tile pattern, DinghyIcon overload) + @Preview matrices (SC-2/SC-4)
+- [x] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow (compound leading-type-tile pattern, DinghyIcon overload) + @Preview matrices (SC-2/SC-4)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
@@ -1307,7 +1307,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
-| 23. Interaction Coherence & Page Overhauls | 4/6 | In Progress|  |
+| 23. Interaction Coherence & Page Overhauls | 5/6 | In Progress|  |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
