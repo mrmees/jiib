@@ -1,5 +1,9 @@
 package works.mees.dinghy.state
 
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
@@ -25,6 +29,11 @@ import works.mees.dinghy.net.JsonRpcMethods
  * Merge-not-replace (Pitfall 1, STATE-01): [reduceDiff] deep-merges a `notify_status_update` partial diff
  * field-by-field onto the RETAINED state. A temp-only `extruder` diff updates the temperature and KEEPS the
  * previously-set target; it does not blank un-diffed fields.
+ *
+ * D-02 (Phase 22): all collection construction sites now emit ImmutableMap/ImmutableList at the
+ * assignment boundary. Internal accumulators remain mutable (mutableMapOf/LinkedHashMap) for
+ * performance; the conversion happens via .toImmutableMap()/.toImmutableList() exactly at the
+ * s.copy(...) call. See toImmutable2d() for the 2-D matrix helper.
  */
 
 /**
@@ -100,7 +109,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
 
     status.objectOrNull("toolhead")?.let { th ->
         th.stringOrNull("homed_axes")?.let { s = s.copy(homedAxes = it) }
-        th.doubleListOrNull("position")?.let { s = s.copy(toolheadPosition = it) }
+        // doubleListOrNull returns raw List<Double>?; convert to ImmutableList at assignment boundary.
+        th.doubleListOrNull("position")?.let { s = s.copy(toolheadPosition = it.toImmutableList()) }
         // Phase-17 Fine-Tune motion limits (TUNE-02 / D-04..D-07) — RAW units/ratio, no scaling here
         // (Pitfall 1: minimum_cruise_ratio stays the raw 0..1 ratio; the holder converts to percent for
         // display). Each is null-safe + null-only-skips, so a partial toolhead diff retains omitted fields.
@@ -114,7 +124,7 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         gm.doubleOrNullAt("speed_factor")?.let { s = s.copy(speedFactor = it) }
         gm.doubleOrNullAt("extrude_factor")?.let { s = s.copy(extrudeFactor = it) }
         // MOVE-04 / Pitfall 1: gcode_position is the offsets-stripped user-facing X/Y/Z source — NOT toolhead.position.
-        gm.doubleListOrNull("gcode_position")?.let { s = s.copy(gcodePosition = it) }
+        gm.doubleListOrNull("gcode_position")?.let { s = s.copy(gcodePosition = it.toImmutableList()) }
         // Phase 16 / SC-5: applied Z offset (live babystep) = homing_origin[2]. getOrNull(2) is null-safe
         // on a short/garbage array (the helper already null-guards non-numeric cells), so we never crash.
         gm.doubleListOrNull("homing_origin")?.let { s = s.copy(gcodeZOffset = it.getOrNull(2)) }
@@ -163,6 +173,7 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     // structured object is the result source-of-truth (RESEARCH Pattern 1) — never console parsing.
 
     status.objectOrNull("screws_tilt_adjust")?.let { st ->
+        // Internal accumulator stays mutable; converted to ImmutableMap at assignment boundary.
         val results = LinkedHashMap<String, ScrewResult>()
         st.objectOrNull("results")?.let { res ->
             for ((screw, value) in res) {
@@ -179,7 +190,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
             screwsTilt = ScrewsTiltObject(
                 error = st.booleanOrNull("error") ?: false,
                 maxDeviation = st.doubleOrNullAt("max_deviation"),
-                results = results,
+                // Convert at the assignment boundary (ImmutableMap declared type).
+                results = results.toImmutableMap(),
             ),
         )
     }
@@ -199,11 +211,14 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         s = s.copy(
             bedMesh = BedMeshObject(
                 profileName = bm.stringOrNull("profile_name") ?: prev.profileName,
-                meshMin = bm.doubleListOrNull("mesh_min") ?: prev.meshMin,
-                meshMax = bm.doubleListOrNull("mesh_max") ?: prev.meshMax,
-                probedMatrix = bm.double2dListOrNull("probed_matrix") ?: prev.probedMatrix,
-                meshMatrix = bm.double2dListOrNull("mesh_matrix") ?: prev.meshMatrix,
-                profileNames = bm.objectOrNull("profiles")?.keys?.toList() ?: prev.profileNames,
+                // doubleListOrNull returns raw List<Double>?; toImmutableList() at the assignment boundary.
+                meshMin = bm.doubleListOrNull("mesh_min")?.toImmutableList() ?: prev.meshMin,
+                meshMax = bm.doubleListOrNull("mesh_max")?.toImmutableList() ?: prev.meshMax,
+                // double2dListOrNull returns raw List<List<Double>>?; toImmutable2d() at boundary.
+                probedMatrix = bm.double2dListOrNull("probed_matrix")?.toImmutable2d() ?: prev.probedMatrix,
+                meshMatrix = bm.double2dListOrNull("mesh_matrix")?.toImmutable2d() ?: prev.meshMatrix,
+                // profileNames: keys().toImmutableList() at boundary.
+                profileNames = bm.objectOrNull("profiles")?.keys?.toImmutableList() ?: prev.profileNames,
             ),
         )
     }
@@ -228,6 +243,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
     }
 
     // Heaters: merge each present heater object field-by-field onto the retained HeaterState.
+    // Internal accumulator stays mutable (mutableMapOf); converted to ImmutableMap at the
+    // assignment boundary via (s.heaters + heaterUpdates).toImmutableMap().
     val heaterUpdates = mutableMapOf<String, HeaterState>()
     for ((key, value) in status) {
         if (!isHeaterObject(key)) continue
@@ -242,7 +259,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         )
     }
     if (heaterUpdates.isNotEmpty()) {
-        s = s.copy(heaters = s.heaters + heaterUpdates)
+        // (s.heaters + heaterUpdates) produces a plain Map; toImmutableMap() converts at boundary.
+        s = s.copy(heaters = (s.heaters + heaterUpdates).toImmutableMap())
     }
 
     // temperature_sensor objects (Phase 16 Standby glance). SEPARATE from the heater loop —
@@ -256,7 +274,7 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         obj.doubleOrNullAt("temperature")?.let { sensorUpdates[key] = it }
     }
     if (sensorUpdates.isNotEmpty()) {
-        s = s.copy(temperatureSensors = s.temperatureSensors + sensorUpdates)
+        s = s.copy(temperatureSensors = (s.temperatureSensors + sensorUpdates).toImmutableMap())
     }
 
     // Phase-19 Output Controls (SC-1/SC-3). Reduce each present NON-heater output family's live fields into
@@ -274,11 +292,12 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         outputUpdates[key] = prev.copy(
             speed = obj.doubleOrNullAt("speed") ?: prev.speed,
             value = obj.doubleOrNullAt("value") ?: prev.value,
-            colorData = obj.double2dListOrNull("color_data") ?: prev.colorData,
+            // double2dListOrNull returns raw List<List<Double>>?; toImmutable2d() at boundary.
+            colorData = obj.double2dListOrNull("color_data")?.toImmutable2d() ?: prev.colorData,
         )
     }
     if (outputUpdates.isNotEmpty()) {
-        s = s.copy(outputs = s.outputs + outputUpdates)
+        s = s.copy(outputs = (s.outputs + outputUpdates).toImmutableMap())
     }
 
     return s
@@ -333,12 +352,20 @@ private fun JsonObject.intOrNullAt(key: String): Int? =
 private fun JsonObject.booleanOrNull(key: String): Boolean? =
     runCatching { this[key]?.jsonPrimitive?.booleanOrNull }.getOrNull()
 
+/**
+ * Returns a raw List<Double>? for the given JSON array key. The result is a plain (mutable-backed)
+ * list — callers convert to ImmutableList at the assignment boundary via .toImmutableList().
+ * A non-array key, or any non-numeric cell, makes the WHOLE read null (skip-and-retain).
+ */
 private fun JsonObject.doubleListOrNull(key: String): List<Double>? =
     runCatching { (this[key] as? JsonArray)?.map { it.jsonPrimitive.double } }.getOrNull()
 
 /**
- * Array-of-arrays of Doubles (the `bed_mesh` `mesh_matrix`/`probed_matrix` grids — CALIB-04). Null-safe
- * like the 1-D sibling: a non-array key, or any non-numeric cell, makes the WHOLE read null (skip-and-retain).
+ * Array-of-arrays of Doubles (the `bed_mesh` `mesh_matrix`/`probed_matrix` grids — CALIB-04,
+ * and output `color_data` — Phase 19). Returns a raw List<List<Double>>?; callers convert to
+ * ImmutableList<ImmutableList<Double>> at the assignment boundary via .toImmutable2d().
+ * Null-safe like the 1-D sibling: a non-array key, or any non-numeric cell, makes the WHOLE read
+ * null (skip-and-retain).
  */
 private fun JsonObject.double2dListOrNull(key: String): List<List<Double>>? =
     runCatching {
@@ -346,3 +373,12 @@ private fun JsonObject.double2dListOrNull(key: String): List<List<Double>>? =
             (row as JsonArray).map { it.jsonPrimitive.double }
         }
     }.getOrNull()
+
+/**
+ * Convert a raw `List<List<Double>>` (as returned by [double2dListOrNull]) to the declared
+ * `ImmutableList<ImmutableList<Double>>` field type at the assignment boundary. Each inner
+ * row is converted first, then the outer list. A private helper to avoid repeating the
+ * double `.toImmutableList()` call at every 2-D matrix assignment site.
+ */
+private fun List<List<Double>>.toImmutable2d(): ImmutableList<ImmutableList<Double>> =
+    map { it.toImmutableList() }.toImmutableList()

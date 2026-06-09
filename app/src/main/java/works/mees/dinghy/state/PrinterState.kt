@@ -1,5 +1,10 @@
 package works.mees.dinghy.state
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import works.mees.dinghy.net.ConnectionError
 
 /**
@@ -16,7 +21,14 @@ import works.mees.dinghy.net.ConnectionError
  *
  * Fields mirror the v1 subscribe set (02-RESEARCH § "Code Examples"): heater/extruder temps+targets,
  * toolhead position/homed axes, gcode_move factors, print_stats lifecycle, and progress.
+ *
+ * D-02 (Phase 22): annotated @Immutable + all Map/List fields migrated to ImmutableMap/ImmutableList
+ * so Compose can skip composables that read this type. Declared types are the READ-ONLY Immutable*
+ * interfaces (not Persistent*) — the reducer uses .toImmutableMap()/.toImmutableList() at each
+ * assignment boundary; PersistentMap/PersistentList is not warranted here because no reducer site
+ * does in-place .put()/.add() mutations on a PrinterState field.
  */
+@Immutable
 data class PrinterState(
     /** Klipper host lifecycle (STATE-04) — first-class because it drives routing in Phase 3. */
     val klippyState: KlippyState = KlippyState.Disconnected,
@@ -34,7 +46,7 @@ data class PrinterState(
     val printState: PrintState = PrintState.Standby,
 
     /** Per-heater readings keyed by object name (`heater_bed`, `extruder`, `extruder1`, ...). */
-    val heaters: Map<String, HeaterState> = emptyMap(),
+    val heaters: ImmutableMap<String, HeaterState> = persistentMapOf(),
 
     /**
      * Retained `temperature_sensor <name>` → temperature (°C) map, for the Standby glance metric
@@ -43,17 +55,17 @@ data class PrinterState(
      * dropping it. The preferred glance sensor is derived from THIS map by a pure stable selector
      * (`selectGlanceSensor`), never from the raw current diff — that is the partial-diff-flip fix.
      */
-    val temperatureSensors: Map<String, Double> = emptyMap(),
+    val temperatureSensors: ImmutableMap<String, Double> = persistentMapOf(),
 
     /** Toolhead position `[x, y, z, e]` (mm); null until first snapshot. */
-    val toolheadPosition: List<Double>? = null,
+    val toolheadPosition: ImmutableList<Double>? = null,
 
     /**
      * `gcode_move.gcode_position` `[X, Y, Z, E]` (mm) — the offsets-stripped, USER-FACING coordinates
      * the Move panel displays/jogs against (MOVE-04 / RESEARCH Pitfall 1). NOT [toolheadPosition]
      * (which is raw kinematic position including offsets). Null until first snapshot.
      */
-    val gcodePosition: List<Double>? = null,
+    val gcodePosition: ImmutableList<Double>? = null,
 
     /** Homed axes string from `toolhead.homed_axes` (e.g. "xyz", "" when none). */
     val homedAxes: String = "",
@@ -189,7 +201,7 @@ data class PrinterState(
      * present field; an absent field RETAINS its prior value (never clobbered) so a row degrades gracefully
      * (SC-3 — hides the value, stays tappable) instead of flickering to a default.
      */
-    val outputs: Map<String, OutputLiveValue> = emptyMap(),
+    val outputs: ImmutableMap<String, OutputLiveValue> = persistentMapOf(),
 )
 
 /**
@@ -202,6 +214,7 @@ data class PrinterState(
  *  - servo/output_pin/pwm_tool         → [value]      (0.0..1.0, or the PWM duty)
  *  - heater_generic                    → [temperature]/[target] — NOT populated here; read from [heaters].
  */
+@Immutable
 data class OutputLiveValue(
     /** fan_generic `.speed` (RAW 0.0..1.0). Null until reported. */
     val speed: Double? = null,
@@ -212,7 +225,7 @@ data class OutputLiveValue(
     /** servo/output_pin/pwm_tool `.value` (RAW 0.0..1.0 / PWM duty). Null until reported. */
     val value: Double? = null,
     /** led/neopixel `.color_data` (`[[r,g,b,w], ...]`; index 0 = whole strip). Null until reported. */
-    val colorData: List<List<Double>>? = null,
+    val colorData: ImmutableList<ImmutableList<Double>>? = null,
 )
 
 /**
@@ -220,6 +233,7 @@ data class OutputLiveValue(
  * `SET_RETRACTION`-driven values — retract length/speed + unretract extra length/speed — explicitly
  * NO Z-hop (RESEARCH D-12). Build-blind on the dev printers; proven via a synthetic fixture.
  */
+@Immutable
 data class FirmwareRetractionObject(
     val retractLength: Double? = null,
     val retractSpeed: Double? = null,
@@ -233,11 +247,12 @@ data class FirmwareRetractionObject(
  * exceeded; [maxDeviation] is the MAX_DEVIATION arg float or null (it is null even after a run on the E5 —
  * done-detection keys off `error==false` + populated [results], NOT [maxDeviation]; 09-01 surprise #2).
  */
+@Immutable
 data class ScrewsTiltObject(
     val error: Boolean = false,
     val maxDeviation: Double? = null,
     /** screwN -> per-screw turn result. */
-    val results: Map<String, ScrewResult> = emptyMap(),
+    val results: ImmutableMap<String, ScrewResult> = persistentMapOf(),
 )
 
 /**
@@ -245,6 +260,7 @@ data class ScrewsTiltObject(
  * `"00:07"`), [sign] is `"CW"`/`"CCW"`, [isBase] marks the reference screw (`adjust=="00:00"`). The
  * worst-screw math (parsing the clock string) is the 09-03 parser's job — the reducer carries it verbatim.
  */
+@Immutable
 data class ScrewResult(
     val z: Double? = null,
     val sign: String? = null,
@@ -255,16 +271,17 @@ data class ScrewResult(
 /**
  * `bed_mesh` live object (CALIB-04). [profileName] is `""` when no mesh is ACTIVE (empty-state, Pitfall 4 —
  * SEPARATE from [profileNames] saved-list non-emptiness). [meshMin]/[meshMax] are JSON ARRAYS `[x,y]`
- * (Python tuple → array; 09-01 surprise #4), surfaced as `List<Double>`. [meshMatrix] (interpolated) and
- * [probedMatrix] (raw dots) are arrays-of-arrays. [profileNames] are the KEYS of the `profiles` dict.
+ * (Python tuple → array; 09-01 surprise #4), surfaced as `ImmutableList<Double>`. [meshMatrix] (interpolated)
+ * and [probedMatrix] (raw dots) are arrays-of-arrays. [profileNames] are the KEYS of the `profiles` dict.
  */
+@Immutable
 data class BedMeshObject(
     val profileName: String = "",
-    val meshMin: List<Double>? = null,
-    val meshMax: List<Double>? = null,
-    val probedMatrix: List<List<Double>>? = null,
-    val meshMatrix: List<List<Double>>? = null,
-    val profileNames: List<String> = emptyList(),
+    val meshMin: ImmutableList<Double>? = null,
+    val meshMax: ImmutableList<Double>? = null,
+    val probedMatrix: ImmutableList<ImmutableList<Double>>? = null,
+    val meshMatrix: ImmutableList<ImmutableList<Double>>? = null,
+    val profileNames: ImmutableList<String> = persistentListOf(),
 )
 
 /**
@@ -273,6 +290,7 @@ data class BedMeshObject(
  * nullable (the structured object reports null bounds before they're set; the CONSOLE line can read
  * `??????` — that `??????→null` parse is the 09-06 parser's job, not the reducer's).
  */
+@Immutable
 data class ManualProbeObject(
     val isActive: Boolean = false,
     val zPosition: Double? = null,
@@ -286,14 +304,16 @@ data class ManualProbeObject(
  * results): this carries the static screw COORDS + LABELS so the guided loop can map the live results'
  * 1-based `screwN` keys to a coordinate + name (Pitfall 1). Generic N-screw (no hardcoded count, D-04).
  */
+@Immutable
 data class ScrewConfig(
     /** Ordered 1-based screws (index 0 = `screw1`). */
-    val screws: List<Screw> = emptyList(),
+    val screws: ImmutableList<Screw> = persistentListOf(),
     /** `screw_thread` (e.g. `"CCW-M4"`) — informational; the live object already carries the turn math. */
     val screwThread: String? = null,
 )
 
 /** One configured leveling screw: its bed `[x, y]` coordinate + optional display label. */
+@Immutable
 data class Screw(
     val x: Double,
     val y: Double,
@@ -301,6 +321,7 @@ data class Screw(
 )
 
 /** A single heater's live readings (current temp, target, and heater power 0.0..1.0). */
+@Immutable
 data class HeaterState(
     val temperature: Double = 0.0,
     val target: Double = 0.0,
