@@ -133,6 +133,18 @@ object DinghyIcons {
     val Increase = DinghyIcon(IconRef.Ligature("add"), alternate = "increase")
     val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
 
+    // --- Phase-23 redesign glyphs (23-03, OWNER-LOCKED — never invent/substitute, icon law).
+    // Assignments from owner's 2026-06-09 Spoolman sketch session; all ligatures verified present
+    // in the bundled v2.944 Material Symbols ttf (plan 23-01 verify_ligatures.py gate exits 0).
+    val Sort = DinghyIcon(IconRef.Ligature("sort"), alternate = "sort")
+    val FilterList = DinghyIcon(IconRef.Ligature("filter_list"), alternate = "filter_list")
+    // expand_circle_up = Load spool (owner-reassigned from play_circle — see bucket notes).
+    val ExpandCircleUp = DinghyIcon(IconRef.Ligature("expand_circle_up"), alternate = "expand_circle_up")
+    // expand_circle_down = Unload spool (owner-reassigned from stop_circle — see bucket notes).
+    val ExpandCircleDown = DinghyIcon(IconRef.Ligature("expand_circle_down"), alternate = "expand_circle_down")
+    val ResetWrench = DinghyIcon(IconRef.Ligature("reset_wrench"), alternate = "reset_wrench")
+    val ResetSettings = DinghyIcon(IconRef.Ligature("reset_settings"), alternate = "reset_settings")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -150,5 +162,6 @@ object DinghyIcons {
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
+        Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings,
     )
 }
