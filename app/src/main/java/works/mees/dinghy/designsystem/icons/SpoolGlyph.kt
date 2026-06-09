@@ -55,7 +55,8 @@ import works.mees.dinghy.R
  *
  * ## Static (Adreno-320 floor)
  * The spiral/body draw once per recomposition — no animation (root CLAUDE.md). The parsed path is
- * `remember`ed; the brush is built inside the `DrawScope` (cheap, one instance per surface).
+ * `remember`ed; the gradient Brush is `remember(render)`ed so it is rebuilt only when the filament color
+ * changes, not on every recomposition (D-03/P2 allocation fix, Plan 22-03).
  *
  * @param swatches resolved filament colors. 0 = empty spool (D-03), 1 = solid (D-08), 2+ = two-stop
  *   gradient across the FIRST TWO only (D-04/D-09 index [0..1]). Caller resolves these (Spoolman→gcode→empty).
@@ -77,24 +78,39 @@ fun SpoolGlyph(
     val spiralPath = remember { PathParser().parsePathString(SPIRAL_PATH_DATA).toPath() }
     val spiralBounds = remember(spiralPath) { spiralPath.getBounds() }
 
+    // Resolve the render variant once per recomposition (pure function — no Compose state).
+    val render = spiralRenderFor(swatches)
+
+    // Cache the gradient Brush at composable scope, keyed on the SpiralRender instance (D-03/P2).
+    // SpiralRender.Gradient is a data class whose equality is its two Color fields, so the Brush is
+    // rebuilt only when the filament color actually changes — not on every 4 Hz recomposition.
+    // Mirrors the ColorWheel.kt `rememberHueSweep()` cached-Brush template (Plan 22-03).
+    // The result is null for non-Gradient renders (Solid / Empty) — the draw lambda uses SolidColor
+    // in those branches and never reads gradientBrush.
+    val gradientBrush = remember(render) {
+        if (render is SpiralRender.Gradient) {
+            Brush.linearGradient(
+                0f to render.start,
+                1f to render.end,
+                // Bind the two-stop transition to the spiral's own bounds (RESEARCH Pitfall 4):
+                // a default-span brush would wash the gradient out across the whole box.
+                start = Offset(spiralBounds.left, spiralBounds.center.y),
+                end = Offset(spiralBounds.right, spiralBounds.center.y),
+            )
+        } else null
+    }
+
     Box(modifier.size(sizeDp)) {
         // (1) Filament spiral — BEHIND the disc, so it only shows through the body's window holes. Drawn
         // in the 512-space the art was authored in, scaled to the box (geometry tracks any sizeDp).
         Canvas(Modifier.fillMaxSize()) {
-            val render = spiralRenderFor(swatches)
             if (render is SpiralRender.Empty) return@Canvas // D-03: filament absent — draw nothing.
             scale(size.width / VIEWPORT, size.height / VIEWPORT, pivot = Offset.Zero) {
                 translate(SPIRAL_DX, SPIRAL_DY) {
+                    // gradientBrush is non-null iff render is SpiralRender.Gradient (see remember above).
                     val brush = when (render) {
                         is SpiralRender.Solid -> SolidColor(render.color)
-                        is SpiralRender.Gradient -> Brush.linearGradient(
-                            0f to render.start,
-                            1f to render.end,
-                            // Bind the two-stop transition to the spiral's own bounds (RESEARCH Pitfall 4):
-                            // a default-span brush would wash the gradient out across the whole box.
-                            start = Offset(spiralBounds.left, spiralBounds.center.y),
-                            end = Offset(spiralBounds.right, spiralBounds.center.y),
-                        )
+                        is SpiralRender.Gradient -> gradientBrush ?: SolidColor(render.start)
                         SpiralRender.Empty -> return@translate
                     }
                     // Keyline first (slightly wider) → reads as a thin neutral outline around the coil so

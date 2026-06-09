@@ -14,6 +14,11 @@ import org.junit.Test
  *   - 1 swatch    → [SpiralRender.Solid]              (D-08: flat fill of the single color)
  *   - 2 swatches  → [SpiralRender.Gradient]           (D-04: two-stop gradient across both)
  *   - 3+ swatches → [SpiralRender.Gradient] of [0,1]  (D-04/D-09: first two only, index [0..1])
+ *
+ * Plan 22-03 addition: structural equality of [SpiralRender.Gradient] is the remember(render) key —
+ * same swatches must produce an equal Gradient (so the cached Brush is reused); a different swatch
+ * color must produce an unequal Gradient (so the Brush is rebuilt). Verified here at the data-class
+ * level; Brush-instance reuse itself is not host-testable without Compose-runtime infra.
  */
 class SpoolGlyphTest {
 
@@ -55,5 +60,33 @@ class SpoolGlyphTest {
             SpiralRender.Gradient(red, green),
             spiralRenderFor(listOf(red, green, blue)),
         )
+    }
+
+    // ── Plan 22-03: remember(render) key correctness ────────────────────────────────────────────
+    // SpiralRender.Gradient is a data class; its structural equality IS the cache key for the
+    // remember(render) { Brush.linearGradient(...) } block in SpoolGlyph. These tests verify that
+    // the equality semantics are correct so that same-color emissions return an equal key (cached
+    // Brush reused) and a color change produces an unequal key (Brush rebuilt).
+
+    @Test
+    fun sameSwatches_producesEqualGradient_cacheKeyStable() {
+        val first = spiralRenderFor(listOf(red, green))
+        val second = spiralRenderFor(listOf(red, green))
+        assertEquals(
+            "Identical swatches must produce equal SpiralRender.Gradient instances " +
+                "(same remember(render) key → cached Brush reused, Plan 22-03 D-03/P2)",
+            first,
+            second,
+        )
+    }
+
+    @Test
+    fun differentSwatches_producesUnequalGradient_cacheKeyInvalidates() {
+        val first = spiralRenderFor(listOf(red, green))
+        val second = spiralRenderFor(listOf(red, blue))
+        assert(first != second) {
+            "Different swatches must produce unequal SpiralRender.Gradient instances " +
+                "(different remember(render) key → Brush rebuilt, Plan 22-03 D-03/P2)"
+        }
     }
 }
