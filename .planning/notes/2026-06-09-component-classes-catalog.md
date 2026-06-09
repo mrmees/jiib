@@ -44,6 +44,16 @@ modifier extensions** so screen migrations just *consume* classes — making eve
 foot-button bar. The catalog crystallizes from a real, owner-approved screen, then later screens
 consume it. See the sequencing section in the redesign-direction note.
 
+## Fill convention — content vs controls (LOCKED 2026-06-09)
+
+A load-bearing visual rule that separates the two: **list items are translucent** (transparent fill,
+outline only — they're *content*); **buttons / control tiles / action bars are filled** (`surface`
+shade — they're *controls*). This is what makes a tappable `ListRow` read differently from a
+`FootButtonBar` button or a sort/filter tile even though both carry an outline. Selection/active states
+layer accent tint on top. No text labels are used to group controls — separation is carried by
+**outline + fill shade + accent**, never a header word (owner: "context + styling should be all we
+need to group things naturally," 2026-06-09).
+
 ## Open naming question
 
 Owner-proposed terms: **"component classes"** / **"style classes."** Pick one canonical term for the

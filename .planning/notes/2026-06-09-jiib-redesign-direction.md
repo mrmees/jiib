@@ -127,6 +127,32 @@ the waterfall covers real use.
   than as a separate sweep.
 - **Ship last.**
 
+## Sort vs Filter, and the in-place "Field-takeover" picker (LOCKED 2026-06-09)
+
+Two distinct control verbs, never conflated (the Spoolman design session wrongly flattened filters
+into sorts):
+- **Sort** = an **in-place toggle** that reorders the current list (Name / Date / Weight…), with a
+  direction indicator. Acts immediately, no navigation.
+- **Filter** = **opens a list of options to pick** (Material / Color / Brand…). Filter buttons show
+  their current value ("Any" / "PETG").
+
+**Filters do NOT pop a separate screen.** Instead they take over the **Field** (the list area) in
+place: tap *Material* → the Field swaps from the spool list to a list of materials (each with a count),
+pick one → the Field swaps back, filtered. A "‹ Back" returns without changing; a "Show all …" clears.
+Chosen over a separate filter screen because it's consistent with lists-first and minimizes screens —
+the Field is *already* a list, so it just changes what it's listing. This **Field-takeover picker** is
+a **reusable pattern** (file-type filters, macro-param pickers, etc.), not a Spoolman one-off. (Owner
+decision, 2026-06-09.)
+
+## ⚠️ oklch color-mix hazard (caution/amber reads red)
+
+`color-mix(in oklch, var(--heat) …, var(--outline))` interpolates **hue the short way around**, and
+amber (`--heat`, hue ~66) → blue-gray (`--outline`, hue ~255) takes the path **through red (hue 0)** —
+so a "caution" border renders orange-red, not yellow. **`hifi.css` `.ctl.warn` uses exactly this mix**,
+so the shipped app likely has the same bug. Fix during Layer-1: use `--heat` directly for caution
+outlines, add a `--heat-line` token, or force `in oklch shorter/longer hue` deliberately / mix in
+`srgb`. (Surfaced in sketch 003, 2026-06-09.)
+
 ## Constraints unchanged
 
 minSdk 23 · Nexus 7 2013 Adreno 320 = perf floor · portrait+landscape · full semantic-token theming ·

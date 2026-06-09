@@ -146,12 +146,13 @@
     min-height: calc(var(--u, 96px) - 12px);
     border: 1.5px solid var(--outline);
     border-radius: var(--r-ctrl);
-    background: var(--surface);
+    /* list items TRANSLUCENT (content) — foot buttons stay filled (controls) */
+    background: transparent;
     padding: 12px 18px;
     display: flex; align-items: center; gap: 16px;
     cursor: pointer; transition: .15s;
   }
-  .row:hover { border-color: var(--outline-2); background: var(--surface-2); }
+  .row:hover { border-color: var(--outline-2); background: var(--hair); }
   .row.hero { min-height: 0; padding: 18px 20px; }
   .row .mark {
     flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px;
@@ -199,7 +200,7 @@
   .btn.accent:hover  { box-shadow: 0 0 22px -2px var(--accent-glow); }
   .btn.go      { border-color: color-mix(in oklch, var(--go) 60%, var(--outline)); color: var(--go); }
   .btn.go:hover{ box-shadow: 0 0 22px -2px var(--go-glow); background: var(--go-soft); }
-  .btn.caution { border-color: color-mix(in oklch, var(--heat) 62%, var(--outline)); color: var(--heat); }
+  .btn.caution { border-color: var(--heat); color: var(--heat); }
   .btn.caution:hover { box-shadow: 0 0 22px -2px var(--heat-glow); background: var(--heat-soft); }
   .btn.stop    { border-color: color-mix(in oklch, var(--stop) 66%, var(--outline)); color: var(--stop); }
   .btn.stop:hover { box-shadow: 0 0 22px -2px var(--stop-glow); background: var(--stop-soft); }
