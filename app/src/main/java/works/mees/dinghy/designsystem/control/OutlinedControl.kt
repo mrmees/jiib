@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -135,4 +137,51 @@ fun OutlinedControl(
             )
         }
     }
+}
+
+/**
+ * Resolves a [DinghyIcon]'s Material Symbols ligature name for use in an [OutlinedControl].
+ *
+ * Control glyphs in this design system are always Material Symbols ligatures. A [DinghyIcon]
+ * whose [DinghyIcon.primary] is an [IconRef.Drawable] cannot be used in a control symbol slot —
+ * that is a programming error and is surfaced loudly via [IllegalArgumentException].
+ *
+ * @throws IllegalArgumentException if [icon]'s primary source is [IconRef.Drawable] rather
+ *   than [IconRef.Ligature].
+ */
+internal fun ligatureOf(icon: DinghyIcon): String =
+    (icon.primary as? IconRef.Ligature)?.name
+        ?: throw IllegalArgumentException(
+            "OutlinedControl icon must be ligature-backed: ${icon.alternate}"
+        )
+
+/**
+ * DinghyIcon-aware [OutlinedControl] overload — accepts a registered [DinghyIcon] token so
+ * redesign components (SortRow, FilterRow, FootButtonBar, FloatingEStop) pass REGISTERED icons
+ * by token, never ad-hoc raw ligature strings (closes the icon-registry control-API gap; 23-03).
+ *
+ * Redesign components pass a registered [DinghyIcon] (e.g. `DinghyIcons.Sort`), never a raw
+ * ligature string; the string-symbol overload is retained only for pre-redesign call sites.
+ *
+ * Delegates to the existing [symbol: String?] implementation — single rendering path, no
+ * duplicated body. The existing raw-[symbol] overload is preserved for back-compat.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun OutlinedControl(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    intent: Intent = Intent.Neutral,
+    icon: DinghyIcon?,
+    onLongClick: (() -> Unit)? = null,
+) {
+    OutlinedControl(
+        label = label,
+        onClick = onClick,
+        modifier = modifier,
+        intent = intent,
+        symbol = icon?.let { ligatureOf(it) },
+        onLongClick = onLongClick,
+    )
 }
