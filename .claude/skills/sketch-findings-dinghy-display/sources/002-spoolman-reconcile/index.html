@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>002 — Spoolman reconcile (filter + sort + fill meter)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=block" rel="stylesheet" />
+<link rel="stylesheet" href="../themes/default.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background:#000; color:var(--text); font-family:var(--ui); -webkit-font-smoothing:antialiased; overflow:hidden; }
+
+  /* chrome */
+  #topbar { position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding:8px 12px; background:rgba(10,12,16,.92); border-bottom:1px solid rgba(255,255,255,.08); font-family:system-ui; font-size:12.5px; color:#cbd2da; }
+  #topbar .grp { display:flex; gap:6px; align-items:center; }
+  #topbar .lbl { color:#6b7480; text-transform:uppercase; letter-spacing:.08em; font-size:10.5px; }
+  #topbar button { font-family:system-ui; font-size:12.5px; background:#1a1d22; color:#cbd2da; border:1px solid rgba(255,255,255,.10); padding:5px 11px; border-radius:8px; cursor:pointer; transition:.15s; }
+  #topbar button:hover { background:#23272d; }
+  #topbar button.on { background:var(--accent-soft); border-color:var(--accent-line); color:#fff; }
+  #topbar .sep { width:1px; height:22px; background:rgba(255,255,255,.10); margin:0 4px; }
+
+  .stage { position:fixed; inset:0; display:grid; place-items:center;
+    background: radial-gradient(1200px 700px at 50% -10%, rgba(60,90,160,.10), transparent 60%), #0b0d10; overflow:hidden; }
+  .frame-wrap { transform-origin:center center; }
+  .frame { background:var(--bg); border-radius:var(--r-screen); box-shadow:0 40px 120px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04);
+    overflow:hidden; position:relative; display:flex; flex-direction:column; }
+  .frame-pad { flex:1 1 auto; min-height:0; display:flex; padding:20px; gap:16px; }
+  .frame.grid::after { content:""; position:absolute; left:20px; right:20px; top:20px; bottom:20px; pointer-events:none; z-index:6;
+    background-image: repeating-linear-gradient(to bottom, var(--accent-line) 0, var(--accent-line) 1px, transparent 1px, transparent var(--u,96px)); opacity:.35; }
+
+  .home { flex:1 1 auto; min-height:0; min-width:0; display:flex; gap:16px; width:100%; }
+  .home.land { flex-direction:row; }
+  .home.port { flex-direction:column; }
+  .col { min-height:0; min-width:0; display:flex; flex-direction:column; gap:12px; }
+
+  /* ===== DetailCard (Focus) — color-reactive border ===== */
+  .detail { flex:1 1 auto; min-height:0; background:var(--surface); border:2px solid var(--ring,var(--hair)); border-radius:var(--r-card);
+    padding:20px 22px; display:flex; flex-direction:column; gap:14px; transition:border-color .35s ease; overflow:hidden; }
+  .d-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+  .d-id { display:flex; align-items:center; gap:16px; min-width:0; }
+  .dot { flex:0 0 auto; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); }
+  .dot-lg { width:44px; height:44px; }
+  .dot-md { width:22px; height:22px; }
+  .d-mat { font-weight:800; font-size:calc(34px*var(--fs)); letter-spacing:-.02em; line-height:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .d-actions { flex:0 0 auto; display:flex; gap:10px; }
+  .ibtn { min-width:64px; height:54px; padding:0 14px; border-radius:13px; border:2px solid var(--outline); background:var(--surface-2); color:var(--text-2);
+    font-family:var(--ui); font-weight:700; font-size:calc(15px*var(--fs)); cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; }
+  .ibtn:hover { background:var(--surface-3); color:var(--text); }
+  .ibtn.danger { color:var(--stop); border-color:color-mix(in oklch, var(--stop) 55%, var(--outline)); }
+  .ibtn.danger:hover { background:var(--stop-soft); }
+
+  .dl { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:14px; }
+  .dl-row { display:flex; align-items:baseline; gap:14px; }
+  .dl-k { flex:0 0 40px; color:var(--text-3); display:flex; align-items:center; }
+  .dl-k .msym { font-size:32px; }
+  .dl-v { font-family:var(--mono); font-weight:600; font-size:calc(22px*var(--fs)); letter-spacing:-.02em; color:var(--text); }
+  .dl-v .u { color:var(--text-3); }
+
+  /* ===== FillMeter (color-tinted) ===== */
+  .fill { display:flex; flex-direction:column; gap:9px; }
+  .fill-top { display:flex; align-items:baseline; justify-content:space-between; }
+  .fill-val { font-family:var(--mono); font-weight:700; font-size:calc(23px*var(--fs)); letter-spacing:-.02em; }
+  .fill-val .u { color:var(--text-3); font-weight:600; }
+  .fill-pct { font-family:var(--mono); font-weight:700; font-size:calc(20px*var(--fs)); color:var(--text-2); }
+  .fill-bar { height:14px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+  .fill-bar > i { display:block; height:100%; border-radius:999px; box-shadow:0 0 12px -2px currentColor; transition:width .45s cubic-bezier(.2,.7,.2,1); }
+
+  /* ===== List (no scrollbar, edge-fade) ===== */
+  .field-scroll { position:relative; flex:1 1 auto; min-height:0; }
+  .list { height:100%; overflow-y:auto; scrollbar-width:none; display:flex; flex-direction:column; gap:12px; padding:2px; }
+  .list::-webkit-scrollbar { display:none; }
+  .fade { position:absolute; left:0; right:0; height:30px; pointer-events:none; z-index:3; opacity:0; transition:opacity .2s; }
+  .fade.top { top:0; background:linear-gradient(180deg,var(--bg),transparent); }
+  .fade.bot { bottom:0; background:linear-gradient(0deg,var(--bg),transparent); }
+
+  /* ===== ListRow ===== */
+  /* list items are TRANSLUCENT (content) — buttons/tiles stay filled (controls) */
+  .row { flex:0 0 auto; min-height:calc(var(--u,96px) - 12px); border:1.5px solid var(--outline); border-radius:var(--r-ctrl);
+    background:transparent; padding:12px 18px; display:flex; align-items:center; gap:16px; cursor:pointer; transition:.15s; }
+  .row:hover { border-color:var(--outline-2); background:var(--hair); }
+  .row.sel { border-color:var(--accent-line); background:var(--accent-soft); border-width:2px; }
+  .row .body { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .row .t { font-size:calc(21px*var(--fs)); font-weight:700; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .s { font-size:calc(16px*var(--fs)); color:var(--text-3); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .wt { flex:0 0 auto; font-family:var(--mono); font-weight:700; font-size:calc(26px*var(--fs)); letter-spacing:-.03em; }
+  .row .wt .u { color:var(--text-3); font-size:.62em; margin-left:5px; }
+
+  /* ===== Filter / Sort controls ===== */
+  .group-label { font-size:calc(13px*var(--fs)); color:var(--text-3); text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin:2px 2px 0; }
+  .chipbar { display:flex; flex-wrap:wrap; gap:9px; padding:12px; background:var(--bg-2); border:1px solid var(--hair); border-radius:var(--r-ctrl); }
+  .fchip { font-family:var(--ui); font-weight:700; font-size:calc(17px*var(--fs)); color:var(--text-2);
+    background:var(--surface); border:1.5px solid var(--outline); border-radius:var(--r-pill); padding:9px 17px; cursor:pointer; transition:.15s; }
+  .fchip:hover { border-color:var(--outline-2); color:var(--text); }
+  .fchip.on { background:var(--accent-soft); border-color:var(--accent-line); color:var(--accent-2); }
+  .swatch { width:34px; height:34px; border-radius:10px; padding:0; border:2px solid transparent; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); cursor:pointer; transition:.15s; }
+  .swatch.on { border-color:var(--accent-2); transform:scale(1.06); }
+
+  /* mock-style sort grid (variant B bottom + variant C left) */
+  .sortgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .sbtn2 { height:calc(var(--u,96px) - 14px); min-height:60px; border-radius:var(--r-ctrl); border:1.5px solid var(--outline); background:var(--surface);
+    color:var(--text); display:grid; place-items:center; cursor:pointer; position:relative; transition:.15s; font-weight:800; font-size:calc(17px*var(--fs)); letter-spacing:-.01em; }
+  .sbtn2:hover { border-color:var(--outline-2); background:var(--surface-2); }
+  .sbtn2.on { border-color:var(--accent-line); background:var(--accent-soft); color:var(--accent-2); }
+  .sbtn2 .dir { position:absolute; top:7px; right:10px; font-size:15px; color:var(--accent-2); font-family:var(--mono); }
+  /* Material Symbols — the real bundled font, rendered by ligature */
+  .msym { font-family:'Material Symbols Outlined'; font-weight:normal; font-style:normal; line-height:1; display:inline-block;
+    white-space:nowrap; direction:ltr; -webkit-font-smoothing:antialiased; font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 40; font-size:30px; }
+  /* placeholder for a function with NO registry glyph — owner must assign (never auto-picked) */
+  .icph { display:inline-grid; place-items:center; width:34px; height:34px; border:1.5px dashed var(--heat); border-radius:9px;
+    color:var(--heat); font-family:var(--mono); font-weight:700; font-size:18px; }
+
+  /* control rows: leading TYPE tile (sort/filter) then option tiles. No text headers. */
+  .ctlrow { display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:10px; align-items:stretch; }
+  .typetile { width:calc(var(--u,96px) - 14px); min-width:54px; display:grid; place-items:center;
+    border-radius:var(--r-ctrl); background:var(--bg-2); color:var(--text-3); }
+  /* icons fill ~70% of the unit height */
+  .sbtn2 .msym { font-size:calc(var(--u,96px) * 0.72); }
+  .typetile .msym { font-size:calc(var(--u,96px) * 0.70); }
+  .sbtn2.filter.on { color:var(--accent-2); }
+  .sbtn2.filter .dir { color:var(--text-3); font-size:20px; }
+  .btn .msym { font-size:calc(var(--u,96px) * 0.62); }
+  .ibtn .msym { font-size:36px; }
+  .foot.foot4 { grid-template-columns:repeat(4,1fr); }
+
+  /* sort pill (variants A/C header) */
+  .sortpill { display:inline-flex; align-items:center; gap:9px; font-family:var(--ui); font-weight:700; font-size:calc(16px*var(--fs));
+    color:var(--text-2); background:var(--surface); border:1.5px solid var(--outline); border-radius:var(--r-pill); padding:9px 16px; cursor:pointer; transition:.15s; }
+  .sortpill:hover { border-color:var(--outline-2); color:var(--text); }
+  .sortpill .k { color:var(--text-3); font-weight:600; }
+  .listhead { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 2px 2px; }
+  .count { font-family:var(--mono); font-size:calc(15px*var(--fs)); color:var(--text-3); }
+
+  /* ===== FootButtonBar ===== */
+  .foot { flex:0 0 auto; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .btn { min-height:calc(var(--u,96px) - 10px); border-radius:var(--r-ctrl); border:2px solid var(--outline); background:var(--surface);
+    color:var(--text); font-family:var(--ui); font-weight:700; font-size:calc(18px*var(--fs)); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.accent { border-color:var(--accent-line); color:var(--accent-2); }
+  .btn.accent:hover { box-shadow:0 0 22px -2px var(--accent-glow); }
+  .btn.go { border-color:color-mix(in oklch,var(--go) 60%,var(--outline)); color:var(--go); }
+  .btn.go:hover { box-shadow:0 0 22px -2px var(--go-glow); background:var(--go-soft); }
+
+  .ph-note { position:absolute; bottom:9px; left:16px; z-index:4; font-family:system-ui; font-size:10.5px; color:var(--text-3); opacity:.7; }
+
+  #tools { position:fixed; bottom:12px; right:12px; z-index:60; font-family:system-ui; font-size:12px; background:rgba(0,0,0,.72); color:#fff;
+    padding:8px 10px; border-radius:10px; opacity:.45; transition:opacity .2s; display:flex; gap:12px; align-items:center; }
+  #tools:hover { opacity:1; }
+  #tools .g { display:flex; gap:5px; align-items:center; }
+  #tools .g span { color:#8b93a0; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; }
+  #tools button { background:#20242b; color:#dfe4ea; border:1px solid rgba(255,255,255,.12); border-radius:7px; padding:4px 9px; cursor:pointer; font-size:12px; }
+  #tools button.on { background:#3457b0; border-color:#4f7dff; color:#fff; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="grp"><span class="lbl">Filter/Sort approach</span>
+    <button data-v="c" class="vbtn on">C · Sort row + filter-picker ★</button>
+    <button data-v="a" class="vbtn">A · Filter-led + sort pill</button>
+    <button data-v="b" class="vbtn">B · Split grid (filter + sort)</button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp"><span class="lbl">Orientation</span>
+    <button data-o="land" class="obtn on">Landscape</button>
+    <button data-o="port" class="obtn">Portrait</button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp"><span class="lbl">Device</span>
+    <button data-d="phone" class="dbtn">Phone · 5u</button>
+    <button data-d="tablet" class="dbtn on">Tablet · 7u</button>
+  </div>
+</div>
+
+<div class="stage"><div class="frame-wrap" id="frameWrap"><div class="frame" id="frame"></div></div></div>
+
+<div id="tools">
+  <div class="g"><span>Theme</span><button id="thDark" class="on">Dark</button><button id="thLight">Light</button></div>
+  <div class="g"><span>Text</span><button data-fs="1.0">S</button><button data-fs="1.15" class="on">M</button><button data-fs="1.32">L</button></div>
+  <div class="g"><span>Unit grid</span><button id="gridBtn">Show</button></div>
+</div>
+
+<script>
+let V='c', O='land', D='tablet';
+let selId=4, loadedId=4, mat='All', col='All', brand='All', sortKey='name', sortDir='asc';
+let fieldMode='spools';   // 'spools' | 'material' | 'color' | 'brand' (Field-takeover filter picker)
+
+const DEV = { phone:{landW:1180,landH:545,portW:560,portH:1180,N:5}, tablet:{landW:1180,landH:740,portW:800,portH:1180,N:7} };
+const PAD = 40;
+
+/* icon registry → real Material Symbols ligatures (img/material-icon-bucket.json owner notes
+   + DinghyIcons.kt; sort/filter_list owner-assigned 2026-06-09). Functions with NO assigned
+   glyph render an icPlaceholder('?') and are reported to the owner — never auto-picked. */
+const ICON = {
+  sortType:'sort', filterType:'filter_list',
+  name:'match_case', date:'calendar_clock', weight:'balance',
+  material:'experiment', color:'palette', brand:'storefront',
+  delete:'delete', estop:'disabled_by_default', qr:'qr_code', home:'home',
+  weigh:'scale', load:'expand_circle_up', unload:'expand_circle_down',
+  back:'keyboard_return', clear:'delete_sweep',
+  thermostat:'thermostat', calendar_add_on:'calendar_add_on',
+  storefront:'storefront', palette:'palette', match_case:'match_case', check_circle:'check_circle',
+};
+function ic(k){ return `<span class="msym">${ICON[k]||k}</span>`; }
+function icPlaceholder(fn){ return `<span class="icph" title="No registry glyph for: ${fn} — owner must assign">?</span>`; }
+
+/* data (from the locked reference mock) */
+const FIL = [
+ {id:1, mat:'ABS', name:'Black', brand:'Sunlu', color:'Black', hex:'#222428', ring:'#54585f', cur:735, total:1000, date:'2025-11-04', noz:240, bed:90},
+ {id:2, mat:'ABS', name:'PolyLite Orange', brand:'Polymaker', color:'Orange', hex:'#f0640f', ring:'#f0640f', cur:218, total:1000, date:'2025-09-22', noz:250, bed:100},
+ {id:3, mat:'ABS', name:'White', brand:'Sunlu', color:'White', hex:'#f3f3f3', ring:'#f3f3f3', cur:221, total:1000, date:'2025-10-15', noz:240, bed:90},
+ {id:4, mat:'ABS', name:'Yellow', brand:'Sunlu', color:'Yellow', hex:'#ffe000', ring:'#ffe000', cur:418, total:1000, date:'2025-12-30', noz:240, bed:90},
+ {id:5, mat:'ABS', name:'Translucent Orange', brand:'yxpolyer', color:'Orange', hex:'#f8821e', ring:'#f8821e', cur:1000, total:1000, date:'2026-01-12', noz:245, bed:95},
+ {id:6, mat:'PETG', name:'Black', brand:'eSun', color:'Black', hex:'#222428', ring:'#54585f', cur:485, total:1000, date:'2025-08-30', noz:240, bed:80},
+ {id:7, mat:'PETG', name:'Glacier White', brand:'Bambu Lab', color:'White', hex:'#f3f3f3', ring:'#f3f3f3', cur:642, total:1000, date:'2026-02-08', noz:250, bed:70},
+ {id:8, mat:'PLA', name:'Matte Charcoal', brand:'Bambu Lab', color:'Gray', hex:'#3a3d42', ring:'#7b7f86', cur:305, total:1000, date:'2025-12-01', noz:220, bed:60},
+ {id:9, mat:'PLA', name:'Fire Engine Red', brand:'Prusament', color:'Red', hex:'#d8352a', ring:'#e0473c', cur:880, total:1000, date:'2026-01-25', noz:215, bed:60},
+ {id:10,mat:'TPU', name:'Clear', brand:'Overture', color:'Natural', hex:'#cfd6db', ring:'#cfd6db', cur:540, total:1000, date:'2025-07-19', noz:225, bed:45},
+];
+const MATS = ['All','PLA','PETG','ABS','TPU'];
+const COLORS = [ {c:'Black',hex:'#222428'},{c:'White',hex:'#f3f3f3'},{c:'Gray',hex:'#7b7f86'},{c:'Red',hex:'#d8352a'},{c:'Orange',hex:'#f0640f'},{c:'Yellow',hex:'#ffe000'} ];
+const SORTS = [ {k:'name',lab:'Aa'},{k:'date',lab:'Date'},{k:'weight',lab:'Wt'},{k:'material',lab:'Mat'},{k:'color',lab:'Color'},{k:'brand',lab:'Brand'} ];
+const SORT3 = [ {k:'name',lab:'Name'},{k:'date',lab:'Date'},{k:'weight',lab:'Weight'} ];   // sort = in-place toggle
+const FACETS = [ {f:'material',lab:'Material'},{f:'color',lab:'Color'},{f:'brand',lab:'Brand'} ]; // filter = opens picker
+
+function sortVal(f){ if(sortKey==='name')return (f.mat+' '+f.name).toLowerCase(); if(sortKey==='date')return f.date; if(sortKey==='weight')return f.cur;
+  if(sortKey==='material')return f.mat; if(sortKey==='color')return f.color; if(sortKey==='brand')return f.brand.toLowerCase(); return 0; }
+function visible(){
+  let a = FIL.filter(f => (mat==='All'||f.mat===mat) && (col==='All'||f.color===col) && (brand==='All'||f.brand===brand));
+  a.sort((x,y)=>{ const vx=sortVal(x),vy=sortVal(y); if(vx<vy)return sortDir==='asc'?-1:1; if(vx>vy)return sortDir==='asc'?1:-1; return 0; });
+  return a;
+}
+const sel = () => FIL.find(f=>f.id===selId) || FIL[0];
+
+/* ---- builders ---- */
+function detailHTML(){
+  const f = sel(); const pct = Math.round(f.cur/f.total*100);
+  return `<div class="detail" style="--ring:${f.ring}">
+    <div class="d-head">
+      <div class="d-id"><span class="dot dot-lg" style="background:${f.hex}"></span><div class="d-mat">${f.mat}</div></div>
+      <div class="d-actions">
+        <button class="ibtn" title="Weigh — re-weigh to update remaining">${ic('weigh')}</button>
+        <button class="ibtn danger" title="Delete spool">${ic('delete')}</button>
+      </div>
+    </div>
+    <div class="dl">
+      <div class="dl-row"><div class="dl-k">${ic('match_case')}</div><div class="dl-v">${f.name}</div></div>
+      <div class="dl-row"><div class="dl-k">${ic('storefront')}</div><div class="dl-v">${f.brand}</div></div>
+      <div class="dl-row"><div class="dl-k">${ic('palette')}</div><div class="dl-v">${f.color}</div></div>
+      <div class="fill">
+        <div class="fill-top"><span class="fill-val">${f.cur}<span class="u"> / ${f.total} g</span></span><span class="fill-pct">${pct}%</span></div>
+        <div class="fill-bar"><i style="width:${pct}%; background:${f.ring}; color:${f.ring}"></i></div>
+      </div>
+      <div class="dl-row"><div class="dl-k">${ic('thermostat')}</div><div class="dl-v">${f.noz}°<span class="u"> nozzle</span> / ${f.bed}°<span class="u"> bed</span></div></div>
+      <div class="dl-row"><div class="dl-k">${ic('calendar_add_on')}</div><div class="dl-v">${f.date}</div></div>
+    </div>
+  </div>`;
+}
+function rowsHTML(){
+  const items = visible();
+  if(!items.length) return `<div style="display:grid;place-items:center;height:100%;color:var(--text-3);font-size:calc(18px*var(--fs))">No spools match</div>`;
+  return items.map(f=>`<div class="row ${f.id===selId?'sel':''}" data-id="${f.id}">
+      <span class="dot dot-md" style="background:${f.hex}"></span>
+      <div class="body"><div class="t">${f.mat} · ${f.name}</div><div class="s">${f.brand}</div></div>
+      <div class="wt">${f.cur}<span class="u">g</span></div>
+    </div>`).join('');
+}
+function matChips(){ return `<div class="chipbar">${MATS.map(m=>`<button class="fchip ${mat===m?'on':''}" data-mat="${m}">${m}</button>`).join('')}</div>`; }
+function colorSwatches(){ return `<div class="chipbar"><button class="fchip ${col==='All'?'on':''}" data-col="All">All</button>${
+  COLORS.map(c=>`<button class="swatch ${col===c.c?'on':''}" data-col="${c.c}" style="background:${c.hex}" title="${c.c}"></button>`).join('')}</div>`; }
+function sortGrid(){ return `<div class="sortgrid">${SORTS.map(s=>`<button class="sbtn2 ${sortKey===s.k?'on':''}" data-sort="${s.k}">${s.lab}${sortKey===s.k?`<span class="dir">${sortDir==='asc'?'↑':'↓'}</span>`:''}</button>`).join('')}</div>`; }
+function sortPill(){ const cur=SORTS.find(s=>s.k===sortKey); return `<button class="sortpill" id="sortPill"><span class="k">sort</span> ${cur.lab} ${sortDir==='asc'?'↑':'↓'}</button>`; }
+function footHTML(){
+  const loadUnload = (selId===loadedId)
+    ? `<button class="btn" title="Unload current spool">${ic('unload')}</button>`
+    : `<button class="btn accent" title="Load spool">${ic('load')}</button>`;
+  return `<div class="foot">
+    <button class="btn" title="Home">${ic('home')}</button>
+    <button class="btn accent" title="Scan QR">${ic('qr')}</button>
+    ${loadUnload}
+  </div>`;
+}
+
+function listBlock(extraHead){
+  return `<div class="col" style="flex:1 1 0">
+    ${extraHead||''}
+    <div class="field-scroll"><div class="fade top"></div><div class="list" id="list">${rowsHTML()}</div><div class="fade bot"></div></div>
+    ${footHTML()}
+  </div>`;
+}
+
+/* ---- sort vs filter: two distinct control groups ---- */
+function sortRow(){
+  return `<div class="ctlrow"><div class="typetile" title="Sort">${ic('sortType')}</div>${SORT3.map(s=>`<button class="sbtn2 ${sortKey===s.k?'on':''}" data-sort="${s.k}" title="${s.lab}">${ic(s.k)}${sortKey===s.k?`<span class="dir">${sortDir==='asc'?'↑':'↓'}</span>`:''}</button>`).join('')}</div>`;
+}
+function facetVal(f){ return f==='material'?mat : f==='color'?col : brand; }
+function filterRow(){
+  return `<div class="ctlrow"><div class="typetile" title="Filter">${ic('filterType')}</div>${FACETS.map(x=>{ const v=facetVal(x.f); const act=v!=='All';
+    return `<button class="sbtn2 filter ${act?'on':''}" data-pick="${x.f}" title="${x.lab}">${ic(x.f)}<span class="dir">›</span></button>`;
+  }).join('')}</div>`;
+}
+function facetOptions(f){ if(f==='material')return ['All','PLA','PETG','ABS','TPU']; if(f==='color')return ['All',...COLORS.map(c=>c.c)]; return ['All',...[...new Set(FIL.map(x=>x.brand))]]; }
+function facetCount(f,v){ if(v==='All')return FIL.length; return FIL.filter(x=> f==='material'?x.mat===v : f==='color'?x.color===v : x.brand===v).length; }
+
+/* the Field becomes the filter picker in place — no separate screen */
+function pickerField(f){
+  const label = FACETS.find(x=>x.f===f).lab, cur=facetVal(f);
+  const opts = facetOptions(f).map(v=>{
+    const sw = (f==='color'&&v!=='All') ? `<span class="dot dot-md" style="background:${(COLORS.find(c=>c.c===v)||{hex:'#888'}).hex}"></span>` : '';
+    return `<div class="row ${cur===v?'sel':''}" data-opt="${v}" data-f="${f}">${sw}<div class="body"><div class="t">${v}</div></div>${cur===v?`<span class="msym" style="font-size:28px;color:var(--go)">check_circle</span>`:''}</div>`;
+  }).join('');
+  return `<div class="col" style="flex:1 1 0">
+    <div class="field-scroll"><div class="fade top"></div><div class="list">${opts}</div><div class="fade bot"></div></div>
+    <div class="foot" style="grid-template-columns:1fr"><button class="btn" id="pickClear" title="Show all ${label.toLowerCase()}">${ic('clear')}</button></div>
+  </div>`;
+}
+
+/* the Field area: spool list, or an in-place facet picker (Field-takeover) */
+function fieldArea(){
+  if(fieldMode!=='spools') return pickerField(fieldMode);
+  const head = (V==='a') ? `<div class="listhead">${sortPill()}</div>` : '';
+  return listBlock(head);
+}
+
+/* control column per variant (A/B = earlier explorations; C = sort row + filter-picker row) */
+function leftColLand(){
+  if(V==='a')
+    return `<div class="col" style="flex:0 1 44%">${detailHTML()}<div class="group-label">Filter</div>${matChips()}${colorSwatches()}</div>`;
+  if(V==='b')
+    return `<div class="col" style="flex:0 1 44%">${detailHTML()}<div class="group-label">Filter</div>${matChips()}<div class="group-label">Sort</div>${sortGrid()}</div>`;
+  return `<div class="col" style="flex:0 1 44%">${detailHTML()}${sortRow()}${filterRow()}</div>`;
+}
+function portraitControls(){
+  if(V==='c') return `${sortRow()}${filterRow()}`;
+  return matChips();
+}
+
+function render(){
+  const f=document.getElementById('frame'); let home='';
+  if(O==='land'){
+    home = `<div class="home land">${leftColLand()}${fieldArea()}</div>`;
+  } else {
+    home = `<div class="home port">
+      <div class="col" style="flex:1 1 0">${detailHTML()}</div>
+      ${portraitControls()}
+      ${fieldArea()}
+    </div>`;
+  }
+  f.innerHTML = `<div class="frame-pad">${home}</div><div class="ph-note">icons = registry glyphs (Material Symbols, bundled font)</div>`;
+  sizeFrame(); wire();
+}
+
+function sizeFrame(){
+  const frame=document.getElementById('frame'), wrap=document.getElementById('frameWrap'), d=DEV[D];
+  const W=O==='land'?d.landW:d.portW, H=O==='land'?d.landH:d.portH;
+  frame.style.width=W+'px'; frame.style.height=H+'px';
+  const U=(d.landH-PAD)/d.N; document.documentElement.style.setProperty('--u',U.toFixed(1)+'px');
+  const s=Math.min((window.innerWidth-60)/W,(window.innerHeight-130)/H,1); wrap.style.transform=`scale(${s})`;
+}
+
+function wire(){
+  document.querySelectorAll('.row').forEach(r=>r.onclick=()=>{ selId=+r.dataset.id; render(); });
+  document.querySelectorAll('[data-mat]').forEach(b=>b.onclick=()=>{ mat=b.dataset.mat; render(); });
+  document.querySelectorAll('[data-col]').forEach(b=>b.onclick=()=>{ col=b.dataset.col; render(); });
+  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{ const k=b.dataset.sort; if(k===sortKey) sortDir=sortDir==='asc'?'desc':'asc'; else {sortKey=k; sortDir='asc';} render(); });
+  document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const f=b.dataset.pick; fieldMode=(fieldMode===f)?'spools':f; render(); });
+  document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{ const f=b.dataset.f, v=b.dataset.opt; if(f==='material')mat=v; else if(f==='color')col=v; else brand=v; fieldMode='spools'; render(); });
+  const pb=document.getElementById('pickBack'); if(pb) pb.onclick=()=>{ fieldMode='spools'; render(); };
+  const pc=document.getElementById('pickClear'); if(pc) pc.onclick=()=>{ if(fieldMode==='material')mat='All'; else if(fieldMode==='color')col='All'; else if(fieldMode==='brand')brand='All'; fieldMode='spools'; render(); };
+  const sp=document.getElementById('sortPill'); if(sp) sp.onclick=()=>{ const i=SORTS.findIndex(s=>s.k===sortKey); if(sortDir==='asc'){sortDir='desc';} else {sortDir='asc'; sortKey=SORTS[(i+1)%SORTS.length].k;} render(); };
+  document.querySelectorAll('.field-scroll').forEach(fs=>{ const l=fs.querySelector('.list'),t=fs.querySelector('.fade.top'),bt=fs.querySelector('.fade.bot');
+    const u=()=>{ const m=l.scrollHeight-l.clientHeight; t.style.opacity=l.scrollTop>4?'1':'0'; bt.style.opacity=(m>4&&l.scrollTop<m-4)?'1':'0'; }; l.addEventListener('scroll',u); u(); });
+}
+
+function setA(sel,attr,val){ document.querySelectorAll(sel).forEach(b=>b.classList.toggle('on',b.getAttribute(attr)===val)); }
+document.querySelectorAll('.vbtn').forEach(b=>b.onclick=()=>{V=b.dataset.v; setA('.vbtn','data-v',V); render();});
+document.querySelectorAll('.obtn').forEach(b=>b.onclick=()=>{O=b.dataset.o; setA('.obtn','data-o',O); render();});
+document.querySelectorAll('.dbtn').forEach(b=>b.onclick=()=>{D=b.dataset.d; setA('.dbtn','data-d',D); render();});
+document.getElementById('thDark').onclick=()=>{document.documentElement.removeAttribute('data-theme'); document.getElementById('thDark').classList.add('on'); document.getElementById('thLight').classList.remove('on');};
+document.getElementById('thLight').onclick=()=>{document.documentElement.setAttribute('data-theme','light'); document.getElementById('thLight').classList.add('on'); document.getElementById('thDark').classList.remove('on');};
+document.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{document.documentElement.style.setProperty('--fs',b.dataset.fs); document.querySelectorAll('[data-fs]').forEach(x=>x.classList.toggle('on',x===b)); sizeFrame();});
+document.getElementById('gridBtn').onclick=(e)=>{const on=document.getElementById('frame').classList.toggle('grid'); e.target.classList.toggle('on',on); e.target.textContent=on?'Hide':'Show';};
+window.addEventListener('resize',sizeFrame);
+render();
+</script>
+</body>
+</html>
