@@ -1089,7 +1089,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. `docs/ui_design/LAYOUT.md` rewritten (Focus/Field, NO gutter; unit-grid `U` rules) and `docs/ui_design/COMPONENTS.md` authored as the component-class catalog
-  2. The component-class kit is built and host-tested (ListRow, DetailCard, FillMeter, sort/filter row, FootButtonBar, stepper, scrubber, unit grid, fill convention, intent colors) with `@Preview` matrices
+  2. The component-class kit is built and host-tested (ListRow, DetailCard, FillMeter, sort/filter row, FootButtonBar, unit grid, fill convention, intent colors) with `@Preview` matrices. **Stepper/scrubber RESTYLE is DEFERRED to Phase 26 (Adjustment Screens)** — the Phase-23 pilot is `SpoolScreen`, which exercises neither a stepper nor a scrubber, and restyling `ScrubberPage`/the stepper pages touches every numeric-adjustment screen (Temperature, Output, Fine-Tune); the existing `ScrubberPage`/stepper pages remain in service unchanged until Phase 26 restyles them (per 23-RESEARCH Open-Q §2 / A3). This phase therefore builds the kit MINUS stepper/scrubber.
   3. `SpoolScreen` is rebuilt onto the classes and owner-approved on flox in BOTH orientations (the pilot)
   4. The pilot demonstrates the locked rules: unit grid, translucent-list/filled-controls, no-label grouping, icon-registry glyphs (Material Symbols by ligature, never auto-picked), sort-vs-filter + Field-takeover picker
   5. The new icon assignments are registered in `DinghyIcons.kt` + `img/material-icon-bucket.json` (sort, filter_list, expand_circle_up/down, output_circle=flow, reset_wrench, reset_settings) with the stale play_circle/stop_circle load-unload notes reconciled; the oklch caution-reads-red `color-mix` bug in `hifi.css` `.ctl.warn` fixed
@@ -1104,15 +1104,15 @@ Plans:
 **Wave 1** *(parallel — disjoint files)*
 
 - [ ] 23-02-PLAN.md — Docs: rewrite LAYOUT.md off the Gutter (Focus/Field + unit grid U + fill convention + foot-of-list + floating e-stop) + author COMPONENTS.md catalog + CLAUDE.md pointer (SC-1)
-- [ ] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug (SC-5)
+- [ ] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug, + add a DinghyIcon-aware OutlinedControl overload so the kit renders REGISTERED icons by token (control-API boundary) (SC-5/SC-4)
 
 **Wave 2** *(blocked on Wave 0)*
 
-- [ ] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (pure formula + rememberUnitGrid, turns UnitGridTest GREEN) + ListBlock.kt (keyed edge-faded LazyColumn) + @Preview matrix (SC-2)
+- [ ] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (FIT-PRESERVING formula min(nTarget,nMaxFit) + rememberUnitGrid, turns UnitGridTest GREEN incl. 320/360dp no-overflow) + ListBlock.kt (keyed edge-faded LazyColumn, fade does not block touch) + @Preview matrix incl. small-phone floor (SC-2)
 
 **Wave 3** *(blocked on Waves 0/2/3-icons)*
 
-- [ ] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow + @Preview matrices (SC-2/SC-4)
+- [ ] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow (compound leading-type-tile pattern, DinghyIcon overload) + @Preview matrices (SC-2/SC-4)
 
 **Wave 4** *(blocked on Wave 3; on-device gate)*
 
