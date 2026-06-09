@@ -233,10 +233,26 @@ pickers, etc.
 | Verb | Behavior | UI indication |
 |---|---|---|
 | **Sort** | In-place reorder; acts immediately; direction can toggle | Active sort tile shows a direction arrow indicator |
-| **Filter** | Opens a Field-takeover option list; shows current value when active | Active filter tile shows the applied value (e.g. "PETG"); Field swaps to option list |
+| **Filter** | Opens a Field-takeover option list; option tiles TOGGLE independently (multi-select); **Done** returns to list; **Clear** resets that facet | Active filter tile highlights when ≥1 option is selected in that facet |
 
 Conflating sort and filter (displaying both in the same option-type UI) is non-conformant. Each
 has a distinct verb and a distinct visual affordance.
+
+**Filter multi-select semantics (owner-approved, 23-06 checkpoint):**
+- Each option tile in a filter Field-takeover **toggles independently** (selected / unselected)
+  using the `ListRow` selected state. There is no auto-close on tile tap.
+- **OR within a facet** — a spool matches if its value is in the selected set for that facet.
+- **AND across facets** — all active facets must match simultaneously (standard faceted filtering).
+- **Done** is the explicit return action; tapping it closes the Field-takeover and returns to the
+  spool list.
+- **Clear** resets the current facet's selections (all tiles deselected) and re-issues the list
+  read; does NOT close the picker.
+- The active filter tile in `FilterRow` (Focus foot) highlights whenever ≥1 option is selected
+  in that facet (`isActive = set.isNotEmpty()`).
+
+Note: the Color facet retains **single-select** behavior (one swatch at a time) because the
+color-similarity two-step (`applyColorSwatch`) closes the picker on tap — a multi-swatch
+color-OR is not supported by the current Spoolman similarity endpoint.
 
 ### Conditional Load / Unload
 

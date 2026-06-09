@@ -180,7 +180,7 @@ fun SpoolFilterControls(
             )
             CategoryButton(
                 category = SpoolFilterCategory.MFG,
-                active = state.filters.vendor != null,
+                active = state.filters.vendors.isNotEmpty(),
                 onClick = { onOpenFilter(SpoolFilterCategory.MFG) },
                 modifier = Modifier.weight(1f),
             )

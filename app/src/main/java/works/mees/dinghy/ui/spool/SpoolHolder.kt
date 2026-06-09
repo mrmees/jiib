@@ -68,7 +68,9 @@ internal fun materialFamilyLabel(raw: String): String? {
  * The applied picker filters (D-04/D-05/D-06). All optional — an empty/absent filter is "no constraint".
  *  - [materialFamilies] — D-05 material FAMILY chips, comma-joined into one `filament.material=A,B`
  *    UNQUOTED term so `PLA` catches `PLA+`; multi-family is a comma list, NOT a fuzzy combined term.
- *  - [vendor] — exact-ish `filament.vendor.name=<name>` (partial/case-insensitive per Spoolman).
+ *  - [vendors] — multi-select manufacturer filter; OR within the facet (a spool matches if its
+ *    filament vendor matches ANY selected vendor). AND across facets (standard faceted filtering).
+ *    Empty list = no vendor constraint.
  *  - [location] — D-04 location shortcut. [LOCATION_NONE] is the sentinel for the "No location" chip
  *    (`location=` empty), distinct from null = "any location".
  *  - [colorFilamentIds] — D-06 result of a swatch-tap two-step: the filament ids the color-similarity
@@ -77,7 +79,7 @@ internal fun materialFamilyLabel(raw: String): String? {
  */
 data class SpoolFilters(
     val materialFamilies: List<String> = emptyList(),
-    val vendor: String? = null,
+    val vendors: List<String> = emptyList(),
     val location: String? = null,
     val colorFilamentIds: List<Int>? = null,
     val colorSwatchHex: String? = null,
@@ -284,11 +286,20 @@ class SpoolHolder(
         refresh()
     }
 
-    /** Toggle the vendor chip (exact-ish `filament.vendor.name`); re-tap clears it. Re-issues the read. */
+    /**
+     * Toggle a vendor in the multi-select MFG filter. Each vendor toggles independently (in/out of
+     * the selected set). Filter semantics: OR within the facet (a spool matches if its vendor is in
+     * the selected set). Re-issues the list read.
+     */
     suspend fun toggleVendor(vendor: String) {
         _state.update { current ->
-            val next = if (current.filters.vendor.equals(vendor, ignoreCase = true)) null else vendor
-            current.copy(filters = current.filters.copy(vendor = next))
+            val present = current.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
+            val next = if (present) {
+                current.filters.vendors.filterNot { it.equals(vendor, ignoreCase = true) }
+            } else {
+                current.filters.vendors + vendor
+            }
+            current.copy(filters = current.filters.copy(vendors = next))
         }
         refresh()
     }
@@ -382,9 +393,9 @@ class SpoolHolder(
         refresh()
     }
 
-    /** Clear just the vendor / MFG filter (the MFG selector's Clear); re-issues the read. */
+    /** Clear the vendor / MFG filter (the MFG selector's Clear); re-issues the read. */
     suspend fun clearVendor() {
-        _state.update { it.copy(filters = it.filters.copy(vendor = null)) }
+        _state.update { it.copy(filters = it.filters.copy(vendors = emptyList())) }
         refresh()
     }
 
@@ -492,7 +503,9 @@ fun buildSpoolQuery(filters: SpoolFilters, sortKey: SpoolSortKey, ascending: Boo
         val terms = filters.materialFamilies.flatMap { familyTerms(it) }.distinct()
         parts += "filament.material=${terms.joinToString(",")}"
     }
-    filters.vendor?.let { parts += "filament.vendor.name=$it" }
+    // Multi-select vendors: OR within the facet — Spoolman supports repeated params for OR queries.
+    // Each selected vendor gets its own `filament.vendor.name=<name>` param (Spoolman ORs them).
+    filters.vendors.forEach { parts += "filament.vendor.name=$it" }
     filters.colorFilamentIds?.let { ids ->
         // An empty similarity result is a deliberate "no matches" — send an unmatchable id rather than
         // dropping the filter (which would silently show everything). -1 never matches a real spool.

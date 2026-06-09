@@ -138,8 +138,8 @@ fun SpoolScreen(
             onSelectSort = { scope.launch { holder.applySort(it) } },
             onOpenFilter = { holder.openFilterPicker(it) },
             onCloseFilter = { holder.closeFilterPicker() },
-            onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it); holder.closeFilterPicker() } },
-            onToggleVendor = { scope.launch { holder.toggleVendor(it); holder.closeFilterPicker() } },
+            onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
+            onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
             onTapSwatch = { scope.launch { holder.applyColorSwatch(it); holder.closeFilterPicker() } },
             onMultiColor = { scope.launch { holder.applyMultiColor(); holder.closeFilterPicker() } },
             onClearFilter = {
@@ -339,7 +339,7 @@ private fun SpoolContent(
                 key = SpoolFilterCategory.MFG,
                 icon = DinghyIcons.Storefront,
                 contentDescriptionRes = R.string.cd_spool_filter_mfg,
-                isActive = state.filters.vendor != null,
+                isActive = state.filters.vendors.isNotEmpty(),
             ),
         )
 
@@ -615,7 +615,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
             } else {
                 DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                     items(state.vendors, key = { it }) { vendor ->
-                        val selected = state.filters.vendor.equals(vendor, ignoreCase = true)
+                        val selected = state.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
                         ListRow(
                             selected = selected,
                             onClick = { onToggleVendor(vendor) },
