@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -110,10 +111,14 @@ internal fun PrintStatusFocus(
                         if (LocalInspectionMode.current) {
                             PreviewPlaceholderBox(label = "Thumbnail", modifier = Modifier.fillMaxSize())
                         } else {
+                            val thumbUrl = thumbnailUrl(httpBase, filename, thumbRel)
+                            val imageRequest = remember(thumbUrl, context) {
+                                ImageRequest.Builder(context)
+                                    .data(thumbUrl)
+                                    .build()
+                            }
                             AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(thumbnailUrl(httpBase, filename, thumbRel))
-                                    .build(),
+                                model = imageRequest,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
@@ -261,10 +266,14 @@ internal fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBa
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
                     )
                 } else {
+                    val thumbUrl = thumbnailUrl(httpBase, filename, thumbRel)
+                    val imageRequest = remember(thumbUrl, context) {
+                        ImageRequest.Builder(context)
+                            .data(thumbUrl)
+                            .build()
+                    }
                     AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(thumbnailUrl(httpBase, filename, thumbRel))
-                            .build(),
+                        model = imageRequest,
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
