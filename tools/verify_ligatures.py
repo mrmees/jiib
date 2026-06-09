@@ -82,6 +82,15 @@ NEEDED = {
     # All 10 confirmed resolvable in the v2.944 bundled ttf (20-RESEARCH Icon Gate, D-11).
     "pulse_alert", "dns", "schedule", "developer_board", "memory",
     "deployed_code", "code_blocks", "data_usage",
+    # Phase-23 (Design-Language Foundation) — the 6 new owner-assigned redesign ligatures
+    # (icon-assignments-redesign.md / 23-RESEARCH Icon Registry Changes). A1 gate discharged here.
+    # sort=sort-control-row leader, filter_list=filter-row leader,
+    # expand_circle_up=Load spool (replaces old play_circle bucket note),
+    # expand_circle_down=Unload spool (replaces old stop_circle bucket note),
+    # reset_wrench=reset-single-setting, reset_settings=reset-all-settings.
+    # All 6 verified resolvable in the v2.944 bundled ttf (23-01 Wave-0 gate).
+    "sort", "filter_list", "expand_circle_up", "expand_circle_down",
+    "reset_wrench", "reset_settings",
 }
 
 
