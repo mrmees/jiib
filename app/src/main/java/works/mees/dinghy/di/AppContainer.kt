@@ -1,5 +1,6 @@
 package works.mees.dinghy.di
 
+import androidx.compose.runtime.Stable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
@@ -60,6 +61,17 @@ import works.mees.dinghy.ui.webcam.WebcamPrefs
  * delegate the service supplies via [bindSessionControl]; the container never holds a raw session
  * reference reachable by UI.
  */
+/**
+ * @Stable (Phase 22 A3/SC2): a single process-lifetime singleton whose identity never changes, so
+ * screens receiving it as a composable parameter can skip recomposition on it. All reactive state is
+ * exposed as `Flow`/`StateFlow` (Compose observes those via `collectAsState`). Stability audit: the
+ * only `var` is the `private @Volatile sessionControlDelegate` (not composable-visible). The two
+ * synchronous snapshot getters [currentSpoolmanClient]/[currentFileBrowser] return live `spine.value`
+ * snapshots that change without Compose notification, but they are BY DESIGN non-composable accessors
+ * (the reactive equivalents are the `fileBrowser`/Spoolman `Flow`s) — they don't undermine the skip
+ * guarantee, which rests on the singleton's permanently-stable identity.
+ */
+@Stable
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppContainer(
     themeDataStore: DataStore<Preferences>,
