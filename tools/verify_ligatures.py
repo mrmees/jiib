@@ -91,6 +91,11 @@ NEEDED = {
     # All 6 verified resolvable in the v2.944 bundled ttf (23-01 Wave-0 gate).
     "sort", "filter_list", "expand_circle_up", "expand_circle_down",
     "reset_wrench", "reset_settings",
+    # Phase-23 plan 06 (SpoolScreen pilot) — 5 owner-assigned glyphs from img/material-icon-bucket.json.
+    # match_case=sort-by-name, calendar_clock=sort-by-date, experiment=filter-by-material-type,
+    # home=Home foot button (navigate to PrintStatus), qr_code=Scan foot button.
+    # All 5 verified resolvable in the v2.944 bundled ttf (23-06 Task-1 gate).
+    "match_case", "calendar_clock", "experiment", "home", "qr_code",
 }
 
 
