@@ -1,5 +1,8 @@
 package works.mees.dinghy.ui.printstatus
 
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import works.mees.dinghy.state.PrinterState
 
 /**
@@ -57,7 +60,8 @@ enum class PrintStatusFieldRow {
  */
 data class PrintStatusUiModel(
     val mode: PrintStatusMode,
-    val launcherDests: List<LauncherDest>,
+    /** ImmutableList so Compose's strong-skip treats the launcher grid as a stable param. */
+    val launcherDests: ImmutableList<LauncherDest>,
     val gutter: List<PrintStatusControl>,
     val activeRow: PrintStatusFieldRow,
     val showErrorLines: Boolean,
@@ -87,10 +91,10 @@ fun uiModel(
     babystepVisible: Boolean = false,
 ): PrintStatusUiModel {
     val gutter = derivePrintStatusControls(state = state, lastJob = lastJob, pendingAction = pendingAction).controls
-    val launcherDests = if (mode is PrintStatusMode.Standby) {
+    val launcherDests: ImmutableList<LauncherDest> = if (mode is PrintStatusMode.Standby) {
         standbyLauncherDests(spoolmanPresent = spoolmanPresent, hasBookmarkedMacros = hasBookmarkedMacros)
     } else {
-        emptyList()
+        persistentListOf()
     }
     val activeRow = when (mode) {
         is PrintStatusMode.Printing,
@@ -117,7 +121,7 @@ fun uiModel(
 private fun standbyLauncherDests(
     spoolmanPresent: Boolean,
     hasBookmarkedMacros: Boolean,
-): List<LauncherDest> = buildList {
+): ImmutableList<LauncherDest> = buildList {
     add(LauncherDest.Files)
     add(LauncherDest.Temperature)
     add(LauncherDest.Move)
@@ -127,4 +131,4 @@ private fun standbyLauncherDests(
     if (hasBookmarkedMacros) add(LauncherDest.Macros)
     add(LauncherDest.Console)
     add(LauncherDest.Drawer)
-}
+}.toImmutableList()

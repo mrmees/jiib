@@ -346,7 +346,7 @@ internal fun IconValueCell(
  */
 @Composable
 internal fun LauncherGrid(
-    dests: List<LauncherDest>,
+    dests: ImmutableList<LauncherDest>,
     spoolSwatches: ImmutableList<Color>,
     onNavigate: (Dest) -> Unit,
     onOpenDrawer: () -> Unit,
