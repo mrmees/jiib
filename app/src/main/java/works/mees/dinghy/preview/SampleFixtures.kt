@@ -8,6 +8,9 @@ import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.ui.finetune.FineTuneVm
 import works.mees.dinghy.ui.printstatus.PrintStatusMode
 import works.mees.dinghy.ui.printstatus.TerminalKind
+import works.mees.dinghy.ui.spool.FieldMode
+import works.mees.dinghy.ui.spool.SpoolFilterCategory
+import works.mees.dinghy.ui.spool.SpoolPickerState
 
 /**
  * The reusable, PURE, immutable fake-state library (SC-2) every preview exemplar consumes — and the
@@ -124,6 +127,17 @@ object SampleFixtures {
         spool(6, "Flex Charcoal", "TPU", "#37474F", "SainSmart", "AMS-3", remaining = 300.0),
         spool(7, "Silk Gold", "PLA", "#FFC107", "Sunlu", "AMS-4", remaining = 660.0),
         spool(8, "Galaxy Twin", "PLA", "#6A1B9A,#00BCD4", "Eryone", "Shelf", remaining = 880.0),
+    )
+
+    /**
+     * The [SpoolPickerState] with the Field-takeover TYPE filter picker open (23-06 FieldMode exercise).
+     * The first spool is selected so the DetailCard shows a color ring + FillMeter, and the Field shows
+     * the TYPE picker (material family options) in-place instead of the spool list.
+     */
+    val spoolWithFilterOpen: SpoolPickerState = SpoolPickerState(
+        spools = spoolList,
+        selected = spoolList.first(),
+        fieldMode = FieldMode.FilterPicker(SpoolFilterCategory.TYPE),
     )
 
     private fun spool(
