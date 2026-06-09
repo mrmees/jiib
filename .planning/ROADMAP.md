@@ -1108,7 +1108,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 0)*
 
-- [ ] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (FIT-PRESERVING formula min(nTarget,nMaxFit) + rememberUnitGrid, turns UnitGridTest GREEN incl. 320/360dp no-overflow) + ListBlock.kt (keyed edge-faded LazyColumn, fade does not block touch) + @Preview matrix incl. small-phone floor (SC-2)
+- [x] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (FIT-PRESERVING formula min(nTarget,nMaxFit) + rememberUnitGrid, turns UnitGridTest GREEN incl. 320/360dp no-overflow) + ListBlock.kt (keyed edge-faded LazyColumn, fade does not block touch) + @Preview matrix incl. small-phone floor (SC-2)
 
 **Wave 3** *(blocked on Waves 0/2/3-icons)*
 
@@ -1307,7 +1307,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
-| 23. Interaction Coherence & Page Overhauls | 3/6 | In Progress|  |
+| 23. Interaction Coherence & Page Overhauls | 4/6 | In Progress|  |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
