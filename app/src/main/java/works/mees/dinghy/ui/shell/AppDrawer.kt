@@ -36,6 +36,8 @@ import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import works.mees.dinghy.ui.route.Dest
 
 /**
@@ -78,6 +80,8 @@ import works.mees.dinghy.ui.route.Dest
  * @param spoolSwatches 18.3-04 (D-06.2): the resolved active-spool filament colors for the Spool tile's
  *   reactive [SpoolGlyph] band (Spoolman-active-color → empty spool only — no gcode tier on the drawer).
  *   Empty = the honest empty spool (D-03). Stateless; the shell resolves it from `activeSpoolDetail`.
+ *   [ImmutableList] parameter (D-01, 22-07) so Compose can structurally skip this composable when the
+ *   swatch list hasn't changed — `List<Color>` is unstable and defeats the skip check.
  * @param activeName D-03 active-printer indicator: the active profile's display name, rendered as a 15sp
  *   `t.text2` ellipsized subtitle under the **Devices** tile label (the ONLY tile that gains a subtitle).
  *   Null when no active profile (0 profiles → no subtitle; the tile routes through the same Connect flow).
@@ -94,7 +98,7 @@ fun AppDrawer(
     modifier: Modifier = Modifier,
     webcamEnabled: Boolean = false,
     spoolEnabled: Boolean = false,
-    spoolSwatches: List<Color> = emptyList(),
+    spoolSwatches: ImmutableList<Color> = persistentListOf(),
     activeName: String? = null,
     outputsEnabled: Boolean = false,
 ) {
@@ -265,7 +269,7 @@ private fun DrawerTile(
     tile: DrawerTileSpec,
     webcamEnabled: Boolean,
     spoolEnabled: Boolean,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     subtitle: String?,
     onClick: () -> Unit,
 ) {

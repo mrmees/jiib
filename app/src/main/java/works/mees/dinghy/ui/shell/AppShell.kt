@@ -26,6 +26,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -221,10 +223,11 @@ fun AppShell(
     // same-host profiles keep distinct preferred cams. The feed URLs still resolve off `activeCfg`;
     // only the pref KEY moves to the profile id. Empty string when no active profile (the webcam
     // surface is only reachable with an active printer, so the empty-suffixed key is rarely hit).
-    val activeProfileId by container.activeProfile.map { it?.id }.collectAsStateWithLifecycle(initialValue = null)
+    // D-01 hoist (22-07): these were inline `.map{}` expressions that created new un-memoized Flow objects
+    // on every shell recomposition; now collected from process-scoped AppContainer StateFlows (stable singletons).
+    val activeProfileId by container.activeProfileId.collectAsStateWithLifecycle()
     // D-03 active-printer indicator: the active profile's display name → the Devices drawer-tile subtitle.
-    // The SAME collect-and-thread shape webcamEnabled/spoolEnabled use; null when no active profile.
-    val activeName by container.activeProfile.map { it?.displayName() }.collectAsStateWithLifecycle(initialValue = null)
+    val activeName by container.activeName.collectAsStateWithLifecycle()
     // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
     // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
     val density = LocalDensity.current
@@ -311,8 +314,15 @@ fun AppShell(
     // middle tier on the drawer; printMetadata is deliberately NOT threaded here — owner's simpler-diff
     // narrowing of D-07). A null detail / malformed hex → empty list → the honest empty spool (D-03).
     val activeSpoolDetail by spoolHolder.activeSpoolDetail.collectAsStateWithLifecycle()
-    val drawerSpoolSwatches: List<Color> =
-        activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
+    // D-01 stabilize (22-07): was an inline List<Color> allocation on every recomposition, which is
+    // unstable (Compose sees a different reference each frame and skips no re-draw). Wrapped in
+    // remember(activeSpoolDetail) + toImmutableList() so Compose can structurally skip AppDrawer when
+    // the spool color hasn't changed. ImmutableList is stable per kotlinx-collections-immutable contract.
+    val drawerSpoolSwatches: ImmutableList<Color> = remember(activeSpoolDetail) {
+        activeSpoolDetail?.filament?.colorSwatches.orEmpty()
+            .mapNotNull(::parseNormalizedHex)
+            .toImmutableList()
+    }
 
     // ---- Outputs holder + capability gate (19-07) --------------------------------------------------
     // The D-10 capability HIDE signal: the drawer Output tile is SHOWN only when the CURRENT session's

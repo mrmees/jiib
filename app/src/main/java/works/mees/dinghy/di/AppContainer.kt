@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
@@ -129,6 +131,20 @@ class AppContainer(
      */
     private val writeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Process-lifetime scope for PROCESS-SCOPED derived [StateFlow]s (D-01, 22-07). Separate from
+     * [writeScope] (IO dispatcher) — these flows live on [Dispatchers.Default] because they are pure
+     * in-memory transformations with no disk I/O. Only PROCESS-SCOPE flows belong here: flows keyed on
+     * a session (`store`/`spine`) are SESSION-SCOPE and must stay shell-side (e.g. `errorLines`,
+     * keyed on `consoleHolder` which is `remember(store)`). Currently hosts:
+     *   - [activeProfileId] — `activeProfile.map { it?.id }` deduplicated StateFlow
+     *   - [activeName]      — `activeProfile.map { it?.displayName() }` deduplicated StateFlow
+     * Both are collected in AppShell to replace the two inline `.map{}` expressions that were creating
+     * new un-memoized Flow objects on every recomposition of the shell scope (killing Compose's structural
+     * equality check and re-collecting on every wide-recomposition tick).
+     */
+    private val stateScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /** Switch the active profile (D-02), durably — survives the Devices screen navigating away. */
     fun setActiveProfile(id: String) {
         writeScope.launch { profileStore.setActive(id) }
@@ -174,6 +190,28 @@ class AppContainer(
      */
     val activeConfig: Flow<ConnectionConfig?> =
         activeProfile.map { it?.toConnectionConfig() }.distinctUntilChanged()
+
+    /**
+     * The active profile's ID as a [StateFlow] (D-01 hoist, 22-07). Replaces the inline
+     * `container.activeProfile.map { it?.id }` expression in AppShell that created a new un-memoized
+     * Flow object on every shell recomposition — defeating Compose's structural equality check and
+     * forcing re-collection on every wide-recomposition tick. Hoisted here (PROCESS-SCOPE: derived
+     * off the process-scoped [activeProfile] with no session key) so it is a stable singleton.
+     * [WhileSubscribed(5000)] matches the app's standard upstream subscription pattern.
+     */
+    val activeProfileId: StateFlow<String?> =
+        activeProfile.map { it?.id }
+            .stateIn(stateScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The active profile's display name as a [StateFlow] (D-01 hoist, 22-07). Replaces the inline
+     * `container.activeProfile.map { it?.displayName() }` expression in AppShell for the same reason
+     * as [activeProfileId] above. Hoisted here (PROCESS-SCOPE) so it is a stable singleton.
+     * null when no active profile (the Devices drawer-tile subtitle hides on null).
+     */
+    val activeName: StateFlow<String?> =
+        activeProfile.map { it?.displayName() }
+            .stateIn(stateScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
      * Macro visibility persistence (MACRO-03 / 08-07 B1) — the SEPARATE macros.preferences_pb-backed
