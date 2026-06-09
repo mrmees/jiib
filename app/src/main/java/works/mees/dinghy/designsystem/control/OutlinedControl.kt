@@ -2,6 +2,7 @@ package works.mees.dinghy.designsystem.control
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -105,6 +106,7 @@ fun OutlinedControl(
         modifier = modifier
             .heightIn(min = 64.dp) // ≥64dp touch floor (UI-02) — a sanctioned fixed value.
             .clip(shape)
+            .background(t.surface) // Controls = filled (COMPONENTS.md §2 fill convention).
             .border(BorderStroke(2.dp, intent.outlineColor(t)), shape)
             .then(clickMod),
         contentAlignment = Alignment.Center,
