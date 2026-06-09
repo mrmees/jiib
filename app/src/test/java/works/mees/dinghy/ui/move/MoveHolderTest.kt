@@ -10,6 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.collections.immutable.toImmutableList
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 
@@ -33,7 +34,7 @@ class MoveHolderTest {
 
         store.seed(
             PrinterState(
-                gcodePosition = listOf(12.5, 40.0, 3.2, 0.0),
+                gcodePosition = listOf(12.5, 40.0, 3.2, 0.0).toImmutableList(),
                 homedAxes = "xy",
             ),
         )
@@ -75,7 +76,7 @@ class MoveHolderTest {
 
         store.seed(
             PrinterState(
-                gcodePosition = listOf(0.0, 0.0, 10.0),
+                gcodePosition = listOf(0.0, 0.0, 10.0).toImmutableList(),
                 homedAxes = "xyz",
             ),
         )

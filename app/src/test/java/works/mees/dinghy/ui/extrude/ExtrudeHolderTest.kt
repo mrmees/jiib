@@ -10,6 +10,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableMap
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.PrinterState
@@ -34,8 +37,8 @@ import works.mees.dinghy.state.PrinterStateStore
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExtrudeHolderTest {
 
-    private fun heaters(vararg pairs: Pair<String, HeaterState>): Map<String, HeaterState> =
-        linkedMapOf(*pairs)
+    private fun heaters(vararg pairs: Pair<String, HeaterState>): ImmutableMap<String, HeaterState> =
+        linkedMapOf(*pairs).toImmutableMap()
 
     @Test
     fun canExtrudeTrueWhenActiveExtruderReportsTrue() = runTest(UnconfinedTestDispatcher()) {
@@ -76,7 +79,7 @@ class ExtrudeHolderTest {
         store.setCapabilities(Capabilities(extruderCount = 1, heaters = listOf("extruder")))
 
         // No extruder heater in state at all — must read fail-safe false, never NPE.
-        store.seed(PrinterState(heaters = emptyMap()))
+        store.seed(PrinterState(heaters = persistentMapOf()))
         runCurrent()
 
         assertFalse("vm.canExtrude fail-safe false when the active tool is absent", holder.vm.value.canExtrude)
