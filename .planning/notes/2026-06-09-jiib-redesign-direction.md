@@ -51,6 +51,38 @@ The print-status surface is **no longer a screen you navigate to** — it *is* t
 exists (the Focus region while printing/terminal). One fewer screen. The Phase-22-refactored
 PrintStatus becomes the home surface, not a destination.
 
+### Focus stays lean (no duplication of row data)
+The Focus leads with the **main display item** (print preview / jiib mark) and carries only the
+primary readout (%, ETA, progress). **Never duplicate in Focus what a Field row already shows** —
+secondary live readings (nozzle/bed temp, speed) live in the rows, sorted relevant-first during a
+print (Temperature, Fine-Tune at top). Data that doesn't warrant a pill (layer, Z, last-print
+summary) becomes a thin secondary line, not a padded pill. The **floating e-stop sits top-left of the
+Focus**, so nothing important is placed at the very top of the Focus — useful info comes *after* the
+main display item.
+
+## The unit (`U`) — standard module height (LOCKED 2026-06-09)
+
+Vertical layout is built on a single derived module, **the unit `U`**. Everything vertical is an
+**integer number of units** — `ListRow` = 1U, foot button = 1U, group control / stepper = 1–2U, the
+Focus region = the remaining units. No hardcoded row/button px anywhere (reinforces the LAYOUT.md
+"ratio-only sizing" non-negotiable).
+
+- **Derived, never hardcoded** — from screen **DPI** (so a 1U row is the same *physical* finger-size
+  across densities) and the available height.
+- **Count flexes, unit stays ~constant.** The constrained **landscape** viewport holds **5 units
+  (phone-landscape = the floor) → 7 units (tablet)**. A bigger screen shows *more* units, not bigger
+  rows.
+- **`U` is derived from the LANDSCAPE content height and held constant through rotation.** Portrait
+  inherits the *same* `U` and simply shows more units (scrolls). A row is the same physical height
+  whichever way you hold the device. (Owner decision, 2026-06-09.)
+- **Formula:** `N = clamp(round(landscapeContentHeight / U_target_from_dpi), 5, 7)`, then
+  `U = landscapeContentHeight / N`. `U` **flexes slightly to divide evenly** (chosen over a rigidly
+  constant `U`) so there is **no dead-space remainder**.
+- **DPI floor:** `U` can never fall below the ≥64dp touch minimum on the perf-floor device.
+- **Design rule that falls out of it:** the essential landscape layout must **survive at 5 units** —
+  that is the worst case every screen is measured against (mirrors Nexus-7-as-floor).
+- **Settings/config surfaces stay exempt** (denser, per the existing C6 LAW carve-out).
+
 ## Where the gutter's jobs went
 
 - **Navigation** → the waterfall *is* the home; no central hub needed.
