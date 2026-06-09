@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-09T22:00:44.674Z"
+last_updated: "2026-06-09T22:08:30.009Z"
 last_activity: 2026-06-09
 progress:
   total_phases: 35
   completed_phases: 26
   total_plans: 182
-  completed_plans: 177
+  completed_plans: 178
   percent: 74
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 23 (design-language-foundation) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
   → **Plan 22-02 (Wave 1: @Immutable PrinterState tree + ImmutableMap/ImmutableList migration) EXECUTED + COMPLETE 2026-06-09.** D-02 P0 root-cause fix — every `PrinterState` nested type annotated `@Immutable`; all `Map`/`List` fields migrated to `ImmutableMap`/`ImmutableList`; `PrinterStateReducer.kt` (the dominant construction site) updated with `.toImmutableMap()`/`.toImmutableList()` at every assignment boundary; private `toImmutable2d()` helper added for 2D-list sites. `MoonrakerSession.kt` only non-reducer call site fixed (screws `.toImmutableList()`). 7 test files updated as Rule-3 auto-fixes for cascading type changes. New `PrinterStateImmutableConversionTest.kt` (14 tests) covers all four conversion-sensitive paths (bed mesh matrices, screws-tilt results map, outputs colorData, position lists + heater merge). `Capabilities.kt` `List<String>` fields audited and documented as deferred non-hot (reconnect-only) candidates. `testReleaseUnitTest` GREEN + `assembleRelease` GREEN. Commits: `c26facc` (refactor), `c000e0a` (test fixes), `6919e4a` (new tests). SUMMARY `22-02-SUMMARY.md`. **Phase 22: 2/7 plans complete.**
   → **Plan 21-05 (Wave 5: THE load-bearing on-device UAT phase gate, D-08) EXECUTED + COMPLETE & on-device flox-recorded 2026-06-08.** Closes Phase 21 (5/5). Task 1 (release build + `21-UAT.md` scaffold) was `43706fb`; Task 2 (the blocking `checkpoint:human-verify`) was owner-run on **flox** (genuine Nexus 7 2013 / Adreno 320 / LineageOS 18.1 / API 30 / `armeabi-v7a`) on the **RELEASE** (R8-minified, debug-signed) build against the **Ender 5 Plus** (192.168.1.120, ravens-perch MediaMTX; cams `playstation_eye`=path3 + `nozzle_tracker`=path4, both `webrtc-mediamtx`). **Result = PARTIAL (core PASS, owner-deferred remainder — NO ❌ FAIL, no gap-closure spawned).** **6/8 PASS on E5+:** SC1 live H.264 render (correct aspect, no frozen frames, overlay chrome z-ordered ABOVE the SurfaceView — the spike's consumable cutout-overlay requirement satisfied) · SC2 ~1–2 s latency (**owner eyeball, recorded honestly as judgment NOT a clock-photo median**, same posture as the 21-02 spike) · SC3 hardware decode (`OMX.qcom.video.decoder.avc`, NOT `OMX.google`, on the release build) · SC4 leak-free release (TOTAL PSS 90.0→94.6 MB over 5 enter/exit cycles = flat; surface generation kept incrementing on final re-entry = fresh player + old released, WR-01 holds; no OOM / "too many codecs" / native-window errors) · SC6 D-20(a) no-crash regression · SC7 D-20(b) drawer-tile gating. **SC8 D-20(c) = PARTIAL** (single-printer selection holds on E5+; cross-printer hold deferred). **DEFERRED to Phase-22 pre-release (environmental, NOT code gaps):** the entire **Ender 3 / crowsnest column** (no crowsnest instance currently running — derive convention + nested `ravens_perch.streams` schema were statically confirmed at 21-02 Task 1; both printers run the identical `webrtc-mediamtx` H.264 stack so E5+ strongly implies E3, an implication not a measurement) · **SC8 cross-printer hold** (needs the second live printer) · **live SC5 MJPEG fallback** (every cam on both printers is H.264 — no non-H.264 cam to exercise the live fall-through; covered by Phase-10 MJPEG host tests + the `compositeMedia3Feed` FallThrough→lowerRung unit tests). **TWO on-device-only bugs found, fixed, and VERIFIED LIVE in-session** (the mock-vs-reality discipline that makes this gate load-bearing — green host units caught neither): `49f3fe2` `fix(21): resolveWebcamUrl returns null on unparseable base instead of throwing` (the long-mystified "camera protocol" webcam-screen crash — `IllegalArgumentException: Invalid URL host:""` on an empty-host cfg, fatal to the whole process; now degrades gracefully; regression test added; makes SC6 PASS) + `a254469` `fix(21): read ravens-perch nested extra_data.streams.<proto>.url for native H.264 URL` (THE root cause of "Feed unavailable" — `nativeStreamUrlFor` read FLAT keys ravens-perch never emits; it publishes a NESTED `extra_data.ravens_perch.streams.<proto>.url` absolute cfg-free schema; the flat miss fell to a cfg-dependent derive that returned null on the empty-host cfg → MJPEG → DeadEnd, no player ever built; fixed by reading the nested URL; regression test added; VERIFIED LIVE — both cams render H.264 with `OMX.qcom` HW decode; makes SC1/SC2/SC3 PASS). **NON-BLOCKING follow-ups (recorded, NOT fixed):** stale KDoc on `nativeStreamUrlFor` (`WebcamUrl.kt`) still tells the old flat-key/"DORMANT" story (doc-only reconciliation) · Codex advisory — `classifyPlaybackException` sends most non-network `PlaybackException`s to FallThrough (a transient RTSP hiccup needlessly drops to MJPEG; consider widening Transient) · Codex advisory — duplicate holder `start()`/`stop()` ownership (WebcamScreen `DisposableEffect` + AppShell `repeatOnLifecycle`) is idempotent but redundant (pick one owner). 2 deviations (both Rule-1 correctness bugs, the actual UAT discoveries). SUMMARY `21-05-SUMMARY.md`; results in `21-UAT.md` (status `partial`). CAM-17 satisfied. **Phase 21 execution COMPLETE (5/5); orchestrator runs phase verification next + owns the pre-release deferral tracking — do NOT mark the phase verified here.**
@@ -508,7 +508,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-09T22:00:44.567Z
+Last session: 2026-06-09T22:08:29.903Z
 Stopped at: Completed 23-01-PLAN.md
 Resume file: 
 None

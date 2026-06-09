@@ -1104,7 +1104,7 @@ Plans:
 **Wave 1** *(parallel — disjoint files)*
 
 - [x] 23-02-PLAN.md — Docs: rewrite LAYOUT.md off the Gutter (Focus/Field + unit grid U + fill convention + foot-of-list + floating e-stop) + author COMPONENTS.md catalog + CLAUDE.md pointer (SC-1)
-- [ ] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug, + add a DinghyIcon-aware OutlinedControl overload so the kit renders REGISTERED icons by token (control-API boundary) (SC-5/SC-4)
+- [x] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug, + add a DinghyIcon-aware OutlinedControl overload so the kit renders REGISTERED icons by token (control-API boundary) (SC-5/SC-4)
 
 **Wave 2** *(blocked on Wave 0)*
 
@@ -1307,7 +1307,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
-| 23. Interaction Coherence & Page Overhauls | 2/6 | In Progress|  |
+| 23. Interaction Coherence & Page Overhauls | 3/6 | In Progress|  |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
