@@ -228,4 +228,13 @@
     <!-- contentDescription for the shape-coded health chip glyph. -->
     <string name="cd_sysinfo_health">Host health</string>
 
+    <!-- Design Kit layout primitives (Phase 23) — preview strings. -->
+    <string name="cd_unit_grid_demo">Unit grid demonstration</string>
+    <string name="layout_preview_row_1">Row 1</string>
+    <string name="layout_preview_row_2">Row 2</string>
+    <string name="layout_preview_row_3">Row 3</string>
+    <string name="layout_preview_row_4">Row 4</string>
+    <string name="layout_preview_row_5">Row 5</string>
+    <string name="layout_preview_unit_info">Unit grid info</string>
+
 </resources>
