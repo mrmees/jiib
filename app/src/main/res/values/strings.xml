@@ -237,4 +237,28 @@
     <string name="layout_preview_row_5">Row 5</string>
     <string name="layout_preview_unit_info">Unit grid info</string>
 
+    <!-- Design Kit component classes (Phase 23-05) — preview strings. -->
+    <!-- ListRow preview -->
+    <string name="kit_preview_spool_name">PLA+ White — 1 kg</string>
+    <string name="kit_preview_spool_weight">735 g remaining</string>
+    <string name="kit_preview_spool_name_2">PETG Blue — 1 kg</string>
+    <string name="kit_preview_spool_weight_2">1000 g remaining</string>
+    <!-- DetailCard preview -->
+    <string name="kit_preview_detail_title">PLA+ White</string>
+    <string name="kit_preview_detail_vendor">Bambu Lab</string>
+    <string name="kit_preview_detail_fill_label">735 / 1000 g · 74%</string>
+    <!-- SortRow option contentDescriptions -->
+    <string name="cd_sort_by_name">Sort by name</string>
+    <string name="cd_sort_by_material">Sort by material</string>
+    <string name="cd_sort_by_weight">Sort by remaining weight</string>
+    <!-- FilterRow option contentDescriptions -->
+    <string name="cd_filter_by_material">Filter by material type</string>
+    <string name="cd_filter_by_color">Filter by color</string>
+    <string name="cd_filter_by_vendor">Filter by vendor</string>
+    <!-- FootButtonBar preview -->
+    <string name="kit_preview_action_load">Load spool</string>
+    <string name="kit_preview_action_scan">Scan QR code</string>
+    <!-- FloatingEStop preview -->
+    <string name="cd_floating_estop">Emergency stop</string>
+
 </resources>
