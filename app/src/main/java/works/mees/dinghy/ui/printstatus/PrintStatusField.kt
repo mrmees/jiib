@@ -197,16 +197,26 @@ internal fun StatGrid(
     // (em-dash placeholder) when shown-but-zero in-window; hidden entirely otherwise.
     val zOffset = state.gcodeZOffset ?: 0.0
     val showZOffset = !terminal && (babystepWindow || zOffset != 0.0)
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Compute the icon size ONCE at the grid level (one BoxWithConstraints here, none per-cell).
+    // All rows have equal weight(1f); the uniform cell height = totalGridHeight / numRows.
+    // iconSp = cellHeight × CELL_ICON_FRACTION — identical to what each per-cell BoxWithConstraints
+    // would compute independently (since each cell fills its row height via fillMaxHeight()).
+    // Removing per-cell BoxWithConstraints eliminates 5–6 subcomposition scopes per StatGrid
+    // recomposition (D-03 P1 fix). numRows accounts for the optional Z-offset 4th row.
+    val numRows = if (showZOffset) 4 else 3
+    BoxWithConstraints(modifier) {
+        val cellHeightDp = (maxHeight - 8.dp * (numRows - 1)) / numRows
+        val iconSp = cellHeightDp.value * CELL_ICON_FRACTION
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTwoRowCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.Altitude, tint = t.text2, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.Altitude, tint = t.text2, sizeDp = iconSp.dp) },
                 // Active = live Z; inactive = metadata object_height (final print height context), "—" when absent.
                 active = if (terminal) "—" else fmtZ(state), inactive = metadata?.objectHeight?.let { fmt(it) } ?: "—", activeColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.Layers, tint = t.text2, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.Layers, tint = t.text2, sizeDp = iconSp.dp) },
                 active = if (terminal) "—" else (state.currentLayer?.toString() ?: "—"),
                 // Total = live slicer value preferred, metadata layer_count as the reliable fallback.
                 inactive = totalLayers(state, metadata),
@@ -224,12 +234,12 @@ internal fun StatGrid(
             val nozzleColor = t.seriesColor(0)
             val bedColor = t.seriesColor(1)
             IconTwoRowCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.Nozzle, tint = nozzleColor, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.Nozzle, tint = nozzleColor, sizeDp = iconSp.dp) },
                 active = tempActive(nozzle), inactive = tempInactive(nozzle), activeColor = nozzleColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             IconTwoRowCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.HeatBed, tint = bedColor, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.HeatBed, tint = bedColor, sizeDp = iconSp.dp) },
                 active = tempActive(bed), inactive = tempInactive(bed), activeColor = bedColor,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -239,7 +249,7 @@ internal fun StatGrid(
             // happens when the second count actually changes, not on every 4 Hz recomposition (D-03).
             val elapsedText = remember(state.printDuration.roundToInt()) { fmtDuration(state.printDuration) }
             IconValueCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.TimerUp, tint = t.text2, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.TimerUp, tint = t.text2, sizeDp = iconSp.dp) },
                 value = elapsedText, valueColor = t.text,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -247,7 +257,7 @@ internal fun StatGrid(
             val remainingSeconds = metadata?.estimatedTime?.let { it * (1.0 - state.progress.coerceIn(0.0, 1.0)) }
             val remaining = remember(remainingSeconds?.roundToInt()) { remainingSeconds?.takeIf { it > 0.0 }?.let { fmtDuration(it) } ?: "—" }
             IconValueCell(
-                icon = { sp -> DinghyIconView(DinghyIcons.TimerDown, tint = t.text2, sizeDp = sp.dp) },
+                icon = { DinghyIconView(DinghyIcons.TimerDown, tint = t.text2, sizeDp = iconSp.dp) },
                 value = remaining, valueColor = if (remaining != "—") t.text else t.text3,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
@@ -258,12 +268,13 @@ internal fun StatGrid(
         if (showZOffset) {
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconValueCell(
-                    icon = { sp -> DinghyIconView(DinghyIcons.Height, tint = t.text2, sizeDp = sp.dp) },
+                    icon = { DinghyIconView(DinghyIcons.Height, tint = t.text2, sizeDp = iconSp.dp) },
                     value = stringResource(R.string.printstatus_z_offset, fmtSignedZ(zOffset)),
                     valueColor = if (zOffset != 0.0) t.text else t.text3,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
+        }
         }
     }
 }
@@ -279,59 +290,62 @@ private const val CELL_ICON_WEIGHT = 0.25f
  * Icon (LEFT, scaled to the cell height) | active-over-inactive value CENTERED in the cell. Active =
  * bold/bright, inactive = dim/smaller. The icon is pinned to the start edge while the reading sits in
  * the cell's center (Matthew, 2026-06-01 — icons left-justified, measurements centered).
+ *
+ * The `icon` lambda receives no size param — callers pass a zero-argument lambda that already has the
+ * iconSp baked in (derived ONCE at the StatGrid BoxWithConstraints level, not per-cell). This removes
+ * the per-cell BoxWithConstraints subcomposition scopes (D-03 P1 fix).
  */
 @Composable
 internal fun IconTwoRowCell(
-    icon: @Composable (sizeSp: Float) -> Unit,
+    icon: @Composable () -> Unit,
     active: String,
     inactive: String,
     activeColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    BoxWithConstraints(modifier) {
-        val iconSp = maxHeight.value * CELL_ICON_FRACTION
-        Row(
-            Modifier.fillMaxSize().padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Row(
+        modifier.padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Icon span = 25% of the cell width, glyph centered within it.
+        Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            icon()
+        }
+        // Value span = the remaining 75%, reading centered within it.
+        Column(
+            Modifier.weight(1f - CELL_ICON_WEIGHT),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Icon span = 25% of the cell width, glyph centered within it.
-            Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                icon(iconSp)
-            }
-            // Value span = the remaining 75%, reading centered within it.
-            Column(
-                Modifier.weight(1f - CELL_ICON_WEIGHT),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(active, color = activeColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
-                Text(inactive, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
-            }
+            Text(active, color = activeColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+            Text(inactive, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
         }
     }
 }
 
-/** Icon (LEFT, pinned to the start edge) | single value CENTERED in the cell — the time cells. */
+/**
+ * Icon (LEFT, pinned to the start edge) | single value CENTERED in the cell — the time cells.
+ *
+ * The `icon` lambda receives no size param — callers pass a zero-argument lambda with iconSp already
+ * captured from the StatGrid BoxWithConstraints scope (D-03 P1 fix, see [IconTwoRowCell]).
+ */
 @Composable
 internal fun IconValueCell(
-    icon: @Composable (sizeSp: Float) -> Unit,
+    icon: @Composable () -> Unit,
     value: String,
     valueColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    BoxWithConstraints(modifier) {
-        val iconSp = maxHeight.value * CELL_ICON_FRACTION
-        Row(
-            Modifier.fillMaxSize().padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                icon(iconSp)
-            }
-            Box(Modifier.weight(1f - CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
-            }
+    Row(
+        modifier.padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            icon()
+        }
+        Box(Modifier.weight(1f - CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
         }
     }
 }
