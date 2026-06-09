@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.collections.immutable)   // D-02: ImmutableList/Map stable Compose params
 
     // --- Coil 3 (real PNG decode under memory pressure — used by 01-03 scenes) ---
     implementation(libs.coil.compose)
