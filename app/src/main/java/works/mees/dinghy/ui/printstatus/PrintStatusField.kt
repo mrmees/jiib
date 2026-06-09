@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.basicMarquee
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableList
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -53,7 +54,7 @@ import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 @Composable
 internal fun PrintStatusStandbyField(
     ui: PrintStatusUiModel,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     failureText: String?,
     onNavigate: (Dest) -> Unit,
     onOpenDrawer: () -> Unit,
@@ -85,7 +86,7 @@ internal fun PrintStatusActiveField(
     metadata: PrintMetadata?,
     babystepShown: Boolean,
     spoolmanPresent: Boolean,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     activeSpoolCardState: ActiveSpoolCardState,
     babystepStep: Double,
     failureText: String?,
@@ -342,7 +343,7 @@ internal fun IconValueCell(
 @Composable
 internal fun LauncherGrid(
     dests: List<LauncherDest>,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     onNavigate: (Dest) -> Unit,
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
@@ -401,7 +402,7 @@ internal fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
 @Composable
 internal fun LauncherTile(
     dest: LauncherDest,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -503,7 +504,7 @@ internal fun TuneShortcutTile(onClick: () -> Unit, modifier: Modifier = Modifier
 @Composable
 internal fun ShortcutRow(
     spoolmanPresent: Boolean,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     hasBookmarkedMacros: Boolean,
     onNavigate: (Dest) -> Unit,
     modifier: Modifier = Modifier,

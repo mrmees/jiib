@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
@@ -126,15 +129,17 @@ fun PrintStatusScreen(
     // only changes the icon the gated slot draws — never un-gates it. From state already collected (no new
     // fetch): (1) the active Spoolman record's color FIRST, then (2) the active print's gcode
     // filament_colors[0] FALLBACK (fires only when Spoolman IS present but the active record has no usable
-    // color — exactly D-07's middle tier), else (3) emptyList() → the empty spool (D-03). Index [0] / first
-    // only (D-09). The parse helpers null-guard malformed hex → that swatch drops → empty spool, never a throw.
-    val spoolSwatches: List<Color> = run {
+    // color — exactly D-07's middle tier), else (3) persistentListOf() → the empty spool (D-03). Index [0] /
+    // first only (D-09). The parse helpers null-guard malformed hex → that swatch drops → empty spool, never a
+    // throw. ImmutableList: stable Compose param so SpoolGlyph/LauncherTile recomposition can be skipped when
+    // the swatch list hasn't changed (D-02/D-03 P1 allocation fix).
+    val spoolSwatches: ImmutableList<Color> = remember(spoolDetail, metadata) {
         val spoolmanColors = spoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
         if (spoolmanColors.isNotEmpty()) {
-            spoolmanColors
+            spoolmanColors.toImmutableList()
         } else {
             val gcodeColor = metadata?.filamentColors?.firstOrNull()?.let(::parseNormalizedHex)
-            if (gcodeColor != null) listOf(gcodeColor) else emptyList()
+            if (gcodeColor != null) persistentListOf(gcodeColor) else persistentListOf()
         }
     }
 
@@ -353,7 +358,7 @@ fun PrintStatusScreen(
     httpBase: String = "",
     errorLines: List<String> = emptyList(),
     spoolmanPresent: Boolean = false,
-    spoolSwatches: List<Color> = emptyList(),
+    spoolSwatches: ImmutableList<Color> = persistentListOf(),
     activeSpoolCardState: ActiveSpoolCardState = ActiveSpoolCardState.Unavailable,
     hasBookmarkedMacros: Boolean = false,
     babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
@@ -419,7 +424,7 @@ private fun PrintStatusContent(
     errorLines: List<String>,
     babystepShown: Boolean,
     spoolmanPresent: Boolean,
-    spoolSwatches: List<Color>,
+    spoolSwatches: ImmutableList<Color>,
     activeSpoolCardState: ActiveSpoolCardState,
     babystepStep: Double,
     failureText: String?,
