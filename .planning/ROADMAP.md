@@ -1059,7 +1059,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0)*
 
-- [ ] 22-02-PLAN.md — D-02 P0: @Immutable PrinterState tree + ImmutableMap/ImmutableList field migration + reducer emission
+- [x] 22-02-PLAN.md — D-02 P0: @Immutable PrinterState tree + ImmutableMap/ImmutableList field migration + reducer emission
 - [ ] 22-03-PLAN.md — SpoolGlyph cached gradient Brush via remember(render) (ColorWheel template; P2)
 
 **Wave 2** *(blocked on Wave 1)*
@@ -1192,7 +1192,7 @@ verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` 
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Performance & Architecture Refactor | 1/7 | In Progress|  |
+| 22. Performance & Architecture Refactor | 2/7 | In Progress|  |
 | 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
