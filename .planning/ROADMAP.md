@@ -1065,7 +1065,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 
 - [ ] 22-04-PLAN.md — D-01 move #1: split PrintStatusScreen god-component into Focus/Field/Gutter/Previews + lambda-slot fix + co-located P1/P2 + on-device parity
-- [ ] 22-05-PLAN.md — D-12 AndroidView token guards (GraphView/WebcamView) + measureText/SimpleDateFormat hygiene + SC4 leak/GC confirmation
+- [x] 22-05-PLAN.md — D-12 AndroidView token guards (GraphView/WebcamView) + measureText/SimpleDateFormat hygiene + SC4 leak/GC confirmation
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -1192,7 +1192,7 @@ verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` 
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Performance & Architecture Refactor | 3/7 | In Progress|  |
+| 22. Performance & Architecture Refactor | 4/7 | In Progress|  |
 | 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
