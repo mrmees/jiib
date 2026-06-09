@@ -63,4 +63,5 @@ at `sources/002-spoolman-reconcile/reference-mock.html`.
 - 001-waterfall-home
 - 002-spoolman-reconcile
 - 003-finetune-adjust
+- 004-scrubber-style
 </metadata>

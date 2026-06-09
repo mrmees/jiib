@@ -47,6 +47,24 @@ page in the app follows this.
 for (const k in P) P[k].orig = P[k].val;   // capture baseline on entry → drives "was X"
 ```
 
+## Scrubber (drag-adjust) — for future non-stepper screens (sketch 004)
+Fine-Tune is step-only, but other screens will need drag. Canonical scrubber (owner-referenced
+Android SeekBar style, ported to tokens):
+- **Thin track** (~6px, rounded). **Filled side = `--accent`**, **remainder = `--surface-3`**.
+- **Ringed thumb:** `--surface` knob center + thick **5px `--accent` ring** (~34px visible) with an
+  **enlarged invisible touch target (~74px)** for the floor. Press = `--accent-soft` halo.
+- Min/max labels under; value above. Snap to step.
+```css
+.scrub-track { height:6px; border-radius:999px; background:var(--surface-3); }   /* remainder */
+.scrub-fill  { position:absolute; left:0; top:0; bottom:0; background:var(--accent); }  /* progress */
+.scrub-thumb { width:34px; height:34px; border-radius:999px; background:var(--surface); border:5px solid var(--accent); }
+.scrub-thumb::after { content:''; position:absolute; inset:-20px; }   /* touch target */
+```
+**Load-bearing rule:** build the element ONCE; update fill-width + thumb-position + value **in place**
+during drag. **Never rebuild/recompose the dragged element per move** — it detaches the node / stales
+the drag closure and the gesture dies (fill-from-middle, value-not-sticking) = the Phase-19
+inline-scrubber regression (`fa97efb`). Left-anchored fill. Source: `sources/004-scrubber-style/`.
+
 ## What to Avoid
 - Scrubber on the floor hardware for routine numeric entry (drag failure risk) — steppers instead.
 - A stacked "was X" line under the value — overflows the 5U phone-landscape Focus. Keep it inline.

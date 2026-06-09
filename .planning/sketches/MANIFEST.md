@@ -22,11 +22,10 @@ tokens** (Geist/Geist Mono, dark+light, S/M/L text-size) — see `themes/default
 |---|------|----------------|--------|------|
 | 001 | waterfall-home | Does one morphing Focus/Field surface feel coherent across idle/printing/terminal, no gutter? | **A · Focus-as-card** | layout, navigation, home |
 | 002 | spoolman-reconcile | How do true filter facets + sort coexist in Spoolman's left grid, with edge-fade list + tokens? | **C · sort row + filter-picker** | spoolman, filtering, components |
-| 003 | finetune-adjust | How do we present + change a numeric value (the adjustment class) — stepper vs scrubber on the floor? | **Stepper** (step-based; scrubber deferred) | adjustment, stepper |
+| 003 | finetune-adjust | How do we present + change a numeric value (the adjustment class) — stepper vs scrubber on the floor? | **Stepper** (step-based) | adjustment, stepper |
+| 004 | scrubber-style | Canonical scrubber (drag-adjust) style for future non-stepper screens? | **Thin track + ringed thumb** (ported to tokens) | scrubber, drag |
 
 ## Open follow-ups
-- **Scrubber style** for future (non-stepper) screens — owner referenced a Stack Overflow control style
-  (couldn't fetch; awaiting screenshot/description). To capture as the canonical scrubber spec.
 - **Icon registry additions** — see `.planning/notes/2026-06-09-icon-assignments-redesign.md`
   (`sort`, `filter_list`, `expand_circle_up/down` load/unload, `reset_wrench`, `reset_settings`, +
   the `play_circle`/`stop_circle` conflict to clean up).
