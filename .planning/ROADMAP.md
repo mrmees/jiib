@@ -1069,7 +1069,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
+- [x] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
 - [ ] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
 **UI hint**: no
 **Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
@@ -1192,7 +1192,7 @@ verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` 
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Performance & Architecture Refactor | 5/7 | In Progress|  |
+| 22. Performance & Architecture Refactor | 6/7 | In Progress|  |
 | 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
