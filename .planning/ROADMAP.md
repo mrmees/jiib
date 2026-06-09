@@ -76,7 +76,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
 - [x] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe (completed 2026-06-08)
 - [x] **Phase 21: Native H.264 Camera Streaming (MediaMTX)** - Real camera for the project's own MediaMTX-backed printers (Ravens Perch + crowsnest) via native Media3/ExoPlayer H.264 over RTSP/HLS, extending the Phase-10 webcam rung-ladder; WebRTC a deferred fallback (spike-gated, see 21-CONTEXT); perf-gated to the Adreno-320 floor (completed 2026-06-08)
-- [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
+- [x] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once (completed 2026-06-09)
 
 ## Phase Details
 
@@ -1070,7 +1070,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 
 - [x] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
-- [ ] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
+- [x] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
 **UI hint**: no
 **Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
 
@@ -1192,7 +1192,7 @@ verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` 
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Performance & Architecture Refactor | 6/7 | In Progress|  |
+| 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 0/TBD | Not started | - |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
