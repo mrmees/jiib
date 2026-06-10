@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.temperature
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
@@ -13,6 +14,7 @@ import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.ui.settings.TraceStylePrefs
 
 /**
  * Toolkit-agnostic holder for the Temperature panel (TEMP-01/04). It transforms the store's
@@ -46,10 +48,18 @@ import works.mees.dinghy.state.PrinterStateStore
  *
  * @param scope the lifecycle scope the collectors run on (the UI host supplies it).
  * @param store the already-assembled Phase-2/3 spine; the holder CONSUMES it, never opens a session.
+ * @param traceStylePrefs optional DataStore persistence for per-sensor trace color + visibility
+ *   (D-14, Plan 26-03). When null (tests without a DataStore) the holder uses in-memory-only maps;
+ *   production passes the process-lifetime [works.mees.dinghy.di.AppContainer]-held instance so
+ *   colors/visibility survive process restarts. All writes route through the process-lifetime
+ *   `writeScope` (supplied by AppContainer via [setTraceColor]/[setTraceVisibility] callers);
+ *   the holder itself ONLY reads prefs here (seeding) and updates in-memory state — callers
+ *   are responsible for routing writes to the `writeScope`.
  */
 class TemperatureHolder(
     scope: CoroutineScope,
     private val store: PrinterStateStore,
+    traceStylePrefs: TraceStylePrefs? = null,
 ) {
     /** The drawn-sensor object names in trace order (nozzle → bed → chamber), resolved once on first state. */
     @Volatile
@@ -101,21 +111,41 @@ class TemperatureHolder(
     val traceVisibility: StateFlow<Map<String, Boolean>> = _traceVisibility.asStateFlow()
 
     /**
-     * Set the trace color for a sensor in memory (D-14). Persistence via TraceStylePrefs is wired
-     * in Task 2 (AppContainer.writeScope-backed); in Task 1 this is the in-memory stub body.
+     * Update the in-memory trace color for a sensor (D-14). The CALLER is responsible for also
+     * persisting via [works.mees.dinghy.di.AppContainer.setTraceColor], which routes through the
+     * process-lifetime `writeScope` — never `rememberCoroutineScope()` (P14 write-scope trap).
      */
     fun setTraceColor(sensorName: String, color: Color) {
         _traceColors.value = _traceColors.value + (sensorName to color)
     }
 
     /**
-     * Set trace visibility for a sensor in memory (D-14). Persistence wired in Task 2.
+     * Update the in-memory trace visibility for a sensor (D-14). The CALLER is responsible for also
+     * persisting via [works.mees.dinghy.di.AppContainer.setTraceVisibility], which routes through
+     * the process-lifetime `writeScope` — never `rememberCoroutineScope()`.
      */
     fun setTraceVisibility(sensorName: String, visible: Boolean) {
         _traceVisibility.value = _traceVisibility.value + (sensorName to visible)
     }
 
     init {
+        // Seed trace colors + visibility from DataStore (D-14) on first emission, if prefs provided.
+        // We collect the prefs Flows into the holder's in-memory maps so the UI always reads from
+        // the StateFlows (no direct DataStore access from the screen). The seed runs once on first
+        // emission; subsequent prefs updates (e.g. from another source) also reflect automatically.
+        if (traceStylePrefs != null) {
+            scope.launch {
+                traceStylePrefs.traceColors.collect { persisted ->
+                    // Convert ARGB Int map → Compose Color map
+                    _traceColors.value = persisted.mapValues { (_, argb) -> Color(argb) }
+                }
+            }
+            scope.launch {
+                traceStylePrefs.traceVisibility.collect { persisted ->
+                    _traceVisibility.value = persisted
+                }
+            }
+        }
         // Backfill collector: seed each ring oldest→newest the instant the one-shot read lands (05-03).
         // Seeding ONCE (guarded) so a re-emission of the StateFlow does not re-prepend the history; this
         // makes the graph full deterministically on connect, not contingent on a later status diff.
