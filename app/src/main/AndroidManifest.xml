@@ -84,6 +84,18 @@
             android:exported="true" />
 
         <!--
+          Throwaway toolkit spike harness (25-01). Renders the Files list (thumbnail rows) or the
+          Console list (live append+evict churn) as literal Compose ListRow/ListBlock scenes to
+          capture release-mode gfxinfo for the D-01/D-02/D-03 Compose-vs-Views verdict.
+          NOT exported, no LAUNCHER intent-filter — dev-only, launched via adb am start.
+          DELETED in plan 25-07 after the spike decision is locked.
+        -->
+        <activity
+            android:name=".dev.BrowseSpikeActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
+
+        <!--
           The started foreground service that owns the Moonraker spine (04-03). NOT exported and NOT
           bound — state is process-held in AppContainer; the Activity collects StateFlow<SpineHandle?>.
           specialUse subtype is a free-text justification (no Play review; sideloaded APK).
