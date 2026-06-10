@@ -513,13 +513,23 @@ ScreenScaffold(
 ```kotlin
 // The "minimum adjuster" for every selectable row (heaters add stepper on top):
 // 1. show/hide trace toggle
-// 2. inline row of 8 Colorful-pool swatches (D-14: ALWAYS from Colorful pool regardless of active palette)
+// 2. inline row of EXACTLY 8 swatches, ALWAYS from the COLORFUL theme pool regardless of the
+//    active palette mode (D-14). NOTE: the active `t.pool` is WRONG here — DEFAULT_MAX_ITEMS is 4
+//    (ThemePrefs.kt:185) and in Simple/HighContrast the pool collapses entirely. The active pool can
+//    have <8 entries or be monochrome. So generate a dedicated Colorful pool of 8:
+//
+//   val colorfulSwatches: List<Color> = remember(seedHex, dark) {
+//       // force Colorful, maxItems=8 — never inherit simple/highContrast from the active mode
+//       Palette.generate(seedHex = seedHex, dark = dark, maxItems = 8,
+//                        simple = false, highContrast = false)
+//           .pool.take(8).map { TokenBridge.bake-or-parse it }   // String hex → Color
+//   }
+//   // seedHex + dark come from the active theme tuple (AppContainer / ThemePrefs). The helper that
+//   // produces this 8-color Colorful pool is exposed by plan 26-04 (screen tier) — see finding 5.
 // 3. for heaters only: AdjusterPanel with temp stepper
 
-// Pool colors: t.pool has the COLORFUL pool (ThemeTokens.pool: List<Color>)
-// Take first 8 (the colorful pool has ≥8 per COLOR-SYSTEM.md)
 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-    t.pool.take(8).forEachIndexed { idx, poolColor ->
+    colorfulSwatches.forEachIndexed { idx, poolColor ->   // exactly 8, Colorful-sourced
         Box(
             Modifier
                 .weight(1f)
@@ -594,43 +604,58 @@ private fun readout(state: PrinterState, name: String): SensorReadout {
 }
 ```
 
-**EQUALITY GUARD INVARIANT:** `GraphViewHost`'s `update` lambda must NOT receive new object references on every recomposition — only when data actually changes. The `traceColors` / `traceVisibility` extension must NOT be wired into `GraphViewHost.update` on every emission; the graph only needs to know about `visibleSeries` (filtered by visibility). Trace coloring in the graph remains token-based via `applyTokens` — the swatch color is shown in the row icon and the Focus panel, not in the graph itself (the graph continues to use the `seriesColor(i)` token sequence).
+**EQUALITY GUARD INVARIANT (corrected per D-14 — the graph DRAWS the chosen color):** D-14 locks the invariant "graph trace = row icon = readout" tinted to the user's CHOSEN color, so the graph MUST draw each trace in its chosen color (NOT the `seriesColor(i)` token default). The earlier "trace colors stay token-based" approach was WRONG — it violates D-14.
+
+The correct approach: pass STABLE per-trace color + visibility overrides through `GraphViewHost` → `GraphView`, applied in an equality-guarded update so the AndroidView still skips no-op updates and the factory still runs exactly once (Phase-22 D-12 guard discipline). Specifically:
+- `GraphView` gets a `traceColorOverrides: List<Int?>` (index-aligned with the series passed; ARGB Int, `null` = fall back to `seriesColor(i)`) with an equality-guarded setter (compare to the last-applied list, `invalidate()` only on change — mirror the `applyTokens`/`yRange` guard pattern). In `applyTokens` AND the override setter, recompute each `linePaints[i].color` = override-if-present else `seriesColor(i)`. The setpoint dashes already read `linePaints[t].color`, so they inherit the override for free.
+- The SCREEN builds ONE visible-trace model (see plan 26-04) that filters `series`, `setpoints`, legend `names`, AND `colors` together by visibility, so all index-aligned lists stay aligned (the raw-index `setpoints[t]` draw at GraphView.kt:344 would otherwise misalign — see finding 4). The aligned color list is passed as `traceColorOverrides`.
+- Keep references STABLE: build the override list with `remember(traceColors, visibility, legend)` so the `update` lambda only sees a new reference when the data actually changes (no per-recomposition churn).
+
+The row icon + Focus panel show the same chosen color (same-hue invariant), now genuinely consistent because the graph draws it too.
 
 ---
 
 ### `render/GraphViewHost.kt` (view-host, EXTEND carefully)
 
-**Analog:** self — add per-trace color parameters carefully.
+**Analog:** self — add an index-aligned per-trace color override param, guard-compatibly.
 
-**Phase-22 equality guard pattern** (GraphViewHost.kt lines 89–100 — PRESERVE EXACTLY):
+**Phase-22 equality guard pattern** (GraphViewHost.kt lines 89–100 — EXTEND, preserving the guard discipline). Per D-14 the graph DRAWS the chosen colors, so the multi-trace `GraphViewHost` overload gains a `traceColors: List<Int?> = emptyList()` param (index-aligned with `series`; ARGB Int, `null` = `seriesColor(i)`), pushed into the View via a NEW equality-guarded `setTraceColorOverrides`:
 ```kotlin
 AndroidView(
     factory = { ctx -> GraphView(ctx) },  // runs ONCE — never re-runs on morph
     update = { view ->
-        view.applyTokens(tokens)          // D-06: equality-guarded in GraphView.applyTokens
+        view.applyTokens(tokens)            // D-06: equality-guarded in GraphView.applyTokens
         view.drawArea = drawArea
         view.showAxisLabels = showAxisLabels
         view.yRange = yRange
-        view.setData(series)              // pushes new samples, not new objects
-        view.setSetpoints(setpoints)      // per-trace dashed lines
-        // NEW for Phase 26: per-trace visibility filter (D-14)
-        // series already pre-filtered by TemperatureScreen before passing here
-        // (do NOT add new mutable parameters to GraphView for trace colors —
-        //  graph trace colors remain token-based via applyTokens; only visibility matters)
+        view.setTraceColorOverrides(traceColors) // NEW (D-14): equality-guarded; null entry → seriesColor(i)
+        view.setData(series)                // already filtered to VISIBLE traces by the screen
+        view.setSetpoints(setpoints)        // filtered + index-aligned with series + traceColors
     },
     modifier = modifier,
 )
 ```
+`setTraceColorOverrides` MUST be equality-guarded inside `GraphView` (store `lastOverrides`, return early if structurally equal, else recompute `linePaints[i].color` = override ?: `seriesColor(i)` and `invalidate()`). Build the `traceColors` list with `remember(...)` in the screen so the `update` lambda sees a new reference only when colors actually change.
 
-**Visibility approach:** filter `series` before passing to `GraphViewHost`, rather than adding a `visibility` param to `GraphViewHost`. This avoids disturbing the equality guards:
+**Visible-trace model (one aligned model — finding 4):** filter `series`, `setpoints`, legend `names`, AND `colors` TOGETHER by visibility so every index-aligned list stays aligned (GraphView draws `setpoints[t]` at the SAME index as `series[t]` — filtering only `series` would misalign the setpoints/colors):
 ```kotlin
-// In TemperatureContent — filter series by traceVisibility before passing to graph
-val visibleSeries = remember(series, traceVisibility) {
-    series.filterIndexed { i, _ ->
-        traceVisibility[drawn.getOrNull(i)] ?: true
-    }
+// In TemperatureContent — ONE visible model, all lists filtered in lock-step
+data class VisibleTraces(
+    val series: List<FloatArray>,
+    val setpoints: List<Float?>,
+    val names: List<String>,
+    val colors: List<Int?>,   // ARGB override per visible trace; null → seriesColor(i)
+)
+val visible = remember(series, setpoints, legend, traceVisibility, traceColors) {
+    val keep = legend.indices.filter { i -> traceVisibility[legend[i].name] ?: true }
+    VisibleTraces(
+        series    = keep.map { series[it] },
+        setpoints = keep.map { setpoints.getOrNull(it) },
+        names     = keep.map { legend[it].name },
+        colors    = keep.map { traceColors[legend[it].name]?.toArgb() },
+    )
 }
-// Pass visibleSeries to GraphViewHost — the graph never knows about visibility, it just draws what it receives
+// Pass visible.series + visible.setpoints + visible.colors to GraphViewHost — all aligned, all visible.
 ```
 
 ---
@@ -1085,8 +1110,9 @@ All files have analogs or are clearly derived from existing patterns. No entries
 | Raw ligature `symbol = "arrow_back"` | All OutlinedControls in rebuilt screens | `icon = DinghyIcons.ArrowBack` |
 | `NumpadPage` import anywhere after this phase | ExtrudeScreen, SpoolScreen | Android numeric IME (`KeyboardType.Decimal`) |
 | Passing raw IME text to gcode | ExtrudeScreen D-16, SpoolScreen D-08 | Parse → `PrinterCommands.clamp*()` → dispatch |
-| Pool color lookup without `PaletteMode.Colorful` guard | TemperatureScreen 8-swatch row | D-14: ALWAYS use Colorful pool (`t.pool`) for swatch row regardless of active mode |
-| Bare `t.pool[i]` without `.take(8)` / size check | Temperature swatch row | `t.pool.take(8)` — guard against pools with fewer than 8 colors |
+| Sourcing swatches from the ACTIVE `t.pool` (`t.pool.take(8)`) | TemperatureScreen 8-swatch row | WRONG: DEFAULT_MAX_ITEMS=4 (ThemePrefs.kt:185) and Simple/HighContrast collapse the pool. Generate a DEDICATED Colorful pool of exactly 8 via `Palette.generate(seedHex, dark, maxItems=8, simple=false, highContrast=false)` (D-14) |
+| Graph trace drawn in `seriesColor(i)` token, ignoring the chosen color | GraphView / TemperatureScreen | WRONG: D-14 requires the graph to draw the CHOSEN color. Pass index-aligned `traceColorOverrides` through GraphViewHost → GraphView (equality-guarded); the graph draws override ?: seriesColor(i) |
+| Filtering only `series` for hidden traces (setpoints/colors left unfiltered) | TemperatureScreen visible-trace model | Build ONE visible model filtering series + setpoints + names + colors together (GraphView draws `setpoints[t]` at the same index as `series[t]`) |
 
 ---
 
@@ -1094,11 +1120,11 @@ All files have analogs or are clearly derived from existing patterns. No entries
 
 Per RESEARCH.md A4/A5 — the planner MUST add Wave 0 investigation tasks for:
 
-1. **Pool color token access (D-02/D-14):** Verify `ThemeTokens.pool: List<Color>` has ≥8 entries in COLORFUL mode at runtime. Grep `ThemeResolver` / `TokenBridge` for pool-population code path. If pool has <8 entries, the 8-swatch Temperature row needs a fallback.
+1. **Colorful 8-swatch pool (D-02/D-14) — RESOLVED:** the active `t.pool` is NOT a valid source (DEFAULT_MAX_ITEMS=4 at ThemePrefs.kt:185; Simple/HighContrast collapse the pool). The Temperature swatch row must generate a DEDICATED Colorful pool of exactly 8 via `Palette.generate(seedHex, dark, maxItems=8, simple=false, highContrast=false)` (the generator accepts the simple/highContrast flags — ThemeResolver.kt:184-202), baked to `Color`. seedHex + dark come from the active theme tuple. Plan 26-04 owns the helper. For D-02 Fine-Tune GROUP colors (3 hues) the active `t.pool` is acceptable but must be `take(...)`-guarded against a <3 pool (fall back to accent).
 
 2. **NavHost route shape for collapsed Fine-Tune:** Read `ui/shell/AppShell.kt` routing section before Wave 1 planning. The old Fine-Tune sub-routes (`MOTION`, `EXTRUSION`, `FW_RETRACTION`) must be removed; confirm the single flat route wiring.
 
-3. **`GraphView.setTraceColors()` feasibility:** Does `GraphView` currently expose per-trace color overrides, or does it derive all colors from `applyTokens`? Read `render/GraphView.kt` before designing the D-14 extension. If no per-trace API exists, confirm the "filter series by visibility, trace colors stay token-based" approach is acceptable (the swatch = row icon + Focus panel only, not graph lines).
+3. **`GraphView` per-trace color (D-14) — RESOLVED:** `GraphView` currently derives ALL colors from `applyTokens`/`seriesColor(i)` (GraphView.kt:207-218); there is NO per-trace override API. D-14 REQUIRES the graph to draw the chosen color, so plan 26-04 ADDS an equality-guarded `setTraceColorOverrides(List<Int?>)` to `GraphView` (override ?: seriesColor(i), recomputed in both `applyTokens` and the new setter; setpoint dashes inherit via `linePaints[t].color`). The "token-based only" fallback is REJECTED — it violates D-14.
 
 ---
 
