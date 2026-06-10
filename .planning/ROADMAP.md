@@ -1218,7 +1218,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 2)*
 
-- [ ] 26-05-PLAN.md — Outputs detail-in-Focus collapse: embeddable ScrubberControl extraction, per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
+- [x] 26-05-PLAN.md — Outputs detail-in-Focus collapse: embeddable ScrubberControl extraction, per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
 
 **Wave 6** *(blocked on Waves 1+5 — AppShell sequenced after 26-05)*
 
