@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-06-10T03:20:12.571Z"
+status: executing
+last_updated: "2026-06-10T03:25:10.785Z"
 last_activity: 2026-06-10
 progress:
   total_phases: 35
   completed_phases: 27
   total_plans: 187
-  completed_plans: 182
+  completed_plans: 183
   percent: 77
 ---
 
@@ -25,8 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 24
-Plan: 01
+Plan: 02
 Status: In progress
+  → **Plan 24-02 (Idle glyph registry: LauncherWebcam / FootPreheat / FootSystem) EXECUTED + COMPLETE 2026-06-10.** Three owner-confirmed DinghyIcons tokens registered: `LauncherWebcam` (videocam), `FootPreheat` (chair_fireplace), `FootSystem` (bottom_panel_open); all added to `DinghyIcons.all` drift-guard list; `strings.xml` updated with `cd_launcher_webcam`/`home_foot_preheat`/`home_foot_system`; `verify_ligatures.py` NEEDED extended (76 needed, missing: []); `DinghyIconsTest` GREEN. Commit: `aea4618`. SUMMARY `24-02-SUMMARY.md`.
   → **Plan 24-01 (NavDest route model + Navigation-Compose foundation) EXECUTED + COMPLETE 2026-06-10.** Navigation-Compose 2.8.9 added; `@Serializable sealed interface NavDest` (17 members) replaces `Dest` enum; `NavDest.WaterfallHome` replaces `Dest.PrintStatus` (D-01); `FOOT_GUN_DESTS`/`shouldPopToRoot` pure predicate (D-04); `HomeAction`/`buildIdleActions` idle-list model with D-06 order and D-08 capability gates; mechanical Dest→NavDest rename across all 13 call-site files; `TopRoute.Shell` changed from `data class Shell(val dest: Dest)` to `data object Shell`; 29 host unit tests GREEN; all 3 source sets compile GREEN. Commits: `be3f15b` (chore: nav-compose dep), `f411759` (feat: NavDest+HomeAction+tests), `aa17941` (refactor: mechanical rename). SUMMARY `24-01-SUMMARY.md`.
   → **Plan 23-06 (Wave 4: SpoolScreen pilot rebuild on kit) EXECUTED + COMPLETE & on-device flox OWNER-APPROVED 2026-06-09.** Closes Phase 23 (6/6). SpoolScreen rebuilt on the jiib design-kit: ScreenScaffold(gutter=null), FieldMode in-place filter (SpoolFilterPickerOverlay removed), DetailCard+FillMeter in Focus, FootButtonBar with locked Load/Unload foot buttons, FloatingEStop wired to live `container.printerState` (LastJobHolder convention), `rememberUnitGrid(minOf(maxWidth,maxHeight))` at root — U constant across rotation confirmed via on-device debug uDp readout. 8 build/UAT deviations auto-fixed: 6 build-time (dispatch import, weight() scope, smart-cast, ListBlock import, ColorSwatchGrid visibility, 5 missing icon tokens) + 2 UAT-driven (OutlinedControl `.background(t.surface)` fill convention `94c3f8e`; vendor multi-select `2b6c92a`+`42a5ec2`). Owner approved on flox in both portrait and landscape. ONE item deferred: MFG/vendor multi-select confirmed code-correct by host tests (`SpoolHolderVendorTest`, 11 green) but was NOT re-tested on-device before owner chose to defer; stale-APK hypothesis plausible but unconfirmed. Tracked at `.planning/todos/pending/2026-06-09-phase-23-mfg-multiselect-deferred.md`; resolve at Phase 29. COLOR filter single-select is intentional (Spoolman endpoint constraint). Commits: `733d868` (feat Task 1), `8bedac5` (feat Task 2), `361f034` (chore icons), `94c3f8e` (fix fill), `2b6c92a` (fix vendor filter), `42a5ec2` (test vendor). SUMMARY `23-06-SUMMARY.md`. **Phase 23: 6/6 plans complete.**
   → **Plan 22-02 (Wave 1: @Immutable PrinterState tree + ImmutableMap/ImmutableList migration) EXECUTED + COMPLETE 2026-06-09.** D-02 P0 root-cause fix — every `PrinterState` nested type annotated `@Immutable`; all `Map`/`List` fields migrated to `ImmutableMap`/`ImmutableList`; `PrinterStateReducer.kt` (the dominant construction site) updated with `.toImmutableMap()`/`.toImmutableList()` at every assignment boundary; private `toImmutable2d()` helper added for 2D-list sites. `MoonrakerSession.kt` only non-reducer call site fixed (screws `.toImmutableList()`). 7 test files updated as Rule-3 auto-fixes for cascading type changes. New `PrinterStateImmutableConversionTest.kt` (14 tests) covers all four conversion-sensitive paths (bed mesh matrices, screws-tilt results map, outputs colorData, position lists + heater merge). `Capabilities.kt` `List<String>` fields audited and documented as deferred non-hot (reconnect-only) candidates. `testReleaseUnitTest` GREEN + `assembleRelease` GREEN. Commits: `c26facc` (refactor), `c000e0a` (test fixes), `6919e4a` (new tests). SUMMARY `22-02-SUMMARY.md`. **Phase 22: 2/7 plans complete.**
@@ -517,7 +518,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-10T01:34:12.227Z
+Last session: 2026-06-10T03:25:10.677Z
 Stopped at: Phase 24 context gathered
 Resume file: 
-.planning/phases/24-navigation-spine/24-CONTEXT.md
+None

@@ -1138,7 +1138,7 @@ Plans:
 
 Plans:
 - [x] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
-- [ ] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
+- [x] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
 - [ ] 24-03-PLAN.md — Wave 1: AppShell when(dest)→NavHost migration (holder hoist, overlays, swipe/webcam/BackHandler reseat, D-04 pop-to-root, ShellNavState slim, FIX-4 land-on-root regression)
 - [ ] 24-04-PLAN.md — Wave 2: morphing root (Crossfade morph + data-driven idle HomeAction list + Preheat/System foot bar + FloatingEStop)
 - [ ] 24-05-PLAN.md — Wave 3: on-device flox UAT gate (morph budget, e-stop, both orientations, System→drawer, no-monitoring-regression)
@@ -1316,7 +1316,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
-| 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
+| 24. Touch-Target / Scaling / Rotation Conformance Sweep | 2/5 | In Progress|  |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
 ## Future Milestones (post-v1)
