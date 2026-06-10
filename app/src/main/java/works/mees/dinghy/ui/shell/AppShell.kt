@@ -658,13 +658,16 @@ fun AppShell(
 
                 // Merged Macros screen (25-05 / D-09): ONE screen with MacroFieldMode (Launcher /
                 // ParamEntry / ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
-                // MacroExecutionPopup. MacroPrefs wired for ManageMode; session dispatcher passed for
-                // ParamEntry execute path; null-safe (Execute disabled while idle, WR-03).
+                // MacroExecutionPopup. MacroPrefs writes route through AppContainer.writeScope intent
+                // methods (WR-08 — [[dinghy-compose-write-scope-cancellation]]: a composition-scoped
+                // launch is cancelled by same-frame decomposition, silently dropping the write);
+                // session dispatcher passed for ParamEntry execute path; null-safe (Execute disabled
+                // while idle, WR-03).
                 BookmarkedMacrosScreen(
                     holder = macroHolder,
                     dispatcher = dispatcher,
-                    onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
-                    onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
+                    onToggleBookmark = container::toggleMacroBookmark,
+                    onSetRevealHidden = container::setMacroRevealHidden,
                     onBack = { navController.popBackStack() },
                 )
             }

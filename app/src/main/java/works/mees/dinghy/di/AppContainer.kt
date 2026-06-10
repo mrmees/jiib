@@ -171,6 +171,22 @@ class AppContainer(
     }
 
     /**
+     * Toggle a macro bookmark (Macros ManageMode), durably — the [[dinghy-compose-write-scope-cancellation]]
+     * guard (WR-08): a composition-scoped launch is cancelled the instant its host leaves composition
+     * (e.g. a recovery Splash decomposing AppShell in the same frame as the tap), silently dropping the
+     * DataStore write mid-`edit` on slow flash. Always call this from UI — never
+     * `rememberCoroutineScope().launch { macroPrefs… }`.
+     */
+    fun toggleMacroBookmark(name: String) {
+        writeScope.launch { macroPrefs.toggleBookmark(name) }
+    }
+
+    /** Persist the Macros reveal-hidden toggle, durably (same write-scope rule as [toggleMacroBookmark]). */
+    fun setMacroRevealHidden(reveal: Boolean) {
+        writeScope.launch { macroPrefs.setRevealHidden(reveal) }
+    }
+
+    /**
      * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
      * A PURE pick: combine the sanitized profile set with the writer-owned active-id and pick by id
      * (RESEARCH Pattern 2). The D-12 auto-pick on delete lives in the [ProfileStore] writer, NOT here —
