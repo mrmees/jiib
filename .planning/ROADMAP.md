@@ -1175,7 +1175,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 25-06-PLAN.md — Webcam crash fix (D-17) + WR-02 resolver + token-conform (render path untouched) + @Preview matrix
+- [x] 25-06-PLAN.md — Webcam crash fix (D-17) + WR-02 resolver + token-conform (render path untouched) + @Preview matrix
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -1338,7 +1338,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 5/5 | Complete    | 2026-06-10 |
-| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 5/7 | In Progress|  |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 6/7 | In Progress|  |
 
 ## Future Milestones (post-v1)
 
