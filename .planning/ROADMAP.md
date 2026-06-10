@@ -80,7 +80,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 23: Design-Language Foundation** (jiib REDESIGN — REPLAN 2026-06-09) - Rewrite `docs/ui_design/LAYOUT.md` off the Focus/Field/**Gutter** grammar (gutter removed) + author `docs/ui_design/COMPONENTS.md` (component-class catalog) + build the reusable Compose kit (ListRow, DetailCard, FillMeter, sort-vs-filter row, FootButtonBar, stepper, scrubber, unit-grid `U`, translucent-list/filled-controls, intent colors). PILOT: rebuild SpoolScreen onto the classes. Locked via `/gsd-sketch` 001–004 → `sketch-findings-dinghy-display` skill + `.planning/notes/2026-06-09-*.md`. (completed 2026-06-10)
 - [x] **Phase 24: Navigation Spine** (jiib REDESIGN) - PrintStatusScreen → the morphing waterfall ROOT (idle/printing/terminal, no gutter; root when printing, not a destination); adopt Navigation-Compose back-stack; remove the gutter app-wide; floating printing-only e-stop; create the System-page shell (rehomes Power + device settings). (completed 2026-06-10)
 - [x] **Phase 25: Browse Screens** (jiib REDESIGN) - Migrate the list/collection screens onto the classes — Files, Macros (Bookmarked + System), Console, Webcam — reusing ListRow + sort/filter + Field-takeover picker. Conformance folds in per-screen. (completed 2026-06-10)
-- [ ] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in.
+- [x] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in. (completed 2026-06-10)
 - [ ] **Phase 27: Motion + Calibration** (jiib REDESIGN) - Migrate Move/Motion (spatial jog STAYS A GRID) + the calibration cluster (Hub, Probe-Calibrate, Bed-Mesh, Screws-Tilt, Tilt wizard flows). Conformance folds in.
 - [ ] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in.
 - [ ] **Phase 29: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** (RENUMBERED from 25, 2026-06-09; LAST) - The deferred print-loop robustness (reconnect resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist against the complete redesigned app, R8 release build, PKG-01/03, signed sideloadable APK via GitHub Releases on a real Nexus 7, + jiib repo cutover — ships v1.
@@ -1226,7 +1226,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
+- [x] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
 **UI hint**: yes
 **Research note**: COVERED — adjustment patterns locked in the sketch-findings skill (adjustment-controls); reuse the Phase-17 clamp-authority + Phase-19 scrubber lessons.
 
