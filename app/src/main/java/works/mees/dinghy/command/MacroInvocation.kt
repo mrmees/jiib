@@ -36,7 +36,7 @@ class MacroParamRejected(
  *
  * This file is PURE: NO I/O, NO coroutines, NO Compose; host-testable. It does NOT dispatch — the
  * caller (08-06) feeds the result to [PrinterCommands.scriptParams] and never the raw user string. It
- * also does NOT clamp numeric ranges — numeric range-clamping is owned by NumpadPage (08-06).
+ * also does NOT clamp numeric ranges — numeric range-clamping is owned by the IME entry field (D-07).
  */
 object MacroInvocation {
 
@@ -60,8 +60,8 @@ object MacroInvocation {
      * emitted UNQUOTED, so an empty value would produce a malformed bare `KEY=` token, and a value with
      * whitespace (e.g. a raw Jinja default expression like `printer.extruder.target * 0.5` seeded from
      * `MacroParam.default`) would token-split the macro line into extra `KEY=VALUE` pairs — potentially
-     * overriding another param. Same REJECT-not-escape policy as the string path. (NumpadPage clamping
-     * covers the keypad path, but the default-seed path bypasses NumpadPage entirely.)
+     * overriding another param. Same REJECT-not-escape policy as the string path. (IME field clamping
+     * covers the interactive path, but the default-seed path bypasses clamping entirely.)
      */
     fun buildTyped(macroName: String, params: List<Triple<String, String, Boolean>>): String =
         buildLine(macroName, params)

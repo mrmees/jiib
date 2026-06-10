@@ -1,13 +1,20 @@
 package works.mees.dinghy.ui.macros
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,11 +26,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,7 +49,6 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.MacroInvocation
 import works.mees.dinghy.command.MacroParamRejected
 import works.mees.dinghy.command.PrinterCommands
-import works.mees.dinghy.designsystem.NumpadPage
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -57,9 +68,9 @@ import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.screen.TokenTextField
 
 /**
- * Generously-wide numeric range for a macro NumpadPage. Macro bodies never declare their own range, so
- * this is intentionally wide — NumpadPage is the sole clamp owner (S4). A printer-side range violation
- * surfaces as a DispatchEvent.Failure toast, not blocked here.
+ * Generously-wide numeric range for macro numeric-param clamping (D-07). Macro bodies never declare
+ * their own range, so this is intentionally wide — the IME takeover is the clamp owner (T-26-07-01).
+ * A printer-side range violation surfaces as a DispatchEvent.Failure toast, not blocked here.
  */
 private val MACRO_NUMERIC_RANGE = -100_000.0..100_000.0
 
@@ -96,7 +107,7 @@ sealed class MacroFieldMode {
  *
  * Field modes:
  *  - [MacroFieldMode.Launcher]   — the Bookmarked ListRow list (D-10)
- *  - [MacroFieldMode.ParamEntry] — per-param Field-takeover with NumpadPage / TokenTextField (D-12)
+ *  - [MacroFieldMode.ParamEntry] — per-param Field-takeover with numeric IME / TokenTextField (D-12/D-07)
  *  - [MacroFieldMode.ManageMode] — the System manage-visibility ListRow list (D-09)
  *
  * Security: all macro string params route through [MacroInvocation.buildTyped] (the V5 REJECT sanitizer,
@@ -375,8 +386,7 @@ private fun ColumnScope.MacroParamEntryField(
     // the dispatch, so a collector here would never see the (no-replay) failure event.
     var toast by remember(macro.name) { mutableStateOf<String?>(null) }
 
-    // Which numeric param (if any) has its NumpadPage sub-page open — null = show the param list.
-    var numpadParam by remember(macro.name) { mutableStateOf<MacroParam?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun execute() {
         val gcode = try {
@@ -401,27 +411,8 @@ private fun ColumnScope.MacroParamEntryField(
             method = JsonRpcMethods.GCODE_SCRIPT,
             params = PrinterCommands.scriptParams(gcode),
         )
+        keyboardController?.hide()
         onExecuted()
-    }
-
-    // NumpadPage Field-takeover: while numpadParam != null the ENTIRE field is replaced.
-    val editing = numpadParam
-    if (editing != null) {
-        NumpadPage(
-            label = editing.name,
-            initial = values[editing.name].orEmpty().toDoubleOrNull() ?: 0.0,
-            range = MACRO_NUMERIC_RANGE,
-            onCancel = { numpadParam = null },
-            onSet = { committed ->
-                values[editing.name] = formatNumeric(committed)
-                numpadParam = null
-            },
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        )
-        // Foot is not shown while NumpadPage owns the field — NumpadPage provides its own onCancel/onSet
-        return
     }
 
     // Macro name title
@@ -457,35 +448,24 @@ private fun ColumnScope.MacroParamEntryField(
         }
         items(params, key = { it.name }) { param ->
             if (param.isNumeric) {
-                // Numeric param → tappable row opens NumpadPage (keyboard-free — D-12)
-                ListRow(
-                    selected = false,
-                    onClick = { numpadParam = param },
-                    uDp = uDp,
-                    trailingContent = {
-                        Text(
-                            text = values[param.name].orEmpty().ifEmpty { "—" },
-                            color = t.text,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, t.fs).sp,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
+                // Numeric param → inline numeric IME field (D-07/D-12). Values map updated live on
+                // each change; clamped to MACRO_NUMERIC_RANGE on ImeAction.Done (T-26-07-01).
+                MacroNumericParamField(
+                    param = param,
+                    rawValue = values[param.name].orEmpty(),
+                    onValueChange = { raw -> values[param.name] = raw },
+                    onValueCommit = { raw ->
+                        val parsed = raw.toDoubleOrNull()
+                        if (parsed != null) {
+                            values[param.name] = formatNumeric(
+                                parsed.coerceIn(MACRO_NUMERIC_RANGE.start, MACRO_NUMERIC_RANGE.endInclusive)
+                            )
+                        } else if (raw.isEmpty()) {
+                            values[param.name] = ""
+                        }
                     },
-                ) {
-                    Text(
-                        text = param.name,
-                        color = t.text2,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(15f, t.fs).sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 4.dp),
-                    )
-                }
+                    t = t,
+                )
             } else {
                 // String param → TokenTextField (the ONE sanctioned alpha keyboard in printer controls — D-12)
                 TokenTextField(
@@ -552,6 +532,90 @@ private fun ColumnScope.MacroParamEntryField(
             intent = Intent.Accent,
             icon = DinghyIcons.ExecuteMacro,
             contentDescription = stringResource(R.string.cd_macros_execute),
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MacroNumericParamField — inline numeric IME row for a single numeric param (D-07)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * An inline-row numeric-IME entry for ONE numeric macro parameter (D-07/D-12). Displays the param name
+ * as a label and the current value in a [BasicTextField] with [KeyboardType.Decimal] + [ImeAction.Done].
+ * [onValueChange] is called on every keystroke (so the parent values map stays current for Execute).
+ * [onValueCommit] is called on Done with the final text (caller applies clamp — T-26-07-01).
+ */
+@Composable
+private fun MacroNumericParamField(
+    param: MacroParam,
+    rawValue: String,
+    onValueChange: (String) -> Unit,
+    onValueCommit: (String) -> Unit,
+    t: works.mees.dinghy.theme.ThemeTokens,
+) {
+    // Local editing text; seeded from rawValue, synced when the parent updates it (e.g. on commit)
+    var editText by remember(param.name) { mutableStateOf(rawValue) }
+    LaunchedEffect(rawValue) { if (editText != rawValue) editText = rawValue }
+
+    val shape = RoundedCornerShape(t.rCtrl)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = param.name,
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(15f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        BasicTextField(
+            value = editText,
+            onValueChange = { raw ->
+                // Accept digits, an optional leading minus, and one decimal point only (no alpha).
+                if (raw.isEmpty() || raw == "-" || raw.toDoubleOrNull() != null ||
+                    raw.matches(Regex("-?\\d*\\.?\\d*"))) {
+                    editText = raw
+                    onValueChange(raw)  // keep parent values map current for Execute
+                }
+            },
+            singleLine = true,
+            textStyle = TextStyle(
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(18f, t.fs).sp,
+            ),
+            cursorBrush = SolidColor(t.accent2),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onValueCommit(editText) },
+            ),
+            modifier = Modifier
+                .clip(shape)
+                .border(BorderStroke(2.dp, t.outline), shape)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            decorationBox = { innerField ->
+                if (editText.isEmpty()) {
+                    Text(
+                        text = "0",
+                        color = t.text3,
+                        fontFamily = GeistMono,
+                        fontSize = fsSp(18f, t.fs).sp,
+                    )
+                }
+                innerField()
+            },
         )
     }
 }
@@ -686,6 +750,6 @@ internal fun MacrosUnavailable(modifier: Modifier = Modifier) {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Drop a trailing ".0" on a whole-number numeric value (matches NumpadPage display). */
+/** Drop a trailing ".0" on a whole-number numeric value for clean display in the param field. */
 private fun formatNumeric(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()

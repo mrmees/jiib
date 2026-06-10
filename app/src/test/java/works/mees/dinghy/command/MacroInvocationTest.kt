@@ -12,7 +12,7 @@ import org.junit.Test
  * into a script" invariant. The policy here is REJECT, NOT escape/strip: any forbidden character in
  * a string param value makes [MacroInvocation.build] throw the typed [MacroParamRejected]. A clean
  * value assembles to `MACRO KEY="value"`. NO numeric clamp assertion here — numeric range-clamping
- * is owned by NumpadPage (08-06), not MacroInvocation (S4).
+ * is owned by the IME entry field (D-07), not MacroInvocation (S4).
  *
  * Production symbols referenced (NOT YET BUILT → RED): [MacroInvocation.build], [MacroParamRejected].
  */

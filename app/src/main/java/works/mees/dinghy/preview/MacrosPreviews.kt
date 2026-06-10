@@ -185,8 +185,8 @@ private fun MacrosPseudolocaleSpotCheck() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Landscape ParamEntry (D-12) — the param-entry field-takeover must be usable in landscape too
- * (NumpadPage + string TextField both must not overflow the single-column field region). Landscape
+ * Landscape ParamEntry (D-12/D-07) — the param-entry field-takeover must be usable in landscape too
+ * (numeric IME + string TextField both must not overflow the single-column field region). Landscape
  * is also covered by [MacrosFieldModeMatrix] but an explicit named preview confirms the intent.
  */
 @Preview(name = "ParamEntry landscape", device = NEXUS7, showBackground = true)
