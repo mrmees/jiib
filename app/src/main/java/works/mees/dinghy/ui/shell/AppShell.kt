@@ -79,9 +79,7 @@ import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
 import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
-import works.mees.dinghy.ui.macros.MacroExecutionPopup
 import works.mees.dinghy.ui.macros.MacroHolder
-import works.mees.dinghy.ui.macros.SystemMacrosScreen
 import works.mees.dinghy.ui.calibration.BedMeshScreen
 import works.mees.dinghy.ui.calibration.CalibrationHubScreen
 import works.mees.dinghy.ui.calibration.ProbeCalibrateScreen
@@ -172,8 +170,8 @@ fun AppShell(
     var drawerOpen by remember { mutableStateOf(false) }
 
     // In-screen sub-nav aliases (D-01 holdouts — NOT promoted to NavHost routes).
-    val macroShowSystem = nav.macroShowSystem
-    val macroPopupFor = nav.macroPopupFor
+    // macroShowSystem + macroPopupFor removed: Macros merged to a single FieldMode screen (25-05).
+    // ShellNavState still owns both fields (applyEntryReset + ShellNavState reset-on-Splash) — untouched.
     val calibrationRoutine = nav.calibrationRoutine
     val fineTuneGroup = nav.fineTuneGroup
 
@@ -509,17 +507,8 @@ fun AppShell(
     //   3. In-screen sub-nav BackHandlers inside composable<> lambdas have even higher priority (innermost).
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
     // The old generic "pop backStack" BackHandler is REMOVED — NavHost now owns drill-down Back.
-    // Macro sub-state intercepts Back BEFORE NavHost for visible popup/system-list (registered last = higher).
-    BackHandler(
-        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Macros>() == true && macroPopupFor != null
-    ) {
-        nav.macroPopupFor = null
-    }
-    BackHandler(
-        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Macros>() == true && macroPopupFor == null && macroShowSystem
-    ) {
-        nav.macroShowSystem = false
-    }
+    // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
+    // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
     // Calibration sub-state intercepts Back — an open routine page returns to the hub.
     BackHandler(
         enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Calibration>() == true && calibrationRoutine != null
@@ -659,28 +648,21 @@ fun AppShell(
             }
             composable<NavDest.Macros> {
                 // Entry reset: entering the Macros surface always starts on the Bookmarked launcher (FIX-3).
-                // applyEntryReset is called once on composition entry so re-entry always resets sub-nav.
+                // applyEntryReset clears macroShowSystem + macroPopupFor (ShellNavState legacy fields, still
+                // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
                 LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
 
-                // The macro surface: Bookmarked launcher OR the System manage-visibility list. Tapping a
-                // macro opens its Execution popup as a full-screen overlay (rendered below, outside the
-                // NavHost so it floats over either sub-screen). Back from the launcher leaves the surface
-                // (NavHost pops); Back from the System list returns to the launcher.
-                if (macroShowSystem) {
-                    SystemMacrosScreen(
-                        holder = macroHolder,
-                        onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
-                        onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
-                        onBack = { nav.macroShowSystem = false },
-                    )
-                } else {
-                    BookmarkedMacrosScreen(
-                        holder = macroHolder,
-                        onRunMacro = { macro -> nav.macroPopupFor = macro },
-                        onManage = { nav.macroShowSystem = true },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
+                // Merged Macros screen (25-05 / D-09): ONE screen with MacroFieldMode (Launcher /
+                // ParamEntry / ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
+                // MacroExecutionPopup. MacroPrefs wired for ManageMode; session dispatcher passed for
+                // ParamEntry execute path; null-safe (Execute disabled while idle, WR-03).
+                BookmarkedMacrosScreen(
+                    holder = macroHolder,
+                    dispatcher = dispatcher,
+                    onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
+                    onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable<NavDest.Console> {
                 ConsoleScreen(
@@ -927,19 +909,9 @@ fun AppShell(
 
         // ---- Overlays: Box siblings AFTER NavHost (render above every destination) -----------------
 
-        // Macro Execution popup overlay (D-08) — a full-screen action gate floating over the macro
-        // surface. Shown only on NavDest.Macros with a tapped macro AND a live session dispatcher.
-        val popupMacro = macroPopupFor
-        val liveDispatcher = dispatcher
-        val isMacros = navBackStackEntry?.destination?.isRoute<NavDest.Macros>() == true
-        if (isMacros && popupMacro != null && liveDispatcher != null) {
-            MacroExecutionPopup(
-                holder = macroHolder,
-                macro = popupMacro,
-                dispatcher = liveDispatcher,
-                onDismiss = { nav.macroPopupFor = null },
-            )
-        }
+        // MacroExecutionPopup REMOVED (25-05): param entry is now an in-screen Field-takeover inside
+        // BookmarkedMacrosScreen (MacroFieldMode.ParamEntry). The PROMPT-protocol overlay (D-13) below
+        // remains — it is independent of the macro execution path and untouched here.
 
         // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen.
         if (nav.scanActive) {

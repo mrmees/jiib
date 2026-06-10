@@ -110,7 +110,9 @@ sealed class MacroFieldMode {
 @Composable
 fun BookmarkedMacrosScreen(
     holder: MacroHolder,
-    dispatcher: CommandDispatcher,
+    dispatcher: CommandDispatcher?,
+    onToggleBookmark: (String) -> Unit,
+    onSetRevealHidden: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -123,53 +125,8 @@ fun BookmarkedMacrosScreen(
         holder = holder,
         dispatcher = dispatcher,
         onFieldModeChange = { fieldMode = it },
-        onToggleBookmark = {},
-        onSetRevealHidden = {},
-        onBack = onBack,
-        modifier = modifier,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Legacy compatibility overload (Task 1 bridge — removed in Task 2 AppShell rewire)
-//
-// AppShell still calls the OLD signature `BookmarkedMacrosScreen(holder, onRunMacro, onManage, onBack)`.
-// This overload preserves Task-1 compilation by delegating to the merged screen. Task 2 removes it.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Legacy bridge for AppShell until Task 2 rewires the call site (25-05 Task ordering rule).
- * Routes taps to the PopupFor nav state (preserving D-08 behavior for the Task-1 compilation window).
- *
- * @deprecated Removed in Task 2 when AppShell is rewired to the new single-dispatcher signature.
- */
-@Deprecated("Task-1 compatibility bridge — AppShell rewired in Task 2; do NOT use in new code")
-@Composable
-fun BookmarkedMacrosScreen(
-    holder: MacroHolder,
-    onRunMacro: (MacroVm) -> Unit,
-    onManage: () -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val state by holder.state.collectAsStateWithLifecycle()
-    // Task-1 bridge: use Launcher mode only (ParamEntry/Manage modes are wired into the new screen
-    // above; AppShell still controls system list visibility + popup via the old nav state flags).
-    var fieldMode by remember { mutableStateOf<MacroFieldMode>(MacroFieldMode.Launcher) }
-    MacrosContent(
-        state = state,
-        fieldMode = fieldMode,
-        holder = holder,
-        dispatcher = null,  // no dispatcher in legacy bridge — old popup overlay owns dispatch
-        onFieldModeChange = { mode ->
-            when (mode) {
-                is MacroFieldMode.ParamEntry -> onRunMacro(mode.macro)
-                is MacroFieldMode.ManageMode -> onManage()
-                is MacroFieldMode.Launcher -> fieldMode = mode
-            }
-        },
-        onToggleBookmark = {},
-        onSetRevealHidden = {},
+        onToggleBookmark = onToggleBookmark,
+        onSetRevealHidden = onSetRevealHidden,
         onBack = onBack,
         modifier = modifier,
     )
