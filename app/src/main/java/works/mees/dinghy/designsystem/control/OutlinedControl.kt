@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -85,6 +87,11 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  * @param symbol  optional leading Material-Symbol ligature (design spec: gutter buttons keep icon+label).
  * @param onLongClick optional long-press action (e.g. Load-spool's long-press → unload); when set the
  *   control uses `combinedClickable` so a tap fires [onClick] and a hold fires [onLongClick].
+ * @param contentDescription optional TalkBack label for the [symbol] glyph (WR-05). The MaterialSymbol
+ *   renders the icon by typing its raw ligature NAME as Text — without this, an icon-only control
+ *   (blank [label]) speaks the ligature name (e.g. "mode_heat_off") or nothing meaningful. A non-null
+ *   value overrides the glyph's semantics (the [works.mees.dinghy.designsystem.icons.DinghyIconView]
+ *   Amendment-1 precedent); null leaves semantics unchanged (pre-WR-05 behavior for legacy call sites).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -95,8 +102,16 @@ fun OutlinedControl(
     intent: Intent = Intent.Neutral,
     symbol: String? = null,
     onLongClick: (() -> Unit)? = null,
+    contentDescription: String? = null,
 ) {
     val t = LocalTokens.current
+    // WR-05: a non-null contentDescription becomes the glyph's spoken label instead of the raw
+    // ligature text. Null is deliberately a no-op so pre-existing call sites are unaffected.
+    val symbolA11y = if (contentDescription != null) {
+        Modifier.semantics { this.contentDescription = contentDescription }
+    } else {
+        Modifier
+    }
     val shape = RoundedCornerShape(t.rCtrl)
     val clickMod = if (onLongClick != null) {
         Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -119,13 +134,18 @@ fun OutlinedControl(
             // rendering is byte-identical to the old 50sp; at fontScale >1 (e.g. 1.3 on Accessibility) the
             // glyph no longer balloons past the 2px border. UAT-driven fix: the FloatingEStop glyph
             // overflowed its 0.7U border on flox at large system font scale (24-05 UAT).
-            MaterialSymbol(name = symbol, tint = t.text, sizeSp = 50f / LocalDensity.current.fontScale)
+            MaterialSymbol(
+                name = symbol,
+                modifier = symbolA11y,
+                tint = t.text,
+                sizeSp = 50f / LocalDensity.current.fontScale,
+            )
         } else if (symbol != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MaterialSymbol(name = symbol, tint = t.text, sizeSp = fsSp(22f, t.fs))
+                MaterialSymbol(name = symbol, modifier = symbolA11y, tint = t.text, sizeSp = fsSp(22f, t.fs))
                 Text(
                     text = label,
                     color = t.text,
@@ -182,6 +202,7 @@ fun OutlinedControl(
     intent: Intent = Intent.Neutral,
     icon: DinghyIcon?,
     onLongClick: (() -> Unit)? = null,
+    contentDescription: String? = null,
 ) {
     OutlinedControl(
         label = label,
@@ -190,5 +211,6 @@ fun OutlinedControl(
         intent = intent,
         symbol = icon?.let { ligatureOf(it) },
         onLongClick = onLongClick,
+        contentDescription = contentDescription,
     )
 }

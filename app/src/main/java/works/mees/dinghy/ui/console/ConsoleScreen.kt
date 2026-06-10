@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -201,29 +203,40 @@ private fun ConsoleContent(
                         uDp = grid.uDp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
+                        // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
+                        // semantics — active-filter state is otherwise outline-color-only.
                         // Hide-temperatures toggle
                         OutlinedControl(
                             label = "",
                             onClick = onToggleTemps,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { selected = hideTemps },
                             intent = if (hideTemps) Intent.Accent else Intent.Neutral,
                             icon = DinghyIcons.HideTemps,
+                            contentDescription = stringResource(R.string.cd_console_hide_temps),
                         )
                         // Hide-timelapse toggle
                         OutlinedControl(
                             label = "",
                             onClick = onToggleTimelapse,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { selected = hideTimelapse },
                             intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
                             icon = DinghyIcons.HideTimelapse,
+                            contentDescription = stringResource(R.string.cd_console_hide_timelapse),
                         )
                         // Hide-prompts toggle
                         OutlinedControl(
                             label = "",
                             onClick = onTogglePrompt,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { selected = hidePrompt },
                             intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
                             icon = DinghyIcons.HidePrompts,
+                            contentDescription = stringResource(R.string.cd_console_hide_prompts),
                         )
                         // Back (plain nav — D-10: neutral, spends no safety color)
                         OutlinedControl(
@@ -232,6 +245,7 @@ private fun ConsoleContent(
                             modifier = Modifier.weight(1f),
                             intent = Intent.Neutral,
                             icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.common_back),
                         )
                     }
                 },

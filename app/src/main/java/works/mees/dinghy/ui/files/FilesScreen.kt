@@ -622,6 +622,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                 .then(if (!startEnabled) Modifier.semantics { disabled() } else Modifier),
             intent = Intent.Accent,
             icon = DinghyIcons.Print,
+            contentDescription = stringResource(R.string.cd_files_print),
         )
         OutlinedControl(
             label = stringResource(R.string.files_foot_delete),
@@ -632,6 +633,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                 .then(if (!deleteEnabled) Modifier.semantics { disabled() } else Modifier),
             intent = Intent.Danger,
             icon = DinghyIcons.Delete,
+            contentDescription = stringResource(R.string.cd_files_delete),
         )
     }
 }

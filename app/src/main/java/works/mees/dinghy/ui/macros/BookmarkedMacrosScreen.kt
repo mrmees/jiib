@@ -322,6 +322,7 @@ private fun ColumnScope.MacroLauncherField(
             modifier = Modifier.weight(1f),
             intent = Intent.Neutral,
             icon = DinghyIcons.ManageMacros,
+            contentDescription = stringResource(R.string.cd_macros_manage),
         )
     }
 }
@@ -550,6 +551,7 @@ private fun ColumnScope.MacroParamEntryField(
                 ),
             intent = Intent.Accent,
             icon = DinghyIcons.ExecuteMacro,
+            contentDescription = stringResource(R.string.cd_macros_execute),
         )
     }
 }
@@ -592,6 +594,10 @@ private fun ColumnScope.MacroManageField(
                             tint = if (isBookmarked) t.accent else t.text3,
                             sizeDp = fsSp(24f, t.fs).dp,
                             modifier = Modifier.padding(start = 8.dp),
+                            // WR-05: speak the bookmark state — it is otherwise color/glyph-only.
+                            contentDescription = stringResource(
+                                if (isBookmarked) R.string.cd_macros_bookmarked else R.string.cd_macros_unbookmarked,
+                            ),
                         )
                     },
                 ) {
