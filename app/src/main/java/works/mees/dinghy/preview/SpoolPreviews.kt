@@ -183,3 +183,13 @@ private fun SpoolFilterPickerOpen() =
 @Composable
 private fun SpoolPrintingState() =
     PreviewBox(colorfulDark) { SpoolScreen(state = firstSelected, isPrinting = true) }
+
+/**
+ * The D-08 measured-weight Field-takeover (26-07 [FieldMode.MeasureWeight]) — the Field swaps to the
+ * inline numeric-IME weight-entry form in place of the spool list. Exercises [SpoolMeasureWeightField]
+ * at design-time so the info-card + entry box + footer layout is reviewable without a device.
+ */
+@Nexus7Previews
+@Composable
+private fun SpoolMeasureWeightOpen() =
+    PreviewBox(colorfulDark) { SpoolScreen(state = SampleFixtures.spoolWithMeasureOpen) }

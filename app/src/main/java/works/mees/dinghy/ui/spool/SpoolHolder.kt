@@ -115,12 +115,15 @@ data class SpoolPrefilterSeed(
 )
 
 /**
- * Controls whether the Field shows the spool list or an in-place filter picker (Field-takeover pattern,
- * docs/ui_design/COMPONENTS.md §"Field-takeover picker"). No separate screen push — the Field swaps in place.
+ * Controls whether the Field shows the spool list, an in-place filter picker, or the measured-weight
+ * numeric-IME entry (D-08 Field-takeover pattern, docs/ui_design/COMPONENTS.md §"Field-takeover picker").
+ * No separate screen push — the Field swaps in place.
  *
  * - [Spools] — the normal spool list + FootButtonBar (default).
  * - [FilterPicker] — the Field shows the option list for [category]; tapping an option or Done/Clear returns
  *   to [Spools] by the caller setting `fieldMode = FieldMode.Spools`.
+ * - [MeasureWeight] — the measured-gross-weight numeric-IME entry for [spool] (D-08); Back/Apply return
+ *   to [Spools].
  */
 sealed class FieldMode {
     /** Normal spool-list Field. */
@@ -128,6 +131,9 @@ sealed class FieldMode {
 
     /** In-place filter picker for [category]; the Field swaps to that facet's option list. */
     data class FilterPicker(val category: SpoolFilterCategory) : FieldMode()
+
+    /** Measured-gross-weight numeric-IME entry (D-08). The user enters the total weighed mass. */
+    data class MeasureWeight(val spool: SpoolmanSpool) : FieldMode()
 }
 
 /**
@@ -289,6 +295,33 @@ class SpoolHolder(
     /** Close the Field-takeover filter picker and return to the spool list. */
     fun closeFilterPicker() {
         _state.update { it.copy(fieldMode = FieldMode.Spools) }
+    }
+
+    /** Open the measured-weight numeric-IME Field-takeover for [spool] (D-08). */
+    fun openMeasureWeight(spool: SpoolmanSpool) {
+        _state.update { it.copy(fieldMode = FieldMode.MeasureWeight(spool)) }
+    }
+
+    /** Close the measured-weight Field-takeover and return to the spool list. */
+    fun closeMeasureWeight() {
+        _state.update { it.copy(fieldMode = FieldMode.Spools) }
+    }
+
+    /**
+     * D-08 / SPOOL-09: write the measured GROSS weight to Spoolman then refresh the list. The user
+     * enters the full spool + filament weight; Spoolman subtracts the empty-spool weight to derive
+     * `remaining_weight`. Only dismisses the Field-takeover on a successful write — a null result
+     * (no session or a failed write) keeps the entry open so the user can retry.
+     *
+     * @param spool the spool being corrected.
+     * @param grossGrams the TOTAL weighed mass (spool + filament) in grams. Must be > 0.
+     */
+    suspend fun measureSpool(spool: SpoolmanSpool, grossGrams: Double) {
+        val result = runCatching { client.measureSpool(spool.id, grossGrams) }.getOrNull()
+        if (result != null) {
+            closeMeasureWeight()
+            refresh()
+        }
     }
 
     /**

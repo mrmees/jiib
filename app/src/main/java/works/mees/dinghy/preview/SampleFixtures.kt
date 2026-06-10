@@ -140,6 +140,17 @@ object SampleFixtures {
         fieldMode = FieldMode.FilterPicker(SpoolFilterCategory.TYPE),
     )
 
+    /**
+     * The [SpoolPickerState] with the D-08 measured-weight Field-takeover open (26-07 FieldMode exercise).
+     * The first spool is selected and [FieldMode.MeasureWeight] is active, showing the inline weight-entry
+     * numeric IME in place of the spool list — exercises the SpoolMeasureWeightField at design-time.
+     */
+    val spoolWithMeasureOpen: SpoolPickerState = SpoolPickerState(
+        spools = spoolList,
+        selected = spoolList.first(),
+        fieldMode = FieldMode.MeasureWeight(spoolList.first()),
+    )
+
     private fun spool(
         id: Int,
         name: String,

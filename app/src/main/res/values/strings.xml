@@ -202,6 +202,16 @@
     <string name="spool_row_badge_archived">Archived</string>
     <string name="spool_mfg_empty">No manufacturers found.</string>
 
+    <!-- D-08 measured-weight Field-takeover (26-07): numeric IME entry for gross spool weight correction. -->
+    <string name="spool_measure_prompt">Total weighed weight (spool + filament)</string>
+    <string name="spool_measure_placeholder">0 g</string>
+    <string name="spool_measure_tare_label">Spool weight (empty)</string>
+    <string name="spool_measure_total_label">Current total (spool + filament)</string>
+    <string name="spool_measure_hint">Spoolman subtracts the spool weight from your weighed total to get filament remaining.</string>
+    <string name="spool_measure_back">Back</string>
+    <string name="spool_measure_set">Set</string>
+    <string name="spool_measure_weight_not_set">not set</string>
+
     <!-- Plurals proof (SC-3): count-aware quantity string. -->
     <plurals name="spool_count">
         <item quantity="one">%1$d spool</item>

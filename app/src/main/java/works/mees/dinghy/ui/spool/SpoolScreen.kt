@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,8 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -109,8 +117,6 @@ fun SpoolScreen(
 ) {
     val state by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    // The spool whose measured-gross-weight page is open (null = none) — D-04.
-    var measureSpool by remember { mutableStateOf<SpoolmanSpool?>(null) }
     // Live printer-state for FloatingEStop (LastJobHolder convention — PrintState.Printing or Paused).
     val printerState by container.printerState.collectAsStateWithLifecycle(
         initialValue = works.mees.dinghy.state.PrinterState(),
@@ -155,7 +161,9 @@ fun SpoolScreen(
                 }
             },
             onRowClick = { holder.selectSpool(it) },
-            onMeasure = { selected?.let { measureSpool = it } },
+            onMeasure = { selected?.let { holder.openMeasureWeight(it) } },
+            onCloseMeasure = { holder.closeMeasureWeight() },
+            onApplyMeasure = { spool, grams -> scope.launch { holder.measureSpool(spool, grams) } },
             onHome = onHome,
             onScan = onScan,
             onLoad = {
@@ -183,20 +191,6 @@ fun SpoolScreen(
                 destructive = true,
             )
         }
-
-        // The measured-gross-weight page (D-04).
-        measureSpool?.let { target ->
-            MeasuredWeightPage(
-                spool = target,
-                client = client,
-                onCancel = { measureSpool = null },
-                onMeasured = {
-                    measureSpool = null
-                    scope.launch { holder.refresh() }
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
     }
 }
 
@@ -222,6 +216,8 @@ fun SpoolScreen(
     onClearFilter: () -> Unit = {},
     onRowClick: (SpoolmanSpool) -> Unit = {},
     onMeasure: () -> Unit = {},
+    onCloseMeasure: () -> Unit = {},
+    onApplyMeasure: (SpoolmanSpool, Double) -> Unit = { _, _ -> },
     onHome: () -> Unit = {},
     onScan: () -> Unit = {},
     onLoad: () -> Unit = {},
@@ -247,6 +243,8 @@ fun SpoolScreen(
             onClearFilter = onClearFilter,
             onRowClick = onRowClick,
             onMeasure = onMeasure,
+            onCloseMeasure = onCloseMeasure,
+            onApplyMeasure = onApplyMeasure,
             onHome = onHome,
             onScan = onScan,
             onLoad = onLoad,
@@ -280,6 +278,8 @@ private fun SpoolContent(
     onClearFilter: () -> Unit,
     onRowClick: (SpoolmanSpool) -> Unit,
     onMeasure: () -> Unit,
+    onCloseMeasure: () -> Unit,
+    onApplyMeasure: (SpoolmanSpool, Double) -> Unit,
     onHome: () -> Unit,
     onScan: () -> Unit,
     onLoad: () -> Unit,
@@ -417,6 +417,16 @@ private fun SpoolContent(
                             onMultiColor = onMultiColor,
                             onClear = onClearFilter,
                             onDone = onCloseFilter,
+                            t = t,
+                        )
+                    }
+                    is FieldMode.MeasureWeight -> {
+                        // D-08: in-place measured-weight numeric-IME Field-takeover.
+                        SpoolMeasureWeightField(
+                            spool = fieldMode.spool,
+                            uDp = grid.uDp,
+                            onCancel = onCloseMeasure,
+                            onApply = { grams -> onApplyMeasure(fieldMode.spool, grams) },
                             t = t,
                         )
                     }
@@ -657,6 +667,185 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
             modifier = Modifier.weight(1f),
             intent = Intent.Go,
             icon = DinghyIcons.Check,
+        )
+    }
+}
+
+/**
+ * D-08 measured-weight numeric-IME Field-takeover (26-07). Replaces [MeasuredWeightPage] with an
+ * in-place Field composable: the user enters the TOTAL gross weight (spool + filament) via the system
+ * numeric keyboard; [onApply] receives the validated double. [onCancel] discards without writing.
+ *
+ * Security note (T-26-07-02): the raw text is filtered to digits + one decimal point; [onApply] is only
+ * called when the parsed value is > 0. No raw IME text ever reaches the network layer.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightField(
+    spool: SpoolmanSpool,
+    uDp: Dp,
+    onCancel: () -> Unit,
+    onApply: (Double) -> Unit,
+    t: ThemeTokens,
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var weightText by remember(spool.id) { mutableStateOf("") }
+    val grams = weightText.toDoubleOrNull()
+    val valid = grams != null && grams > 0.0
+
+    // Info header: spool name + tare + current total (migrated from MeasuredWeightPage.SpoolWeightHeader).
+    val filament = spool.filament
+    val tare = spool.effectiveSpoolWeight
+    val believedTotal = if (tare != null && spool.remainingWeight != null) tare + spool.remainingWeight else null
+    val headerShape = RoundedCornerShape(t.rCard)
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Entry prompt label.
+        Text(
+            text = stringResource(R.string.spool_measure_prompt),
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+        )
+        // Numeric IME entry box (D-07: system keyboard, NOT NumpadPage).
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(t.rCtrl))
+                .border(
+                    BorderStroke(2.dp, if (valid) t.accentLine else t.outline),
+                    RoundedCornerShape(t.rCtrl),
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            BasicTextField(
+                value = weightText,
+                onValueChange = { raw ->
+                    // Filter: digits + single decimal only, max 8 chars (T-26-07-02).
+                    val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                        val dotIdx = s.indexOf('.')
+                        if (dotIdx >= 0) s.substring(0, dotIdx + 1) + s.substring(dotIdx + 1).filter { it.isDigit() }
+                        else s
+                    }.take(8)
+                    weightText = filtered
+                },
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                ),
+                cursorBrush = SolidColor(t.accent2),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    if (valid) {
+                        keyboardController?.hide()
+                        onApply(grams!!)
+                    }
+                }),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (weightText.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.spool_measure_placeholder),
+                    color = t.text3,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                )
+            }
+        }
+        // Info card: spool name + tare weight + current believed total.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(headerShape)
+                .background(t.surface)
+                .border(BorderStroke(2.dp, t.hair), headerShape)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ")
+                    .ifBlank { stringResource(R.string.spool_unnamed, spool.id) },
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(26f, t.fs).sp,
+                maxLines = 1,
+            )
+            SpoolMeasureWeightStat(stringResource(R.string.spool_measure_tare_label), tare, t)
+            SpoolMeasureWeightStat(stringResource(R.string.spool_measure_total_label), believedTotal, t)
+            Text(
+                text = stringResource(R.string.spool_measure_hint),
+                color = t.text2,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Medium,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
+        }
+    }
+    // Footer: Back (Danger — discards; C7 rule) · Set (Go — applies when valid).
+    FootButtonBar(
+        uDp = uDp,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        OutlinedControl(
+            label = stringResource(R.string.spool_measure_back),
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Danger,
+            icon = DinghyIcons.Back,
+        )
+        OutlinedControl(
+            label = stringResource(R.string.spool_measure_set),
+            onClick = {
+                if (valid) {
+                    keyboardController?.hide()
+                    onApply(grams!!)
+                }
+            },
+            modifier = Modifier.weight(1f),
+            intent = Intent.Go,
+            icon = DinghyIcons.Check,
+        )
+    }
+}
+
+/** One labelled weight stat in the measure-weight header: label and grams or "not set" when null. */
+@Composable
+private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = grams?.let { "${it.roundToInt()} g" }
+                ?: stringResource(R.string.spool_measure_weight_not_set),
+            color = if (grams == null) t.text3 else t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Bold,
+            fontSize = fsSp(26f, t.fs).sp,
+            maxLines = 1,
         )
     }
 }
