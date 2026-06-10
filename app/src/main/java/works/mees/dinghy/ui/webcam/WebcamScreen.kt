@@ -91,7 +91,6 @@ fun WebcamScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm by holder.vm.collectAsStateWithLifecycle()
-    val t = LocalTokens.current
 
     // Page-visible lifecycle (D-13): drive while composed, stop on nav-away. WR-01 cancel() = shell (10-07).
     DisposableEffect(holder) {
@@ -99,6 +98,53 @@ fun WebcamScreen(
         onDispose { holder.stop() }
     }
 
+    WebcamContent(
+        vm = vm,
+        surfaceProvider = surfaceProvider,
+        onCycleCam = holder::cycleCam,
+        onSelectCam = { holder.selectCam(camIdOf(it)) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless seam for `@Preview` (D-20 / docs/ui_design/PREVIEW_AND_TOKENS.md). Drives the chrome
+ * (cam-picker + FootButtonBar) from a pure [WebcamVm] fixture with no live [WebcamHolder] or socket.
+ * The feed surface ([FeedFocus]) is preview-safe — [Media3SurfaceHost] and [WebcamViewHost] already
+ * short-circuit to [works.mees.dinghy.preview.PreviewPlaceholderBox] under [LocalInspectionMode] (D-05).
+ *
+ * @param vm      the cam-picker state (fake fixture — no [WebcamHolder], no network).
+ * @param surfaceProvider the H.264 bridge; in preview inspection mode the host ignores it.
+ * @param onBack  callback (no-op `{}` in previews).
+ */
+@Composable
+fun WebcamScreen(
+    vm: WebcamVm<Bitmap>,
+    surfaceProvider: Media3SurfaceProvider,
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    WebcamContent(
+        vm = vm,
+        surfaceProvider = surfaceProvider,
+        onCycleCam = {},
+        onSelectCam = {},
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun WebcamContent(
+    vm: WebcamVm<Bitmap>,
+    surfaceProvider: Media3SurfaceProvider,
+    onCycleCam: () -> Unit,
+    onSelectCam: (Webcam) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         val landscapeDevice = maxWidth > maxHeight
@@ -118,7 +164,7 @@ fun WebcamScreen(
                     tokens = t,
                     surfaceProvider = surfaceProvider,
                     // Full-focus (no Field) + multiple cams → tap the feed to cycle (camera_feed note).
-                    onCycle = if (!showField && vm.multiCam) holder::cycleCam else null,
+                    onCycle = if (!showField && vm.multiCam) onCycleCam else null,
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             },
@@ -127,7 +173,7 @@ fun WebcamScreen(
                     CamPicker(
                         cams = vm.cams,
                         selected = vm.selected,
-                        onSelect = { holder.selectCam(camIdOf(it)) },
+                        onSelect = onSelectCam,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
