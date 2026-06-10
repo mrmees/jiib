@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-09T23:03:52.516Z"
+status: ready_to_plan
+last_updated: 2026-06-10T00:39:39.321Z
 last_activity: 2026-06-09
 progress:
   total_phases: 35
@@ -11,6 +11,7 @@ progress:
   total_plans: 182
   completed_plans: 181
   percent: 77
+stopped_at: Phase 23 complete (6/6) — ready to discuss Phase 24
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 23 — design-language-foundation
+**Current focus:** Phase 24 — navigation spine
 
 ## Current Position
 
-Phase: 23 (design-language-foundation) — COMPLETE (6/6 plans)
-Plan: 6 of 6 — COMPLETE
-Status: Phase 23 execution complete; ready for Phase 24 (Spine & Core Screens)
+Phase: 24
+Plan: Not started
+Status: Ready to plan
   → **Plan 23-06 (Wave 4: SpoolScreen pilot rebuild on kit) EXECUTED + COMPLETE & on-device flox OWNER-APPROVED 2026-06-09.** Closes Phase 23 (6/6). SpoolScreen rebuilt on the jiib design-kit: ScreenScaffold(gutter=null), FieldMode in-place filter (SpoolFilterPickerOverlay removed), DetailCard+FillMeter in Focus, FootButtonBar with locked Load/Unload foot buttons, FloatingEStop wired to live `container.printerState` (LastJobHolder convention), `rememberUnitGrid(minOf(maxWidth,maxHeight))` at root — U constant across rotation confirmed via on-device debug uDp readout. 8 build/UAT deviations auto-fixed: 6 build-time (dispatch import, weight() scope, smart-cast, ListBlock import, ColorSwatchGrid visibility, 5 missing icon tokens) + 2 UAT-driven (OutlinedControl `.background(t.surface)` fill convention `94c3f8e`; vendor multi-select `2b6c92a`+`42a5ec2`). Owner approved on flox in both portrait and landscape. ONE item deferred: MFG/vendor multi-select confirmed code-correct by host tests (`SpoolHolderVendorTest`, 11 green) but was NOT re-tested on-device before owner chose to defer; stale-APK hypothesis plausible but unconfirmed. Tracked at `.planning/todos/pending/2026-06-09-phase-23-mfg-multiselect-deferred.md`; resolve at Phase 29. COLOR filter single-select is intentional (Spoolman endpoint constraint). Commits: `733d868` (feat Task 1), `8bedac5` (feat Task 2), `361f034` (chore icons), `94c3f8e` (fix fill), `2b6c92a` (fix vendor filter), `42a5ec2` (test vendor). SUMMARY `23-06-SUMMARY.md`. **Phase 23: 6/6 plans complete.**
   → **Plan 22-02 (Wave 1: @Immutable PrinterState tree + ImmutableMap/ImmutableList migration) EXECUTED + COMPLETE 2026-06-09.** D-02 P0 root-cause fix — every `PrinterState` nested type annotated `@Immutable`; all `Map`/`List` fields migrated to `ImmutableMap`/`ImmutableList`; `PrinterStateReducer.kt` (the dominant construction site) updated with `.toImmutableMap()`/`.toImmutableList()` at every assignment boundary; private `toImmutable2d()` helper added for 2D-list sites. `MoonrakerSession.kt` only non-reducer call site fixed (screws `.toImmutableList()`). 7 test files updated as Rule-3 auto-fixes for cascading type changes. New `PrinterStateImmutableConversionTest.kt` (14 tests) covers all four conversion-sensitive paths (bed mesh matrices, screws-tilt results map, outputs colorData, position lists + heater merge). `Capabilities.kt` `List<String>` fields audited and documented as deferred non-hot (reconnect-only) candidates. `testReleaseUnitTest` GREEN + `assembleRelease` GREEN. Commits: `c26facc` (refactor), `c000e0a` (test fixes), `6919e4a` (new tests). SUMMARY `22-02-SUMMARY.md`. **Phase 22: 2/7 plans complete.**
   → **Plan 21-05 (Wave 5: THE load-bearing on-device UAT phase gate, D-08) EXECUTED + COMPLETE & on-device flox-recorded 2026-06-08.** Closes Phase 21 (5/5). Task 1 (release build + `21-UAT.md` scaffold) was `43706fb`; Task 2 (the blocking `checkpoint:human-verify`) was owner-run on **flox** (genuine Nexus 7 2013 / Adreno 320 / LineageOS 18.1 / API 30 / `armeabi-v7a`) on the **RELEASE** (R8-minified, debug-signed) build against the **Ender 5 Plus** (192.168.1.120, ravens-perch MediaMTX; cams `playstation_eye`=path3 + `nozzle_tracker`=path4, both `webrtc-mediamtx`). **Result = PARTIAL (core PASS, owner-deferred remainder — NO ❌ FAIL, no gap-closure spawned).** **6/8 PASS on E5+:** SC1 live H.264 render (correct aspect, no frozen frames, overlay chrome z-ordered ABOVE the SurfaceView — the spike's consumable cutout-overlay requirement satisfied) · SC2 ~1–2 s latency (**owner eyeball, recorded honestly as judgment NOT a clock-photo median**, same posture as the 21-02 spike) · SC3 hardware decode (`OMX.qcom.video.decoder.avc`, NOT `OMX.google`, on the release build) · SC4 leak-free release (TOTAL PSS 90.0→94.6 MB over 5 enter/exit cycles = flat; surface generation kept incrementing on final re-entry = fresh player + old released, WR-01 holds; no OOM / "too many codecs" / native-window errors) · SC6 D-20(a) no-crash regression · SC7 D-20(b) drawer-tile gating. **SC8 D-20(c) = PARTIAL** (single-printer selection holds on E5+; cross-printer hold deferred). **DEFERRED to Phase-22 pre-release (environmental, NOT code gaps):** the entire **Ender 3 / crowsnest column** (no crowsnest instance currently running — derive convention + nested `ravens_perch.streams` schema were statically confirmed at 21-02 Task 1; both printers run the identical `webrtc-mediamtx` H.264 stack so E5+ strongly implies E3, an implication not a measurement) · **SC8 cross-printer hold** (needs the second live printer) · **live SC5 MJPEG fallback** (every cam on both printers is H.264 — no non-H.264 cam to exercise the live fall-through; covered by Phase-10 MJPEG host tests + the `compositeMedia3Feed` FallThrough→lowerRung unit tests). **TWO on-device-only bugs found, fixed, and VERIFIED LIVE in-session** (the mock-vs-reality discipline that makes this gate load-bearing — green host units caught neither): `49f3fe2` `fix(21): resolveWebcamUrl returns null on unparseable base instead of throwing` (the long-mystified "camera protocol" webcam-screen crash — `IllegalArgumentException: Invalid URL host:""` on an empty-host cfg, fatal to the whole process; now degrades gracefully; regression test added; makes SC6 PASS) + `a254469` `fix(21): read ravens-perch nested extra_data.streams.<proto>.url for native H.264 URL` (THE root cause of "Feed unavailable" — `nativeStreamUrlFor` read FLAT keys ravens-perch never emits; it publishes a NESTED `extra_data.ravens_perch.streams.<proto>.url` absolute cfg-free schema; the flat miss fell to a cfg-dependent derive that returned null on the empty-host cfg → MJPEG → DeadEnd, no player ever built; fixed by reading the nested URL; regression test added; VERIFIED LIVE — both cams render H.264 with `OMX.qcom` HW decode; makes SC1/SC2/SC3 PASS). **NON-BLOCKING follow-ups (recorded, NOT fixed):** stale KDoc on `nativeStreamUrlFor` (`WebcamUrl.kt`) still tells the old flat-key/"DORMANT" story (doc-only reconciliation) · Codex advisory — `classifyPlaybackException` sends most non-network `PlaybackException`s to FallThrough (a transient RTSP hiccup needlessly drops to MJPEG; consider widening Transient) · Codex advisory — duplicate holder `start()`/`stop()` ownership (WebcamScreen `DisposableEffect` + AppShell `repeatOnLifecycle`) is idempotent but redundant (pick one owner). 2 deviations (both Rule-1 correctness bugs, the actual UAT discoveries). SUMMARY `21-05-SUMMARY.md`; results in `21-UAT.md` (status `partial`). CAM-17 satisfied. **Phase 21 execution COMPLETE (5/5); orchestrator runs phase verification next + owns the pre-release deferral tracking — do NOT mark the phase verified here.**
@@ -63,7 +64,7 @@ Status: Phase 23 execution complete; ready for Phase 24 (Spine & Core Screens)
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-09
+Last activity: 2026-06-10
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -71,7 +72,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 139
+- Total plans completed: 145
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -100,6 +101,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 17 | 8 | - | - |
 | 19 | 10 | - | - |
 | 20 | 4 | - | - |
+| 23 | 6 | - | - |
 
 **Recent Trend:**
 

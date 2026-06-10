@@ -1307,7 +1307,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
-| 23. Interaction Coherence & Page Overhauls | 6/6 | Complete   | 2026-06-10 |
+| 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 0/TBD | Not started | - |
 | 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
 
