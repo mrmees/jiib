@@ -79,7 +79,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 22: Performance & Architecture Refactor** - With the feature set complete (Phases 1–21), refactor for efficiency BEFORE ship (the Adreno-320 floor device flox was showing nav/interaction lag). Release-mode flox gfxinfo audit → fix the hot paths: recomposition discipline (`@Stable`/`@Immutable`, immutable collections), the 1585-line PrintStatusScreen god-component split, the AppShell 28-collection push-down, AndroidView interop D-12 guards (graph/webcam/console), SpoolGlyph brush cache. Engineering phase measured against the floor perf budget; visual behavior unchanged. (completed 2026-06-08)
 - [x] **Phase 23: Design-Language Foundation** (jiib REDESIGN — REPLAN 2026-06-09) - Rewrite `docs/ui_design/LAYOUT.md` off the Focus/Field/**Gutter** grammar (gutter removed) + author `docs/ui_design/COMPONENTS.md` (component-class catalog) + build the reusable Compose kit (ListRow, DetailCard, FillMeter, sort-vs-filter row, FootButtonBar, stepper, scrubber, unit-grid `U`, translucent-list/filled-controls, intent colors). PILOT: rebuild SpoolScreen onto the classes. Locked via `/gsd-sketch` 001–004 → `sketch-findings-dinghy-display` skill + `.planning/notes/2026-06-09-*.md`. (completed 2026-06-10)
 - [x] **Phase 24: Navigation Spine** (jiib REDESIGN) - PrintStatusScreen → the morphing waterfall ROOT (idle/printing/terminal, no gutter; root when printing, not a destination); adopt Navigation-Compose back-stack; remove the gutter app-wide; floating printing-only e-stop; create the System-page shell (rehomes Power + device settings). (completed 2026-06-10)
-- [ ] **Phase 25: Browse Screens** (jiib REDESIGN) - Migrate the list/collection screens onto the classes — Files, Macros (Bookmarked + System), Console, Webcam — reusing ListRow + sort/filter + Field-takeover picker. Conformance folds in per-screen.
+- [x] **Phase 25: Browse Screens** (jiib REDESIGN) - Migrate the list/collection screens onto the classes — Files, Macros (Bookmarked + System), Console, Webcam — reusing ListRow + sort/filter + Field-takeover picker. Conformance folds in per-screen. (completed 2026-06-10)
 - [ ] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in.
 - [ ] **Phase 27: Motion + Calibration** (jiib REDESIGN) - Migrate Move/Motion (spatial jog STAYS A GRID) + the calibration cluster (Hub, Probe-Calibrate, Bed-Mesh, Screws-Tilt, Tilt wizard flows). Conformance folds in.
 - [ ] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in.
@@ -1179,7 +1179,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 25-07-PLAN.md — On-device flox UAT gate: per-screen owner approval both orientations + D-08/D-18 re-verify + spike cleanup
+- [x] 25-07-PLAN.md — On-device flox UAT gate: per-screen owner approval both orientations + D-08/D-18 re-verify + spike cleanup
 
 **UI hint**: yes
 **Research note**: COVERED — patterns locked in the sketch-findings skill (lists-and-detail).
@@ -1338,7 +1338,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 5/5 | Complete    | 2026-06-10 |
-| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 6/7 | In Progress|  |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 7/7 | Complete   | 2026-06-10 |
 
 ## Future Milestones (post-v1)
 
