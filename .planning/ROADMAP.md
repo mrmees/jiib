@@ -1214,7 +1214,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, equality-guarded GraphView per-trace color overrides, aligned visible-trace model, dedicated Colorful 8-swatch pool, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
+- [x] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, equality-guarded GraphView per-trace color overrides, aligned visible-trace model, dedicated Colorful 8-swatch pool, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
 
 **Wave 5** *(blocked on Wave 2)*
 
