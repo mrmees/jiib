@@ -1202,7 +1202,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + stub-first RED tests + preview matrix (D-20/D-21)
+- [x] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + stub-first RED tests + preview matrix (D-20/D-21)
 
 **Wave 2** *(blocked on Wave 1)*
 
