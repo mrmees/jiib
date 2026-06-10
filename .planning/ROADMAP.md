@@ -1165,7 +1165,7 @@ Plans:
 **Wave 1**
 
 - [x] 25-01-PLAN.md — D-01/D-02/D-03 toolkit spike: throwaway Compose ListRow Files+Console + flox gfxinfo → per-surface Views-vs-Compose verdict (HARD GATE)
-- [ ] 25-02-PLAN.md — Browse icon registry: register owner-assigned glyphs (D-21 ASK gate) for tokenized-first migration
+- [x] 25-02-PLAN.md — Browse icon registry: register owner-assigned glyphs (D-21 ASK gate) for tokenized-first migration
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -1338,7 +1338,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 5/5 | Complete    | 2026-06-10 |
-| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 1/7 | In Progress|  |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 2/7 | In Progress|  |
 
 ## Future Milestones (post-v1)
 
