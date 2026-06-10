@@ -163,6 +163,11 @@ dependencies {
     implementation(libs.media3.exoplayer.rtsp)
     implementation(libs.media3.exoplayer.hls)
 
+    // --- Navigation-Compose (Phase 24, D-01 nav-spine): type-safe NavHost back-stack routing ---
+    // 2.8.9 — NOT BOM-governed; 2.8.x is minSdk-21-safe and stays on the AGP-8.7/compileSdk-36 line.
+    // No navigation-testing added — the D-04 pop-to-root test is a PURE JVM predicate (FIX-8; no TestNavController).
+    implementation(libs.androidx.navigation.compose)
+
     // --- Persistence (THEME-02/D-02): S/M/L --fs + theme base + custom token deltas ---
     implementation(libs.androidx.datastore.preferences)
 

@@ -71,6 +71,11 @@ zxingCore = "3.3.3"
 # the MERGED-manifest floor is PROVEN by verifyMinSdk after adding it (RESEARCH Pitfall 6).
 datastore = "1.1.7"
 
+# --- Navigation-Compose (Phase 24, nav-spine — D-01/minSdk 21) ---
+# 2.8.x line: minSdk 21 (safe on our 23 floor), NOT BOM-governed, pinned to 2.8 per the
+# AGP-8.7/compileSdk-36 conservative stance. NOT 2.9.x (would pull compileSdk 37 / AGP 9).
+navigation = "2.8.9"
+
 # --- Media3 / ExoPlayer H.264 transport (Phase 21, CAM-11/13/14/16 — D-01/D-09) ---
 # Pin 1.10.1 = latest stable (2026-05-12); any >= 1.10.0 carries the load-bearing fix. The RTSP
 # H.264 access-unit-spanning-multiple-RTP-packets corruption (the printers' 720p / 1s-GOP keyframes,
@@ -138,6 +143,9 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCo
 
 # --- Persistence (THEME-02/D-02) ---
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Navigation-Compose library entry (Phase 24) ---
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 # --- Media3 / ExoPlayer H.264 transport (Phase 21) ---
 # Three first-party AndroidX media3 artifacts (all version.ref = media3). Deliberately NOT including
