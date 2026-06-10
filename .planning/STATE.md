@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-10T04:45:00.000Z"
+last_updated: "2026-06-10T04:04:50.919Z"
 last_activity: 2026-06-10
 progress:
   total_phases: 35
@@ -25,8 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 24
-Plan: 03
+Plan: 04
 Status: In progress
+  → **Plan 24-04 (Morphing Waterfall Root: idle action list + foot bar + Crossfade morph + FIX-1/FIX-5) EXECUTED + COMPLETE 2026-06-10.** PrintStatusStandbyField rebuilt on ListBlock/ListRow + FootButtonBar; buildIdleActions wired with outputsPresent+webcamTileEnabled capability gates; FIX-5 resolved (LauncherWebcam icon + cd_launcher_webcam string swapped for Wave-0 placeholder); FIX-1 confirmed (showEstopGuard + in-screen ConfirmGuard removed; AppShell overlay owns FloatingEStop on every destination); Crossfade(tween(150), "PrintStatusMorph") wraps the when(mode) dispatch (D-13); gutter=null for Standby (SC-3). Commit: `ec0caf7`. SUMMARY `24-04-SUMMARY.md`. SC-1/SC-3/SC-4 closed.
   → **Plan 24-03 (NavHost shell: replace when(dest) with NavHost, hoist FloatingEStop, slim ShellNavState) EXECUTED + COMPLETE 2026-06-10.** NavHost with 18 `composable<NavDest.*>` replaces ~1000-line `when(dest)` hub-and-spoke; all session holders hoisted above NavHost; 4 DisposableEffect leak-cancel blocks preserved; FloatingEStop+ConfirmGuard promoted to app overlay (FIX-1); shouldPopToRoot D-04 predicate wired in LaunchedEffect(printState); applyEntryReset called in LaunchedEffect(Unit) inside Macros/Calibration/FineTune lambdas; ShellNavState slimmed (dest/backStack/navigateTo/goBack removed; applyEntryReset promoted to internal); FIX-3 accepted regression (post-Splash lands on WaterfallHome). Commit: `0c62f25`. SUMMARY `24-03-SUMMARY.md`. SC-2/SC-4 closed.
   → **Plan 24-02 (Idle glyph registry: LauncherWebcam / FootPreheat / FootSystem) EXECUTED + COMPLETE 2026-06-10.** Three owner-confirmed DinghyIcons tokens registered: `LauncherWebcam` (videocam), `FootPreheat` (chair_fireplace), `FootSystem` (bottom_panel_open); all added to `DinghyIcons.all` drift-guard list; `strings.xml` updated with `cd_launcher_webcam`/`home_foot_preheat`/`home_foot_system`; `verify_ligatures.py` NEEDED extended (76 needed, missing: []); `DinghyIconsTest` GREEN. Commit: `aea4618`. SUMMARY `24-02-SUMMARY.md`.
   → **Plan 24-01 (NavDest route model + Navigation-Compose foundation) EXECUTED + COMPLETE 2026-06-10.** Navigation-Compose 2.8.9 added; `@Serializable sealed interface NavDest` (17 members) replaces `Dest` enum; `NavDest.WaterfallHome` replaces `Dest.PrintStatus` (D-01); `FOOT_GUN_DESTS`/`shouldPopToRoot` pure predicate (D-04); `HomeAction`/`buildIdleActions` idle-list model with D-06 order and D-08 capability gates; mechanical Dest→NavDest rename across all 13 call-site files; `TopRoute.Shell` changed from `data class Shell(val dest: Dest)` to `data object Shell`; 29 host unit tests GREEN; all 3 source sets compile GREEN. Commits: `be3f15b` (chore: nav-compose dep), `f411759` (feat: NavDest+HomeAction+tests), `aa17941` (refactor: mechanical rename). SUMMARY `24-01-SUMMARY.md`.
@@ -263,6 +264,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 23 P04 | 40 | 3 tasks | 5 files |
 | Phase 23-design-language-foundation P05 | 9 | 3 tasks | 10 files |
 | Phase 24 P03 | ~45min (context-continuation) | 2 tasks | 3 files |
+| Phase 24 P04 | ~45 minutes | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -452,6 +454,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 18.3-02: swatch-count branch factored into a pure sealed BandRender + bandRenderFor() (0->Empty/1->Solid/2+->Gradient first-two only, D-09) so it is host-tested without a Compose harness
 - [Phase 17/17-08]: ShellNavState.navigateTo() runs the per-dest ENTRY-RESET (extracted to applyEntryReset(target)) on a same-dest re-selection BEFORE the no-push early-return — re-entering Fine-Tune/Calibration/Macros from its own drawer tile always lands on its entry surface (Hub/hub/launcher), never a stale sub-page (UAT Check 8 / REVIEW #6); same-dest re-selection still pushes NO backStack entry. DEFERRED (test-only, not a blocker): FineTuneNavTest swipeUp() spreads ~800px over ~12 events so no per-event dragAmount clears SWIPE_UP_THRESHOLD_PX=80f → drawer never opens in-test; pre-existing harness defect, manual flox eyeball was the authoritative on-device gate (owner-approved).
 - [Phase 24/24-03]: NavHost migration — AppShell's ~1000-line when(dest) hub-and-spoke replaced by NavHost with 18 composable<NavDest.*> entries. Key: isRoute<T>() private extension avoids nav-compose 2.8.9's instance-method hasRoute(String) incompatibility with type args. FIX-3 (owner-locked 2026-06-09): post-Splash lands on WaterfallHome + sub-nav resets; NavHost decomposes during RootController Splash gate so the drill-down back-stack is not preserved across recovery — deliberate, not a bug. applyEntryReset promoted to internal for AppShell composable lambda access. FloatingEStop + ConfirmGuard hoisted to app overlay level (FIX-1, D-14).
+- [Phase 24/24-04]: FIX-5: buildIdleActions Webcam row swapped from Wave-0 PLACEHOLDER (LauncherDrawer+cd_launcher_drawer) to owner-confirmed DinghyIcons.LauncherWebcam+cd_launcher_webcam (registered by 24-02). FIX-1 confirmed: showEstopGuard state + in-screen ConfirmGuard removed from PrintStatusScreen; AppShell overlay (24-03) owns FloatingEStop+guard on every destination while printing (D-14). SC-3: Standby ScreenScaffold gutter=null; Preheat+System foot actions live in idle FootButtonBar at the bottom of PrintStatusStandbyField's ListBlock. Crossfade(tween(150), "PrintStatusMorph") wraps when(mode) in PrintStatusContent — one animation scope for the whole root surface (D-13). LauncherGrid retained as dead code; ShortcutRow (printing path) calls LauncherTile directly. outputsPresent+webcamTileEnabled collected from container in the live overload; stateless preview overload defaults both false.
 - [Phase 17]: Phase 17 UAT RESOLVED 8/8 (2026-06-07): initial on-device run 6 PASS/2 FAIL; both gaps fixed (Check 6 busy-lock wedge -> 17-07; Check 8 same-dest re-entry -> 17-08) and on-device re-verified on flox, owner-approved. 17-UAT.md status: resolved.
 - [Phase 17]: Plan 17-06 CLOSED (2026-06-07): SUMMARY written from git evidence (2c4cbc4 nav wiring, 8b06c7f UAT scaffold, 73296fd landscape label-drop fix). Phase-17 header/verification remains orchestrator-owned (NOT marked complete here).
 - [Phase ?]: 19-02: output parser tests anchor to UNMODIFIED live Moonraker captures (E5P rich + E3P sparse), not idealized mocks; case-recovery (settings lowercased vs objects.list case-preserved) is real-data-proven
@@ -521,6 +524,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-10T04:45:00.000Z
-Stopped at: Completed Phase 24-03-PLAN.md (NavHost shell migration)
+Last session: 2026-06-10T05:30:00.000Z
+Stopped at: Completed Phase 24-04-PLAN.md (Morphing waterfall root)
 Resume file: None
