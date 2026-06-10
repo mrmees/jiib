@@ -96,6 +96,11 @@ NEEDED = {
     # home=Home foot button (navigate to PrintStatus), qr_code=Scan foot button.
     # All 5 verified resolvable in the v2.944 bundled ttf (23-06 Task-1 gate).
     "match_case", "calendar_clock", "experiment", "home", "qr_code",
+    # Phase-24 plan 02 (morphing-root idle glyph registry) — 3 owner-confirmed glyphs.
+    # videocam=idle Webcam row (LauncherWebcam), chair_fireplace=idle Preheat foot button (FootPreheat),
+    # bottom_panel_open=idle System foot button (FootSystem, D-09 neutral — NOT Power/red).
+    # All 3 owner-confirmed 2026-06-10 and verified resolvable in the v2.944 bundled ttf (24-02 Task-2 gate).
+    "videocam", "chair_fireplace", "bottom_panel_open",
 }
 
 

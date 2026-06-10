@@ -107,6 +107,9 @@
     <string name="cd_launcher_macros">Macros</string>
     <string name="cd_launcher_console">Console</string>
     <string name="cd_launcher_drawer">More</string>
+    <string name="cd_launcher_webcam">Webcam</string>
+    <string name="home_foot_preheat">Preheat</string>
+    <string name="home_foot_system">System</string>
     <string name="cd_tune">Tune</string>
 
     <!-- ========================== finetune ============================ -->

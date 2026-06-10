@@ -50,6 +50,8 @@ object DinghyIcons {
     val LauncherMove = DinghyIcon(IconRef.Ligature("open_with"), alternate = "launcher_move")
     val LauncherExtrude = DinghyIcon(IconRef.Ligature("output_circle"), alternate = "launcher_extrude")
     val LauncherCalibration = DinghyIcon(IconRef.Ligature("tune"), alternate = "launcher_calibration")
+    // 24-02 (Wave 0): idle-list Webcam row glyph — owner-confirmed "videocam" (DO NOT change without owner consent).
+    val LauncherWebcam = DinghyIcon(IconRef.Ligature("videocam"), alternate = "launcher_webcam")
     // 18.3 D-01: the former `database` ligature placeholder is retired for a genuinely-custom side-view
     // filament-spool VectorDrawable (`R.drawable.spool`) — Material Symbols has no spool glyph, so this is
     // a sanctioned hand-authored printer-domain custom (icon-source policy above). The drawable draws the
@@ -59,6 +61,12 @@ object DinghyIcons {
     val LauncherMacros = DinghyIcon(IconRef.Ligature("bolt"), alternate = "launcher_macros")
     val LauncherConsole = DinghyIcon(IconRef.Ligature("terminal"), alternate = "launcher_console")
     val LauncherDrawer = DinghyIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")
+
+    // --- Morphing-root idle foot-bar glyphs (24-02, OWNER-LOCKED — never invent/substitute, icon law).
+    // D-09: the third foot button opens the App Drawer (interim System hub); glyph reads NEUTRAL (not Power/red).
+    // Both ligatures owner-confirmed 2026-06-10 and verified present in the bundled v2.944 Material Symbols ttf.
+    val FootPreheat = DinghyIcon(IconRef.Ligature("chair_fireplace"), alternate = "home_foot_preheat")
+    val FootSystem = DinghyIcon(IconRef.Ligature("bottom_panel_open"), alternate = "home_foot_system")
 
     // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
     val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
@@ -165,7 +173,8 @@ object DinghyIcons {
         Progress, PauseCircle,
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
-        LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
+        LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
+        FootPreheat, FootSystem,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
