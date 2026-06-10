@@ -1171,7 +1171,7 @@ Plans:
 
 - [x] 25-03-PLAN.md — FilesScreen rebuild (image-backed DetailCard, flat age-sorted list, FootButtonBar, delete-scoping preserved) + @Preview matrix
 - [x] 25-04-PLAN.md — ConsoleScreen rebuild (field-only live log, render-time filter toggles) + @Preview matrix
-- [ ] 25-05-PLAN.md — Macros merge to one FieldMode screen (ListRow launcher + Manage mode + param Field-takeover; sanitizer preserved) + @Preview matrix
+- [x] 25-05-PLAN.md — Macros merge to one FieldMode screen (ListRow launcher + Manage mode + param Field-takeover; sanitizer preserved) + @Preview matrix
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -1338,7 +1338,7 @@ classes — so redesigns land on a finished design system, not get reworked. v1 
 | 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
 | 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
 | 24. Touch-Target / Scaling / Rotation Conformance Sweep | 5/5 | Complete    | 2026-06-10 |
-| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 4/7 | In Progress|  |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 5/7 | In Progress|  |
 
 ## Future Milestones (post-v1)
 
