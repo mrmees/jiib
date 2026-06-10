@@ -1222,7 +1222,7 @@ Plans:
 
 **Wave 6** *(blocked on Waves 1+5 — AppShell sequenced after 26-05)*
 
-- [ ] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, activeSpoolDetail wiring, filament-preset extruder-only page (D-15/D-16/D-17)
+- [x] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, activeSpoolDetail wiring, filament-preset extruder-only page (D-15/D-16/D-17)
 
 **Wave 7** *(blocked on Wave 6)*
 
