@@ -79,4 +79,37 @@ class MacroInvocationTest {
             MacroInvocation.build("START_PRINT", mapOf("NAME" to "PLA\nM104 S300"))
         }
     }
+
+    // ---- buildTyped coverage (V5 / D-12 / T-25-05-01) ------------------------------------------
+    // The ParamEntry Field-takeover in BookmarkedMacrosScreen uses buildTyped, not build. Without
+    // these tests the sanitizer is exercised on the old map overload but UNCOVERED on the typed path
+    // that the redesigned screen dispatches through. A bypass of buildTyped (e.g. routing params
+    // directly to scriptParams) would leave these passing green — the sanitizer MUST stay in the call chain.
+
+    @Test
+    fun buildTyped_forbiddenCharInStringParam_rejected() {
+        // Newline after a semicolon is a classic command-smuggling attempt; buildTyped must reject it
+        // via the same rejectForbidden gate used by build — never produce a partial line.
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped(
+                "START_PRINT",
+                listOf(Triple("NAME", "x\n; M112", false)),
+            )
+        }
+    }
+
+    @Test
+    fun buildTyped_cleanMixedParams_producesCorrectGcodeLine() {
+        // A clean string param is quoted; a numeric param is emitted bare (no quotes). The sanitizer
+        // must NOT reject a clean value — if it does, this assertion never executes and the test fails.
+        // Expected: LOAD_FILAMENT MATERIAL="PLA" TEMP=210
+        val line = MacroInvocation.buildTyped(
+            "LOAD_FILAMENT",
+            listOf(
+                Triple("MATERIAL", "PLA", false),   // string → KEY="VALUE"
+                Triple("TEMP", "210", true),          // numeric → KEY=VALUE (unquoted)
+            ),
+        )
+        assertEquals("""LOAD_FILAMENT MATERIAL="PLA" TEMP=210""", line)
+    }
 }

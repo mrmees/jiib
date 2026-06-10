@@ -347,10 +347,23 @@
     <string name="console_empty_title">Console is quiet</string>
     <string name="console_empty_body">Printer responses appear here. Run a command or macro and the reply shows up live.</string>
     <string name="console_backfill_failed">History unavailable. Check the printer connection — live responses will still appear.</string>
-    <!-- Macros screen actions -->
+    <!-- Macros screen actions (cd_* registered in 25-02; screen labels added here in 25-05) -->
     <string name="cd_macros_leader">Macros</string>
     <string name="cd_macros_manage">Manage macros</string>
     <string name="cd_macros_execute">Execute macro</string>
     <string name="cd_macros_unbookmarked">Add to bookmarks</string>
+    <!-- Macros screen labels (25-05) — Launcher, ParamEntry, ManageMode -->
+    <string name="macros_empty_title">No macros pinned</string>
+    <string name="macros_empty_body">Pick the macros you use most in Manage, and they\'ll launch from here.</string>
+    <string name="macros_unavailable">This printer reports no gcode macros. Add gcode_macro entries in your config to use this screen.</string>
+    <string name="macros_loading_params">Loading parameters…</string>
+    <string name="macros_no_params">No parameters. Execute runs this macro as-is.</string>
+    <string name="macros_running">Running %s… waiting for the printer.</string>
+    <string name="macros_rejected" formatted="false">%s was rejected: %s</string>
+    <string name="macros_helper_hint">Underscore-prefixed helper macros are hidden. Show hidden to reveal them.</string>
+    <string name="macros_foot_back">Back</string>
+    <string name="macros_foot_manage">Manage</string>
+    <string name="macros_foot_execute">Execute</string>
+    <string name="macros_foot_show_hidden">Show hidden</string>
 
 </resources>
