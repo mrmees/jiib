@@ -69,12 +69,8 @@ import works.mees.dinghy.ui.console.ConsoleHolder
 import works.mees.dinghy.ui.console.ConsoleScreen
 import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
-import works.mees.dinghy.ui.finetune.ExtrusionScreen
-import works.mees.dinghy.ui.finetune.FineTuneGroup
 import works.mees.dinghy.ui.finetune.FineTuneHolder
-import works.mees.dinghy.ui.finetune.FineTuneHubScreen
-import works.mees.dinghy.ui.finetune.FwRetractionScreen
-import works.mees.dinghy.ui.finetune.MotionScreen
+import works.mees.dinghy.ui.finetune.FineTuneScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
@@ -171,9 +167,9 @@ fun AppShell(
 
     // In-screen sub-nav aliases (D-01 holdouts — NOT promoted to NavHost routes).
     // macroShowSystem + macroPopupFor removed: Macros merged to a single FieldMode screen (25-05).
-    // ShellNavState still owns both fields (applyEntryReset + ShellNavState reset-on-Splash) — untouched.
+    // fineTuneGroup removed: Fine-Tune is now a flat single-screen (26-02), no sub-nav.
+    // ShellNavState still owns calibrationRoutine (applyEntryReset + ShellNavState reset-on-Splash).
     val calibrationRoutine = nav.calibrationRoutine
-    val fineTuneGroup = nav.fineTuneGroup
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
@@ -525,12 +521,6 @@ fun AppShell(
     ) {
         selectedOutputKey = null
     }
-    // Fine-Tune sub-state intercepts Back — an open group page returns to the Hub.
-    BackHandler(
-        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.FineTune>() == true && fineTuneGroup != null
-    ) {
-        nav.fineTuneGroup = null
-    }
     // The open QR scan overlay intercepts Back: close the scan (releasing the camera via
     // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
     BackHandler(enabled = !drawerOpen && nav.scanActive) {
@@ -723,36 +713,13 @@ fun AppShell(
                 }
             }
             composable<NavDest.FineTune> {
-                // Entry reset: entering Fine-Tune always opens the Hub (FIX-3 / REVIEW #6).
-                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.FineTune) }
-
-                // The Fine-Tune surface: the Hub (two group entries) OR the selected group page. The Hub's
-                // onNavigate sets the LOCAL sub-dest; each page's neutral Back (and system Back) pops back
-                // to the Hub by clearing [fineTuneGroup] — a lean local back-stack within NavDest.FineTune
-                // (NOT four top-level Dests, D-01). All four screens share the ONE [fineTuneHolder] so the
-                // D-15 whole-group state-flip busy lock is shared.
-                when (val group = fineTuneGroup) {
-                    null -> FineTuneHubScreen(
-                        onNavigate = { nav.fineTuneGroup = it },
-                        onBack = { navController.popBackStack() },
-                    )
-                    FineTuneGroup.MOTION -> MotionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = null },
-                    )
-                    FineTuneGroup.EXTRUSION -> ExtrusionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = null },
-                        onFwRetraction = { nav.fineTuneGroup = FineTuneGroup.FW_RETRACTION },
-                    )
-                    FineTuneGroup.FW_RETRACTION -> FwRetractionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = FineTuneGroup.EXTRUSION },
-                    )
-                }
+                // 26-02: flat single-screen Fine-Tune (replaces Hub + 3 group sub-pages).
+                // No entry reset needed — there is no sub-nav state left to clear.
+                FineTuneScreen(
+                    holder = fineTuneHolder,
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable<NavDest.Webcam> {
                 WebcamScreen(

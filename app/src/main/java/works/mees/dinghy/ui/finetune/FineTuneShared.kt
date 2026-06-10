@@ -1,11 +1,5 @@
 package works.mees.dinghy.ui.finetune
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import works.mees.dinghy.command.PrinterCommands
-import works.mees.dinghy.command.VelocityLimitArgs
-import works.mees.dinghy.designsystem.icons.DinghyIcon
-
 /** Unreported value placeholder (D-20: "—", never a fabricated 0). */
 internal const val DASH = "—"
 
@@ -36,58 +30,3 @@ internal fun fmtValue(v: Double?, decimals: Int): String {
     return rounded
 }
 
-/**
- * Map a [VelocityLimitArgs] field const to the matching [PrinterCommands] clamp (17-07) so the
- * markPending target equals the value the wire will actually send. MIN_CRUISE_RATIO passes through
- * unchanged (this tile is never used for it — Min-cruise has its own percent-display path), per
- * completeness.
- */
-private fun clampVelocityLimitTarget(field: String, value: Double): Double = when (field) {
-    VelocityLimitArgs.VELOCITY -> PrinterCommands.clampVelocity(value)
-    VelocityLimitArgs.ACCEL -> PrinterCommands.clampAccel(value)
-    VelocityLimitArgs.SCV -> PrinterCommands.clampScv(value)
-    else -> value
-}
-
-/**
- * A motion-limit value tile bound to ONE [VelocityLimitArgs] field (Max velocity / Max accel / SCV —
- * Min-cruise has its own percent-display path). Computes the target from the live [value] + [step],
- * marks the pendingStateFlip via [markPending] (D-15), then dispatches via [dispatch]. [baseline]-driven
- * reset is wired ONLY when [baseline] is non-null (REVIEW #3 — else no long-press affordance).
- *
- * Takes the [markPending]/[dispatch] side-effects directly (not the holder) so it renders identically in
- * a stateless preview, where both are no-ops (18-06 state-hoist).
- */
-@Composable
-internal fun VelocityLimitTile(
-    icon: DinghyIcon,
-    name: String,
-    value: Double?,
-    unit: String,
-    step: Double,
-    field: String,
-    tuner: FineTuneTuner,
-    baseline: Double?,
-    markPending: (FineTuneTuner, Double) -> Unit,
-    dispatch: (VelocityLimitArgs) -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    fun nudge(target: Double) {
-        // 17-07: feed markPending the SAME clamp the wire builder applies, so an at-cap '+' is a true
-        // no-op (skip-arm fires) instead of arming an unreachable flip. The dispatch arg is unchanged
-        // (the setVelocityLimit builder re-clamps identically).
-        markPending(tuner, clampVelocityLimitTarget(field, target))
-        dispatch(VelocityLimitArgs(field, target))
-    }
-    FineTuneTile(
-        icon = icon,
-        name = name,
-        valueText = if (value == null) DASH else fmtValue(value, decimals = 2) + unit,
-        onDecrement = { value?.let { nudge((it - step).coerceAtLeast(0.0)) } },
-        onIncrement = { value?.let { nudge(it + step) } },
-        onReset = baseline?.let { base -> { nudge(base) } },
-        enabled = enabled,
-        modifier = modifier,
-    )
-}

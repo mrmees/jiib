@@ -70,29 +70,20 @@ class ShellNavStateTest {
         assertNull("Calibration entry should reset calibrationRoutine to null", nav.calibrationRoutine)
     }
 
-    /** applyEntryReset on FineTune clears fineTuneGroup. */
-    @Test
-    fun applyEntryReset_finetune_clears_sub_nav() {
-        val nav = ShellNavState()
-        nav.fineTuneGroup = works.mees.dinghy.ui.finetune.FineTuneGroup.MOTION
-        nav.applyEntryReset(NavDest.FineTune)
-        assertNull("FineTune entry should reset fineTuneGroup to null", nav.fineTuneGroup)
-    }
-
-    /** applyEntryReset on a dest that has no sub-nav is a no-op (does not crash). */
+    /**
+     * applyEntryReset on a dest that has no sub-nav is a no-op (does not crash).
+     * Note: fineTuneGroup was removed in 26-02 (Fine-Tune is now a flat single-screen, no sub-nav).
+     */
     @Test
     fun applyEntryReset_other_dest_noop() {
         val nav = ShellNavState()
         nav.macroShowSystem = true
         nav.calibrationRoutine = works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH
-        nav.fineTuneGroup = works.mees.dinghy.ui.finetune.FineTuneGroup.MOTION
         // Move has no applyEntryReset side-effects — other sub-nav unchanged.
         nav.applyEntryReset(NavDest.Move)
         assertTrue("Move entry must not clear macroShowSystem", nav.macroShowSystem)
         assertEquals("Move entry must not clear calibrationRoutine",
             works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH, nav.calibrationRoutine)
-        assertEquals("Move entry must not clear fineTuneGroup",
-            works.mees.dinghy.ui.finetune.FineTuneGroup.MOTION, nav.fineTuneGroup)
     }
 
     /** resetTransient clears scanActive, macroPopupFor, and spoolPrefilter but not calibrationRoutine. */
@@ -103,7 +94,6 @@ class ShellNavStateTest {
         nav.spoolPrefilter = works.mees.dinghy.ui.spool.SpoolPrefilterSeed(listOf("PLA"), emptyList())
         nav.calibrationRoutine = works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH
         nav.macroShowSystem = true
-        nav.fineTuneGroup = works.mees.dinghy.ui.finetune.FineTuneGroup.MOTION
 
         nav.resetTransient()
 
@@ -114,8 +104,6 @@ class ShellNavStateTest {
         assertEquals("resetTransient must NOT clear calibrationRoutine",
             works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH, nav.calibrationRoutine)
         assertTrue("resetTransient must NOT clear macroShowSystem", nav.macroShowSystem)
-        assertEquals("resetTransient must NOT clear fineTuneGroup",
-            works.mees.dinghy.ui.finetune.FineTuneGroup.MOTION, nav.fineTuneGroup)
     }
 
     /** startDest seed is stored and readable by AppShell. */

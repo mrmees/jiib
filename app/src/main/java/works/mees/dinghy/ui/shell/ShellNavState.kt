@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import works.mees.dinghy.calibration.CalibrationRoutine
-import works.mees.dinghy.ui.finetune.FineTuneGroup
 import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
@@ -17,16 +16,16 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
  * ## Phase 24 migration (plan 24-03)
  * The top-level destination (`dest`) and the drill-down back-stack (`backStack` / `navigateTo` /
  * `goBack`) have been REMOVED — Navigation-Compose's [NavHost] now owns the drill-down back-stack.
- * This class retains only the **in-screen sub-nav** state for the four D-01 holdouts
- * (Calibration routine, Fine-Tune group, Macros bookmarked-vs-system, Outputs detail) and the
+ * This class retains only the **in-screen sub-nav** state for the D-01 holdouts
+ * (Calibration routine, Macros bookmarked-vs-system, Outputs detail) and the
  * transient overlay flags (scan, spool prefilter).
  *
  * ## Accepted regression (FIX-3 — owner-locked 2026-06-09)
  * After a recovery Splash the user LANDS ON [NavDest.WaterfallHome] (the morphing root) and each
  * in-screen sub-nav RESETS to its hub. The NavHost is composition-local inside [AppShell] and
  * decomposes during the Splash (gate-above in [RootController]), so the drill-down back-stack is
- * NOT preserved across the recovery. [applyEntryReset] clears the Calibration routine / Fine-Tune
- * group / Macros sub-nav on the next entry, so in-screen sub-nav also resets. This is the
+ * NOT preserved across the recovery. [applyEntryReset] clears the Calibration routine / Macros
+ * sub-nav on the next entry, so in-screen sub-nav also resets. This is the
  * deliberate, simpler path the owner accepted (replacing the old dest-preservation gate). It is
  * NOT a bug — executors and verifiers must EXPECT both the land-on-root AND the sub-nav reset.
  *
@@ -55,15 +54,6 @@ class ShellNavState(val startDest: NavDest? = null) {
 
     /** Calibration sub-nav: null = the hub, non-null = that routine's page. Preserved across a Splash blip. */
     var calibrationRoutine by mutableStateOf<CalibrationRoutine?>(null)
-
-    /**
-     * Fine-Tune sub-nav (17-06, mirrors [calibrationRoutine]): null = the Hub, non-null = that group's
-     * page (Motion / Extrusion / FW-Retraction). RESET to null on every ENTRY into [NavDest.FineTune]
-     * (REVIEW #6 — Fine-Tune always opens the Hub, never a stale group page from a prior visit).
-     * Applied via [applyEntryReset] called from a [LaunchedEffect] inside the FineTune composable.
-     * Preserved across a Splash blip like [calibrationRoutine].
-     */
-    var fineTuneGroup by mutableStateOf<FineTuneGroup?>(null)
 
     /**
      * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open. TRANSIENT
@@ -99,18 +89,12 @@ class ShellNavState(val startDest: NavDest? = null) {
         if (target == NavDest.Calibration) {
             calibrationRoutine = null
         }
-        // Entering Fine-Tune always opens the Hub — reset the group sub-nav so a stale group page from a
-        // prior visit never shows (REVIEW #6). Fires for BOTH the Print-Status Tune action AND the drawer
-        // tile, since both route through navController.navigate(NavDest.FineTune).
-        if (target == NavDest.FineTune) {
-            fineTuneGroup = null
-        }
     }
 
     /**
      * Clear the TRANSIENT sub-nav state on return from a recovery Splash. Only [macroPopupFor],
      * [scanActive], and [spoolPrefilter] are transient (half-state overlays must not survive a reconnect);
-     * [calibrationRoutine], [macroShowSystem], and [fineTuneGroup] are deliberately PRESERVED (G-A1 —
+     * [calibrationRoutine] and [macroShowSystem] are deliberately PRESERVED (G-A1 —
      * the user returns to their sub-nav state, not the hub, after recovery).
      */
     fun resetTransient() {
