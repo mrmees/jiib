@@ -1206,7 +1206,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups (13 tuners), FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
+- [x] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups (13 tuners), FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
 
 **Wave 3** *(blocked on Wave 2)*
 
