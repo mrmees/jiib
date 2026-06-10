@@ -7,141 +7,143 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.LayoutDirection
-import works.mees.dinghy.ui.finetune.ExtrusionScreen
-import works.mees.dinghy.ui.finetune.FineTuneHubScreen
+import works.mees.dinghy.ui.finetune.FineTuneScreen
 import works.mees.dinghy.ui.finetune.FineTuneVm
-import works.mees.dinghy.ui.finetune.MotionScreen
 
 /**
- * Exemplar #2 previews (18-06 / D-01, D-02) — applies the [PrintStatusPreviews] ANCHOR template to the
- * FineTune surfaces. FineTune is the **present/absent capability-gating + busy-lock** archetype that
- * directly de-risks Phase 19 (Output Controls, also capability-gated).
+ * Fine-Tune flat-list screen preview matrix (26-02 / D-23 preview-first convention).
  *
- * The interesting axis here is the [FineTuneVm] CAPABILITY state — present / absent (FW-retraction →
- * HIDDEN, not disabled) / busy (whole-group lock) — so the variant matrix is driven by a
- * [PreviewParameterProvider] ([FineTuneVariantProvider]) while THEME stays a wrapper concern
- * ([PreviewBox] seeds). A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette
- * MODE; the themes MUST be explicit wrappers (per [PreviewBox]/[Nexus7Previews] KDoc).
+ * The redesigned screen is a SINGLE [FineTuneScreen] composable (replaces Hub + 3 group screens).
+ * The interesting axes are:
+ *  - [FineTuneVm] capability state: all-present / no-FW-retraction (hides FW-ret rows, D-08) / busy
+ *  - Theme: 6 combos × dark/light × palette mode
+ *  - fs=L overflow check
+ *  - Landscape 5U phone budget
  *
- * ## Matrix shape (RESEARCH Q8 — MINIMIZE proliferation)
- * Do NOT render every variant × every theme × fs. Instead:
- *  - [ExtrusionVariantMatrix] — the FULL present/absent/busy matrix on ONE representative theme
- *    (Colorful/dark), rendered on **Extrusion** (the screen that owns the `hasFwRetraction` HIDDEN gate
- *    and the most tiles), variant = the `@PreviewParameter`.
- *  - `FineTuneTheme*` siblings — the FULL 6-theme matrix on ONE representative state (the Hub, the always-
- *    present entry surface), six [PreviewBox] seed wrappers.
- *  - [MotionAllPresent] — the Motion group's all-present tiles on one theme (the per-tile sibling surface).
- *  - [FineTuneFsLargeOverflow] — ONE `fs = L` overflow shot ([fsLargeSeed]). `@Preview(fontScale=)` is a
- *    verified NO-OP here (OS fontScale pinned to 1f); fs is injected via the seed's `fs`, never the
- *    annotation — the #1 thing a copy-pasting phase gets wrong.
- *  - [FineTuneRtlSpotCheck] — ONE RTL spot-check proving `start`/`end`-relative modifiers mirror.
- *
- * ## No live Moonraker (SC-1)
- * Every preview drives the STATELESS screen overloads (`MotionScreen(vm=…)`, `ExtrusionScreen(vm=…)`, and
- * the inherently-stateless `FineTuneHubScreen`) from pure [SampleFixtures] FineTune fixtures — no
- * [works.mees.dinghy.di.AppContainer], no dispatcher, no socket. The build-blind FW-Retraction SCREEN is
- * deliberately NOT previewed (Phase-17 state); the absent-capability proof is the FW-Retraction ENTRY tile
- * HIDING under `fineTuneNoFwRetraction`.
+ * Matrix shape (MINIMIZE proliferation — PREVIEW_AND_TOKENS.md):
+ *  - [FineTuneVariantMatrix] — full present/absent/busy × Colorful/dark (3 params, 1 theme)
+ *  - [FineTuneTheme*] — 6-theme matrix × single state (all-present)
+ *  - [FineTuneFsLargeOverflow] — fs=L overflow check on all-present
+ *  - [FineTuneLandscape] — 5U phone-landscape check (800×480dp)
+ *  - [FineTuneIsPrinting] — printing=true to confirm FloatingEStop renders
+ *  - [FineTuneRtlSpotCheck] — RTL layout direction check
+ *  - [FineTunePseudolocaleSpotCheck] — pseudolocale en-XA
  */
 class FineTuneVariantProvider : PreviewParameterProvider<FineTuneVm> {
     override val values: Sequence<FineTuneVm> = sequenceOf(
-        SampleFixtures.fineTuneAllPresent,      // every tunable present (full panel)
-        SampleFixtures.fineTuneNoFwRetraction,  // FW-retraction ABSENT → entry tile HIDDEN (not disabled)
-        SampleFixtures.fineTuneBusy,            // groupBusy=true → whole-group lock (every tile dimmed)
+        SampleFixtures.fineTuneAllPresent,      // every tunable present (full list)
+        SampleFixtures.fineTuneNoFwRetraction,  // FW-retraction ABSENT → rows HIDDEN (D-08 proof)
+        SampleFixtures.fineTuneBusy,            // groupBusy=true → AdjusterPanel disabled
     )
 }
 
 /**
- * The full present/absent/busy variant matrix on ONE representative theme (Colorful/dark), rendered on the
- * Extrusion group — the screen that owns the `hasFwRetraction` HIDDEN gate. The absent variant proves the
- * FW-Retraction entry tile is HIDDEN (not disabled); the busy variant proves the whole-group lock.
+ * Full present/absent/busy variant matrix on ONE representative theme (Colorful/dark).
+ * Proves: FW-retraction rows hide when absent, AdjusterPanel disabled when busy.
  */
 @Nexus7Previews
 @Composable
-private fun ExtrusionVariantMatrix(
+private fun FineTuneVariantMatrix(
     @PreviewParameter(FineTuneVariantProvider::class) vm: FineTuneVm,
 ) {
     PreviewBox(colorfulDark) {
-        ExtrusionScreen(vm = vm)
+        FineTuneScreen(vm = vm)
     }
 }
 
-/** The all-present Motion group on one theme — the per-tile sibling surface (Speed/Vel/Accel/Cruise/SCV). */
-@Nexus7Previews
-@Composable
-private fun MotionAllPresent() =
-    PreviewBox(colorfulDark) { MotionScreen(vm = SampleFixtures.fineTuneAllPresent) }
-
-// ---------------------------------------------------------------------------------------------
-// The full 6-theme matrix on ONE representative state (the Hub) — six sibling PreviewBox seeds.
-// (A @Preview annotation cannot select the palette MODE, so the themes MUST be explicit wrappers.)
-// ---------------------------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// 6-theme matrix on ONE representative state (all-present)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeColorfulDark() =
-    PreviewBox(colorfulDark) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(colorfulDark) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeColorfulLight() =
-    PreviewBox(colorfulLight) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(colorfulLight) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeSimpleDark() =
-    PreviewBox(simpleDark) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(simpleDark) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeSimpleLight() =
-    PreviewBox(simpleLight) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(simpleLight) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeHighContrastDark() =
-    PreviewBox(highContrastDark) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(highContrastDark) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
 @Nexus7Previews
 @Composable
 private fun FineTuneThemeHighContrastLight() =
-    PreviewBox(highContrastLight) { FineTuneHubScreen(onNavigate = {}, onBack = {}) }
+    PreviewBox(highContrastLight) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
-/**
- * The fs = L overflow shot ([fsLargeSeed]) — catches text/tile clipping at the LARGEST in-app text size.
- * fs is injected through the seed's `fs` field; `@Preview(fontScale = …)` is a verified NO-OP here. The
- * all-present Motion group is the densest tile column, so it's the representative overflow surface.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// fs = L overflow check — catches text/tile clipping at the LARGEST in-app text size
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Nexus7Previews
 @Composable
 private fun FineTuneFsLargeOverflow() =
-    PreviewBox(fsLargeSeed) { MotionScreen(vm = SampleFixtures.fineTuneAllPresent) }
+    PreviewBox(fsLargeSeed) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
 
-/**
- * The RTL spot-check — forces [LayoutDirection.Rtl] over the all-present Extrusion group to prove the
- * screen uses `start`/`end`-relative modifiers (not hardcoded left/right), so it mirrors in RTL locales.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Landscape — 5U phone-landscape Focus budget (800×480dp)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "FineTune landscape 5U",
+    widthDp = 800,
+    heightDp = 480,
+    showBackground = true,
+)
+@Composable
+private fun FineTuneLandscape() =
+    PreviewBox(colorfulDark) { FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent) }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Printing state — confirms FloatingEStop renders (isPrinting = true)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun FineTuneIsPrinting() =
+    PreviewBox(colorfulDark) {
+        FineTuneScreen(
+            vm = SampleFixtures.fineTuneAllPresent,
+            isPrinting = true,
+        )
+    }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RTL — confirms start/end-relative modifiers mirror correctly
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Nexus7Previews
 @Composable
 private fun FineTuneRtlSpotCheck() {
     PreviewBox(colorfulDark) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            ExtrusionScreen(vm = SampleFixtures.fineTuneAllPresent)
+            FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent)
         }
     }
 }
 
-/**
- * The pseudolocale (`en-XA`) spot-check (SC-3c) — the i18n-completeness companion to the RTL check.
- * A pseudolocalized run accordion-pads + brackets the APP vocabulary, so any plain-English text that
- * shows through unpseudolocalized is a still-hardcoded literal (not yet routed through stringResource).
- * Locale comes from the annotation alone — no CompositionLocalProvider; this is its OWN dedicated single
- * `@Preview`, NOT part of `@Nexus7Previews`/`@DeviceAndLocalePreviews`.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Pseudolocale — en-XA reveals any hardcoded plain-English text
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Preview(device = NEXUS7, locale = "en-XA", showBackground = true)
 @Composable
 private fun FineTunePseudolocaleSpotCheck() {
     PreviewBox(colorfulDark) {
-        ExtrusionScreen(vm = SampleFixtures.fineTuneAllPresent)
+        FineTuneScreen(vm = SampleFixtures.fineTuneAllPresent)
     }
 }
