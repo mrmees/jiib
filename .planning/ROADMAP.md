@@ -1078,6 +1078,7 @@ Plans:
 
 - [x] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
 - [x] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
+
 **UI hint**: no
 **Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
 
@@ -1137,6 +1138,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+
 - [x] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
 - [x] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
 - [x] 24-03-PLAN.md — Wave 1: AppShell when(dest)→NavHost migration (holder hoist, overlays, swipe/webcam/BackHandler reseat, D-04 pop-to-root, ShellNavState slim, FIX-4 land-on-root regression)
@@ -1160,13 +1162,25 @@ Plans:
   5. No functional regressions (host tests green; on-device smoke) — Files delete/print, macro run, console scrollback, webcam playback intact
 
 **Plans**: 7 plans
+**Wave 1**
+
 - [ ] 25-01-PLAN.md — D-01/D-02/D-03 toolkit spike: throwaway Compose ListRow Files+Console + flox gfxinfo → per-surface Views-vs-Compose verdict (HARD GATE)
 - [ ] 25-02-PLAN.md — Browse icon registry: register owner-assigned glyphs (D-21 ASK gate) for tokenized-first migration
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 25-03-PLAN.md — FilesScreen rebuild (image-backed DetailCard, flat age-sorted list, FootButtonBar, delete-scoping preserved) + @Preview matrix
 - [ ] 25-04-PLAN.md — ConsoleScreen rebuild (field-only live log, render-time filter toggles) + @Preview matrix
 - [ ] 25-05-PLAN.md — Macros merge to one FieldMode screen (ListRow launcher + Manage mode + param Field-takeover; sanitizer preserved) + @Preview matrix
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 25-06-PLAN.md — Webcam crash fix (D-17) + WR-02 resolver + token-conform (render path untouched) + @Preview matrix
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 25-07-PLAN.md — On-device flox UAT gate: per-screen owner approval both orientations + D-08/D-18 re-verify + spike cleanup
+
 **UI hint**: yes
 **Research note**: COVERED — patterns locked in the sketch-findings skill (lists-and-detail).
 
