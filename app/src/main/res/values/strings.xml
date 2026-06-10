@@ -194,6 +194,10 @@
     <string name="spool_loading">Loading spools…</string>
     <string name="spool_empty_no_match">No spools match. Clear filters to see your inventory.</string>
     <string name="spool_error_load">Could not load spools.</string>
+    <!-- 23-rev WR-03: short row-level status badges (distinct from the verbose spool_badge_* detail strings). -->
+    <string name="spool_row_badge_loaded">Loaded</string>
+    <string name="spool_row_badge_archived">Archived</string>
+    <string name="spool_mfg_empty">No manufacturers found.</string>
 
     <!-- Plurals proof (SC-3): count-aware quantity string. -->
     <plurals name="spool_count">

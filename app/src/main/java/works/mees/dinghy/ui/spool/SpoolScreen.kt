@@ -605,7 +605,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No manufacturers found.",
+                        text = stringResource(R.string.spool_mfg_empty),
                         color = t.text2,
                         fontFamily = Geist,
                         fontSize = fsSp(17f, t.fs).sp,
@@ -894,7 +894,7 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
         )
         if (spool.id == activeId) {
             Text(
-                text = "Loaded",
+                text = stringResource(R.string.spool_row_badge_loaded),
                 color = t.go,
                 fontFamily = Geist,
                 fontWeight = FontWeight.SemiBold,
@@ -902,7 +902,7 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
             )
         } else if (spool.archived) {
             Text(
-                text = "Archived",
+                text = stringResource(R.string.spool_row_badge_archived),
                 color = t.heat,
                 fontFamily = Geist,
                 fontSize = fsSp(15f, t.fs).sp,
