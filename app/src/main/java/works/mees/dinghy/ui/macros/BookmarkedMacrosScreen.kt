@@ -380,9 +380,15 @@ private fun ColumnScope.MacroParamEntryField(
     fun execute() {
         val gcode = try {
             // T-25-05-01: buildTyped is the REQUIRED V5 sanitizer path — never bypass with scriptParams directly.
+            // WR-04: params left BLANK are omitted from the line entirely — emitting `KEY=` / `KEY=""`
+            // would override the macro's own Jinja default with a malformed/empty token; omitting the
+            // key lets the macro's default apply server-side.
             MacroInvocation.buildTyped(
                 macro.name,
-                params.map { p -> Triple(p.name, values[p.name].orEmpty(), p.isNumeric) },
+                params.mapNotNull { p ->
+                    val value = values[p.name].orEmpty()
+                    if (value.isBlank()) null else Triple(p.name, value, p.isNumeric)
+                },
             )
         } catch (e: MacroParamRejected) {
             // WR-03: resolved via context.getString — execute() is not a composable context.

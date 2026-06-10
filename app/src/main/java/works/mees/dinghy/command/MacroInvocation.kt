@@ -56,8 +56,12 @@ object MacroInvocation {
     /**
      * Variant where each param declares whether it is numeric (`isNumeric = true` → emitted unquoted as
      * `KEY=<value>`) or a string (`KEY="<value>"`). String values are still rejected on any forbidden
-     * char; numeric values are validated against the same forbidden set as a defence-in-depth check
-     * (they are produced by NumpadPage clamping, so they should never contain one).
+     * char; numeric values are additionally REQUIRED to be a plain numeric literal (WR-04): they are
+     * emitted UNQUOTED, so an empty value would produce a malformed bare `KEY=` token, and a value with
+     * whitespace (e.g. a raw Jinja default expression like `printer.extruder.target * 0.5` seeded from
+     * `MacroParam.default`) would token-split the macro line into extra `KEY=VALUE` pairs — potentially
+     * overriding another param. Same REJECT-not-escape policy as the string path. (NumpadPage clamping
+     * covers the keypad path, but the default-seed path bypasses NumpadPage entirely.)
      */
     fun buildTyped(macroName: String, params: List<Triple<String, String, Boolean>>): String =
         buildLine(macroName, params)
@@ -67,12 +71,31 @@ object MacroInvocation {
         for ((key, value, isNumeric) in params) {
             rejectForbidden(key, value)
             if (isNumeric) {
+                rejectNonNumeric(key, value)
                 sb.append(' ').append(key).append('=').append(value)
             } else {
                 sb.append(' ').append(key).append('=').append('"').append(value).append('"')
             }
         }
         return sb.toString()
+    }
+
+    /**
+     * REJECT (throw) unless [value] is a plain numeric literal safe to emit unquoted (WR-04).
+     * `toDoubleOrNull` alone is too lenient — `Double.parseDouble` trims surrounding whitespace, so
+     * `" 210"` would parse yet still token-split when emitted verbatim; the explicit no-whitespace
+     * check closes that hole.
+     */
+    private fun rejectNonNumeric(paramName: String, value: String) {
+        val plainNumber = value.isNotEmpty() &&
+            value.none { it.isWhitespace() } &&
+            value.toDoubleOrNull() != null
+        if (!plainNumber) {
+            throw MacroParamRejected(
+                paramName,
+                "numeric value is not a plain number (unquoted-emission guard)",
+            )
+        }
     }
 
     /** REJECT (throw) if [value] contains any forbidden character. Never escapes/strips. */

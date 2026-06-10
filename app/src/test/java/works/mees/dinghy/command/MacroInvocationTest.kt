@@ -99,6 +99,43 @@ class MacroInvocationTest {
     }
 
     @Test
+    fun buildTyped_emptyNumericValue_rejected() {
+        // WR-04: a numeric param with no |default(...) seeds "" — emitted unquoted that would be a
+        // malformed bare `KEY=` token on the macro line. Must be rejected, never emitted.
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped(
+                "LOAD_FILAMENT",
+                listOf(Triple("TEMP", "", true)),
+            )
+        }
+    }
+
+    @Test
+    fun buildTyped_numericValueWithSpaces_rejected() {
+        // WR-04: MacroParam.default carries the RAW Jinja expression (MacroModels KDoc) — seeded
+        // verbatim and emitted unquoted, `printer.extruder.target * 0.5` would token-split into
+        // extra KEY=VALUE pairs on the macro line (e.g. overriding another param). Must be rejected.
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped(
+                "LOAD_FILAMENT",
+                listOf(Triple("TEMP", "printer.extruder.target * 0.5", true)),
+            )
+        }
+    }
+
+    @Test
+    fun buildTyped_paddedNumericValue_rejected() {
+        // WR-04 hardening: Double.parseDouble trims whitespace, so " 210" parses fine — but emitted
+        // verbatim it still token-splits (`KEY= 210` → bare `KEY=` + stray `210`). Must be rejected.
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped(
+                "LOAD_FILAMENT",
+                listOf(Triple("TEMP", " 210", true)),
+            )
+        }
+    }
+
+    @Test
     fun buildTyped_cleanMixedParams_producesCorrectGcodeLine() {
         // A clean string param is quoted; a numeric param is emitted bare (no quotes). The sanitizer
         // must NOT reject a clean value — if it does, this assertion never executes and the test fails.
