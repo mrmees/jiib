@@ -1197,7 +1197,33 @@ Plans:
   4. Per-screen conformance met (≥64px, `fsSp` S/M/L, rotation); intent colors correct
   5. No functional regressions (host tests green; on-device smoke) — capability gating + clamp authority (Phase-17 lesson) intact
 
-**Plans**: TBD
+**Plans**: 7 plans (6 waves)
+Plans:
+
+**Wave 1**
+
+- [ ] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + RED tests + preview matrix (D-20/D-21)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups, FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row (D-11/D-14)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, 8-swatch color row, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
+
+**Wave 5** *(blocked on Wave 2; 26-05 ∥ 26-06 — disjoint files)*
+
+- [ ] 26-05-PLAN.md — Outputs detail-in-Focus collapse: per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
+- [ ] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, filament-preset extruder-only page (D-15/D-16/D-17)
+
+**Wave 6** *(blocked on Wave 5; 26-06)*
+
+- [ ] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
 **UI hint**: yes
 **Research note**: COVERED — adjustment patterns locked in the sketch-findings skill (adjustment-controls); reuse the Phase-17 clamp-authority + Phase-19 scrubber lessons.
 
