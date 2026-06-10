@@ -782,8 +782,8 @@ fun AppShell(
                     dispatcher = dispatcher,
                     client = spoolmanClient,
                     container = container,
-                    // Home foot-button navigates to WaterfallHome (the hub screen).
-                    onHome = { navController.navigate(NavDest.WaterfallHome) },
+                    // Home foot-button pops to the existing WaterfallHome root (never pushes a duplicate).
+                    onHome = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
                     // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside
                     // the NavHost — mirrors the macro Execution popup). The camera binds/releases there.
                     onScan = { nav.scanActive = true },
@@ -874,13 +874,13 @@ fun AppShell(
                 )
             }
             composable<NavDest.Devices> {
-                // NavDest.Devices (D-01): the printer switcher. onSwitched = navigate(WaterfallHome) is the
-                // FIX-4 gate (D-02): without this explicit nav the preserved NavHost would be at Devices
-                // after the rebind Splash lands on WaterfallHome. NO rebind/disconnect logic here — only nav.
+                // NavDest.Devices (D-01): the printer switcher. onSwitched pops to the existing
+                // WaterfallHome root (FIX-4 gate, D-02) — navigate() would push a duplicate, breaking
+                // system Back (WR-03 fix). popBackStack is idempotent at root. NO rebind/disconnect here.
                 PrintersScreen(
                     container = container,
                     onAddPrinter = { navController.navigate(NavDest.Settings) },
-                    onSwitched = { navController.navigate(NavDest.WaterfallHome) },
+                    onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
                     onBack = { navController.popBackStack() },
                 )
             }
