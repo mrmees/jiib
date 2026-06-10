@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,8 +98,8 @@ private fun DesignKitLayoutDemo(modifier: Modifier = Modifier) {
                     .weight(1f)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                items(rowLabels, key = { it + rowLabels.indexOf(it) }) { label ->
-                    UnitRow(label = label, uDp = grid.uDp)
+                items(rowLabels.size) { idx ->
+                    UnitRow(label = rowLabels[idx], uDp = grid.uDp)
                 }
             }
         }
