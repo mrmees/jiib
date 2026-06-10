@@ -37,3 +37,6 @@ relevant UI-SPEC note so the design LAW and code agree).
   **disabled only for the file being printed**; selecting any *other* (idle) file enables Delete
   and that file can be removed mid-print. While idle, Delete works for any selected file as before.
   (Use a safe throwaway file.)
+
+## Resolution (2026-06-10, Phase 25)
+Fixed by the 25-03 FilesScreen rebuild (DeleteGate scopes Delete to the printing file only); confirmed by UAT row D-08 on flox (25-UAT.md).

@@ -35,3 +35,6 @@ WRITE-DEAD — every write moved to `profileStore` in Phase 14. So `cfg` is alwa
 resolver to `container.activeConfig` (the same source the rest of the app uses). Small
 fix; chase it before/with the camera phase (Phase 20). Not introduced by 15.2 (the
 region wasn't in this phase's diff) but adjacent to the webcam-tile gating work.
+
+## Resolution (2026-06-10, Phase 25)
+D-18 per-profile webcam tile gating verified on-device during the owner-approved Phase 25 UAT (25-UAT.md).

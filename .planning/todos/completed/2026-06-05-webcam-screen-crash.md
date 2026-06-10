@@ -22,3 +22,6 @@ flox with the current build.
 
 Fold into Phase 20 (WebRTC camera). Capture the logcat stack trace first
 (`adb logcat` while opening the Webcam tile), then fix as part of the camera rework.
+
+## Resolution (2026-06-10, Phase 25)
+Webcam crash: already fixed Phase 21 (49f3fe2); root-cause WR-02 stale-source read fixed 25-06 (ec60a4e); diagnosis in 25-WEBCAM-CRASH.md. No-crash repro on flox.

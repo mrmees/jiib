@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-10T16:03:35.491Z"
+status: ready_to_plan
+last_updated: 2026-06-10T17:10:51.399Z
 last_activity: 2026-06-10
 progress:
   total_phases: 35
@@ -11,6 +11,7 @@ progress:
   total_plans: 194
   completed_plans: 193
   percent: 83
+stopped_at: Phase 25 complete (7/7) — ready to discuss Phase 26
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 25 — browse-screens
+**Current focus:** Phase 26 — adjustment screens
 
 ## Current Position
 
-Phase: 25 (browse-screens) — EXECUTING
-Plan: 7 of 7
-Status: Phase complete — ready for verification
+Phase: 26
+Plan: Not started
+Status: Ready to plan
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
   → **Plan 24-04 (Morphing Waterfall Root: idle action list + foot bar + Crossfade morph + FIX-1/FIX-5) EXECUTED + COMPLETE 2026-06-10.** PrintStatusStandbyField rebuilt on ListBlock/ListRow + FootButtonBar; buildIdleActions wired with outputsPresent+webcamTileEnabled capability gates; FIX-5 resolved (LauncherWebcam icon + cd_launcher_webcam string swapped for Wave-0 placeholder); FIX-1 confirmed (showEstopGuard + in-screen ConfirmGuard removed; AppShell overlay owns FloatingEStop on every destination); Crossfade(tween(150), "PrintStatusMorph") wraps the when(mode) dispatch (D-13); gutter=null for Standby (SC-3). Commit: `ec0caf7`. SUMMARY `24-04-SUMMARY.md`. SC-1/SC-3/SC-4 closed.
   → **Plan 24-03 (NavHost shell: replace when(dest) with NavHost, hoist FloatingEStop, slim ShellNavState) EXECUTED + COMPLETE 2026-06-10.** NavHost with 18 `composable<NavDest.*>` replaces ~1000-line `when(dest)` hub-and-spoke; all session holders hoisted above NavHost; 4 DisposableEffect leak-cancel blocks preserved; FloatingEStop+ConfirmGuard promoted to app overlay (FIX-1); shouldPopToRoot D-04 predicate wired in LaunchedEffect(printState); applyEntryReset called in LaunchedEffect(Unit) inside Macros/Calibration/FineTune lambdas; ShellNavState slimmed (dest/backStack/navigateTo/goBack removed; applyEntryReset promoted to internal); FIX-3 accepted regression (post-Splash lands on WaterfallHome). Commit: `0c62f25`. SUMMARY `24-03-SUMMARY.md`. SC-2/SC-4 closed.
@@ -76,7 +77,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 150
+- Total plans completed: 157
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -107,6 +108,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 20 | 4 | - | - |
 | 23 | 6 | - | - |
 | 24 | 5 | - | - |
+| 25 | 7 | - | - |
 
 **Recent Trend:**
 
