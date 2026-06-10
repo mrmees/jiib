@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.temperature
 
+import androidx.compose.ui.graphics.Color
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +82,39 @@ class TemperatureHolder(
      */
     val yRange: StateFlow<ClosedFloatingPointRange<Float>> = _yRange.asStateFlow()
 
+    // ---- D-14: per-sensor trace color + visibility (Plan 26-03) ------------------------------------
+
+    private val _traceColors = MutableStateFlow<Map<String, Color>>(emptyMap())
+    /**
+     * Per-sensor trace color, keyed by Moonraker object name (e.g. "extruder"). An absent entry
+     * means the sensor uses its default [works.mees.dinghy.theme.SeriesColor.seriesColor] token.
+     * Seeded from [works.mees.dinghy.ui.settings.TraceStylePrefs] at construction (Task 2);
+     * updated by [setTraceColor].
+     */
+    val traceColors: StateFlow<Map<String, Color>> = _traceColors.asStateFlow()
+
+    private val _traceVisibility = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    /**
+     * Per-sensor trace visibility, keyed by Moonraker object name. An absent entry means the
+     * sensor IS visible (absent-means-visible convention). Updated by [setTraceVisibility].
+     */
+    val traceVisibility: StateFlow<Map<String, Boolean>> = _traceVisibility.asStateFlow()
+
+    /**
+     * Set the trace color for a sensor in memory (D-14). Persistence via TraceStylePrefs is wired
+     * in Task 2 (AppContainer.writeScope-backed); in Task 1 this is the in-memory stub body.
+     */
+    fun setTraceColor(sensorName: String, color: Color) {
+        _traceColors.value = _traceColors.value + (sensorName to color)
+    }
+
+    /**
+     * Set trace visibility for a sensor in memory (D-14). Persistence wired in Task 2.
+     */
+    fun setTraceVisibility(sensorName: String, visible: Boolean) {
+        _traceVisibility.value = _traceVisibility.value + (sensorName to visible)
+    }
+
     init {
         // Backfill collector: seed each ring oldest→newest the instant the one-shot read lands (05-03).
         // Seeding ONCE (guarded) so a re-emission of the StateFlow does not re-prepend the history; this
@@ -140,7 +174,10 @@ class TemperatureHolder(
     private fun readout(state: PrinterState, name: String): SensorReadout {
         val h: HeaterState = state.heaters[name] ?: HeaterState()
         val target = if (h.target > 0.0) h.target else null
-        return SensorReadout(name = name, label = label(name), current = h.temperature, target = target)
+        // D-11: isAdjustable = true for all v1 drawn sensors (all are heaters); future read-only
+        // temperature_sensor entries would set this to false once they join the drawn set.
+        return SensorReadout(name = name, label = label(name), current = h.temperature, target = target,
+            isAdjustable = true)
     }
 
     /**
@@ -181,14 +218,16 @@ private fun label(objectName: String): String = when {
 
 /**
  * A single drawn-sensor readout for the Temperature Focus legend: its Moonraker object [name], a short
- * uppercase [label], the live [current] temperature, and an optional [target] (null when the heater is
- * off / has no setpoint).
+ * uppercase [label], the live [current] temperature, an optional [target] (null when the heater is
+ * off / has no setpoint), and [isAdjustable] (D-11: true for heaters, false for read-only
+ * temperature_sensor entries — future; v1 all drawn sensors are heaters so always true).
  */
 data class SensorReadout(
     val name: String,
     val label: String,
     val current: Double,
     val target: Double?,
+    val isAdjustable: Boolean = true,
 )
 
 /** Absolute Y padding (°C) added below the min and above the max before rounding (05 UI tweak). */
