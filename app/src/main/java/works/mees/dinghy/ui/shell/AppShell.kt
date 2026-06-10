@@ -38,9 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import works.mees.dinghy.R
 import works.mees.dinghy.calibration.BedMeshHolder
@@ -438,14 +436,12 @@ fun AppShell(
         }
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
-    // Macro bookmarks/revealHidden are PROCESS-scoped (container.macroPrefs from Task 1 B1) — they
-    // survive reconnects, so they are stateIn'd ONCE on the shell scope (not re-keyed on the store).
-    val bookmarksFlow = remember {
-        container.macroPrefs.bookmarks.stateIn(scope, SharingStarted.Eagerly, emptySet())
-    }
-    val revealHiddenFlow = remember {
-        container.macroPrefs.revealHidden.stateIn(scope, SharingStarted.Eagerly, false)
-    }
+    // Macro bookmarks/revealHidden are PROCESS-scoped and live on AppContainer.stateScope (WR-02 fix):
+    // the prior stateIn(rememberCoroutineScope()) was cancelled when AppShell left composition (recovery
+    // Splash), causing the cached StateFlows to go stale post-Splash. Reading the process-scoped
+    // StateFlows directly from the container avoids any composition-scope lifecycle dependency.
+    val bookmarksFlow = container.macroBookmarks
+    val revealHiddenFlow = container.macroRevealHidden
     // Capabilities StateFlow for the holder: the live session's (carries macro NAMEs) or an empty
     // fallback while idle. Re-keyed when the spine rebuilds so a reconnect re-points the macro universe.
     val idleCapabilities = remember { MutableStateFlow(Capabilities()) }

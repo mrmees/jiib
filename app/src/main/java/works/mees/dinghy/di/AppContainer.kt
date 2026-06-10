@@ -224,6 +224,27 @@ class AppContainer(
     val macroPrefs: MacroPrefs = MacroPrefs(macroDataStore)
 
     /**
+     * Process-scoped [StateFlow] of the user's pinned macro NAMEs (WR-02 fix, review 24). Hoisted from
+     * AppShell's `stateIn(rememberCoroutineScope())` — a composition scope is cancelled when AppShell
+     * leaves the composition tree (e.g. on a FIX-3 recovery Splash), causing the stateIn coroutine to
+     * stop collecting; post-Splash, the cached StateFlow went stale and no longer updated. Hosting here
+     * on the process-lifetime [stateScope] ensures the upstream DataStore collection is NEVER interrupted
+     * by a UI lifecycle event. Eagerly matches the prior shell-side usage (macro surface needs it
+     * immediately on recomposition). See [[dinghy-compose-write-scope-cancellation]].
+     */
+    val macroBookmarks: StateFlow<Set<String>> =
+        macroPrefs.bookmarks.stateIn(stateScope, SharingStarted.Eagerly, emptySet())
+
+    /**
+     * Process-scoped [StateFlow] of the revealHidden toggle (WR-02 fix, review 24). Same rationale as
+     * [macroBookmarks] — moved from AppShell's composition-scoped `stateIn` to the process-lifetime
+     * [stateScope] so it outlives any Composable and survives recovery Splashes intact.
+     * Eagerly matches the prior shell-side usage.
+     */
+    val macroRevealHidden: StateFlow<Boolean> =
+        macroPrefs.revealHidden.stateIn(stateScope, SharingStarted.Eagerly, false)
+
+    /**
      * Per-printer preferred-cam persistence (CAM-01 / 10-06 D-10) — the SEPARATE webcam.preferences_pb
      * store holding the last-viewed cam id keyed `preferred_cam_<host>`. Like [macroPrefs] it is
      * PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): the saved cam survives
