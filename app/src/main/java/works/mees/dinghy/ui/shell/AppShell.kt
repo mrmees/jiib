@@ -54,7 +54,6 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.net.JsonRpcMethods
-import works.mees.dinghy.outputs.OutputDescriptor
 import works.mees.dinghy.outputs.OutputsHolder
 import works.mees.dinghy.prompt.PromptEngine
 import works.mees.dinghy.ui.prompt.PromptDialog
@@ -94,10 +93,6 @@ import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
-import works.mees.dinghy.ui.outputs.OutputLedDetail
-import works.mees.dinghy.ui.outputs.OutputPinDetail
-import works.mees.dinghy.ui.outputs.OutputScrubberDetail
-import works.mees.dinghy.ui.outputs.OutputScrubberType
 import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
@@ -335,22 +330,6 @@ fun AppShell(
     // empty fallback store backs it (no descriptors → an empty list). The holder is dispatch-free; the detail
     // pages source the dispatcher from `container.dispatcher` (== spine?.dispatcher) themselves.
     val outputsHolder = remember(store) { OutputsHolder(scope = scope, store = store) }
-    // The list↔detail LOCAL back-stack within NavDest.Outputs (a single selected objectKey — null = the list,
-    // non-null = that output's detail page; mirrors NavDest.Calibration's local hub↔routine stack, NOT new
-    // top-level Dests). Shell-local (like drawerOpen): a detail page is transient and need not survive a
-    // recovery Splash. The live descriptor list drives the SELECTION RESET below.
-    val outputRows by outputsHolder.rows.collectAsStateWithLifecycle()
-    var selectedOutputKey by remember(outputsHolder) { mutableStateOf<String?>(null) }
-    // SELECTION RESET (review MEDIUM): if the selected output's objectKey is NO LONGER in the live row list
-    // (output removed/renamed, or descriptors cleared on a printer switch per 19-04), pop back to the list so
-    // the user is never stranded on a dead detail page. Keyed on the row list so a descriptor-set change
-    // re-evaluates; nulls the selection the moment its key disappears.
-    LaunchedEffect(outputRows, selectedOutputKey) {
-        val key = selectedOutputKey
-        if (key != null && outputRows.none { it.descriptor.objectKey == key }) {
-            selectedOutputKey = null
-        }
-    }
 
     // ---- System Information holder (20-04) ----------------------------------------------------------
     // The dedicated per-session read-only host-telemetry holder (off the printer hot path — host CPU
@@ -516,12 +495,6 @@ fun AppShell(
         enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Calibration>() == true && calibrationRoutine != null
     ) {
         nav.calibrationRoutine = null
-    }
-    // Outputs sub-state intercepts Back — an open detail page returns to the list.
-    BackHandler(
-        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Outputs>() == true && selectedOutputKey != null
-    ) {
-        selectedOutputKey = null
     }
     // The open QR scan overlay intercepts Back: close the scan (releasing the camera via
     // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
@@ -748,76 +721,13 @@ fun AppShell(
                 )
             }
             composable<NavDest.Outputs> {
-                // The Outputs surface: the flat list (no selection) OR the selected output's per-type detail
-                // page. The list's onRowTap sets the LOCAL [selectedOutputKey]; each detail page's neutral Back
-                // (and system Back, handled above) pops back to the list — a lean local back-stack within
-                // NavDest.Outputs (NOT separate top-level Dests, D-01). The selection RESETS (LaunchedEffect
-                // above) when the selected objectKey leaves the live row list.
-                val selectedKey = selectedOutputKey
-                val selectedDescriptor: OutputDescriptor? =
-                    selectedKey?.let { k -> outputRows.firstOrNull { it.descriptor.objectKey == k }?.descriptor }
-                if (selectedDescriptor == null) {
-                    OutputsScreen(
-                        holder = outputsHolder,
-                        onRowTap = { key -> selectedOutputKey = key },
-                        onBack = { navController.popBackStack() },
-                    )
-                } else {
-                    // Route to the right detail page by family/pwm (19-06 entry points). Live values are seeded
-                    // off the per-session printerState (RAW 0..1 → display units the page expects).
-                    val live = printerState.outputs[selectedDescriptor.objectKey]
-                    val popToList = { selectedOutputKey = null }
-                    when {
-                        selectedDescriptor.family == OutputsHolder.FAMILY_HEATER -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.HEATER,
-                            currentValue = (printerState.heaters[selectedDescriptor.objectKey]?.target ?: 0.0)
-                                .toFloat(),
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_FAN -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.FAN,
-                            currentValue = ((live?.speed ?: 0.0) * 100.0).toFloat(),
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_SERVO -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.SERVO,
-                            currentValue = 0f,
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_PWM_TOOL -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.PWM_TOOL,
-                            currentValue = ((live?.value ?: 0.0) * 100.0).toFloat(),
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family in OutputsHolder.LED_FAMILIES -> OutputLedDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            colorData = live?.colorData?.getOrNull(0),
-                            onBack = popToList,
-                        )
-                        else -> OutputPinDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            currentPct = ((live?.value ?: 0.0) * 100.0).toFloat(),
-                            isOn = live?.value?.let { it >= 0.5 },
-                            onBack = popToList,
-                        )
-                    }
-                }
+                // Outputs screen (26-05 D-18/D-19): Detail-in-Focus layout — list + per-output inline
+                // control in the Focus region. No back-stack entries; selection state lives in OutputsScreen.
+                OutputsScreen(
+                    holder = outputsHolder,
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable<NavDest.SystemInfo> {
                 // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only gutter;

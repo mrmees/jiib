@@ -1,12 +1,19 @@
 package works.mees.dinghy.ui.outputs
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,10 +24,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.designsystem.fractionFromX
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -540,6 +551,122 @@ private fun FocusLedSurface(
             OutlinedControl(
                 label = stringResource(R.string.common_back),
                 onClick = onBack,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Neutral,
+            )
+        }
+    }
+}
+
+/**
+ * LED brightness fill-bar + ± stepper — migrated from the deleted OutputLedDetail.kt. Renders a
+ * horizontal accent-filled bar (LEFT-anchored fill, no center-expand) and a ± stepper row below.
+ * Dispatch-once-per-settle (gesture-end / stepper tap). Internal `working` state seeded via
+ * `remember(value)` — NOT wrapped in `key(value)` (P19 build-once rule).
+ *
+ * @param value         seed brightness (0..100 %).
+ * @param onValueChange notified on drag/stepper; does NOT dispatch — caller holds dispatch.
+ * @param onSettle      called once on gesture-end / stepper tap with the settled value.
+ * @param enabled       false while a dispatch is in-flight (busy lock).
+ */
+@Composable
+private fun LedBrightnessControl(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onSettle: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val t = LocalTokens.current
+    val range = 0f..100f
+    val step = 1f
+    var barWidthPx by remember { mutableFloatStateOf(0f) }
+    // Internal working value — seeded from [value] via remember(value); re-seeds on a live state flip.
+    // Reads `working` at gesture-settle so the dragged-to value is dispatched, not the stale seed.
+    var working by remember(value) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+
+    fun set(next: Float) {
+        if (!enabled) return
+        val clamped = next.coerceIn(range.start, range.endInclusive)
+        working = clamped
+        onValueChange(clamped)
+    }
+
+    fun setFromX(x: Float) {
+        if (barWidthPx <= 0f) return
+        set(range.start + fractionFromX(x, barWidthPx) * (range.endInclusive - range.start))
+    }
+
+    fun settle() {
+        if (enabled) onSettle(working)
+    }
+
+    val fraction = ((working - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+    val display = working.roundToInt().toString()
+
+    Column(modifier) {
+        // Horizontal fill-bar scrubber — LEFT-anchored fill (no center-expand regression).
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(t.rCard))
+                .background(t.surface2)
+                .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
+                .onSizeChanged { barWidthPx = it.width.toFloat() }
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        setFromX(down.position.x)
+                        down.consume()
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { change ->
+                                if (change.pressed) {
+                                    setFromX(change.position.x)
+                                    change.consume()
+                                }
+                            }
+                        } while (event.changes.any { it.pressed })
+                        // Gesture END — settle once; never per move frame (P19 rule).
+                        settle()
+                    }
+                },
+            // NO contentAlignment: fill MUST anchor to start edge and grow rightward.
+        ) {
+            // Accent fill, LEFT-anchored (TopStart default).
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction)
+                    .background(t.accentSoft),
+            )
+            // Centered value overlay.
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "$display%",
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(40f, t.fs).sp,
+                )
+            }
+        }
+        // ± stepper row — each tap is a discrete adjust + settle.
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedControl(
+                label = "−",
+                onClick = { set(working - step); settle() },
+                modifier = Modifier.weight(1f),
+                intent = Intent.Neutral,
+            )
+            OutlinedControl(
+                label = "+",
+                onClick = { set(working + step); settle() },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral,
             )
