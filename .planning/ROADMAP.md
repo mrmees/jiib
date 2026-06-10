@@ -1137,7 +1137,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
+- [x] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
 - [ ] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
 - [ ] 24-03-PLAN.md — Wave 1: AppShell when(dest)→NavHost migration (holder hoist, overlays, swipe/webcam/BackHandler reseat, D-04 pop-to-root, ShellNavState slim, FIX-4 land-on-root regression)
 - [ ] 24-04-PLAN.md — Wave 2: morphing root (Crossfade morph + data-driven idle HomeAction list + Preheat/System foot bar + FloatingEStop)
