@@ -1197,31 +1197,34 @@ Plans:
   4. Per-screen conformance met (≥64px, `fsSp` S/M/L, rotation); intent colors correct
   5. No functional regressions (host tests green; on-device smoke) — capability gating + clamp authority (Phase-17 lesson) intact
 
-**Plans**: 7 plans (6 waves)
+**Plans**: 7 plans (7 waves — revised per codex review 0fe783b)
 Plans:
 
 **Wave 1**
 
-- [ ] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + RED tests + preview matrix (D-20/D-21)
+- [ ] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + stub-first RED tests + preview matrix (D-20/D-21)
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups, FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
+- [ ] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups (13 tuners), FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row (D-11/D-14)
+- [ ] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row, stub-first scaffold (D-11/D-14)
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, 8-swatch color row, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
+- [ ] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, equality-guarded GraphView per-trace color overrides, aligned visible-trace model, dedicated Colorful 8-swatch pool, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
 
-**Wave 5** *(blocked on Wave 2; 26-05 ∥ 26-06 — disjoint files)*
+**Wave 5** *(blocked on Wave 2)*
 
-- [ ] 26-05-PLAN.md — Outputs detail-in-Focus collapse: per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
-- [ ] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, filament-preset extruder-only page (D-15/D-16/D-17)
+- [ ] 26-05-PLAN.md — Outputs detail-in-Focus collapse: embeddable ScrubberControl extraction, per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
 
-**Wave 6** *(blocked on Wave 5; 26-06)*
+**Wave 6** *(blocked on Waves 1+5 — AppShell sequenced after 26-05)*
+
+- [ ] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, activeSpoolDetail wiring, filament-preset extruder-only page (D-15/D-16/D-17)
+
+**Wave 7** *(blocked on Wave 6)*
 
 - [ ] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
 **UI hint**: yes
