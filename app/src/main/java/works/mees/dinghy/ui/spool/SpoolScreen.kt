@@ -672,9 +672,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 }
 
 /**
- * D-08 measured-weight numeric-IME Field-takeover (26-07). Replaces [MeasuredWeightPage] with an
- * in-place Field composable: the user enters the TOTAL gross weight (spool + filament) via the system
- * numeric keyboard; [onApply] receives the validated double. [onCancel] discards without writing.
+ * D-08 measured-weight numeric-IME Field-takeover (26-07). Replaces the retired MeasuredWeightPage
+ * with an in-place Field composable: the user enters the TOTAL gross weight (spool + filament) via the
+ * system numeric keyboard; [onApply] receives the validated double. [onCancel] discards without writing.
  *
  * Security note (T-26-07-02): the raw text is filtered to digits + one decimal point; [onApply] is only
  * called when the parsed value is > 0. No raw IME text ever reaches the network layer.
@@ -692,7 +692,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     val grams = weightText.toDoubleOrNull()
     val valid = grams != null && grams > 0.0
 
-    // Info header: spool name + tare + current total (migrated from MeasuredWeightPage.SpoolWeightHeader).
+    // Info header: spool name + tare + current total (migrated from the retired MeasuredWeightPage.SpoolWeightHeader).
     val filament = spool.filament
     val tare = spool.effectiveSpoolWeight
     val believedTotal = if (tare != null && spool.remainingWeight != null) tare + spool.remainingWeight else null
@@ -713,7 +713,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
             fontWeight = FontWeight.Medium,
             fontSize = fsSp(18f, t.fs).sp,
         )
-        // Numeric IME entry box (D-07: system keyboard, NOT NumpadPage).
+        // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07).
         Box(
             Modifier
                 .fillMaxWidth()

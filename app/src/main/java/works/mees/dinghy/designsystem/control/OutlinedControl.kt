@@ -47,9 +47,10 @@ import androidx.compose.material3.Text
  *
  * **C7 (15.2 D-10) — a discarding/rejecting Back stays [Danger]/red.** Back is [Neutral] ONLY for
  * plain navigation that changes nothing. A Back/Cancel that **DISCARDS pending input** or **REJECTS a
- * pending result** is a cancel-with-loss and stays [Danger] (`stop`). This is why `MeasuredWeightPage`
- * (discards a pending measurement) and `ScanConfirmCard` (rejects a pending scan result) keep red
- * Backs — they are NOT plain navigation. See docs/ui_design/THEMING.md → "Conformance criteria — the
+ * pending result** is a cancel-with-loss and stays [Danger] (`stop`). This is why the measure-weight
+ * Field-takeover in `SpoolScreen` (discards a pending measurement) and `ScanConfirmCard` (rejects a
+ * pending scan result) keep red Backs — they are NOT plain navigation. See docs/ui_design/THEMING.md →
+ * "Conformance criteria — the
  * C-series" → C7.
  */
 enum class Intent {
