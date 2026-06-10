@@ -12,6 +12,12 @@ discipline, StrictMode, token-purity rule, scoped context-hygiene CI). Everythin
 input was either already implemented (cadence throttling, R8, semantic tokens), already found by
 this audit (ABI), or rejected (doc fan-out, toolpath advice — see "do NOT do").
 
+*Re-sequenced 2026-06-10 (same day):* Part 4 now lists packages in **execution order** —
+R5a → R9 → R1 → R2 → R6 → R3 → R4 → R7 → R5b (R8 stays a standing doc section). R5 split into
+**R5a** (guardrail infra, first) and **R5b** (README/CONTRIBUTING, last) to avoid three rework
+traps: a late lint baseline freezing in earlier packages' violations, sessions executing against
+un-delinted memory, and R3's 360dp sweep running before R6's previews exist.
+
 **How it was produced:** five parallel static deep-dives over the full source tree (385 Kotlin
 files), cross-checked against `docs/request-cadence-contract.md`, `docs/ui_design/*`, the
 `.planning/` phase record, and the Gradle build config. Every finding carries file:line evidence.
@@ -26,7 +32,7 @@ dependency resolution — so CI claims are from config inspection, not a run.)
 |---|---|
 | **Cross-device: screen size, rotation, overflow?** | **Largely solved by design.** `ScreenScaffold` + `BoxWithConstraints` is a genuinely good responsive engine; text overflow discipline is consistent. Three real gaps: **zero insets handling** (content draws under status bar/cutout on Android 15+ where targetSdk 35 *forces* edge-to-edge), a fixed 72dp file-row height, and a 160dp macro-grid cell that wastes narrow-phone width. → **R1, R3** |
 | **Efficiency: redraw rate vs source rate?** | **Already excellent — do not touch.** The 250 ms two-plane conflation in `PrinterStateStore` is honored end-to-end; render surfaces are allocation-free; webcam decode stops when backgrounded; no polling, no looping animations. The cadence contract is real, not aspirational. → nothing to fix; **R8** has one micro-advisory |
-| **Maintainable in Android Studio? Previews?** | **Architecture yes, wrapper no.** Holder+StateFlow pattern, manual DI, and pure-function routing are contributor-friendly; the test harness (fake socket + golden fixtures) is a standout. But: no README/CONTRIBUTING/LICENSE, no CI, `gradlew` committed without its executable bit, lint disabled, and **18 of 27 screens lack the @Preview matrices** your own convention doc mandates. → **R5, R6** |
+| **Maintainable in Android Studio? Previews?** | **Architecture yes, wrapper no.** Holder+StateFlow pattern, manual DI, and pure-function routing are contributor-friendly; the test harness (fake socket + golden fixtures) is a standout. But: no README/CONTRIBUTING/LICENSE, no CI, `gradlew` committed without its executable bit, lint disabled, and **18 of 27 screens lack the @Preview matrices** your own convention doc mandates. → **R5a/R5b, R6** |
 | **Future-friendly: modern phones?** | **One hard blocker:** the release APK is armeabi-v7a-only (`isUniversalApk = false`), so 64-bit-only devices (Pixel 7+, S25 Ultra — your own 2026-06-08 todo confirms) **cannot install it at all**. Plus: no doze/battery-exemption story for always-on use, no predictive-back opt-in, no POST_NOTIFICATIONS runtime request. Dependency cliffs are well-documented in `libs.versions.toml` already. → **R1, R2, R7, R8** |
 
 **Command map (tokenization):** the groundwork is already done — `PrinterCommands.kt` centralizes
@@ -187,99 +193,51 @@ section is as much the deliverable as the code.
 
 ## Part 4 — Roadmap: sequenced work packages
 
-Ordering logic: ship-blockers for the modern-phone story first (they're also the smallest),
-then the open-source wrapper, then the backfills. R1+R2 roughly equal the already-planned
+Ordering logic *(re-sequenced 2026-06-10)*: **guardrails before work, memory before execution,
+previews before the layout sweep, docs last.** The original R1-first sequence had three rework
+traps: a lint baseline generated late would freeze in violations introduced by earlier packages;
+the docs delint must precede the CLI sessions that read those docs as memory; and R3's 360dp
+sweep needs R6's previews to exist or it runs twice. Package names are identities, not order —
+the sections below appear in **execution order**. R1+R2 roughly equal the already-planned
 Phase-22 ship items; this roadmap folds the audit's new findings (insets, predictive back,
 notifications) into them rather than inventing a parallel track. Each package = one CLI session
 unless noted.
 
-### R1 — Install & display correctness on modern devices *(merges with Phase-22 ABI todo)*
-1. ABI: `include("armeabi-v7a", "arm64-v8a")`, keep `isUniversalApk = false`; release CI/script
-   publishes **both** per-ABI APKs as separate GitHub Release assets with clear names. Fix the
-   `D-01a` comment to distinguish dev-floor from ship artifact.
-2. Edge-to-edge: `enableEdgeToEdge()` in `MainActivity.onCreate`; wrap the root `Box` in
-   `Modifier.safeDrawingPadding()` (covers status/nav bars *and* cutouts); verify the four
-   Views-hosted surfaces inherit correctly (they're inside the Compose root, so they should).
-3. Predictive back: add `android:enableOnBackInvokedCallback="true"` on `<application>`.
-4. `POST_NOTIFICATIONS`: one-shot runtime request via Activity Result API at first connect;
-   denial must change nothing except the notification.
-- **Acceptance:** signed release APK installs and renders chrome-clear (no content under
-  cutout/status/nav) on an arm64-only Android 15/16 phone in both orientations; back-gesture
-  preview animates drawer-close and stack-pop; Nexus 7 behavior unchanged; `verifyMinSdkRelease`
-  green.
+| Order | Package | Gate it clears |
+|---|---|---|
+| 1 | **R5a** guardrail infra | CI/lint/StrictMode exist before any code lands; baseline starts minimal |
+| 2 | **R9** memory/docs delint | the memory is true before sessions consume it |
+| 3 | **R1** install & display correctness | modern phones can install and render it |
+| 4 | **R2** always-on survival | the Phase-22 ship pair is complete |
+| 5 | **R6** preview + string backfill | full preview deck + token rule before the sweep |
+| 6 | **R3** phone-size polish | one complete 360dp/fs=L pass over all 27 screens |
+| 7 | **R4** command map | fork-and-edit customization ready for the README |
+| 8 | **R7** network posture | hardening before strangers run it |
+| 9 | **R5b** README + CONTRIBUTING | the "go public" gate — written once, against final state |
+| — | **R8** dependency runway | standing doc section, no execution slot |
 
-### R2 — Always-on survival *(= PKG-03, already researched in PITFALLS.md Pitfall 5)*
-1. `FLAG_KEEP_SCREEN_ON` on MainActivity's window, gated by a Settings toggle ("Keep screen
-   awake", default ON for the dedicated-display use case), cleared in `onPause`.
-2. Declare `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; add a first-run/Settings step that deep-links
-   to the exemption dialog with one explanatory sentence; surface current exemption state.
-3. UAT per PITFALLS: unplugged, screen off, 20+ min → connection alive or clean resync on wake.
-- **Acceptance:** the doze test passes on both the Nexus 7 (LineageOS) and a modern phone.
+R1↔R2 and R4↔R7 are order-free pairs — swap within a pair freely. R9's optional bulk-archive
+step may trail anytime; only its correctness edits are order-critical.
 
-### R3 — Phone-size layout polish
-1. M1 file-row height, M2 macro grid (fixes above).
-2. A 360dp-width sweep: run every existing preview at `widthDp = 360` (add the device spec to the
-   shared preview annotation set) and fix what clips; spot-check `fs=L` on the same width.
-3. M8: document the OS-font-scale decision; seed default S/M/L from `fontScale` on first run.
-- **Acceptance:** preview matrix at 360dp clean for all previewed screens; no overflow at fs=L.
-
-### R4 — Build-time command map *(Part 3 design)*
-- New `CommandMap.kt`, rewire 4 sites, unit test renamed-slot gating+emission, README
-  "Customizing for your printer" section.
-- **Acceptance:** changing one constant in one file makes a renamed load-filament macro gate and
-  fire correctly with no other edits; test proves it.
-
-### R5 — Open-source wrapper *(do before the repo goes public; 1–2 sessions)*
+### R5a — Guardrail infra *(run FIRST; the infra half of the former R5)*
 1. `git update-index --chmod=+x gradlew` (one command, do it first).
 2. **LICENSE** (your call — GPLv3 fits the Klipper ecosystem's norms; MIT/Apache-2.0 maximizes
    adoption. Decide before public.)
-3. `README.md`: what/why, screenshots (`img/` exists), supported devices + the two-APK ABI story,
-   build (`./gradlew assembleDebug`, `local.properties` moonraker.* keys, no other setup),
-   Gallery activity for printerless UI browsing, the command-map pointer, the a11y/font-scale note.
-4. `CONTRIBUTING.md`: architecture tour (Holder+StateFlow, AppContainer, TopRoute), the
-   preview-first convention with PrintStatusPreviews as the template, string tokenization +
-   pseudolocale check, **the comment-convention decoder** (`D-##` = design decision, `SC-##` =
-   scaffold concern, `Phase ##` → `.planning/phases/`), test expectations.
-5. `.github/workflows/ci.yml`: ubuntu-latest, JDK 17, `./gradlew :app:testDebugUnitTest
+3. `.github/workflows/ci.yml`: ubuntu-latest, JDK 17, `./gradlew :app:testDebugUnitTest
    :app:assembleDebug` on push/PR.
-6. Lint, baselined (M6): run lint under a **JDK 17 toolchain** (the AGP-8.7 UAST crash is
+4. Lint, baselined (M6): run lint under a **JDK 17 toolchain** (the AGP-8.7 UAST crash is
    JDK-21-specific), generate `lint-baseline.xml`, then flip `abortOnError = true` +
    `checkReleaseBuilds = true` with the baseline in place. House rule: **the baseline may only
-   shrink, never grow** — CI fails on any new violation.
-7. `StrictMode` (detect-all + penaltyLog) in `DinghyApp` for debug builds only — the main thread
+   shrink, never grow** — CI fails on any new violation. Landing this before R1–R4 is what keeps
+   the baseline minimal.
+5. `StrictMode` (detect-all + penaltyLog) in `DinghyApp` for debug builds only — the main thread
    is currently clean (efficiency audit); this keeps it that way for free.
-- **Acceptance:** fresh clone on a clean Linux machine: `./gradlew assembleDebug` succeeds with
-  no instructions beyond the README; CI green on the PR that adds it; lint baseline checked in
-  and enforced.
+- **Acceptance:** fresh clone on a clean Linux machine: `./gradlew assembleDebug` succeeds; CI
+  green on the PR that adds it; lint baseline checked in and enforced.
 
-### R6 — Preview & string backfill *(mechanical; parallelizable across sessions; = Phase-22 SC items)*
-- 18 missing `*Previews.kt` files from the exemplar template (6 theme combos + fs=L per screen);
-  extract the 16 remaining string literals; run the `en-XA` pseudolocale sweep on device to close.
-- Optional enforcement: a custom detekt/lint rule flagging raw `Color(0x…)`/hex literals and raw
-  `.sp` values not routed through `fsSp()` inside `ui/` — turns the manual Phase-15.2
-  token-conformance audit (`15.2-AUDIT.md`) into a self-enforcing gate.
-- **Acceptance:** every screen has its matrix; pseudolocale build shows zero plain-English chrome.
+### R9 — Memory/docs delint *(run SECOND — from the 2026-06-10 corpus audit: ~660 files → ~10 misleading, ~15 obsolete, ~200 scaffolding, ~85 load-bearing, rest harmless archive)*
 
-### R7 — Network posture
-- Scope NSC cleartext to RFC-1918 + the configured host; add `https/wss` toggle to connection
-  settings (OkHttp handles TLS; mostly URL-scheme plumbing + cert-failure UX).
-- **Acceptance:** cleartext to a public IP refused on API 24+; wss:// connect succeeds against a
-  TLS-fronted Moonraker.
-
-### R8 — Dependency runway *(document now, execute later — keep as a standing doc section, not a session)*
-- **The coordinated jump** (one future phase, never piecemeal): AGP 9 + compileSdk 37 + Compose
-  BOM ≥ 2026.06 (Compose 1.12) + Gradle 8.10+ + lint re-enable. Trigger: when Compose 1.11 line
-  stops receiving fixes, or a needed lib requires compileSdk 37.
-- **Floor-dependent:** zxing 3.4+ only after minSdk ≥ 24 (or add coreLibraryDesugaring); revisit
-  the floor itself only if Nexus-7-class hardware stops being the project's soul.
-- **Routine:** Coil 3.x, OkHttp, kotlinx.* track latest stable; re-run `verifyMinSdkRelease`
-  after any bump (already enforced).
-- **One-time check:** 16KB page behavior on a Pixel-9-class device once arm64 ships.
-- Low advisory: console eviction `subList.clear()` swap whenever that file is next touched.
-
-### R9 — Memory/docs delint *(from the 2026-06-10 corpus audit: ~660 files → ~10 misleading, ~15 obsolete, ~200 scaffolding, ~85 load-bearing, rest harmless archive)*
-
-1. **Correctness edits (~10 files, do first — these lie to future sessions):**
+1. **Correctness edits (~10 files — these lie to the very sessions that will execute R1–R8):**
    - `research/STACK.md`: compileSdk 35 → 36 sweep (the file root CLAUDE.md's stack section was
      copied from; they have drifted since Phase 21).
    - Root `CLAUDE.md`: the leftover "compileSdk-35 line" phrase in *What NOT to Use*; replace
@@ -307,21 +265,98 @@ unless noted.
    PROJECT.md (currently stated in triplicate; the compileSdk drift proves the mechanism). Add a
    `Last verified: YYYY-MM-DD / Status: active|historical` header to the ~15 active memory files;
    mark all 5 `research/*` files historical instead of editing their content.
-4. **Bulk archive (optional):** delete the ~26 DISCUSSION-LOG files (each self-declares "audit
-   trail only, do not use as input"); move shipped-phase CONTEXT/VALIDATION/VERIFICATION/REVIEW
-   files to `.planning/archive/`, keeping PLAN/SUMMARY pairs in place. **Protected list — never
-   move or delete:** `phases/01/captures/*` (cited by ADR-0001), `phases/13/captures/*` (cited by
-   the cadence contract), `15.2-AUDIT.md` (cited by THEMING.md — update that link if anything
-   moves), PATTERNS 02/03/18 (foundational), all `docs/commands/spoolman-live-*.json` + e3/e5
-   `.jsonl` (consumed by the test suite via `FakeSpoolmanClient`), and PLAN/SUMMARY pairs (code
-   comments reference task IDs like "13-05 Task 3").
-5. **Hygiene guardrail in CI (scoped):** a stale-phrase grep + `markdown-link-check` for dead
-   internal references, run ONLY against the active context set (root CLAUDE.md, `docs/*.md`,
-   the four `.planning/` root files) — **never** against `.planning/phases/`, where historical
-   vocabulary ("superseded", "deferred", "old approach") is correct and would false-positive.
+4. **Bulk archive (optional; may trail any later package):** delete the ~26 DISCUSSION-LOG files
+   (each self-declares "audit trail only, do not use as input"); move shipped-phase
+   CONTEXT/VALIDATION/VERIFICATION/REVIEW files to `.planning/archive/`, keeping PLAN/SUMMARY
+   pairs in place. **Protected list — never move or delete:** `phases/01/captures/*` (cited by
+   ADR-0001), `phases/13/captures/*` (cited by the cadence contract), `15.2-AUDIT.md` (cited by
+   THEMING.md — update that link if anything moves), PATTERNS 02/03/18 (foundational), all
+   `docs/commands/spoolman-live-*.json` + e3/e5 `.jsonl` (consumed by the test suite via
+   `FakeSpoolmanClient`), and PLAN/SUMMARY pairs (code comments reference task IDs like
+   "13-05 Task 3").
+5. **Hygiene guardrail in CI (scoped; depends on R5a's CI):** a stale-phrase grep +
+   `markdown-link-check` for dead internal references, run ONLY against the active context set
+   (root CLAUDE.md, `docs/*.md`, the four `.planning/` root files) — **never** against
+   `.planning/phases/`, where historical vocabulary ("superseded", "deferred", "old approach")
+   is correct and would false-positive.
 - **Acceptance:** zero contradictions among active memory files; every active file carries a
   current `Last verified` header; the 2 done todos closed and 4 stale ones archived; hygiene
   check green in CI.
+
+### R1 — Install & display correctness on modern devices *(merges with Phase-22 ABI todo)*
+1. ABI: `include("armeabi-v7a", "arm64-v8a")`, keep `isUniversalApk = false`; release CI/script
+   publishes **both** per-ABI APKs as separate GitHub Release assets with clear names. Fix the
+   `D-01a` comment to distinguish dev-floor from ship artifact.
+2. Edge-to-edge: `enableEdgeToEdge()` in `MainActivity.onCreate`; wrap the root `Box` in
+   `Modifier.safeDrawingPadding()` (covers status/nav bars *and* cutouts); verify the four
+   Views-hosted surfaces inherit correctly (they're inside the Compose root, so they should).
+3. Predictive back: add `android:enableOnBackInvokedCallback="true"` on `<application>`.
+4. `POST_NOTIFICATIONS`: one-shot runtime request via Activity Result API at first connect;
+   denial must change nothing except the notification.
+- **Acceptance:** signed release APK installs and renders chrome-clear (no content under
+  cutout/status/nav) on an arm64-only Android 15/16 phone in both orientations; back-gesture
+  preview animates drawer-close and stack-pop; Nexus 7 behavior unchanged; `verifyMinSdkRelease`
+  green.
+
+### R2 — Always-on survival *(= PKG-03, already researched in PITFALLS.md Pitfall 5)*
+1. `FLAG_KEEP_SCREEN_ON` on MainActivity's window, gated by a Settings toggle ("Keep screen
+   awake", default ON for the dedicated-display use case), cleared in `onPause`.
+2. Declare `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; add a first-run/Settings step that deep-links
+   to the exemption dialog with one explanatory sentence; surface current exemption state.
+3. UAT per PITFALLS: unplugged, screen off, 20+ min → connection alive or clean resync on wake.
+- **Acceptance:** the doze test passes on both the Nexus 7 (LineageOS) and a modern phone.
+
+### R6 — Preview & string backfill *(mechanical; parallelizable across sessions; = Phase-22 SC items; runs BEFORE R3 so the sweep covers all 27 screens)*
+- 18 missing `*Previews.kt` files from the exemplar template (6 theme combos + fs=L per screen);
+  extract the 16 remaining string literals; run the `en-XA` pseudolocale sweep on device to close.
+- Optional enforcement: a custom detekt/lint rule flagging raw `Color(0x…)`/hex literals and raw
+  `.sp` values not routed through `fsSp()` inside `ui/` — turns the manual Phase-15.2
+  token-conformance audit (`15.2-AUDIT.md`) into a self-enforcing gate.
+- **Acceptance:** every screen has its matrix; pseudolocale build shows zero plain-English chrome.
+
+### R3 — Phone-size layout polish *(uses R6's full preview deck)*
+1. M1 file-row height, M2 macro grid (fixes above).
+2. A 360dp-width sweep: run every preview at `widthDp = 360` (add the device spec to the shared
+   preview annotation set) and fix what clips; spot-check `fs=L` on the same width.
+3. M8: document the OS-font-scale decision; seed default S/M/L from `fontScale` on first run.
+- **Acceptance:** preview matrix at 360dp clean for all 27 screens; no overflow at fs=L.
+
+### R4 — Build-time command map *(Part 3 design)*
+- New `CommandMap.kt`, rewire 4 sites, unit test renamed-slot gating+emission, README
+  "Customizing for your printer" section.
+- **Acceptance:** changing one constant in one file makes a renamed load-filament macro gate and
+  fire correctly with no other edits; test proves it.
+
+### R7 — Network posture
+- Scope NSC cleartext to RFC-1918 + the configured host; add `https/wss` toggle to connection
+  settings (OkHttp handles TLS; mostly URL-scheme plumbing + cert-failure UX).
+- **Acceptance:** cleartext to a public IP refused on API 24+; wss:// connect succeeds against a
+  TLS-fronted Moonraker.
+
+### R5b — README + CONTRIBUTING *(run LAST — the "go public" gate; the docs half of the former R5)*
+Written once, against the finished state: the two-APK ABI story (R1), the keep-awake setting
+(R2), the command map (R4), and the post-R9 doc structure (so it cites nothing the delint
+archived).
+1. `README.md`: what/why, screenshots (`img/` exists), supported devices + the two-APK ABI story,
+   build (`./gradlew assembleDebug`, `local.properties` moonraker.* keys, no other setup),
+   Gallery activity for printerless UI browsing, the command-map pointer, the a11y/font-scale note.
+2. `CONTRIBUTING.md`: architecture tour (Holder+StateFlow, AppContainer, TopRoute), the
+   preview-first convention with PrintStatusPreviews as the template, string tokenization +
+   pseudolocale check, **the comment-convention decoder** (`D-##` = design decision, `SC-##` =
+   scaffold concern, `Phase ##` → `.planning/phases/`), test expectations.
+- **Acceptance:** a stranger can clone, build, and submit a compliant PR with no instructions
+  beyond the two files; the repo flips public only after this lands.
+
+### R8 — Dependency runway *(document now, execute later — keep as a standing doc section, not a session)*
+- **The coordinated jump** (one future phase, never piecemeal): AGP 9 + compileSdk 37 + Compose
+  BOM ≥ 2026.06 (Compose 1.12) + Gradle 8.10+ + lint re-enable. Trigger: when Compose 1.11 line
+  stops receiving fixes, or a needed lib requires compileSdk 37.
+- **Floor-dependent:** zxing 3.4+ only after minSdk ≥ 24 (or add coreLibraryDesugaring); revisit
+  the floor itself only if Nexus-7-class hardware stops being the project's soul.
+- **Routine:** Coil 3.x, OkHttp, kotlinx.* track latest stable; re-run `verifyMinSdkRelease`
+  after any bump (already enforced).
+- **One-time check:** 16KB page behavior on a Pixel-9-class device once arm64 ships.
+- Low advisory: console eviction `subList.clear()` swap whenever that file is next touched.
 
 ### Explicit "do NOT do" list (decisions, recorded so future sessions don't relitigate)
 - No Material `WindowSizeClass` — continuous `BoxWithConstraints` is working and finer-grained.
