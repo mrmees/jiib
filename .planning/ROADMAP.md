@@ -1159,7 +1159,14 @@ Plans:
   4. `@Preview` matrices + tokenized strings/icons (registry glyphs) ship with each screen
   5. No functional regressions (host tests green; on-device smoke) — Files delete/print, macro run, console scrollback, webcam playback intact
 
-**Plans**: TBD
+**Plans**: 7 plans
+- [ ] 25-01-PLAN.md — D-01/D-02/D-03 toolkit spike: throwaway Compose ListRow Files+Console + flox gfxinfo → per-surface Views-vs-Compose verdict (HARD GATE)
+- [ ] 25-02-PLAN.md — Browse icon registry: register owner-assigned glyphs (D-21 ASK gate) for tokenized-first migration
+- [ ] 25-03-PLAN.md — FilesScreen rebuild (image-backed DetailCard, flat age-sorted list, FootButtonBar, delete-scoping preserved) + @Preview matrix
+- [ ] 25-04-PLAN.md — ConsoleScreen rebuild (field-only live log, render-time filter toggles) + @Preview matrix
+- [ ] 25-05-PLAN.md — Macros merge to one FieldMode screen (ListRow launcher + Manage mode + param Field-takeover; sanitizer preserved) + @Preview matrix
+- [ ] 25-06-PLAN.md — Webcam crash fix (D-17) + WR-02 resolver + token-conform (render path untouched) + @Preview matrix
+- [ ] 25-07-PLAN.md — On-device flox UAT gate: per-screen owner approval both orientations + D-08/D-18 re-verify + spike cleanup
 **UI hint**: yes
 **Research note**: COVERED — patterns locked in the sketch-findings skill (lists-and-detail).
 
