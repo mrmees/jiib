@@ -90,7 +90,7 @@ fun ConsoleScreen(
 
     ConsoleContent(
         lines = filtered,
-        rawLines = rawLines,
+        rawLineCount = rawLines.size,
         backfillFailed = backfillFailed,
         hideTemps = hideTemps,
         hideTimelapse = hideTimelapse,
@@ -131,11 +131,9 @@ fun ConsoleScreen(
 ) {
     ConsoleContent(
         lines = lines,
-        rawLines = List(rawLineCount) { null }.map {
-            // Stateless seam: rawLines count controls empty-state — use lines as a stand-in
-            // (the preview shows the filtered set, which is sufficient for the preview surface).
-            lines.firstOrNull() ?: ConsoleLine(rawMessage = "", severity = ConsoleSeverity.NORMAL, timeEpoch = null)
-        }.let { if (rawLineCount == 0) emptyList() else lines },
+        // WR-01: pass the count straight through — ConsoleContent only needs "are there raw lines
+        // at all" to distinguish fresh-connect-empty from all-lines-filtered-out.
+        rawLineCount = rawLineCount,
         backfillFailed = backfillFailed,
         hideTemps = hideTemps,
         hideTimelapse = hideTimelapse,
@@ -163,7 +161,7 @@ fun ConsoleScreen(
 @Composable
 private fun ConsoleContent(
     lines: List<ConsoleLine>,
-    rawLines: List<ConsoleLine>,
+    rawLineCount: Int,
     backfillFailed: Boolean,
     hideTemps: Boolean,
     hideTimelapse: Boolean,
@@ -190,7 +188,9 @@ private fun ConsoleContent(
                             modifier = Modifier.fillMaxWidth().height(maxHeight),
                         )
                         when {
-                            rawLines.isEmpty() && !backfillFailed ->
+                            // rawLineCount (not lines.size): "raw lines exist but every one is
+                            // filtered out" must NOT show the fresh-connect empty overlay (WR-01).
+                            rawLineCount == 0 && !backfillFailed ->
                                 EmptyConsole(Modifier.matchParentSize())
                             backfillFailed ->
                                 BackfillFailedNotice(Modifier.fillMaxWidth())
