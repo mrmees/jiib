@@ -87,7 +87,7 @@ object DinghyIcons {
     // bundled font (Ligature). Phase 19 D-08 reassigned it from `mode_fan` → `air` (owner-directed cross-phase
     // side-change): `mode_fan_2` is now the Phase-19 generic-fan OUTPUT glyph (OutputFan), so the part-cooling
     // fan moves to `air` to keep the two fans visually distinct. The bundled ttf carries `air`/`speed`, so no
-    // local vector is needed. Sole consumer: ExtrusionScreen.kt (the part-fan Fine-Tune tile).
+    // local vector is needed. Consumer: FineTuneScreen.kt (the part-fan Fine-Tune param, D-03).
     val FanMode = DinghyIcon(IconRef.Ligature("air"), alternate = "fan_mode")
     val Speed = DinghyIcon(IconRef.Ligature("speed"), alternate = "speed")
 
