@@ -325,6 +325,15 @@
     <string name="files_confirm_print_title">Print %1$s?</string>
     <string name="files_confirm_print_confirm">Print file</string>
     <string name="files_confirm_print_cancel">Keep browsing</string>
+    <!-- Guard fallback name when no row is selected (defensive — guards open from a selection) -->
+    <string name="files_fallback_filename">file</string>
+    <!-- Confirm-guard detail lines (selectedFileDetails) -->
+    <string name="files_detail_time">Time %1$s</string>
+    <string name="files_detail_size">Size %1$s</string>
+    <string name="files_detail_modified">Modified %1$s</string>
+    <string name="files_detail_filament">Filament %1$d mm</string>
+    <string name="files_detail_layers">Layers %1$d</string>
+    <string name="files_detail_unavailable">Metadata is unavailable. The print can still start.</string>
     <!-- Delete confirm guard -->
     <string name="files_confirm_delete_title">Delete %1$s?</string>
     <string name="files_confirm_delete_message">Removes this file from Moonraker. This cannot be undone.</string>

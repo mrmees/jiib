@@ -236,7 +236,10 @@ fun FilesScreen(
                 if (spoolWarnings.isEmpty()) {
                     // CLEAN PASS (D-01): no spool warnings → the existing `Print file` confirm, UNCHANGED.
                     ConfirmGuard(
-                        title = stringResource(R.string.files_confirm_print_title, file?.name ?: "file"),
+                        title = stringResource(
+                            R.string.files_confirm_print_title,
+                            file?.name ?: stringResource(R.string.files_fallback_filename),
+                        ),
                         message = selectedFileDetails(file, selectedPreview),
                         confirmLabel = stringResource(R.string.files_confirm_print_confirm),
                         cancelLabel = stringResource(R.string.files_confirm_print_cancel),
@@ -250,7 +253,7 @@ fun FilesScreen(
                 } else {
                     // WARN-ONLY GATE (D-01): amber proceed-at-peril — NEVER blocks.
                     SpoolWarningGuard(
-                        fileName = file?.name ?: "file",
+                        fileName = file?.name ?: stringResource(R.string.files_fallback_filename),
                         warnings = spoolWarnings,
                         fileDetails = selectedFileDetails(file, selectedPreview),
                         onPickSpool = {
@@ -275,7 +278,10 @@ fun FilesScreen(
             FileGuard.Delete -> {
                 val file = selected
                 ConfirmGuard(
-                    title = stringResource(R.string.files_confirm_delete_title, file?.name ?: "file"),
+                    title = stringResource(
+                        R.string.files_confirm_delete_title,
+                        file?.name ?: stringResource(R.string.files_fallback_filename),
+                    ),
                     message = stringResource(R.string.files_confirm_delete_message) +
                         "\n" + selectedFileDetails(file, selectedPreview),
                     confirmLabel = stringResource(R.string.files_confirm_delete_confirm),
@@ -745,7 +751,7 @@ private fun SpoolWarningGuard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Print $fileName?",
+                        text = stringResource(R.string.files_confirm_print_title, fileName),
                         color = t.text,
                         fontFamily = Geist,
                         fontWeight = FontWeight.Bold,
@@ -836,15 +842,18 @@ private enum class FileGuard { Start, Delete }
 // Utility helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+@Composable
 private fun selectedFileDetails(file: FileBrowserRow?, preview: FilePreviewMetadata?): String =
     listOfNotNull(
         file?.relativeFilename,
-        preview?.estimatedTime?.let { "Time ${formatDuration(it)}" },
-        (preview?.sizeBytes ?: file?.sizeBytes)?.let { "Size ${formatBytes(it)}" },
-        (preview?.modifiedEpochSeconds ?: file?.modifiedEpochSeconds)?.let { "Modified ${formatDate(it)}" },
-        preview?.filamentTotal?.let { "Filament ${it.toInt()} mm" },
-        preview?.layerCount?.let { "Layers $it" },
-    ).joinToString("\n").ifBlank { "Metadata is unavailable. The print can still start." }
+        preview?.estimatedTime?.let { stringResource(R.string.files_detail_time, formatDuration(it)) },
+        (preview?.sizeBytes ?: file?.sizeBytes)?.let { stringResource(R.string.files_detail_size, formatBytes(it)) },
+        (preview?.modifiedEpochSeconds ?: file?.modifiedEpochSeconds)?.let {
+            stringResource(R.string.files_detail_modified, formatDate(it))
+        },
+        preview?.filamentTotal?.let { stringResource(R.string.files_detail_filament, it.toInt()) },
+        preview?.layerCount?.let { stringResource(R.string.files_detail_layers, it) },
+    ).joinToString("\n").ifBlank { stringResource(R.string.files_detail_unavailable) }
 
 private fun formatBytes(bytes: Long): String = when {
     bytes >= 1024L * 1024L -> "${bytes / (1024L * 1024L)} MB"

@@ -342,6 +342,7 @@ private fun ColumnScope.MacroParamEntryField(
     onExecuted: () -> Unit,
 ) {
     val t = LocalTokens.current
+    val context = LocalContext.current
     val busyKey = "macro_${macro.name}"
     val inFlight by (dispatcher?.inFlight ?: remember { MutableStateFlow(emptySet<String>()) })
         .collectAsStateWithLifecycle()
@@ -384,7 +385,8 @@ private fun ColumnScope.MacroParamEntryField(
                 params.map { p -> Triple(p.name, values[p.name].orEmpty(), p.isNumeric) },
             )
         } catch (e: MacroParamRejected) {
-            toast = "${macro.name} was rejected: ${e.reason}"
+            // WR-03: resolved via context.getString — execute() is not a composable context.
+            toast = context.getString(R.string.macros_rejected, macro.name, e.reason)
             return
         }
         dispatcher?.dispatch(
