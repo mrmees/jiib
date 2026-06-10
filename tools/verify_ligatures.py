@@ -65,7 +65,7 @@ NEEDED = {
     "arrow_back", "check", "edit", "instant_mix", "height", "altitude", "layers", "scale",
     "storefront", "timer_arrow_down", "timer_arrow_up", "donut_large", "pause_circle",
     "inventory_2", "palette", "calendar_add_on", "check_circle", "archive", "print_connect",
-    "thermostat", "open_with", "output_circle", "tune", "database", "bolt", "terminal",
+    "thermostat", "open_with", "output_circle", "tune", "bolt", "terminal",
     "more_horiz", "speed", "keyboard_return", "arrow_shape_up_stack_2", "sprint",
     "directions_boat", "rounded_corner", "avg_time", "input_circle",
     # D-08 conversion targets (drawables flipping to ligatures in later 18.1 waves)
