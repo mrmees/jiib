@@ -697,7 +697,7 @@ private fun FilesListRow(
                         text = formatDate(it),
                         color = t.text3,
                         fontFamily = GeistMono,
-                        fontSize = fsSp(13f, t.fs).sp,
+                        fontSize = fsSp(15f, t.fs).sp, // metadata floor 15sp ([[dinghy-font-sizes-too-small]])
                         maxLines = 1,
                     )
                 }
