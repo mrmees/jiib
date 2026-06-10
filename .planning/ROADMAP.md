@@ -1210,7 +1210,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row, stub-first scaffold (D-11/D-14)
+- [x] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row, stub-first scaffold (D-11/D-14)
 
 **Wave 4** *(blocked on Wave 3)*
 
