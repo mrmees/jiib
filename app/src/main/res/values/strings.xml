@@ -330,10 +330,6 @@
     <string name="files_confirm_delete_message">Removes this file from Moonraker. This cannot be undone.</string>
     <string name="files_confirm_delete_confirm">Delete file</string>
     <string name="files_confirm_delete_cancel">Keep file</string>
-    <!-- Emergency-stop guard -->
-    <string name="files_estop_guard_title">Emergency stop?</string>
-    <string name="files_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
-    <string name="files_estop_guard_confirm">Emergency stop</string>
     <!-- SpoolWarningGuard labels -->
     <string name="files_spool_warning_subtitle">Spool check found something to review:</string>
     <string name="files_spool_warning_pick_spool">Pick spool</string>

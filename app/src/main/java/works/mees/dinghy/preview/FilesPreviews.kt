@@ -106,7 +106,6 @@ val filesNothingSelected: FilesScreenState = FilesScreenState(
     selectedPreview = null,
     sortAscending = false,
     httpBase = "",
-    isPrinting = false,
 )
 
 /** File selected with preview metadata loaded — the dense detail card. */
@@ -116,11 +115,7 @@ val filesFileSelected: FilesScreenState = FilesScreenState(
     selectedPreview = fakeSelectedPreview,
     sortAscending = false,
     httpBase = "",
-    isPrinting = false,
 )
-
-/** File selected + isPrinting = true — FloatingEStop visible in TopStart of Focus. */
-val filesFileSelectedPrinting: FilesScreenState = filesFileSelected.copy(isPrinting = true)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Selection-axis matrix (Colorful/dark — portrait + landscape via @Nexus7Previews)
@@ -141,14 +136,6 @@ private fun FilesNothingSelected() =
 @Composable
 private fun FilesFileSelected() =
     PreviewBox(colorfulDark) { FilesScreen(state = filesFileSelected) }
-
-/**
- * File selected + printing — [FloatingEStop] visible in Focus TopStart corner.
- */
-@Nexus7Previews
-@Composable
-private fun FilesFileSelectedPrinting() =
-    PreviewBox(colorfulDark) { FilesScreen(state = filesFileSelectedPrinting) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Full 6-theme matrix (one representative state — fileSelected)

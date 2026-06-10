@@ -49,7 +49,6 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.DetailCard
 import works.mees.dinghy.designsystem.MaterialSymbol
-import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -69,7 +68,6 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.state.FileBrowserRow
 import works.mees.dinghy.state.FileBrowserRowKind
 import works.mees.dinghy.state.FilePreviewMetadata
-import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.Geist
@@ -94,7 +92,6 @@ import works.mees.dinghy.ui.spool.evaluatePrintStartGate
  * @param sortAscending   current age/date sort direction (true = oldest first, false = newest first).
  * @param loading         whether the file list is loading.
  * @param error           error message to surface, or null when clean.
- * @param isPrinting      whether a print is active — drives [FloatingEStop] visibility.
  * @param httpBase        the Moonraker base URL for thumbnail resolution (blank in previews).
  */
 data class FilesScreenState(
@@ -104,7 +101,6 @@ data class FilesScreenState(
     val sortAscending: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null,
-    val isPrinting: Boolean = false,
     val httpBase: String = "",
 )
 
@@ -113,8 +109,8 @@ data class FilesScreenState(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Live [FilesScreen] overload: collects [FileBrowserHolder.state], derives [isPrinting] from
- * [printerState], and delegates rendering to the stateless [FilesScreen] + [FilesContent] seam.
+ * Live [FilesScreen] overload: collects [FileBrowserHolder.state] and delegates rendering to the
+ * stateless [FilesScreen] + [FilesContent] seam.
  *
  * The D-15 delete-scoping predicate, the SpoolWarningGuard, and both ConfirmGuards are ALL
  * implemented here — they involve live guards and are therefore in the live overload (they are
@@ -187,9 +183,6 @@ fun FilesScreen(
             emptyList()
         }
 
-    val isPrinting = printerState.printState == PrintState.Printing ||
-        printerState.printState == PrintState.Paused
-
     // D-15: delete is scoped to the ACTIVE print file, not idle-only. Host-tested via
     // FilesDeleteGateTest — the predicate must not regress.
     val deleteEnabled = deleteAllowed(
@@ -220,7 +213,6 @@ fun FilesScreen(
         sortAscending = sortAscending,
         loading = holderState.loading,
         error = holderState.error,
-        isPrinting = isPrinting,
         httpBase = httpBase,
     )
 
@@ -236,7 +228,6 @@ fun FilesScreen(
             onBack = onBack,
             onStartPrint = { guard = FileGuard.Start },
             onDelete = { guard = FileGuard.Delete },
-            onEmergencyStop = { guard = FileGuard.EStop },
         )
 
         when (guard) {
@@ -297,17 +288,6 @@ fun FilesScreen(
                     destructive = true,
                 )
             }
-            FileGuard.EStop -> {
-                ConfirmGuard(
-                    title = stringResource(R.string.files_estop_guard_title),
-                    message = stringResource(R.string.files_estop_guard_message),
-                    confirmLabel = stringResource(R.string.files_estop_guard_confirm),
-                    cancelLabel = stringResource(R.string.common_cancel),
-                    onConfirm = { guard = null },
-                    onCancel = { guard = null },
-                    destructive = true,
-                )
-            }
             null -> Unit
         }
     }
@@ -329,7 +309,6 @@ fun FilesScreen(
     onPrint: () -> Unit = {},
     onDelete: () -> Unit = {},
     onToggleSort: () -> Unit = {},
-    onEmergencyStop: () -> Unit = {},
 ) {
     Box(modifier.fillMaxSize()) {
         FilesContent(
@@ -341,7 +320,6 @@ fun FilesScreen(
             onBack = onBack,
             onStartPrint = onPrint,
             onDelete = onDelete,
-            onEmergencyStop = onEmergencyStop,
         )
     }
 }
@@ -360,7 +338,6 @@ private fun FilesContent(
     onBack: () -> Unit,
     onStartPrint: () -> Unit,
     onDelete: () -> Unit,
-    onEmergencyStop: () -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // U derived once at screen root from the short edge (portrait width == landscape height).
@@ -380,27 +357,18 @@ private fun FilesContent(
         ScreenScaffold(
             focus = {
                 // Focus = image-backed DetailCard of the selected file showing FUTURE-PRINT fields.
-                // FloatingEStop is a Box sibling over the DetailCard (printing-only, TopStart).
-                Box(
-                    Modifier
+                // NOTE: no screen-local FloatingEStop here — since Phase 24 (FIX-1) AppShell overlays
+                // the app-level printing-only e-stop on EVERY destination (CR-01: the local copy was a
+                // dead duplicate whose confirm dispatched nothing).
+                DetailCard(
+                    modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    DetailCard(modifier = Modifier.fillMaxSize()) {
-                        FilesDetailContent(
-                            state = state,
-                            t = t,
-                        )
-                    }
-                    // FloatingEStop: Box sibling, printing-only (Pitfall 7 from SpoolScreen pattern).
-                    FloatingEStop(
-                        visible = state.isPrinting,
-                        onClick = onEmergencyStop,
-                        uDp = grid.uDp,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(14.dp),
+                    FilesDetailContent(
+                        state = state,
+                        t = t,
                     )
                 }
                 // D-06: single age/date sort row (no filter; no name/size sort).
@@ -862,7 +830,7 @@ private fun SpoolWarningGuard(
 // Internal guards enum
 // ─────────────────────────────────────────────────────────────────────────────
 
-private enum class FileGuard { Start, Delete, EStop }
+private enum class FileGuard { Start, Delete }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility helpers
