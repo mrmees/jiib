@@ -1134,7 +1134,15 @@ Plans:
   4. A floating e-stop appears on every screen ONLY when printing, top-left of the Focus
   5. The System page is reachable and hosts Power + the device/system settings entry points; PrintStatus-as-root introduces no print-monitoring regression (host tests green, on-device smoke)
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
+- [ ] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
+- [ ] 24-03-PLAN.md — Wave 1: AppShell when(dest)→NavHost migration (holder hoist, overlays, swipe/webcam/BackHandler reseat, D-04 pop-to-root, ShellNavState slim, FIX-4 land-on-root regression)
+- [ ] 24-04-PLAN.md — Wave 2: morphing root (Crossfade morph + data-driven idle HomeAction list + Preheat/System foot bar + FloatingEStop)
+- [ ] 24-05-PLAN.md — Wave 3: on-device flox UAT gate (morph budget, e-stop, both orientations, System→drawer, no-monitoring-regression)
+
 **UI hint**: yes
 **Research note**: STANDARD — Navigation-Compose adoption (deferred until now per CLAUDE.md); the waterfall morph + e-stop are locked in the sketch-findings skill.
 
