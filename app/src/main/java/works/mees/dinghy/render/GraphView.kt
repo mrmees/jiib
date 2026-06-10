@@ -187,6 +187,53 @@ class GraphView(context: Context) : View(context), ThemeableView {
     private var lastTokens: ThemeTokens? = null
 
     /**
+     * Per-trace chosen color overrides (D-14): index-aligned with the series passed to [setData].
+     * A `null` entry means "fall back to [seriesColor][ThemeTokens.seriesColor](i)" for that trace.
+     * Applied on top of the token-derived defaults in [applyTokens] and recomputed in
+     * [setTraceColorOverrides]. Stored for the "override-wins after token change" recompute.
+     */
+    private var lastOverrides: List<Int?> = emptyList()
+
+    /**
+     * Set per-trace drawn colors (D-14 — the graph draws the CHOSEN color). Equality-guarded:
+     * returns early when [overrides] is structurally equal to the last-applied list (preserves
+     * the Phase-22 D-12 factory-runs-once / push-equals-skip discipline). On change, recomputes
+     * each `linePaints[i].color` = override ?: `seriesColor(i)` (override-wins over the token
+     * default) and `invalidate()`s. The setpoint dashes already read `linePaints[t].color` at
+     * draw time (GraphView.kt:350), so they inherit the override for free.
+     *
+     * The [overrides] list is index-aligned with the visible-trace series pushed via [setData]
+     * (the screen builds ONE aligned model filtering series + setpoints + colors together so that
+     * `overrides[i]` belongs to the same sensor as `series[i]` — finding 4 / D-14 alignment rule).
+     *
+     * @param overrides ARGB Int per trace (index-aligned with [setData] series); `null` → token default.
+     */
+    fun setTraceColorOverrides(overrides: List<Int?>) {
+        // Equality guard — same structure: no paint churn, no invalidate (Phase-22 D-12 discipline).
+        if (overrides == lastOverrides) return
+        lastOverrides = overrides
+        reapplyOverrides()
+        invalidate()
+    }
+
+    /**
+     * Recompute each `linePaints[i].color` applying the current [lastOverrides] on top of the
+     * token-derived `seriesColor(i)` default. Called from both [applyTokens] (tokens changed, need
+     * to re-layer overrides) and [setTraceColorOverrides] (overrides changed). The fill paint's color
+     * is also recomputed from whatever index 0's final color is.
+     */
+    private fun reapplyOverrides() {
+        val t = lastTokens ?: return // no tokens yet — will be re-called when tokens first arrive
+        for (i in 0 until MAX_TRACES) {
+            val override = lastOverrides.getOrNull(i)
+            linePaints[i].color = override ?: t.seriesColor(i).toArgb()
+        }
+        // Translucent fill under the primary trace — use index 0's final (possibly overridden) color.
+        fillPaint.color = linePaints[0].color
+        fillPaint.alpha = FILL_ALPHA
+    }
+
+    /**
      * Push the active tokens (D-05/D-06): recolor each pre-allocated trace paint from the accent-led
      * N-series rule [seriesColor][ThemeTokens.seriesColor] and repaint. No raw color literal — trace `i`
      * reads `t.seriesColor(i)`, so trace 0 (the primary/nozzle channel) is ACCENT in every palette mode,
@@ -203,16 +250,22 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * D-12 guard: returns early (no paint update, no `invalidate()`) when [t] is structurally equal to
      * the last-applied tokens — `ThemeTokens` is an `@Immutable data class` whose generated `equals()`
      * covers EVERY field including `pool: List<Color>`, so the guard is correct.
+     *
+     * D-14 override-wins: after updating token-derived defaults, [reapplyOverrides] re-layers any
+     * active [lastOverrides] on top, so a theme swap does not reset user-chosen trace colors.
      */
     override fun applyTokens(t: ThemeTokens) {
         if (t == lastTokens) return
         lastTokens = t
+        // Set token-derived defaults first, then re-layer any active overrides on top (D-14).
         for (i in 0 until MAX_TRACES) {
             linePaints[i].color = t.seriesColor(i).toArgb()
         }
-        // Translucent fill under the primary trace — seriesColor(0) (accent) at a low alpha (cheap single fill, Pitfall 4).
         fillPaint.color = t.seriesColor(0).toArgb()
         fillPaint.alpha = FILL_ALPHA
+        // D-14: re-apply any active per-trace color overrides OVER the just-set token defaults.
+        // reapplyOverrides() re-reads lastTokens (now updated above) and lastOverrides.
+        reapplyOverrides()
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
         labelPaint.textSize = fsSp(LABEL_BASE_SP, t.fs) * density // match the --fs-scaled button text size
         invalidate()
