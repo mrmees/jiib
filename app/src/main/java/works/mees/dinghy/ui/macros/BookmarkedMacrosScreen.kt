@@ -16,8 +16,10 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
@@ -184,6 +187,33 @@ private fun MacrosContent(
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+
+        // WR-02: dispatch-failure feedback is collected at SCREEN level — execute() flips fieldMode
+        // back to Launcher in the same frame as the dispatch, so a printer-side rejection (e.g. a
+        // MACRO_NUMERIC_RANGE violation) arrives AFTER MacroParamEntryField has left composition.
+        // `dispatcher.events` is a hot flow with no replay; a collector inside the param surface
+        // would never see it. Keyed on the `macro_` busy-key prefix (PRIM-05).
+        val context = LocalContext.current
+        var failureToast by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(dispatcher) {
+            dispatcher?.events?.collect { event ->
+                if (event is DispatchEvent.Failure && event.key.startsWith("macro_")) {
+                    failureToast = context.getString(
+                        R.string.macros_rejected,
+                        event.key.removePrefix("macro_"),
+                        event.message,
+                    )
+                }
+            }
+        }
+        // Auto-dismiss so the overlay never permanently covers the FootButtonBar.
+        LaunchedEffect(failureToast) {
+            if (failureToast != null) {
+                delay(6_000)
+                failureToast = null
+            }
+        }
+
         ScreenScaffold(
             focus = null,
             field = {
@@ -214,6 +244,18 @@ private fun MacrosContent(
             },
             gutter = null,
         )
+
+        // Screen-level failure toast (WR-02) — survives the ParamEntry → Launcher mode flip.
+        failureToast?.let { msg ->
+            SeverityToast(
+                Severity.Error,
+                msg,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+        }
     }
 }
 
@@ -325,20 +367,14 @@ private fun ColumnScope.MacroParamEntryField(
         mutableStateMapOf(*params.map { it.name to (it.default ?: "") }.toTypedArray())
     }
 
-    // Toast message for local rejection (forbidden char) or dispatcher failure (printer rejection).
+    // Toast message for LOCAL rejection (forbidden char — synchronous, so this surface is still
+    // composed when it fires). Printer-side DispatchEvent.Failure rejections are collected at the
+    // SCREEN level in [MacrosContent] (WR-02): execute() leaves this surface in the same frame as
+    // the dispatch, so a collector here would never see the (no-replay) failure event.
     var toast by remember(macro.name) { mutableStateOf<String?>(null) }
 
     // Which numeric param (if any) has its NumpadPage sub-page open — null = show the param list.
     var numpadParam by remember(macro.name) { mutableStateOf<MacroParam?>(null) }
-
-    // Collect DispatchEvent.Failure for our busy key → toast (PRIM-05 / T-25-05-01).
-    LaunchedEffect(dispatcher, macro.name) {
-        dispatcher?.events?.collect { event ->
-            if (event is DispatchEvent.Failure && event.key == busyKey) {
-                toast = "${macro.name} was rejected: ${event.message}"
-            }
-        }
-    }
 
     fun execute() {
         val gcode = try {
