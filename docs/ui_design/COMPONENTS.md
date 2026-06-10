@@ -311,7 +311,28 @@ attempt to restyle them in any earlier phase.
 
 ---
 
-## 8. Scope and evolution
+## 8. Class-equivalent (Views) exceptions
+
+Not every `ListRow`-styled surface can be implemented as a Compose `ListBlock`/`ListRow`. When the
+Phase-25 spike (25-SPIKE.md) demonstrates that a Compose `LazyColumn` produces an unacceptable p90
+regression on Adreno 320 under real workload, the surface is retained as a Views RecyclerView and
+visually conformed to the kit via adapter-level token routing instead.
+
+These surfaces use identical **visual** styling (token colors, `fsSp` sizes, `GeistMono` font,
+spacing) but their implementation is a `ConsoleListView`/`AndroidView`-wrapped RecyclerView, not a
+`ListBlock`. They are documented here so they do not count as conformance violations.
+
+| Surface | Screen | Implementation | Spike result | Retained since |
+|---------|--------|----------------|--------------|----------------|
+| Console scrollback | `ConsoleScreen` | `ConsoleListView` (RecyclerView, `stackFromEnd`, `isSingleAppend`/`isAppendEvict` incremental paths) | 25-01: Compose p90 73.35 ms vs Views 9.26 ms (~8× regression under live churn on Adreno 320) | Phase 25 / 25-04 |
+
+**Rule:** any new surface added to this table requires a measured spike verdict (gfxinfo on flox,
+ADR-0001 Addendum-2 gate) justifying the Views retention. A Views surface retained WITHOUT a
+spike result is a conformance violation, not an exception.
+
+---
+
+## 9. Scope and evolution
 
 This catalog is **extracted from real screens and refined as screens migrate**. When a new screen
 migration in Phases 23–29 requires a class not yet listed here, add it — extract the class from

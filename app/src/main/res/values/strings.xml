@@ -343,6 +343,10 @@
     <string name="cd_console_hide_temps">Hide temperature messages</string>
     <string name="cd_console_hide_timelapse">Hide timelapse messages</string>
     <string name="cd_console_hide_prompts">Hide macro prompt messages</string>
+    <!-- Console screen labels (25-04) -->
+    <string name="console_empty_title">Console is quiet</string>
+    <string name="console_empty_body">Printer responses appear here. Run a command or macro and the reply shows up live.</string>
+    <string name="console_backfill_failed">History unavailable. Check the printer connection — live responses will still appear.</string>
     <!-- Macros screen actions -->
     <string name="cd_macros_leader">Macros</string>
     <string name="cd_macros_manage">Manage macros</string>
