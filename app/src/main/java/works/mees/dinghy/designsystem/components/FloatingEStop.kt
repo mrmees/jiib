@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -44,7 +45,9 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
  * @param onClick  invoked on tap — callers should present a [works.mees.dinghy.designsystem.ConfirmGuard]
  *                 before issuing the actual EMERGENCY_STOP gcode.
  * @param uDp      one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
- *                 the button is sized to `uDp * 0.7f` (icon tile at ~70% of U).
+ *                 the button is sized to `(uDp * 0.7f).coerceAtLeast(64.dp)` (~70% of U with a
+ *                 64dp touch-target floor so the box never drops below the ≥64dp minimum and
+ *                 stays a square on tablet-sized U values).
  * @param modifier caller-supplied modifier — typically `Modifier.align(Alignment.TopStart).padding(14.dp)`;
  *                 the component does NOT impose absolute offsets itself (Pitfall 7).
  */
@@ -60,7 +63,7 @@ fun FloatingEStop(
     OutlinedControl(
         label = "",
         onClick = onClick,
-        modifier = modifier.size(uDp * 0.7f),
+        modifier = modifier.size((uDp * 0.7f).coerceAtLeast(64.dp)),
         intent = Intent.Danger,
         // Registered e-stop glyph — disabled_by_default (owner-assigned in DinghyIcons.StatusStop).
         // NOT emergency_stop (that raw string is never used — icon law; 23-05 plan §Task 2).

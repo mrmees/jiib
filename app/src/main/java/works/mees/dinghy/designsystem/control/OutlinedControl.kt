@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.MaterialSymbol
@@ -113,8 +114,12 @@ fun OutlinedControl(
     ) {
         if (symbol != null && label.isBlank()) {
             // Icon-only control (a blank label + a symbol) — the glyph IS the affordance, so it fills the
-            // cell: ~78% of the 64dp touch-floor (NOT --fs-scaled, since the cell height is a fixed dp).
-            MaterialSymbol(name = symbol, tint = t.text, sizeSp = 50f)
+            // cell at a FONT-SCALE-STABLE dp-equivalent size (~50dp regardless of system font scale).
+            // Dividing by fontScale converts the sp value to a fixed-dp equivalent: at fontScale 1.0 the
+            // rendering is byte-identical to the old 50sp; at fontScale >1 (e.g. 1.3 on Accessibility) the
+            // glyph no longer balloons past the 2px border. UAT-driven fix: the FloatingEStop glyph
+            // overflowed its 0.7U border on flox at large system font scale (24-05 UAT).
+            MaterialSymbol(name = symbol, tint = t.text, sizeSp = 50f / LocalDensity.current.fontScale)
         } else if (symbol != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
