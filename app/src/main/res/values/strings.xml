@@ -299,9 +299,46 @@
     <!-- contentDescriptions for the newly-registered browse-screen icon tokens (D-20 / D-21).
          Screen-label strings (titles, section headers, list captions) are appended by each
          Wave-2 screen plan (25-03/04/05). Only the shared icon cd_* strings live here. -->
-    <!-- Files actions -->
+    <!-- Files actions (cd_* = content-description / TalkBack; never visible text) -->
     <string name="cd_files_print">Start print</string>
     <string name="cd_files_delete">Delete file</string>
+    <string name="cd_files_sort_date">Sort by date</string>
+
+    <!-- Files screen visible labels (25-03 rebuild) -->
+    <!-- Foot bar -->
+    <string name="files_foot_print">Print</string>
+    <string name="files_foot_delete">Delete</string>
+    <!-- List states -->
+    <string name="files_loading">Loading files…</string>
+    <string name="files_empty">No printable gcode files. Add files in Moonraker, then reopen Files.</string>
+    <string name="files_error_load">Could not load files.</string>
+    <!-- Detail card stat labels -->
+    <string name="files_stat_est_time">Est</string>
+    <string name="files_stat_filament">Filament</string>
+    <string name="files_stat_layers">Layers</string>
+    <string name="files_stat_height">Height</string>
+    <string name="files_stat_size">Size</string>
+    <string name="files_stat_modified">Modified</string>
+    <string name="files_stat_preview">Preview</string>
+    <string name="files_stat_preview_loading">loading…</string>
+    <!-- Start-print confirm guard -->
+    <string name="files_confirm_print_title">Print %1$s?</string>
+    <string name="files_confirm_print_confirm">Print file</string>
+    <string name="files_confirm_print_cancel">Keep browsing</string>
+    <!-- Delete confirm guard -->
+    <string name="files_confirm_delete_title">Delete %1$s?</string>
+    <string name="files_confirm_delete_message">Removes this file from Moonraker. This cannot be undone.</string>
+    <string name="files_confirm_delete_confirm">Delete file</string>
+    <string name="files_confirm_delete_cancel">Keep file</string>
+    <!-- Emergency-stop guard -->
+    <string name="files_estop_guard_title">Emergency stop?</string>
+    <string name="files_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
+    <string name="files_estop_guard_confirm">Emergency stop</string>
+    <!-- SpoolWarningGuard labels -->
+    <string name="files_spool_warning_subtitle">Spool check found something to review:</string>
+    <string name="files_spool_warning_pick_spool">Pick spool</string>
+    <string name="files_spool_warning_scan">Scan</string>
+    <string name="files_spool_warning_print_anyway">Print anyway</string>
     <!-- Console filter toggle glyphs (the icon shown when that message type is hidden) -->
     <string name="cd_console_hide_temps">Hide temperature messages</string>
     <string name="cd_console_hide_timelapse">Hide timelapse messages</string>
