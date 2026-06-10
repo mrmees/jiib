@@ -3,8 +3,14 @@
 **What this is:** a whole-repo, top-down audit of Dinghy Display against four goals —
 cross-device compatibility, runtime efficiency, open-source maintainability, and
 future-friendliness — plus the design for the build-time gcode **command map**. It ends with a
-sequenced set of work packages (R1–R8), each sized for one CLI session and written so it can be
+sequenced set of work packages (R1–R9), each sized for one CLI session and written so it can be
 fed to `/gsd-execute-phase` (or quoted directly at the CLI) as-is.
+
+*Amended 2026-06-10:* added **R9 (memory/docs delint)** from the follow-up corpus audit, and
+folded the adoptable items from external ChatGPT/Gemini review input into R5/R6 (lint baseline
+discipline, StrictMode, token-purity rule, scoped context-hygiene CI). Everything else in that
+input was either already implemented (cadence throttling, R8, semantic tokens), already found by
+this audit (ABI), or rejected (doc fan-out, toolpath advice — see "do NOT do").
 
 **How it was produced:** five parallel static deep-dives over the full source tree (385 Kotlin
 files), cross-checked against `docs/request-cadence-contract.md`, `docs/ui_design/*`, the
@@ -235,13 +241,23 @@ unless noted.
    pseudolocale check, **the comment-convention decoder** (`D-##` = design decision, `SC-##` =
    scaffold concern, `Phase ##` → `.planning/phases/`), test expectations.
 5. `.github/workflows/ci.yml`: ubuntu-latest, JDK 17, `./gradlew :app:testDebugUnitTest
-   :app:assembleDebug` on push/PR; lint job under JDK 17 toolchain (M6), non-blocking at first.
+   :app:assembleDebug` on push/PR.
+6. Lint, baselined (M6): run lint under a **JDK 17 toolchain** (the AGP-8.7 UAST crash is
+   JDK-21-specific), generate `lint-baseline.xml`, then flip `abortOnError = true` +
+   `checkReleaseBuilds = true` with the baseline in place. House rule: **the baseline may only
+   shrink, never grow** — CI fails on any new violation.
+7. `StrictMode` (detect-all + penaltyLog) in `DinghyApp` for debug builds only — the main thread
+   is currently clean (efficiency audit); this keeps it that way for free.
 - **Acceptance:** fresh clone on a clean Linux machine: `./gradlew assembleDebug` succeeds with
-  no instructions beyond the README; CI green on the PR that adds it.
+  no instructions beyond the README; CI green on the PR that adds it; lint baseline checked in
+  and enforced.
 
 ### R6 — Preview & string backfill *(mechanical; parallelizable across sessions; = Phase-22 SC items)*
 - 18 missing `*Previews.kt` files from the exemplar template (6 theme combos + fs=L per screen);
   extract the 16 remaining string literals; run the `en-XA` pseudolocale sweep on device to close.
+- Optional enforcement: a custom detekt/lint rule flagging raw `Color(0x…)`/hex literals and raw
+  `.sp` values not routed through `fsSp()` inside `ui/` — turns the manual Phase-15.2
+  token-conformance audit (`15.2-AUDIT.md`) into a self-enforcing gate.
 - **Acceptance:** every screen has its matrix; pseudolocale build shows zero plain-English chrome.
 
 ### R7 — Network posture
@@ -261,6 +277,52 @@ unless noted.
 - **One-time check:** 16KB page behavior on a Pixel-9-class device once arm64 ships.
 - Low advisory: console eviction `subList.clear()` swap whenever that file is next touched.
 
+### R9 — Memory/docs delint *(from the 2026-06-10 corpus audit: ~660 files → ~10 misleading, ~15 obsolete, ~200 scaffolding, ~85 load-bearing, rest harmless archive)*
+
+1. **Correctness edits (~10 files, do first — these lie to future sessions):**
+   - `research/STACK.md`: compileSdk 35 → 36 sweep (the file root CLAUDE.md's stack section was
+     copied from; they have drifted since Phase 21).
+   - Root `CLAUDE.md`: the leftover "compileSdk-35 line" phrase in *What NOT to Use*; replace
+     "Architecture not yet mapped" with pointers to `research/ARCHITECTURE.md` + ADR-0001; soften
+     the "Baseline Profile = NO-OP" framing — true for stock API 23, but flox runs LineageOS
+     API 30 where profiles DO apply (this also raises the priority of the
+     `macrobenchmark-module-wiring` todo).
+   - `.planning/PROJECT.md`: fix the wrong-generation "Tegra 3 / 1280×800" device paragraph
+     (flagged by Phase-1 CONTEXT, never corrected) and the pre-jiib-rebrand intro.
+   - `.planning/REQUIREMENTS.md`: Phase-19 description still says "TBD" — it shipped 2026-06-08.
+   - Mark UI-SPECs 07–16 `status: superseded / superseded_by: docs/ui_design/` (04's already is;
+     verified nothing in any of the 8 isn't covered by `docs/ui_design/`).
+   - Add `notify_active_spool_set` + `notify_spoolman_status_changed` to
+     `docs/commands/moonraker-api.md` and the `request-cadence-contract.md` table (Phase 11
+     wired the parsers; the catalogs were never updated).
+2. **Todo re-triage:** close `webcam-screen-crash` (fixed in Phase 21, commit `49f3fe2`) and
+   `webcam-tile-gating-verification` (Phase-21 UAT SC7 PASS); archive the 4 stale untargeted
+   todos (`status-progress-ring-dual-source-jump`, `console-macro-page-ux-flow`,
+   `benchmark-harness-fairness-fixes`, `shellpresencetest-device-determinism`); re-target the 5
+   items that slipped past their phase (`files-delete-gating-too-broad` open since Phase 7) into
+   Phase 22 or the R-packages. Adopt the rule: **re-triage `todos/pending/` at every phase close.**
+3. **Single-sourcing + metadata headers:** assign one owner per fact — root CLAUDE.md owns
+   stack + constraints; REQUIREMENTS.md owns core value + requirements; STATE.md owns status;
+   ROADMAP.md owns phases — and delete the duplicated Constraints/Core-Value sections from
+   PROJECT.md (currently stated in triplicate; the compileSdk drift proves the mechanism). Add a
+   `Last verified: YYYY-MM-DD / Status: active|historical` header to the ~15 active memory files;
+   mark all 5 `research/*` files historical instead of editing their content.
+4. **Bulk archive (optional):** delete the ~26 DISCUSSION-LOG files (each self-declares "audit
+   trail only, do not use as input"); move shipped-phase CONTEXT/VALIDATION/VERIFICATION/REVIEW
+   files to `.planning/archive/`, keeping PLAN/SUMMARY pairs in place. **Protected list — never
+   move or delete:** `phases/01/captures/*` (cited by ADR-0001), `phases/13/captures/*` (cited by
+   the cadence contract), `15.2-AUDIT.md` (cited by THEMING.md — update that link if anything
+   moves), PATTERNS 02/03/18 (foundational), all `docs/commands/spoolman-live-*.json` + e3/e5
+   `.jsonl` (consumed by the test suite via `FakeSpoolmanClient`), and PLAN/SUMMARY pairs (code
+   comments reference task IDs like "13-05 Task 3").
+5. **Hygiene guardrail in CI (scoped):** a stale-phrase grep + `markdown-link-check` for dead
+   internal references, run ONLY against the active context set (root CLAUDE.md, `docs/*.md`,
+   the four `.planning/` root files) — **never** against `.planning/phases/`, where historical
+   vocabulary ("superseded", "deferred", "old approach") is correct and would false-positive.
+- **Acceptance:** zero contradictions among active memory files; every active file carries a
+  current `Last verified` header; the 2 done todos closed and 4 stale ones archived; hygiene
+  check green in CI.
+
 ### Explicit "do NOT do" list (decisions, recorded so future sessions don't relitigate)
 - No Material `WindowSizeClass` — continuous `BoxWithConstraints` is working and finer-grained.
 - No Hilt, no Navigation-Compose, no module split — the manual graph and `TopRoute.derive()` are
@@ -268,3 +330,8 @@ unless noted.
 - No changes to the cadence layer, the subscribe set, or the render hot paths without a
   measured regression on the Nexus 7.
 - No runtime gcode remap UI (R4 is build-time by decision); no WebRTC; no Play-services deps.
+- No new top-level context-doc fan-out (PROJECT_BRIEF.md, DEVICE_TARGETS.md,
+  PERFORMANCE_BUDGETS.md, …): the corpus audit diagnosed *triplicated* facts as the main drift
+  disease — consolidate into fewer canonical files (R9 step 3), never more.
+- No model-driven PR-review bot in CI; the deterministic gates (tests, lint baseline,
+  token-purity rule, hygiene check) cover it for a solo-maintainer repo.
