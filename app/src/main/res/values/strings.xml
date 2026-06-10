@@ -208,8 +208,10 @@
         <item quantity="other">%1$d spools</item>
     </plurals>
 
-    <!-- ============================ outputs (Phase 19) ============================ -->
+    <!-- ============================ outputs (Phase 19 / 26-05) ============================ -->
     <string name="outputs_title">Outputs</string>
+    <!-- Detail-in-Focus empty-state prompt (D-18): shown in the Focus when no output is selected. -->
+    <string name="outputs_select_prompt">Select an output</string>
     <!-- contentDescription for a per-output family glyph (icon law D-01..D-06). -->
     <string name="cd_output_glyph">Output</string>
     <!-- contentDescription for the LED color swatch chip (THEME-01 data-color carve-out). -->
