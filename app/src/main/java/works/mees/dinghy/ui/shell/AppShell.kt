@@ -307,6 +307,10 @@ fun AppShell(
     val activeSpoolFlow = spine?.activeSpool
         ?: remember { MutableStateFlow<works.mees.dinghy.spool.SpoolmanStatus?>(null) }
     val spoolHolder = remember(store) { SpoolHolder(scope = scope, client = spoolmanClient, activeSpool = activeSpoolFlow) }
+    // Cancel this holder's detached collector when `remember(store)` swaps it on a spine rebuild
+    // (reconnect) — otherwise the discarded holder leaks its collector until the shell leaves
+    // composition, compounding per reconnect (CR-01). Mirrors ConsoleHolder / MacroHolder pattern.
+    DisposableEffect(spoolHolder) { onDispose { spoolHolder.cancel() } }
     // The live active-spool status the Files print-start gate reads (D-01) — the D-10-reconciled truth.
     val activeSpoolStatus by activeSpoolFlow.collectAsStateWithLifecycle()
     // 18.3-04 (D-06.2): the live active-spool DETAIL (color-bearing) for the drawer Spool tile's reactive

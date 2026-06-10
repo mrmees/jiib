@@ -1,6 +1,8 @@
 package works.mees.dinghy.ui.spool
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -185,6 +187,13 @@ class SpoolHolder(
     private val _state = MutableStateFlow(SpoolPickerState(activeStatus = activeSpool.value))
     val state: StateFlow<SpoolPickerState> = _state.asStateFlow()
 
+    // Non-terminating collector runs in a child scope whose SupervisorJob is NOT a child of
+    // [scope]'s Job, so [scope] is never blocked waiting for it. The parent scope's cancellation
+    // propagates via [invokeOnCompletion]; the holder can also be cancelled early via [cancel].
+    // Mirrors the ConsoleHolder / MacroHolder pattern (WR-01 family, CR-01).
+    private val holderJob = SupervisorJob()
+    private val holderScope = CoroutineScope(scope.coroutineContext + holderJob)
+
     /**
      * The ALWAYS-LIVE active-spool DETAIL (18.3-04, D-06.2/D-07). [SpoolPickerState.activeStatus] carries
      * only the active id + connection — NOT a color-bearing record — and the inventory [spools] list only
@@ -197,11 +206,13 @@ class SpoolHolder(
     val activeSpoolDetail: StateFlow<SpoolmanSpool?> = _activeSpoolDetail.asStateFlow()
 
     init {
+        scope.coroutineContext[Job]?.invokeOnCompletion { holderJob.cancel() }
+
         // D-10: mirror the upstream active-spool truth so the picker marks the currently-loaded spool and
         // reconciles an EXTERNAL change (Fluidd/runout-macro) without assuming Dinghy caused it. Read-only.
         // 18.3-04 (D-06.2): ALSO drive the live activeSpoolDetail color source off the active id — a
         // best-effort getSpool(id) so the shell/drawer can tint the Spool tile without a load() call.
-        scope.launch {
+        holderScope.launch {
             activeSpool.collect { status ->
                 _state.update { it.copy(activeStatus = status) }
                 val id = status?.activeSpoolId
@@ -216,6 +227,18 @@ class SpoolHolder(
                 }
             }
         }
+    }
+
+    /**
+     * Cancel the detached collector NOW (CR-01). The host calls this when `remember(store)` swaps this
+     * holder for a new one on a spine rebuild (reconnect): without it, the discarded holder's collector
+     * keeps running the dead session's flow until the whole shell leaves composition, orphaning one
+     * collector per reconnect. Cancelling [holderJob] is idempotent and coexists with the
+     * [scope]-cancellation path ([invokeOnCompletion]) that handles shell teardown.
+     * Mirrors [works.mees.dinghy.ui.console.ConsoleHolder.cancel] exactly.
+     */
+    fun cancel() {
+        holderJob.cancel()
     }
 
     /**
