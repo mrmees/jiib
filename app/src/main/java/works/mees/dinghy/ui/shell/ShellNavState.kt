@@ -2,7 +2,6 @@ package works.mees.dinghy.ui.shell
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -13,46 +12,41 @@ import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 
 /**
- * The shell's NAV state, HOISTED above the [RootController] Splash/Shell switch (G-A1).
+ * The shell's in-screen sub-nav state, HOISTED above the [RootController] Splash/Shell switch.
  *
- * ## Why hoist (the 13-04 UAT bug)
- * A transient recovery flips the top route to [works.mees.dinghy.ui.route.TopRoute.Splash] (klippy not
- * Ready OR — after 13-05 Task 3 — the socket reconnecting), and [RootController] HARD-OVERRIDES the
- * shell for [works.mees.dinghy.ui.screen.SplashScreen], DECOMPOSING [AppShell]. If the nav state lived
- * in an AppShell-local `remember`, it would die with that decompose and re-init to [Dest.PrintStatus]
- * (Home) on return — exactly the "app returns to Home on recovery" side-effect the live UAT caught.
+ * ## Phase 24 migration (plan 24-03)
+ * The top-level destination (`dest`) and the drill-down back-stack (`backStack` / `navigateTo` /
+ * `goBack`) have been REMOVED — Navigation-Compose's [NavHost] now owns the drill-down back-stack.
+ * This class retains only the **in-screen sub-nav** state for the four D-01 holdouts
+ * (Calibration routine, Fine-Tune group, Macros bookmarked-vs-system, Outputs detail) and the
+ * transient overlay flags (scan, spool prefilter).
  *
- * Hoisting the plain `remember` state UP into [RootController] (which stays composed across the
- * Splash/Shell flip) is cleaner than a `SaveableStateHolder` here (Codex-reviewed): [RootController]
- * owns this holder via [rememberShellNavState] and passes it into [AppShell], so the visible [dest],
- * the [backStack], and an in-progress [calibrationRoutine] SURVIVE the Splash blip — the user returns
- * to the screen (and calibration routine page) they were on.
+ * ## Accepted regression (FIX-3 — owner-locked 2026-06-09)
+ * After a recovery Splash the user LANDS ON [NavDest.WaterfallHome] (the morphing root) and each
+ * in-screen sub-nav RESETS to its hub. The NavHost is composition-local inside [AppShell] and
+ * decomposes during the Splash (gate-above in [RootController]), so the drill-down back-stack is
+ * NOT preserved across the recovery. [applyEntryReset] clears the Calibration routine / Fine-Tune
+ * group / Macros sub-nav on the next entry, so in-screen sub-nav also resets. This is the
+ * deliberate, simpler path the owner accepted (replacing the old dest-preservation gate). It is
+ * NOT a bug — executors and verifiers must EXPECT both the land-on-root AND the sub-nav reset.
  *
- * ## Disposition of the sub-nav state (Codex-required enumeration, 13-05 Task 2)
- * - **Hoisted + PRESERVED across the Splash blip:** [dest], [backStack], [calibrationRoutine] — a user
- *   mid-calibration-routine returns to it, not to a blank hub or Home.
- * - **RESET on return from a recovery Splash:** [macroPopupFor] (via [resetTransient]) — a transient
- *   macro Execution popup must NOT survive a reconnect (re-opening a half-state popup is wrong); it is
- *   cleared the moment the shell re-composes after a Splash.
- * - **PRESERVED:** [macroShowSystem] (the System-vs-Bookmarked toggle) — a VIEW PREFERENCE, not
- *   transient state, so it survives the blip like [dest]. (Documented in the 13-05 SUMMARY.)
+ * ## Why hoist (the 13-04 UAT bug — still applies to sub-nav)
+ * A transient recovery flips the top route to [works.mees.dinghy.ui.route.TopRoute.Splash],
+ * DECOMPOSING [AppShell]. If the in-screen sub-nav state lived inside AppShell-local `remember`
+ * blocks it would die with that decompose and re-init (e.g. a user mid-calibration-routine would
+ * return to the hub, not the page they were on). Hoisting here — above [RootController]'s
+ * Splash/Shell switch — keeps the sub-nav state alive across the blip. [resetTransient] clears
+ * only the non-preservable flags on return.
  *
- * [drawerOpen] stays AppShell-local (it is meaningless while the shell is decomposed) — it is NOT
- * hoisted here.
+ * ## startDest seed
+ * [startDest] (the dev-gated `start_dest` deep-jump, 18-04) is STORED here as a nullable field.
+ * [AppShell] reads it ONCE as the NavHost `startDestination` param — it cannot be a
+ * `LaunchedEffect` because that would re-fire on every recompose (RESEARCH Pitfall 2). The seed
+ * is null in release / when the dev gate is off, leaving the NavHost at [NavDest.WaterfallHome].
+ *
+ * [drawerOpen] stays AppShell-local (it is meaningless while the shell is decomposed).
  */
-class ShellNavState(startDest: NavDest? = null) {
-    /**
-     * The visible screen. WaterfallHome is the home/root. [startDest] (the dev-gated `start_dest`
-     * deep-jump, 18-04 SC-4b/D-06) seeds the initial value ONCE at construction — null (release /
-     * gate-off) keeps the [NavDest.WaterfallHome] default. Because the holder is `remember`-ed
-     * (constructed once), the seed cannot re-fire on recompose/recovery; the Splash gate still applies
-     * on top (land-when-Klippy-Ready).
-     */
-    var dest by mutableStateOf(startDest ?: NavDest.WaterfallHome)
-
-    /** CALLER dests (most-recent last). WaterfallHome clears it; Back pops to the caller. */
-    val backStack = mutableStateListOf<NavDest>()
-
+class ShellNavState(val startDest: NavDest? = null) {
     /** Macro sub-nav: System-vs-Bookmarked toggle. A view PREFERENCE — preserved across a Splash blip. */
     var macroShowSystem by mutableStateOf(false)
 
@@ -64,50 +58,38 @@ class ShellNavState(startDest: NavDest? = null) {
 
     /**
      * Fine-Tune sub-nav (17-06, mirrors [calibrationRoutine]): null = the Hub, non-null = that group's
-     * page (Motion / Extrusion / FW-Retraction). A lean LOCAL back-stack WITHIN [Dest.FineTune] — NOT
-     * four top-level Dests. RESET to null on every ENTRY into [Dest.FineTune] (REVIEW #6 — Fine-Tune
-     * always opens the Hub, never a stale group page from a prior visit); see [navigateTo]. Preserved
-     * across a Splash blip like [calibrationRoutine] so a user mid-group returns to it after a recovery.
+     * page (Motion / Extrusion / FW-Retraction). RESET to null on every ENTRY into [NavDest.FineTune]
+     * (REVIEW #6 — Fine-Tune always opens the Hub, never a stale group page from a prior visit).
+     * Applied via [applyEntryReset] called from a [LaunchedEffect] inside the FineTune composable.
+     * Preserved across a Splash blip like [calibrationRoutine].
      */
     var fineTuneGroup by mutableStateOf<FineTuneGroup?>(null)
 
     /**
-     * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open OVER the Spool
-     * screen / active-spool card. TRANSIENT — reset on return from a recovery Splash ([resetTransient]):
-     * a live camera surface must NOT survive a reconnect (the camera was released on decompose; re-opening
-     * a half-state scan is wrong), exactly as a macro Execution popup is cleared.
+     * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open. TRANSIENT
+     * — reset on return from a recovery Splash ([resetTransient]): a live camera surface must NOT
+     * survive a reconnect (the camera was released on decompose).
      */
     var scanActive by mutableStateOf(false)
 
     /**
      * D-04 gcode-aware prefilter seed (11-08): carried from a Files spool-warning "Pick spool" into the
-     * Spool picker so it opens pre-filtered by the selected file's material family + color hint. null = a
-     * plain drawer open (no seed). TRANSIENT — reset on return from a recovery Splash ([resetTransient]):
-     * a stale seed must not survive a reconnect. [SpoolScreen] clears it the moment it applies the seed.
+     * Spool picker. null = a plain drawer open (no seed). TRANSIENT — reset on return from a recovery
+     * Splash ([resetTransient]).
      */
     var spoolPrefilter by mutableStateOf<SpoolPrefilterSeed?>(null)
 
-    fun navigateTo(target: NavDest) {
-        // Re-selecting the CURRENT dest (e.g. tapping its own drawer tile while already inside it) is NOT a
-        // new back entry, so it does not touch [backStack] — but it MUST still run the per-dest entry-reset
-        // so the destination snaps back to its entry surface (the Hub / hub / bookmarked launcher) instead of
-        // a stale sub-page (17-08 / UAT Check 8 / REVIEW #6). Without this, re-entering Fine-Tune from the
-        // drawer while on the Motion sub-page left the stale MotionScreen rendered.
-        if (target == dest) {
-            applyEntryReset(target)
-            return
-        }
-        if (target == NavDest.WaterfallHome) backStack.clear() else backStack.add(dest)
-        applyEntryReset(target)
-        dest = target
-    }
-
     /**
-     * The per-dest ENTRY-RESET side-effects, run on EVERY entry into a destination — both a dest change AND
-     * a same-dest re-selection ([navigateTo]). Each branch clears that destination's sub-nav so re-entering
-     * it always lands on its entry surface, never a stale sub-page (17-08, REVIEW #6).
+     * The per-dest ENTRY-RESET side-effects, run on EVERY entry into a destination — called from a
+     * [LaunchedEffect] inside each affected [NavHost] destination composable. Clears that destination's
+     * sub-nav so re-entering always lands on its entry surface, never a stale sub-page (17-08, REVIEW #6).
+     * This also implements FIX-3: on return from a recovery Splash the NavHost re-enters [NavDest.WaterfallHome],
+     * and each sub-nav resets the NEXT time the user navigates to that destination.
+     *
+     * Visibility is `internal` so [AppShell]'s composable lambdas (same package) can call it from
+     * their `LaunchedEffect(Unit)` blocks.
      */
-    private fun applyEntryReset(target: NavDest) {
+    internal fun applyEntryReset(target: NavDest) {
         // Entering the Macros surface always starts on the Bookmarked launcher with no popup open.
         if (target == NavDest.Macros) {
             macroShowSystem = false
@@ -119,21 +101,17 @@ class ShellNavState(startDest: NavDest? = null) {
         }
         // Entering Fine-Tune always opens the Hub — reset the group sub-nav so a stale group page from a
         // prior visit never shows (REVIEW #6). Fires for BOTH the Print-Status Tune action AND the drawer
-        // tile, since both route through navigateTo(NavDest.FineTune).
+        // tile, since both route through navController.navigate(NavDest.FineTune).
         if (target == NavDest.FineTune) {
             fineTuneGroup = null
         }
     }
 
-    fun goBack() {
-        if (backStack.isNotEmpty()) dest = backStack.removeAt(backStack.lastIndex)
-    }
-
     /**
-     * Clear the TRANSIENT sub-nav state on return from a recovery Splash. Only [macroPopupFor] is
-     * transient (a half-state macro popup must not survive a reconnect); [dest]/[backStack]/
-     * [calibrationRoutine]/[macroShowSystem] are deliberately PRESERVED (G-A1 — the user returns to
-     * their screen).
+     * Clear the TRANSIENT sub-nav state on return from a recovery Splash. Only [macroPopupFor],
+     * [scanActive], and [spoolPrefilter] are transient (half-state overlays must not survive a reconnect);
+     * [calibrationRoutine], [macroShowSystem], and [fineTuneGroup] are deliberately PRESERVED (G-A1 —
+     * the user returns to their sub-nav state, not the hub, after recovery).
      */
     fun resetTransient() {
         macroPopupFor = null
@@ -144,9 +122,9 @@ class ShellNavState(startDest: NavDest? = null) {
 
 /**
  * Remember a [ShellNavState] in the CURRENT composition scope (call from above the Splash/Shell switch).
- * [startDest] (the dev-gated `start_dest` deep-jump, 18-04) seeds [ShellNavState.dest] ONCE — it is read
- * only inside the `remember` initializer, so a later recompose with a changed value does NOT re-seed
- * (intentional: the deep-jump is a one-shot launch seed, never a live re-navigation lever).
+ * [startDest] (the dev-gated `start_dest` deep-jump, 18-04) is stored in [ShellNavState.startDest]
+ * and read ONCE by [AppShell] as the NavHost `startDestination` param — it is not a live re-navigation
+ * lever.
  */
 @Composable
 fun rememberShellNavState(startDest: NavDest? = null): ShellNavState =
