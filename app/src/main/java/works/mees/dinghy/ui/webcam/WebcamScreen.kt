@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,17 +17,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.shape.RoundedCornerShape
+import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.render.Media3SurfaceHost
 import works.mees.dinghy.render.Media3SurfaceProvider
 import works.mees.dinghy.render.WebcamView
@@ -60,8 +63,9 @@ import works.mees.dinghy.theme.fsSp
  * When shown, the cams list with the SELECTED one expanded to show its Moonraker info (name / service /
  * resolution). A single cam never needs the picker (full-focus).
  *
- * ## Gutter — Back ONLY (neutral intent, D-10 back=outline)
- * One full-width Back tile wired `onClick = onBack`, exactly as MoveScreen wires its Back.
+ * ## Back (neutral intent, D-10 back=outline)
+ * A [FootButtonBar] at the foot of the Field hosts the Back [OutlinedControl]. `gutter = null` per the
+ * redesign grammar (D-15 / 25-06): actions live in [FootButtonBar] inside the field, not the gutter.
  *
  * ## Page-visible lifecycle (D-13)
  * A [DisposableEffect] starts the holder's decode/poll/retry driver when this screen enters composition
@@ -96,6 +100,7 @@ fun WebcamScreen(
     }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         val landscapeDevice = maxWidth > maxHeight
         val portraitFeed = isPortraitFeed(vm.selected)
         // camera_feed rule: show the Field (cam picker) only when it makes sense vs device + feed aspect
@@ -117,31 +122,30 @@ fun WebcamScreen(
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             },
-            field = if (showField) {
-                {
+            field = {
+                if (showField) {
                     CamPicker(
                         cams = vm.cams,
                         selected = vm.selected,
                         onSelect = { holder.selectCam(camIdOf(it)) },
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(8.dp),
                     )
                 }
-            } else {
-                null
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                // D-15 / 25-06: Back moved from gutter into FootButtonBar; gutter = null.
+                FootButtonBar(uDp = grid.uDp, modifier = Modifier.padding(8.dp)) {
                     OutlinedControl(
-                        label = "Back",
+                        label = stringResource(R.string.common_back),
                         onClick = onBack,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
+                        icon = DinghyIcons.Back,
                     )
                 }
             },
+            gutter = null, // redesign grammar: actions in FootButtonBar inside field, not gutter (D-15).
         )
     }
 }
@@ -222,7 +226,7 @@ private fun CamPicker(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = cam.name.ifBlank { "(unnamed)" },
+                    text = cam.name.ifBlank { stringResource(R.string.webcam_cam_unnamed) },
                     color = if (isSelected) t.accent2 else t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
@@ -230,7 +234,7 @@ private fun CamPicker(
                 )
                 if (isSelected) {
                     // Expanded Moonraker info for the selected cam (service + resolution/aspect).
-                    val service = cam.service.ifBlank { "unknown service" }
+                    val service = cam.service.ifBlank { stringResource(R.string.webcam_service_unknown) }
                     Text(
                         text = service,
                         color = t.text2,
@@ -239,7 +243,7 @@ private fun CamPicker(
                     )
                     cam.aspectRatio?.takeIf { it.isNotBlank() }?.let { aspect ->
                         Text(
-                            text = "aspect $aspect",
+                            text = stringResource(R.string.webcam_aspect_format, aspect),
                             color = t.text3,
                             fontFamily = GeistMono,
                             fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).

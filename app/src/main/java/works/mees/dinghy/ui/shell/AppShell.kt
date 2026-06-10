@@ -208,9 +208,13 @@ fun AppShell(
     // The live per-session cam enumeration + the persisted connection config (host/port → the D-09
     // URL-resolution base + the per-printer preferred-cam key). An idle fallback keeps the holder
     // constructible while no session/config exists (it simply enumerates no cams → never drives a feed).
+    // WR-02 fix (25-06): read from container.activeConfig (the live Phase-14 source — combines the active
+    // profile's host/port/apiKey) instead of the write-dead connectionStore.config. This was the root cause
+    // of the Phase-15 webcam-screen crash (empty host → invalid URL → IllegalArgumentException); the crash
+    // was gracefully fixed in 49f3fe2 but the stale-source read remained. activeCfg is now nullable
+    // (ConnectionConfig?) — downstream consumers use activeCfg?.host ?: "" for null safety.
     val webcams = spine?.webcams ?: remember { MutableStateFlow(emptyList<works.mees.dinghy.state.Webcam>()) }
-    val cfg by container.connectionStore.config.collectAsStateWithLifecycle(initialValue = null)
-    val activeCfg = cfg ?: ConnectionConfig(host = "")
+    val activeCfg by container.activeConfig.collectAsStateWithLifecycle(initialValue = null)
     // D-06: the per-printer preferred-cam pref keys on the ACTIVE PROFILE ID (not the host) so two
     // same-host profiles keep distinct preferred cams. The feed URLs still resolve off `activeCfg`;
     // only the pref KEY moves to the profile id. Empty string when no active profile (the webcam
@@ -242,15 +246,15 @@ fun AppShell(
     // are captured once (first orientation) and feed only the MJPEG-fallback downscale, which tolerates
     // stale px safely (it can only over-downscale, never an OOM risk on the 2 GB floor).
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val webcamSurfaceProvider = remember(store, activeCfg.host, activeProfileId) {
+    val webcamSurfaceProvider = remember(store, activeCfg?.host ?: "", activeProfileId) {
         Media3SurfaceProvider()
     }
-    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId) {
+    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg?.host ?: "", activeProfileId) {
         webcamMedia3Holder(
             scope = scope,
             webcams = webcams,
             webcamPrefs = container.webcamPrefs,
-            cfg = activeCfg,
+            cfg = activeCfg ?: ConnectionConfig(host = ""),
             profileId = activeProfileId ?: "",
             sharedClient = container.webcamHttpClient,
             viewWidthPx = viewWidthPx,

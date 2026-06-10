@@ -352,6 +352,11 @@
     <string name="cd_macros_manage">Manage macros</string>
     <string name="cd_macros_execute">Execute macro</string>
     <string name="cd_macros_unbookmarked">Add to bookmarks</string>
+    <!-- Webcam screen labels (25-06) — chrome strings for cam picker -->
+    <string name="webcam_cam_unnamed">(unnamed)</string>
+    <string name="webcam_service_unknown">unknown service</string>
+    <string name="webcam_aspect_format">aspect %s</string>
+
     <!-- Macros screen labels (25-05) — Launcher, ParamEntry, ManageMode -->
     <string name="macros_empty_title">No macros pinned</string>
     <string name="macros_empty_body">Pick the macros you use most in Manage, and they\'ll launch from here.</string>
