@@ -68,12 +68,10 @@ sealed interface HomeAction {
  * (the always-present set). Temperature and Console are intentionally OFF the idle list (D-07):
  * they are reachable while printing, not idle. Fine-Tune is likewise printing-only.
  *
- * ## FIX-5 / Wave-0 isolation note
- * The Webcam row uses a PLACEHOLDER icon and label pending the owner-confirmed webcam glyph from
- * Plan 24-02 (the ASK-OWNER gate). The placeholder reuses an already-registered [DinghyIcons] token
- * so this plan compiles in ISOLATION with no cross-Wave-0 dependency. Plan 24-04 (which depends on
- * BOTH 24-01 and 24-02) swaps `// PLACEHOLDER(24-04)` with the real `DinghyIcons.LauncherWebcam`
- * + `R.string.cd_launcher_webcam`.
+ * ## Icon assignment (FIX-5, resolved in 24-04)
+ * Every row's [HomeAction.Destination.icon] references a [DinghyIcons] registry token confirmed by
+ * the owner (icon-never-invent law). The Webcam row uses [DinghyIcons.LauncherWebcam] ("videocam"),
+ * registered and owner-confirmed in Plan 24-02.
  *
  * @param spoolmanPresent true if a Spoolman instance is configured and reachable
  * @param bookmarksExist  true if the user has at least one bookmarked macro
@@ -138,14 +136,13 @@ fun buildIdleActions(
     }
 
     if (webcamEnabled) {
-        // PLACEHOLDER(24-04): owner-confirmed Webcam glyph DinghyIcons.LauncherWebcam + label
-        // R.string.cd_launcher_webcam wired in 24-04 (after 24-02 registers the owner-confirmed
-        // glyph). Using LauncherDrawer (already-registered) here so 24-01 compiles in isolation
-        // with no cross-Wave-0 dependency on the 24-02 ASK-OWNER plan.
+        // FIX-5 (24-04): owner-confirmed Webcam glyph DinghyIcons.LauncherWebcam ("videocam")
+        // and label R.string.cd_launcher_webcam, registered by Plan 24-02. The Wave-0 isolation
+        // stub (LauncherDrawer + cd_launcher_drawer) is replaced here now that 24-02 ships on HEAD.
         add(HomeAction.Destination(
             dest     = NavDest.Webcam,
-            labelRes = R.string.cd_launcher_drawer, // PLACEHOLDER(24-04) → cd_launcher_webcam
-            icon     = DinghyIcons.LauncherDrawer,  // PLACEHOLDER(24-04) → DinghyIcons.LauncherWebcam
+            labelRes = R.string.cd_launcher_webcam,
+            icon     = DinghyIcons.LauncherWebcam,
         ))
     }
 }

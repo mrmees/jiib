@@ -34,7 +34,9 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.ui.spool.parseNormalizedHex
+import works.mees.dinghy.ui.route.HomeAction
 import works.mees.dinghy.ui.route.NavDest
+import works.mees.dinghy.ui.route.buildIdleActions
 
 /**
  * The Print Status home (SHELL-04) — the primary monitor surface (≈90% of interaction). Built on
@@ -94,6 +96,11 @@ fun PrintStatusScreen(
     // Bookmarked-macros gate (16-06): the Macros launcher tile appears on Standby ONLY if the user has
     // bookmarked at least one macro (UI-SPEC launcher order). Process-scoped pref.
     val bookmarkedMacros by container.macroPrefs.bookmarks.collectAsStateWithLifecycle(initialValue = emptySet())
+    // Idle-list D-08 capability gates (24-04): Outputs and Webcam rows are hidden when absent.
+    // outputsPresent = the printer exposes ≥1 controllable output (AppContainer.outputsPresent spine-scoped).
+    // webcamEnabled  = ≥1 webcam configured AND not toggled off by per-profile setting (webcamTileEnabled).
+    val outputsPresent by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
+    val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
 
     // ---- Active-spool card (SPOOL-02, 11-06) -------------------------------------------------------
     // The D-03 card reads the capability gate + the D-10-reconciled active status; the spool DETAIL is
@@ -143,7 +150,26 @@ fun PrintStatusScreen(
         }
     }
 
-    var showEstopGuard by remember { mutableStateOf(false) }
+    // FIX-1 (24-04): showEstopGuard + its ConfirmGuard block REMOVED — the FloatingEStop and its
+    // Stop Confirm guard are now owned by the AppShell overlay layer (24-03), where they appear on
+    // EVERY destination while printing (D-14). A duplicate guard here would double-render and only
+    // cover the root. The EmergencyStop action path (PrintStatusControlAction.EmergencyStop) was
+    // also removed from the gutter; the AppShell-level guard fires via the hoisted FloatingEStop.
+
+    // Idle action list (24-04, D-05/D-06/D-08): built once per capability-flag change.
+    // All four capability flags are live StateFlows so the list is rebuilt whenever the printer
+    // connects/disconnects, Spoolman changes, or the user toggles webcam in Settings.
+    val idleActions: List<HomeAction> = remember(
+        spoolmanPresent, bookmarkedMacros, outputsPresent, webcamEnabled,
+    ) {
+        buildIdleActions(
+            spoolmanPresent = spoolmanPresent,
+            bookmarksExist  = bookmarkedMacros.isNotEmpty(),
+            outputsPresent  = outputsPresent,
+            webcamEnabled   = webcamEnabled,
+        )
+    }
+
     var showCancelGuard by remember { mutableStateOf(false) }
     var showPresetSelector by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PrintStatusPendingAction?>(null) }
@@ -245,9 +271,11 @@ fun PrintStatusScreen(
             PrintStatusControlAction.GracefulCancel -> {
                 if (pendingAction == null) showCancelGuard = true
             }
-            PrintStatusControlAction.EmergencyStop -> {
-                showEstopGuard = true
-            }
+            // FIX-1 (24-04): EmergencyStop is no longer dispatched from the in-screen gutter path.
+            // The AppShell-level FloatingEStop + ConfirmGuard (hoisted in 24-03) own the e-stop on
+            // EVERY screen while printing. This case is retained as a no-op to keep the when()
+            // exhaustive — callers in the printing gutter that still reference it are safe.
+            PrintStatusControlAction.EmergencyStop -> Unit
             // Spool-aware Preheat (D-01) — selectPreheatPath owns the direct-vs-selector branch.
             PrintStatusControlAction.Preheat -> runPreheat()
             // Terminal Dismiss (D-05): SDCARD_RESET_FILE; a failure surfaces via the dispatcher toast
@@ -272,6 +300,7 @@ fun PrintStatusScreen(
             httpBase = httpBase,
             ui = ui,
             errorLines = errorLines,
+            idleActions = idleActions,
             babystepShown = babystepShown,
             spoolmanPresent = spoolmanPresent,
             spoolSwatches = spoolSwatches,
@@ -287,22 +316,13 @@ fun PrintStatusScreen(
             onCycleBabystepStep = { babystepStep = nextBabystepStep(babystepStep) },
             onNavigate = onNavigate,
             onOpenDrawer = onOpenDrawer,
+            onPreheat = ::runPreheat,
         )
 
-        if (showEstopGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.printstatus_estop_guard_title),
-                message = stringResource(R.string.printstatus_estop_guard_message),
-                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
-                cancelLabel = stringResource(R.string.common_cancel),
-                onConfirm = {
-                    dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
-                    showEstopGuard = false
-                },
-                onCancel = { showEstopGuard = false },
-                destructive = true,
-            )
-        }
+        // FIX-1 (24-04): the in-screen FloatingEStop + its Stop Confirm guard have been REMOVED from
+        // PrintStatusScreen. They now live at the AppShell overlay layer (24-03), where they appear
+        // on EVERY destination while printing (D-14). The showEstopGuard state + ConfirmGuard block
+        // are gone. The cancel guard below is RETAINED — it is the GracefulCancel guard, NOT estop.
         if (showCancelGuard) {
             ConfirmGuard(
                 title = stringResource(R.string.printstatus_cancel_guard_title),
@@ -361,6 +381,12 @@ fun PrintStatusScreen(
     spoolSwatches: ImmutableList<Color> = persistentListOf(),
     activeSpoolCardState: ActiveSpoolCardState = ActiveSpoolCardState.Unavailable,
     hasBookmarkedMacros: Boolean = false,
+    idleActions: List<HomeAction> = buildIdleActions(
+        spoolmanPresent = spoolmanPresent,
+        bookmarksExist  = hasBookmarkedMacros,
+        outputsPresent  = false,
+        webcamEnabled   = false,
+    ),
     babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
     onNavigate: (NavDest) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -385,6 +411,7 @@ fun PrintStatusScreen(
             httpBase = httpBase,
             ui = ui,
             errorLines = errorLines,
+            idleActions = idleActions,
             babystepShown = babystepShown,
             spoolmanPresent = spoolmanPresent,
             spoolSwatches = spoolSwatches,
@@ -400,6 +427,7 @@ fun PrintStatusScreen(
             onCycleBabystepStep = {},
             onNavigate = onNavigate,
             onOpenDrawer = onOpenDrawer,
+            onPreheat = {},
         )
     }
 }
@@ -422,6 +450,7 @@ private fun PrintStatusContent(
     httpBase: String,
     ui: PrintStatusUiModel,
     errorLines: List<String>,
+    idleActions: List<HomeAction>,
     babystepShown: Boolean,
     spoolmanPresent: Boolean,
     spoolSwatches: ImmutableList<Color>,
@@ -437,8 +466,16 @@ private fun PrintStatusContent(
     onCycleBabystepStep: () -> Unit,
     onNavigate: (NavDest) -> Unit,
     onOpenDrawer: () -> Unit,
+    onPreheat: () -> Unit,
 ) {
-    when (mode) {
+    // D-13: one-shot ~150ms Crossfade for idle ↔ printing ↔ terminal transitions.
+    // No continuous/looping animation (Adreno-320 fill-rate budget; LAYOUT.md motion rule).
+    androidx.compose.animation.Crossfade(
+        targetState = mode,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 150),
+        label = "PrintStatusMorph",
+    ) { crossfadeMode ->
+    when (crossfadeMode) {
         is PrintStatusMode.Standby -> ScreenScaffold(
             focus = {
                 StandbyFocus(
@@ -447,23 +484,18 @@ private fun PrintStatusContent(
                     activeSpoolCardState = activeSpoolCardState,
                 )
             },
+            // SC-3: the Standby root has no gutter — its actions live in the idle FootButtonBar.
+            // Pass gutter = null; ScreenScaffold omits the gutter slot when null.
             field = {
                 PrintStatusStandbyField(
-                    ui = ui,
-                    spoolSwatches = spoolSwatches,
+                    idleActions = idleActions,
                     failureText = failureText,
                     onNavigate = onNavigate,
                     onOpenDrawer = onOpenDrawer,
+                    onPreheat = onPreheat,
                 )
             },
-            gutter = {
-                PrintStatusGutter(
-                    ui = ui,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    onEmergencyStopHold = onEmergencyStopHold,
-                )
-            },
+            gutter = null,
         )
 
         is PrintStatusMode.Printing -> ScreenScaffold(
@@ -547,6 +579,7 @@ private fun PrintStatusContent(
             },
         )
     }
+    } // end Crossfade
 }
 
 // --- formatters / resolution (catalog-aligned) — internal so all PrintStatus*.kt files can read them

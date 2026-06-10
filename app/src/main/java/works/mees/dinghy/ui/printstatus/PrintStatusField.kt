@@ -27,49 +27,119 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.remember
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableList
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
+import works.mees.dinghy.ui.route.HomeAction
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 
 /**
- * The Standby Field — the adaptive launcher grid + the failure toast.
+ * The Standby Field — the data-driven idle action list + the neutral Preheat/System foot bar
+ * + the optional failure toast.
  *
- * Extracted as a named top-level composable so the Standby ScreenScaffold `field` slot lambda body
- * contains ONLY a call to this function — creating an independently-restartable recomposition scope
- * (D-01/D-02 P0 fix). The slot param stays `@Composable ColumnScope.() -> Unit` (ScreenScaffold's
- * type); the body changes from an inline block to a single named call.
+ * Replaces the old `LauncherDest` tile-grid (Phase-24 jiib redesign, D-05/D-06/D-08/D-09/D-10).
+ * Renders [idleActions] (built by [works.mees.dinghy.ui.route.buildIdleActions]) as a scrollable
+ * [ListBlock] of [ListRow]s; capability-absent rows are absent (D-08 — never greyed). Tapping a
+ * row calls [onNavigate] with the row's [NavDest]; the System foot button calls [onOpenDrawer].
+ *
+ * The foot bar contains exactly two [Intent.Neutral] [OutlinedControl]s — Preheat and System —
+ * placed below the list per the foot-of-list pattern (the gutter is gone from this screen;
+ * ScreenScaffold is called with `gutter = null` from the printing/terminal modes ONLY when
+ * needed; the Standby root has no gutter slot per D-03/SC-3).
+ *
+ * Extracted as a named top-level composable so the Standby ScreenScaffold `field` slot lambda
+ * body contains ONLY a call to this function — creating an independently-restartable recomposition
+ * scope (D-01/D-02 P0 fix).
  */
 @Composable
 internal fun PrintStatusStandbyField(
-    ui: PrintStatusUiModel,
-    spoolSwatches: ImmutableList<Color>,
+    idleActions: List<HomeAction>,
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
     onOpenDrawer: () -> Unit,
+    onPreheat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        LauncherGrid(
-            dests = ui.launcherDests,
-            spoolSwatches = spoolSwatches,
-            onNavigate = onNavigate,
-            onOpenDrawer = onOpenDrawer,
-            modifier = Modifier.fillMaxSize().weight(1f),
-        )
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
+            // Each Destination row navigates; capability-absent rows are absent (D-08 HIDE, not grey).
+            ListBlock(modifier = Modifier.weight(1f)) {
+                items(
+                    items = idleActions.filterIsInstance<HomeAction.Destination>(),
+                    key = { it.dest::class.simpleName ?: it.dest.toString() },
+                ) { action ->
+                    ListRow(
+                        selected = false,
+                        onClick = { onNavigate(action.dest) },
+                        uDp = grid.uDp,
+                    ) {
+                        // Leading icon — always a registered DinghyIcons token (icon law enforced by
+                        // HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
+                        DinghyIconView(
+                            icon = action.icon,
+                            tint = LocalTokens.current.text2,
+                            sizeDp = fsSp(22f, LocalTokens.current.fs).dp,
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
+                        // Row label — stringResource resolves the @StringRes from HomeAction.Destination.
+                        Text(
+                            text = stringResource(action.labelRes),
+                            color = LocalTokens.current.text,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(18f, LocalTokens.current.fs).sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+
+            // Idle foot bar: Preheat + System — both Intent.Neutral (D-09/D-10).
+            // "System" opens the App Drawer (the interim hub, D-09). NOT red, NOT Power.
+            FootButtonBar(uDp = grid.uDp) {
+                OutlinedControl(
+                    label = stringResource(R.string.home_foot_preheat),
+                    onClick = onPreheat,
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootPreheat,
+                    intent = Intent.Neutral,
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.home_foot_system),
+                    onClick = onOpenDrawer,
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootSystem,
+                    intent = Intent.Neutral,
+                )
+            }
+        }
     }
 }
 
