@@ -589,6 +589,7 @@ fun AppShell(
                 ExtrudeScreen(
                     container = container,
                     holder = extrudeHolder,
+                    activeSpoolDetail = activeSpoolDetail,
                     onBack = { navController.popBackStack() },
                 )
             }

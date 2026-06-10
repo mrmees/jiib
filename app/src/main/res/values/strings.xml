@@ -379,4 +379,25 @@
     <string name="macros_foot_execute">Execute</string>
     <string name="macros_foot_show_hidden">Show hidden</string>
 
+    <!-- ========================== extrude (26-06) ============================ -->
+    <!-- Selector section labels (Field region) -->
+    <string name="extrude_distance_label">Distance (mm)</string>
+    <string name="extrude_speed_label">Feedrate (mm/s)</string>
+    <string name="extrude_tool_label">Tool</string>
+    <!-- Focus readout labels (inline IME entry, D-16) -->
+    <string name="extrude_distance_readout">Distance</string>
+    <string name="extrude_speed_readout">Speed</string>
+    <!-- BigCommand labels -->
+    <string name="extrude_cmd_extrude">Extrude</string>
+    <string name="extrude_cmd_retract">Retract</string>
+    <!-- Spool placeholder button -->
+    <string name="extrude_spool_placeholder">Spool</string>
+    <!-- FootButtonBar actions -->
+    <string name="extrude_load">Load</string>
+    <string name="extrude_unload">Unload</string>
+    <!-- Filament-preset takeover (D-17) -->
+    <string name="extrude_preset_title">Set nozzle temperature</string>
+    <string name="extrude_loaded_filament">Loaded filament</string>
+    <string name="extrude_loaded_prefix">%1$s (loaded)</string>
+
 </resources>
