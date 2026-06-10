@@ -628,14 +628,14 @@ private fun ColumnScope.MacroManageField(
             intent = Intent.Neutral,
             icon = DinghyIcons.Back,
         )
-        // Show hidden toggle: raw symbol strings (verbatim from old SystemMacrosScreen — pre-registry glyphs).
-        // These are preserved "as-is" — not a new icon choice, just the pre-existing code.
+        // Show hidden toggle: the old SystemMacrosScreen glyph pair, now routed through the registry
+        // (WR-07 — same glyphs, no new icon choice; raw ligature strings bypassed the subset gate).
         OutlinedControl(
             label = stringResource(R.string.macros_foot_show_hidden),
             onClick = { onSetRevealHidden(!state.revealHidden) },
             modifier = Modifier.weight(1f),
             intent = if (state.revealHidden) Intent.Accent else Intent.Neutral,
-            symbol = if (state.revealHidden) "visibility" else "visibility_off",
+            icon = if (state.revealHidden) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
         )
     }
 }

@@ -48,7 +48,6 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.DetailCard
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -775,9 +774,15 @@ private fun SpoolWarningGuard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // Verbatim from original SpoolWarningGuard — MaterialSymbol "warning"
-                            // is the pre-existing glyph for this guard (preserved, not newly chosen).
-                            MaterialSymbol("warning", tint = t.heat, sizeSp = fsSp(18f, t.fs))
+                            // The original SpoolWarningGuard glyph (preserved, not newly chosen) —
+                            // now routed through the registry token (WR-07: raw ligature strings
+                            // bypass the planned font subset + the verify_ligatures gate).
+                            DinghyIconView(
+                                icon = DinghyIcons.Warning,
+                                tint = t.heat,
+                                sizeDp = fsSp(18f, t.fs).dp,
+                                contentDescription = null,
+                            )
                             Text(
                                 text = w.message,
                                 color = t.heat,

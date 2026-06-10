@@ -111,6 +111,10 @@ NEEDED = {
     # All 9 verified resolvable in the v2.944 bundled ttf (25-02 Task-2 gate).
     "print", "delete", "mode_heat_off", "video_camera_back", "chat_error",
     "code", "bookmark_manager", "play_arrow", "radio_button_unchecked",
+    # Phase-25 review fix WR-07: the Macros Show-hidden toggle pair, carried forward verbatim from
+    # the old SystemMacrosScreen and now registered in DinghyIcons (Visibility/VisibilityOff).
+    # ("warning" — the SpoolWarningGuard glyph, now also registered — is already in the D-08 list above.)
+    "visibility", "visibility_off",
 }
 
 

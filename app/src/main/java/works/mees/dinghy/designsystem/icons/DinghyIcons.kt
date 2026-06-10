@@ -178,6 +178,13 @@ object DinghyIcons {
     val ManageMacros = DinghyIcon(IconRef.Ligature("bookmark_manager"), alternate = "macros_manage")      // bucket entry (more semantically precise than reusing LauncherCalibration=tune)
     val ExecuteMacro = DinghyIcon(IconRef.Ligature("play_arrow"), alternate = "macros_execute")           // owner-approved 2026-06-10 (not in bucket; sanctioned new entry)
     val UnbookmarkedMacro = DinghyIcon(IconRef.Ligature("radio_button_unchecked"), alternate = "macros_unbookmarked") // owner-approved 2026-06-10 (existing code ligature, out-of-bucket but sanctioned)
+    // WR-07 (registry conformance — NOT new icon choices): the Macros ManageMode Show-hidden toggle pair
+    // carried the old SystemMacrosScreen glyphs forward as raw ligature strings, and the SpoolWarningGuard
+    // kept its pre-existing raw "warning" MaterialSymbol. Registered here so the planned font subset
+    // (which iterates this registry) and the verify_ligatures.py resolution gate cover them.
+    val Visibility = DinghyIcon(IconRef.Ligature("visibility"), alternate = "macros_show_hidden_on")      // revealed state (pre-existing glyph, preserved)
+    val VisibilityOff = DinghyIcon(IconRef.Ligature("visibility_off"), alternate = "macros_show_hidden_off") // hidden state (pre-existing glyph, preserved)
+    val Warning = DinghyIcon(IconRef.Ligature("warning"), alternate = "warning")                          // SpoolWarningGuard row glyph (pre-existing, preserved)
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -201,5 +208,6 @@ object DinghyIcons {
         MatchCase, CalendarClock, Experiment, Home, QrCode,
         Print, Delete, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
+        Visibility, VisibilityOff, Warning,
     )
 }
