@@ -34,7 +34,7 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.ui.spool.parseNormalizedHex
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 
 /**
  * The Print Status home (SHELL-04) — the primary monitor surface (≈90% of interaction). Built on
@@ -68,17 +68,17 @@ import works.mees.dinghy.ui.route.Dest
 @Composable
 fun PrintStatusScreen(
     container: AppContainer,
-    onNavigate: (Dest) -> Unit = {},
+    onNavigate: (NavDest) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     onScanSpool: () -> Unit = {},
     errorLines: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
-    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(Dest.*) /
+    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(NavDest.*) /
     // onOpenDrawer(); the active-spool card Change/Open routes to the Spool screen. Local aliases keep
     // the existing card-wiring below readable while Tasks 2-4 fill the Standby/Terminal bodies.
-    val onOpenFiles: () -> Unit = { onNavigate(Dest.Files) }
-    val onOpenSpool: () -> Unit = { onNavigate(Dest.Spool) }
+    val onOpenFiles: () -> Unit = { onNavigate(NavDest.Files) }
+    val onOpenSpool: () -> Unit = { onNavigate(NavDest.Spool) }
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
@@ -229,7 +229,7 @@ fun PrintStatusScreen(
                 // ConfirmGuard, does NOT SDCARD_RESET_FILE first. Available when a usable path is exposed.
                 restartFilename?.let { dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(it)) }
             }
-            PrintStatusControlAction.Tune -> onNavigate(Dest.FineTune) // TUNE-01 / D-21 — opens the Fine-Tune Hub.
+            PrintStatusControlAction.Tune -> onNavigate(NavDest.FineTune) // TUNE-01 / D-21 — opens the Fine-Tune Hub.
             PrintStatusControlAction.PausePrint -> {
                 if (pendingAction == null) {
                     dispatcher?.dispatch(CommandRegistry.printPause, Unit)
@@ -362,7 +362,7 @@ fun PrintStatusScreen(
     activeSpoolCardState: ActiveSpoolCardState = ActiveSpoolCardState.Unavailable,
     hasBookmarkedMacros: Boolean = false,
     babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
-    onNavigate: (Dest) -> Unit = {},
+    onNavigate: (NavDest) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -435,7 +435,7 @@ private fun PrintStatusContent(
     onBabystepCompress: () -> Unit,
     onBabystepExpand: () -> Unit,
     onCycleBabystepStep: () -> Unit,
-    onNavigate: (Dest) -> Unit,
+    onNavigate: (NavDest) -> Unit,
     onOpenDrawer: () -> Unit,
 ) {
     when (mode) {

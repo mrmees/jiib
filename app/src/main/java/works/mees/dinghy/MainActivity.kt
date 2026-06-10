@@ -15,7 +15,7 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.service.MoonrakerService
 import works.mees.dinghy.theme.compose.DinghyTheme
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.shell.RootController
 import works.mees.dinghy.ui.shell.parseStartDest
 
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         // release cold start pays ZERO main-thread DataStore I/O here and never reads the start_dest extra —
         // STRENGTHENING the release-inert contract (release is inert by construction, not just by flag value).
         // Debug behavior is unchanged: the bounded gate read + safe-parse still runs.
-        val startDest: Dest? =
+        val startDest: NavDest? =
             if (BuildConfig.DEBUG && container.devCyclerEnabledBlocking()) {
                 parseStartDest(intent?.getStringExtra(EXTRA_START_DEST))
             } else {

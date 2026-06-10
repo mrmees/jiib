@@ -10,7 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.route.TopRoute
 import works.mees.dinghy.ui.route.derive
 import works.mees.dinghy.ui.screen.PrintersScreen
@@ -53,7 +53,7 @@ import works.mees.dinghy.ui.screen.SplashScreen
  * @param startDest OPTIONAL dev-gated initial screen (null = default home); seeded once into [nav].
  */
 @Composable
-fun RootController(container: AppContainer, startDest: Dest? = null) {
+fun RootController(container: AppContainer, startDest: NavDest? = null) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val hasConfig by container.hasConfig.collectAsStateWithLifecycle(initialValue = false)
 

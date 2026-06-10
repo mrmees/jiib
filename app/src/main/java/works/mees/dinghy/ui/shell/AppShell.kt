@@ -79,7 +79,7 @@ import works.mees.dinghy.ui.calibration.TiltVariant
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
@@ -117,7 +117,7 @@ import android.graphics.Bitmap
  * closes the app. There is NO `androidx.navigation` dependency here.
  *
  * ## Settings is an IN-SHELL destination (review #2/#11)
- * Settings is reached via the drawer's "Settings" tile (`Dest.Settings`) and rendered here like any
+ * Settings is reached via the drawer's "Settings" tile (`NavDest.Settings`) and rendered here like any
  * other destination. There is deliberately NO `onOpenSettings` callback on this shell: the only
  * open-Settings-OUTSIDE-the-shell path (first-run / splash "Edit connection") is owned by the
  * [RootController] (Task 2). Saving the connection from in-shell Settings returns the shell to Print
@@ -158,7 +158,7 @@ fun AppShell(
     val backStack = nav.backStack
     var drawerOpen by remember { mutableStateOf(false) }
 
-    // Macro sub-navigation (within Dest.Macros — NOT separate top-level Dests, mirroring how the popup
+    // Macro sub-navigation (within NavDest.Macros — NOT separate top-level Dests, mirroring how the popup
     // lives inside the macro surface). The drawer "Macros" tile opens the Bookmarked launcher;
     // `Manage macros` reveals the System list; tapping a macro opens its Execution popup as an overlay.
     // [macroShowSystem] is a view PREFERENCE (preserved across the Splash blip); [macroPopupFor] is
@@ -166,21 +166,21 @@ fun AppShell(
     val macroShowSystem = nav.macroShowSystem
     val macroPopupFor = nav.macroPopupFor
 
-    // Calibration sub-navigation (a lean LOCAL back-stack WITHIN Dest.Calibration — NOT five new
-    // top-level Dests, mirroring how Dest.Macros hosts its Bookmarked-vs-System sub-screens). null =
+    // Calibration sub-navigation (a lean LOCAL back-stack WITHIN NavDest.Calibration — NOT five new
+    // top-level Dests, mirroring how NavDest.Macros hosts its Bookmarked-vs-System sub-screens). null =
     // the hub; a non-null routine = that routine's page. The hub's onNavigate pushes; a BackHandler
     // (and each page's green Back) pops back to the hub. Hoisted on [nav] so a user mid-routine returns
     // to it after a recovery Splash, not to Home.
     val calibrationRoutine = nav.calibrationRoutine
 
-    // Fine-Tune sub-navigation (a lean LOCAL back-stack WITHIN Dest.FineTune — NOT four top-level Dests,
-    // mirroring Dest.Calibration above). null = the Hub; a non-null group = that group's page. The Hub's
+    // Fine-Tune sub-navigation (a lean LOCAL back-stack WITHIN NavDest.FineTune — NOT four top-level Dests,
+    // mirroring NavDest.Calibration above). null = the Hub; a non-null group = that group's page. The Hub's
     // onNavigate pushes; a BackHandler (and each page's neutral Back) pops back to the Hub. Reset to null
     // on entry by [ShellNavState.navigateTo] (REVIEW #6). Hoisted on [nav] so a user mid-group returns to
     // it after a recovery Splash, not to Home.
     val fineTuneGroup = nav.fineTuneGroup
 
-    fun navigateTo(target: Dest) = nav.navigateTo(target)
+    fun navigateTo(target: NavDest) = nav.navigateTo(target)
     fun goBack() = nav.goBack()
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
@@ -276,12 +276,12 @@ fun AppShell(
     // Page-visible lifecycle (SC-3/D-13): the decode/poll/retry loops run ONLY while the Webcam page is
     // the active dest AND the process is foreground (STARTED). repeatOnLifecycle(STARTED) covers the
     // screen-off/home-button case (auto-cancel on STOPPED); keying the effect on [dest] means nav-AWAY
-    // (dest leaves Dest.Webcam) cancels the effect → stop(). No background decode, no leaked stream.
+    // (dest leaves NavDest.Webcam) cancels the effect → stop(). No background decode, no leaked stream.
     // (The screen's own DisposableEffect also starts/stops; this shell binding is the authoritative
     // foreground gate — both compose cleanly: a stop() is idempotent.)
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.LaunchedEffect(webcamHolder, dest, lifecycleOwner) {
-        if (dest == Dest.Webcam) {
+        if (dest == NavDest.Webcam) {
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 webcamHolder.start()
                 try {
@@ -340,8 +340,8 @@ fun AppShell(
     // empty fallback store backs it (no descriptors → an empty list). The holder is dispatch-free; the detail
     // pages source the dispatcher from `container.dispatcher` (== spine?.dispatcher) themselves.
     val outputsHolder = remember(store) { OutputsHolder(scope = scope, store = store) }
-    // The list↔detail LOCAL back-stack within Dest.Outputs (a single selected objectKey — null = the list,
-    // non-null = that output's detail page; mirrors Dest.Calibration's local hub↔routine stack, NOT new
+    // The list↔detail LOCAL back-stack within NavDest.Outputs (a single selected objectKey — null = the list,
+    // non-null = that output's detail page; mirrors NavDest.Calibration's local hub↔routine stack, NOT new
     // top-level Dests). Shell-local (like drawerOpen): a detail page is transient and need not survive a
     // recovery Splash. The live descriptor list drives the SELECTION RESET below.
     val outputRows by outputsHolder.rows.collectAsStateWithLifecycle()
@@ -500,28 +500,28 @@ fun AppShell(
     BackHandler(enabled = !drawerOpen && backStack.isNotEmpty()) { goBack() }
     // Macro sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
     // higher priority): an open popup closes first, then the System list returns to the launcher.
-    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor != null) {
+    BackHandler(enabled = !drawerOpen && dest == NavDest.Macros && macroPopupFor != null) {
         nav.macroPopupFor = null
     }
-    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor == null && macroShowSystem) {
+    BackHandler(enabled = !drawerOpen && dest == NavDest.Macros && macroPopupFor == null && macroShowSystem) {
         nav.macroShowSystem = false
     }
     // Calibration sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
     // higher priority): an open routine page returns to the hub; from the hub, Back falls through to the
     // generic back-stack pop (leaving the Calibration surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
+    BackHandler(enabled = !drawerOpen && dest == NavDest.Calibration && calibrationRoutine != null) {
         nav.calibrationRoutine = null
     }
     // Outputs sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration): an
     // open per-output detail page returns to the list by clearing [selectedOutputKey]; from the list, Back
     // falls through to the generic back-stack pop (leaving the Outputs surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.Outputs && selectedOutputKey != null) {
+    BackHandler(enabled = !drawerOpen && dest == NavDest.Outputs && selectedOutputKey != null) {
         selectedOutputKey = null
     }
     // Fine-Tune sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration):
     // an open group page (Motion/Extrusion/FwRetraction) returns to the Hub; from the Hub, Back falls
     // through to the generic back-stack pop (leaving the Fine-Tune surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.FineTune && fineTuneGroup != null) {
+    BackHandler(enabled = !drawerOpen && dest == NavDest.FineTune && fineTuneGroup != null) {
         nav.fineTuneGroup = null
     }
     // The open QR scan overlay (11-07) intercepts system Back: close the scan (releasing the camera via
@@ -572,17 +572,17 @@ fun AppShell(
                 // consistency (its tap-rows would otherwise compete with the drawer pull).
                 if (!promptView.visible &&
                     dest !in setOf(
-                        Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool,
+                        NavDest.Files, NavDest.Console, NavDest.Macros, NavDest.Calibration, NavDest.Webcam, NavDest.Spool,
                         // Outputs joins the swipe-suppress set (19-07): the Outputs list is a scrollable
                         // Field — a full-canvas vertical-drag detector would fight the list scroll (the Files
                         // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit (D-10).
-                        Dest.Outputs,
+                        NavDest.Outputs,
                         // SystemInfo joins the swipe-suppress set (20-04): the page is a scrollable Field
                         // (a full-canvas vertical-drag detector would fight the content scroll, the Files
                         // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit
                         // (staging doc: suppress the global drawer on this screen, matching About).
-                        Dest.SystemInfo,
-                        Dest.Devices, Dest.Theme, Dest.Settings, Dest.About,
+                        NavDest.SystemInfo,
+                        NavDest.Devices, NavDest.Theme, NavDest.Settings, NavDest.About,
                     )
                 ) {
                     detectVerticalDragGestures { _, dragAmount ->
@@ -593,7 +593,7 @@ fun AppShell(
     ) {
         // The active destination, full-bleed (no persistent chrome).
         when (dest) {
-            Dest.PrintStatus -> PrintStatusScreen(
+            NavDest.WaterfallHome -> PrintStatusScreen(
                 container = container,
                 // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real Dest
                 // via onNavigate; the always-present flexible Drawer tile opens the swipe-up drawer.
@@ -604,22 +604,22 @@ fun AppShell(
                 // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
                 errorLines = errorLines,
             )
-            Dest.Temperature -> TemperatureScreen(
+            NavDest.Temperature -> TemperatureScreen(
                 container = container,
                 holder = temperatureHolder,
                 onBack = { goBack() },
             )
-            Dest.Move -> MoveScreen(
+            NavDest.Move -> MoveScreen(
                 container = container,
                 holder = moveHolder,
                 onBack = { goBack() },
             )
-            Dest.Extrude -> ExtrudeScreen(
+            NavDest.Extrude -> ExtrudeScreen(
                 container = container,
                 holder = extrudeHolder,
                 onBack = { goBack() },
             )
-            Dest.Files -> FilesScreen(
+            NavDest.Files -> FilesScreen(
                 holder = filesHolder,
                 printerState = printerState,
                 httpBase = httpBase,
@@ -635,12 +635,12 @@ fun AppShell(
                 // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
                 onPickSpoolForFile = { filamentType, filamentColors ->
                     nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
-                    navigateTo(Dest.Spool)
+                    navigateTo(NavDest.Spool)
                 },
                 // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
                 onScanSpool = { nav.scanActive = true },
             )
-            Dest.Macros -> {
+            NavDest.Macros -> {
                 // The macro surface: Bookmarked launcher OR the System manage-visibility list. Tapping a
                 // macro opens its Execution popup as a full-screen overlay (rendered below, outside the
                 // when so it floats over either sub-screen). Back from the launcher leaves the surface;
@@ -661,16 +661,16 @@ fun AppShell(
                     )
                 }
             }
-            Dest.Console -> ConsoleScreen(
+            NavDest.Console -> ConsoleScreen(
                 holder = consoleHolder,
                 onBack = { goBack() },
                 backfillFailed = consoleBackfillFailed,
             )
-            Dest.Calibration -> {
+            NavDest.Calibration -> {
                 // The calibration surface: the hub (a routine grid) OR the selected routine page. The
                 // hub's onNavigate pushes the LOCAL sub-dest; each page's green Back (and system Back)
                 // pops back to the hub by clearing [calibrationRoutine] — a lean local back-stack within
-                // Dest.Calibration (NOT five top-level Dests, mirroring Dest.Macros). The two tilt
+                // NavDest.Calibration (NOT five top-level Dests, mirroring NavDest.Macros). The two tilt
                 // variants (Z-Tilt / QGL) share ONE TiltScreen via [TiltVariant] + a per-variant holder.
                 when (val routine = calibrationRoutine) {
                     null -> CalibrationHubScreen(
@@ -712,11 +712,11 @@ fun AppShell(
                     )
                 }
             }
-            Dest.FineTune -> {
+            NavDest.FineTune -> {
                 // The Fine-Tune surface: the Hub (two group entries) OR the selected group page. The Hub's
                 // onNavigate sets the LOCAL sub-dest; each page's neutral Back (and system Back) pops back
-                // to the Hub by clearing [fineTuneGroup] — a lean local back-stack within Dest.FineTune
-                // (NOT four top-level Dests, mirroring Dest.Calibration). All four screens share the ONE
+                // to the Hub by clearing [fineTuneGroup] — a lean local back-stack within NavDest.FineTune
+                // (NOT four top-level Dests, mirroring NavDest.Calibration). All four screens share the ONE
                 // [fineTuneHolder] so the D-15 whole-group state-flip busy lock is shared. The Extrusion
                 // FW-retraction entry is threaded via the explicit typed onFwRetraction callback (REVIEW
                 // #4) — the build-blind FW screen is thus a LIVE, compile-checked wire (gated off on both
@@ -744,18 +744,18 @@ fun AppShell(
                     )
                 }
             }
-            Dest.Webcam -> WebcamScreen(
+            NavDest.Webcam -> WebcamScreen(
                 holder = webcamHolder,
                 surfaceProvider = webcamSurfaceProvider,
                 onBack = { goBack() },
             )
-            Dest.Spool -> SpoolScreen(
+            NavDest.Spool -> SpoolScreen(
                 holder = spoolHolder,
                 dispatcher = dispatcher,
                 client = spoolmanClient,
                 container = container,
                 // Home foot-button navigates to PrintStatus (the hub screen).
-                onHome = { navigateTo(Dest.PrintStatus) },
+                onHome = { navigateTo(NavDest.WaterfallHome) },
                 // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
                 // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).
                 onScan = { nav.scanActive = true },
@@ -765,11 +765,11 @@ fun AppShell(
                 prefilter = nav.spoolPrefilter,
                 onPrefilterConsumed = { nav.spoolPrefilter = null },
             )
-            Dest.Outputs -> {
+            NavDest.Outputs -> {
                 // The Outputs surface: the flat list (no selection) OR the selected output's per-type detail
                 // page. The list's onRowTap sets the LOCAL [selectedOutputKey]; each detail page's neutral Back
                 // (and system Back, above) pops back to the list by clearing it — a lean local back-stack within
-                // Dest.Outputs (NOT separate top-level Dests, mirroring Dest.Calibration). The selection RESETS
+                // NavDest.Outputs (NOT separate top-level Dests, mirroring NavDest.Calibration). The selection RESETS
                 // to the list (LaunchedEffect above) when the selected objectKey leaves the live row list
                 // (removed/renamed/cleared-on-switch) so a removed output never strands the user on a dead page.
                 val selectedKey = selectedOutputKey
@@ -842,50 +842,50 @@ fun AppShell(
                     }
                 }
             }
-            // Dest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. The holder is
+            // NavDest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. The holder is
             // the per-session SystemInfoHolder off AppContainer.systemInfoHolder (null while idle → the
             // degraded all-"—" state). Back-only gutter; the drawer is suppressed on-screen (swipe-suppress
-            // set below). Mirrors Dest.About / Dest.Console arming.
-            Dest.SystemInfo -> SystemInformationScreen(
+            // set below). Mirrors NavDest.About / NavDest.Console arming.
+            NavDest.SystemInfo -> SystemInformationScreen(
                 holder = systemInfoHolder,
                 onBack = { goBack() },
             )
-            // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
+            // NavDest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(NavDest.WaterfallHome)
             // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
             // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
             // dest to PrintStatus on the tap makes the shell re-compose on the NEW printer's Status. NO rebind/
             // disconnect logic here — only the nav; the runConfigLoop seam does the teardown+rebind (T-14-11).
-            Dest.Devices -> PrintersScreen(
+            NavDest.Devices -> PrintersScreen(
                 container = container,
-                onAddPrinter = { navigateTo(Dest.Settings) }, // legacy fallback; Add-printer now opens the in-screen editor.
-                onSwitched = { navigateTo(Dest.PrintStatus) },
+                onAddPrinter = { navigateTo(NavDest.Settings) }, // legacy fallback; Add-printer now opens the in-screen editor.
+                onSwitched = { navigateTo(NavDest.WaterfallHome) },
                 onBack = { goBack() },
             )
-            // Dest.Theme (15.2-04 D-03): the per-printer look (the promoted theme editor). Its writes
+            // NavDest.Theme (15.2-04 D-03): the per-printer look (the promoted theme editor). Its writes
             // route through the per-profile setActive* intents (writeScope), so it changes only the active
             // printer's saved look. Done/Back pops to the caller.
-            Dest.Theme -> ThemeScreen(
+            NavDest.Theme -> ThemeScreen(
                 container = container,
                 onBack = { goBack() },
             )
-            Dest.Settings -> SettingsScreen(
+            NavDest.Settings -> SettingsScreen(
                 container = container,
                 onBack = { goBack() },
             )
-            // Dest.About (15.2-04 D-05): the app-global remainder (version/build) + the dev-enable toggle
+            // NavDest.About (15.2-04 D-05): the app-global remainder (version/build) + the dev-enable toggle
             // (off clears the override, HIGH-5). Gutter Back pops to the caller.
-            Dest.About -> AboutScreen(
+            NavDest.About -> AboutScreen(
                 container = container,
                 onBack = { goBack() },
             )
         }
 
         // Macro Execution popup overlay (D-08) — a full-screen action gate floating over the macro
-        // surface. Shown only on Dest.Macros with a tapped macro AND a live session dispatcher (a macro
+        // surface. Shown only on NavDest.Macros with a tapped macro AND a live session dispatcher (a macro
         // can only be dispatched while connected). Dismiss (Cancel or successful dispatch) clears it.
         val popupMacro = macroPopupFor
         val liveDispatcher = dispatcher
-        if (dest == Dest.Macros && popupMacro != null && liveDispatcher != null) {
+        if (dest == NavDest.Macros && popupMacro != null && liveDispatcher != null) {
             MacroExecutionPopup(
                 holder = macroHolder,
                 macro = popupMacro,
@@ -907,7 +907,7 @@ fun AppShell(
                 },
                 onUsePicker = {
                     nav.scanActive = false
-                    navigateTo(Dest.Spool) // the manual picker always works (D-15).
+                    navigateTo(NavDest.Spool) // the manual picker always works (D-15).
                 },
                 onBack = { nav.scanActive = false },
             )

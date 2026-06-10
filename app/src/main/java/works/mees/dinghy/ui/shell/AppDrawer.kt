@@ -38,7 +38,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 
 /**
  * The swipe-up full-screen **App Drawer** (D-14, SHELL-01) — the app's ONE navigation surface. It is a
@@ -93,7 +93,7 @@ import works.mees.dinghy.ui.route.Dest
  */
 @Composable
 fun AppDrawer(
-    onDestination: (Dest) -> Unit,
+    onDestination: (NavDest) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     webcamEnabled: Boolean = false,
@@ -126,7 +126,7 @@ fun AppDrawer(
                     spoolEnabled = spoolEnabled,
                     spoolSwatches = spoolSwatches,
                     // D-03: only the Devices tile carries a subtitle (the active printer's name).
-                    subtitle = if (tile.dest == Dest.Devices) activeName else null,
+                    subtitle = if (tile.dest == NavDest.Devices) activeName else null,
                     onClick = {
                         // Only LIVE tiles navigate; greyed tiles are no-op (their dest is null).
                         tile.dest?.let {
@@ -151,7 +151,7 @@ fun AppDrawer(
 internal data class DrawerTileSpec(
     val label: String,
     val symbol: String, // Material Symbols ligature name (see MaterialSymbol)
-    val dest: Dest?,
+    val dest: NavDest?,
     val danger: Boolean = false,
     val beta: Boolean = false,
 )
@@ -175,14 +175,14 @@ internal val SYSINFO_SYMBOL: String = (DinghyIcons.SysInfoTile.primary as IconRe
 /**
  * PURE, host-testable (non-@Composable) drawer-tile filter — the D-10 HIDE-not-grey decision lives here so
  * it is unit-testable without Compose (mirrors the host-testable seams elsewhere in the app). The Output
- * tile ([Dest.Outputs]) is FILTERED OUT entirely when [outputsEnabled] is false (D-10: a printer with zero
+ * tile ([NavDest.Outputs]) is FILTERED OUT entirely when [outputsEnabled] is false (D-10: a printer with zero
  * outputs must NOT show a dead-end tile — the deliberate divergence from the Webcam/Spool shown-but-greyed
  * pattern). Every other tile is passed through untouched (only the Output tile is gated).
  */
 internal fun visibleDrawerTiles(
     tiles: List<DrawerTileSpec>,
     outputsEnabled: Boolean,
-): List<DrawerTileSpec> = tiles.filter { it.dest != Dest.Outputs || outputsEnabled }
+): List<DrawerTileSpec> = tiles.filter { it.dest != NavDest.Outputs || outputsEnabled }
 
 /**
  * The drawer tile set (docs/ui_design/images/02-app-drawer.png). Status + Settings + Move + Temp +
@@ -192,23 +192,23 @@ internal fun visibleDrawerTiles(
  * function.
  */
 internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
-    DrawerTileSpec(label = "Status", symbol = "monitoring", dest = Dest.PrintStatus),
-    DrawerTileSpec(label = "Move", symbol = "open_with", dest = Dest.Move),
-    DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = Dest.Temperature),
-    DrawerTileSpec(label = "Files", symbol = "folder", dest = Dest.Files),
-    DrawerTileSpec(label = "Extrude", symbol = "output_circle", dest = Dest.Extrude),
-    DrawerTileSpec(label = "Macros", symbol = "code", dest = Dest.Macros),
+    DrawerTileSpec(label = "Status", symbol = "monitoring", dest = NavDest.WaterfallHome),
+    DrawerTileSpec(label = "Move", symbol = "open_with", dest = NavDest.Move),
+    DrawerTileSpec(label = "Temp", symbol = "thermostat", dest = NavDest.Temperature),
+    DrawerTileSpec(label = "Files", symbol = "folder", dest = NavDest.Files),
+    DrawerTileSpec(label = "Extrude", symbol = "output_circle", dest = NavDest.Extrude),
+    DrawerTileSpec(label = "Macros", symbol = "code", dest = NavDest.Macros),
     // `terminal` is unused elsewhere in DRAWER_TILES (icon-no-repeat law, RESEARCH Open-Q1) and distinct
     // from the Console screen's own gutter glyphs (thermostat/videocam/chat_bubble/arrow_back).
-    DrawerTileSpec(label = "Console", symbol = "terminal", dest = Dest.Console),
+    DrawerTileSpec(label = "Console", symbol = "terminal", dest = NavDest.Console),
     // `tune` is the single Calibration tile (D-14) — unique among DRAWER_TILES glyphs (icon-no-repeat
     // law). It opens the Calibration hub, which sub-routes to all five routine pages (09-07).
-    DrawerTileSpec(label = "Calibration", symbol = "tune", dest = Dest.Calibration),
+    DrawerTileSpec(label = "Calibration", symbol = "tune", dest = NavDest.Calibration),
     // Fine-Tune (17-06, TUNE-01 / D-21) — the live-adjust panel. `instant_mix` (the sliders/mixer glyph)
     // is DISTINCT from Calibration's `tune` (icon-no-repeat law) and reads as "live adjustment". Opens the
     // Fine-Tune Hub, which sub-routes to Motion / Extrusion / FW-Retraction (a LOCAL back-stack within
-    // Dest.FineTune). It is the always-reachable entry alongside the Print-Status Tune shortcut.
-    DrawerTileSpec(label = "Fine-Tune", symbol = "instant_mix", dest = Dest.FineTune),
+    // NavDest.FineTune). It is the always-reachable entry alongside the Print-Status Tune shortcut.
+    DrawerTileSpec(label = "Fine-Tune", symbol = "instant_mix", dest = NavDest.FineTune),
     // The Webcam tile carries a LIVE [dest] but is RUNTIME-gated (D-08): greyed when the session
     // enumerated 0 cams, live at ≥1 — the gating input is `webcamEnabled`, folded into [DrawerTile]'s
     // live-decision (NOT a compile-time `dest = null`, which would grey it permanently). `photo_camera`
@@ -218,28 +218,28 @@ internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // WebRTC deferred SC-4) and may later be gated behind device-performance capability. The D-08
     // greyed-gating is UNCHANGED (0 cams → still greyed hairline/`t.text3`); beta-amber is the LIVE
     // styling only.
-    DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = Dest.Webcam, beta = true),
+    DrawerTileSpec(label = "Webcam", symbol = "photo_camera", dest = NavDest.Webcam, beta = true),
     // The Spool tile carries a LIVE [dest] but is RUNTIME capability-gated (D-02), the SAME shape as the
     // Webcam tile: greyed when the connected printer lacks the Moonraker `spoolman` component, live when
     // it has it. The gating input is `spoolEnabled` (AppContainer.spoolmanPresent), folded into
     // [DrawerTile]'s live-decision (NOT a compile-time `dest = null`, which would grey it permanently).
     // `inventory_2` is unique among DRAWER_TILES glyphs (icon-no-repeat law). No `beta = true` — Spool is
     // not a development flag (the camera feed is).
-    DrawerTileSpec(label = "Spool", symbol = "inventory_2", dest = Dest.Spool),
-    // Printers (15.2-04 D-01/D-02) is LIVE — the printer switcher + connection editor (Dest.Devices, the
+    DrawerTileSpec(label = "Spool", symbol = "inventory_2", dest = NavDest.Spool),
+    // Printers (15.2-04 D-01/D-02) is LIVE — the printer switcher + connection editor (NavDest.Devices, the
     // kept enum constant; only the LABEL changed Devices→"Printers"). `cable` is unique among DRAWER_TILES
     // glyphs (icon-no-repeat law). It is the ONLY tile that gains a subtitle: the active printer's name
     // (D-03), threaded in as `activeName` and rendered under the 16sp label.
-    DrawerTileSpec(label = "Printers", symbol = "cable", dest = Dest.Devices),
+    DrawerTileSpec(label = "Printers", symbol = "cable", dest = NavDest.Devices),
     // Theme (15.2-04 D-03) — the per-printer look (promoted theme editor). `palette` is unique among
     // DRAWER_TILES glyphs (icon-no-repeat law).
-    DrawerTileSpec(label = "Theme", symbol = "palette", dest = Dest.Theme),
-    DrawerTileSpec(label = "Settings", symbol = "settings", dest = Dest.Settings),
+    DrawerTileSpec(label = "Theme", symbol = "palette", dest = NavDest.Theme),
+    DrawerTileSpec(label = "Settings", symbol = "settings", dest = NavDest.Settings),
     // About (15.2-04 D-05) — app-global items + the dev-enable toggle. `info` is unique among DRAWER_TILES
     // glyphs (icon-no-repeat law).
-    DrawerTileSpec(label = "About", symbol = "info", dest = Dest.About),
+    DrawerTileSpec(label = "About", symbol = "info", dest = NavDest.About),
     // Output (Phase 19, D-07/D-10/D-11) is now LIVE — fans/lights/generic-pins/heater_generic/servo/
-    // pwm_tool control (Dest.Outputs). UNLIKE every other tile it is RUNTIME-HIDDEN, not greyed: when the
+    // pwm_tool control (NavDest.Outputs). UNLIKE every other tile it is RUNTIME-HIDDEN, not greyed: when the
     // connected printer reports ZERO controllable outputs the tile is FILTERED OUT entirely by
     // [visibleDrawerTiles] (D-10 hide-not-grey, the deliberate divergence from the Webcam/Spool greyed
     // pattern), so a printer with no outputs never shows a dead-end tile. The symbol is SOURCED FROM the
@@ -247,14 +247,14 @@ internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     // can never drift from a typo'd literal. `output` is unique among DRAWER_TILES glyphs (icon-no-repeat
     // law; `bolt` is now freed — it backs the launcher Macros glyph elsewhere). Only System Info remains a
     // greyed forward-stub (P20).
-    DrawerTileSpec(label = "Output", symbol = OUTPUT_SYMBOL, dest = Dest.Outputs),
+    DrawerTileSpec(label = "Output", symbol = OUTPUT_SYMBOL, dest = NavDest.Outputs),
     // System Info (Phase 20, SYS-01..05) is now LIVE — the read-only printer-host health page
-    // (Dest.SystemInfo). Always shown (the host always exists, so no capability gate like Webcam/Spool).
+    // (NavDest.SystemInfo). Always shown (the host always exists, so no capability gate like Webcam/Spool).
     // The symbol is SOURCED FROM the owner-locked [DinghyIcons.SysInfoTile] token ([SYSINFO_SYMBOL] =
     // `pulse_alert`, D-01) so the icon-law glyph can never drift from a typo'd literal. `pulse_alert` is
-    // unique among DRAWER_TILES glyphs (icon-no-repeat law). The matching AppShell Dest.SystemInfo routing
+    // unique among DRAWER_TILES glyphs (icon-no-repeat law). The matching AppShell NavDest.SystemInfo routing
     // branch lands in the SAME commit (no dead-tap window — Codex atomicity rule).
-    DrawerTileSpec(label = "System Info", symbol = SYSINFO_SYMBOL, dest = Dest.SystemInfo),
+    DrawerTileSpec(label = "System Info", symbol = SYSINFO_SYMBOL, dest = NavDest.SystemInfo),
     DrawerTileSpec(label = "Power", symbol = "power_settings_new", dest = null, danger = true),
 )
 
@@ -279,8 +279,8 @@ private fun DrawerTile(
     // `!spoolEnabled` (no spoolman component, D-02) — both via the SAME greyed styling below; only these
     // enablement INPUTS are runtime (the styling was already correct).
     val live = tile.dest != null &&
-        (tile.dest != Dest.Webcam || webcamEnabled) &&
-        (tile.dest != Dest.Spool || spoolEnabled)
+        (tile.dest != NavDest.Webcam || webcamEnabled) &&
+        (tile.dest != NavDest.Spool || spoolEnabled)
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = when {
         tile.danger -> t.stop          // red Power tile — destructive intent reads even while disabled.
@@ -322,7 +322,7 @@ private fun DrawerTile(
             // follows the tile's contentColor so the glyph greys in lockstep with the spoolEnabled gate;
             // the keyline is the neutral t.hair (D-05 legibility framing). Empty swatches → empty spool
             // (D-03). The drawer uses Spoolman-color → empty only (no gcode tier — D-07 narrowing).
-            if (tile.dest == Dest.Spool) {
+            if (tile.dest == NavDest.Spool) {
                 SpoolGlyph(
                     swatches = spoolSwatches,
                     bodyTint = contentColor,

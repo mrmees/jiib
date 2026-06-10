@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.ui.finetune.FineTuneGroup
 import works.mees.dinghy.ui.macros.MacroVm
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 
 /**
@@ -40,17 +40,18 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
  * [drawerOpen] stays AppShell-local (it is meaningless while the shell is decomposed) — it is NOT
  * hoisted here.
  */
-class ShellNavState(startDest: Dest? = null) {
+class ShellNavState(startDest: NavDest? = null) {
     /**
-     * The visible screen. PrintStatus is the home/root. [startDest] (the dev-gated `start_dest` deep-jump,
-     * 18-04 SC-4b/D-06) seeds the initial value ONCE at construction — null (release / gate-off) keeps the
-     * [Dest.PrintStatus] default. Because the holder is `remember`-ed (constructed once), the seed cannot
-     * re-fire on recompose/recovery; the Splash gate still applies on top (land-when-Klippy-Ready).
+     * The visible screen. WaterfallHome is the home/root. [startDest] (the dev-gated `start_dest`
+     * deep-jump, 18-04 SC-4b/D-06) seeds the initial value ONCE at construction — null (release /
+     * gate-off) keeps the [NavDest.WaterfallHome] default. Because the holder is `remember`-ed
+     * (constructed once), the seed cannot re-fire on recompose/recovery; the Splash gate still applies
+     * on top (land-when-Klippy-Ready).
      */
-    var dest by mutableStateOf(startDest ?: Dest.PrintStatus)
+    var dest by mutableStateOf(startDest ?: NavDest.WaterfallHome)
 
-    /** CALLER dests (most-recent last). PrintStatus clears it; Back pops to the caller. */
-    val backStack = mutableStateListOf<Dest>()
+    /** CALLER dests (most-recent last). WaterfallHome clears it; Back pops to the caller. */
+    val backStack = mutableStateListOf<NavDest>()
 
     /** Macro sub-nav: System-vs-Bookmarked toggle. A view PREFERENCE — preserved across a Splash blip. */
     var macroShowSystem by mutableStateOf(false)
@@ -86,7 +87,7 @@ class ShellNavState(startDest: Dest? = null) {
      */
     var spoolPrefilter by mutableStateOf<SpoolPrefilterSeed?>(null)
 
-    fun navigateTo(target: Dest) {
+    fun navigateTo(target: NavDest) {
         // Re-selecting the CURRENT dest (e.g. tapping its own drawer tile while already inside it) is NOT a
         // new back entry, so it does not touch [backStack] — but it MUST still run the per-dest entry-reset
         // so the destination snaps back to its entry surface (the Hub / hub / bookmarked launcher) instead of
@@ -96,7 +97,7 @@ class ShellNavState(startDest: Dest? = null) {
             applyEntryReset(target)
             return
         }
-        if (target == Dest.PrintStatus) backStack.clear() else backStack.add(dest)
+        if (target == NavDest.WaterfallHome) backStack.clear() else backStack.add(dest)
         applyEntryReset(target)
         dest = target
     }
@@ -106,20 +107,20 @@ class ShellNavState(startDest: Dest? = null) {
      * a same-dest re-selection ([navigateTo]). Each branch clears that destination's sub-nav so re-entering
      * it always lands on its entry surface, never a stale sub-page (17-08, REVIEW #6).
      */
-    private fun applyEntryReset(target: Dest) {
+    private fun applyEntryReset(target: NavDest) {
         // Entering the Macros surface always starts on the Bookmarked launcher with no popup open.
-        if (target == Dest.Macros) {
+        if (target == NavDest.Macros) {
             macroShowSystem = false
             macroPopupFor = null
         }
         // Entering the Calibration surface always starts on the hub (no routine selected).
-        if (target == Dest.Calibration) {
+        if (target == NavDest.Calibration) {
             calibrationRoutine = null
         }
         // Entering Fine-Tune always opens the Hub — reset the group sub-nav so a stale group page from a
         // prior visit never shows (REVIEW #6). Fires for BOTH the Print-Status Tune action AND the drawer
-        // tile, since both route through navigateTo(Dest.FineTune).
-        if (target == Dest.FineTune) {
+        // tile, since both route through navigateTo(NavDest.FineTune).
+        if (target == NavDest.FineTune) {
             fineTuneGroup = null
         }
     }
@@ -148,5 +149,5 @@ class ShellNavState(startDest: Dest? = null) {
  * (intentional: the deep-jump is a one-shot launch seed, never a live re-navigation lever).
  */
 @Composable
-fun rememberShellNavState(startDest: Dest? = null): ShellNavState =
+fun rememberShellNavState(startDest: NavDest? = null): ShellNavState =
     remember { ShellNavState(startDest) }

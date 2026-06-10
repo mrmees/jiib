@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.route
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import works.mees.dinghy.net.ConnectionError
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.KlippyState
@@ -62,9 +63,9 @@ class TopRouteTest {
     }
 
     @Test
-    fun klippyReadyPrinting_andConnected_routesToShellPrintStatus() {
+    fun klippyReadyPrinting_andConnected_routesToShell() {
         assertEquals(
-            TopRoute.Shell(Dest.PrintStatus),
+            TopRoute.Shell,
             derive(
                 cfgPresent = true,
                 s = PrinterState(
@@ -77,9 +78,9 @@ class TopRouteTest {
     }
 
     @Test
-    fun klippyReadyIdle_andConnected_routesToSameShellPrintStatusSurface() {
+    fun klippyReadyIdle_andConnected_routesToShell() {
         assertEquals(
-            TopRoute.Shell(Dest.PrintStatus),
+            TopRoute.Shell,
             derive(
                 cfgPresent = true,
                 s = PrinterState(
@@ -92,8 +93,8 @@ class TopRouteTest {
     }
 
     @Test
-    fun filesIsAShellDestination() {
-        assertEquals(Dest.Files, Dest.valueOf("Files"))
+    fun filesIsAKnownNavDest() {
+        assertTrue(NavDest.Files in knownNavDests)
     }
 
     /**

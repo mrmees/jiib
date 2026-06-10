@@ -41,7 +41,7 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 
 /**
@@ -57,7 +57,7 @@ internal fun PrintStatusStandbyField(
     ui: PrintStatusUiModel,
     spoolSwatches: ImmutableList<Color>,
     failureText: String?,
-    onNavigate: (Dest) -> Unit,
+    onNavigate: (NavDest) -> Unit,
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -96,7 +96,7 @@ internal fun PrintStatusActiveField(
     onBabystepCompress: () -> Unit,
     onBabystepExpand: () -> Unit,
     onCycleBabystepStep: () -> Unit,
-    onNavigate: (Dest) -> Unit,
+    onNavigate: (NavDest) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -362,7 +362,7 @@ internal fun IconValueCell(
 internal fun LauncherGrid(
     dests: ImmutableList<LauncherDest>,
     spoolSwatches: ImmutableList<Color>,
-    onNavigate: (Dest) -> Unit,
+    onNavigate: (NavDest) -> Unit,
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -402,16 +402,16 @@ internal fun LauncherGrid(
     }
 }
 
-/** Map a [LauncherDest] to its route [Dest] (Drawer → null, it opens the drawer not a Dest). */
-internal fun launcherDestTarget(d: LauncherDest): Dest? = when (d) {
-    LauncherDest.Files -> Dest.Files
-    LauncherDest.Temperature -> Dest.Temperature
-    LauncherDest.Move -> Dest.Move
-    LauncherDest.Extrude -> Dest.Extrude
-    LauncherDest.Calibration -> Dest.Calibration
-    LauncherDest.Spool -> Dest.Spool
-    LauncherDest.Macros -> Dest.Macros
-    LauncherDest.Console -> Dest.Console
+/** Map a [LauncherDest] to its route [NavDest] (Drawer → null, it opens the drawer not a NavDest). */
+internal fun launcherDestTarget(d: LauncherDest): NavDest? = when (d) {
+    LauncherDest.Files -> NavDest.Files
+    LauncherDest.Temperature -> NavDest.Temperature
+    LauncherDest.Move -> NavDest.Move
+    LauncherDest.Extrude -> NavDest.Extrude
+    LauncherDest.Calibration -> NavDest.Calibration
+    LauncherDest.Spool -> NavDest.Spool
+    LauncherDest.Macros -> NavDest.Macros
+    LauncherDest.Console -> NavDest.Console
     LauncherDest.Drawer -> null
 }
 
@@ -524,7 +524,7 @@ internal fun ShortcutRow(
     spoolmanPresent: Boolean,
     spoolSwatches: ImmutableList<Color>,
     hasBookmarkedMacros: Boolean,
-    onNavigate: (Dest) -> Unit,
+    onNavigate: (NavDest) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The trailing nav slots per the matrix (Tune is always first + flexible).
@@ -542,7 +542,7 @@ internal fun ShortcutRow(
         val tuneWeight = if (tail.size < 3) 2f else 1f
         Box(Modifier.weight(tuneWeight)) {
             TuneShortcutTile(
-                onClick = { onNavigate(Dest.FineTune) },
+                onClick = { onNavigate(NavDest.FineTune) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
