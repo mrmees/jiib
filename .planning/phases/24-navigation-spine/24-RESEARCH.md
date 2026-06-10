@@ -335,13 +335,22 @@ routing logic needed at the RootController level. [ASSUMED: judgment based on co
 // Source: developer.android.com/develop/ui/compose/navigation (popBackStack API)
 // Inside AppShell, after navController is created:
 val printState by printerStateFlow.collectAsStateWithLifecycle()
-val footGunDests = setOf(NavDest.Move, NavDest.Extrude, NavDest.Calibration)
+// NOTE: the canonical foot-gun set + decision live as a PURE predicate in the route layer
+// (route/NavDest.kt: FOOT_GUN_DESTS + shouldPopToRoot(current, printActive)) so it is host-testable
+// in src/test WITHOUT a NavHost (FIX-8). This LaunchedEffect calls hasRoute<>() against that set.
+val footGunDests = FOOT_GUN_DESTS  // = setOf(NavDest.Move, NavDest.Extrude, NavDest.Calibration)
 
 LaunchedEffect(printState.printState) {
-    // Fire on every printState change; only pop if current dest is a foot-gun
-    val currentDest = navController.currentBackStackEntry?.destination?.route
-    // Check if the current destination matches a foot-gun dest
-    if (footGunDests.any { navController.currentBackStackEntry?.toRoute<NavDest>() != null }) {
+    // Fire on every printState change; only pop if the CURRENT destination is a foot-gun.
+    // Use destination-specific hasRoute<>() checks (matching 24-PATTERNS.md) — NOT a blanket
+    // toRoute<NavDest>() != null, which would be true for ANY typed route and pop from non-foot-guns.
+    val d = navController.currentBackStackEntry?.destination
+    val isFootGun = d != null && (
+        d.hasRoute<NavDest.Move>() ||
+        d.hasRoute<NavDest.Extrude>() ||
+        d.hasRoute<NavDest.Calibration>()
+    )
+    if (isFootGun) {
         val popped = navController.popBackStack<NavDest.WaterfallHome>(inclusive = false)
         // popBackStack returns true if it popped, false if already at root
     }
@@ -741,7 +750,7 @@ fun buildIdleActions(
 | `TopRoute.derive()` still pure and correct | unit | `--tests "*TopRouteTest*"` | Existing tests (13-05) — verify pass after migration |
 | `buildIdleActions()` hides correctly per capability flags | unit | `--tests "*HomeActionTest*"` | Wave 0 gap — new |
 | `classifyPrintStatus()` still maps correctly | unit | `--tests "*PrintStatusModeTest*"` | Existing tests (16-xx) |
-| `navController.popBackStack<WaterfallHome>()` pops foot-gun dests | unit (host) | `--tests "*PopToRootTest*"` | Wave 0 gap — new (TestNavController) |
+| `shouldPopToRoot(current, printActive)` pure predicate (foot-gun set) | unit (host) | `--tests "*PopToRootTest*"` | Wave 0 gap — new (PURE predicate in route layer, NOT TestNavController — no Robolectric in JVM set, FIX-8) |
 | Morph cross-fade renders without crash in @Preview | compile-time | `assembleDebug` | On-device verification |
 | FloatingEStop present on every screen while printing | on-device (flox) | manual | flox UAT |
 | Back at WaterfallHome closes app (not crashes) | on-device (flox) | manual | flox UAT |
@@ -759,7 +768,7 @@ fun buildIdleActions(
 ### Wave 0 Gaps
 
 - [ ] `HomeActionTest.kt` — covers `buildIdleActions()` hide rules for all 4 capability combinations
-- [ ] `PopToRootTest.kt` — covers D-04 foot-gun pop-to-root logic using `TestNavController`
+- [ ] `PopToRootTest.kt` — covers D-04 foot-gun pop-to-root logic via the PURE `shouldPopToRoot`/`FOOT_GUN_DESTS` predicate in the route layer (host-runnable in `src/test`; NO TestNavController — the JVM set has no Robolectric, FIX-8)
 - [ ] Verify `navigation-compose:2.8.9` dependency resolves and `verifyMinSdkRelease` still passes
       after adding it
 

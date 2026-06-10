@@ -43,7 +43,17 @@ created: 2026-06-09
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 24-XX-YY | XX | N | nav-arch | — / — | N/A (local-LAN, no new attack surface) | unit | `{command}` | ❌ W0 | ⬜ pending |
+| 24-01-01 | 01 | 0 | SC-2 | T-24-01-SC | nav-compose pin (Google Maven, no slopcheck) | unit | `gw.bat :app:dependencies --configuration debugRuntimeClasspath \| grep navigation-compose:2.8.9` | ❌ W0 | ⬜ pending |
+| 24-01-02 | 01 | 0 | SC-2 | — | D-06/D-08 idle order + hides; D-04 pure shouldPopToRoot (FIX-8) | unit | `gw.bat :app:testDebugUnitTest --tests *HomeActionTest --tests *PopToRootTest` | ❌ W0 | ⬜ pending |
+| 24-01-03 | 01 | 0 | SC-2 | T-24-01-01 | Dest→NavDest full rename (18 files) compiles ALL THREE source sets (FIX-4); parseStartDest total | unit | `gw.bat :app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:compileDebugAndroidTestKotlin` | ❌ W0 | ⬜ pending |
+| 24-02-01 | 02 | 0 | SC-1 | — | ASK-OWNER glyph gate (no Claude-picked icon) | checkpoint | manual (owner names Webcam/Preheat/System glyphs) | ❌ W0 | ⬜ pending |
+| 24-02-02 | 02 | 0 | SC-1 | T-24-02-01 | owner tokens registered + font-verified + drift-guarded | unit | `python tools/verify_ligatures.py && gw.bat :app:testDebugUnitTest --tests *DinghyIconsTest` | ❌ W0 | ⬜ pending |
+| 24-03-01 | 03 | 1 | SC-2/SC-4 | T-24-03-01/02 | NavHost + hoisted holders (4 leak-cancels) + app-level FloatingEStop (FIX-1) + overlay-first Back (FIX-2) + startDest seed (FIX-7) + FIX-3 land-on-root | unit | `gw.bat :app:compileDebugKotlin :app:compileDebugUnitTestKotlin` | ❌ W0 | ⬜ pending |
+| 24-03-02 | 03 | 1 | SC-2 | — | D-04 pop-to-root via single pure shouldPopToRoot (FIX-8) | unit | `gw.bat :app:testDebugUnitTest --tests *PopToRootTest && gw.bat :app:compileDebugKotlin` | ❌ W0 | ⬜ pending |
+| 24-04-01 | 04 | 2 | SC-1/SC-3 | — | data-driven idle list + Preheat/System foot bar + Webcam-icon swap (FIX-5) | unit | `gw.bat :app:testDebugUnitTest --tests *HomeActionTest && gw.bat :app:compileDebugKotlin` | ❌ W0 | ⬜ pending |
+| 24-04-02 | 04 | 2 | SC-1/SC-3/SC-4 | T-24-04-01 | Crossfade morph + NavDest seam + REMOVE in-screen e-stop (FIX-1) | unit | `gw.bat :app:assembleDebug` | ❌ W0 | ⬜ pending |
+| 24-05-01 | 05 | 3 | SC-1..5 | — | full host suite GREEN + fresh non-stale APK | unit | `gw.bat :app:testDebugUnitTest` | ❌ W0 | ⬜ pending |
+| 24-05-02 | 05 | 3 | SC-1..5 | T-24-05-01 | on-device flox UAT (Manual-Only below) | manual | flox owner walk (e-stop on Move, morph gfxinfo, both orientations, System→drawer, recovery→root+sub-nav reset) | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,7 +63,7 @@ created: 2026-06-09
 
 - [ ] RED test stubs (must compile day-one per [[dinghy-wave0-red-scaffold-compile.md]]) for the host-testable seams identified in RESEARCH § Validation Architecture:
   - [ ] Connection-tier route derivation (the reshaped `TopRoute.derive` / waterfall top-tier as a pure function)
-  - [ ] Pop-to-root-on-foot-gun logic (D-04: print start/end while on Move/Extrude/Calibration → pop to root)
+  - [ ] Pop-to-root-on-foot-gun logic (D-04) as a PURE route-layer predicate `shouldPopToRoot`/`FOOT_GUN_DESTS` — host-runnable in `src/test` (NO TestNavController; the JVM set has no Robolectric, FIX-8)
   - [ ] Capability-driven idle-list membership (D-08 HIDE rules: Spool/Outputs/Webcam/Macros-if-bookmarks)
 - [ ] No new test framework needed — existing JUnit host infra covers it.
 
@@ -67,9 +77,9 @@ created: 2026-06-09
 |----------|-------------|------------|-------------------|
 | Morph cross-fade holds frame budget (idle↔printing↔terminal, ~150ms one-shot) | SC-1 / D-13 | Adreno-320 frame budget is the floor; emulators lie | Trigger print start/end on flox; capture `gfxinfo framestats`; confirm no frozen frames, fall back to hard-cut if it janks |
 | Morphing root owner-approval, BOTH orientations | SC-1 | Visual/interaction judgment | Owner eyeballs idle/printing/terminal Focus+Field+foot in portrait & landscape on flox |
-| Floating e-stop appears only when printing, top-left of Focus, opens Confirm guard | SC-4 / D-14 | Overlay positioning + print-gating is visual | Start a print on flox; confirm e-stop visible every screen, tap → full-screen Stop Confirm |
+| Floating e-stop appears AND works on a DRILL-DOWN screen (e.g. Move) while printing, top-left of Focus, opens Confirm guard; ABSENT when idle (FIX-1) | SC-4 / D-14 | Overlay positioning + print-gating + drill-down coverage is visual | Start a print on flox; drill into Move; confirm e-stop visible top-left, tap → full-screen Stop Confirm + confirm issues estop; verify absent when idle |
 | System foot button opens drawer; PrintStatus-as-root introduces no print-monitoring regression | SC-5 | Interim-hub wiring + regression smoke | On-device smoke: tap System → drawer; drive a print, confirm monitoring unaffected |
-| Land-on-root after recovery Splash (owner-accepted regression) | D-02 / FIX-4 | Reconnect behavior is runtime-only | Force a reconnect blip on flox; confirm return to morphing root (not prior drill-down) — expected & accepted |
+| Land-on-root AND sub-nav-reset after recovery Splash (owner-accepted regression, FIX-3) | D-02 / FIX-3 | Reconnect behavior is runtime-only | Force a reconnect blip on flox while deep in a Calibration routine / FineTune group; confirm return to WaterfallHome (not prior drill-down) AND sub-nav reset to hub — both expected & accepted |
 
 ---
 
