@@ -1,11 +1,13 @@
 ---
 phase: 25-browse-screens
 plan: "07"
-status: pending
+status: approved
 device: flox — Nexus 7 2013 / Adreno 320 / LineageOS 18.1 / API 30 / armeabi-v7a
 build: release APK (R8-minified, debug-signed via sign-release.bat)
 apk_mtime: "2026-06-10 10:18 CDT"
 apk_installed: "2026-06-10 10:19 CDT"
+uat_completed: "2026-06-10"
+owner: Matthew Mees
 ---
 
 # Phase 25 Browse-Screens: On-Device UAT Checklist
@@ -13,9 +15,10 @@ apk_installed: "2026-06-10 10:19 CDT"
 **Device:** flox (Nexus 7 2013 / Adreno 320 / LineageOS 18.1 / API 30 / `armeabi-v7a`)
 **Build:** Release APK — R8-minified, debug-signed via `sign-release.bat`
 **APK installed:** 2026-06-10 10:19 CDT (mtime postdates the latest fix commit — stale-APK gate PASS)
+**Result:** OWNER APPROVED — 2026-06-10 (blanket approval, no issues reported)
 
-Connect to a live printer (E5+ = 192.168.1.120:7125 or E3 = 192.168.1.121:7125).
-Record each row's result: `approved` / `issue: <description>`.
+Pre-UAT verification: orchestrator confirmed the installed APK was spike-free and contained all
+25-03/04/05/06 work via manifest content check. adbd returned to non-root after install.
 
 ---
 
@@ -25,13 +28,13 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen opens and renders file list (translucent ListRow tiles) | PENDING |
-| DetailCard Focus shows thumbnail + print metadata (est time, filament, size) | PENDING |
-| SortRow (CalendarClock icon) present + direction toggle works | PENDING |
-| FootButtonBar: Back / Print / Delete present, ≥64px touch targets | PENDING |
-| Print button enabled on file selection; disabled when nothing selected | PENDING |
-| Delete button enabled on file selection; disabled when nothing selected | PENDING |
-| No visual clipping at current text size setting | PENDING |
+| Screen opens and renders file list (translucent ListRow tiles) | approved |
+| DetailCard Focus shows thumbnail + print metadata (est time, filament, size) | approved |
+| SortRow (CalendarClock icon) present + direction toggle works | approved |
+| FootButtonBar: Back / Print / Delete present, ≥64px touch targets | approved |
+| Print button enabled on file selection; disabled when nothing selected | approved |
+| Delete button enabled on file selection; disabled when nothing selected | approved |
+| No visual clipping at current text size setting | approved |
 
 ---
 
@@ -39,10 +42,10 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen renders correctly in landscape (ScreenScaffold side-by-side Focus|Field) | PENDING |
-| DetailCard Focus visible with thumbnail; Field shows file list | PENDING |
-| FootButtonBar and SortRow still visible and usable | PENDING |
-| No visual clipping in landscape | PENDING |
+| Screen renders correctly in landscape (ScreenScaffold side-by-side Focus|Field) | approved |
+| DetailCard Focus visible with thumbnail; Field shows file list | approved |
+| FootButtonBar and SortRow still visible and usable | approved |
+| No visual clipping in landscape | approved |
 
 ---
 
@@ -52,13 +55,13 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen opens with a ListBlock of bookmarked macros | PENDING |
-| Foot: Back + Manage buttons present (≥64px) | PENDING |
-| Tapping a no-param macro: ParamEntry mode shows; Execute fires immediately | PENDING |
-| Tapping a param macro: shows param entry with numeric NumpadPage or string TokenTextField | PENDING |
-| Execute fires (macro runs; gcode visible in console) | PENDING |
-| ManageMode: tap Manage → macro list shows pin/unpin checkmarks + Show-hidden toggle | PENDING |
-| No visual clipping | PENDING |
+| Screen opens with a ListBlock of bookmarked macros | approved |
+| Foot: Back + Manage buttons present (≥64px) | approved |
+| Tapping a no-param macro: ParamEntry mode shows; Execute fires immediately | approved |
+| Tapping a param macro: shows param entry with numeric NumpadPage or string TokenTextField | approved |
+| Execute fires (macro runs; gcode visible in console) | approved |
+| ManageMode: tap Manage → macro list shows pin/unpin checkmarks + Show-hidden toggle | approved |
+| No visual clipping | approved |
 
 ---
 
@@ -66,9 +69,9 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen renders correctly in landscape | PENDING |
-| All three field modes (Launcher/ParamEntry/ManageMode) usable in landscape | PENDING |
-| No visual clipping in landscape | PENDING |
+| Screen renders correctly in landscape | approved |
+| All three field modes (Launcher/ParamEntry/ManageMode) usable in landscape | approved |
+| No visual clipping in landscape | approved |
 
 ---
 
@@ -78,12 +81,12 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen opens with live console scrollback (RecyclerView) | PENDING |
-| Auto-scrolls to newest lines as they arrive | PENDING |
-| FootButtonBar: Back + 3 filter toggle buttons (HideTemps / HideTimelapse / HidePrompts) | PENDING |
-| Toggling a filter OFF: those line types disappear from the visible list | PENDING |
-| Toggling the same filter back ON: hidden lines RE-APPEAR (render-time filter, D-15) | PENDING |
-| No visual clipping | PENDING |
+| Screen opens with live console scrollback (RecyclerView) | approved |
+| Auto-scrolls to newest lines as they arrive | approved |
+| FootButtonBar: Back + 3 filter toggle buttons (HideTemps / HideTimelapse / HidePrompts) | approved |
+| Toggling a filter OFF: those line types disappear from the visible list | approved |
+| Toggling the same filter back ON: hidden lines RE-APPEAR (render-time filter, D-15) | approved |
+| No visual clipping | approved |
 
 ---
 
@@ -91,9 +94,9 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen renders correctly in landscape | PENDING |
-| Scrollback and filter toggles usable in landscape | PENDING |
-| No visual clipping in landscape | PENDING |
+| Screen renders correctly in landscape | approved |
+| Scrollback and filter toggles usable in landscape | approved |
+| No visual clipping in landscape | approved |
 
 ---
 
@@ -103,11 +106,11 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Webcam tile in App Drawer opens WITHOUT crash (no AndroidRuntime exception) | PENDING |
-| H.264 feed renders (live video from camera) | PENDING |
-| CamPicker visible if multiple cams configured; single-cam goes straight to feed | PENDING |
-| FootButtonBar Back button present and returns to App Drawer | PENDING |
-| No visual clipping | PENDING |
+| Webcam tile in App Drawer opens WITHOUT crash (no AndroidRuntime exception) | approved |
+| H.264 feed renders (live video from camera) | approved |
+| CamPicker visible if multiple cams configured; single-cam goes straight to feed | approved |
+| FootButtonBar Back button present and returns to App Drawer | approved |
+| No visual clipping | approved |
 
 ---
 
@@ -115,9 +118,9 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Screen renders correctly in landscape (aspect-ratio-aware cam feed) | PENDING |
-| Back button usable in landscape | PENDING |
-| No visual clipping in landscape | PENDING |
+| Screen renders correctly in landscape (aspect-ratio-aware cam feed) | approved |
+| Back button usable in landscape | approved |
+| No visual clipping in landscape | approved |
 
 ---
 
@@ -127,9 +130,9 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| With a print ACTIVE: select the PRINTING file → Delete button is DISABLED | PENDING |
-| With a print ACTIVE: select a DIFFERENT (non-printing) file → Delete button is ENABLED | PENDING |
-| With idle (no print): Delete works for any selected file | PENDING |
+| With a print ACTIVE: select the PRINTING file → Delete button is DISABLED | approved |
+| With a print ACTIVE: select a DIFFERENT (non-printing) file → Delete button is ENABLED | approved |
+| With idle (no print): Delete works for any selected file | approved |
 
 ---
 
@@ -139,9 +142,9 @@ Record each row's result: `approved` / `issue: <description>`.
 
 | Check | Result |
 |-------|--------|
-| Printer A with webcam ON: Webcam row appears in the idle App Drawer / home list | PENDING |
-| Printer B with webcam OFF: Webcam row is ABSENT from the idle App Drawer / home list | PENDING |
-| Switching between printers: the Webcam row appears/disappears independently per profile | PENDING |
+| Printer A with webcam ON: Webcam row appears in the idle App Drawer / home list | approved |
+| Printer B with webcam OFF: Webcam row is ABSENT from the idle App Drawer / home list | approved |
+| Switching between printers: the Webcam row appears/disappears independently per profile | approved |
 
 ---
 
@@ -151,10 +154,10 @@ Cycle text size S → M → L (via Settings or the dev cycler). Check all four s
 
 | Screen | S — no clip | M — no clip | L — no clip | Rotation stable |
 |--------|------------|------------|------------|----------------|
-| Files | PENDING | PENDING | PENDING | PENDING |
-| Macros | PENDING | PENDING | PENDING | PENDING |
-| Console | PENDING | PENDING | PENDING | PENDING |
-| Webcam | PENDING | PENDING | PENDING | PENDING |
+| Files | approved | approved | approved | approved |
+| Macros | approved | approved | approved | approved |
+| Console | approved | approved | approved | approved |
+| Webcam | approved | approved | approved | approved |
 
 ---
 
@@ -162,11 +165,11 @@ Cycle text size S → M → L (via Settings or the dev cycler). Check all four s
 
 | Smoke | Result |
 |-------|--------|
-| Files: select a file → tap Print → ConfirmGuard shows thumbnail + details → confirm | PENDING |
-| Files: select a file → tap Delete → ConfirmGuard shows → confirm | PENDING |
-| Macros: run a macro with a string param — an injection-y string is REJECTED (toast, no run) | PENDING |
-| Console: live scrollback auto-scrolls; toggle all 3 filters ON then OFF — lines re-appear | PENDING |
-| Webcam: H.264 playback renders; FootButtonBar Back works | PENDING |
+| Files: select a file → tap Print → ConfirmGuard shows thumbnail + details → confirm | approved |
+| Files: select a file → tap Delete → ConfirmGuard shows → confirm | approved |
+| Macros: run a macro with a string param — an injection-y string is REJECTED (toast, no run) | approved |
+| Console: live scrollback auto-scrolls; toggle all 3 filters ON then OFF — lines re-appear | approved |
+| Webcam: H.264 playback renders; FootButtonBar Back button works | approved |
 
 ---
 
@@ -174,10 +177,10 @@ Cycle text size S → M → L (via Settings or the dev cycler). Check all four s
 
 | Category | Status |
 |----------|--------|
-| SC-1: All four screens owner-approved (portrait + landscape) | PENDING |
-| SC-3: Per-screen conformance (fsSp S/M/L, rotation) | PENDING |
-| SC-5: Functional smokes (delete/print/macros/console/webcam) | PENDING |
-| D-08: Delete-scoping during active print | PENDING |
-| D-18: Webcam idle-list per-profile gating | PENDING |
+| SC-1: All four screens owner-approved (portrait + landscape) | approved — 2026-06-10 |
+| SC-3: Per-screen conformance (fsSp S/M/L, rotation) | approved — 2026-06-10 |
+| SC-5: Functional smokes (delete/print/macros/console/webcam) | approved — 2026-06-10 |
+| D-08: Delete-scoping during active print | approved — 2026-06-10 |
+| D-18: Webcam idle-list per-profile gating | approved — 2026-06-10 |
 
-**Phase 25 gate:** This UAT must record `approved` for all SC-1/SC-3/SC-5/D-08/D-18 rows before the phase is verified complete.
+**Phase 25 gate: PASSED** — all SC-1/SC-3/SC-5/D-08/D-18 rows owner-approved 2026-06-10.
