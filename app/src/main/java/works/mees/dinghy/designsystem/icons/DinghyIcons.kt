@@ -163,6 +163,22 @@ object DinghyIcons {
     val Home = DinghyIcon(IconRef.Ligature("home"), alternate = "home")
     val QrCode = DinghyIcon(IconRef.Ligature("qr_code"), alternate = "qr_code")
 
+    // --- Browse screens (Phase 25) — OWNER-LOCKED (D-21). Sources: img/material-icon-bucket.json
+    // assignments, existing DinghyIcons tokens (reused), and two owner-approved out-of-bucket entries
+    // (play_arrow / radio_button_unchecked, sanctioned 2026-06-10). Never the same glyph twice on one screen.
+    // Files actions:
+    val Print = DinghyIcon(IconRef.Ligature("print"), alternate = "files_print")                         // bucket: "start a print"
+    val Delete = DinghyIcon(IconRef.Ligature("delete"), alternate = "files_delete")                      // bucket entry
+    // Console filter toggles (hide-state glyphs — the icon shown when the toggle is in the HIDE state):
+    val HideTemps = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "console_hide_temps")      // bucket: "hide temperature messages in console"
+    val HideTimelapse = DinghyIcon(IconRef.Ligature("video_camera_back"), alternate = "console_hide_timelapse") // bucket: "webcam menu icon, also show timelapse in console"
+    val HidePrompts = DinghyIcon(IconRef.Ligature("chat_error"), alternate = "console_hide_prompts")     // bucket: "hide macro prompt messages in console"
+    // Macros screen:
+    val MacrosLeader = DinghyIcon(IconRef.Ligature("code"), alternate = "macros_leader")                  // bucket: "macros" (distinct from LauncherMacros=bolt)
+    val ManageMacros = DinghyIcon(IconRef.Ligature("bookmark_manager"), alternate = "macros_manage")      // bucket entry (more semantically precise than reusing LauncherCalibration=tune)
+    val ExecuteMacro = DinghyIcon(IconRef.Ligature("play_arrow"), alternate = "macros_execute")           // owner-approved 2026-06-10 (not in bucket; sanctioned new entry)
+    val UnbookmarkedMacro = DinghyIcon(IconRef.Ligature("radio_button_unchecked"), alternate = "macros_unbookmarked") // owner-approved 2026-06-10 (existing code ligature, out-of-bucket but sanctioned)
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -183,5 +199,7 @@ object DinghyIcons {
         SysInfoKernel, SysInfoMemUsage,
         Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings,
         MatchCase, CalendarClock, Experiment, Home, QrCode,
+        Print, Delete, HideTemps, HideTimelapse, HidePrompts,
+        MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
     )
 }

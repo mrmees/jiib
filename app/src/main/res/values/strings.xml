@@ -295,4 +295,21 @@
     <!-- FloatingEStop preview -->
     <string name="cd_floating_estop">Emergency stop</string>
 
+    <!-- ============================ browse screens (Phase 25) ============================ -->
+    <!-- contentDescriptions for the newly-registered browse-screen icon tokens (D-20 / D-21).
+         Screen-label strings (titles, section headers, list captions) are appended by each
+         Wave-2 screen plan (25-03/04/05). Only the shared icon cd_* strings live here. -->
+    <!-- Files actions -->
+    <string name="cd_files_print">Start print</string>
+    <string name="cd_files_delete">Delete file</string>
+    <!-- Console filter toggle glyphs (the icon shown when that message type is hidden) -->
+    <string name="cd_console_hide_temps">Hide temperature messages</string>
+    <string name="cd_console_hide_timelapse">Hide timelapse messages</string>
+    <string name="cd_console_hide_prompts">Hide macro prompt messages</string>
+    <!-- Macros screen actions -->
+    <string name="cd_macros_leader">Macros</string>
+    <string name="cd_macros_manage">Manage macros</string>
+    <string name="cd_macros_execute">Execute macro</string>
+    <string name="cd_macros_unbookmarked">Add to bookmarks</string>
+
 </resources>

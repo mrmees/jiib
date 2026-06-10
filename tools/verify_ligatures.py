@@ -101,6 +101,16 @@ NEEDED = {
     # bottom_panel_open=idle System foot button (FootSystem, D-09 neutral — NOT Power/red).
     # All 3 owner-confirmed 2026-06-10 and verified resolvable in the v2.944 bundled ttf (24-02 Task-2 gate).
     "videocam", "chair_fireplace", "bottom_panel_open",
+    # Phase-25 plan 02 (browse-screen token registry, D-20/D-21) — 9 owner-assigned glyphs.
+    # Files: print=start-a-print (bucket), delete=delete-file (bucket).
+    # Console filters (hide-state): mode_heat_off=hide-temps (bucket), video_camera_back=hide-timelapse (bucket),
+    # chat_error=hide-prompts (bucket).
+    # Macros: code=section-leader (bucket "macros"), bookmark_manager=manage-mode foot button (bucket).
+    # play_arrow=Execute macro foot button (owner-approved new entry 2026-06-10, not in bucket).
+    # radio_button_unchecked=unbookmarked trailing affordance (owner-approved 2026-06-10, existing code ligature).
+    # All 9 verified resolvable in the v2.944 bundled ttf (25-02 Task-2 gate).
+    "print", "delete", "mode_heat_off", "video_camera_back", "chat_error",
+    "code", "bookmark_manager", "play_arrow", "radio_button_unchecked",
 }
 
 
