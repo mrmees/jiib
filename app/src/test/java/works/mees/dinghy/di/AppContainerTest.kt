@@ -47,9 +47,9 @@ class AppContainerTest {
     private fun newContainer() =
         AppContainer(
             // theme, connection, macro, webcam, PROFILE (Phase 14, 5th), BABYSTEP (Phase 16, 6th store),
-            // discovery (last).
+            // TRACESTYLE (Phase 26, 7th store), discovery (last).
             FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
-            FakeDataStore(),
+            FakeDataStore(), FakeDataStore(),
             lazyDiscovery(),
         )
 

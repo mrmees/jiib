@@ -184,7 +184,9 @@ fun AppShell(
     val fileBrowser = spine?.fileBrowser ?: idleFileBrowser
     // The three Phase-5 control panels — each holder built off the SAME live per-session store and
     // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
-    val temperatureHolder = remember(store) { TemperatureHolder(scope = scope, store = store) }
+    val temperatureHolder = remember(store) {
+        TemperatureHolder(scope = scope, store = store, traceStylePrefs = container.traceStylePrefs)
+    }
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
     val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
     val filesHolder = remember(fileBrowser, printerStateFlow) {

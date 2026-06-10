@@ -41,6 +41,7 @@ import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
+import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
 /**
@@ -96,6 +97,15 @@ class AppContainer(
      * injected here.
      */
     babystepDataStore: DataStore<Preferences>,
+    /**
+     * The SEVENTH, INDEPENDENT file: tracestyle.preferences_pb (D-14, Phase 26). Backs the
+     * process-scoped per-sensor trace color + visibility settings ([TraceStylePrefs]: flat key-map
+     * of sensor-name→ARGB-Int for color, sensor-name→Boolean for visibility). Carries no secrets
+     * (like macros/webcam/babystep), kept on its own connection-independent lifecycle per the
+     * separate-file discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore
+     * single-writer invariant) and injected here.
+     */
+    traceStyleDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -300,6 +310,35 @@ class AppContainer(
      */
     fun setBabystepLayers(n: Int) {
         writeScope.launch { babystepPrefs.setLayerCount(n) }
+    }
+
+    /**
+     * Per-sensor trace color + visibility persistence (D-14, Phase 26) — the SEPARATE
+     * tracestyle.preferences_pb-backed store. Like [babystepPrefs]/[macroPrefs] it is
+     * PROCESS-SCOPED + CONNECTION-INDEPENDENT (not a field on SpineHandle): colors and visibility
+     * survive reconnects and printer swaps. The Temperature screen reads these through the holder's
+     * [works.mees.dinghy.ui.temperature.TemperatureHolder.traceColors] /
+     * [works.mees.dinghy.ui.temperature.TemperatureHolder.traceVisibility] StateFlows (seeded from
+     * this store at holder construction) and writes through [setTraceColor]/[setTraceVisibility].
+     */
+    val traceStylePrefs: TraceStylePrefs = TraceStylePrefs(traceStyleDataStore)
+
+    /**
+     * Persist a trace color (D-14), durably. Routes through the process-lifetime [writeScope]
+     * ([[dinghy-compose-write-scope-cancellation]]) — never `rememberCoroutineScope()`. The
+     * [argb] is an ARGB Int chosen from the fixed 8-color Colorful pool (T-26-03-01: no
+     * injection surface — the UI only passes pool members, never arbitrary user text).
+     */
+    fun setTraceColor(sensorName: String, argb: Int) {
+        writeScope.launch { traceStylePrefs.setTraceColor(sensorName, argb) }
+    }
+
+    /**
+     * Persist a trace visibility toggle (D-14), durably.
+     * Same write-scope discipline as [setTraceColor] ([[dinghy-compose-write-scope-cancellation]]).
+     */
+    fun setTraceVisibility(sensorName: String, visible: Boolean) {
+        writeScope.launch { traceStylePrefs.setTraceVisibility(sensorName, visible) }
     }
 
     /**
