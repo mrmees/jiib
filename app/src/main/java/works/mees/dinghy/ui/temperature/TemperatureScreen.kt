@@ -195,7 +195,10 @@ fun TemperatureScreen(
             },
             onNudgeHeater = { sensorName, rawTarget ->
                 val clamped = PrinterCommands.clampHeaterTarget(rawTarget)
-                if (clamped.toString() !in inFlight) {
+                // WR-01 (26-rev): dedup on the DISPATCH KEY (the same key passed into SetHeaterArgs),
+                // not the clamped value — inFlight holds keys like "set_heater_extruder", so comparing
+                // the value made the guard a permanent no-op and rapid ± taps stacked dispatches.
+                if ("set_heater_$sensorName" !in inFlight) {
                     dispatcher?.dispatch(
                         CommandRegistry.setHeater,
                         SetHeaterArgs(sensorName, clamped, "set_heater_$sensorName"),
