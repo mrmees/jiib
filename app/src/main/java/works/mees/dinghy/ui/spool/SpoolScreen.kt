@@ -163,7 +163,9 @@ fun SpoolScreen(
             onRowClick = { holder.selectSpool(it) },
             onMeasure = { selected?.let { holder.openMeasureWeight(it) } },
             onCloseMeasure = { holder.closeMeasureWeight() },
-            onApplyMeasure = { spool, grams -> scope.launch { holder.measureSpool(spool, grams) } },
+            // WR-10 (26-rev): the measure write goes through the holder's own scope, NOT the
+            // composition scope — same-frame navigation must not cancel a remote Spoolman write.
+            onApplyMeasure = { spool, grams -> holder.measureSpoolAsync(spool, grams) },
             onHome = onHome,
             onScan = onScan,
             onLoad = {

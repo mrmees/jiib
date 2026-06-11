@@ -325,6 +325,19 @@ class SpoolHolder(
     }
 
     /**
+     * WR-10 (26-rev): fire-and-forget [measureSpool] on the holder's own [holderScope]. A remote
+     * Spoolman WRITE must outlive the screen composition — launching it on the screen's
+     * `rememberCoroutineScope()` let a same-frame navigation (Home foot button, system Back,
+     * recovery Splash) cancel the HTTP write mid-flight, silently dropping the measured weight
+     * while the user believed it was set (the dinghy-compose-write-scope-cancellation class
+     * applied to a network write). The holder outlives the screen (hoisted shell-side), so the
+     * write always completes.
+     */
+    fun measureSpoolAsync(spool: SpoolmanSpool, grossGrams: Double) {
+        holderScope.launch { measureSpool(spool, grossGrams) }
+    }
+
+    /**
      * D-05: toggle a material-FAMILY chip. Families are comma-joined UNQUOTED into one
      * `filament.material=A,B` term (so `PLA` catches `PLA+`; a multi-family chip is a comma list, NOT a
      * fuzzy combined term). Re-issues the list read.
