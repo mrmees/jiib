@@ -55,6 +55,14 @@ esac
 # Implemented as glob patterns matched against repo-relative paths.
 # -----------------------------------------------------------------------------
 PROTECTED=(
+  # UNSHIPPED/ACTIVE phases at authoring time (codex review HIGH, 2026-06-11): the
+  # archive passes must only touch SHIPPED phases — 26.5 is the running phase and
+  # 27/28/29 are future planning context (27-CONTEXT.md is live input). RE-CHECK
+  # this list against ROADMAP completion state before any future run.
+  ".planning/phases/26.5-*/*"
+  ".planning/phases/27-*/*"
+  ".planning/phases/28-*/*"
+  ".planning/phases/29-*/*"
   ".planning/phases/01-*/captures/*"
   ".planning/phases/13-*/captures/*"
   ".planning/phases/15.2-*/15.2-AUDIT.md"

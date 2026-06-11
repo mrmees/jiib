@@ -52,7 +52,9 @@ jobs:
             [ -f "$src" ] || continue
             dir=$(dirname "$src")
             # Extract relative .md link targets: [text](path.md) / [text](path.md#anchor)
-            grep -oE '\]\([^)# ]+\.md(#[^)]*)?\)' "$src" 2>/dev/null \
+            # `|| true` guards pipefail: grep exits 1 on no-match, which would kill the
+            # step under Actions' default `bash -e -o pipefail` before the dead-links check.
+            { grep -oE '\]\([^)# ]+\.md(#[^)]*)?\)' "$src" 2>/dev/null || true; } \
               | sed -E 's/^\]\(//; s/#[^)]*//; s/\)$//' \
               | sort -u \
               | while read -r target; do
