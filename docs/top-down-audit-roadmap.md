@@ -248,30 +248,6 @@ step may trail anytime; only its correctness edits are order-critical. R6's rema
 should wait until the Phase-27/28 redesigns land (don't preview/polish screens about to be
 rebuilt).
 
-### R10 — Touch responsiveness *(owner-reported; full analysis in Part 5)*
-1. **Instrument before fixing** (one debug session on flox): enable Developer Options "Show
-   taps" + screen-record; add pointer-event logging to the shell swipe detector and one stepper;
-   correlate missed taps against (a) busy/debounce windows, (b) the 150 ms Crossfade morph,
-   (c) frame drops. Part 5 has the recipes — the fixes below are ranked hypotheses, not
-   confirmed causes, until this runs.
-2. **Kill the silent drops (highest-confidence fix):** thread a real `enabled` param through
-   `OutlinedControl`/stepper rows so disabled controls aren't clickable at all (today they
-   ripple, then swallow the click inside `if (controlsEnabled)` — AdjusterPanel); make
-   `CommandDispatcher`'s in-flight + 400 ms debounce rejections produce visible feedback
-   (brief dim-flash or settle tick) instead of dropping taps invisibly
-   (`CommandDispatcher.kt:108–116`).
-3. **Harden the shell swipe-up detector** (`AppShell.kt`, `SWIPE_UP_THRESHOLD_PX = 80f`):
-   accumulate drag across the gesture instead of requiring a single event's `dragAmount > 80f`
-   (the per-event check is already proven fragile — it's why `FineTuneNavTest`'s `swipeUp()`
-   can't open the drawer); fail fast on consumed downs (`requireUnconsumed`).
-4. **Indication immediacy:** explicit fast ripple/indication on `ListRow`/`OutlinedControl`
-   inside scrollable containers (Compose delays press indication in scrollables by design —
-   on a janky Adreno 320 that delay reads as a missed tap).
-5. **Crossfade tap-guard** on the home morph only if step 1 implicates it.
-- **Acceptance:** 20-tap torture run per control class on flox: ≥95% registered with visible
-  same-frame feedback; intentional rejections (busy/debounce) show feedback instead of nothing;
-  drawer swipe still opens reliably; `FineTuneNavTest` passes on-device.
-
 ### R5a — Guardrail infra *(run FIRST; the infra half of the former R5)*
 1. `git update-index --chmod=+x gradlew` (one command, do it first).
 2. **LICENSE** (your call — GPLv3 fits the Klipper ecosystem's norms; MIT/Apache-2.0 maximizes
@@ -339,6 +315,30 @@ rebuilt).
 - **Acceptance:** zero contradictions among active memory files; every active file carries a
   current `Last verified` header; the 2 done todos closed and 4 stale ones archived; hygiene
   check green in CI.
+
+### R10 — Touch responsiveness *(run THIRD — owner-reported; full analysis in Part 5)*
+1. **Instrument before fixing** (one debug session on flox): enable Developer Options "Show
+   taps" + screen-record; add pointer-event logging to the shell swipe detector and one stepper;
+   correlate missed taps against (a) busy/debounce windows, (b) the 150 ms Crossfade morph,
+   (c) frame drops. Part 5 has the recipes — the fixes below are ranked hypotheses, not
+   confirmed causes, until this runs.
+2. **Kill the silent drops (highest-confidence fix):** thread a real `enabled` param through
+   `OutlinedControl`/stepper rows so disabled controls aren't clickable at all (today they
+   ripple, then swallow the click inside `if (controlsEnabled)` — AdjusterPanel); make
+   `CommandDispatcher`'s in-flight + 400 ms debounce rejections produce visible feedback
+   (brief dim-flash or settle tick) instead of dropping taps invisibly
+   (`CommandDispatcher.kt:108–116`).
+3. **Harden the shell swipe-up detector** (`AppShell.kt`, `SWIPE_UP_THRESHOLD_PX = 80f`):
+   accumulate drag across the gesture instead of requiring a single event's `dragAmount > 80f`
+   (the per-event check is already proven fragile — it's why `FineTuneNavTest`'s `swipeUp()`
+   can't open the drawer); fail fast on consumed downs (`requireUnconsumed`).
+4. **Indication immediacy:** explicit fast ripple/indication on `ListRow`/`OutlinedControl`
+   inside scrollable containers (Compose delays press indication in scrollables by design —
+   on a janky Adreno 320 that delay reads as a missed tap).
+5. **Crossfade tap-guard** on the home morph only if step 1 implicates it.
+- **Acceptance:** 20-tap torture run per control class on flox: ≥95% registered with visible
+  same-frame feedback; intentional rejections (busy/debounce) show feedback instead of nothing;
+  drawer swipe still opens reliably; `FineTuneNavTest` passes on-device.
 
 ### R1 — Install & display correctness on modern devices *(merges with the arm64 ABI todo; ship is now Phase 29)*
 1. ABI: `include("armeabi-v7a", "arm64-v8a")`, keep `isUniversalApk = false`; release CI/script
