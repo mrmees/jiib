@@ -525,6 +525,9 @@ fun AppShell(
                 // would fight list scroll, overlay taps, or keyboard content.
                 // Files, Console, Macros, Calibration, Webcam, Spool, Outputs, SystemInfo, Devices,
                 // Theme, Settings, About — plus any visible Macro Prompt (floats over ANY screen).
+                // WR-06 (26-rev): the Phase-26 rebuilds qualify under the same criteria — Temperature
+                // and FineTune host scrollable ListBlock Fields, Extrude hosts BasicTextField IME
+                // entry — so they join the set (consistent with their sibling list screens).
                 val d = navBackStackEntry?.destination
                 val suppressSwipe = promptView.visible || (d != null && (
                     d.isRoute<NavDest.Files>() ||
@@ -538,7 +541,10 @@ fun AppShell(
                     d.isRoute<NavDest.Devices>() ||
                     d.isRoute<NavDest.Theme>() ||
                     d.isRoute<NavDest.Settings>() ||
-                    d.isRoute<NavDest.About>()
+                    d.isRoute<NavDest.About>() ||
+                    d.isRoute<NavDest.Temperature>() ||
+                    d.isRoute<NavDest.FineTune>() ||
+                    d.isRoute<NavDest.Extrude>()
                 ))
                 if (!suppressSwipe) {
                     detectVerticalDragGestures { _, dragAmount ->
