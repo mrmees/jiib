@@ -7,11 +7,13 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -28,12 +30,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -135,8 +139,12 @@ sealed interface ScrubberActions {
  * @param step          the increment/decrement applied by the steppers.
  * @param actions       the gutter-action mode — forwarded verbatim to the settle logic.
  * @param unit          optional unit suffix shown after the value ("°C", "mm", "%").
+ * @param uDp           the unit U height cap (UAT-3); the fill-bar track is constrained to
+ *                      `heightIn(max = uDp)` so it never grows beyond a single unit even when
+ *                      the host column has more vertical space. Callers derive this from
+ *                      `rememberUnitGrid(minOf(maxWidth, maxHeight)).uDp`.
  * @param onValueChange called continuously as the user scrubs/steps (live preview, no dispatch).
- * @param modifier      caller-supplied modifier; typically `Modifier.fillMaxSize()` for inline use.
+ * @param modifier      caller-supplied modifier; typically `Modifier.fillMaxWidth()` for inline use.
  */
 @Composable
 fun ScrubberControl(
@@ -146,6 +154,7 @@ fun ScrubberControl(
     step: Float,
     actions: ScrubberActions,
     unit: String = "",
+    uDp: Dp = 80.dp,
     onValueChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -199,13 +208,14 @@ fun ScrubberControl(
         (currentActions as? ScrubberActions.OnSettle)?.onSettle?.invoke(working)
     }
 
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Full fill-bar scrubber (hifi.css .fillbar): drag/tap anywhere to set. weight(1f) so the
-        // stepper row below gets its natural height and the fill bar takes the remaining space.
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Fill-bar scrubber (hifi.css .fillbar): drag/tap anywhere to set.
+        // UAT-3: track height capped at ≤1U via heightIn(max = uDp) — the caller supplies uDp
+        // from rememberUnitGrid so the bar is always exactly one unit tall, not a Focus-filling block.
         Box(
             Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .heightIn(max = uDp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -347,27 +357,31 @@ fun ScrubberPage(
         // normal routes); overlay callers own the fill.
         modifier = modifier.fillMaxSize().background(LocalTokens.current.bg),
         field = {
-            // Full-height fill-bar + steppers: hosted in the scaffold's Field slot.
-            // G-2: horizontal inset (16.dp) so the bar and its own ±/Cancel/Apply group present one
-            // width/left-edge. Vertical 24.dp keeps the scaffold's breathing room.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
-            ) {
-                ScrubberControl(
-                    label = label,
-                    value = value,
-                    range = range,
-                    step = step,
-                    actions = actions,
-                    unit = unit,
-                    onValueChange = { v ->
-                        working = v
-                        onValueChange(v)
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                )
+            // Wrap in BoxWithConstraints to derive the unit U for the UAT-3 height cap.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+                // G-2: horizontal inset (16.dp) so the bar and its own ±/Cancel/Apply group
+                // present one width/left-edge. Vertical 24.dp keeps the scaffold's breathing room.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                ) {
+                    ScrubberControl(
+                        label = label,
+                        value = value,
+                        range = range,
+                        step = step,
+                        actions = actions,
+                        unit = unit,
+                        uDp = grid.uDp,
+                        onValueChange = { v ->
+                            working = v
+                            onValueChange(v)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         },
         gutter = {

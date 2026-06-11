@@ -7,11 +7,13 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -30,9 +32,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.fractionFromX
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -103,6 +107,29 @@ fun OutputFocusControl(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Derive unit U here so FocusScrubberSurface / FocusLedSurface can cap controls at ≤1U (UAT-5).
+    // BoxWithConstraints is the standard call-site pattern for rememberUnitGrid; it resolves ONCE
+    // and the uDp is passed explicitly (no CompositionLocal per Phase-23 Open Q §1 decision).
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        OutputFocusControlInner(
+            output = output,
+            holder = holder,
+            container = container,
+            onBack = onBack,
+            uDp = grid.uDp,
+        )
+    }
+}
+
+@Composable
+private fun OutputFocusControlInner(
+    output: OutputRowVm,
+    holder: OutputsHolder,
+    container: AppContainer,
+    onBack: () -> Unit,
+    uDp: Dp,
+) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
@@ -161,7 +188,8 @@ fun OutputFocusControl(
                 onSettle = { v -> if (!busy) dispatchFan(v.roundToInt()) },
                 onOff = { dispatchFan(0) },
                 onBack = onBack,
-                modifier = modifier,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -206,7 +234,8 @@ fun OutputFocusControl(
                 onSettle = { v -> if (!busy) dispatchServo(v.roundToInt()) },
                 onOff = { dispatchServoOff() },
                 onBack = onBack,
-                modifier = modifier,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -239,7 +268,8 @@ fun OutputFocusControl(
                 onSettle = { v -> if (!busy) dispatchHeater(v.roundToInt()) },
                 onOff = { dispatchHeater(0) },
                 onBack = onBack,
-                modifier = modifier,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -269,7 +299,8 @@ fun OutputFocusControl(
                 onSettle = { v -> if (!busy) dispatchPwmTool(v.roundToInt()) },
                 onOff = { dispatchPwmTool(0) },
                 onBack = onBack,
-                modifier = modifier,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -317,7 +348,8 @@ fun OutputFocusControl(
                 onWhiteSettle = { brightness -> if (!busy) dispatchWhite(brightness) },
                 onOff = { if (!busy) dispatchOff() },
                 onBack = onBack,
-                modifier = modifier,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -349,7 +381,8 @@ fun OutputFocusControl(
                     onSettle = { v -> if (!busy) dispatchPwmPin(v.roundToInt()) },
                     onOff = { dispatchPwmPin(0) },
                     onBack = onBack,
-                    modifier = modifier,
+                    uDp = uDp,
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 // Digital output_pin (On/Off toggle)
@@ -378,7 +411,7 @@ fun OutputFocusControl(
                     onOn = { setDigital(true) },
                     onOff = { setDigital(false) },
                     onBack = onBack,
-                    modifier = modifier,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
@@ -407,6 +440,7 @@ private fun FocusScrubberSurface(
     onSettle: (Float) -> Unit,
     onOff: () -> Unit,
     onBack: () -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -427,14 +461,13 @@ private fun FocusScrubberSurface(
             range = range,
             step = step,
             unit = unit,
+            uDp = uDp,
             // OnSettle: dispatch ONCE on gesture-end / stepper tap; enabled guard inside lambda.
             actions = ScrubberActions.OnSettle(
                 onSettle = { v -> if (!busy) onSettle(v) },
                 onBack = onBack,
             ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         // Foot row: Off (Danger/red) + Back (Neutral). Mirrors the ScrubberPage OnSettle gutter.
@@ -479,6 +512,7 @@ private fun FocusLedSurface(
     onWhiteSettle: (brightnessPct: Float) -> Unit,
     onOff: () -> Unit,
     onBack: () -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -510,6 +544,8 @@ private fun FocusLedSurface(
         )
         // GAP-B: the hue wheel renders ONLY for an RGB-capable LED.
         if (ledHasRgb) {
+            // UAT-5 exception: LED ColorWheel may exceed 1U — it is the sole sanctioned >1U
+            // control in Outputs (owner decision; see docs/ui_design/LAYOUT.md UAT-5).
             ColorWheel(
                 hue = hue,
                 onHandleMove = { hue = it },
@@ -533,9 +569,8 @@ private fun FocusLedSurface(
                     if (ledHasRgb) onColorSettle(hue, settled) else onWhiteSettle(settled)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            uDp = uDp,
+            modifier = Modifier.fillMaxWidth(),
         )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         // Foot row: Off (Danger/red) + Back (Neutral) — mirrors OutputLedContent's gutter verbatim.
@@ -575,6 +610,7 @@ private fun LedBrightnessControl(
     value: Float,
     onValueChange: (Float) -> Unit,
     onSettle: (Float) -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
@@ -616,10 +652,11 @@ private fun LedBrightnessControl(
 
     Column(modifier) {
         // Horizontal fill-bar scrubber — LEFT-anchored fill (no center-expand regression).
+        // UAT-3/UAT-5: track height capped at ≤1U via heightIn(max = uDp).
         Box(
             Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .heightIn(max = uDp)
                 .clip(RoundedCornerShape(t.rCard))
                 .background(t.surface2)
                 .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
