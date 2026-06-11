@@ -1,8 +1,9 @@
 ---
 phase: 26-adjustment-screens
 verified: 2026-06-11T00:45:00Z
-status: human_needed
-score: 4/5 must-haves verified
+status: passed
+score: 5/5 must-haves verified
+human_uat: 26-HUMAN-UAT.md (owner-tested on flox 2026-06-10 — 4 passed, WR-08 deferred to todo; SC-1 owner-approved with follow-up polish notes pending enumeration)
 overrides_applied: 0
 human_verification:
   - test: "Navigate each rebuilt screen on flox in portrait and landscape — confirm full owner approval"
@@ -35,8 +36,8 @@ gaps:
 
 **Phase Goal:** Migrate the numeric-adjustment screens onto the Phase-23 adjustment archetype — the stepper, the scrubber, and the 3-zone adjuster with the inline baseline ("was X") readout. Screens: TemperatureScreen, ExtrudeScreen/ExtrusionScreen, OutputsScreen, FineTuneHubScreen + FwRetractionScreen, and the single-setting pages ScrubberPage/NumpadPage/MeasuredWeightPage. Per-screen conformance folds in.
 **Verified:** 2026-06-11T00:45:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Status:** passed (human UAT completed 2026-06-10 — see 26-HUMAN-UAT.md; WR-08 deferred to `.planning/todos/pending/2026-06-10-fw-retraction-glyph-assignment.md`)
+**Re-verification:** No — initial verification + owner UAT
 
 ---
 
