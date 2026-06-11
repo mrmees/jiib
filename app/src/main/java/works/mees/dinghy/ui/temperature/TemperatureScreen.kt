@@ -35,9 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
 import works.mees.dinghy.command.ApplyPresetArgs
 import works.mees.dinghy.command.CommandDispatcher
@@ -141,9 +142,6 @@ fun TemperatureScreen(
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
-    val inFlight by remember(dispatcher) {
-        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
-    }.collectAsStateWithLifecycle(initialValue = emptySet())
     val series by holder.series.collectAsStateWithLifecycle()
     val setpoints by holder.setpoints.collectAsStateWithLifecycle()
     val legend by holder.legend.collectAsStateWithLifecycle()
@@ -172,6 +170,19 @@ fun TemperatureScreen(
         if (failureText != null) { delay(4_000); failureText = null }
     }
 
+    // R10 (26.5-03): per-dispatch-key rejection tick counters — each [CommandDispatcher.rejectedKey]
+    // emission (busy/debounce drop) bumps that key's counter; the heater AdjusterPanel showing the
+    // matching key renders a one-shot flash. PersistentMap = @Stable param (Phase-22 discipline);
+    // changes only on a rejection, never per sample tick.
+    var rejectTicks by remember { mutableStateOf(persistentMapOf<String, Long>()) }
+    LaunchedEffect(dispatcher) {
+        rejectTicks = persistentMapOf()
+        val d = dispatcher ?: return@LaunchedEffect
+        d.rejectedKey.collect { key ->
+            rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         TemperatureContent(
             series = series,
@@ -182,6 +193,7 @@ fun TemperatureScreen(
             traceVisibility = traceVisibility,
             isPrinting = isPrinting,
             failureText = failureText,
+            rejectTicks = rejectTicks,
             seedHex = themeTuple.seedHex,
             dark = themeTuple.dark,
             onBack = onBack,
@@ -195,15 +207,16 @@ fun TemperatureScreen(
             },
             onNudgeHeater = { sensorName, rawTarget ->
                 val clamped = PrinterCommands.clampHeaterTarget(rawTarget)
-                // WR-01 (26-rev): dedup on the DISPATCH KEY (the same key passed into SetHeaterArgs),
-                // not the clamped value — inFlight holds keys like "set_heater_extruder", so comparing
-                // the value made the guard a permanent no-op and rapid ± taps stacked dispatches.
-                if ("set_heater_$sensorName" !in inFlight) {
-                    dispatcher?.dispatch(
-                        CommandRegistry.setHeater,
-                        SetHeaterArgs(sensorName, clamped, "set_heater_$sensorName"),
-                    )
-                }
+                // WR-01 (26-rev) dedup, R10 (26.5-03) revision: the dispatcher's own in-flight busy
+                // guard performs this exact same-key drop ATOMICALLY (_inFlight.value, not the
+                // composition-collected snapshot) AND now emits rejectedKey so the stepper flashes.
+                // The old local `!in inFlight` pre-check duplicated that drop with a stale snapshot
+                // and swallowed the tap BEFORE the dispatcher could emit feedback — removed so busy
+                // re-taps produce the visible rejection flash instead of nothing (Part 5 cause #2).
+                dispatcher?.dispatch(
+                    CommandRegistry.setHeater,
+                    SetHeaterArgs(sensorName, clamped, heaterDispatchKey(sensorName)),
+                )
             },
             onApplyPreset = { preset ->
                 dispatcher?.dispatch(
@@ -293,6 +306,7 @@ private fun TemperatureContent(
     failureText: String?,
     seedHex: String,
     dark: Boolean,
+    rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     onBack: () -> Unit,
     onSetTraceColor: (String, Color) -> Unit,
     onSetTraceVisibility: (String, Boolean) -> Unit,
@@ -403,6 +417,8 @@ private fun TemperatureContent(
                                 onOff = { onNudgeHeater(sensor.name, 0) },
                                 onDone = { selectedName = null },
                                 onStepSelect = { activeStep = it },
+                                // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
+                                rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
                                 uDp = grid.uDp,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -602,6 +618,7 @@ private fun TemperatureAdjusterFocus(
     onDone: () -> Unit,
     onStepSelect: (Double) -> Unit,
     uDp: androidx.compose.ui.unit.Dp,
+    rejectTick: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -695,6 +712,7 @@ private fun TemperatureAdjusterFocus(
                     )
                 },
                 uDp = uDp,
+                rejectTick = rejectTick,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -722,6 +740,13 @@ private fun iconForSensor(name: String) = when {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The per-heater dispatch key (the same string passed into [SetHeaterArgs]). R10 (26.5-03): single
+ * construction point so the [works.mees.dinghy.command.CommandDispatcher.rejectedKey] filter can
+ * never drift from the key the dispatch actually uses.
+ */
+private fun heaterDispatchKey(sensorName: String): String = "set_heater_$sensorName"
 
 /** Tabular-friendly one-decimal temperature formatting (rounded, not truncated). */
 private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()

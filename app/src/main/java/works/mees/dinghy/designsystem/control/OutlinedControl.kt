@@ -2,16 +2,19 @@ package works.mees.dinghy.designsystem.control
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +96,10 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  *   (blank [label]) speaks the ligature name (e.g. "mode_heat_off") or nothing meaningful. A non-null
  *   value overrides the glyph's semantics (the [works.mees.dinghy.designsystem.icons.DinghyIconView]
  *   Amendment-1 precedent); null leaves semantics unchanged (pre-WR-05 behavior for legacy call sites).
+ * @param enabled R10 (26.5-03) TRUE disablement: when false, NO click modifier is installed at all —
+ *   no ripple, no consumed tap (the tap falls through or does nothing visibly-interactive), unlike a
+ *   guarded `onClick` lambda which ripples then silently swallows the tap (Part 5 cause #1). Callers
+ *   keep their own dim treatment (e.g. the WR-07 alpha 0.38 + semantics-disabled convention).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -104,6 +111,7 @@ fun OutlinedControl(
     symbol: String? = null,
     onLongClick: (() -> Unit)? = null,
     contentDescription: String? = null,
+    enabled: Boolean = true,
 ) {
     val t = LocalTokens.current
     // WR-05: a non-null contentDescription becomes the glyph's spoken label instead of the raw
@@ -114,10 +122,24 @@ fun OutlinedControl(
         Modifier
     }
     val shape = RoundedCornerShape(t.rCtrl)
-    val clickMod = if (onLongClick != null) {
-        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-    } else {
-        Modifier.clickable(onClick = onClick)
+    // R10 (26.5-03): explicit interactionSource + LocalIndication so press indication is delivered
+    // immediately inside scrollable containers (Part 5 cause #4 — Compose delays indication in
+    // scrollables by design; on a 20-30fps Adreno 320 that delay reads as a missed tap).
+    val interactionSource = remember { MutableInteractionSource() }
+    val clickMod = when {
+        // R10 true disablement: a bare Modifier — no clickable installed, no ripple, no event consumed.
+        !enabled -> Modifier
+        onLongClick != null -> Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = LocalIndication.current,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+        else -> Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = LocalIndication.current,
+            onClick = onClick,
+        )
     }
     Box(
         modifier = modifier
@@ -204,6 +226,7 @@ fun OutlinedControl(
     icon: DinghyIcon?,
     onLongClick: (() -> Unit)? = null,
     contentDescription: String? = null,
+    enabled: Boolean = true,
 ) {
     OutlinedControl(
         label = label,
@@ -213,5 +236,6 @@ fun OutlinedControl(
         symbol = icon?.let { ligatureOf(it) },
         onLongClick = onLongClick,
         contentDescription = contentDescription,
+        enabled = enabled,
     )
 }

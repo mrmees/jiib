@@ -105,6 +105,13 @@ android {
         abortOnError = true
     }
 
+    // R10 (26.5-03): the dispatcher's debug rejection instrumentation calls android.util.Log at
+    // its early returns; host unit tests exercise those exact paths (busy/debounce tests), so
+    // unmocked android.jar methods must return defaults instead of throwing "not mocked".
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

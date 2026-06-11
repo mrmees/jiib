@@ -1,5 +1,7 @@
 package works.mees.dinghy.designsystem.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,9 +12,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
@@ -75,6 +80,12 @@ import kotlin.math.roundToInt
  * @param onReset        called on Reset tap; null when no baseline is available (hides the button).
  * @param enabled        busy-lock gate from the holder; when false both stepper tiles are inert.
  * @param incrementPicker caller-provided [IncrementPicker] slot (the step-set selector row).
+ * @param rejectTick     R10 (26.5-03) rejection-feedback tick: the caller increments this when the
+ *                       dispatcher reports a busy/debounce rejection for THIS panel's dispatch key
+ *                       ([works.mees.dinghy.command.CommandDispatcher.rejectedKey]). Each change
+ *                       (except the initial 0) triggers a brief ONE-SHOT flash of the hero value —
+ *                       "heard you, still settling" — never a looping animation (Adreno-320 motion
+ *                       law). Default 0 keeps previews and legacy call sites flash-free.
  * @param uDp            the unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
  *                       used to size the Zone-1 header icon to ~50% U (prominent but still fits a
  *                       ≈1U tall header row — UAT-1).
@@ -94,16 +105,31 @@ fun AdjusterPanel(
     enabled: Boolean,
     incrementPicker: @Composable () -> Unit,
     uDp: Dp = 64.dp,
+    rejectTick: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
     // WR-07 (26-rev): the busy-lock must DIM as well as inert (the P17 "group dims + inert" UX).
-    // OutlinedControl has no `enabled` param — apply the 25-03 convention (alpha 0.38 + semantics
-    // disabled, BookmarkedMacrosScreen precedent) to the stepper tiles and Reset so the lock is
-    // visible and TalkBack stops announcing them as actionable.
+    // R10 (26.5-03): true disablement now goes through OutlinedControl's `enabled` param (no click
+    // modifier installed at all — no ripple, no swallowed tap; Part 5 cause #1). The 25-03 dim
+    // convention (alpha 0.38 + semantics disabled, BookmarkedMacrosScreen precedent) is KEPT on the
+    // stepper tiles and Reset so the lock stays visible and TalkBack stops announcing them.
     val controlsEnabled = enabled && value != null
     val disabledModifier =
         if (!controlsEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
+
+    // R10 (26.5-03): one-shot rejection flash — the hero value briefly tints to the warn token
+    // (heat) and settles back to text over REJECT_FLASH_MS. lerp between two LocalTokens roles
+    // keeps it token-only (THEME-01) and theme-reactive; Animatable makes it strictly ONE-SHOT
+    // (no looping transition — Adreno-320 motion law, D-13).
+    val rejectFlash = remember { Animatable(0f) }
+    LaunchedEffect(rejectTick) {
+        if (rejectTick != 0L) {
+            rejectFlash.snapTo(1f)
+            rejectFlash.animateTo(0f, animationSpec = tween(durationMillis = REJECT_FLASH_MS))
+        }
+    }
+    val valueColor = lerp(t.text, t.heat, rejectFlash.value)
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.SpaceBetween,
@@ -134,7 +160,8 @@ fun AdjusterPanel(
             onReset?.let { reset ->
                 OutlinedControl(
                     label = stringResource(R.string.adjuster_reset),
-                    onClick = { if (controlsEnabled) reset() },
+                    onClick = reset,
+                    enabled = controlsEnabled,
                     modifier = Modifier
                         .heightIn(min = 40.dp)
                         .then(disabledModifier),
@@ -157,7 +184,8 @@ fun AdjusterPanel(
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
                     fontSize = fsSp(48f, t.fs).sp,
-                    color = t.text,
+                    // R10: flashes toward t.heat on a rejection tick, settles back to t.text.
+                    color = valueColor,
                 )
                 // Inline "was X" — SAME Row as the value (NEVER a stacked second row below).
                 // adjustment-controls.md anti-pattern: a second line overflows 5U phone-landscape Focus.
@@ -189,7 +217,8 @@ fun AdjusterPanel(
                 // stepper tiles — not translatable copy — so they stay literal by decision.
                 OutlinedControl(
                     label = "−",
-                    onClick = { if (controlsEnabled) onDecrement() },
+                    onClick = onDecrement,
+                    enabled = controlsEnabled,
                     modifier = Modifier
                         .weight(1f)
                         .then(disabledModifier),
@@ -197,7 +226,8 @@ fun AdjusterPanel(
                 )
                 OutlinedControl(
                     label = "+",
-                    onClick = { if (controlsEnabled) onIncrement() },
+                    onClick = onIncrement,
+                    enabled = controlsEnabled,
                     modifier = Modifier
                         .weight(1f)
                         .then(disabledModifier),
@@ -208,6 +238,9 @@ fun AdjusterPanel(
         }
     }
 }
+
+/** R10: duration of the one-shot rejection flash (ms) — brief, never looping (Adreno-320 law). */
+private const val REJECT_FLASH_MS = 200
 
 /**
  * Pure predicate: whether to show the inline "was {baseline}" label next to the adjuster value.

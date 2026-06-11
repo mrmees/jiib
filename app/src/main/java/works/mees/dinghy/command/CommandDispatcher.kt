@@ -1,5 +1,6 @@
 package works.mees.dinghy.command
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.BufferOverflow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonElement
+import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.net.ConnectionError
 import works.mees.dinghy.net.JsonRpcClient
 import works.mees.dinghy.net.JsonRpcMethods
@@ -120,13 +122,25 @@ class CommandDispatcher(
      * and launches the wrapped call, removing the key (and toasting any typed failure) on completion.
      */
     fun dispatch(key: String, method: String, params: JsonElement? = null) {
-        // Busy guard — a running key is never re-entered.
-        if (key in _inFlight.value) return
+        // Busy guard — a running key is never re-entered. (R10: the early return is unchanged;
+        // the only delta is the feedback emission + debug counter log before returning.)
+        if (key in _inFlight.value) {
+            _rejectedKey.tryEmit(key)
+            if (BuildConfig.DEBUG) Log.d(TAG, "reject: key=$key reason=in_flight")
+            return
+        }
 
-        // Debounce — drop a re-tap within the window of the last accepted dispatch.
+        // Debounce — drop a re-tap within the window of the last accepted dispatch. (R10: guard
+        // expression and 400ms default UNCHANGED — feedback emission only.)
         val now = timeSource()
         val prev = lastAccepted[key]
-        if (prev != null && now - prev < debounceMs) return
+        if (prev != null && now - prev < debounceMs) {
+            _rejectedKey.tryEmit(key)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "reject: key=$key reason=debounce remaining=${debounceMs - (now - prev)}ms")
+            }
+            return
+        }
         lastAccepted[key] = now
 
         // Per-command timeout: gcode.script's reply is gated on the gcode COMPLETING (homing/probe,
@@ -192,5 +206,8 @@ class CommandDispatcher(
 
         /** Buffer for [rejectedKey] — rapid-tap bursts are small; DROP_OLDEST keeps tryEmit lossy-safe. */
         private const val REJECT_BUFFER = 4
+
+        /** Logcat tag for the R10 step-1 rejection instrumentation (debug builds only). */
+        private const val TAG = "Dispatcher"
     }
 }

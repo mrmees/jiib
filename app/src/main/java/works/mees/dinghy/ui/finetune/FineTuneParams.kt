@@ -372,6 +372,39 @@ fun nudgeToBaseline(
 }
 
 /**
+ * R10 (26.5-03): the dispatch key [dispatchForTuner] will use for [tuner] — the rejection-feedback
+ * filter key. Derived from the SAME [CommandRegistry] specs via [works.mees.dinghy.command.CommandSpec.dispatchKey]
+ * (dummy args — every key lambda depends only on the args' field constant, never the value), so a
+ * registry key rename can never silently desync the [works.mees.dinghy.command.CommandDispatcher.rejectedKey]
+ * filter from the actual dispatch.
+ */
+fun dispatchKeyForTuner(tuner: FineTuneTuner): String = when (tuner) {
+    FineTuneTuner.SPEED ->
+        CommandRegistry.speedFactor.dispatchKey(SpeedFactorArgs(0))
+    FineTuneTuner.FLOW ->
+        CommandRegistry.flowFactor.dispatchKey(FlowFactorArgs(0))
+    FineTuneTuner.PRESSURE_ADVANCE ->
+        CommandRegistry.setPressureAdvance.dispatchKey(PressureAdvanceArgs(PressureAdvanceArgs.ADVANCE, 0.0))
+    FineTuneTuner.SMOOTH_TIME ->
+        CommandRegistry.setPressureAdvance.dispatchKey(PressureAdvanceArgs(PressureAdvanceArgs.SMOOTH_TIME, 0.0))
+    FineTuneTuner.PART_FAN ->
+        CommandRegistry.setFan.dispatchKey(FanArgs(0))
+    FineTuneTuner.MAX_VELOCITY ->
+        CommandRegistry.setVelocityLimit.dispatchKey(VelocityLimitArgs(VelocityLimitArgs.VELOCITY, 0.0))
+    FineTuneTuner.MAX_ACCEL ->
+        CommandRegistry.setVelocityLimit.dispatchKey(VelocityLimitArgs(VelocityLimitArgs.ACCEL, 0.0))
+    FineTuneTuner.MIN_CRUISE ->
+        CommandRegistry.setVelocityLimit.dispatchKey(VelocityLimitArgs(VelocityLimitArgs.MIN_CRUISE_RATIO, 0.0))
+    FineTuneTuner.SCV ->
+        CommandRegistry.setVelocityLimit.dispatchKey(VelocityLimitArgs(VelocityLimitArgs.SCV, 0.0))
+    FineTuneTuner.RETRACT_LENGTH,
+    FineTuneTuner.RETRACT_SPEED,
+    FineTuneTuner.UNRETRACT_EXTRA_LENGTH,
+    FineTuneTuner.UNRETRACT_SPEED ->
+        CommandRegistry.setRetraction.dispatchKey(RetractionArgs(0.0, 0.0, 0, 0))
+}
+
+/**
  * Internal: map [tuner] to its command and dispatch. [rawTarget] is used for the wire args (the
  * command builders re-clamp it identically). [clampedTarget] is NOT sent directly to the wire — the
  * command builders own the final format. Passing [rawTarget] to the builder is consistent with the

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.command.CommandDispatcher
@@ -114,12 +116,27 @@ fun FineTuneScreen(
         if (failureText != null) { delay(4_000); failureText = null }
     }
 
+    // R10 (26.5-03): per-dispatch-key rejection tick counters. The dispatcher emits the key of each
+    // intentionally-dropped tap (busy/debounce) on [CommandDispatcher.rejectedKey]; each emission
+    // bumps that key's counter and the AdjusterPanel showing that key renders a one-shot flash.
+    // PersistentMap keeps the param @Stable for Compose skipping (Phase-22 discipline); it only
+    // changes on a rejection (rare), never per state tick.
+    var rejectTicks by remember { mutableStateOf(persistentMapOf<String, Long>()) }
+    LaunchedEffect(dispatcher) {
+        rejectTicks = persistentMapOf()
+        val d = dispatcher ?: return@LaunchedEffect
+        d.rejectedKey.collect { key ->
+            rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         FineTuneContent(
             vm = vm,
             isPrinting = isPrinting,
             enabled = !groupBusy,
             failureText = failureText,
+            rejectTicks = rejectTicks,
             onBack = onBack,
             onNudge = { param, currentValue, stepDelta ->
                 nudge(
@@ -199,6 +216,7 @@ private fun FineTuneContent(
     enabled: Boolean,
     failureText: String?,
     onBack: () -> Unit,
+    rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     onNudge: (param: FineTuneParam, currentValue: Double?, stepDelta: Double) -> Unit,
     onNudgeToBaseline: (param: FineTuneParam, baseline: Double) -> Unit,
     onResetAll: () -> Unit,
@@ -266,6 +284,8 @@ private fun FineTuneContent(
                                 )
                             },
                             uDp = grid.uDp,
+                            // R10: flash on busy/debounce rejections of THIS param's dispatch key.
+                            rejectTick = rejectTicks[dispatchKeyForTuner(selectedTuner)] ?: 0L,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(12.dp),
