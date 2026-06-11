@@ -397,8 +397,26 @@ private fun ColumnScope.MacroParamEntryField(
             MacroInvocation.buildTyped(
                 macro.name,
                 params.mapNotNull { p ->
-                    val value = values[p.name].orEmpty()
-                    if (value.isBlank()) null else Triple(p.name, value, p.isNumeric)
+                    val raw = values[p.name].orEmpty()
+                    if (raw.isBlank()) return@mapNotNull null
+                    // WR-09 (26-rev): clamp ownership is real — numeric params are clamped HERE, on
+                    // the dispatch path itself, so Execute-without-Done (which skips onValueCommit's
+                    // ImeAction.Done clamp) can never send an unclamped number. Non-finite or
+                    // unparseable text falls through unchanged for buildTyped's rejectNonNumeric to
+                    // reject (toast), never silently coerced.
+                    val value = if (p.isNumeric) {
+                        val parsed = raw.toDoubleOrNull()
+                        if (parsed != null && parsed.isFinite()) {
+                            formatNumeric(
+                                parsed.coerceIn(MACRO_NUMERIC_RANGE.start, MACRO_NUMERIC_RANGE.endInclusive)
+                            )
+                        } else {
+                            raw
+                        }
+                    } else {
+                        raw
+                    }
+                    Triple(p.name, value, p.isNumeric)
                 },
             )
         } catch (e: MacroParamRejected) {
@@ -580,8 +598,10 @@ private fun MacroNumericParamField(
             value = editText,
             onValueChange = { raw ->
                 // Accept digits, an optional leading minus, and one decimal point only (no alpha).
-                if (raw.isEmpty() || raw == "-" || raw.toDoubleOrNull() != null ||
-                    raw.matches(Regex("-?\\d*\\.?\\d*"))) {
+                // WR-09 (26-rev): the old `raw.toDoubleOrNull() != null` branch admitted "NaN",
+                // "Infinity", and exponent forms like "1e5" — the digits-only regex is the sole
+                // gate now (it already covers every legitimate keystroke sequence, incl. "-").
+                if (raw.isEmpty() || raw.matches(Regex("-?\\d*\\.?\\d*"))) {
                     editText = raw
                     onValueChange(raw)  // keep parent values map current for Execute
                 }
