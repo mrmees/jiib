@@ -84,13 +84,23 @@ android {
         buildConfig = true   // D-05: emit BuildConfig with the MOONRAKER_* static-config fields
     }
 
-    // The lintVital UAST detectors bundled with AGP 8.7 crash with an
-    // IncompatibleClassChangeError under JDK 21 (the dev box's JDK). Lint is not
-    // a deliverable of this scaffold phase and the crash is a tool/JDK
-    // incompatibility, not a code defect — so do not let it gate assembleRelease.
+    // R5a (§R5a step 4): lint baselined and enforced. The AGP-8.7 UAST crash
+    // (IncompatibleClassChangeError) is JDK-21-specific; lint now runs under a
+    // JDK-17 toolchain (top-level kotlin { jvmToolchain(17) } + the
+    // android.experimental.runLintInProcess=false worker split in gradle.properties).
     lint {
-        checkReleaseBuilds = false
-        abortOnError = false
+        baseline = file("lint-baseline.xml")
+        // NullSafeMutableLiveData's detector (androidx.lifecycle lint) throws
+        // IncompatibleClassChangeError under this AGP-8.7/JDK combo even with the JDK-17
+        // toolchain (the lint worker follows the daemon JVM). The app has ZERO LiveData
+        // (StateFlow/Flow everywhere), so the check is inert here — disabled to unblock
+        // the whole lint run rather than gating on a detector we can never trip.
+        disable += "NullSafeMutableLiveData"
+        // HOUSE RULE: the baseline may only shrink, never grow — never re-run
+        // updateLintBaseline without reviewing what new violations it would absorb.
+        // Any violation not in the baseline fails the build (abortOnError).
+        checkReleaseBuilds = true
+        abortOnError = true
     }
 
     compileOptions {
@@ -101,6 +111,13 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+// R5a: TOP-LEVEL KotlinAndroidProjectExtension (NOT inside android{} — that is a build error).
+// Pins the Kotlin/lint worker JVM to a JDK-17 toolchain; compileOptions/kotlinOptions above
+// already target 17 and stay.
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
