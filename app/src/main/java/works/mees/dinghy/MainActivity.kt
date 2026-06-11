@@ -1,18 +1,27 @@
 package works.mees.dinghy
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.service.MoonrakerService
+import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.theme.compose.DinghyTheme
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.ui.route.NavDest
@@ -34,7 +43,48 @@ import works.mees.dinghy.ui.shell.parseStartDest
  * shape, swapping the gallery body for [RootController]. No Navigation-Compose.
  */
 class MainActivity : ComponentActivity() {
+
+    /**
+     * R1 (26.5-04, roadmap §R1 step 4): POST_NOTIFICATIONS one-shot launcher. Registered as an
+     * Activity FIELD (registerForActivityResult must run during activity initialization, never
+     * inside a LaunchedEffect). The result handler is a DOCUMENTED NO-OP: denial changes NOTHING
+     * except the FGS status notification — the service itself keeps running notification-less,
+     * so the connect → monitor → control loop is untouched either way.
+     */
+    private val notificationPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* isGranted — deliberate no-op: FGS runs with or without the notification */ }
+
+    /**
+     * Once-per-process latch for the notification permission ask (R1 step 4: "exactly once").
+     * configChanges handles rotation (no Activity recreation), so an Activity field is
+     * process-lifetime in practice; even on a rare recreation the checkSelfPermission gate
+     * prevents a re-prompt for an already-granted permission.
+     */
+    private var notificationPermAsked = false
+
+    /**
+     * Launch the POST_NOTIFICATIONS request iff: API >= 33 (the permission does not exist below
+     * TIRAMISU — auto-granted there, including the API-23 floor), not already granted, and not
+     * already asked this process. Called on the FIRST transition to [ConnectionState.Connected].
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (notificationPermAsked) return
+        notificationPermAsked = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // R1 (26.5-04, roadmap §R1 step 2): edge-to-edge MUST be the FIRST statement, before
+        // super.onCreate (Pitfall 1 — window decor flags are configured before the view
+        // hierarchy attaches). The AndroidX backport no-ops gracefully pre-API-35; on
+        // Android 15+ (targetSdk 35) edge-to-edge is forced anyway — this makes it correct.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         val container = (application as DinghyApp).container
@@ -73,10 +123,27 @@ class MainActivity : ComponentActivity() {
             // re-themes the whole app (Compose + Views) without persisting; the persisted path is a PURE
             // bake of the canonical tuple (never the async-lagged themeResolver.tokens).
             DinghyTheme(container.effectiveTokens) {
+                // R1 (26.5-04): first-connect trigger for the POST_NOTIFICATIONS one-shot.
+                // Suspends on the FIRST emission of Connected (the spine's post-resync state),
+                // then asks exactly once (field latch + grant check inside the helper).
+                LaunchedEffect(Unit) {
+                    container.connectionState.first { it is ConnectionState.Connected }
+                    requestNotificationPermissionIfNeeded()
+                }
                 // G-1 hardening: explicit token bg instead of a bare Material3 Surface() (which
                 // defaults to the never-populated colorScheme.surface). Production screens each
                 // paint t.bg, but this removes the bare-Surface footgun at the root.
-                Box(Modifier.fillMaxSize().background(LocalTokens.current.bg)) {
+                // R1 (26.5-04): .background BEFORE .safeDrawingPadding — the token bg paints
+                // edge-to-edge BEHIND the system bars/cutout while the padded content stays
+                // chrome-clear. The four Views-hosted surfaces (Files/Console/Graph/Webcam)
+                // live inside this root and inherit the insets. safeDrawing resolves to 0
+                // where the hardware lacks bars/cutouts — API-23 safe.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(LocalTokens.current.bg)
+                        .safeDrawingPadding()
+                ) {
                     // ALL routing is delegated to the single root authority (review #2). The dev-gated
                     // [startDest] (null in release / when the gate is off) seeds the initial screen ONCE.
                     RootController(container, startDest = startDest)

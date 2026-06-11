@@ -32,6 +32,16 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <!--
+      Phase 26.5 — R2 always-on (roadmap §R2 step 2), PRE-STAGED by plan 26.5-04:
+        * REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: lets the app deep-link the user to the Doze
+          battery-optimization exemption dialog so the FGS websocket survives long idle.
+          DECLARED here (this plan owns the manifest in wave 3 — file-disjointness rule);
+          the exemption flow that CONSUMES it lands in plan 26.5-05. Sideload-safe (no
+          Play policy applies).
+    -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!--
       Phase 11 (SPOOL-05/06) — QR-scan camera (ADD ONLY; Phase-1 cleartext posture untouched):
         * CAMERA: runtime permission for the scan surface; requested ONLY at scan entry (11-07)
           via the Activity Result API, never at launch.
@@ -48,8 +58,14 @@
         android:name="android.hardware.camera.autofocus"
         android:required="false" />
 
+    <!--
+      R1 (26.5-04, roadmap §R1 step 3): predictive-back opt-in. REQUIRED at targetSdk 35
+      (becomes automatic at 36); silently ignored on API 23-32. The existing Compose
+      BackHandler + NavHost stack is already predictive-back compatible — no code change.
+    -->
     <application
         android:name=".DinghyApp"
+        android:enableOnBackInvokedCallback="true"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
