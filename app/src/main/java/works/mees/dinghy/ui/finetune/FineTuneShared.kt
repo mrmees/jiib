@@ -22,11 +22,11 @@ internal const val RETRACT_SPEED_STEP = 1 // mm/s (D-12)
  */
 internal fun fmtValue(v: Double?, decimals: Int): String {
     if (v == null) return DASH
-    val rounded = if (v == v.toLong().toDouble()) {
-        v.toLong().toString()
-    } else {
-        "%.${decimals}f".format(java.util.Locale.US, v).trimEnd('0').trimEnd('.')
-    }
-    return rounded
+    if (v == v.toLong().toDouble()) return v.toLong().toString()
+    // CR-03 (26-rev): only strip trailing zeros when the formatted string actually CONTAINS a
+    // decimal point. With decimals = 0 the string has no point, and an unconditional trimEnd('0')
+    // corrupts integral digits — fmtValue(1499.5, 0) rendered "15" instead of "1500".
+    val s = "%.${decimals}f".format(java.util.Locale.US, v)
+    return if ('.' in s) s.trimEnd('0').trimEnd('.') else s
 }
 
