@@ -289,7 +289,22 @@ LOCKED compound anatomy"). Key invariants:
 
 ---
 
-## 7. Stepper and scrubber — RESTYLE DEFERRED to Phase 26
+## 7. Stepper and scrubber — post-Phase-26 sizing rules
+
+> **UAT-3 (scrubber ≤ 1U):** While the current fill-bar scrubber style (`ScrubberControl` /
+> `LedBrightnessControl`) is in use, the scrubber track + thumb must be constrained to a single U
+> of height via `Modifier.heightIn(max = uDp)`. See `LAYOUT.md UAT-3`.
+>
+> **UAT-5 (controls ≤ 1U):** All Output controls respect the 1U height cap. The LED `ColorWheel`
+> is the **sole sanctioned >1U exception**. See `LAYOUT.md UAT-5`.
+>
+> **UAT-1 (prominent icons ~70-80% U):** `FloatingEStop`'s glyph at `uDp * 0.7f` is the precedent
+> for U-relative icon sizing on Focus-anchoring controls. See `LAYOUT.md UAT-1`.
+>
+> **UAT-4 (e-stop top-left reserve):** `FloatingEStop` occupies `Alignment.TopStart` of the Focus
+> Box — leave that corner clear of important content. See `LAYOUT.md UAT-4`.
+
+### Stepper and scrubber — vocabulary
 
 The stepper (increment-picker) and scrubber (ScrubberPage) are **named in the jiib redesign
 vocabulary** and ARE part of the component catalog in concept:
@@ -297,17 +312,11 @@ vocabulary** and ARE part of the component catalog in concept:
 - **Stepper:** a step-based adjuster (no scrubber on the perf floor); 3-zone Focus layout; inline
   `was X` baseline readout. See `.claude/skills/sketch-findings-dinghy-display/references/adjustment-controls.md`
   for the locked design.
-- **Scrubber (ScrubberPage):** thin 6dp track, ringed thumb with large invisible touch target
-  (sketch-004 canonical style).
+- **Scrubber (ScrubberPage):** current fill-bar style; track + thumb constrained to ≤ 1U per UAT-3.
 
-However, **restyling these components touches every numeric-adjustment screen** (Fine-Tune,
-Output, Temperature, etc.) and the Phase-23 pilot (SpoolScreen) uses neither. Their restyle is
-**DEFERRED to Phase 26 (Adjustment Screens)**.
-
-COMPONENTS.md records them here to acknowledge they exist in the vocabulary. When Phase 26
-executes, the restyle specs will be added to §3 of this document and the implementations updated.
-Until then: the existing `ScrubberPage.kt` and stepper implementations remain in use; do NOT
-attempt to restyle them in any earlier phase.
+Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs). The UAT sizing
+rules above (UAT-3/UAT-5/UAT-1/UAT-4) are the conformance criteria for these and all future
+adjustment screens. The existing `ScrubberPage.kt` and stepper implementations are in active use.
 
 ---
 

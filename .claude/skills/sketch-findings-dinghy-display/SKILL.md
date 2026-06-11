@@ -29,10 +29,22 @@ Sketch session wrapped: 2026-06-09 (sketches 001–003).
 - **Intent = color:** accent (physical command + expected action) · go (accept) · caution/amber
   (proceed-at-peril incl. resets) · stop/red (destructive/e-stop) · neutral white (plain setting).
 - **Icons:** owner-curated registry only (`material-icon-bucket.json` + `DinghyIcons.kt`), Material
-  Symbols by ligature; **never auto-pick a glyph — ask**. Icon tiles ~70% of U.
+  Symbols by ligature; **never auto-pick a glyph — ask**. Icon tiles ~70-80% of U (prominent
+  icons; dense list-pane icons stay small — see Post-Phase-26 UAT rules below).
 - **Conditional waterfall:** printer state surfaces relevant actions; PrintStatus is the root when a
   print exists, not a destination; floating e-stop printing-only.
 - **Adjustment:** step-based (no scrubber on the floor), 3-zone Focus, inline `was X` baseline.
+- **Post-Phase-26 UAT formatting rules UAT-1..UAT-5** (owner, 2026-06-10 — apply to ALL new/rebuilt
+  screens from Phase 26 onward):
+  - UAT-1: prominent icons ~70-80% of U (`uDp * 0.75f` etc.); dense list-pane leading icons stay
+    small (the explicit exception — do not grow them).
+  - UAT-2: icon · name · value rows — name start-aligned with the icon, value end-aligned;
+    `Spacer(weight(1f))` carries the gap.
+  - UAT-3: current-style scrubber track + thumb ≤ 1U (`heightIn(max = uDp)`).
+  - UAT-4: Focus top-left corner reserved for `FloatingEStop`; keep important content clear of it.
+  - UAT-5: controls cap at 1U unless deliberately named otherwise; LED `ColorWheel` is the sole
+    sanctioned >1U exception in Outputs.
+  Full rule text: `docs/ui_design/LAYOUT.md §"Post-Phase-26 UAT formatting rules"`.
 </design_direction>
 
 <findings_index>

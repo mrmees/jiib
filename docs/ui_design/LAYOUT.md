@@ -288,6 +288,64 @@ Portrait shows more unit-rows (scrolls); landscape shows the same number side-by
 
 ---
 
+## Post-Phase-26 UAT formatting rules (owner, 2026-06-10)
+
+Five rules observed and locked as law after the Phase-26 on-device UAT session (flox / Nexus 7 2013
+/ Adreno 320 / LineageOS 18.1). They apply to every screen built or rebuilt from Phase 26 onward;
+Phase 26 screens must conform immediately. Rules are numbered UAT-1 through UAT-5.
+
+### UAT-1 — Prominent icons are big and vibrant (~70-80% of U)
+
+Icons that **anchor a control or Focus header** are sized to roughly 70-80% of the unit U — use the
+U-relative idiom, e.g. `(uDp * 0.75f).coerceIn(minDp, maxDp)`, never a hardcoded absolute dp.
+"Prominent" means: Focus-area heroes, adjuster-panel headers, big command-tile glyphs — anything the
+eye goes to first.
+
+**EXPLICIT EXCEPTION — dense list-pane icons:** Icons inside a detailed/dense list row (e.g.
+`ListRow` leading glyphs in Fine-Tune param list, Temperature sensor list, Files list) are **not**
+the prominent case. They stay at their current list-scale size (~22dp). A future conformance sweep
+**must not** grow these under the misread that UAT-1 applies universally.
+
+Existing precedent: `FloatingEStop` sizes its glyph at `(uDp * 0.7f).coerceAtLeast(64.dp)` — the
+same U-relative idiom. Reuse it.
+
+### UAT-2 — Icon · name · value rows use start/end alignment
+
+An icon + name + value row puts the **name start-aligned with (and spaced from) the icon**, and the
+**value or measurement end-aligned**. The gap between name and value carries the structure — the eye
+tracks left to the type info and right to the live number.
+
+This is what `ListRow`'s leading/trailing slots and `AdjusterPanel`'s Zone-1 header already do: icon
+→ gap → name → `Spacer(weight(1f))` → trailing value. That is the **canonical pattern**. Do not
+break the start/end alignment in new or rebuilt rows.
+
+### UAT-3 — Current-style scrubber ≤ 1U tall
+
+While the current fill-bar scrubber style is in use (`ScrubberControl` / `LedBrightnessControl`),
+the scrubber track + thumb is **constrained to a single U of height**. Implement via
+`Modifier.heightIn(max = uDp)` on the fill-bar track; do not let a weight-based slot grow the
+scrubber to fill the entire Focus.
+
+### UAT-4 — Keep useful content out of the Focus top-left e-stop reserve
+
+The **top-left corner of the Focus region** (or of the list field in single-view) is reserved for
+the `FloatingEStop` overlay. Because `FloatingEStop` is positioned via
+`Modifier.align(Alignment.TopStart)`, nothing important should occupy that corner — place the
+primary Focus content (progress ring, adjuster panel, detail card) clear of it. This extends and
+formalises the existing note in §"Floating e-stop" above: *"nothing important should sit at the
+very top-left of the Focus region."*
+
+### UAT-5 — Controls cap at 1U height unless deliberately chosen otherwise
+
+Most controls obey the 1U height limit. An oversized control must be an **explicit, named decision**
+— not an accident of `weight(1f)` expanding unchecked. In the Outputs Focus, the LED `ColorWheel`
+is the **sole sanctioned >1U exception**; every other Outputs control (fan/servo/heater/pin
+scrubbers, LED brightness bar) respects the 1U cap. When adding a control that deliberately exceeds
+1U in any future phase, document the name and reason in the relevant LAYOUT.md section or
+COMPONENTS.md cross-reference.
+
+---
+
 ## Scaffold structure
 
 ### Redesigned screens (Focus/Field + FootButtonBar, no gutter)
