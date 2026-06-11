@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
@@ -74,6 +75,9 @@ import kotlin.math.roundToInt
  * @param onReset        called on Reset tap; null when no baseline is available (hides the button).
  * @param enabled        busy-lock gate from the holder; when false both stepper tiles are inert.
  * @param incrementPicker caller-provided [IncrementPicker] slot (the step-set selector row).
+ * @param uDp            the unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
+ *                       used to size the Zone-1 header icon to ~50% U (prominent but still fits a
+ *                       ≈1U tall header row — UAT-1).
  * @param modifier       caller-supplied modifier.
  */
 @Composable
@@ -89,6 +93,7 @@ fun AdjusterPanel(
     onReset: (() -> Unit)?,
     enabled: Boolean,
     incrementPicker: @Composable () -> Unit,
+    uDp: Dp = 64.dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -104,6 +109,10 @@ fun AdjusterPanel(
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         // Zone 1 — Header: icon + name + spacer + optional Reset
+        // UAT-1: prominent header icon sized to ~50% U (big and vibrant, still fits a ≈1U row).
+        // Clamped to [28.dp, 56.dp] so it never goes tiny on a small phone or absurdly large on a
+        // tablet. The FloatingEStop uDp*0.7f precedent is the canonical U-relative sizing idiom.
+        val headerIconSize = (uDp * 0.5f).coerceIn(28.dp, 56.dp)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -111,7 +120,7 @@ fun AdjusterPanel(
             DinghyIconView(
                 icon = icon,
                 tint = t.accent2,
-                sizeDp = 24.dp,
+                sizeDp = headerIconSize,
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(

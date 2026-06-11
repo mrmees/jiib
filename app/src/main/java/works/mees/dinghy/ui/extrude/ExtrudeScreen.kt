@@ -352,10 +352,12 @@ private fun ExtrudeContent(
                                     onClick = { infoText = spoolmanComingSoon },
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     icon = {
+                                        // UAT-1: field button icon — match nozzle button prominence
+                                        // so the two-button row reads consistently. Bumped 34f → 40f.
                                         MaterialSymbol(
                                             name = "inventory_2",
                                             tint = t.text2,
-                                            sizeSp = fsSp(34f, t.fs),
+                                            sizeSp = fsSp(40f, t.fs),
                                         )
                                     },
                                 )
@@ -579,7 +581,9 @@ private fun BigCommand(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            MaterialSymbol(name = symbol, tint = tint, sizeSp = fsSp(40f, t.fs))
+            // UAT-1: BigCommand is a Focus hero tile — prominent icon tier (~70-80% of U).
+            // Bumped from 40f → 56f to be "big and vibrant" without overflowing the cell.
+            MaterialSymbol(name = symbol, tint = tint, sizeSp = fsSp(56f, t.fs))
             Text(
                 text = label,
                 color = tint,

@@ -265,6 +265,7 @@ private fun FineTuneContent(
                                     uDp = grid.uDp,
                                 )
                             },
+                            uDp = grid.uDp,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(12.dp),
@@ -300,6 +301,7 @@ private fun FineTuneContent(
                             },
                             uDp = grid.uDp,
                             leadingContent = {
+                                // UAT-1 exception: dense list-pane icon stays small
                                 DinghyIconView(
                                     icon = param.icon,
                                     tint = groupColor,

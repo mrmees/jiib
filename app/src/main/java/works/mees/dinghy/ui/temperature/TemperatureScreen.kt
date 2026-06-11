@@ -452,6 +452,7 @@ private fun TemperatureContent(
                                     },
                                     uDp = grid.uDp,
                                     leadingContent = {
+                                        // UAT-1 exception: dense list-pane icon stays small
                                         DinghyIconView(
                                             icon = iconForSensor(sensor.name),
                                             tint = rowTint,
@@ -693,6 +694,7 @@ private fun TemperatureAdjusterFocus(
                         uDp = uDp,
                     )
                 },
+                uDp = uDp,
                 modifier = Modifier.fillMaxWidth(),
             )
 
