@@ -22,7 +22,6 @@ import works.mees.dinghy.spool.parseSpoolmanLocations
 import works.mees.dinghy.spool.parseSpoolmanMaterials
 import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
 import works.mees.dinghy.spool.parseSpoolmanSpools
-import works.mees.dinghy.spool.parseSpoolmanVendors
 
 /**
  * The Spool-picker SORT KEY (SPOOL-03; docs/view_specific_notes/spoolman.md §Spool Picker And Filters).
@@ -535,8 +534,26 @@ class SpoolHolder(
     /** Load the dynamic chip universes (D-04) once; each degrades to empty independently. */
     private suspend fun loadChips() {
         val materials = parseSpoolmanMaterials(runCatching { client.listMaterials() }.getOrNull()).rows
-        val vendors = parseSpoolmanVendors(runCatching { client.listVendors() }.getOrNull()).rows
-            .mapNotNull { it.name }
+        // Vendor options are derived from the SPOOL list, walking each physical spool back to its
+        // filament's vendor (spool → filament → vendor.name). Spoolman classification is
+        // mfg → filament → spool: an owner can have FILAMENT definitions for a manufacturer they own
+        // ZERO physical spools of, and the raw /v1/vendor manufacturers table (and even the /v1/filament
+        // list) include those spool-less manufacturers — they would appear as filter options that can
+        // never match a listed spool (the corrected on-device defect, owner 2026-06-10). Deriving the
+        // universe from the SPOOLS yields only manufacturers actually represented by a physical spool.
+        //
+        // Use the screen's own base read shape (allow_archived=false, no facet filters) so the universe
+        // matches the spool set the list shows AND stays stable regardless of the currently-applied
+        // vendor/material filters. The /v1/spool list already carries the full nested filament.vendor
+        // object inline (live golden spoolman-live-ender5-proxy-pla.json), so no extra endpoint or model
+        // change is needed beyond this one facet-unfiltered spool read.
+        val vendors = parseSpoolmanSpools(
+            runCatching { client.listSpools("allow_archived=false&limit=$SPOOL_LIMIT") }.getOrNull(),
+        )
+            .rows
+            .mapNotNull { it.filament?.vendor?.name?.trim()?.ifEmpty { null } }
+            .distinctBy { it.lowercase() }
+            .sortedBy { it.lowercase() }
         val locations = parseSpoolmanLocations(runCatching { client.listLocations() }.getOrNull()).rows
         _state.update { it.copy(materials = materials, vendors = vendors, locations = locations) }
     }
@@ -572,9 +589,16 @@ fun buildSpoolQuery(filters: SpoolFilters, sortKey: SpoolSortKey, ascending: Boo
         val terms = filters.materialFamilies.flatMap { familyTerms(it) }.distinct()
         parts += "filament.material=${terms.joinToString(",")}"
     }
-    // Multi-select vendors: OR within the facet — Spoolman supports repeated params for OR queries.
-    // Each selected vendor gets its own `filament.vendor.name=<name>` param (Spoolman ORs them).
-    filters.vendors.forEach { parts += "filament.vendor.name=$it" }
+    // Multi-select vendors: OR within the facet. Spoolman declares `filament.vendor.name` as a SINGLE
+    // scalar query param and ORs COMMA-SEPARATED terms within that ONE value (database/utils.py
+    // add_where_clause_str → value.split(",") → sqlalchemy.or_). Repeated params do NOT OR — FastAPI
+    // binds the scalar to the LAST occurrence, which silently filtered to the last-selected vendor only
+    // (the on-device MFG multi-select bug). So emit ONE comma-joined param, exactly like
+    // filament.material above. (Real manufacturer names contain no commas; Spoolman has no escape, so a
+    // hypothetical comma-bearing vendor name would mis-split — an accepted edge.)
+    if (filters.vendors.isNotEmpty()) {
+        parts += "filament.vendor.name=${filters.vendors.joinToString(",")}"
+    }
     filters.colorFilamentIds?.let { ids ->
         // An empty similarity result is a deliberate "no matches" — send an unmatchable id rather than
         // dropping the filter (which would silently show everything). -1 never matches a real spool.

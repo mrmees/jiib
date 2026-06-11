@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.net.MoonrakerJson
 import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanStatus
 
@@ -176,18 +177,42 @@ class SpoolHolderVendorTest {
 
     // ─────────────────────────────────────────────────────────────────────────
     // buildSpoolQuery parity — the query issued after a vendor toggle must carry
-    // repeated filament.vendor.name= params (Spoolman OR semantics), not a scalar.
+    // a SINGLE comma-joined filament.vendor.name= param (the ONLY form Spoolman ORs).
+    //
+    // ⚠ This is the device-contract regression guard for the MFG multi-select bug
+    // (spool-mfg-filter-multiselect): Spoolman declares filament.vendor.name as a
+    // SCALAR str query param and ORs comma-separated terms WITHIN that one value
+    // (database/utils.py add_where_clause_str → value.split(",") → sqlalchemy.or_).
+    // The old code emitted REPEATED params (filament.vendor.name=A&filament.vendor.name=B);
+    // FastAPI binds the scalar to the LAST occurrence, so only the last vendor filtered.
+    // These tests FAIL if repeated-param emission is reintroduced.
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    fun `after multi-toggle, buildSpoolQuery carries one param per vendor`() = runTest(UnconfinedTestDispatcher()) {
+    fun `after multi-toggle, buildSpoolQuery carries ONE comma-joined vendor param`() = runTest(UnconfinedTestDispatcher()) {
         val h = holder()
         h.toggleVendor("Polymaker")
         h.toggleVendor("Sunlu")
 
         val query = buildSpoolQuery(h.state.value.filters, h.state.value.sortKey, h.state.value.sortAscending)
-        assertTrue("filament.vendor.name=Polymaker must be in query", query.contains("filament.vendor.name=Polymaker"))
-        assertTrue("filament.vendor.name=Sunlu must be in query", query.contains("filament.vendor.name=Sunlu"))
+        // The single comma-joined param — the only form Spoolman ORs.
+        assertTrue(
+            "Expected one comma-joined vendor param 'filament.vendor.name=Polymaker,Sunlu', got: $query",
+            query.contains("filament.vendor.name=Polymaker,Sunlu"),
+        )
+        // And there must be EXACTLY ONE filament.vendor.name= occurrence (no repeated params).
+        val occurrences = Regex("filament\\.vendor\\.name=").findAll(query).count()
+        assertEquals("Exactly one filament.vendor.name= param (repeated params filter to last only)", 1, occurrences)
+    }
+
+    @Test
+    fun `single vendor produces a single un-comma'd vendor param`() = runTest(UnconfinedTestDispatcher()) {
+        val h = holder()
+        h.toggleVendor("Polymaker")
+
+        val query = buildSpoolQuery(h.state.value.filters, h.state.value.sortKey, h.state.value.sortAscending)
+        assertTrue("filament.vendor.name=Polymaker must be present", query.contains("filament.vendor.name=Polymaker"))
+        assertFalse("A single vendor must not emit a trailing comma", query.contains("filament.vendor.name=Polymaker,"))
     }
 
     @Test
@@ -198,5 +223,93 @@ class SpoolHolderVendorTest {
 
         val query = buildSpoolQuery(h.state.value.filters, h.state.value.sortKey, h.state.value.sortAscending)
         assertFalse("No filament.vendor.name= param expected after clear", query.contains("filament.vendor.name="))
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Defect 2 (CORRECTED, owner 2026-06-10): vendor OPTION universe is derived from
+    // the SPOOL list (spool → filament → vendor.name), NOT from the filament list and
+    // NOT from the raw /v1/vendor manufacturers table.
+    //
+    // Spoolman classification is mfg → filament → spool. The owner has FILAMENT
+    // definitions for manufacturers he owns ZERO physical spools of. The first fix
+    // derived the universe from the FILAMENT list, so those spool-less manufacturers
+    // STILL appeared. A manufacturer that has a filament definition (and a /v1/vendor
+    // row) but ZERO physical spools — "Ghost" — must NOT appear as an option, because
+    // it can never match a listed spool. The option list must contain only vendors
+    // actually referenced by a PHYSICAL SPOOL's filament, deduped case-insensitively.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Wrap a Spoolman body array (rows) into the proxy-v2 `{response,error,response_headers}` envelope. */
+    private fun proxyEnvelope(rowsJson: String): JsonElement =
+        MoonrakerJson.parseToJsonElement(
+            """{"response":$rowsJson,"error":null,"response_headers":{"X-Total-Count":"99"}}""",
+        )
+
+    /**
+     * A client where:
+     *  - /v1/spool returns PHYSICAL spools whose nested filament.vendor covers Polymaker, Sunlu, a
+     *    DUPLICATE "sunlu" (lowercase) on a second spool, plus one spool whose filament has no vendor
+     *    (must be ignored) — but NO spool for "Ghost".
+     *  - /v1/filament returns filaments for Polymaker, Sunlu AND a Ghost filament definition (the
+     *    pre-correction derived universe would WRONGLY surface Ghost from here).
+     *  - /v1/vendor returns Polymaker, Sunlu AND a spool-less "Ghost" manufacturer (must NOT leak in).
+     *
+     * The correct (spools-derived) universe is {Polymaker, Sunlu}; Ghost is excluded because no
+     * physical spool references it, even though it has both a filament definition and a vendor row.
+     */
+    private val spoolDerivedClient: SpoolmanClient = object : SpoolmanClient {
+        override suspend fun listSpools(query: String?): JsonElement = proxyEnvelope(
+            """[
+                {"id":1,"filament":{"id":1,"name":"PolyTerra","vendor":{"id":1,"name":"Polymaker"}}},
+                {"id":2,"filament":{"id":2,"name":"PLA Matte","vendor":{"id":2,"name":"Sunlu"}}},
+                {"id":3,"filament":{"id":3,"name":"PLA Meta","vendor":{"id":2,"name":"sunlu"}}},
+                {"id":4,"filament":{"id":4,"name":"No Vendor Filament"}}
+            ]""",
+        )
+
+        override suspend fun listFilaments(query: String?): JsonElement = proxyEnvelope(
+            """[
+                {"id":1,"name":"PolyTerra","vendor":{"id":1,"name":"Polymaker"}},
+                {"id":2,"name":"PLA Matte","vendor":{"id":2,"name":"Sunlu"}},
+                {"id":5,"name":"Ghost Glow","vendor":{"id":9,"name":"Ghost"}}
+            ]""",
+        )
+
+        override suspend fun listVendors(): JsonElement = proxyEnvelope(
+            """[
+                {"id":1,"name":"Polymaker"},
+                {"id":2,"name":"Sunlu"},
+                {"id":9,"name":"Ghost"}
+            ]""",
+        )
+    }
+
+    private fun spoolDerivedHolder() = SpoolHolder(
+        scope = kotlinx.coroutines.test.TestScope(UnconfinedTestDispatcher()),
+        client = spoolDerivedClient,
+        activeSpool = noActiveSpool,
+    )
+
+    @Test
+    fun `vendor options derive from physical spools, excluding spool-less manufacturers`() = runTest(UnconfinedTestDispatcher()) {
+        val h = spoolDerivedHolder()
+        h.load()
+
+        val vendors = h.state.value.vendors
+        assertTrue("Polymaker (has a physical spool) must be an option", vendors.any { it.equals("Polymaker", true) })
+        assertTrue("Sunlu (has a physical spool) must be an option", vendors.any { it.equals("Sunlu", true) })
+        assertFalse(
+            "Ghost (filament definition + vendor row but ZERO physical spools) must NOT be an option",
+            vendors.any { it.equals("Ghost", true) },
+        )
+    }
+
+    @Test
+    fun `vendor options are deduped case-insensitively across spools`() = runTest(UnconfinedTestDispatcher()) {
+        val h = spoolDerivedHolder()
+        h.load()
+
+        val sunluCount = h.state.value.vendors.count { it.equals("Sunlu", true) }
+        assertEquals("Sunlu / sunlu (two spools) must collapse to one option", 1, sunluCount)
     }
 }

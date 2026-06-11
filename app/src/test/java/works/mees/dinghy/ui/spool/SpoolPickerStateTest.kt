@@ -140,12 +140,17 @@ class SpoolPickerStateTest {
     }
 
     @Test
-    fun `buildSpoolQuery includes one param per selected vendor for OR semantics`() {
+    fun `buildSpoolQuery joins selected vendors into one comma param for OR semantics`() {
         val filters = SpoolFilters(vendors = listOf("Polymaker", "Prusament"))
         val query = buildSpoolQuery(filters, SpoolSortKey.NAME, true)
-        // Each vendor gets its own param — Spoolman ORs repeated params
-        assertTrue("Expected 'filament.vendor.name=Polymaker' in query", query.contains("filament.vendor.name=Polymaker"))
-        assertTrue("Expected 'filament.vendor.name=Prusament' in query", query.contains("filament.vendor.name=Prusament"))
+        // Spoolman declares filament.vendor.name as a SINGLE scalar str param and ORs comma-separated
+        // terms WITHIN that one value (add_where_clause_str → value.split(",") → sqlalchemy.or_). Repeated
+        // params do NOT OR — FastAPI keeps the last only (the MFG multi-select bug). So a multi-vendor
+        // selection must be ONE comma-joined param.
+        assertTrue(
+            "Expected one comma-joined 'filament.vendor.name=Polymaker,Prusament', got: $query",
+            query.contains("filament.vendor.name=Polymaker,Prusament"),
+        )
     }
 
     @Test
