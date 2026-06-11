@@ -197,6 +197,9 @@ class MoonrakerSession(
             } catch (e: AuthException) {
                 return@coroutineScope when (e.reason) {
                     ConnectionError.AuthRequired -> ConnectAttempt.AuthRequired
+                    // R7: a cert-trust failure during the token fetch routes to the same TLS
+                    // surface as a socket-level one (codex review — was collapsing into Network).
+                    ConnectionError.TlsTrustFailure -> ConnectAttempt.TlsTrust
                     else -> ConnectAttempt.Network
                 }
             }

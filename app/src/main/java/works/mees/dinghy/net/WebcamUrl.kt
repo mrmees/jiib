@@ -142,7 +142,12 @@ fun deriveNativeStreamUrl(webrtcStreamUrl: String?, transport: NativeTransport):
     if (path.isBlank()) return null
     return when (transport) {
         NativeTransport.Rtsp -> "rtsp://${url.host}:$PORT_RTSP/$path"
-        NativeTransport.Hls -> "http://${url.host}:$PORT_HLS/$path/"
+        // R7 (26.5-07 codex review): preserve the SOURCE url's scheme instead of hardcoding
+        // http — MediaMTX serves cleartext HLS on the LAN today (so behavior is unchanged for
+        // every current stream_url), but a future https stream_url derives https HLS instead of
+        // being silently downgraded. Camera hosts are NOT governed by the Moonraker useSecure
+        // toggle; the stream_url's own scheme is the authority here.
+        NativeTransport.Hls -> "${url.scheme}://${url.host}:$PORT_HLS/$path/"
     }
 }
 

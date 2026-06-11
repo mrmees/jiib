@@ -71,6 +71,12 @@ class MoonrakerAuth(
                 resp.body?.string()
             }
         } catch (e: IOException) {
+            // R7 (26.5-07 codex review): an https token fetch against an untrusted cert raises
+            // SSLHandshakeException (an IOException) — classify it as TlsTrustFailure so the
+            // cert UX fires instead of a misleading "network unavailable".
+            if (works.mees.dinghy.net.MoonrakerSocket.isTlsTrustFailure(e)) {
+                throw AuthException(ConnectionError.TlsTrustFailure, "oneshot_token: ${e.message}")
+            }
             // Transport failure (DNS/host down/refused) — typed, never an escaping IOException.
             throw AuthException(ConnectionError.NetworkUnavailable, "oneshot_token: ${e.message}")
         }
