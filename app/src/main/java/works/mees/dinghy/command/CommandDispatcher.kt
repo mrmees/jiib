@@ -93,6 +93,20 @@ class CommandDispatcher(
     /** Failure events for the host to toast. Collect with `collectAsStateWithLifecycle`-driven scope. */
     val events: SharedFlow<DispatchEvent> = _events.asSharedFlow()
 
+    private val _rejectedKey = MutableSharedFlow<String>(
+        extraBufferCapacity = REJECT_BUFFER,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    /**
+     * R10 (26.5-03): emits the `key` of each INTENTIONALLY-dropped dispatch — in-flight re-tap OR
+     * a re-tap inside the debounce window. UI controls collect this to render a brief one-shot
+     * visible rejection signal ("heard you, still settling") instead of nothing. This is FEEDBACK
+     * ONLY: the busy/debounce guard semantics and timing are unchanged (they protect the printer
+     * and SBC — T-26.5-07). Emission uses [MutableSharedFlow.tryEmit] with a DROP_OLDEST buffer so
+     * it can never suspend or block [dispatch].
+     */
+    val rejectedKey: SharedFlow<String> = _rejectedKey.asSharedFlow()
+
     /**
      * Last-accepted-dispatch timestamp per key, for the debounce window. Uses
      * [java.util.concurrent.ConcurrentHashMap] so reads/writes are safe if [dispatch] is ever
@@ -175,5 +189,8 @@ class CommandDispatcher(
         const val GCODE_TIMEOUT_MS = 120_000L
 
         private const val EVENT_BUFFER = 16
+
+        /** Buffer for [rejectedKey] — rapid-tap bursts are small; DROP_OLDEST keeps tryEmit lossy-safe. */
+        private const val REJECT_BUFFER = 4
     }
 }

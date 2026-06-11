@@ -469,4 +469,91 @@ class CommandDispatcherTest {
         assertFalse("registry failure message must never embed token query params", failure.message.contains("token="))
         collectJob.cancel()
     }
+
+    // --- R10 (26.5-03): intentional rejections (busy / debounce) must emit on [rejectedKey] so the
+    // UI can render visible feedback instead of a silent drop. The guard SEMANTICS (order, timing,
+    // early-return behavior) are protected surface and asserted UNCHANGED by the regression case. ---
+
+    @Test
+    fun inFlightReDispatch_emitsRejectedKey_withoutReIssuingCall() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            timeSource = { testScheduler.currentTime },
+        )
+        val rejected = mutableListOf<String>()
+        val collectJob = launch { dispatcher.rejectedKey.collect { rejected += it } }
+
+        dispatcher.dispatch("move_x", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        // Second tap while the first is still in-flight: existing busy-guard behavior (no re-issue)
+        // PLUS the new feedback emission.
+        dispatcher.dispatch("move_x", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+
+        assertEquals("in-flight re-tap emits the key on rejectedKey", listOf("move_x"), rejected)
+        assertEquals("the busy guard still blocks re-entry (semantics unchanged)", 1, rpc.calls.size)
+
+        rpc.complete(0)
+        runCurrent()
+        collectJob.cancel()
+    }
+
+    @Test
+    fun debounceReDispatch_emitsRejectedKey_withoutReIssuingCall() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            debounceMs = 400L,
+            timeSource = { testScheduler.currentTime },
+        )
+        val rejected = mutableListOf<String>()
+        val collectJob = launch { dispatcher.rejectedKey.collect { rejected += it } }
+
+        dispatcher.dispatch("set_fan", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        rpc.complete(0)
+        runCurrent()
+
+        // Re-tap 100ms after the accepted dispatch — inside the 400ms debounce window, with the
+        // first call already completed (so the busy guard does NOT apply; this isolates debounce).
+        advanceTimeBy(100L)
+        dispatcher.dispatch("set_fan", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+
+        assertEquals("debounce drop emits the key on rejectedKey", listOf("set_fan"), rejected)
+        assertEquals("the debounce guard still drops the re-tap (semantics unchanged)", 1, rpc.calls.size)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun acceptedDispatches_emitNothingOnRejectedKey() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val dispatcher = CommandDispatcher(
+            request = rpc::request,
+            scope = this,
+            debounceMs = 400L,
+            timeSource = { testScheduler.currentTime },
+        )
+        val rejected = mutableListOf<String>()
+        val collectJob = launch { dispatcher.rejectedKey.collect { rejected += it } }
+
+        dispatcher.dispatch("set_fan", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        rpc.complete(0)
+        runCurrent()
+
+        // Past the debounce window — this second dispatch is ACCEPTED.
+        advanceTimeBy(401L)
+        dispatcher.dispatch("set_fan", JsonRpcMethods.GCODE_SCRIPT)
+        runCurrent()
+        rpc.complete(1)
+        runCurrent()
+
+        assertEquals("both dispatches were accepted", 2, rpc.calls.size)
+        assertTrue("accepted dispatches emit NOTHING on rejectedKey", rejected.isEmpty())
+        collectJob.cancel()
+    }
 }
