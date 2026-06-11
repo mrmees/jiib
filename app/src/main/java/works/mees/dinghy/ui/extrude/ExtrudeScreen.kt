@@ -515,8 +515,11 @@ private fun FocusGrid(
                     }
                 },
                 onDone = {
-                    // On Done: if text is blank or invalid, restore from clamped state value.
-                    if (distanceText.toDoubleOrNull() == null) distanceText = fmtDist(distance)
+                    // WR-03 (26-rev): ALWAYS resync the display text from the clamped state — not
+                    // only when parsing fails. The LaunchedEffect(distance) resync fires only when
+                    // distance CHANGES, so typing "500" against a 50 mm ceiling left the field
+                    // showing 500 while the clamped state (and every dispatch) stayed at 50.
+                    distanceText = fmtDist(distance)
                     keyboardController?.hide()
                 },
                 modifier = Modifier.fillMaxWidth().weight(1f),
@@ -539,7 +542,8 @@ private fun FocusGrid(
                     }
                 },
                 onDone = {
-                    if (speedText.toDoubleOrNull() == null) speedText = speed.toString()
+                    // WR-03: unconditional resync from clamped state (see distance field above).
+                    speedText = speed.toString()
                     keyboardController?.hide()
                 },
                 modifier = Modifier.fillMaxWidth().weight(1f),
