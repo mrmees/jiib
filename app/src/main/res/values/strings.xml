@@ -434,4 +434,9 @@
     <string name="settings_battery_exempt">Exempt — the connection survives Doze</string>
     <string name="settings_battery_optimized">Optimized — tap to let jiib stay connected with the screen off</string>
 
+    <!-- ============== printers — connection editor useSecure toggle (§R7, 26.5-07) ============== -->
+    <string name="printers_use_secure">Use HTTPS/WSS</string>
+    <string name="printers_use_secure_sub_on">wss/https — requires a TLS reverse proxy in front of Moonraker</string>
+    <string name="printers_use_secure_sub_off">Plain ws/http on the local network</string>
+
 </resources>

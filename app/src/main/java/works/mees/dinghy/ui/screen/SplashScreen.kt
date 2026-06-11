@@ -25,6 +25,7 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.net.ConnectionError
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrinterState
@@ -220,6 +221,13 @@ private fun recoveryMode(hasConfig: Boolean, state: PrinterState): RecoveryMode 
  */
 private fun reasonText(hasConfig: Boolean, state: PrinterState): String {
     if (!hasConfig) return "Set up your printer"
+    // R7 (26.5-07): a TLS trust failure on a useSecure (wss/https) connect is the LIVE actionable
+    // cause — it outranks any retained klippyStateMessage from a prior session. Distinct message,
+    // same Unreachable surface (Retry + Edit connection); never a silent fail or a trust-all bypass.
+    val conn = state.connection
+    if (conn is ConnectionState.Error && conn.reason == ConnectionError.TlsTrustFailure) {
+        return "TLS certificate not trusted — check the Moonraker reverse-proxy certificate"
+    }
     state.klippyStateMessage?.takeIf { it.isNotBlank() }?.let { return it }
     return when (state.klippyState) {
         KlippyState.Startup -> "Printer starting up…"

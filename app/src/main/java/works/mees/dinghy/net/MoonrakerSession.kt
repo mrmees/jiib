@@ -161,12 +161,23 @@ class MoonrakerSession(
                     emit(ConnectionState.Disconnected)
                     waitBackoffOrTrigger(attempt)
                 }
+                ConnectAttempt.TlsTrust -> {
+                    // R7 (26.5-07): a useSecure connect died on an untrusted certificate. Surface the
+                    // DISTINCT cause through the existing Error path (the Splash Unreachable surface
+                    // names the proxy cert as the problem) and back off like any network failure —
+                    // toggling useSecure off (or fixing the cert) plus Retry recovers; no trust-all
+                    // bypass exists by design (T-26.5-20).
+                    attempt += 1
+                    store.markStale(ConnectionState.Error(ConnectionError.TlsTrustFailure))
+                    emit(ConnectionState.Error(ConnectionError.TlsTrustFailure))
+                    waitBackoffOrTrigger(attempt)
+                }
             }
         }
     }
 
     /** Result of one connect attempt (drives the supervisor's backoff/quiescence decision). */
-    private enum class ConnectAttempt { Served, Network, AuthRequired }
+    private enum class ConnectAttempt { Served, Network, AuthRequired, TlsTrust }
 
     /**
      * One connect attempt: optional token fetch → open socket → identify → list → derive → query →
@@ -374,8 +385,15 @@ class MoonrakerSession(
         if (closed.isCompleted && !opened.isCompleted) {
             routing.cancelAndJoin()
             collector.cancelAndJoin()
-            rpc.close(ConnectionError.NetworkUnavailable)
-            return@coroutineScope ConnectAttempt.Network
+            // R7 (26.5-07): preserve the socket's typed close cause — a TLS trust failure on a
+            // useSecure connect must surface distinctly, not collapse into NetworkUnavailable.
+            val cause = closed.getCompleted() ?: ConnectionError.NetworkUnavailable
+            rpc.close(cause)
+            return@coroutineScope if (cause == ConnectionError.TlsTrustFailure) {
+                ConnectAttempt.TlsTrust
+            } else {
+                ConnectAttempt.Network
+            }
         }
 
         emit(ConnectionState.Syncing)

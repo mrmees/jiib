@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Network Security Config (CONN-05 / D-10 / D-11).
+  Network Security Config (CONN-05 / D-10 / D-11 / R7).
 
   Honored on API 24+ ONLY (ignored on API 23, where the manifest
   android:usesCleartextTraffic="true" governs instead). This config MUST permit
@@ -8,10 +8,25 @@
   cleartext is default-DENY — so without this, the same APK would silently fail
   to reach Moonraker on newer devices (RESEARCH Pitfall 6).
 
-  D-11 DEFERRED-SCOPING RISK: base-config permits cleartext app-wide. This is the
-  broad Phase-1 posture that proves the path. A later phase should TIGHTEN this to
-  a <domain-config> scoped to the Moonraker host(s) once the API-24+ cleartext
-  path is hardened (Security Domain: "over-broad NSC permitting cleartext").
+  R7 DECISION RECORD (26.5-07, roadmap §R7, owner-blessed option B) — the
+  LAN-permissive base-config below is DELIBERATE, not deferred (this resolves
+  the former D-11 deferred-scoping note):
+
+  - NSC cannot express RFC-1918 CIDR ranges. <domain-config> entries match
+    hostname SUFFIXES only — there is no syntax for "10.0.0.0/8 +
+    172.16.0.0/12 + 192.168.0.0/16", and the user-configured printer host is
+    an arbitrary runtime IP/hostname that cannot be enumerated at build time
+    (26.5-RESEARCH Pitfall 5). So roadmap §R7's "cleartext to a public IP
+    refused on API 24+" half is NOT achievable via NSC and was descoped.
+
+  - The hardening mechanism is the per-printer `useSecure` toggle instead
+    (ConnectionConfig.useSecure → wss/https through the centralized
+    httpBase/wsUrl getters, verified by OkHttp's DEFAULT trust chain — no
+    TrustManager overrides, T-26.5-20).
+
+  - Cleartext-to-public-IP exposure is bounded by the user configuring a LAN
+    host for a LAN-only product (T-26.5-19, accepted). Revisit ONLY if a
+    public-host story ever appears.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />

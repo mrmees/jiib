@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import works.mees.dinghy.R
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.ConfirmGuard
@@ -186,6 +188,7 @@ private fun ConnectionEditor(
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("7125") }
     var apiKey by remember { mutableStateOf("") }
+    var useSecure by remember { mutableStateOf(false) } // R7 (26.5-07): per-printer wss/https toggle.
     var keyAlreadySaved by remember { mutableStateOf(false) }
     var hostError by remember { mutableStateOf(false) }
     var portError by remember { mutableStateOf(false) }
@@ -201,6 +204,7 @@ private fun ConnectionEditor(
         host = profile?.host ?: ""
         port = profile?.port?.toString() ?: "7125"
         apiKey = ""
+        useSecure = profile?.useSecure ?: false
         keyAlreadySaved = profile?.apiKey != null
         hostError = false
         portError = false
@@ -281,6 +285,21 @@ private fun ConnectionEditor(
                 )
             }
         }
+
+        // R7 (26.5-07): per-printer wss/https toggle, co-located with host/port/apiKey (this IS the
+        // connection-settings surface post-Phase-14). LOCAL state until Save — it persists through
+        // the SAME durable saveProfile intent as the other fields (write-scope law), never its own
+        // composition-scope write. Plain toggle row, no icon (icon law).
+        SecureToggleRow(
+            label = stringResource(R.string.printers_use_secure),
+            subLabel = if (useSecure) {
+                stringResource(R.string.printers_use_secure_sub_on)
+            } else {
+                stringResource(R.string.printers_use_secure_sub_off)
+            },
+            checked = useSecure,
+            onToggle = { useSecure = it },
+        )
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedControl(
@@ -367,8 +386,13 @@ private fun ConnectionEditor(
                     )
                     val next =
                         if (profile != null) {
-                            // EDIT — preserve the stable id + theme tuple + the per-profile toggle.
-                            profile.copy(host = host.trim(), port = portInt!!, apiKey = resolvedKey)
+                            // EDIT — preserve the stable id + theme tuple + the per-profile toggles.
+                            profile.copy(
+                                host = host.trim(),
+                                port = portInt!!,
+                                apiKey = resolvedKey,
+                                useSecure = useSecure, // R7 (26.5-07)
+                            )
                         } else {
                             // NEW — a fresh printer at the validated default theme tuple (D-05 fresh-start).
                             Profile(
@@ -377,6 +401,7 @@ private fun ConnectionEditor(
                                 host = host.trim(),
                                 port = portInt!!,
                                 apiKey = resolvedKey,
+                                useSecure = useSecure, // R7 (26.5-07)
                             )
                         }
                     // Durable container scope (D-11 auto-selects the FIRST profile active). NEVER a
@@ -412,6 +437,67 @@ private fun ConnectionEditor(
 
 /** Bounded settle window for an mDNS scan — long enough to resolve LAN printers, short enough to end. */
 private const val SCAN_WINDOW_MS = 6000L
+
+/**
+ * The R7 (26.5-07) useSecure toggle row — SettingsScreen's ToggleRow grammar verbatim (outlined
+ * tappable row, ON/OFF pill as a redundant cue to the accent color, whole row ≥64dp touch target,
+ * token colors + fsSp only, NO icon). Local copy because ToggleRow is private to SettingsScreen and
+ * this row is editor-local state (committed by Save), not a live persist.
+ */
+@Composable
+private fun SecureToggleRow(
+    label: String,
+    subLabel: String?,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCard)
+    val outline = if (checked) t.accentLine else t.outline
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(BorderStroke(2.dp, outline), shape)
+            .clickable { onToggle(!checked) }
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = label,
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(18f, t.fs).sp,
+            )
+            if (subLabel != null) {
+                Text(
+                    text = subLabel,
+                    color = t.text3,
+                    fontFamily = Geist,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+            }
+        }
+        // The ON/OFF state pill — accent-outlined ON, hairline OFF (no color-only meaning).
+        val pillShape = RoundedCornerShape(t.rPill)
+        Box(
+            Modifier
+                .clip(pillShape)
+                .border(BorderStroke(2.dp, if (checked) t.accentLine else t.outline), pillShape)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = if (checked) "ON" else "OFF",
+                color = if (checked) t.accent else t.text2,
+                fontFamily = Geist,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(17f, t.fs).sp,
+            )
+        }
+    }
+}
 
 /**
  * One saved-printer tile. Reuses the `DrawerTile` square-tile grammar verbatim. The ACTIVE tile (D-03)

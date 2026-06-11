@@ -22,6 +22,17 @@ sealed interface ConnectionError {
     data object NetworkUnavailable : ConnectionError
 
     /**
+     * The TLS handshake failed because the server's certificate is not trusted (R7, 26.5-07):
+     * a `useSecure` (wss/https) connection hit an `SSLHandshakeException`/`SSLPeerUnverifiedException`
+     * from OkHttp's DEFAULT trust chain — typically a self-signed or expired reverse-proxy cert.
+     * Distinct from [NetworkUnavailable] so the Splash Unreachable surface can tell the user WHAT to
+     * fix (the proxy certificate) instead of a generic "can't reach". There is deliberately NO
+     * trust-all / custom trust-manager escape (T-26.5-20, ASVS V6/V9) — the fix is a valid cert,
+     * never a bypass.
+     */
+    data object TlsTrustFailure : ConnectionError
+
+    /**
      * A request was sent and accepted by the transport but no reply arrived within the per-request
      * deadline — distinct from [NetworkUnavailable] (a true send/connection failure). For a
      * long-running gcode (Z-home/probe, bed mesh, filament load/unload macro) this is EXPECTED, not

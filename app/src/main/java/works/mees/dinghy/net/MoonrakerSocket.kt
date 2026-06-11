@@ -86,8 +86,18 @@ class MoonrakerSocket(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                connection?.close(ConnectionError.NetworkUnavailable)
-                trySend(SocketEvent.Closed(ConnectionError.NetworkUnavailable))
+                // R7 (26.5-07): type the failure. A TLS trust failure (untrusted/self-signed/expired
+                // cert on a useSecure wss:// connect) is carried as a DISTINCT cause so the existing
+                // connection-error surface can name the real problem instead of a generic "can't
+                // reach". Everything else stays NetworkUnavailable. No trust-all bypass — OkHttp's
+                // default trust chain is the verifier (T-26.5-20).
+                val cause = if (isTlsTrustFailure(t)) {
+                    ConnectionError.TlsTrustFailure
+                } else {
+                    ConnectionError.NetworkUnavailable
+                }
+                connection?.close(cause)
+                trySend(SocketEvent.Closed(cause))
                 // Complete the flow NORMALLY — the transport failure is carried as a typed cause in
                 // the SocketEvent.Closed value, NOT as a flow exception. Consumers (the reconnect
                 // supervisor in 02-04) observe Closed(cause) and decide; they should not have to
@@ -106,6 +116,28 @@ class MoonrakerSocket(
     }
 
     companion object {
+        /**
+         * R7 (26.5-07): does this failure mean "the server's TLS certificate is not trusted"?
+         * `SSLHandshakeException` (untrusted/expired/self-signed chain) and
+         * `SSLPeerUnverifiedException` (hostname/peer verification) are the two shapes OkHttp's
+         * default trust chain produces; the chain walk catches either when wrapped (bounded — a
+         * pathological self-referential cause chain must not loop forever).
+         */
+        fun isTlsTrustFailure(t: Throwable): Boolean {
+            var cur: Throwable? = t
+            var hops = 0
+            while (cur != null && hops < 8) {
+                if (cur is javax.net.ssl.SSLHandshakeException ||
+                    cur is javax.net.ssl.SSLPeerUnverifiedException
+                ) {
+                    return true
+                }
+                cur = cur.cause
+                hops++
+            }
+            return false
+        }
+
         /** websocket connect timeout (ms) — finite; matches the Phase-1 smoke posture. */
         const val OPEN_TIMEOUT_MS = 10_000L
 
