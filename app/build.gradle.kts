@@ -143,7 +143,9 @@ kotlin {
 // AGP 8.7: output.versionCode is a Property<Int> — it MUST be .set(), plain assignment
 // does not compile. Base is the single `appVersionCode` hoisted above defaultConfig.
 androidComponents {
-    onVariants { variant ->
+    // Scoped to release (codex review LOW): only the published split artifacts need the
+    // offsets; debug installs keep the plain base versionCode (no metadata churn).
+    onVariants(selector().withBuildType("release")) { variant ->
         variant.outputs.forEach { output ->
             val abi = output.filters
                 .firstOrNull { it.filterType == FilterConfiguration.FilterType.ABI }

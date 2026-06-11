@@ -91,7 +91,11 @@ class MainActivity : ComponentActivity() {
 
         // Start the FGS that owns the spine (SHELL-03/D-01). Idempotent: the started service is
         // START_STICKY and re-delivers cleanly; the spine is process-held in the AppContainer.
-        startForegroundService(Intent(this, MoonrakerService::class.java))
+        // ContextCompat (26.5-04 codex review): the platform startForegroundService() is API 26+ —
+        // the bare call was a latent launch CRASH on genuine API 23-25 devices (the minSdk floor;
+        // latent since Phase 4 because flox runs API 30). ContextCompat falls back to
+        // startService() pre-26; MoonrakerService promotes itself via startForeground() either way.
+        ContextCompat.startForegroundService(this, Intent(this, MoonrakerService::class.java))
 
         // ---- Dev-gated start_dest deep-jump (SC-4b / D-06, T-18-04-01) ---------------------------------
         // MainActivity is exported="true", so an `am start ... --es start_dest <Dest>` extra crosses an
