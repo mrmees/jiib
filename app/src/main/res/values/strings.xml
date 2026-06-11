@@ -420,8 +420,10 @@
     <string name="temp_cooldown">Cooldown</string>
     <string name="temp_preheat_preset">Preheat preset</string>
     <string name="extrude_spoolman_coming_soon">Spoolman integration coming soon</string>
-    <string name="extrude_no_load_macro">No LOAD_FILAMENT macro configured</string>
-    <string name="extrude_no_unload_macro">No UNLOAD_FILAMENT macro configured</string>
+    <!-- R4 (26.5-06 codex review): the macro NAME is a format arg fed from CommandMap.*.macro,
+         never a literal — a fork's renamed slot shows the right name in the hint copy. -->
+    <string name="extrude_no_load_macro">No %1$s macro configured</string>
+    <string name="extrude_no_unload_macro">No %1$s macro configured</string>
 
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>

@@ -40,4 +40,34 @@ class CommandMapTest {
         assertEquals("MY_LOAD", renamed.macro)          // gates via hasMacroIgnoreCase
         assertEquals("MY_LOAD BEEP=1", renamed.gcode)   // fires via loadFilament()
     }
+
+    // --- REAL wiring assertions (codex review: not a Slot tautology) ----------------------------
+    // These exercise the live CommandRegistry specs + PrinterCommands builders symbolically:
+    // whatever names CommandMap carries, the registry GATES on `.macro` and the wire EMITS
+    // `.gcode`. A future re-hardcode at any of the six production sites breaks these without
+    // a single macro literal appearing here.
+
+    @Test
+    fun registry_loadAndUnload_gateOnCommandMapMacros() {
+        assertEquals(
+            AvailabilityPredicate.MacroPresent(CommandMap.loadFilament.macro),
+            CommandRegistry.loadFilament.availability,
+        )
+        assertEquals(
+            AvailabilityPredicate.MacroPresent(CommandMap.unloadFilament.macro),
+            CommandRegistry.unloadFilament.availability,
+        )
+    }
+
+    @Test
+    fun registry_loadAndUnload_emitCommandMapGcode() {
+        // gcode specs carry the script in params — assert the wire payload carries the slot's
+        // gcode string, and the PrinterCommands builders return it verbatim.
+        val loadParams = CommandRegistry.loadFilament.params(Unit).toString()
+        val unloadParams = CommandRegistry.unloadFilament.params(Unit).toString()
+        assertEquals(true, loadParams.contains(CommandMap.loadFilament.gcode))
+        assertEquals(true, unloadParams.contains(CommandMap.unloadFilament.gcode))
+        assertEquals(CommandMap.loadFilament.gcode, PrinterCommands.loadFilament())
+        assertEquals(CommandMap.unloadFilament.gcode, PrinterCommands.unloadFilament())
+    }
 }

@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandMap
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
@@ -295,8 +296,11 @@ private fun ExtrudeContent(
                 // WR-11 (26-rev): resolve toast copy at composition so the onClick lambdas below
                 // (non-composable scope) can assign it to infoText.
                 val spoolmanComingSoon = stringResource(R.string.extrude_spoolman_coming_soon)
-                val noLoadMacro = stringResource(R.string.extrude_no_load_macro)
-                val noUnloadMacro = stringResource(R.string.extrude_no_unload_macro)
+                // R4: macro names flow from CommandMap so a fork's rename shows in the copy.
+                val noLoadMacro =
+                    stringResource(R.string.extrude_no_load_macro, CommandMap.loadFilament.macro)
+                val noUnloadMacro =
+                    stringResource(R.string.extrude_no_unload_macro, CommandMap.unloadFilament.macro)
                 when (fieldMode) {
                     is ExtrudeFieldMode.Main -> {
                         Column(
