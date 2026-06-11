@@ -13,6 +13,8 @@ import org.junit.Test
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
+import works.mees.dinghy.command.CommandMap
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.PrinterState
@@ -163,6 +165,68 @@ class ExtrudeHolderTest {
         val vm = holder.vm.first()
         assertEquals(170f, vm.minExtrudeTemp!!, 0.001f)
         assertEquals(50f, vm.maxExtrudeDistance!!, 0.001f)
+    }
+
+    // --- CommandMap propagation proof (R4) ------------------------------------------------------
+    // These cases reference CommandMap SYMBOLICALLY (never the string literal) so they stay
+    // correct under any future fork-and-edit rename — that is what makes them a propagation
+    // proof rather than a tautology: whatever name CommandMap carries, the holder gates on it
+    // and PrinterCommands emits it.
+
+    @Test
+    fun commandMapMacro_gatesLoadUnloadThroughRealWiring() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        // Capabilities advertise EXACTLY the CommandMap macro names (lowercased, as Moonraker
+        // reports them — the case-insensitive gate must still match the map's names).
+        store.setCapabilities(
+            Capabilities(
+                extruderCount = 1,
+                heaters = listOf("extruder"),
+                macros = listOf(
+                    CommandMap.loadFilament.macro.lowercase(),
+                    CommandMap.unloadFilament.macro.lowercase(),
+                ),
+            ),
+        )
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        runCurrent()
+
+        val vm = holder.vm.value
+        assertTrue("capabilities containing CommandMap.loadFilament.macro → load gate true", vm.hasLoadMacro)
+        assertTrue("capabilities containing CommandMap.unloadFilament.macro → unload gate true", vm.hasUnloadMacro)
+    }
+
+    @Test
+    fun differentMacroName_doesNotGateLoadUnload() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        // A macro list with names that are NOT CommandMap's slots — gates must stay false,
+        // proving the gate reads the map (not some other source).
+        store.setCapabilities(
+            Capabilities(
+                extruderCount = 1,
+                heaters = listOf("extruder"),
+                macros = listOf("some_other_macro", "filament_changer_9000"),
+            ),
+        )
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        runCurrent()
+
+        val vm = holder.vm.value
+        assertFalse("non-CommandMap macro names → load gate false", vm.hasLoadMacro)
+        assertFalse("non-CommandMap macro names → unload gate false", vm.hasUnloadMacro)
+    }
+
+    @Test
+    fun printerCommands_emitCommandMapGcode() {
+        // The emission half of the R4 propagation proof: the wire builders return EXACTLY the
+        // map's gcode strings. Together with the gating cases above, a one-constant rename in
+        // CommandMap.kt would both gate (capability check) and fire (gcode emission) correctly.
+        assertEquals(CommandMap.loadFilament.gcode, PrinterCommands.loadFilament())
+        assertEquals(CommandMap.unloadFilament.gcode, PrinterCommands.unloadFilament())
     }
 
     @Test
