@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.finetune
 
 import androidx.compose.ui.graphics.Color
+import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.dinghy.command.CommandRegistry
@@ -410,6 +411,11 @@ private fun dispatchForTuner(
         FineTuneTuner.UNRETRACT_EXTRA_LENGTH,
         FineTuneTuner.UNRETRACT_SPEED -> {
             // All four FW-retraction fields are sent together in one command (existing FwRetractionScreen pattern).
+            // WR-04 (26-rev): the speed Double→Int conversion must ROUND HALF-UP to match
+            // FineTuneHolder.markPending's roundToWirePrecision (0dp, half-up). Truncation (.toInt())
+            // armed e.g. 24 (round 23.5 up) while the wire sent 23 — the echo could never land within
+            // the flip epsilon and the group dimmed for the full pending-flip timeout (the P17
+            // WR-01/02 transient-dim class re-opened for fractional retraction speeds).
             d.dispatch(
                 CommandRegistry.setRetraction,
                 RetractionArgs(
@@ -418,9 +424,9 @@ private fun dispatchForTuner(
                     unretractExtraLength = if (tuner == FineTuneTuner.UNRETRACT_EXTRA_LENGTH) rawTarget
                                            else vm.unretractExtraLength ?: 0.0,
                     retractSpeed = (if (tuner == FineTuneTuner.RETRACT_SPEED) rawTarget
-                                    else vm.retractSpeed ?: 0.0).toInt(),
+                                    else vm.retractSpeed ?: 0.0).roundToInt(),
                     unretractSpeed = (if (tuner == FineTuneTuner.UNRETRACT_SPEED) rawTarget
-                                      else vm.unretractSpeed ?: 0.0).toInt(),
+                                      else vm.unretractSpeed ?: 0.0).roundToInt(),
                 )
             )
         }
