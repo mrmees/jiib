@@ -11,12 +11,6 @@ human_verification:
   - test: "Open SpoolPreviews.kt in Android Studio and render all preview functions"
     expected: "SpoolSelectionMatrix shows no-selection / selected states; dense 8-entry spool list renders with material/color/vendor/location data; six SpoolTheme* siblings show 6 distinct themes; SpoolFsLargeOverflow + SpoolRtlSpotCheck render correctly; camera scan placeholder is labeled (not blank), not a Coil thumb"
     why_human: "Same as above. Additionally the CameraX surface is genuinely unreachable under @Preview — the labeled stand-in is the only observable result."
-  - test: "Install debug APK on flox (Nexus 7 / LineageOS API 30) with dev-enable ON; run: adb shell am start -n works.mees.dinghy/.MainActivity --es start_dest FineTune"
-    expected: "App navigates directly to the FineTune Hub screen (after the Splash/Klippy-Ready gate). Repeat with start_dest=Spool and start_dest=PrintStatus — each lands on the named screen. Sending start_dest=NotARealScreen results in the default PrintStatus home with no crash."
-    why_human: "The start_dest deep-jump requires a running app + live Klippy state to pass the RootController Splash gate. Cannot be verified by reading code alone."
-  - test: "Confirm start_dest is release-inert: from a CLEAN app data state (pm clear works.mees.dinghy), install the debug APK and run the am start command WITHOUT previously enabling dev-cycler via the Settings UI"
-    expected: "The start_dest extra is IGNORED (devCyclerEnabled defaults FALSE on clean data); app starts normally on the default PrintStatus screen"
-    why_human: "The defense-in-depth 'release-inert from a CLEAN data state' check (as opposed to merely trusting the code default) requires running the app. The code path is correct per review but the behavioral gate needs device confirmation."
   - test: "On the debug APK, switch device locale to English (XA) — the pseudolocale"
     expected: "User-facing strings that are tokenized (spool_*/finetune_*/printstatus_* keys) show accented/decorated text, confirming they route through strings.xml. Hardcoded literals (intentionally deferred per SC-3 fallback + Phase-22 backfill) show plain English — these are expected and do not constitute a failure for this phase."
     why_human: "The en-XA pseudolocale sweep is the manual SC-3 completeness check substituting for the deferred automated lint gate (detekt fallback fired in 18-01). Requires running the app with the pseudolocale active."
@@ -30,6 +24,15 @@ human_verification:
 **Status:** human_needed
 **Re-verification:** No — initial verification
 
+> **Passed human items (2026-06-10 UAT work-through, post-redesign nav):** the two `start_dest`
+> checks were performed live on flox (fresh build, adb-driven, screenshot-verified) against the
+> Phase-24 NavDest spine — the dest-name set changed since this was written (`PrintStatus` →
+> `WaterfallHome`), but the mechanism under test is unchanged:
+> 1. *Deep-jump (dev-enable ON):* `--es start_dest FineTune` → Fine-Tune flat screen ✓;
+>    `Spool` → spool list ✓; `NotARealScreen` → ignored, waterfall home, no crash ✓.
+> 2. *Release-inert (clean data):* after `pm clear`, the same extra was IGNORED (no dev overlay,
+>    first-run Add-printer screen, no jump) — devCyclerEnabled defaulted FALSE as designed ✓.
+>
 > **Superseded human items (closed at 2026-06-10 UAT audit):** two of the original seven
 > human-verification items were removed from the open list above because the jiib redesign
 > (Phases 23–26) invalidated their subjects, not because they were performed:
