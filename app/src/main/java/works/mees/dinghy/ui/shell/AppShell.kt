@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -161,6 +162,20 @@ fun AppShell(
 
     // Drawer state stays shell-local (it is meaningless while the shell is decomposed — not hoisted).
     var drawerOpen by remember { mutableStateOf(false) }
+
+    // ---- Keep-screen-on (§R2 step 1, 26.5-05) --------------------------------------------------------
+    // Applied at the SHELL root via View.keepScreenOn — the Compose-idiomatic equivalent of
+    // FLAG_KEEP_SCREEN_ON on the hosting window — because MainActivity is owned by sibling plan 26.5-04
+    // this wave (file-ownership disjointness). Semantics: the flag holds while this view is attached and
+    // the preference is ON; it clears LIVE on toggle-off (the keyed DisposableEffect re-runs) and on
+    // dispose (shell decomposed → background/Splash), so the screen is never pinned awake outside the
+    // running shell. Default TRUE — the dedicated-display use case.
+    val keepScreenOn by container.keepScreenOn.collectAsStateWithLifecycle(initialValue = true)
+    val rootView = LocalView.current
+    DisposableEffect(rootView, keepScreenOn) {
+        rootView.keepScreenOn = keepScreenOn
+        onDispose { rootView.keepScreenOn = false }
+    }
 
     // In-screen sub-nav aliases (D-01 holdouts — NOT promoted to NavHost routes).
     // macroShowSystem + macroPopupFor removed: Macros merged to a single FieldMode screen (25-05).

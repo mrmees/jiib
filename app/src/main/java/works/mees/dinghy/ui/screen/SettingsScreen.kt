@@ -1,5 +1,9 @@
 package works.mees.dinghy.ui.screen
 
+import android.content.Context
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,11 +28,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -87,6 +98,30 @@ fun SettingsScreen(
     // The text field mirrors the persisted layer-count; re-seed the local buffer whenever the stored value
     // changes (key = babystepLayers) so an external write reflects, while in-progress typing is preserved.
     var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
+
+    // Display / always-on (§R2, 26.5-05) — process-scoped, connection-INDEPENDENT (not per-profile).
+    // The toggle write routes through the durable container writeScope intent
+    // ([[dinghy-compose-write-scope-cancellation]]); AppShell's root effect applies the window flag.
+    val keepScreenOn by container.keepScreenOn.collectAsStateWithLifecycle(true)
+
+    // Battery-optimization exemption state (§R2 step 2): PowerManager.isIgnoringBatteryOptimizations is
+    // API 23+ and synchronous — no flow needed. Re-checked on ON_RESUME (below) so the row updates when
+    // the user returns from the system exemption dialog.
+    val context = LocalContext.current
+    val powerManager = remember(context) { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
+    var isExempt by remember {
+        mutableStateOf(powerManager.isIgnoringBatteryOptimizations(context.packageName))
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, powerManager) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isExempt = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(modifier.fillMaxSize()) {
         ScreenScaffold(
@@ -159,6 +194,61 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+
+                    // ============================ DISPLAY / ALWAYS-ON (§R2, 26.5-05) ===================
+                    // The dedicated-display half of R2: keep-screen-on (default ON — the tablet-on-a-wall
+                    // use case) + the Doze-exemption state surface and deep-link. App-global, NOT
+                    // per-profile. New strings are stringResource-routed; rows reuse the token/fsSp kit.
+                    SectionLabel(stringResource(R.string.settings_display_section))
+
+                    ToggleRow(
+                        label = stringResource(R.string.settings_keep_screen_on),
+                        subLabel = if (keepScreenOn) {
+                            stringResource(R.string.settings_keep_screen_on_sub_on)
+                        } else {
+                            stringResource(R.string.settings_keep_screen_on_sub_off)
+                        },
+                        checked = keepScreenOn,
+                        enabled = true, // app-global setting, always editable
+                        // Durable writeScope intent — NEVER a composition scope
+                        // ([[dinghy-compose-write-scope-cancellation]]).
+                        onToggle = { container.setKeepScreenOn(it) },
+                    )
+
+                    // Battery-optimization row (§R2 step 2): status + tap-to-request deep-link. The
+                    // REQUEST_IGNORE_BATTERY_OPTIMIZATIONS manifest permission was pre-staged by 26.5-04.
+                    // This is a SIDELOADED app (GitHub-Releases APK, no Play distribution), so the Play
+                    // policy restricting that permission does not apply. Once exempt the row reads as a
+                    // greyed status line (the system offers no in-app un-exempt dialog).
+                    ForwardEntryRow(
+                        label = stringResource(R.string.settings_battery_optimization),
+                        subLabel = if (isExempt) {
+                            stringResource(R.string.settings_battery_exempt)
+                        } else {
+                            stringResource(R.string.settings_battery_optimized)
+                        },
+                        enabled = !isExempt,
+                        onClick = {
+                            // android.content.Intent fully-qualified: this file imports the design-kit
+                            // `designsystem.control.Intent` under the same simple name.
+                            try {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                        Uri.parse("package:${context.packageName}"),
+                                    ),
+                                )
+                            } catch (_: Exception) {
+                                // LineageOS (RESEARCH A10) may not resolve the direct dialog — fall back
+                                // to the system battery-optimization LIST surface.
+                                context.startActivity(
+                                    android.content.Intent(
+                                        Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS,
+                                    ),
+                                )
+                            }
+                        },
+                    )
 
                     // Bottom breathing room so the last control clears the scroll edge.
                     Box(Modifier.height(24.dp))
