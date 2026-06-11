@@ -85,9 +85,11 @@ android {
     }
 
     // R5a (§R5a step 4): lint baselined and enforced. The AGP-8.7 UAST crash
-    // (IncompatibleClassChangeError) is JDK-21-specific; lint now runs under a
-    // JDK-17 toolchain (top-level kotlin { jvmToolchain(17) } + the
-    // android.experimental.runLintInProcess=false worker split in gradle.properties).
+    // (IncompatibleClassChangeError) is JDK-21-specific. REALITY CHECK (26.5-01 + codex
+    // review): jvmToolchain(17) + runLintInProcess=false do NOT fully repin the lint worker
+    // locally — it follows the daemon JVM (JDK 21 under gw.bat). The local workaround is the
+    // NullSafeMutableLiveData disable below (the only detector that crashes); CI runs on a
+    // JDK-17 runner where the hazard doesn't exist and lintDebug enforces the baseline there.
     lint {
         baseline = file("lint-baseline.xml")
         // NullSafeMutableLiveData's detector (androidx.lifecycle lint) throws

@@ -20,4 +20,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
-      - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      # lintDebug enforces the shrink-only baseline (R5a step 4: "CI fails on any new violation");
+      # runner JDK is 17 so the JDK-21 UAST hazard doesn't apply here.
+      - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
