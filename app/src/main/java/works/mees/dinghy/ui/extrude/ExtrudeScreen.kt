@@ -150,11 +150,30 @@ fun ExtrudeScreen(
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
+    var failureText by remember { mutableStateOf<String?>(null) }
+
+    // WR-02 (26-rev): collect dispatcher failure events so a failed extrude/retract/heater dispatch
+    // actually surfaces the promised error SeverityToast — the old onDispatchFailure parameter
+    // referenced a collector that never existed, silently dropping every failure. Mirrors the
+    // FineTuneScreen/TemperatureScreen collector pattern.
+    LaunchedEffect(dispatcher) {
+        failureText = null
+        val d = dispatcher ?: return@LaunchedEffect
+        d.events.collect { event ->
+            when (event) {
+                is DispatchEvent.Failure -> failureText = event.message
+            }
+        }
+    }
+    LaunchedEffect(failureText) {
+        if (failureText != null) { delay(4_000); failureText = null }
+    }
 
     ExtrudeContent(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
         inFlight = inFlight,
+        failureText = failureText,
         onExtrude = { dist, speed ->
             val key = CommandRegistry.extrude.dispatchKey(ExtrudeArgs(dist, speed * 60))
             if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(dist, speed * 60))
@@ -181,7 +200,6 @@ fun ExtrudeScreen(
             val clamped = PrinterCommands.clampHeaterTarget(temp)
             dispatcher?.dispatch(CommandRegistry.setHeater, SetHeaterArgs(vm.activeHeater, clamped, key = "set_temp"))
         },
-        onDispatchFailure = { /* surfaced by LaunchedEffect from dispatcher events below */ },
         onBack = onBack,
         modifier = modifier,
     )
@@ -202,13 +220,13 @@ fun ExtrudeScreen(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
         inFlight = emptySet(),
+        failureText = null,
         onExtrude = { _, _ -> },
         onRetract = { _, _ -> },
         onSelectTool = {},
         onLoad = {},
         onUnload = {},
         onSetExtruderTemp = {},
-        onDispatchFailure = {},
         onBack = onBack,
         modifier = modifier,
     )
@@ -219,20 +237,19 @@ private fun ExtrudeContent(
     vm: ExtrudeVm,
     activeSpoolDetail: SpoolmanSpool?,
     inFlight: Set<String>,
+    failureText: String?,
     onExtrude: (distance: Double, speed: Int) -> Unit,
     onRetract: (distance: Double, speed: Int) -> Unit,
     onSelectTool: (Int) -> Unit,
     onLoad: () -> Unit,
     onUnload: () -> Unit,
     onSetExtruderTemp: (Int) -> Unit,
-    onDispatchFailure: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var distance by remember { mutableStateOf(DEFAULT_DISTANCE) }
     var speed by remember { mutableStateOf(DEFAULT_SPEED_MM_S) }
     var fieldMode by remember { mutableStateOf<ExtrudeFieldMode>(ExtrudeFieldMode.Main) }
-    var failureText by remember { mutableStateOf<String?>(null) }
     var infoText by remember { mutableStateOf<String?>(null) }
 
     // If the live max-extrude ceiling makes the selected length illegal, fall back to the largest enabled.
@@ -240,12 +257,6 @@ private fun ExtrudeContent(
         val max = vm.maxExtrudeDistance
         if (max != null && distance > max) {
             distance = DISTANCE_PRESETS.filter { it <= max }.maxOrNull() ?: DISTANCE_PRESETS.first()
-        }
-    }
-    LaunchedEffect(failureText) {
-        if (failureText != null) {
-            delay(4_000)
-            failureText = null
         }
     }
     LaunchedEffect(infoText) {
