@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableMap
@@ -175,11 +178,16 @@ fun TemperatureScreen(
     // matching key renders a one-shot flash. PersistentMap = @Stable param (Phase-22 discipline);
     // changes only on a rejection, never per sample tick.
     var rejectTicks by remember { mutableStateOf(persistentMapOf<String, Long>()) }
-    LaunchedEffect(dispatcher) {
+    // Lifecycle-aware collection (codex review; Part-1 #3 lifecycle-hygiene invariant): no
+    // collection while backgrounded; resumes on STARTED. House pattern = AppShell webcam binding.
+    val rejectLifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(dispatcher, rejectLifecycleOwner) {
         rejectTicks = persistentMapOf()
         val d = dispatcher ?: return@LaunchedEffect
-        d.rejectedKey.collect { key ->
-            rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+        rejectLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            d.rejectedKey.collect { key ->
+                rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+            }
         }
     }
 

@@ -19,6 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
@@ -122,11 +125,16 @@ fun FineTuneScreen(
     // PersistentMap keeps the param @Stable for Compose skipping (Phase-22 discipline); it only
     // changes on a rejection (rare), never per state tick.
     var rejectTicks by remember { mutableStateOf(persistentMapOf<String, Long>()) }
-    LaunchedEffect(dispatcher) {
+    // Lifecycle-aware collection (codex review; Part-1 #3 lifecycle-hygiene invariant): no
+    // collection while backgrounded; resumes on STARTED. House pattern = AppShell webcam binding.
+    val rejectLifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(dispatcher, rejectLifecycleOwner) {
         rejectTicks = persistentMapOf()
         val d = dispatcher ?: return@LaunchedEffect
-        d.rejectedKey.collect { key ->
-            rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+        rejectLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            d.rejectedKey.collect { key ->
+                rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+            }
         }
     }
 

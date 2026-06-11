@@ -2,19 +2,16 @@ package works.mees.dinghy.designsystem.control
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -122,24 +119,22 @@ fun OutlinedControl(
         Modifier
     }
     val shape = RoundedCornerShape(t.rCtrl)
-    // R10 (26.5-03): explicit interactionSource + LocalIndication so press indication is delivered
-    // immediately inside scrollable containers (Part 5 cause #4 — Compose delays indication in
-    // scrollables by design; on a 20-30fps Adreno 320 that delay reads as a missed tap).
-    val interactionSource = remember { MutableInteractionSource() }
+    // R10 (26.5-03 + codex review): the enabled=true paths are the PLAIN pre-plan overloads —
+    // byte-identical behavior at every existing call site, and the parameterless form keeps
+    // Compose's lazy indication attach (perf floor). An earlier draft passed explicit
+    // interactionSource + LocalIndication here for Part 5 cause #4 "indication immediacy";
+    // REVERTED: that form doesn't bypass the scrollable press-delay (which lives in clickable's
+    // pointer logic, not indication laziness) and eagerly allocates per control. Cause #4 is
+    // DEFERRED pending the morning instrumentation verdict — a real fix needs custom press
+    // detection (Modifier.indication + manual Press emission), not parameter plumbing.
     val clickMod = when {
         // R10 true disablement: a bare Modifier — no clickable installed, no ripple, no event consumed.
         !enabled -> Modifier
         onLongClick != null -> Modifier.combinedClickable(
-            interactionSource = interactionSource,
-            indication = LocalIndication.current,
             onClick = onClick,
             onLongClick = onLongClick,
         )
-        else -> Modifier.clickable(
-            interactionSource = interactionSource,
-            indication = LocalIndication.current,
-            onClick = onClick,
-        )
+        else -> Modifier.clickable(onClick = onClick)
     }
     Box(
         modifier = modifier
