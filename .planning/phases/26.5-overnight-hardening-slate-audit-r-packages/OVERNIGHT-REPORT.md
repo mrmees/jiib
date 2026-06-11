@@ -135,8 +135,31 @@ Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
 
 ### S25 Ultra group
 
-> **2026-06-11 sitting:** run on a **Moto G Play 2024 (Android 14 / API 34, arm64)** standing in
+> **2026-06-11 sitting #1:** run on a **Moto G Play 2024 (Android 14 / API 34, arm64)** standing in
 > for the planned S25 Ultra.
+> **2026-06-11 sitting #2 (remote, the ACTUAL S25 Ultra):** owner ran the full remote checklist on
+> the S25 Ultra (Android 15/16 — the forced-edge-to-edge case) via the `uat-26.5-overnight` GitHub
+> prerelease APK + Tailscale to both printers (set up this morning: ts-ender5plus-1
+> 100.119.234.19, ts-ender3pro 100.74.197.18; E3's moonraker.conf gained 100.0.0.0/8 trust).
+> **ALL ITEMS PASS**, specifically:
+> - R1 arm64 install on the S25 itself ✅ (the audit's C1 headline device)
+> - R1 edge-to-edge under FORCED edge-to-edge (targetSdk 35 on Android 15+) ✅ — incl. the
+>   260611-cj1 system-bar theme lock (bars follow the app theme, no drawer flicker, live theme
+>   cycling) — the quick fix is owner-eyeball CONFIRMED
+> - R1 predictive back on the S25 ✅ — the codex BackHandler-ordering deferred-MEDIUM is RESOLVED
+>   (no overlay-order defect on the named device)
+> - R1 POST_NOTIFICATIONS one-shot ✅
+> - R10 rejection feedback on a live printer ✅ (rapid-tap stepper shows the flash, no silent
+>   swallows; disabled controls don't ripple)
+> - R2 keep-awake toggle + battery-exemption flow ✅
+> - **Cross-printer switching ✅** (two live printers, profiles switch cleanly). NOTE: this does
+>   NOT close Phase-21's deferred SC8 item — that one is specifically the per-printer CAMERA
+>   selection holding across a switch, and webcams were unavailable over Tailscale (LAN URLs).
+>   SC8 camera-hold still needs an at-home pass with feeds visible.
+> - R5a CI: every branch push green on GitHub runners (test+lintDebug+hygiene) ✅
+> Remaining open: the flox group below (floor-device tap-torture, doze, v7a regression,
+> system-bar eyeball on API 30) + R7 wss (Phase-29 deferral). Webcam-over-Tailscale "unavailable"
+> is EXPECTED (LAN camera URLs, no subnet routing) — not a defect.
 
 - [x] **R1 arm64 install:** debug-sign + sideload
       `app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk` (versionCode 2) — installs
