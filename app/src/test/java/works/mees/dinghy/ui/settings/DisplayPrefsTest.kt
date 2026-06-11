@@ -86,9 +86,28 @@ class DisplayPrefsTest {
 
     @Test
     fun setKeepScreenOnTrueAfterFalse_roundTrips() = runBlocking {
-        val (dataStore, _) = newDataStore()
-        val prefs = DisplayPrefs(dataStore)
+        // TWO writes on one store: the temp-FILE harness hits the Windows-host .tmp→rename race on a
+        // second write over an existing blob (the documented back-to-back host race — see
+        // ProfileStoreTest "use two separate stores to avoid the back-to-back host race"). The contract
+        // under test is DisplayPrefs KEY semantics (a true write overrides a persisted false), not
+        // FileStorage rename behavior — so use the in-memory DataStore (the ThemeOverrideTest
+        // MemDataStore shape), which the single-write tests above complement on the real file path.
+        val mem = object : DataStore<Preferences> {
+            private val state = kotlinx.coroutines.flow.MutableStateFlow<Preferences>(
+                androidx.datastore.preferences.core.emptyPreferences(),
+            )
+            override val data: Flow<Preferences> = state
+            override suspend fun updateData(
+                transform: suspend (t: Preferences) -> Preferences,
+            ): Preferences {
+                val next = transform(state.value)
+                state.value = next
+                return next
+            }
+        }
+        val prefs = DisplayPrefs(mem)
         prefs.setKeepScreenOn(false)
+        assertFalse("intermediate false state persisted", prefs.keepScreenOn.first())
         prefs.setKeepScreenOn(true)
         assertTrue("setKeepScreenOn(true) after false round-trips", prefs.keepScreenOn.first())
     }

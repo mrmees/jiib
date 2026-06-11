@@ -54,9 +54,10 @@ class ThemeOverrideTest {
         AppContainer(
             themeStore,
             // connection, macro, webcam, profile, BABYSTEP (Phase 16, 6th store),
-            // TRACESTYLE (Phase 26, 7th store), then discovery (last).
+            // TRACESTYLE (Phase 26, 7th store), DISPLAY (Phase 26.5 §R2, 8th store),
+            // then discovery (last).
             MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
-            MemDataStore(),
+            MemDataStore(), MemDataStore(),
             lazyDiscovery(),
         )
 

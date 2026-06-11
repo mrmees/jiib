@@ -3,7 +3,12 @@ package works.mees.dinghy.ui.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 /**
  * DataStore(Preferences) persistence of the display app settings (§R2, 26.5-05): the [keepScreenOn]
@@ -27,18 +32,22 @@ import kotlinx.coroutines.flow.Flow
 class DisplayPrefs(
     private val dataStore: DataStore<Preferences>,
 ) {
-    /** Whether the screen is held awake while the shell is foregrounded. Default TRUE (§R2). */
-    val keepScreenOn: Flow<Boolean>
-        get() = TODO("26.5-05 GREEN — implemented after the RED gate")
+    /**
+     * Whether the screen is held awake while the shell is foregrounded. Default TRUE (§R2).
+     * Fail-safe: a read error yields the default.
+     */
+    val keepScreenOn: Flow<Boolean> =
+        dataStore.data
+            .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+            .map { prefs -> prefs[KEY_KEEP_SCREEN_ON] ?: DEFAULT_KEEP_SCREEN_ON }
 
     /** Persist the keep-screen-on toggle. */
     suspend fun setKeepScreenOn(on: Boolean) {
-        TODO("26.5-05 GREEN — implemented after the RED gate")
+        dataStore.edit { prefs -> prefs[KEY_KEEP_SCREEN_ON] = on }
     }
 
     companion object {
         const val DEFAULT_KEEP_SCREEN_ON = true
-        @Suppress("unused") // consumed by the GREEN implementation
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
     }
 }

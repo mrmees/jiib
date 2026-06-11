@@ -41,6 +41,7 @@ import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
+import works.mees.dinghy.ui.settings.DisplayPrefs
 import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
@@ -106,6 +107,14 @@ class AppContainer(
      * single-writer invariant) and injected here.
      */
     traceStyleDataStore: DataStore<Preferences>,
+    /**
+     * The EIGHTH, INDEPENDENT file: display.preferences_pb (§R2, Phase 26.5-05). Backs the
+     * process-scoped display settings ([DisplayPrefs]: the keep-screen-on toggle, default ON for
+     * the dedicated-display use case). Carries no secrets (like macros/webcam/babystep/tracestyle),
+     * kept on its own connection-independent lifecycle per the separate-file discipline. Created
+     * ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer invariant) and injected here.
+     */
+    displayDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -310,6 +319,28 @@ class AppContainer(
      */
     fun setBabystepLayers(n: Int) {
         writeScope.launch { babystepPrefs.setLayerCount(n) }
+    }
+
+    /**
+     * Display app-setting persistence (§R2, 26.5-05) — the SEPARATE display.preferences_pb-backed store
+     * holding the [DisplayPrefs.keepScreenOn] toggle (default true — the dedicated-display use case).
+     * Like [babystepPrefs]/[macroPrefs] it is PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on
+     * [SpineHandle]): the setting survives reconnects and printer swaps. The Settings UI reads
+     * [keepScreenOn] and writes through the durable [setKeepScreenOn] intent; AppShell's root effect
+     * gates `View.keepScreenOn` (→ FLAG_KEEP_SCREEN_ON on the hosting window) on the same flow.
+     */
+    val displayPrefs: DisplayPrefs = DisplayPrefs(displayDataStore)
+
+    /** Whether the screen is held awake while the shell is foregrounded (§R2) — default true. */
+    val keepScreenOn: Flow<Boolean> = displayPrefs.keepScreenOn
+
+    /**
+     * Persist the keep-screen-on toggle (§R2), durably. Routes through the process-lifetime [writeScope]
+     * ([[dinghy-compose-write-scope-cancellation]]) — the Settings toggle can navigate away in the same
+     * frame, and a slow Nexus-7 flash drops a composition-scoped write. NEVER `rememberCoroutineScope()`.
+     */
+    fun setKeepScreenOn(on: Boolean) {
+        writeScope.launch { displayPrefs.setKeepScreenOn(on) }
     }
 
     /**
