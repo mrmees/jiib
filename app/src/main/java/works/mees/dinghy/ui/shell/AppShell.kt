@@ -906,9 +906,21 @@ fun AppShell(
         // WaterfallHome. The e-stop button is visible when print state is Printing or Paused. Tap raises
         // the shared full-screen ConfirmGuard before issuing EMERGENCY_STOP (T-24-03-02 mitigation).
         // UnitGrid for sizing: derive U from the minimum dimension (portrait- and landscape-safe).
+        // WR-05 (26-rev): redesigned screens that render their OWN FloatingEStop + ConfirmGuard as
+        // Focus Box siblings (FineTune, Temperature, Spool — per-screen placement is those screens'
+        // design intent and is asserted by their preview matrices) suppress the shell-level e-stop;
+        // otherwise two stacked e-stop buttons co-render in the same corner while printing, each
+        // opening its own guard. ONE owner per destination.
+        val estopDest = navBackStackEntry?.destination
+        val screenOwnsEstop = estopDest != null && (
+            estopDest.isRoute<NavDest.FineTune>() ||
+            estopDest.isRoute<NavDest.Temperature>() ||
+            estopDest.isRoute<NavDest.Spool>()
+        )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
-            visible = printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused,
+            visible = !screenOwnsEstop &&
+                (printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused),
             onClick = { showEstopGuard = true },
             uDp = estopGrid.uDp,
             modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
