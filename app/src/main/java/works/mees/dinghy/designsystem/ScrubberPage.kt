@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -149,13 +150,27 @@ fun ScrubberControl(
     val t = LocalTokens.current
     // Build-once seed (P19 SC-3): seeded only when value or range changes, NEVER on every recompose.
     // CRITICAL: do NOT wrap the call site in key(output.currentPct) — that forces a rebuild mid-drag.
-    var working by remember(value, range) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    //
+    // CR-04 (26-rev): the long-lived awaitEachGesture handler below restarts ONLY when (range, step)
+    // change — a recomposition with new captured values does NOT refresh a running pointerInput block.
+    // Two hardenings keep the stale closure harmless:
+    //  1. `working` lives in ONE stable MutableFloatState for the whole composition lifetime; the
+    //     build-once re-seed writes INTO that same object instead of replacing it, so a live echo
+    //     updating [value] never strands the running gesture handler writing to a dead state object
+    //     (the fa97efb "value-not-sticking" class resurfacing through inline-Focus hosting).
+    //  2. `actions`/`onValueChange` route through rememberUpdatedState so the handler always
+    //     dispatches via the CURRENT lambdas, never the ones captured when the handler started.
+    val workingState = remember { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    remember(value, range) { workingState.floatValue = value.coerceIn(range.start, range.endInclusive) }
+    var working by workingState
     var barWidthPx by remember { mutableFloatStateOf(0f) }
+    val currentActions by rememberUpdatedState(actions)
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
 
     fun set(next: Float) {
         val clamped = next.coerceIn(range.start, range.endInclusive)
         working = clamped
-        onValueChange(clamped)
+        currentOnValueChange(clamped)
     }
 
     val span = (range.endInclusive - range.start).takeIf { it > 0f } ?: 1f
@@ -177,7 +192,9 @@ fun ScrubberControl(
     // stepper tap — never per scrub frame. In ApplyCancel mode this is a no-op (commit on Apply).
     // The settle-vs-frame decision is proven host-side by settleDispatchCount (OutputScrubberSettleTest).
     fun settle() {
-        (actions as? ScrubberActions.OnSettle)?.onSettle?.invoke(working)
+        // CR-04: read the CURRENT actions — a stale capture could settle through a previous
+        // output's dispatch closure (command misdirection).
+        (currentActions as? ScrubberActions.OnSettle)?.onSettle?.invoke(working)
     }
 
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {

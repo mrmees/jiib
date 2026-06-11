@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -143,16 +144,22 @@ private fun OutputsContent(
                             .padding(8.dp),
                     ) {
                         DetailCard(modifier = Modifier.fillMaxSize()) {
-                            // Build-once rule (P19 SC-3): OutputFocusControl is NOT wrapped in key(selectedKey).
-                            // Its internal ScrubberControl state is seeded via remember(value, range) — the
-                            // key(…) wrapper would rebuild mid-drag (fa97efb regression).
-                            OutputFocusControl(
-                                output = selectedRow,
-                                holder = holder,
-                                container = container,
-                                onBack = { onSelect(null) },
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
+                            // same-family outputs (identical range/step) tears down the previous control's
+                            // pointer-input node + dispatch closures — without it, a live gesture handler kept
+                            // the previous output's captured dispatch and could send the wire command to the
+                            // WRONG device. This is NOT the forbidden key(value) per-frame rebuild (P19 SC-3 /
+                            // fa97efb): objectKey cannot change mid-drag, and ScrubberControl's internal
+                            // working state is still seeded via remember(value, range), never per recompose.
+                            key(selectedRow.descriptor.objectKey) {
+                                OutputFocusControl(
+                                    output = selectedRow,
+                                    holder = holder,
+                                    container = container,
+                                    onBack = { onSelect(null) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
                 } else {

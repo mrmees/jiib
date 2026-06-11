@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -581,15 +582,24 @@ private fun LedBrightnessControl(
     val range = 0f..100f
     val step = 1f
     var barWidthPx by remember { mutableFloatStateOf(0f) }
-    // Internal working value — seeded from [value] via remember(value); re-seeds on a live state flip.
+    // Internal working value — seeded from [value]; re-seeds on a live state flip.
     // Reads `working` at gesture-settle so the dragged-to value is dispatched, not the stale seed.
-    var working by remember(value) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    //
+    // CR-04 (26-rev): same stale-closure hardening as ScrubberControl — ONE stable working state
+    // object (re-seeded IN PLACE when [value] changes, P19 build-once) plus rememberUpdatedState
+    // routing, so the long-lived awaitEachGesture handler never writes a dead state object after a
+    // re-seed and never dispatches through the lambdas captured when the handler started.
+    val workingState = remember { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    remember(value) { workingState.floatValue = value.coerceIn(range.start, range.endInclusive) }
+    var working by workingState
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnSettle by rememberUpdatedState(onSettle)
 
     fun set(next: Float) {
         if (!enabled) return
         val clamped = next.coerceIn(range.start, range.endInclusive)
         working = clamped
-        onValueChange(clamped)
+        currentOnValueChange(clamped)
     }
 
     fun setFromX(x: Float) {
@@ -598,7 +608,7 @@ private fun LedBrightnessControl(
     }
 
     fun settle() {
-        if (enabled) onSettle(working)
+        if (enabled) currentOnSettle(working)
     }
 
     val fraction = ((working - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
