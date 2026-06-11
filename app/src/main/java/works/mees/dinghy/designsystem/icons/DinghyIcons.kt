@@ -50,6 +50,8 @@ object DinghyIcons {
     val LauncherMove = DinghyIcon(IconRef.Ligature("open_with"), alternate = "launcher_move")
     val LauncherExtrude = DinghyIcon(IconRef.Ligature("output_circle"), alternate = "launcher_extrude")
     val LauncherCalibration = DinghyIcon(IconRef.Ligature("tune"), alternate = "launcher_calibration")
+    // 24-02 (Wave 0): idle-list Webcam row glyph — owner-confirmed "videocam" (DO NOT change without owner consent).
+    val LauncherWebcam = DinghyIcon(IconRef.Ligature("videocam"), alternate = "launcher_webcam")
     // 18.3 D-01: the former `database` ligature placeholder is retired for a genuinely-custom side-view
     // filament-spool VectorDrawable (`R.drawable.spool`) — Material Symbols has no spool glyph, so this is
     // a sanctioned hand-authored printer-domain custom (icon-source policy above). The drawable draws the
@@ -59,6 +61,12 @@ object DinghyIcons {
     val LauncherMacros = DinghyIcon(IconRef.Ligature("bolt"), alternate = "launcher_macros")
     val LauncherConsole = DinghyIcon(IconRef.Ligature("terminal"), alternate = "launcher_console")
     val LauncherDrawer = DinghyIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")
+
+    // --- Morphing-root idle foot-bar glyphs (24-02, OWNER-LOCKED — never invent/substitute, icon law).
+    // D-09: the third foot button opens the App Drawer (interim System hub); glyph reads NEUTRAL (not Power/red).
+    // Both ligatures owner-confirmed 2026-06-10 and verified present in the bundled v2.944 Material Symbols ttf.
+    val FootPreheat = DinghyIcon(IconRef.Ligature("chair_fireplace"), alternate = "home_foot_preheat")
+    val FootSystem = DinghyIcon(IconRef.Ligature("bottom_panel_open"), alternate = "home_foot_system")
 
     // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
     val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
@@ -79,7 +87,7 @@ object DinghyIcons {
     // bundled font (Ligature). Phase 19 D-08 reassigned it from `mode_fan` → `air` (owner-directed cross-phase
     // side-change): `mode_fan_2` is now the Phase-19 generic-fan OUTPUT glyph (OutputFan), so the part-cooling
     // fan moves to `air` to keep the two fans visually distinct. The bundled ttf carries `air`/`speed`, so no
-    // local vector is needed. Sole consumer: ExtrusionScreen.kt (the part-fan Fine-Tune tile).
+    // local vector is needed. Consumer: FineTuneScreen.kt (the part-fan Fine-Tune param, D-03).
     val FanMode = DinghyIcon(IconRef.Ligature("air"), alternate = "fan_mode")
     val Speed = DinghyIcon(IconRef.Ligature("speed"), alternate = "speed")
 
@@ -133,6 +141,51 @@ object DinghyIcons {
     val Increase = DinghyIcon(IconRef.Ligature("add"), alternate = "increase")
     val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
 
+    // --- Phase-23 redesign glyphs (23-03, OWNER-LOCKED — never invent/substitute, icon law).
+    // Assignments from owner's 2026-06-09 Spoolman sketch session; all ligatures verified present
+    // in the bundled v2.944 Material Symbols ttf (plan 23-01 verify_ligatures.py gate exits 0).
+    val Sort = DinghyIcon(IconRef.Ligature("sort"), alternate = "sort")
+    val FilterList = DinghyIcon(IconRef.Ligature("filter_list"), alternate = "filter_list")
+    // expand_circle_up = Load spool (owner-reassigned from play_circle — see bucket notes).
+    val ExpandCircleUp = DinghyIcon(IconRef.Ligature("expand_circle_up"), alternate = "expand_circle_up")
+    // expand_circle_down = Unload spool (owner-reassigned from stop_circle — see bucket notes).
+    val ExpandCircleDown = DinghyIcon(IconRef.Ligature("expand_circle_down"), alternate = "expand_circle_down")
+    val ResetWrench = DinghyIcon(IconRef.Ligature("reset_wrench"), alternate = "reset_wrench")
+    val ResetSettings = DinghyIcon(IconRef.Ligature("reset_settings"), alternate = "reset_settings")
+
+    // --- Phase-23 SpoolScreen pilot glyphs (23-06, OWNER-LOCKED — from img/material-icon-bucket.json).
+    // All five ligatures verified present in the bundled v2.944 Material Symbols ttf.
+    // match_case = sort by name; calendar_clock = sort by date; experiment = filter by filament family.
+    // home = navigate to PrintStatus (foot button); qr_code = open QR scan (foot button).
+    val MatchCase = DinghyIcon(IconRef.Ligature("match_case"), alternate = "match_case")
+    val CalendarClock = DinghyIcon(IconRef.Ligature("calendar_clock"), alternate = "calendar_clock")
+    val Experiment = DinghyIcon(IconRef.Ligature("experiment"), alternate = "experiment")
+    val Home = DinghyIcon(IconRef.Ligature("home"), alternate = "home")
+    val QrCode = DinghyIcon(IconRef.Ligature("qr_code"), alternate = "qr_code")
+
+    // --- Browse screens (Phase 25) — OWNER-LOCKED (D-21). Sources: img/material-icon-bucket.json
+    // assignments, existing DinghyIcons tokens (reused), and two owner-approved out-of-bucket entries
+    // (play_arrow / radio_button_unchecked, sanctioned 2026-06-10). Never the same glyph twice on one screen.
+    // Files actions:
+    val Print = DinghyIcon(IconRef.Ligature("print"), alternate = "files_print")                         // bucket: "start a print"
+    val Delete = DinghyIcon(IconRef.Ligature("delete"), alternate = "files_delete")                      // bucket entry
+    // Console filter toggles (hide-state glyphs — the icon shown when the toggle is in the HIDE state):
+    val HideTemps = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "console_hide_temps")      // bucket: "hide temperature messages in console"
+    val HideTimelapse = DinghyIcon(IconRef.Ligature("video_camera_back"), alternate = "console_hide_timelapse") // bucket: "webcam menu icon, also show timelapse in console"
+    val HidePrompts = DinghyIcon(IconRef.Ligature("chat_error"), alternate = "console_hide_prompts")     // bucket: "hide macro prompt messages in console"
+    // Macros screen:
+    val MacrosLeader = DinghyIcon(IconRef.Ligature("code"), alternate = "macros_leader")                  // bucket: "macros" (distinct from LauncherMacros=bolt)
+    val ManageMacros = DinghyIcon(IconRef.Ligature("bookmark_manager"), alternate = "macros_manage")      // bucket entry (more semantically precise than reusing LauncherCalibration=tune)
+    val ExecuteMacro = DinghyIcon(IconRef.Ligature("play_arrow"), alternate = "macros_execute")           // owner-approved 2026-06-10 (not in bucket; sanctioned new entry)
+    val UnbookmarkedMacro = DinghyIcon(IconRef.Ligature("radio_button_unchecked"), alternate = "macros_unbookmarked") // owner-approved 2026-06-10 (existing code ligature, out-of-bucket but sanctioned)
+    // WR-07 (registry conformance — NOT new icon choices): the Macros ManageMode Show-hidden toggle pair
+    // carried the old SystemMacrosScreen glyphs forward as raw ligature strings, and the SpoolWarningGuard
+    // kept its pre-existing raw "warning" MaterialSymbol. Registered here so the planned font subset
+    // (which iterates this registry) and the verify_ligatures.py resolution gate cover them.
+    val Visibility = DinghyIcon(IconRef.Ligature("visibility"), alternate = "macros_show_hidden_on")      // revealed state (pre-existing glyph, preserved)
+    val VisibilityOff = DinghyIcon(IconRef.Ligature("visibility_off"), alternate = "macros_show_hidden_off") // hidden state (pre-existing glyph, preserved)
+    val Warning = DinghyIcon(IconRef.Ligature("warning"), alternate = "warning")                          // SpoolWarningGuard row glyph (pre-existing, preserved)
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -143,12 +196,18 @@ object DinghyIcons {
         Progress, PauseCircle,
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
-        LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
+        LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
+        FootPreheat, FootSystem,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
+        Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings,
+        MatchCase, CalendarClock, Experiment, Home, QrCode,
+        Print, Delete, HideTemps, HideTimelapse, HidePrompts,
+        MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
+        Visibility, VisibilityOff, Warning,
     )
 }

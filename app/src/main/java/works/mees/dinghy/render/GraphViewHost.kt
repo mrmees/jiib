@@ -54,21 +54,26 @@ fun GraphViewHost(
 /**
  * Multi-trace host overload (05-04 / D-05) — hosts the SAME classic-Views [GraphView] for the N-sensor
  * Temperature history graph (nozzle/bed/chamber). `factory` runs once; the `update` block PUSHES the
- * tokens, the fixed [yRange], the N per-sensor [series], and the per-sensor [setpoints] into that one
- * instance, so a dark→light/custom flip recolors all traces with NO recreation (D-06, no jank).
+ * tokens, the fixed [yRange], the N per-sensor [series], the per-sensor [setpoints], and the per-trace
+ * [traceColors] color overrides into that one instance, so a dark→light/custom flip recolors all traces
+ * with NO recreation (D-06, no jank).
  *
  * The single-snapshot overload above is retained unchanged for the Phase-4 Print Status sparkline.
  *
- * @param tokens    the active resolved tokens (THEME-01 — the View derives each trace color from them).
- * @param series    one bounded [RingBuffer.snapshot] per trace, index 0 = primary (oldest→newest, D-12).
- * @param setpoints per-trace current target for the dashed setpoint line (D-04); `null`/absent = none.
- * @param yRange    the shared Y-range. Default 0..350 (the setHeater ceiling); the Temperature panel
- *                  passes a DYNAMIC range computed by [works.mees.dinghy.ui.temperature.TemperatureHolder]
- *                  (fits live data + active setpoints, padded + rounded — 05 UI tweak).
- * @param drawArea  paint the translucent `.g-area` fill under the PRIMARY trace (default `true`).
+ * @param tokens      the active resolved tokens (THEME-01 — the View derives each trace color from them).
+ * @param series      one bounded [RingBuffer.snapshot] per trace, index 0 = primary (oldest→newest, D-12).
+ * @param setpoints   per-trace current target for the dashed setpoint line (D-04); `null`/absent = none.
+ * @param traceColors per-trace chosen-color ARGB Int overrides (D-14); `null` entry = token default;
+ *                    index-aligned with [series] (the screen's ONE visible-trace model keeps alignment).
+ *                    Pushed into [GraphView.setTraceColorOverrides] which is equality-guarded — no
+ *                    invalidate/churn when the list is unchanged (Phase-22 D-12 discipline preserved).
+ * @param yRange      the shared Y-range. Default 0..350 (the setHeater ceiling); the Temperature panel
+ *                    passes a DYNAMIC range computed by [works.mees.dinghy.ui.temperature.TemperatureHolder]
+ *                    (fits live data + active setpoints, padded + rounded — 05 UI tweak).
+ * @param drawArea    paint the translucent `.g-area` fill under the PRIMARY trace (default `true`).
  * @param showAxisLabels draw the min/max Y-value labels at the right edge (default `false` — the Temperature
- *                  panel turns it on; the small Print Status sparkline leaves it off).
- * @param modifier  caller layout for the hosted View.
+ *                    panel turns it on; the small Print Status sparkline leaves it off).
+ * @param modifier    caller layout for the hosted View.
  */
 @Composable
 fun GraphViewHost(
@@ -76,6 +81,7 @@ fun GraphViewHost(
     series: List<FloatArray>,
     modifier: Modifier = Modifier,
     setpoints: List<Float?> = emptyList(),
+    traceColors: List<Int?> = emptyList(),
     yRange: ClosedFloatingPointRange<Float> = GraphView.DEFAULT_Y_MIN..GraphView.DEFAULT_Y_MAX,
     drawArea: Boolean = true,
     showAxisLabels: Boolean = false,
@@ -89,12 +95,13 @@ fun GraphViewHost(
     AndroidView(
         factory = { ctx -> GraphView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->
-            view.applyTokens(tokens)   // D-06 push-tokens + invalidate (recolor all traces, no recreation)
-            view.drawArea = drawArea   // fill-rate isolation lever (primary-trace fill only)
+            view.applyTokens(tokens)          // D-06 push-tokens + invalidate (recolor all traces, no recreation)
+            view.drawArea = drawArea          // fill-rate isolation lever (primary-trace fill only)
             view.showAxisLabels = showAxisLabels // min/max Y labels (Temperature on, sparkline off)
-            view.yRange = yRange       // shared Y-range (dynamic for Temperature; G-1 fix)
-            view.setData(series)       // N throttled samples → per-series sanitize/cap + invalidate (D-13)
-            view.setSetpoints(setpoints) // per-trace dashed current-setpoint line (D-04)
+            view.yRange = yRange              // shared Y-range (dynamic for Temperature; G-1 fix)
+            view.setTraceColorOverrides(traceColors) // D-14: equality-guarded per-trace color push (override-wins)
+            view.setData(series)              // N throttled samples → per-series sanitize/cap + invalidate (D-13)
+            view.setSetpoints(setpoints)      // per-trace dashed current-setpoint line (D-04)
         },
         modifier = modifier,
     )

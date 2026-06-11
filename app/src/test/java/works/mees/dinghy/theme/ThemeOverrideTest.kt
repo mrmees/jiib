@@ -53,8 +53,10 @@ class ThemeOverrideTest {
     private fun newContainer(themeStore: MemDataStore): AppContainer =
         AppContainer(
             themeStore,
-            // connection, macro, webcam, profile, BABYSTEP (Phase 16, 6th store), then discovery (last).
+            // connection, macro, webcam, profile, BABYSTEP (Phase 16, 6th store),
+            // TRACESTYLE (Phase 26, 7th store), then discovery (last).
             MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
+            MemDataStore(),
             lazyDiscovery(),
         )
 

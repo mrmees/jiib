@@ -99,11 +99,12 @@ Force-stop the app after selecting a printer; relaunch → it reconnects to the 
 | 1 | Fresh start + add both printers | D-07 / D-11 / D-10 | ✅ PASS |
 | 2 | Switch + drive each, no re-entry | SC-4 / D-03 / D-08 | ✅ PASS (post-fix `781277f`) |
 | 3 | No-churn on theme edit | Pitfall 1 | ✅ PASS |
-| 4 | Mid-print switch | D-04 | ⚪ NOT RUN — owner-deferred (not blocking) |
+| 4 | Mid-print switch | D-04 | ✅ PASS (closed 2026-06-10 — owner attests multiple mid-print switches in real use since deferral, no issue) |
 | 5 | Delete active + delete last | D-12 / D-14 / D-11 | ✅ PASS |
 | 6 | Survival across process death | SC-3 | ✅ PASS (also instrumented `7bb52dc`) |
 
-**Counts:** 5 PASS · 1 owner-deferred (item 4) · 0 FAIL. Gate **PASSED** (2026-06-04). The one FAIL caught on
+**Counts:** 6 PASS · 0 deferred · 0 FAIL. Gate **PASSED** (2026-06-04; item 4 closed 2026-06-10 via
+owner attestation of repeated successful mid-print switches in normal use). The one FAIL caught on
 the first run (item 2 intermittent revert) was root-caused and fixed in `781277f`, then re-verified PASS.
 
 ---

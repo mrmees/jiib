@@ -76,7 +76,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 19: Output Controls — Fans, Lights & Generic Pins** - A dedicated page for `[fan_generic]`, `[output_pin]`, and `[led]`/`[neopixel]` outputs the active printer exposes — capability-gated, set via the shared command primitive (completed 2026-06-08)
 - [x] **Phase 20: System Information Page** - Read-only host + Klipper/Moonraker health view (CPU/mem/temp/throttle/uptime/versions/disk) from `machine.system_info`/`proc_stats`/`server.info` via the central subscribe (completed 2026-06-08)
 - [x] **Phase 21: Native H.264 Camera Streaming (MediaMTX)** - Real camera for the project's own MediaMTX-backed printers (Ravens Perch + crowsnest) via native Media3/ExoPlayer H.264 over RTSP/HLS, extending the Phase-10 webcam rung-ladder; WebRTC a deferred fallback (spike-gated, see 21-CONTEXT); perf-gated to the Adreno-320 floor (completed 2026-06-08)
-- [ ] **Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** - The deferred print-loop robustness (reconnect print-state resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the exhaustive preview/string + icon-call-site backfill (icon SOURCE/font conformance → Phase 18.1) + a LIGHT final conformance sweep of the late surfaces, the "looks done but isn't" checklist, R8 release build, and a signed sideloadable APK shipped via GitHub Releases on a real Nexus 7 — ships the whole project at once
+- [x] **Phase 22: Performance & Architecture Refactor** - With the feature set complete (Phases 1–21), refactor for efficiency BEFORE ship (the Adreno-320 floor device flox was showing nav/interaction lag). Release-mode flox gfxinfo audit → fix the hot paths: recomposition discipline (`@Stable`/`@Immutable`, immutable collections), the 1585-line PrintStatusScreen god-component split, the AppShell 28-collection push-down, AndroidView interop D-12 guards (graph/webcam/console), SpoolGlyph brush cache. Engineering phase measured against the floor perf budget; visual behavior unchanged. (completed 2026-06-08)
+- [x] **Phase 23: Design-Language Foundation** (jiib REDESIGN — REPLAN 2026-06-09) - Rewrite `docs/ui_design/LAYOUT.md` off the Focus/Field/**Gutter** grammar (gutter removed) + author `docs/ui_design/COMPONENTS.md` (component-class catalog) + build the reusable Compose kit (ListRow, DetailCard, FillMeter, sort-vs-filter row, FootButtonBar, stepper, scrubber, unit-grid `U`, translucent-list/filled-controls, intent colors). PILOT: rebuild SpoolScreen onto the classes. Locked via `/gsd-sketch` 001–004 → `sketch-findings-dinghy-display` skill + `.planning/notes/2026-06-09-*.md`. (completed 2026-06-10)
+- [x] **Phase 24: Navigation Spine** (jiib REDESIGN) - PrintStatusScreen → the morphing waterfall ROOT (idle/printing/terminal, no gutter; root when printing, not a destination); adopt Navigation-Compose back-stack; remove the gutter app-wide; floating printing-only e-stop; create the System-page shell (rehomes Power + device settings). (completed 2026-06-10)
+- [x] **Phase 25: Browse Screens** (jiib REDESIGN) - Migrate the list/collection screens onto the classes — Files, Macros (Bookmarked + System), Console, Webcam — reusing ListRow + sort/filter + Field-takeover picker. Conformance folds in per-screen. (completed 2026-06-10)
+- [x] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in. (completed 2026-06-10)
+- [ ] **Phase 27: Motion + Calibration** (jiib REDESIGN) - Migrate Move/Motion (spatial jog STAYS A GRID) + the calibration cluster (Hub, Probe-Calibrate, Bed-Mesh, Screws-Tilt, Tilt wizard flows). Conformance folds in.
+- [ ] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in.
+- [ ] **Phase 29: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** (RENUMBERED from 25, 2026-06-09; LAST) - The deferred print-loop robustness (reconnect resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist against the complete redesigned app, R8 release build, PKG-01/03, signed sideloadable APK via GitHub Releases on a real Nexus 7, + jiib repo cutover — ships v1.
 
 ## Phase Details
 
@@ -1037,23 +1044,242 @@ Plans:
 **UI hint**: yes
 **Research note**: The pivot (D-01) is grounded in `research/webrtc-vs-media3-feasibility.md` (footprint win proven, latency win NOT — hence the D-02 spike). The three spike-gated unknowns (glass-to-glass latency on the real Adreno 320, OMX.qcom hardware decode, SPS/PPS-in-fmtp in MediaMTX's RTSP SDP) are MEASURED on-device, not assumed.
 
-### Phase 22: Release Hardening & Ship — Always-On, Lifecycle & Signed APK
+### Phase 22: Performance & Architecture Refactor
 
-**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE project at once (single-milestone release). Absorbs the deferred print-loop **robustness** from the old Job-Status phase — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), a LIGHT final whole-app UI-conformance re-sweep of the late surfaces against `docs/ui_design/` LAW (the conformance net moved to Phase 15 for the existing surfaces; this catches drift in 16–21's new screens) — and the exhaustive `@Preview` + string + icon-call-site **tokenization backfill** (deferred here from Phase 18; the icon SOURCE/font conformance was pulled forward to Phase 18.1) runs as ONE co-sequenced per-screen pass, plus the optional `compose-preview-screenshot` regression bolt-on, the full "looks done but isn't" checklist against the complete app (now including calibration/webcam/spool/prompt surfaces), and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase.
+**Goal**: With the feature set essentially complete (Phases 1–21), refactor for efficiency BEFORE ship — the Adreno 320 floor device (flox) is starting to show navigation/interaction lag, signalling an approaching performance ceiling. Driven by a release-mode profiling audit on flox (debug Compose lies 5–10× about jank): identify the screens that cause unusual load during navigation and use, then fix the hot paths — recomposition discipline (`@Stable`/`@Immutable`, `derivedStateOf`, state hoisting, `collectAsStateWithLifecycle`), state-plumbing efficiency, overdraw from stacked outline+glow layers, the three AndroidView interop surfaces (Files list, live temp graph, Console scrollback), and image/thumbnail/webcam decode. An engineering phase measured against the floor perf budget, not taste; visual behavior unchanged.
 **Depends on**: Phase 21
-**Requirements**: PKG-01, PKG-03
+**Requirements**: — (cross-cutting refactor; measured against the ADR-0001 floor perf budget, no new requirement IDs)
 **Success Criteria** (what must be TRUE):
 
-  1. **Print-loop robustness (deferred from Job Status):** yank Wi-Fi mid-print and restore it, and the print surface restores correct (non-stale) state from a fresh `objects.query` rather than lying about a finished/paused print (reconnect resync, re-exercising CONN-04 against a live print); relaunching the app mid-print restores the correct state from a fresh query (process-death recovery, PKG-03)
-  2. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), and `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake
-  3. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
-  4. **Light final UI-conformance sweep + deferred backfill:** the late surfaces (Phases 16–21) pass the per-screen conformance checklist — done in the SAME per-screen pass that adds each screen's `@Preview` and extracts its strings/icons (the exhaustive backfill deferred from Phase 18) against `docs/ui_design/` LAW + the Phase-15 theme system (token purity / button-intent / Focus-Field-Gutter / ≥64px targets / `fsSp` scale / dark-light-custom) on flox in both orientations — no whole-app re-audit, just the screens added after Phase 15
-  5. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
-  6. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum
+  1. Measured improvement on flox in RELEASE mode: the screens the profiling audit flags as causing navigation/interaction lag show reduced jank — no frozen frames, responsive per the ADR-0001 Addendum-2 reframed perf gate — verified on-device before/after via `gfxinfo framestats` (or equivalent)
+  2. Recomposition hygiene on the hot screens: socket-driven state objects are `@Stable`/`@Immutable`, rapidly-changing values (temps) are read as low in the tree as possible, list params use `ImmutableList`, derived values use `derivedStateOf` — verified via Layout-Inspector recomposition counts
+  3. Overdraw on the heaviest screens is reduced (stacked outline+glow layers flattened where possible) WITHOUT violating the outline-led aesthetic or the no-continuous-animation budget
+  4. The three AndroidView surfaces (Files / temp-graph / console) and the image/webcam decode paths are confirmed leak-free and not GC-churning under sustained use
+  5. No functional regressions: the full host unit suite is green and the connect → monitor → control-a-print loop still works on flox
+
+**Plans**: 7 plans (4 waves)
+Plans:
+
+**Wave 0**
+
+- [x] 22-01-PLAN.md — gfxinfo RELEASE baseline on flox (D-05/D-06 sweep) + add kotlinx-collections-immutable 0.3.8 + @Stable AppContainer (blocks every code wave)
+
+**Wave 1** *(blocked on Wave 0)*
+
+- [x] 22-02-PLAN.md — D-02 P0: @Immutable PrinterState tree + ImmutableMap/ImmutableList field migration + reducer emission
+- [x] 22-03-PLAN.md — SpoolGlyph cached gradient Brush via remember(render) (ColorWheel template; P2)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 22-04-PLAN.md — D-01 move #1: split PrintStatusScreen god-component into Focus/Field/Gutter/Previews + lambda-slot fix + co-located P1/P2 + on-device parity
+- [x] 22-05-PLAN.md — D-12 AndroidView token guards (GraphView/WebcamView) + measureText/SimpleDateFormat hygiene + SC4 leak/GC confirmation
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 22-06-PLAN.md — D-09/SC3 GraphView secondary-trace overdraw relief (Option A) + owner side-by-side gfxinfo gate
+- [x] 22-07-PLAN.md — D-01 move #2: AppShell flow push-down + AppContainer mapped-flow hoist + final gfxinfo AFTER sweep + SC1/SC2/SC5 owner UAT
+
+**UI hint**: no
+**Research note**: STANDARD — Compose perf guidance is well-documented and already prescribed in the stack notes (baseline-profile is a no-op on API 23, profile in release mode, recomposition discipline); the audit produces the specific target screen list.
+
+### Phase 23: Design-Language Foundation
+
+**Goal**: Build the redesign's reusable foundation. Rewrite `docs/ui_design/LAYOUT.md` off the Focus/Field/**Gutter** grammar (the gutter is removed — its jobs rehome to foot-of-list actions + a floating printing-only e-stop + a System page); author `docs/ui_design/COMPONENTS.md` (the component-class catalog); and build the reusable Compose component-class kit — `ListRow`, `DetailCard`, `FillMeter`, the sort-vs-filter control row, `FootButtonBar`, the stepper, the scrubber, the **unit grid `U`** (DPI-derived, 5U phone-land → 7U tablet, constant through rotation), content-vs-control fill (translucent lists / filled controls), and intent colors. **Pilot: rebuild `SpoolScreen` onto the classes** — proving the kit against a real, owner-approvable screen so the foundation ships something visible, not an abstract library. Direction locked via the `/gsd-sketch` 001–004 experiments → `sketch-findings-dinghy-display` skill + `.planning/notes/2026-06-09-*.md`.
+**Depends on**: Phase 22
+**Requirements**: — (UX foundation; maps to the redesigned `docs/ui_design/` LAW)
+**Success Criteria** (what must be TRUE):
+
+  1. `docs/ui_design/LAYOUT.md` rewritten (Focus/Field, NO gutter; unit-grid `U` rules) and `docs/ui_design/COMPONENTS.md` authored as the component-class catalog
+  2. The component-class kit is built and host-tested (ListRow, DetailCard, FillMeter, sort/filter row, FootButtonBar, unit grid, fill convention, intent colors) with `@Preview` matrices. **Stepper/scrubber RESTYLE is DEFERRED to Phase 26 (Adjustment Screens)** — the Phase-23 pilot is `SpoolScreen`, which exercises neither a stepper nor a scrubber, and restyling `ScrubberPage`/the stepper pages touches every numeric-adjustment screen (Temperature, Output, Fine-Tune); the existing `ScrubberPage`/stepper pages remain in service unchanged until Phase 26 restyles them (per 23-RESEARCH Open-Q §2 / A3). This phase therefore builds the kit MINUS stepper/scrubber.
+  3. `SpoolScreen` is rebuilt onto the classes and owner-approved on flox in BOTH orientations (the pilot)
+  4. The pilot demonstrates the locked rules: unit grid, translucent-list/filled-controls, no-label grouping, icon-registry glyphs (Material Symbols by ligature, never auto-picked), sort-vs-filter + Field-takeover picker
+  5. The new icon assignments are registered in `DinghyIcons.kt` + `img/material-icon-bucket.json` (sort, filter_list, expand_circle_up/down, output_circle=flow, reset_wrench, reset_settings) with the stale play_circle/stop_circle load-unload notes reconciled; the oklch caution-reads-red `color-mix` bug in `hifi.css` `.ctl.warn` fixed
+
+**Plans**: 6 plans (waves 0-4)
+Plans:
+
+**Wave 0**
+
+- [x] 23-01-PLAN.md — Wave-0 tooling/scaffolds: extend verify_ligatures.py for the 6 new ligatures, confirm DinghyIconsTest GREEN, write RED UnitGrid/ListRow/FillMeter test stubs that compile day-one
+
+**Wave 1** *(parallel — disjoint files)*
+
+- [x] 23-02-PLAN.md — Docs: rewrite LAYOUT.md off the Gutter (Focus/Field + unit grid U + fill convention + foot-of-list + floating e-stop) + author COMPONENTS.md catalog + CLAUDE.md pointer (SC-1)
+- [x] 23-03-PLAN.md — Register the 6 new redesign glyphs (DinghyIcons.kt + bucket), reconcile play_circle/stop_circle notes, fix the hifi.css .ctl.warn oklch caution-reads-red bug, + add a DinghyIcon-aware OutlinedControl overload so the kit renders REGISTERED icons by token (control-API boundary) (SC-5/SC-4)
+
+**Wave 2** *(blocked on Wave 0)*
+
+- [x] 23-04-PLAN.md — Layout primitives: UnitGrid.kt (FIT-PRESERVING formula min(nTarget,nMaxFit) + rememberUnitGrid, turns UnitGridTest GREEN incl. 320/360dp no-overflow) + ListBlock.kt (keyed edge-faded LazyColumn, fade does not block touch) + @Preview matrix incl. small-phone floor (SC-2)
+
+**Wave 3** *(blocked on Waves 0/2/3-icons)*
+
+- [x] 23-05-PLAN.md — Component kit: ListRow/DetailCard/FillMeter (turns ListRowTest+FillMeterTest GREEN) + FootButtonBar/FloatingEStop/SortFilterControlRow (compound leading-type-tile pattern, DinghyIcon overload) + @Preview matrices (SC-2/SC-4)
+
+**Wave 4** *(blocked on Wave 3; on-device gate)*
+
+- [x] 23-06-PLAN.md — PILOT: rebuild SpoolScreen onto the kit (no gutter, Field-takeover filter, FootButtonBar Load/Unload, DetailCard+FillMeter, FloatingEStop, U at root) + on-device flox owner approval BOTH orientations (SC-3/SC-4; autonomous:false)
+
+**UI hint**: yes
+**Research note**: COVERED — design language locked across sketches 001–004; consume `sketch-findings-dinghy-display` (auto-loads) + `.planning/notes/2026-06-09-*.md`. No new external research needed.
+
+### Phase 24: Navigation Spine
+
+**Goal**: Build the redesign's skeleton. Turn `PrintStatusScreen` into the **morphing waterfall ROOT** — one Focus/Field surface (no gutter) that morphs across idle / printing / terminal (PrintStatus is the root WHENEVER a print exists, no longer a navigable destination). Adopt **Navigation-Compose** for the drill-down back-stack (the conditional-waterfall nav model). Remove the gutter app-wide. Add the **floating emergency-stop** shown on every screen but only when printing. Create the **System page** shell that rehomes Power + device/system settings off the printer waterfall.
+**Depends on**: Phase 23
+**Requirements**: — (nav architecture; maps to the redesigned `docs/ui_design/` LAW)
+**Success Criteria** (what must be TRUE):
+
+  1. The home root is one surface that morphs idle/printing/terminal (Focus = state hero/progress/stats, Field = state-filtered action list, foot = state buttons), owner-approved on flox in both orientations
+  2. Navigation-Compose drives a working drill-down back-stack; the old hub-and-spoke `when(screen)` holder is retired (the App Drawer may remain as a testing affordance)
+  3. The gutter is gone app-wide; its actions are rehomed to foot-of-list bars
+  4. A floating e-stop appears on every screen ONLY when printing, top-left of the Focus
+  5. The System page is reachable and hosts Power + the device/system settings entry points; PrintStatus-as-root introduces no print-monitoring regression (host tests green, on-device smoke)
+
+**Plans**: 5 plans
+
+Plans:
+
+- [x] 24-01-PLAN.md — Wave 0: nav-compose 2.8.9 dep + NavDest/HomeAction models + Dest→NavDest rename + RED test scaffolds
+- [x] 24-02-PLAN.md — Wave 0: ASK-OWNER + register Webcam/Preheat/System idle glyphs (icon-registry law)
+- [x] 24-03-PLAN.md — Wave 1: AppShell when(dest)→NavHost migration (holder hoist, overlays, swipe/webcam/BackHandler reseat, D-04 pop-to-root, ShellNavState slim, FIX-4 land-on-root regression)
+- [x] 24-04-PLAN.md — Wave 2: morphing root (Crossfade morph + data-driven idle HomeAction list + Preheat/System foot bar + FloatingEStop)
+- [x] 24-05-PLAN.md — Wave 3: on-device flox UAT gate (morph budget, e-stop, both orientations, System→drawer, no-monitoring-regression)
+
+**UI hint**: yes
+**Research note**: STANDARD — Navigation-Compose adoption (deferred until now per CLAUDE.md); the waterfall morph + e-stop are locked in the sketch-findings skill.
+
+### Phase 25: Browse Screens
+
+**Goal**: Migrate the list/collection screens onto the Phase-23 component classes — `FilesScreen`, Macros (`BookmarkedMacrosScreen` + `SystemMacrosScreen`), `ConsoleScreen`, and `WebcamScreen`. Reuse `ListRow`, the sort-vs-filter control row, and the Field-takeover picker proven on the Spoolman pilot. Per-screen **conformance** (≥64px targets, `fsSp` S/M/L, portrait+landscape rotation) folds into each migration rather than a separate sweep.
+**Depends on**: Phase 24
+**Requirements**: — (UX migration)
+**Success Criteria** (what must be TRUE):
+
+  1. Files, Macros (bookmarked + system), Console, and Webcam are rebuilt onto the component classes and owner-approved on flox in both orientations
+  2. Each consumes the shared classes (translucent ListRow, sort/filter + Field-takeover where applicable, FootButtonBar) — no bespoke list styling
+  3. Per-screen conformance met: ≥64px targets (or documented exception), `fsSp` scale at S/M/L without clipping, correct rotation
+  4. `@Preview` matrices + tokenized strings/icons (registry glyphs) ship with each screen
+  5. No functional regressions (host tests green; on-device smoke) — Files delete/print, macro run, console scrollback, webcam playback intact
+
+**Plans**: 7 plans
+**Wave 1**
+
+- [x] 25-01-PLAN.md — D-01/D-02/D-03 toolkit spike: throwaway Compose ListRow Files+Console + flox gfxinfo → per-surface Views-vs-Compose verdict (HARD GATE)
+- [x] 25-02-PLAN.md — Browse icon registry: register owner-assigned glyphs (D-21 ASK gate) for tokenized-first migration
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 25-03-PLAN.md — FilesScreen rebuild (image-backed DetailCard, flat age-sorted list, FootButtonBar, delete-scoping preserved) + @Preview matrix
+- [x] 25-04-PLAN.md — ConsoleScreen rebuild (field-only live log, render-time filter toggles) + @Preview matrix
+- [x] 25-05-PLAN.md — Macros merge to one FieldMode screen (ListRow launcher + Manage mode + param Field-takeover; sanitizer preserved) + @Preview matrix
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 25-06-PLAN.md — Webcam crash fix (D-17) + WR-02 resolver + token-conform (render path untouched) + @Preview matrix
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [x] 25-07-PLAN.md — On-device flox UAT gate: per-screen owner approval both orientations + D-08/D-18 re-verify + spike cleanup
+
+**UI hint**: yes
+**Research note**: COVERED — patterns locked in the sketch-findings skill (lists-and-detail).
+
+### Phase 26: Adjustment Screens
+
+**Goal**: Migrate the numeric-adjustment screens onto the Phase-23 adjustment archetype — the stepper, the scrubber, and the 3-zone adjuster with the inline baseline ("was X") readout. Screens: `TemperatureScreen`, `ExtrudeScreen`/`ExtrusionScreen`, `OutputsScreen`, `FineTuneHubScreen` + `FwRetractionScreen`, and the single-setting pages `ScrubberPage`/`NumpadPage`/`MeasuredWeightPage`. Per-screen conformance folds in.
+**Depends on**: Phase 25
+**Requirements**: — (UX migration)
+**Success Criteria** (what must be TRUE):
+
+  1. Temperature, Extrude/Extrusion, Outputs, Fine-Tune (+ FW-retraction), and the single-setting pages are rebuilt onto the stepper/scrubber/adjuster classes and owner-approved on flox in both orientations
+  2. Numeric entry stays keyboard-free in printer controls; step-based where appropriate, scrubber where drag suits; the baseline "was X" is shown when a live value is changed
+  3. The scrubber follows the locked rule (build once, update fill/thumb/value in place during drag — no rebuild mid-drag; the Phase-19 inline-scrubber regression)
+  4. Per-screen conformance met (≥64px, `fsSp` S/M/L, rotation); intent colors correct
+  5. No functional regressions (host tests green; on-device smoke) — capability gating + clamp authority (Phase-17 lesson) intact
+
+**Plans**: 7 plans (7 waves — revised per codex review 0fe783b)
+Plans:
+
+**Wave 1**
+
+- [x] 26-01-PLAN.md — Shared adjustment kit: IncrementPicker + AdjusterPanel (3-zone, inline baseline) + stub-first RED tests + preview matrix (D-20/D-21)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 26-02-PLAN.md — Fine-Tune collapse: 4 screens → 1 flat-list + AdjusterPanel Focus, pool-color groups (13 tuners), FW-ret hide, clamp-routed nudge, AppShell route surgery + 4 deletions (D-01..D-05/D-08/D-22)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 26-03-PLAN.md — TemperatureHolder + TraceStylePrefs: per-sensor trace color/visibility persisted via writeScope + isAdjustable typed row, stub-first scaffold (D-11/D-14)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [x] 26-04-PLAN.md — TemperatureScreen rebuild: graph↔adjuster morph, equality-guarded GraphView per-trace color overrides, aligned visible-trace model, dedicated Colorful 8-swatch pool, Field-takeover presets, Cooldown + per-heater Off (D-10..D-14)
+
+**Wave 5** *(blocked on Wave 2)*
+
+- [x] 26-05-PLAN.md — Outputs detail-in-Focus collapse: embeddable ScrubberControl extraction, per-type inline control, build-once scrubber, 3 detail-page deletions + AppShell surgery (D-05/D-09/D-18/D-19/D-22)
+
+**Wave 6** *(blocked on Waves 1+5 — AppShell sequenced after 26-05)*
+
+- [x] 26-06-PLAN.md — Extrude conformance (specialized-layout exemption): FootButtonBar, numeric IME distance/speed, activeSpoolDetail wiring, filament-preset extruder-only page (D-15/D-16/D-17)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [x] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
+**UI hint**: yes
+**Research note**: COVERED — adjustment patterns locked in the sketch-findings skill (adjustment-controls); reuse the Phase-17 clamp-authority + Phase-19 scrubber lessons.
+
+### Phase 27: Motion + Calibration
+
+**Goal**: Migrate the spatial + calibration surfaces. `MoveScreen`/`MotionScreen` — the jog/XYZ controls **stay GRIDS, not lists** (spatial arrangement carries meaning). The calibration cluster — `CalibrationHubScreen`, `ProbeCalibrateScreen`, `BedMeshScreen`, `ScrewsTiltScreen`, `TiltScreen` — restyled onto the classes with their wizard/step-through flows reconciled to the redesigned grammar. Per-screen conformance folds in.
+**Depends on**: Phase 26
+**Requirements**: — (UX migration)
+**Success Criteria** (what must be TRUE):
+
+  1. Move/Motion restyled with spatial jog controls KEPT as grids (not de-tiled into lists), owner-approved on flox both orientations
+  2. Calibration Hub + Probe-Calibrate + Bed-Mesh + Screws-Tilt + Tilt rebuilt onto the classes; wizard flows coherent with the redesigned nav/back-stack
+  3. Per-screen conformance met (≥64px, `fsSp` S/M/L, rotation)
+  4. `@Preview` matrices + tokenized strings/icons ship with each screen
+  5. No functional regressions (host tests green; on-device smoke) — homing/jog, probe/mesh/screws routines intact
 
 **Plans**: TBD
 **UI hint**: yes
-**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented; the conformance re-sweep audits against the existing UI LAW + `reference/hifi.css`.
+**Research note**: STANDARD — wizard-flow reconciliation against the redesigned grammar; the spatial-grid carve-out is already in the LAW.
+
+### Phase 28: System / Settings Cluster
+
+**Goal**: Restyle the System-page contents — `SettingsScreen`, `ThemeScreen`/`ThemeEditorScreen`, `PrintersScreen`, `SystemInformationScreen`, `AboutScreen`. These are **C6-EXEMPT** (denser close-interaction surfaces — held in hand, not read across the room — conventional Android, keyboard allowed for connection/search), so they densify rather than honor the ≥64px floor. Reconcile them to the redesigned token system + the System page created in Phase 24.
+**Depends on**: Phase 27
+**Requirements**: — (UX migration)
+**Success Criteria** (what must be TRUE):
+
+  1. Settings, Theme/Theme-Editor, Printers, System-Information, About restyled to the redesigned token system + System page, owner-approved on flox
+  2. C6 densification applied (tighter rows, fit-on-one-page where sensible); the ≥64px floor is intentionally NOT applied to these config surfaces (print-control surfaces keep it)
+  3. The settings-IA follow-ons (densify-to-one-page, Settings-vs-Devices boundary, printers edit/delete) folded in where they touch these screens
+  4. `fsSp` scale honored at S/M/L; correct rotation; token purity (no raw colors)
+  5. No functional regressions (host tests green; on-device smoke) — connection edit, theme apply, printer add/remove, sysinfo read intact
+
+**Plans**: TBD
+**UI hint**: yes
+**Research note**: STANDARD — C6 densification rules already in THEMING.md/LAYOUT.md; existing settings-IA todos under `.planning/todos/pending/`.
+
+### Phase 29: Release Hardening & Ship — Always-On, Lifecycle & Signed APK (LAST)
+
+**Goal**: Cross the gap from "works in dev" to "works unattended on a wall for 14 hours" — and ship the WHOLE redesigned project at once (single-milestone v1 release into the new **jiib** repo). Absorbs the deferred print-loop **robustness** — reconnect print-state resync and process-death recovery (verified against a real in-progress print) — and pairs it with always-on appliance hardening (full Doze survival, burn-in protection), the full "looks done but isn't" checklist against the COMPLETE redesigned app, and the signed, R8-minified APK sideloadable via GitHub Releases onto a real Nexus 7. Explicitly a verification-and-release phase. (Inherits old Phase-25 scope; the conformance/tokenization that used to be a separate sweep now lives per-screen in Phases 25–28.)
+**Depends on**: Phase 28
+**Requirements**: PKG-01, PKG-03
+**Success Criteria** (what must be TRUE):
+
+  1. **Print-loop robustness:** yank Wi-Fi mid-print and restore it, and the print surface restores correct (non-stale) state from a fresh `objects.query` rather than lying about a finished/paused print (reconnect resync, re-exercising CONN-04 against a live print); relaunching the app mid-print restores correct state from a fresh query (process-death recovery, PKG-03)
+  2. **Full Doze/always-on survival (PKG-03):** after the tablet sits unplugged and screen-off for 20+ minutes, the connection is still alive or cleanly resyncs (battery-optimization exemption + foreground service + first-run setup checklist for Wi-Fi-sleep), and `FLAG_KEEP_SCREEN_ON` holds the print-monitoring surface awake
+  3. A burn-in screensaver (dim overlay with wake-on-tap) protects the panel without stalling reconnection
+  4. The full PITFALLS "looks done but isn't" checklist passes against the COMPLETE redesigned app (cleartext on API 23, reconnect resync, Klippy shutdown routing, capability gating on a differently-configured printer, confirm coverage, Doze survival, on-device smoothness, thumbnail/webcam edge cases, process-death recovery)
+  5. A signed, R8-shrunk release APK builds (CI-signed via `apksigner`/GitHub Actions), installs cleanly, and runs on a real Nexus 7 2013 — published as a GitHub Release asset with a checksum; the **jiib repo cutover** is completed
+
+**Plans**: TBD
+**UI hint**: no
+**Research note**: STANDARD — reconnect-resync path already built (Phase 2 CONN-04); Doze/battery-optimization exemption, R8 shrinking, and APK signing are all well-documented.
 
 ## Progress
 
@@ -1085,6 +1311,36 @@ phases → 22 total. Run order = **17 Fine-Tune (UAT pending) → 18 Preview/Tok
 20 System Info → 21 WebRTC → 22 Release & Ship**. Primary spec = the two `../parallel_dinghy/phase-*-staging.md`
 notes.
 
+**Inserted + renumbered 2026-06-08 (pre-ship quality pass — 3 phases):** with Phases 1–21 complete, the owner
+flagged two pre-ship focus areas — (a) the app's look/feel is disjointed (inconsistent interaction grammar, a
+few pages needing major overhauls, plus a complete pass needed on touch targets / scaling / rotation) and (b)
+performance is showing navigation/interaction lag on the flox floor device, with an approaching perf ceiling
+now that the feature set is known. Three new INTEGER phases were inserted before Ship (clean renumber — Ship had
+no plan dir): **22 Performance & Architecture Refactor → 23 Interaction Coherence & Page Overhauls → 24
+Touch-Target / Scaling / Rotation Conformance Sweep → 25 Release Hardening & Ship (LAST)**. Old Ship 22→25; its
+LIGHT late-surface conformance sweep + deferred tokenization backfill MOVED into the new Phase 24 (now a
+full-app pass). PKG-01/03 follow Ship to Phase 25. Rationale: refactor BEFORE the visual overhauls so redesigns
+land on optimized plumbing (22↔23 order may flip per the audit if the slow screens ARE the overhaul screens);
+design/creative redesign (23) kept separate from the mechanical full-app conformance sweep (24) for clean
+verification. A release-mode profiling + `/gsd-ui-review` + `/gsd-map-codebase` audit feeds the scope of 22–24.
+22 phases → 25 total.
+
+**REPLANNED 2026-06-09 (jiib redesign milestone — reshape the back third):** with Phase 22 (perf refactor)
+complete, the owner committed to a fundamental **lists-first / conditional-waterfall redesign** that
+**supersedes the old Phase 23 (Interaction Coherence) + Phase 24 (Conformance Sweep)** — both dissolved into
+the redesign (conformance now folds into each screen-migration phase, not a separate pass). Direction was
+explored + locked via `/gsd-explore` then `/gsd-sketch` (sketches **001 waterfall home · 002 Spoolman ·
+003 Fine-Tune · 004 scrubber**) and packaged into the **`sketch-findings-dinghy-display` skill** (auto-loads
+for UI work) + `.planning/notes/2026-06-09-*.md` (source of truth). Old 23/24/25 (3 phases) → **SEVEN phases,
+dependency-ordered foundation → spine → screens → ship: 23 Design-Language Foundation → 24 Navigation Spine →
+25 Browse → 26 Adjustment → 27 Motion+Calibration → 28 System/Settings → 29 Release Hardening & Ship (LAST,
+renumbered from 25; + jiib repo cutover)**. PKG-01/03 follow Ship to Phase 29. `GalleryScreen` is debug-only —
+folded in opportunistically, no phase of its own. Rationale: build the component-class kit + LAYOUT.md/
+COMPONENTS.md FIRST (piloted by rebuilding Spoolman), then the nav spine, then migrate screen-groups onto the
+classes — so redesigns land on a finished design system, not get reworked. v1 now ships at **Phase 29** (NOT
+25); pushes public release out, owner-approved. 25 phases → 29 total. See
+`.planning/todos/pending/2026-06-09-reshape-roadmap-redesign-milestone.md`.
+
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Platform Gate — Toolkit Benchmark, Cleartext Smoke Test & Scaffold | 4/4 | Complete    | 2026-05-30 |
@@ -1108,11 +1364,14 @@ notes.
 | 19. Output Controls — Fans, Lights & Generic Pins | 10/10 | Complete    | 2026-06-08 |
 | 20. System Information Page | 4/4 | Complete    | 2026-06-08 |
 | 21. WebRTC Camera Streaming | 5/5 | Complete    | 2026-06-08 |
-| 22. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 0/TBD | Not started | - |
+| 22. Performance & Architecture Refactor | 7/7 | Complete   | 2026-06-09 |
+| 23. Interaction Coherence & Page Overhauls | 6/6 | Complete    | 2026-06-10 |
+| 24. Touch-Target / Scaling / Rotation Conformance Sweep | 5/5 | Complete    | 2026-06-10 |
+| 25. Release Hardening & Ship — Always-On, Lifecycle & Signed APK | 7/7 | Complete    | 2026-06-10 |
 
 ## Future Milestones (post-v1)
 
-The 22 phases above are the **v1 milestone** (ships once at Phase 22). Subsequent milestones are seeded
+The 25 phases above are the **v1 milestone** (ships once at Phase 25). Subsequent milestones are seeded
 here and formalized via `/gsd-new-milestone` when v1 ships — not planned in detail yet.
 
 ### v2 — Beyond the Functional Core

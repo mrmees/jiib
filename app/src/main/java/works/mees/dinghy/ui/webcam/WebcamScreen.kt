@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,17 +18,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.shape.RoundedCornerShape
+import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.render.Media3SurfaceHost
 import works.mees.dinghy.render.Media3SurfaceProvider
 import works.mees.dinghy.render.WebcamView
@@ -60,8 +65,13 @@ import works.mees.dinghy.theme.fsSp
  * When shown, the cams list with the SELECTED one expanded to show its Moonraker info (name / service /
  * resolution). A single cam never needs the picker (full-focus).
  *
- * ## Gutter — Back ONLY (neutral intent, D-10 back=outline)
- * One full-width Back tile wired `onClick = onBack`, exactly as MoveScreen wires its Back.
+ * ## Back (neutral intent, D-10 back=outline)
+ * When the cam-picker Field is shown, a [FootButtonBar] at the foot of the Field hosts the Back
+ * [OutlinedControl] (`gutter = null`, the redesign grammar — D-15 / 25-06). When the Field is HIDDEN
+ * (full-focus: single cam, or landscape feed on a landscape device) the field slot is `null` so the
+ * feed takes the whole stage, and the same Back bar moves to the full-width GUTTER strip below the
+ * stage (CR-02 — the pre-25-06 full-focus behavior; an always-non-null field squeezed the feed to
+ * ~50% of the screen).
  *
  * ## Page-visible lifecycle (D-13)
  * A [DisposableEffect] starts the holder's decode/poll/retry driver when this screen enters composition
@@ -87,7 +97,6 @@ fun WebcamScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm by holder.vm.collectAsStateWithLifecycle()
-    val t = LocalTokens.current
 
     // Page-visible lifecycle (D-13): drive while composed, stop on nav-away. WR-01 cancel() = shell (10-07).
     DisposableEffect(holder) {
@@ -95,7 +104,55 @@ fun WebcamScreen(
         onDispose { holder.stop() }
     }
 
+    WebcamContent(
+        vm = vm,
+        surfaceProvider = surfaceProvider,
+        onCycleCam = holder::cycleCam,
+        onSelectCam = { holder.selectCam(camIdOf(it)) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless seam for `@Preview` (D-20 / docs/ui_design/PREVIEW_AND_TOKENS.md). Drives the chrome
+ * (cam-picker + FootButtonBar) from a pure [WebcamVm] fixture with no live [WebcamHolder] or socket.
+ * The feed surface ([FeedFocus]) is preview-safe — [Media3SurfaceHost] and [WebcamViewHost] already
+ * short-circuit to [works.mees.dinghy.preview.PreviewPlaceholderBox] under [LocalInspectionMode] (D-05).
+ *
+ * @param vm      the cam-picker state (fake fixture — no [WebcamHolder], no network).
+ * @param surfaceProvider the H.264 bridge; in preview inspection mode the host ignores it.
+ * @param onBack  callback (no-op `{}` in previews).
+ */
+@Composable
+fun WebcamScreen(
+    vm: WebcamVm<Bitmap>,
+    surfaceProvider: Media3SurfaceProvider,
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    WebcamContent(
+        vm = vm,
+        surfaceProvider = surfaceProvider,
+        onCycleCam = {},
+        onSelectCam = {},
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun WebcamContent(
+    vm: WebcamVm<Bitmap>,
+    surfaceProvider: Media3SurfaceProvider,
+    onCycleCam: () -> Unit,
+    onSelectCam: (Webcam) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
     BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         val landscapeDevice = maxWidth > maxHeight
         val portraitFeed = isPortraitFeed(vm.selected)
         // camera_feed rule: show the Field (cam picker) only when it makes sense vs device + feed aspect
@@ -106,6 +163,35 @@ fun WebcamScreen(
             else -> true                               // portrait device → stack the list below (LAYOUT.md)
         }
 
+        // CR-02: the field slot MUST be null when the picker is hidden — ScreenScaffold weights
+        // focus/field 50/50 whenever BOTH slots are non-null, so an always-non-null field squeezed
+        // the feed to half the screen in every full-focus case (single cam in any orientation,
+        // landscape feed on a landscape device — the camera_feed rule + the KDoc above).
+        val fieldSlot: (@Composable ColumnScope.() -> Unit)? = if (showField) {
+            {
+                CamPicker(
+                    cams = vm.cams,
+                    selected = vm.selected,
+                    onSelect = onSelectCam,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                )
+                // D-15 / 25-06: with a picker Field, Back lives in its FootButtonBar; gutter = null.
+                WebcamBackBar(uDp = grid.uDp, onBack = onBack, modifier = Modifier.padding(8.dp))
+            }
+        } else {
+            null
+        }
+        // Full-focus (no picker): the feed takes the whole stage; Back moves to the full-width
+        // gutter strip below it (the pre-25-06 placement) so it stays reachable.
+        val gutterSlot: (@Composable () -> Unit)? = if (showField) {
+            null
+        } else {
+            { WebcamBackBar(uDp = grid.uDp, onBack = onBack, modifier = Modifier.padding(8.dp)) }
+        }
+
         ScreenScaffold(
             focus = {
                 FeedFocus(
@@ -113,35 +199,33 @@ fun WebcamScreen(
                     tokens = t,
                     surfaceProvider = surfaceProvider,
                     // Full-focus (no Field) + multiple cams → tap the feed to cycle (camera_feed note).
-                    onCycle = if (!showField && vm.multiCam) holder::cycleCam else null,
+                    onCycle = if (!showField && vm.multiCam) onCycleCam else null,
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             },
-            field = if (showField) {
-                {
-                    CamPicker(
-                        cams = vm.cams,
-                        selected = vm.selected,
-                        onSelect = { holder.selectCam(camIdOf(it)) },
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
-                    )
-                }
-            } else {
-                null
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedControl(
-                        label = "Back",
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                    )
-                }
-            },
+            field = fieldSlot,
+            gutter = gutterSlot,
+        )
+    }
+}
+
+/**
+ * The shared Back [FootButtonBar] (neutral intent, D-10). Hosted at the foot of the cam-picker Field
+ * when the picker is shown, or in the full-width gutter strip in full-focus mode (CR-02).
+ */
+@Composable
+private fun WebcamBackBar(
+    uDp: Dp,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FootButtonBar(uDp = uDp, modifier = modifier) {
+        OutlinedControl(
+            label = stringResource(R.string.common_back),
+            onClick = onBack,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
+            icon = DinghyIcons.Back,
         )
     }
 }
@@ -222,7 +306,7 @@ private fun CamPicker(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = cam.name.ifBlank { "(unnamed)" },
+                    text = cam.name.ifBlank { stringResource(R.string.webcam_cam_unnamed) },
                     color = if (isSelected) t.accent2 else t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
@@ -230,7 +314,7 @@ private fun CamPicker(
                 )
                 if (isSelected) {
                     // Expanded Moonraker info for the selected cam (service + resolution/aspect).
-                    val service = cam.service.ifBlank { "unknown service" }
+                    val service = cam.service.ifBlank { stringResource(R.string.webcam_service_unknown) }
                     Text(
                         text = service,
                         color = t.text2,
@@ -239,7 +323,7 @@ private fun CamPicker(
                     )
                     cam.aspectRatio?.takeIf { it.isNotBlank() }?.let { aspect ->
                         Text(
-                            text = "aspect $aspect",
+                            text = stringResource(R.string.webcam_aspect_format, aspect),
                             color = t.text3,
                             fontFamily = GeistMono,
                             fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).

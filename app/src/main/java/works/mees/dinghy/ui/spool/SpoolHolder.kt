@@ -1,6 +1,8 @@
 package works.mees.dinghy.ui.spool
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +22,6 @@ import works.mees.dinghy.spool.parseSpoolmanLocations
 import works.mees.dinghy.spool.parseSpoolmanMaterials
 import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
 import works.mees.dinghy.spool.parseSpoolmanSpools
-import works.mees.dinghy.spool.parseSpoolmanVendors
 
 /**
  * The Spool-picker SORT KEY (SPOOL-03; docs/view_specific_notes/spoolman.md §Spool Picker And Filters).
@@ -68,7 +69,9 @@ internal fun materialFamilyLabel(raw: String): String? {
  * The applied picker filters (D-04/D-05/D-06). All optional — an empty/absent filter is "no constraint".
  *  - [materialFamilies] — D-05 material FAMILY chips, comma-joined into one `filament.material=A,B`
  *    UNQUOTED term so `PLA` catches `PLA+`; multi-family is a comma list, NOT a fuzzy combined term.
- *  - [vendor] — exact-ish `filament.vendor.name=<name>` (partial/case-insensitive per Spoolman).
+ *  - [vendors] — multi-select manufacturer filter; OR within the facet (a spool matches if its
+ *    filament vendor matches ANY selected vendor). AND across facets (standard faceted filtering).
+ *    Empty list = no vendor constraint.
  *  - [location] — D-04 location shortcut. [LOCATION_NONE] is the sentinel for the "No location" chip
  *    (`location=` empty), distinct from null = "any location".
  *  - [colorFilamentIds] — D-06 result of a swatch-tap two-step: the filament ids the color-similarity
@@ -77,7 +80,7 @@ internal fun materialFamilyLabel(raw: String): String? {
  */
 data class SpoolFilters(
     val materialFamilies: List<String> = emptyList(),
-    val vendor: String? = null,
+    val vendors: List<String> = emptyList(),
     val location: String? = null,
     val colorFilamentIds: List<Int>? = null,
     val colorSwatchHex: String? = null,
@@ -111,6 +114,28 @@ data class SpoolPrefilterSeed(
 )
 
 /**
+ * Controls whether the Field shows the spool list, an in-place filter picker, or the measured-weight
+ * numeric-IME entry (D-08 Field-takeover pattern, docs/ui_design/COMPONENTS.md §"Field-takeover picker").
+ * No separate screen push — the Field swaps in place.
+ *
+ * - [Spools] — the normal spool list + FootButtonBar (default).
+ * - [FilterPicker] — the Field shows the option list for [category]; tapping an option or Done/Clear returns
+ *   to [Spools] by the caller setting `fieldMode = FieldMode.Spools`.
+ * - [MeasureWeight] — the measured-gross-weight numeric-IME entry for [spool] (D-08); Back/Apply return
+ *   to [Spools].
+ */
+sealed class FieldMode {
+    /** Normal spool-list Field. */
+    data object Spools : FieldMode()
+
+    /** In-place filter picker for [category]; the Field swaps to that facet's option list. */
+    data class FilterPicker(val category: SpoolFilterCategory) : FieldMode()
+
+    /** Measured-gross-weight numeric-IME entry (D-08). The user enters the total weighed mass. */
+    data class MeasureWeight(val spool: SpoolmanSpool) : FieldMode()
+}
+
+/**
  * The Spool-picker page state (SPOOL-03; docs/view_specific_notes/spoolman.md §Suggested UI state).
  * Mirrors [works.mees.dinghy.ui.files.FileBrowserState] — a plain value type the screen renders and the
  * holder mutators update. Every read degrades to empty/null (never throws); a malformed Spoolman row
@@ -118,6 +143,7 @@ data class SpoolPrefilterSeed(
  *
  * @property spools the current picker result rows.
  * @property selected the row whose detail fills the Focus (null = nothing selected → portrait stays Field).
+ * @property fieldMode controls whether the Field shows the spool list or an in-place filter picker (23-06).
  * @property materials/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
  * @property activeStatus the live active-spool status (D-10 reconciled) — drives "this is loaded" marks
  *   and the active-spool reconcile; null when unavailable/idle.
@@ -125,6 +151,7 @@ data class SpoolPrefilterSeed(
 data class SpoolPickerState(
     val spools: List<SpoolmanSpool> = emptyList(),
     val selected: SpoolmanSpool? = null,
+    val fieldMode: FieldMode = FieldMode.Spools,
     val filters: SpoolFilters = SpoolFilters(),
     val sortKey: SpoolSortKey = SpoolSortKey.NAME,
     val sortAscending: Boolean = SpoolSortKey.NAME.defaultAscending,
@@ -165,6 +192,13 @@ class SpoolHolder(
     private val _state = MutableStateFlow(SpoolPickerState(activeStatus = activeSpool.value))
     val state: StateFlow<SpoolPickerState> = _state.asStateFlow()
 
+    // Non-terminating collector runs in a child scope whose SupervisorJob is NOT a child of
+    // [scope]'s Job, so [scope] is never blocked waiting for it. The parent scope's cancellation
+    // propagates via [invokeOnCompletion]; the holder can also be cancelled early via [cancel].
+    // Mirrors the ConsoleHolder / MacroHolder pattern (WR-01 family, CR-01).
+    private val holderJob = SupervisorJob()
+    private val holderScope = CoroutineScope(scope.coroutineContext + holderJob)
+
     /**
      * The ALWAYS-LIVE active-spool DETAIL (18.3-04, D-06.2/D-07). [SpoolPickerState.activeStatus] carries
      * only the active id + connection — NOT a color-bearing record — and the inventory [spools] list only
@@ -177,11 +211,13 @@ class SpoolHolder(
     val activeSpoolDetail: StateFlow<SpoolmanSpool?> = _activeSpoolDetail.asStateFlow()
 
     init {
+        scope.coroutineContext[Job]?.invokeOnCompletion { holderJob.cancel() }
+
         // D-10: mirror the upstream active-spool truth so the picker marks the currently-loaded spool and
         // reconciles an EXTERNAL change (Fluidd/runout-macro) without assuming Dinghy caused it. Read-only.
         // 18.3-04 (D-06.2): ALSO drive the live activeSpoolDetail color source off the active id — a
         // best-effort getSpool(id) so the shell/drawer can tint the Spool tile without a load() call.
-        scope.launch {
+        holderScope.launch {
             activeSpool.collect { status ->
                 _state.update { it.copy(activeStatus = status) }
                 val id = status?.activeSpoolId
@@ -196,6 +232,18 @@ class SpoolHolder(
                 }
             }
         }
+    }
+
+    /**
+     * Cancel the detached collector NOW (CR-01). The host calls this when `remember(store)` swaps this
+     * holder for a new one on a spine rebuild (reconnect): without it, the discarded holder's collector
+     * keeps running the dead session's flow until the whole shell leaves composition, orphaning one
+     * collector per reconnect. Cancelling [holderJob] is idempotent and coexists with the
+     * [scope]-cancellation path ([invokeOnCompletion]) that handles shell teardown.
+     * Mirrors [works.mees.dinghy.ui.console.ConsoleHolder.cancel] exactly.
+     */
+    fun cancel() {
+        holderJob.cancel()
     }
 
     /**
@@ -238,6 +286,56 @@ class SpoolHolder(
         _state.update { it.copy(selected = null) }
     }
 
+    /** Open the in-place Field-takeover filter picker for [category] (23-06 FieldMode pattern). */
+    fun openFilterPicker(category: SpoolFilterCategory) {
+        _state.update { it.copy(fieldMode = FieldMode.FilterPicker(category)) }
+    }
+
+    /** Close the Field-takeover filter picker and return to the spool list. */
+    fun closeFilterPicker() {
+        _state.update { it.copy(fieldMode = FieldMode.Spools) }
+    }
+
+    /** Open the measured-weight numeric-IME Field-takeover for [spool] (D-08). */
+    fun openMeasureWeight(spool: SpoolmanSpool) {
+        _state.update { it.copy(fieldMode = FieldMode.MeasureWeight(spool)) }
+    }
+
+    /** Close the measured-weight Field-takeover and return to the spool list. */
+    fun closeMeasureWeight() {
+        _state.update { it.copy(fieldMode = FieldMode.Spools) }
+    }
+
+    /**
+     * D-08 / SPOOL-09: write the measured GROSS weight to Spoolman then refresh the list. The user
+     * enters the full spool + filament weight; Spoolman subtracts the empty-spool weight to derive
+     * `remaining_weight`. Only dismisses the Field-takeover on a successful write — a null result
+     * (no session or a failed write) keeps the entry open so the user can retry.
+     *
+     * @param spool the spool being corrected.
+     * @param grossGrams the TOTAL weighed mass (spool + filament) in grams. Must be > 0.
+     */
+    suspend fun measureSpool(spool: SpoolmanSpool, grossGrams: Double) {
+        val result = runCatching { client.measureSpool(spool.id, grossGrams) }.getOrNull()
+        if (result != null) {
+            closeMeasureWeight()
+            refresh()
+        }
+    }
+
+    /**
+     * WR-10 (26-rev): fire-and-forget [measureSpool] on the holder's own [holderScope]. A remote
+     * Spoolman WRITE must outlive the screen composition — launching it on the screen's
+     * `rememberCoroutineScope()` let a same-frame navigation (Home foot button, system Back,
+     * recovery Splash) cancel the HTTP write mid-flight, silently dropping the measured weight
+     * while the user believed it was set (the dinghy-compose-write-scope-cancellation class
+     * applied to a network write). The holder outlives the screen (hoisted shell-side), so the
+     * write always completes.
+     */
+    fun measureSpoolAsync(spool: SpoolmanSpool, grossGrams: Double) {
+        holderScope.launch { measureSpool(spool, grossGrams) }
+    }
+
     /**
      * D-05: toggle a material-FAMILY chip. Families are comma-joined UNQUOTED into one
      * `filament.material=A,B` term (so `PLA` catches `PLA+`; a multi-family chip is a comma list, NOT a
@@ -256,11 +354,20 @@ class SpoolHolder(
         refresh()
     }
 
-    /** Toggle the vendor chip (exact-ish `filament.vendor.name`); re-tap clears it. Re-issues the read. */
+    /**
+     * Toggle a vendor in the multi-select MFG filter. Each vendor toggles independently (in/out of
+     * the selected set). Filter semantics: OR within the facet (a spool matches if its vendor is in
+     * the selected set). Re-issues the list read.
+     */
     suspend fun toggleVendor(vendor: String) {
         _state.update { current ->
-            val next = if (current.filters.vendor.equals(vendor, ignoreCase = true)) null else vendor
-            current.copy(filters = current.filters.copy(vendor = next))
+            val present = current.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
+            val next = if (present) {
+                current.filters.vendors.filterNot { it.equals(vendor, ignoreCase = true) }
+            } else {
+                current.filters.vendors + vendor
+            }
+            current.copy(filters = current.filters.copy(vendors = next))
         }
         refresh()
     }
@@ -354,9 +461,9 @@ class SpoolHolder(
         refresh()
     }
 
-    /** Clear just the vendor / MFG filter (the MFG selector's Clear); re-issues the read. */
+    /** Clear the vendor / MFG filter (the MFG selector's Clear); re-issues the read. */
     suspend fun clearVendor() {
-        _state.update { it.copy(filters = it.filters.copy(vendor = null)) }
+        _state.update { it.copy(filters = it.filters.copy(vendors = emptyList())) }
         refresh()
     }
 
@@ -427,8 +534,26 @@ class SpoolHolder(
     /** Load the dynamic chip universes (D-04) once; each degrades to empty independently. */
     private suspend fun loadChips() {
         val materials = parseSpoolmanMaterials(runCatching { client.listMaterials() }.getOrNull()).rows
-        val vendors = parseSpoolmanVendors(runCatching { client.listVendors() }.getOrNull()).rows
-            .mapNotNull { it.name }
+        // Vendor options are derived from the SPOOL list, walking each physical spool back to its
+        // filament's vendor (spool → filament → vendor.name). Spoolman classification is
+        // mfg → filament → spool: an owner can have FILAMENT definitions for a manufacturer they own
+        // ZERO physical spools of, and the raw /v1/vendor manufacturers table (and even the /v1/filament
+        // list) include those spool-less manufacturers — they would appear as filter options that can
+        // never match a listed spool (the corrected on-device defect, owner 2026-06-10). Deriving the
+        // universe from the SPOOLS yields only manufacturers actually represented by a physical spool.
+        //
+        // Use the screen's own base read shape (allow_archived=false, no facet filters) so the universe
+        // matches the spool set the list shows AND stays stable regardless of the currently-applied
+        // vendor/material filters. The /v1/spool list already carries the full nested filament.vendor
+        // object inline (live golden spoolman-live-ender5-proxy-pla.json), so no extra endpoint or model
+        // change is needed beyond this one facet-unfiltered spool read.
+        val vendors = parseSpoolmanSpools(
+            runCatching { client.listSpools("allow_archived=false&limit=$SPOOL_LIMIT") }.getOrNull(),
+        )
+            .rows
+            .mapNotNull { it.filament?.vendor?.name?.trim()?.ifEmpty { null } }
+            .distinctBy { it.lowercase() }
+            .sortedBy { it.lowercase() }
         val locations = parseSpoolmanLocations(runCatching { client.listLocations() }.getOrNull()).rows
         _state.update { it.copy(materials = materials, vendors = vendors, locations = locations) }
     }
@@ -464,7 +589,16 @@ fun buildSpoolQuery(filters: SpoolFilters, sortKey: SpoolSortKey, ascending: Boo
         val terms = filters.materialFamilies.flatMap { familyTerms(it) }.distinct()
         parts += "filament.material=${terms.joinToString(",")}"
     }
-    filters.vendor?.let { parts += "filament.vendor.name=$it" }
+    // Multi-select vendors: OR within the facet. Spoolman declares `filament.vendor.name` as a SINGLE
+    // scalar query param and ORs COMMA-SEPARATED terms within that ONE value (database/utils.py
+    // add_where_clause_str → value.split(",") → sqlalchemy.or_). Repeated params do NOT OR — FastAPI
+    // binds the scalar to the LAST occurrence, which silently filtered to the last-selected vendor only
+    // (the on-device MFG multi-select bug). So emit ONE comma-joined param, exactly like
+    // filament.material above. (Real manufacturer names contain no commas; Spoolman has no escape, so a
+    // hypothetical comma-bearing vendor name would mis-split — an accepted edge.)
+    if (filters.vendors.isNotEmpty()) {
+        parts += "filament.vendor.name=${filters.vendors.joinToString(",")}"
+    }
     filters.colorFilamentIds?.let { ids ->
         // An empty similarity result is a deliberate "no matches" — send an unmatchable id rather than
         // dropping the filter (which would silently show everything). -1 never matches a real spool.

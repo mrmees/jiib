@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 import works.mees.dinghy.R
+import works.mees.dinghy.calibration.ProbeCalibrateHolder
 import works.mees.dinghy.calibration.ProbeCalibrateVm
 import works.mees.dinghy.calibration.ProbePageState
 import works.mees.dinghy.command.CommandDispatcher
@@ -51,9 +52,9 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
-import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -86,28 +87,29 @@ private val TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 
  *
  * Ratio-only sizing; token-only color.
  *
- * @param vm         the resolved [ProbeCalibrateVm] (state machine + live Z + bracket + start cmd + error).
- * @param tokens     the active resolved tokens (THEME-01 — never raw color).
- * @param dispatcher the live session dispatcher; all actions go through it (null until a session exists).
- * @param onStartDispatched called after Start dispatches (parity with the other calibration screens).
- * @param onBack     leave the page (neutral Back, D-10; only offered when NOT Active).
+ * **D-01 move #2 (22-07):** migrated from `vm: ProbeCalibrateVm` parameter to `holder: ProbeCalibrateHolder`
+ * parameter, mirroring the existing [ScrewsTiltScreen] pattern. The screen collects [ProbeCalibrateHolder.vm]
+ * and [AppContainer.dispatcher] internally; [ProbeCalibrateHolder.reset] replaces `onEnter`,
+ * [ProbeCalibrateHolder.markAborted] replaces `onAbort`, eliminating two shell-side collections.
+ *
+ * @param container the service-locator (provides the session dispatcher).
+ * @param holder    the headless [ProbeCalibrateHolder] (state machine + live Z + bracket + start cmd + error).
+ * @param onBack    leave the page (neutral Back, D-10; only offered when NOT Active).
  */
 @Composable
 fun ProbeCalibrateScreen(
-    vm: ProbeCalibrateVm,
-    tokens: ThemeTokens,
-    dispatcher: CommandDispatcher?,
-    onStartDispatched: () -> Unit,
-    onEnter: () -> Unit,
-    onHome: () -> Unit,
-    onAbort: () -> Unit,
+    container: AppContainer,
+    holder: ProbeCalibrateHolder,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val vm by holder.vm.collectAsStateWithLifecycle()
+
     // Fresh-instance reset on entry (mirrors TiltScreen) — the per-session holder's sawActive/captured
     // latches survive re-entry, so without this a returning user sees the previous round's offset as a
     // stale Accepted page. Keyed on Unit → once per navigation into the page, not on recomposition.
-    LaunchedEffect(Unit) { onEnter() }
+    LaunchedEffect(Unit) { holder.reset() }
 
     var step by remember { mutableStateOf(0.05) } // default a sensible fine step.
     var saveGuard by remember { mutableStateOf(false) }
@@ -178,7 +180,7 @@ fun ProbeCalibrateScreen(
                             // never send PROBE_CALIBRATE unhomed (the klicky macro raises "Must Home … First!").
                             ProbeGutterButton(
                                 label = "Home All",
-                                onClick = onHome,
+                                onClick = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Accent,
                                 enabled = dispatcher != null,
@@ -200,7 +202,7 @@ fun ProbeCalibrateScreen(
                                     } else {
                                         d.dispatch(CommandRegistry.probeCalibrate, Unit)
                                     }
-                                    onStartDispatched()
+                                    // onStartDispatched was a no-op at the AppShell call site (22-07)
                                 },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Accent,
@@ -227,7 +229,7 @@ fun ProbeCalibrateScreen(
                                 onClick = {
                                     // Mark abort BEFORE dispatching so the is_active→false transition
                                     // returns to Idle (Start/Back), not Accepted (no Save of a discarded run).
-                                    onAbort()
+                                    holder.markAborted()
                                     dispatcher?.dispatch(CommandRegistry.abort, Unit)
                                 },
                                 modifier = Modifier.weight(1f),

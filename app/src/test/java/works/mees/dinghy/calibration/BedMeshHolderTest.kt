@@ -10,6 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.collections.immutable.toImmutableList
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.render.BedMeshHeatmapView.ScaleMode
 import works.mees.dinghy.state.BedMeshObject
@@ -35,17 +36,17 @@ class BedMeshHolderTest {
 
     private fun activeMesh(): BedMeshObject = BedMeshObject(
         profileName = "adaptive-7FA0AB1C50",
-        meshMin = listOf(85.5, 148.8),
-        meshMax = listOf(294.6, 237.5),
+        meshMin = listOf(85.5, 148.8).toImmutableList(),
+        meshMax = listOf(294.6, 237.5).toImmutableList(),
         probedMatrix = listOf(
-            listOf(0.05, 0.01, 0.01, 0.03),
-            listOf(0.05, 0.02, 0.01, 0.04),
-        ),
+            listOf(0.05, 0.01, 0.01, 0.03).toImmutableList(),
+            listOf(0.05, 0.02, 0.01, 0.04).toImmutableList(),
+        ).toImmutableList(),
         meshMatrix = listOf(
-            listOf(0.05, 0.03, 0.02, 0.01),
-            listOf(0.05, 0.03, 0.02, 0.04),
-        ),
-        profileNames = listOf("default", "post", "pre"),
+            listOf(0.05, 0.03, 0.02, 0.01).toImmutableList(),
+            listOf(0.05, 0.03, 0.02, 0.04).toImmutableList(),
+        ).toImmutableList(),
+        profileNames = listOf("default", "post", "pre").toImmutableList(),
     )
 
     @Test
@@ -77,7 +78,7 @@ class BedMeshHolderTest {
                 bedMesh = BedMeshObject(
                     profileName = "",
                     meshMatrix = null,
-                    profileNames = listOf("default", "pre"),
+                    profileNames = listOf("default", "pre").toImmutableList(),
                 ),
             ),
         )

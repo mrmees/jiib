@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
+import works.mees.dinghy.calibration.TiltHolder
 import works.mees.dinghy.calibration.TiltState
 import works.mees.dinghy.calibration.TiltVm
 import works.mees.dinghy.calibration.ZAdjustment
@@ -42,9 +43,9 @@ import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
-import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -57,10 +58,15 @@ enum class TiltVariant { ZTilt, Qgl }
  *
  * This is a "run it and watch it converge" page with NO mid-run user action (no Abort; Klipper has no
  * clean cancel — the routine is short and hands-off). State is LOAD-scoped: every entry resets to the
- * landing state ([onEnter] → the holder's reset) because the printer has no reliable persistent
+ * landing state (the holder's [TiltHolder.reset]) because the printer has no reliable persistent
  * "applied" flag to read. The landing is "Ready to Run" (homed) or "Home Axis First" (unhomed). Once
  * Run fires, the in-flight set drives Running → Done; a dispatcher Failure → Failed. On Done the parsed
  * per-stepper Z adjustments (from the run's console output) are shown.
+ *
+ * **D-01 move #2 (22-07):** migrated from `vm: TiltVm` parameter to `holder: TiltHolder` parameter,
+ * mirroring the existing [ScrewsTiltScreen] pattern. The screen collects [TiltHolder.vm] and
+ * [AppContainer.dispatcher] internally and owns its own entry-reset ([TiltHolder.reset]) +
+ * dispatch-mark ([TiltHolder.markDispatched]) so those four shell-side collections are eliminated.
  *
  * Layout (ScreenScaffold):
  *  - Focus = the single `bed_tilt` icon, theme-tinted (NO state overlay glyph).
@@ -69,27 +75,22 @@ enum class TiltVariant { ZTilt, Qgl }
  *
  * Ratio-only sizing; token-only color.
  *
- * @param vm         the resolved [TiltVm] (load-scoped run facts + homed gate + adjustments + error).
- * @param variant    Z-tilt or QGL — selects the title + dispatched command (D-02).
- * @param tokens     the active resolved tokens (THEME-01 — never raw color).
- * @param dispatcher the live session dispatcher; Run goes through it (null until a session exists).
- * @param onRunDispatched called after Run dispatches so the holder marks the routine run this load.
- * @param onHome     dispatch the homed pre-flight (G28) — the Home All offer (D-13).
- * @param onEnter    called once on page entry to reset the holder to the Idle landing state.
- * @param onBack     leave the page (neutral Back, D-10).
+ * @param container the service-locator (provides the session dispatcher).
+ * @param holder    the headless [TiltHolder] (load-scoped run facts + homed gate + adjustments + error).
+ * @param variant   Z-tilt or QGL — selects the title + dispatched command (D-02).
+ * @param onBack    leave the page (neutral Back, D-10).
  */
 @Composable
 fun TiltScreen(
-    vm: TiltVm,
+    container: AppContainer,
+    holder: TiltHolder,
     variant: TiltVariant,
-    tokens: ThemeTokens,
-    dispatcher: CommandDispatcher?,
-    onRunDispatched: () -> Unit,
-    onHome: () -> Unit,
-    onEnter: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val vm by holder.vm.collectAsStateWithLifecycle()
+
     val title = when (variant) {
         TiltVariant.ZTilt -> "Z-Tilt Adjust"
         TiltVariant.Qgl -> "Quad Gantry Level"
@@ -104,7 +105,7 @@ fun TiltScreen(
     }
 
     // Every entry resets to the Idle landing state — a prior run never persists across loads.
-    LaunchedEffect(Unit) { onEnter() }
+    LaunchedEffect(Unit) { holder.reset() }
 
     // Running vs Done is the dispatcher's in-flight truth (this screen owns the dispatcher). Done is the
     // run leaving the in-flight set without a Failure; we never read the persisted z_tilt.applied flag.
@@ -138,7 +139,7 @@ fun TiltScreen(
                         // Home All pre-flight (D-13) — replaces Run until the printer is homed.
                         TiltGutterButton(
                             label = "Home All",
-                            onClick = onHome,
+                            onClick = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
                             modifier = Modifier.weight(1f),
                             intent = Intent.Accent,
                             enabled = dispatcher != null,
@@ -149,7 +150,7 @@ fun TiltScreen(
                             onClick = {
                                 val d = dispatcher ?: return@TiltGutterButton
                                 d.dispatch(runCommand, Unit)
-                                onRunDispatched()
+                                holder.markDispatched()
                             },
                             modifier = Modifier.weight(1f),
                             intent = Intent.Accent,

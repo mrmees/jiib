@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.collections.immutable)   // D-02: ImmutableList/Map stable Compose params
 
     // --- Coil 3 (real PNG decode under memory pressure — used by 01-03 scenes) ---
     implementation(libs.coil.compose)
@@ -161,6 +162,11 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.rtsp)
     implementation(libs.media3.exoplayer.hls)
+
+    // --- Navigation-Compose (Phase 24, D-01 nav-spine): type-safe NavHost back-stack routing ---
+    // 2.8.9 — NOT BOM-governed; 2.8.x is minSdk-21-safe and stays on the AGP-8.7/compileSdk-36 line.
+    // No navigation-testing added — the D-04 pop-to-root test is a PURE JVM predicate (FIX-8; no TestNavController).
+    implementation(libs.androidx.navigation.compose)
 
     // --- Persistence (THEME-02/D-02): S/M/L --fs + theme base + custom token deltas ---
     implementation(libs.androidx.datastore.preferences)

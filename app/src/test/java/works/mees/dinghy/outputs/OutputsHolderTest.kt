@@ -11,6 +11,9 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.OutputLiveValue
@@ -65,7 +68,7 @@ class OutputsHolderTest {
         val holder = OutputsHolder(backgroundScope, store)
         store.setOutputDescriptors(listOf(fan()))
         // No live `.speed` for this fan → outputs map empty.
-        store.seed(PrinterState(outputs = emptyMap()))
+        store.seed(PrinterState(outputs = persistentMapOf()))
         runCurrent()
 
         val row = rowFor(holder.rows.value, "fan_generic FILTER_fan")
@@ -80,7 +83,7 @@ class OutputsHolderTest {
         val holder = OutputsHolder(backgroundScope, store)
         store.setOutputDescriptors(listOf(servo()))
         // Servo reports a PWM `.value` — NOT an angle. The holder must NOT show it as degrees.
-        store.seed(PrinterState(outputs = mapOf("servo my_servo" to OutputLiveValue(value = 0.5))))
+        store.seed(PrinterState(outputs = mapOf("servo my_servo" to OutputLiveValue(value = 0.5)).toImmutableMap()))
         runCurrent()
 
         val row = rowFor(holder.rows.value, "servo my_servo")
@@ -91,7 +94,7 @@ class OutputsHolderTest {
         runCurrent()
         assertTrue("servo dispatch arms busy", rowFor(holder.rows.value, "servo my_servo").busy)
         // Even with the live value sitting exactly at the (PWM) target, reached() never fires for a servo.
-        store.seed(PrinterState(outputs = mapOf("servo my_servo" to OutputLiveValue(value = 0.5))))
+        store.seed(PrinterState(outputs = mapOf("servo my_servo" to OutputLiveValue(value = 0.5)).toImmutableMap()))
         runCurrent()
         assertTrue("servo stays busy — reached() never confirms a servo", rowFor(holder.rows.value, "servo my_servo").busy)
         // Only the timeout backstop releases it.
@@ -122,7 +125,7 @@ class OutputsHolderTest {
                 outputs = mapOf(
                     "fan_generic FILTER_fan" to OutputLiveValue(speed = 0.45),
                     "output_pin laser" to OutputLiveValue(value = 1.0),
-                ),
+                ).toImmutableMap(),
             ),
         )
         runCurrent()
@@ -142,7 +145,7 @@ class OutputsHolderTest {
         )
         store.setOutputDescriptors(listOf(heater))
         // Single-source decision (19-04): heater_generic current temp comes from `heaters`, not `outputs`.
-        store.seed(PrinterState(heaters = mapOf("heater_generic chamber" to HeaterState(temperature = 42.0, target = 50.0))))
+        store.seed(PrinterState(heaters = mapOf("heater_generic chamber" to HeaterState(temperature = 42.0, target = 50.0)).toImmutableMap()))
         runCurrent()
 
         assertEquals("heater_generic temp read from heaters (single source)", "42°C", rowFor(holder.rows.value, "heater_generic chamber").displayValue)
@@ -153,7 +156,7 @@ class OutputsHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = OutputsHolder(backgroundScope, store)
         store.setOutputDescriptors(listOf(fan()))
-        store.seed(PrinterState(outputs = mapOf("fan_generic FILTER_fan" to OutputLiveValue(speed = 0.0))))
+        store.seed(PrinterState(outputs = mapOf("fan_generic FILTER_fan" to OutputLiveValue(speed = 0.0)).toImmutableMap()))
         runCurrent()
 
         // Arm the SAME clamped wire value the command sends (17-07): 80% → 0.8 wire.
@@ -163,7 +166,7 @@ class OutputsHolderTest {
         assertTrue("fan dispatch arms busy", rowFor(holder.rows.value, "fan_generic FILTER_fan").busy)
 
         // Live speed flips to the dispatched wire value → reached() confirms, busy clears (NOT via timeout).
-        store.seed(PrinterState(outputs = mapOf("fan_generic FILTER_fan" to OutputLiveValue(speed = wire))))
+        store.seed(PrinterState(outputs = mapOf("fan_generic FILTER_fan" to OutputLiveValue(speed = wire)).toImmutableMap()))
         runCurrent()
         assertFalse("fan busy clears the instant live .speed reaches the wire target (confirm-from-live)", rowFor(holder.rows.value, "fan_generic FILTER_fan").busy)
     }
@@ -174,7 +177,7 @@ class OutputsHolderTest {
         val holder = OutputsHolder(backgroundScope, store)
         store.setOutputDescriptors(listOf(whiteOnlyLed()))
         // A white-only LED reports [r,g,b,w] = [0,0,0,0.8].
-        store.seed(PrinterState(outputs = mapOf("led chamber_light" to OutputLiveValue(colorData = listOf(listOf(0.0, 0.0, 0.0, 0.8))))))
+        store.seed(PrinterState(outputs = mapOf("led chamber_light" to OutputLiveValue(colorData = listOf(listOf(0.0, 0.0, 0.0, 0.8).toImmutableList()).toImmutableList())).toImmutableMap()))
         runCurrent()
 
         val row = rowFor(holder.rows.value, "led chamber_light")

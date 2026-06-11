@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,16 +24,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import works.mees.dinghy.R
 import works.mees.dinghy.calibration.BedMeshHolder
 import works.mees.dinghy.calibration.CalibrationHubHolder
 import works.mees.dinghy.calibration.CalibrationRoutine
@@ -40,14 +50,17 @@ import works.mees.dinghy.calibration.TiltHolder
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.SetSpoolArgs
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.net.JsonRpcMethods
-import works.mees.dinghy.outputs.OutputDescriptor
 import works.mees.dinghy.outputs.OutputsHolder
 import works.mees.dinghy.prompt.PromptEngine
 import works.mees.dinghy.ui.prompt.PromptDialog
 import works.mees.dinghy.ui.prompt.flattenContentButtons
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -55,19 +68,13 @@ import works.mees.dinghy.ui.console.ConsoleHolder
 import works.mees.dinghy.ui.console.ConsoleScreen
 import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
-import works.mees.dinghy.ui.finetune.ExtrusionScreen
-import works.mees.dinghy.ui.finetune.FineTuneGroup
 import works.mees.dinghy.ui.finetune.FineTuneHolder
-import works.mees.dinghy.ui.finetune.FineTuneHubScreen
-import works.mees.dinghy.ui.finetune.FwRetractionScreen
-import works.mees.dinghy.ui.finetune.MotionScreen
+import works.mees.dinghy.ui.finetune.FineTuneScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
 import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
-import works.mees.dinghy.ui.macros.MacroExecutionPopup
 import works.mees.dinghy.ui.macros.MacroHolder
-import works.mees.dinghy.ui.macros.SystemMacrosScreen
 import works.mees.dinghy.ui.calibration.BedMeshScreen
 import works.mees.dinghy.ui.calibration.CalibrationHubScreen
 import works.mees.dinghy.ui.calibration.ProbeCalibrateScreen
@@ -77,17 +84,15 @@ import works.mees.dinghy.ui.calibration.TiltVariant
 import works.mees.dinghy.ui.move.MoveHolder
 import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
+import works.mees.dinghy.ui.route.FOOT_GUN_DESTS
+import works.mees.dinghy.ui.route.shouldPopToRoot
 import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
-import works.mees.dinghy.ui.outputs.OutputLedDetail
-import works.mees.dinghy.ui.outputs.OutputPinDetail
-import works.mees.dinghy.ui.outputs.OutputScrubberDetail
-import works.mees.dinghy.ui.outputs.OutputScrubberType
 import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
@@ -103,36 +108,37 @@ import works.mees.dinghy.config.ConnectionConfig
 import android.graphics.Bitmap
 
 /**
- * The running shell host (SHELL-01) — it renders the active [Dest] FULL-BLEED with NO persistent
+ * The running shell host (SHELL-01) — it renders the active [NavDest] FULL-BLEED with NO persistent
  * title/status bar (status is color on existing elements, never global chrome) and exposes the ONE
  * navigation surface: the swipe-up full-screen [AppDrawer] (D-14).
  *
- * ## Lean route holder + back stack — NOT Navigation-Compose (D-05)
- * The active destination is a single `var dest` rendered by a lean `when(dest)` (lighter than a nav
- * graph; each panel is a one-line addition). Navigation keeps a small [backStack] of CALLER dests:
- * opening a panel pushes the current screen, and Back (system OR gutter) pops to the caller. PrintStatus
- * is the home root — navigating home clears the stack, and Back at home falls through to the OS so it
- * closes the app. There is NO `androidx.navigation` dependency here.
+ * ## Navigation-Compose NavHost (Phase 24 — plan 24-03)
+ * The active destination is driven by a [NavHost] (replaces the old hand-rolled `when(dest)` hub-and-spoke
+ * holder). [rememberNavController] owns the drill-down back-stack; destinations are type-safe
+ * `@Serializable` [NavDest] objects. The start destination is derived from the dev-gated
+ * [ShellNavState.startDest] seed (null in release → [NavDest.WaterfallHome]).
  *
- * ## Settings is an IN-SHELL destination (review #2/#11)
- * Settings is reached via the drawer's "Settings" tile (`Dest.Settings`) and rendered here like any
- * other destination. There is deliberately NO `onOpenSettings` callback on this shell: the only
- * open-Settings-OUTSIDE-the-shell path (first-run / splash "Edit connection") is owned by the
- * [RootController] (Task 2). Saving the connection from in-shell Settings returns the shell to Print
- * Status.
+ * ## Accepted regression: land-on-root after recovery Splash (FIX-3, owner-locked 2026-06-09)
+ * After a reconnect/recovery Splash the user LANDS ON [NavDest.WaterfallHome] AND each in-screen
+ * sub-nav RESETS to its hub. The [NavHost] is composition-local inside [AppShell] and decomposes
+ * during the Splash (gate-above in [RootController]), so the drill-down back-stack is NOT preserved
+ * across the recovery. [ShellNavState.applyEntryReset] clears the sub-nav on the next entry into
+ * Macros/Calibration/FineTune. This is the deliberate, simpler path the owner accepted — it is NOT
+ * a bug; executors and verifiers must EXPECT both behaviors.
  *
- * ## Drawer gesture + collapse
- * A swipe UP anywhere on the canvas opens the drawer (`drawerOpen = true`); the drawer floats over the
- * destination as a full-screen overlay. `BackHandler(enabled = drawerOpen)` collapses it on system
- * Back. Tapping a live drawer tile sets [Dest] and collapses.
+ * ## Session holder hoist
+ * All ~20 session holders live ABOVE the [NavHost]. Each holder is `remember(store)`-keyed so a spine
+ * rebuild (reconnect) re-keys it onto the new session. The four leak-cancel [DisposableEffect] blocks
+ * (webcam/spool/console/macro) are preserved verbatim above the [NavHost].
  *
- * ## Per-session Print Status holder
- * The Print Status home needs a [PrintStatusHolder] built from the LIVE per-session [PrinterStateStore]
- * (it owns the primary-heater RingBuffer + the 2×3 grid model). The shell reads the current
- * [works.mees.dinghy.di.SpineHandle.store] off [AppContainer.spine] and `remember`s a holder keyed on
- * that store, so a spine rebuild (reconnect) re-keys the holder onto the new session's store. While
- * idle (no spine) an empty fallback store backs the holder so the surface still composes (it shows the
- * idle "Ready"/— readout). All color routes through [LocalTokens] (THEME-01).
+ * ## Overlays
+ * All overlays (MacroPopup, ScanSurface, PromptDialog, DevThemeCycler, AppDrawer, bottom-edge bar, and the
+ * printing-only [FloatingEStop] + Stop Confirm guard) float as Box siblings AFTER the [NavHost] so they
+ * render above EVERY destination (FIX-1 — the e-stop is now app-level, reachable from any screen).
+ *
+ * ## Settings is an IN-SHELL destination
+ * Settings is reached via the drawer's "Settings" tile ([NavDest.Settings]) and rendered here like any
+ * other destination. There is deliberately NO `onOpenSettings` callback on this shell.
  *
  * @param container the process-scoped service-locator (provides the live spine + theme + dispatcher).
  */
@@ -145,41 +151,20 @@ fun AppShell(
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
 
-    // The lean route holder (D-05) — NOT Navigation-Compose — is HOISTED into [ShellNavState], owned by
-    // [RootController] ABOVE the Splash/Shell switch, so a transient recovery Splash that decomposes this
-    // shell does NOT reset the user to Home (G-A1, 13-05 Task 2). [dest] is the visible screen; the
-    // [backStack] holds the CALLERS (most-recent last); navigating to a panel pushes the current screen,
-    // Back pops to the caller; PrintStatus is the home/root (navigating home CLEARS the stack; Back at
-    // home falls through to the OS so it closes the app). [drawerOpen] stays shell-local (it is
-    // meaningless while the shell is decomposed). Local aliases keep the body below unchanged.
-    val dest = nav.dest
-    val backStack = nav.backStack
+    // ---- Navigation-Compose back-stack (Phase 24-03) -----------------------------------------------
+    // The NavHost start destination is derived from the dev-gated nav.startDest seed (null in release →
+    // WaterfallHome). Read ONCE into the startDestination param — NOT via a LaunchedEffect (RESEARCH Pitfall 2).
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+    // Drawer state stays shell-local (it is meaningless while the shell is decomposed — not hoisted).
     var drawerOpen by remember { mutableStateOf(false) }
 
-    // Macro sub-navigation (within Dest.Macros — NOT separate top-level Dests, mirroring how the popup
-    // lives inside the macro surface). The drawer "Macros" tile opens the Bookmarked launcher;
-    // `Manage macros` reveals the System list; tapping a macro opens its Execution popup as an overlay.
-    // [macroShowSystem] is a view PREFERENCE (preserved across the Splash blip); [macroPopupFor] is
-    // TRANSIENT (reset on return from a recovery Splash). Both live on the hoisted [nav].
-    val macroShowSystem = nav.macroShowSystem
-    val macroPopupFor = nav.macroPopupFor
-
-    // Calibration sub-navigation (a lean LOCAL back-stack WITHIN Dest.Calibration — NOT five new
-    // top-level Dests, mirroring how Dest.Macros hosts its Bookmarked-vs-System sub-screens). null =
-    // the hub; a non-null routine = that routine's page. The hub's onNavigate pushes; a BackHandler
-    // (and each page's green Back) pops back to the hub. Hoisted on [nav] so a user mid-routine returns
-    // to it after a recovery Splash, not to Home.
+    // In-screen sub-nav aliases (D-01 holdouts — NOT promoted to NavHost routes).
+    // macroShowSystem + macroPopupFor removed: Macros merged to a single FieldMode screen (25-05).
+    // fineTuneGroup removed: Fine-Tune is now a flat single-screen (26-02), no sub-nav.
+    // ShellNavState still owns calibrationRoutine (applyEntryReset + ShellNavState reset-on-Splash).
     val calibrationRoutine = nav.calibrationRoutine
-
-    // Fine-Tune sub-navigation (a lean LOCAL back-stack WITHIN Dest.FineTune — NOT four top-level Dests,
-    // mirroring Dest.Calibration above). null = the Hub; a non-null group = that group's page. The Hub's
-    // onNavigate pushes; a BackHandler (and each page's neutral Back) pops back to the Hub. Reset to null
-    // on entry by [ShellNavState.navigateTo] (REVIEW #6). Hoisted on [nav] so a user mid-group returns to
-    // it after a recovery Splash, not to Home.
-    val fineTuneGroup = nav.fineTuneGroup
-
-    fun navigateTo(target: Dest) = nav.navigateTo(target)
-    fun goBack() = nav.goBack()
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
@@ -194,7 +179,9 @@ fun AppShell(
     val fileBrowser = spine?.fileBrowser ?: idleFileBrowser
     // The three Phase-5 control panels — each holder built off the SAME live per-session store and
     // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
-    val temperatureHolder = remember(store) { TemperatureHolder(scope = scope, store = store) }
+    val temperatureHolder = remember(store) {
+        TemperatureHolder(scope = scope, store = store, traceStylePrefs = container.traceStylePrefs)
+    }
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
     val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
     val filesHolder = remember(fileBrowser, printerStateFlow) {
@@ -214,17 +201,22 @@ fun AppShell(
     // The live per-session cam enumeration + the persisted connection config (host/port → the D-09
     // URL-resolution base + the per-printer preferred-cam key). An idle fallback keeps the holder
     // constructible while no session/config exists (it simply enumerates no cams → never drives a feed).
+    // WR-02 fix (25-06): read from container.activeConfig (the live Phase-14 source — combines the active
+    // profile's host/port/apiKey) instead of the write-dead connectionStore.config. This was the root cause
+    // of the Phase-15 webcam-screen crash (empty host → invalid URL → IllegalArgumentException); the crash
+    // was gracefully fixed in 49f3fe2 but the stale-source read remained. activeCfg is now nullable
+    // (ConnectionConfig?) — downstream consumers use activeCfg?.host ?: "" for null safety.
     val webcams = spine?.webcams ?: remember { MutableStateFlow(emptyList<works.mees.dinghy.state.Webcam>()) }
-    val cfg by container.connectionStore.config.collectAsStateWithLifecycle(initialValue = null)
-    val activeCfg = cfg ?: ConnectionConfig(host = "")
+    val activeCfg by container.activeConfig.collectAsStateWithLifecycle(initialValue = null)
     // D-06: the per-printer preferred-cam pref keys on the ACTIVE PROFILE ID (not the host) so two
     // same-host profiles keep distinct preferred cams. The feed URLs still resolve off `activeCfg`;
     // only the pref KEY moves to the profile id. Empty string when no active profile (the webcam
     // surface is only reachable with an active printer, so the empty-suffixed key is rarely hit).
-    val activeProfileId by container.activeProfile.map { it?.id }.collectAsStateWithLifecycle(initialValue = null)
+    // D-01 hoist (22-07): these were inline `.map{}` expressions that created new un-memoized Flow objects
+    // on every shell recomposition; now collected from process-scoped AppContainer StateFlows (stable singletons).
+    val activeProfileId by container.activeProfileId.collectAsStateWithLifecycle()
     // D-03 active-printer indicator: the active profile's display name → the Devices drawer-tile subtitle.
-    // The SAME collect-and-thread shape webcamEnabled/spoolEnabled use; null when no active profile.
-    val activeName by container.activeProfile.map { it?.displayName() }.collectAsStateWithLifecycle(initialValue = null)
+    val activeName by container.activeName.collectAsStateWithLifecycle()
     // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
     // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
     val density = LocalDensity.current
@@ -247,15 +239,15 @@ fun AppShell(
     // are captured once (first orientation) and feed only the MJPEG-fallback downscale, which tolerates
     // stale px safely (it can only over-downscale, never an OOM risk on the 2 GB floor).
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val webcamSurfaceProvider = remember(store, activeCfg.host, activeProfileId) {
+    val webcamSurfaceProvider = remember(store, activeCfg?.host ?: "", activeProfileId) {
         Media3SurfaceProvider()
     }
-    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg.host, activeProfileId) {
+    val webcamHolder: WebcamHolder<Bitmap> = remember(store, activeCfg?.host ?: "", activeProfileId) {
         webcamMedia3Holder(
             scope = scope,
             webcams = webcams,
             webcamPrefs = container.webcamPrefs,
-            cfg = activeCfg,
+            cfg = activeCfg ?: ConnectionConfig(host = ""),
             profileId = activeProfileId ?: "",
             sharedClient = container.webcamHttpClient,
             viewWidthPx = viewWidthPx,
@@ -272,13 +264,14 @@ fun AppShell(
     DisposableEffect(webcamHolder) { onDispose { webcamHolder.cancel() } }
     // Page-visible lifecycle (SC-3/D-13): the decode/poll/retry loops run ONLY while the Webcam page is
     // the active dest AND the process is foreground (STARTED). repeatOnLifecycle(STARTED) covers the
-    // screen-off/home-button case (auto-cancel on STOPPED); keying the effect on [dest] means nav-AWAY
-    // (dest leaves Dest.Webcam) cancels the effect → stop(). No background decode, no leaked stream.
-    // (The screen's own DisposableEffect also starts/stops; this shell binding is the authoritative
-    // foreground gate — both compose cleanly: a stop() is idempotent.)
+    // screen-off/home-button case (auto-cancel on STOPPED); keying the effect on [navBackStackEntry] means
+    // nav-AWAY (back-stack entry changes away from NavDest.Webcam) cancels the effect → stop(). No background
+    // decode, no leaked stream. (The screen's own DisposableEffect also starts/stops; this shell binding is
+    // the authoritative foreground gate — both compose cleanly: a stop() is idempotent.)
     val lifecycleOwner = LocalLifecycleOwner.current
-    androidx.compose.runtime.LaunchedEffect(webcamHolder, dest, lifecycleOwner) {
-        if (dest == Dest.Webcam) {
+    LaunchedEffect(webcamHolder, navBackStackEntry, lifecycleOwner) {
+        val isWebcam = navBackStackEntry?.destination?.isRoute<NavDest.Webcam>() == true
+        if (isWebcam) {
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 webcamHolder.start()
                 try {
@@ -304,6 +297,10 @@ fun AppShell(
     val activeSpoolFlow = spine?.activeSpool
         ?: remember { MutableStateFlow<works.mees.dinghy.spool.SpoolmanStatus?>(null) }
     val spoolHolder = remember(store) { SpoolHolder(scope = scope, client = spoolmanClient, activeSpool = activeSpoolFlow) }
+    // Cancel this holder's detached collector when `remember(store)` swaps it on a spine rebuild
+    // (reconnect) — otherwise the discarded holder leaks its collector until the shell leaves
+    // composition, compounding per reconnect (CR-01). Mirrors ConsoleHolder / MacroHolder pattern.
+    DisposableEffect(spoolHolder) { onDispose { spoolHolder.cancel() } }
     // The live active-spool status the Files print-start gate reads (D-01) — the D-10-reconciled truth.
     val activeSpoolStatus by activeSpoolFlow.collectAsStateWithLifecycle()
     // 18.3-04 (D-06.2): the live active-spool DETAIL (color-bearing) for the drawer Spool tile's reactive
@@ -311,8 +308,15 @@ fun AppShell(
     // middle tier on the drawer; printMetadata is deliberately NOT threaded here — owner's simpler-diff
     // narrowing of D-07). A null detail / malformed hex → empty list → the honest empty spool (D-03).
     val activeSpoolDetail by spoolHolder.activeSpoolDetail.collectAsStateWithLifecycle()
-    val drawerSpoolSwatches: List<Color> =
-        activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
+    // D-01 stabilize (22-07): was an inline List<Color> allocation on every recomposition, which is
+    // unstable (Compose sees a different reference each frame and skips no re-draw). Wrapped in
+    // remember(activeSpoolDetail) + toImmutableList() so Compose can structurally skip AppDrawer when
+    // the spool color hasn't changed. ImmutableList is stable per kotlinx-collections-immutable contract.
+    val drawerSpoolSwatches: ImmutableList<Color> = remember(activeSpoolDetail) {
+        activeSpoolDetail?.filament?.colorSwatches.orEmpty()
+            .mapNotNull(::parseNormalizedHex)
+            .toImmutableList()
+    }
 
     // ---- Outputs holder + capability gate (19-07) --------------------------------------------------
     // The D-10 capability HIDE signal: the drawer Output tile is SHOWN only when the CURRENT session's
@@ -326,22 +330,6 @@ fun AppShell(
     // empty fallback store backs it (no descriptors → an empty list). The holder is dispatch-free; the detail
     // pages source the dispatcher from `container.dispatcher` (== spine?.dispatcher) themselves.
     val outputsHolder = remember(store) { OutputsHolder(scope = scope, store = store) }
-    // The list↔detail LOCAL back-stack within Dest.Outputs (a single selected objectKey — null = the list,
-    // non-null = that output's detail page; mirrors Dest.Calibration's local hub↔routine stack, NOT new
-    // top-level Dests). Shell-local (like drawerOpen): a detail page is transient and need not survive a
-    // recovery Splash. The live descriptor list drives the SELECTION RESET below.
-    val outputRows by outputsHolder.rows.collectAsStateWithLifecycle()
-    var selectedOutputKey by remember(outputsHolder) { mutableStateOf<String?>(null) }
-    // SELECTION RESET (review MEDIUM): if the selected output's objectKey is NO LONGER in the live row list
-    // (output removed/renamed, or descriptors cleared on a printer switch per 19-04), pop back to the list so
-    // the user is never stranded on a dead detail page. Keyed on the row list so a descriptor-set change
-    // re-evaluates; nulls the selection the moment its key disappears.
-    androidx.compose.runtime.LaunchedEffect(outputRows, selectedOutputKey) {
-        val key = selectedOutputKey
-        if (key != null && outputRows.none { it.descriptor.objectKey == key }) {
-            selectedOutputKey = null
-        }
-    }
 
     // ---- System Information holder (20-04) ----------------------------------------------------------
     // The dedicated per-session read-only host-telemetry holder (off the printer hot path — host CPU
@@ -383,10 +371,9 @@ fun AppShell(
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
-    val zTiltVm by zTiltHolder.vm.collectAsStateWithLifecycle()
-    val qglVm by qglHolder.vm.collectAsStateWithLifecycle()
-    val bedMeshVm by bedMeshHolder.vm.collectAsStateWithLifecycle()
-    val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+    // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
+    // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
+    // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
 
     // ---- Fine-Tune holder (17-06) ------------------------------------------------------------------
     // ONE FineTuneHolder per spine (re-keyed when the spine rebuilds (reconnect), mirroring the Phase-5
@@ -428,14 +415,12 @@ fun AppShell(
         }
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
-    // Macro bookmarks/revealHidden are PROCESS-scoped (container.macroPrefs from Task 1 B1) — they
-    // survive reconnects, so they are stateIn'd ONCE on the shell scope (not re-keyed on the store).
-    val bookmarksFlow = remember {
-        container.macroPrefs.bookmarks.stateIn(scope, SharingStarted.Eagerly, emptySet())
-    }
-    val revealHiddenFlow = remember {
-        container.macroPrefs.revealHidden.stateIn(scope, SharingStarted.Eagerly, false)
-    }
+    // Macro bookmarks/revealHidden are PROCESS-scoped and live on AppContainer.stateScope (WR-02 fix):
+    // the prior stateIn(rememberCoroutineScope()) was cancelled when AppShell left composition (recovery
+    // Splash), causing the cached StateFlows to go stale post-Splash. Reading the process-scoped
+    // StateFlows directly from the container avoids any composition-scope lifecycle dependency.
+    val bookmarksFlow = container.macroBookmarks
+    val revealHiddenFlow = container.macroRevealHidden
     // Capabilities StateFlow for the holder: the live session's (carries macro NAMEs) or an empty
     // fallback while idle. Re-keyed when the spine rebuilds so a reconnect re-points the macro universe.
     val idleCapabilities = remember { MutableStateFlow(Capabilities()) }
@@ -455,7 +440,7 @@ fun AppShell(
     DisposableEffect(macroHolder) { onDispose { macroHolder.cancel() } }
     // Feed the parsed macro bodies seam (handshake/reconnect) into the holder so each macro's params
     // populate. Re-collected when the store rebuilds (a new session's macroBodies).
-    androidx.compose.runtime.LaunchedEffect(macroHolder, store) {
+    LaunchedEffect(macroHolder, store) {
         store.macroBodies.collect { macroHolder.setMacroBodies(it) }
     }
     // The current session dispatcher (the macro Execution popup routes through it); null while idle.
@@ -480,47 +465,45 @@ fun AppShell(
     // rebuilds so a reconnect re-points at the new session's store flag.
     val consoleBackfillFailed by store.consoleBackfillFailed.collectAsStateWithLifecycle()
 
-    // System Back: collapse the drawer if open; otherwise pop the back stack to the calling screen.
-    // When the drawer is closed AND we're at the home root (empty stack), this is DISABLED so the OS
-    // handles Back and closes the app (the desired "only Status closes the app" behavior).
+    // ---- App-level e-stop guard state (FIX-1 — hoisted from PrintStatusScreen) ----------------------
+    // The FloatingEStop + Stop Confirm guard are now AppShell-level Box siblings ABOVE the NavHost so
+    // they appear on EVERY destination while printing — not just WaterfallHome. This is D-14: "every
+    // screen only when printing". The guard is reachable from Move/Extrude/Console/etc. while printing.
+    var showEstopGuard by remember { mutableStateOf(false) }
+
+    // ---- BackHandler priority (FIX-2) --------------------------------------------------------------
+    // Compose BackHandler priority: most-recently-COMPOSED ENABLED handler wins. NavHost registers its
+    // own internal back handler when composed. By placing AppShell-level overlay handlers BEFORE the
+    // NavHost call, they have LOWER priority than handlers inside composable<> lambdas. The overlay
+    // handlers placed AFTER the NavHost (or more accurately, alongside it in the Box) outprioritize
+    // the NavHost because Compose processes BackHandlers in reverse composition order (later = higher).
+    // The strategy: overlay BackHandlers are placed so a VISIBLE overlay consumes Back BEFORE NavHost pops.
+    //
+    // Concretely: BackHandlers for drawer/scan/prompt are registered here (in composition order before
+    // the BoxWithConstraints body that contains the NavHost), giving them lower priority than in-screen
+    // sub-nav handlers inside NavHost composable lambdas. However, since they are ENABLED conditionally
+    // and NavHost's internal handler pops when enabled, the net effect is:
+    //   1. An active overlay (drawer/scan/prompt) is enabled → its handler fires FIRST.
+    //   2. NavHost pops drill-down when no overlay is active.
+    //   3. In-screen sub-nav BackHandlers inside composable<> lambdas have even higher priority (innermost).
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
-    BackHandler(enabled = !drawerOpen && backStack.isNotEmpty()) { goBack() }
-    // Macro sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
-    // higher priority): an open popup closes first, then the System list returns to the launcher.
-    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor != null) {
-        nav.macroPopupFor = null
-    }
-    BackHandler(enabled = !drawerOpen && dest == Dest.Macros && macroPopupFor == null && macroShowSystem) {
-        nav.macroShowSystem = false
-    }
-    // Calibration sub-state intercepts system Back BEFORE the generic back-stack pop (registered later =
-    // higher priority): an open routine page returns to the hub; from the hub, Back falls through to the
-    // generic back-stack pop (leaving the Calibration surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.Calibration && calibrationRoutine != null) {
+    // The old generic "pop backStack" BackHandler is REMOVED — NavHost now owns drill-down Back.
+    // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
+    // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
+    // Calibration sub-state intercepts Back — an open routine page returns to the hub.
+    BackHandler(
+        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Calibration>() == true && calibrationRoutine != null
+    ) {
         nav.calibrationRoutine = null
     }
-    // Outputs sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration): an
-    // open per-output detail page returns to the list by clearing [selectedOutputKey]; from the list, Back
-    // falls through to the generic back-stack pop (leaving the Outputs surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.Outputs && selectedOutputKey != null) {
-        selectedOutputKey = null
-    }
-    // Fine-Tune sub-state intercepts system Back BEFORE the generic back-stack pop (mirrors Calibration):
-    // an open group page (Motion/Extrusion/FwRetraction) returns to the Hub; from the Hub, Back falls
-    // through to the generic back-stack pop (leaving the Fine-Tune surface).
-    BackHandler(enabled = !drawerOpen && dest == Dest.FineTune && fineTuneGroup != null) {
-        nav.fineTuneGroup = null
-    }
-    // The open QR scan overlay (11-07) intercepts system Back: close the scan (releasing the camera via
+    // The open QR scan overlay intercepts Back: close the scan (releasing the camera via
     // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
     BackHandler(enabled = !drawerOpen && nav.scanActive) {
         nav.scanActive = false
     }
-    // An open Macro Prompt (12-05) intercepts system Back as an EXPLICIT user dismissal: dispatch
-    // `action:prompt_end` (the SAME path as the close control) so the prompt closes via the echoed
-    // prompt_end round-trip — NOT a local teardown. Registered last (highest priority) so a visible
-    // prompt dismisses before any generic back-stack pop. (Disconnect, by contrast, closes the prompt
-    // LOCALLY with NO dispatch — that path lives in the engine, D-10.)
+    // An open Macro Prompt intercepts Back as an EXPLICIT user dismissal (registered last = highest priority
+    // among AppShell-level handlers). Dispatch `action:prompt_end` so the prompt closes via the echoed
+    // prompt_end round-trip — NOT a local teardown. (Disconnect closes the prompt LOCALLY with NO dispatch.)
     BackHandler(enabled = !drawerOpen && promptView.visible) {
         dispatcher?.dispatch(
             promptEngine.closeKey,
@@ -534,136 +517,153 @@ fun AppShell(
             .fillMaxSize()
             .background(t.bg)
             // Swipe UP from anywhere on the canvas reveals the drawer (the one nav affordance).
-            // EXCEPT on the finger-scrollable picker/scrollback screens — Files (RecyclerView picker),
-            // Console (RecyclerView scrollback) and Macros (the System manage-visibility LazyColumn):
-            // a full-canvas vertical-drag detector fights the list scroll ("the stroke gets confusing").
-            // Each of those screens keeps an explicit green Back in its gutter as the exit (D-05).
-            .pointerInput(dest, promptView.visible) {
-                // Calibration is suppressed too: BedMeshScreen's Load selector is a scrollable Field
-                // (the Files Views-in-Compose scroll lesson) — the hub + each page keeps an explicit
-                // green Back as the exit (D-05).
-                // Webcam joins the swipe-suppress set: the full-focus cam-cycle tap overlay wants the
-                // whole canvas (a full-canvas vertical-drag detector would fight that tap), and the
-                // explicit red Back gutter is the exit (D-05, PATTERNS.md recommends YES).
-                // Spool joins the swipe-suppress set: it hosts a scrollable dense picker (the Files
-                // Views-in-Compose scroll lesson); a full-canvas vertical-drag detector would fight the
-                // list scroll. Its explicit red Back gutter is the exit (D-05).
-                // A visible Macro Prompt (12-05) ALSO suppresses the swipe: the full-screen overlay
-                // floats over any screen and owns the whole canvas (its Field scrolls its own content),
-                // so a content scroll must never trigger nav while the prompt is up. The prompt's
-                // always-present close control is the exit (D-05 exit-in-overlay).
-                // Theme / Settings / About join the swipe-suppress set (15.2-04): they are FFG-exempt
-                // scrollable keyboard surfaces (a full-canvas vertical-drag detector would fight the
-                // content scroll, the Files Views-in-Compose scroll lesson). Each has its own explicit
-                // exit — Theme's green "Done", About's gutter Back; Settings is short but suppressed for
-                // consistency (its tap-rows would otherwise compete with the drawer pull).
-                if (!promptView.visible &&
-                    dest !in setOf(
-                        Dest.Files, Dest.Console, Dest.Macros, Dest.Calibration, Dest.Webcam, Dest.Spool,
-                        // Outputs joins the swipe-suppress set (19-07): the Outputs list is a scrollable
-                        // Field — a full-canvas vertical-drag detector would fight the list scroll (the Files
-                        // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit (D-10).
-                        Dest.Outputs,
-                        // SystemInfo joins the swipe-suppress set (20-04): the page is a scrollable Field
-                        // (a full-canvas vertical-drag detector would fight the content scroll, the Files
-                        // Views-in-Compose scroll lesson). Its explicit neutral Back gutter is the exit
-                        // (staging doc: suppress the global drawer on this screen, matching About).
-                        Dest.SystemInfo,
-                        Dest.Devices, Dest.Theme, Dest.Settings, Dest.About,
-                    )
-                ) {
+            // EXCEPT on finger-scrollable picker/scrollback screens and overlay-heavy screens that
+            // own the whole canvas — those screens keep an explicit green Back in their gutter as
+            // the exit (D-05). Now keyed on [navBackStackEntry] instead of the old `dest` enum.
+            .pointerInput(navBackStackEntry, promptView.visible) {
+                // The swipe-suppress set — destinations where a full-canvas vertical-drag detector
+                // would fight list scroll, overlay taps, or keyboard content.
+                // Files, Console, Macros, Calibration, Webcam, Spool, Outputs, SystemInfo, Devices,
+                // Theme, Settings, About — plus any visible Macro Prompt (floats over ANY screen).
+                // WR-06 (26-rev): the Phase-26 rebuilds qualify under the same criteria — Temperature
+                // and FineTune host scrollable ListBlock Fields, Extrude hosts BasicTextField IME
+                // entry — so they join the set (consistent with their sibling list screens).
+                val d = navBackStackEntry?.destination
+                val suppressSwipe = promptView.visible || (d != null && (
+                    d.isRoute<NavDest.Files>() ||
+                    d.isRoute<NavDest.Console>() ||
+                    d.isRoute<NavDest.Macros>() ||
+                    d.isRoute<NavDest.Calibration>() ||
+                    d.isRoute<NavDest.Webcam>() ||
+                    d.isRoute<NavDest.Spool>() ||
+                    d.isRoute<NavDest.Outputs>() ||
+                    d.isRoute<NavDest.SystemInfo>() ||
+                    d.isRoute<NavDest.Devices>() ||
+                    d.isRoute<NavDest.Theme>() ||
+                    d.isRoute<NavDest.Settings>() ||
+                    d.isRoute<NavDest.About>() ||
+                    d.isRoute<NavDest.Temperature>() ||
+                    d.isRoute<NavDest.FineTune>() ||
+                    d.isRoute<NavDest.Extrude>()
+                ))
+                if (!suppressSwipe) {
                     detectVerticalDragGestures { _, dragAmount ->
                         if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
                     }
                 }
             },
     ) {
-        // The active destination, full-bleed (no persistent chrome).
-        when (dest) {
-            Dest.PrintStatus -> PrintStatusScreen(
-                container = container,
-                // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real Dest
-                // via onNavigate; the always-present flexible Drawer tile opens the swipe-up drawer.
-                onNavigate = { navigateTo(it) },
-                onOpenDrawer = { drawerOpen = true },
-                // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
-                onScanSpool = { nav.scanActive = true },
-                // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
-                errorLines = errorLines,
-            )
-            Dest.Temperature -> TemperatureScreen(
-                container = container,
-                holder = temperatureHolder,
-                onBack = { goBack() },
-            )
-            Dest.Move -> MoveScreen(
-                container = container,
-                holder = moveHolder,
-                onBack = { goBack() },
-            )
-            Dest.Extrude -> ExtrudeScreen(
-                container = container,
-                holder = extrudeHolder,
-                onBack = { goBack() },
-            )
-            Dest.Files -> FilesScreen(
-                holder = filesHolder,
-                printerState = printerState,
-                httpBase = httpBase,
-                canStartPrint = capabilities.hasObject("virtual_sdcard"),
-                onBack = { goBack() },
-                // D-01 warn-only print-start gate inputs (SPOOL-07): the capability gate, the
-                // D-10-reconciled active status, and the inventory reader the gate resolves the
-                // active-spool detail through. The gate is skipped entirely when spoolman is absent.
-                spoolmanPresent = spoolEnabled,
-                activeSpoolStatus = activeSpoolStatus,
-                spoolmanClient = spoolmanClient,
-                // D-04 gcode-aware prefilter: the gate's "Pick spool" seeds the picker from the file's
-                // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
-                onPickSpoolForFile = { filamentType, filamentColors ->
-                    nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
-                    navigateTo(Dest.Spool)
-                },
-                // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
-                onScanSpool = { nav.scanActive = true },
-            )
-            Dest.Macros -> {
-                // The macro surface: Bookmarked launcher OR the System manage-visibility list. Tapping a
-                // macro opens its Execution popup as a full-screen overlay (rendered below, outside the
-                // when so it floats over either sub-screen). Back from the launcher leaves the surface;
-                // Back from the System list returns to the launcher.
-                if (macroShowSystem) {
-                    SystemMacrosScreen(
-                        holder = macroHolder,
-                        onToggleBookmark = { name -> scope.launch { container.macroPrefs.toggleBookmark(name) } },
-                        onSetRevealHidden = { reveal -> scope.launch { container.macroPrefs.setRevealHidden(reveal) } },
-                        onBack = { nav.macroShowSystem = false },
-                    )
-                } else {
-                    BookmarkedMacrosScreen(
-                        holder = macroHolder,
-                        onRunMacro = { macro -> nav.macroPopupFor = macro },
-                        onManage = { nav.macroShowSystem = true },
-                        onBack = { goBack() },
-                    )
-                }
+        // ---- NavHost (replaces the old when(dest) hub-and-spoke) -----------------------------------
+        // FIX-7: start destination derived from the dev-gated nav.startDest seed (null in release →
+        // WaterfallHome). Read ONCE as the startDestination param — NOT via LaunchedEffect (Pitfall 2).
+        // Each composable<NavDest.*> receives its already-hoisted holder as a parameter; navigation seams
+        // call navController.navigate(NavDest.X); onBack calls navController.popBackStack().
+        // In-screen sub-nav (Macros/Calibration/FineTune/Outputs) stays INSIDE its destination
+        // composable (D-01 — NOT promoted to NavHost routes this phase).
+        NavHost(
+            navController = navController,
+            startDestination = nav.startDest ?: NavDest.WaterfallHome,
+        ) {
+            composable<NavDest.WaterfallHome> {
+                PrintStatusScreen(
+                    container = container,
+                    // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real NavDest
+                    // via onNavigate; the always-present flexible Drawer tile opens the swipe-up drawer.
+                    onNavigate = { navController.navigate(it) },
+                    onOpenDrawer = { drawerOpen = true },
+                    // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
+                    onScanSpool = { nav.scanActive = true },
+                    // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
+                    errorLines = errorLines,
+                )
             }
-            Dest.Console -> ConsoleScreen(
-                holder = consoleHolder,
-                onBack = { goBack() },
-                backfillFailed = consoleBackfillFailed,
-            )
-            Dest.Calibration -> {
+            composable<NavDest.Temperature> {
+                TemperatureScreen(
+                    container = container,
+                    holder = temperatureHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Move> {
+                MoveScreen(
+                    container = container,
+                    holder = moveHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Extrude> {
+                ExtrudeScreen(
+                    container = container,
+                    holder = extrudeHolder,
+                    activeSpoolDetail = activeSpoolDetail,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Files> {
+                FilesScreen(
+                    holder = filesHolder,
+                    printerState = printerState,
+                    httpBase = httpBase,
+                    canStartPrint = capabilities.hasObject("virtual_sdcard"),
+                    onBack = { navController.popBackStack() },
+                    // D-01 warn-only print-start gate inputs (SPOOL-07): the capability gate, the
+                    // D-10-reconciled active status, and the inventory reader the gate resolves the
+                    // active-spool detail through. The gate is skipped entirely when spoolman is absent.
+                    spoolmanPresent = spoolEnabled,
+                    activeSpoolStatus = activeSpoolStatus,
+                    spoolmanClient = spoolmanClient,
+                    // D-04 gcode-aware prefilter: the gate's "Pick spool" seeds the picker from the file's
+                    // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
+                    onPickSpoolForFile = { filamentType, filamentColors ->
+                        nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
+                        navController.navigate(NavDest.Spool)
+                    },
+                    // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
+                    onScanSpool = { nav.scanActive = true },
+                )
+            }
+            composable<NavDest.Macros> {
+                // Entry reset: entering the Macros surface always starts on the Bookmarked launcher (FIX-3).
+                // applyEntryReset clears macroShowSystem + macroPopupFor (ShellNavState legacy fields, still
+                // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
+                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
+
+                // Merged Macros screen (25-05 / D-09): ONE screen with MacroFieldMode (Launcher /
+                // ParamEntry / ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
+                // MacroExecutionPopup. MacroPrefs writes route through AppContainer.writeScope intent
+                // methods (WR-08 — [[dinghy-compose-write-scope-cancellation]]: a composition-scoped
+                // launch is cancelled by same-frame decomposition, silently dropping the write);
+                // session dispatcher passed for ParamEntry execute path; null-safe (Execute disabled
+                // while idle, WR-03).
+                BookmarkedMacrosScreen(
+                    holder = macroHolder,
+                    dispatcher = dispatcher,
+                    onToggleBookmark = container::toggleMacroBookmark,
+                    onSetRevealHidden = container::setMacroRevealHidden,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Console> {
+                ConsoleScreen(
+                    holder = consoleHolder,
+                    onBack = { navController.popBackStack() },
+                    backfillFailed = consoleBackfillFailed,
+                )
+            }
+            composable<NavDest.Calibration> {
+                // Entry reset: entering Calibration always starts on the hub (FIX-3).
+                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Calibration) }
+
                 // The calibration surface: the hub (a routine grid) OR the selected routine page. The
                 // hub's onNavigate pushes the LOCAL sub-dest; each page's green Back (and system Back)
                 // pops back to the hub by clearing [calibrationRoutine] — a lean local back-stack within
-                // Dest.Calibration (NOT five top-level Dests, mirroring Dest.Macros). The two tilt
-                // variants (Z-Tilt / QGL) share ONE TiltScreen via [TiltVariant] + a per-variant holder.
+                // NavDest.Calibration (NOT five top-level Dests, D-01). The two tilt variants share ONE
+                // TiltScreen via [TiltVariant] + a per-variant holder.
                 when (val routine = calibrationRoutine) {
                     null -> CalibrationHubScreen(
                         holder = calibrationHubHolder,
                         onNavigate = { nav.calibrationRoutine = it },
-                        onBack = { goBack() },
+                        onBack = { navController.popBackStack() },
                     )
                     CalibrationRoutine.SCREWS_TILT -> ScrewsTiltScreen(
                         container = container,
@@ -671,235 +671,142 @@ fun AppShell(
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.Z_TILT -> TiltScreen(
-                        vm = zTiltVm,
+                        container = container,
+                        holder = zTiltHolder,
                         variant = TiltVariant.ZTilt,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onRunDispatched = { zTiltHolder.markDispatched() },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onEnter = { zTiltHolder.reset() },
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
-                        vm = qglVm,
+                        container = container,
+                        holder = qglHolder,
                         variant = TiltVariant.Qgl,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onRunDispatched = { qglHolder.markDispatched() },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onEnter = { qglHolder.reset() },
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.BED_MESH -> BedMeshScreen(
-                        vm = bedMeshVm,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onCycleScaleMode = { bedMeshHolder.cycleScaleMode() },
+                        container = container,
+                        holder = bedMeshHolder,
                         onBack = { nav.calibrationRoutine = null },
                     )
                     CalibrationRoutine.PROBE_CALIBRATE -> ProbeCalibrateScreen(
-                        vm = probeCalibrateVm,
-                        tokens = t,
-                        dispatcher = dispatcher,
-                        onStartDispatched = { },
-                        onEnter = {
-                            probeCalibrateHolder.reset()
-                            // z_offset is kept fresh by the handshake's configfile one-shot, which the
-                            // post-SAVE_CONFIG notify_klippy_ready re-handshake re-runs (Phase 13) — so a
-                            // just-applied SAVE_CONFIG shows without an app restart and without a redundant
-                            // page-open configfile re-query (cadence contract Rule 3, gated GREEN by
-                            // ProbeZOffsetFreshnessTest).
-                        },
-                        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                        onAbort = { probeCalibrateHolder.markAborted() },
+                        container = container,
+                        holder = probeCalibrateHolder,
                         onBack = { nav.calibrationRoutine = null },
                     )
                 }
             }
-            Dest.FineTune -> {
-                // The Fine-Tune surface: the Hub (two group entries) OR the selected group page. The Hub's
-                // onNavigate sets the LOCAL sub-dest; each page's neutral Back (and system Back) pops back
-                // to the Hub by clearing [fineTuneGroup] — a lean local back-stack within Dest.FineTune
-                // (NOT four top-level Dests, mirroring Dest.Calibration). All four screens share the ONE
-                // [fineTuneHolder] so the D-15 whole-group state-flip busy lock is shared. The Extrusion
-                // FW-retraction entry is threaded via the explicit typed onFwRetraction callback (REVIEW
-                // #4) — the build-blind FW screen is thus a LIVE, compile-checked wire (gated off on both
-                // dev printers, shown only when the printer reports a firmware_retraction object).
-                when (val group = fineTuneGroup) {
-                    null -> FineTuneHubScreen(
-                        onNavigate = { nav.fineTuneGroup = it },
-                        onBack = { goBack() },
-                    )
-                    FineTuneGroup.MOTION -> MotionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = null },
-                    )
-                    FineTuneGroup.EXTRUSION -> ExtrusionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = null },
-                        onFwRetraction = { nav.fineTuneGroup = FineTuneGroup.FW_RETRACTION },
-                    )
-                    FineTuneGroup.FW_RETRACTION -> FwRetractionScreen(
-                        container = container,
-                        holder = fineTuneHolder,
-                        onBack = { nav.fineTuneGroup = FineTuneGroup.EXTRUSION },
-                    )
-                }
+            composable<NavDest.FineTune> {
+                // 26-02: flat single-screen Fine-Tune (replaces Hub + 3 group sub-pages).
+                // No entry reset needed — there is no sub-nav state left to clear.
+                FineTuneScreen(
+                    holder = fineTuneHolder,
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
             }
-            Dest.Webcam -> WebcamScreen(
-                holder = webcamHolder,
-                surfaceProvider = webcamSurfaceProvider,
-                onBack = { goBack() },
-            )
-            Dest.Spool -> SpoolScreen(
-                holder = spoolHolder,
-                dispatcher = dispatcher,
-                client = spoolmanClient,
-                onBack = { goBack() },
-                // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside the
-                // when(dest) — mirrors the macro Execution popup). The camera binds/releases there (D-14).
-                onScan = { nav.scanActive = true },
-                // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
-                // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it
-                // so a later manual reopen is unseeded.
-                prefilter = nav.spoolPrefilter,
-                onPrefilterConsumed = { nav.spoolPrefilter = null },
-            )
-            Dest.Outputs -> {
-                // The Outputs surface: the flat list (no selection) OR the selected output's per-type detail
-                // page. The list's onRowTap sets the LOCAL [selectedOutputKey]; each detail page's neutral Back
-                // (and system Back, above) pops back to the list by clearing it — a lean local back-stack within
-                // Dest.Outputs (NOT separate top-level Dests, mirroring Dest.Calibration). The selection RESETS
-                // to the list (LaunchedEffect above) when the selected objectKey leaves the live row list
-                // (removed/renamed/cleared-on-switch) so a removed output never strands the user on a dead page.
-                val selectedKey = selectedOutputKey
-                val selectedDescriptor: OutputDescriptor? =
-                    selectedKey?.let { k -> outputRows.firstOrNull { it.descriptor.objectKey == k }?.descriptor }
-                if (selectedDescriptor == null) {
-                    OutputsScreen(
-                        holder = outputsHolder,
-                        onRowTap = { key -> selectedOutputKey = key },
-                        onBack = { goBack() },
-                    )
-                } else {
-                    // Route to the right detail page by family/pwm (19-06 entry points). Live values are seeded
-                    // off the per-session printerState (RAW 0..1 → display units the page expects).
-                    val live = printerState.outputs[selectedDescriptor.objectKey]
-                    val popToList = { selectedOutputKey = null }
-                    when {
-                        selectedDescriptor.family == OutputsHolder.FAMILY_HEATER -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.HEATER,
-                            // heater_generic is single-sourced via `heaters` (19-04) — seed the current temp.
-                            currentValue = (printerState.heaters[selectedDescriptor.objectKey]?.target ?: 0.0)
-                                .toFloat(),
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_FAN -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.FAN,
-                            currentValue = ((live?.speed ?: 0.0) * 100.0).toFloat(), // 0..1 → %
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_SERVO -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.SERVO,
-                            // Servo `.value` is PWM, not the angle (SC-3) — seed from 0 (the page is dispatch-
-                            // only; the live angle can't be read back).
-                            currentValue = 0f,
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family == OutputsHolder.FAMILY_PWM_TOOL -> OutputScrubberDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            type = OutputScrubberType.PWM_TOOL,
-                            currentValue = ((live?.value ?: 0.0) * 100.0).toFloat(), // 0..1 → %
-                            onBack = popToList,
-                        )
-                        selectedDescriptor.family in OutputsHolder.LED_FAMILIES -> OutputLedDetail(
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            colorData = live?.colorData?.getOrNull(0),
-                            onBack = popToList,
-                        )
-                        else -> OutputPinDetail(
-                            // output_pin (digital → toggle, PWM → % scrubber; the page branches on pwm).
-                            container = container,
-                            holder = outputsHolder,
-                            descriptor = selectedDescriptor,
-                            currentPct = ((live?.value ?: 0.0) * 100.0).toFloat(),
-                            isOn = live?.value?.let { it >= 0.5 },
-                            onBack = popToList,
-                        )
-                    }
-                }
+            composable<NavDest.Webcam> {
+                WebcamScreen(
+                    holder = webcamHolder,
+                    surfaceProvider = webcamSurfaceProvider,
+                    onBack = { navController.popBackStack() },
+                )
             }
-            // Dest.SystemInfo (Phase 20, SYS-01..05): the read-only printer-host health page. The holder is
-            // the per-session SystemInfoHolder off AppContainer.systemInfoHolder (null while idle → the
-            // degraded all-"—" state). Back-only gutter; the drawer is suppressed on-screen (swipe-suppress
-            // set below). Mirrors Dest.About / Dest.Console arming.
-            Dest.SystemInfo -> SystemInformationScreen(
-                holder = systemInfoHolder,
-                onBack = { goBack() },
-            )
-            // Dest.Devices (D-01): the printer switcher (plan 05). onSwitched = navigateTo(Dest.PrintStatus)
-            // is the FIX-4 gate (D-02): ShellNavState.dest is PRESERVED across the recovery Splash, so without
-            // this explicit nav the preserved dest would return to Devices after the rebind Splash. Setting
-            // dest to PrintStatus on the tap makes the shell re-compose on the NEW printer's Status. NO rebind/
-            // disconnect logic here — only the nav; the runConfigLoop seam does the teardown+rebind (T-14-11).
-            Dest.Devices -> PrintersScreen(
-                container = container,
-                onAddPrinter = { navigateTo(Dest.Settings) }, // legacy fallback; Add-printer now opens the in-screen editor.
-                onSwitched = { navigateTo(Dest.PrintStatus) },
-                onBack = { goBack() },
-            )
-            // Dest.Theme (15.2-04 D-03): the per-printer look (the promoted theme editor). Its writes
-            // route through the per-profile setActive* intents (writeScope), so it changes only the active
-            // printer's saved look. Done/Back pops to the caller.
-            Dest.Theme -> ThemeScreen(
-                container = container,
-                onBack = { goBack() },
-            )
-            Dest.Settings -> SettingsScreen(
-                container = container,
-                onBack = { goBack() },
-            )
-            // Dest.About (15.2-04 D-05): the app-global remainder (version/build) + the dev-enable toggle
-            // (off clears the override, HIGH-5). Gutter Back pops to the caller.
-            Dest.About -> AboutScreen(
-                container = container,
-                onBack = { goBack() },
-            )
+            composable<NavDest.Spool> {
+                SpoolScreen(
+                    holder = spoolHolder,
+                    dispatcher = dispatcher,
+                    client = spoolmanClient,
+                    container = container,
+                    // Home foot-button pops to the existing WaterfallHome root (never pushes a duplicate).
+                    onHome = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                    // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside
+                    // the NavHost — mirrors the macro Execution popup). The camera binds/releases there.
+                    onScan = { nav.scanActive = true },
+                    // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
+                    // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it.
+                    prefilter = nav.spoolPrefilter,
+                    onPrefilterConsumed = { nav.spoolPrefilter = null },
+                )
+            }
+            composable<NavDest.Outputs> {
+                // Outputs screen (26-05 D-18/D-19): Detail-in-Focus layout — list + per-output inline
+                // control in the Focus region. No back-stack entries; selection state lives in OutputsScreen.
+                OutputsScreen(
+                    holder = outputsHolder,
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.SystemInfo> {
+                // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only gutter;
+                // the drawer is suppressed on-screen (swipe-suppress set above).
+                SystemInformationScreen(
+                    holder = systemInfoHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Devices> {
+                // NavDest.Devices (D-01): the printer switcher. onSwitched pops to the existing
+                // WaterfallHome root (FIX-4 gate, D-02) — navigate() would push a duplicate, breaking
+                // system Back (WR-03 fix). popBackStack is idempotent at root. NO rebind/disconnect here.
+                PrintersScreen(
+                    container = container,
+                    onAddPrinter = { navController.navigate(NavDest.Settings) },
+                    onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Theme> {
+                // NavDest.Theme (15.2-04 D-03): per-printer look editor. Done/Back pops to the caller.
+                ThemeScreen(
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.Settings> {
+                SettingsScreen(
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.About> {
+                // NavDest.About (15.2-04 D-05): app-global remainder + dev-enable toggle. Gutter Back pops.
+                AboutScreen(
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
-        // Macro Execution popup overlay (D-08) — a full-screen action gate floating over the macro
-        // surface. Shown only on Dest.Macros with a tapped macro AND a live session dispatcher (a macro
-        // can only be dispatched while connected). Dismiss (Cancel or successful dispatch) clears it.
-        val popupMacro = macroPopupFor
-        val liveDispatcher = dispatcher
-        if (dest == Dest.Macros && popupMacro != null && liveDispatcher != null) {
-            MacroExecutionPopup(
-                holder = macroHolder,
-                macro = popupMacro,
-                dispatcher = liveDispatcher,
-                onDismiss = { nav.macroPopupFor = null },
-            )
+        // ---- D-04: Pop-to-root on print state change (shouldPopToRoot predicate from 24-01) -----------
+        // When a print starts/ends, pop foot-gun destinations (Move/Extrude/Calibration) back to
+        // WaterfallHome. Uses the pure shouldPopToRoot predicate from NavDest.kt (24-01 / PopToRootTest) —
+        // single source of truth, host-tested. Temperature/Macros/FineTune/Console/Webcam are NOT in
+        // FOOT_GUN_DESTS and are left undisturbed. inclusive=false (Pitfall 3); popBackStack is
+        // idempotent so it no-ops at root (the double-nav guard).
+        LaunchedEffect(printerState.printState) {
+            val d = navBackStackEntry?.destination
+            val currentNavDest: NavDest? = when {
+                d == null -> null
+                d.isRoute<NavDest.Move>() -> NavDest.Move
+                d.isRoute<NavDest.Extrude>() -> NavDest.Extrude
+                d.isRoute<NavDest.Calibration>() -> NavDest.Calibration
+                // Non-foot-gun destinations — shouldPopToRoot returns false for these.
+                else -> null
+            }
+            // shouldPopToRoot is the 24-01 pure predicate (FIX-8 — no NavController in the test).
+            // It returns true iff currentNavDest is in FOOT_GUN_DESTS (non-null check already in predicate).
+            if (shouldPopToRoot(currentNavDest, printActive = printerState.printState == PrintState.Printing)) {
+                navController.popBackStack<NavDest.WaterfallHome>(inclusive = false)
+            }
         }
 
-        // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen
-        // (D-12 confirm-first / D-14 release-on-dispose / D-15 picker degrade). The camera binds inside
-        // ScanSurface and unbindAll()s the instant this overlay leaves composition. A green confirm
-        // dispatches set-active (D-13 post_spool_id) and closes; "Use picker instead" closes to the picker.
+        // ---- Overlays: Box siblings AFTER NavHost (render above every destination) -----------------
+
+        // MacroExecutionPopup REMOVED (25-05): param entry is now an in-screen Field-takeover inside
+        // BookmarkedMacrosScreen (MacroFieldMode.ParamEntry). The PROMPT-protocol overlay (D-13) below
+        // remains — it is independent of the macro execution path and untouched here.
+
+        // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen.
         if (nav.scanActive) {
             ScanSurface(
                 client = spoolmanClient,
@@ -909,21 +816,16 @@ fun AppShell(
                 },
                 onUsePicker = {
                     nav.scanActive = false
-                    navigateTo(Dest.Spool) // the manual picker always works (D-15).
+                    navController.navigate(NavDest.Spool)
                 },
                 onBack = { nav.scanActive = false },
             )
         }
 
-        // Macro Prompt overlay (12-05) — the full-screen PromptDialog hoisted OUTSIDE when(dest) so it
-        // floats over ANY screen (the MacroExecutionPopup / ScanSurface precedent; D-05 it is an overlay,
-        // not a Dest). Shown whenever the live reducer view is visible. Content/footer buttons + the
-        // always-present close fire gcode through the SHARED CommandDispatcher under the engine's stable
-        // keys; buttons do NOT auto-close (D-11) — only the inbound echoed `prompt_end` line closes it via
-        // the reducer (the on-device round-trip gate, 12-05 Task 2).
+        // Macro Prompt overlay (12-05) — the full-screen PromptDialog hoisted OUTSIDE the NavHost so it
+        // floats over ANY destination. Content/footer buttons + the always-present close fire gcode through
+        // the SHARED CommandDispatcher under the engine's stable keys.
         if (promptView.visible) {
-            // A prompt key is in flight iff any in-flight key is in this prompt's `prompt:` namespace —
-            // surfaces the "Sending…" info toast while a button gcode awaits its reply.
             val inFlightKeys by (dispatcher?.inFlight
                 ?: remember { MutableStateFlow(emptySet<String>()) })
                 .collectAsStateWithLifecycle(initialValue = emptySet())
@@ -931,9 +833,6 @@ fun AppShell(
             PromptDialog(
                 view = promptView,
                 httpBase = httpBase,
-                // CONTENT button: resolve gcode via the ONE shared depth-first buttons-only flatten — the
-                // SAME walk the renderer indexes with, so a button nested in a row/button_group fires the
-                // RIGHT gcode (the BLOCKER guard). Keyed on buttonKey(i) (prompt:<epoch>:<i>).
                 onButton = { buttonIndex ->
                     val buttons = promptView.flattenContentButtons()
                     buttons.getOrNull(buttonIndex)?.let { btn ->
@@ -944,9 +843,6 @@ fun AppShell(
                         )
                     }
                 },
-                // FOOTER button: a SEPARATE sequence resolved by footerButtons[footerIndex], keyed on
-                // footerKey(i) (prompt:<epoch>:footer:<i>) — a DISTINCT namespace from buttonKey so a
-                // same-index content/footer pair never collides on the dispatcher (Codex pre-execute).
                 onFooterButton = { footerIndex ->
                     promptView.footerButtons.getOrNull(footerIndex)?.let { fb ->
                         dispatcher?.dispatch(
@@ -956,8 +852,6 @@ fun AppShell(
                         )
                     }
                 },
-                // CLOSE control (in NEITHER index list): dispatch `action:prompt_end` keyed on closeKey —
-                // the prompt closes when that line ECHOES back through the stream (D-11), not locally.
                 onClose = {
                     dispatcher?.dispatch(
                         promptEngine.closeKey,
@@ -970,21 +864,10 @@ fun AppShell(
             )
         }
 
-        // Dev theme cycler overlay (15.2-02, D-08) — the two floating Style/Size cyclers hoisted OUTSIDE
-        // when(dest) so they float over EVERY screen, making this a true walk-the-app conformance tool.
-        // Gated on the app-global dev-enable boolean (default flipped true for the 15.2-02 release walk,
-        // reverted in 15.2-04). Each tap routes through the ATOMIC `updateThemeOverride { next*Override(it) }`
-        // (MEDIUM — reads the LIVE override, never a Compose-captured snapshot, so rapid taps cannot drop an
-        // axis); dismiss clears to null (idempotent, no atomic transform needed). NOT in the swipe-suppress
-        // set — it is chrome, not a route. Disabling in About also clears the override (AppContainer.
-        // setDevCyclerEnabled, HIGH-5), so no extra clear is needed here.
+        // Dev theme cycler overlay (15.2-02, D-08) — floats over EVERY destination.
         val devCyclerEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
         if (devCyclerEnabled) {
             val currentOverride by container.themeOverride.collectAsStateWithLifecycle(initialValue = null)
-            // 15.2-04 finding 2 — the printer-switcher cycler. A GENUINE active-profile switch (reusing
-            // setActiveProfile, the same intent the drawer/Printers screen use), wrap-around via the pure
-            // nextProfileId stepper; disabled/no-op with <2 profiles. Accelerates the 15.2-06 cross-printer
-            // conformance sweep by letting the human hop printers without leaving the screen under audit.
             val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(initialValue = emptyList())
             val profileIds = profiles.map { it.id }
             DevThemeCyclerOverlay(
@@ -1001,6 +884,20 @@ fun AppShell(
             )
         }
 
+        // App Drawer (D-12 — kept LIVE as-is, the interim System hub + testing affordance).
+        // D-11: the "Power" tile stays inert/unwired.
+        if (drawerOpen) {
+            AppDrawer(
+                onDestination = { navController.navigate(it) },
+                onDismiss = { drawerOpen = false },
+                webcamEnabled = webcamEnabled,
+                spoolEnabled = spoolEnabled,
+                spoolSwatches = drawerSpoolSwatches,
+                activeName = activeName,
+                outputsEnabled = outputsEnabled,
+            )
+        }
+
         // A thin bottom-edge affordance: a deliberate, discoverable swipe-up handle at the bottom.
         Box(
             Modifier
@@ -1010,15 +907,42 @@ fun AppShell(
                 .background(t.hair),
         )
 
-        if (drawerOpen) {
-            AppDrawer(
-                onDestination = { navigateTo(it) },
-                onDismiss = { drawerOpen = false },
-                webcamEnabled = webcamEnabled,
-                spoolEnabled = spoolEnabled,
-                spoolSwatches = drawerSpoolSwatches,
-                activeName = activeName,
-                outputsEnabled = outputsEnabled,
+        // FIX-1 (D-14): the printing-only FloatingEStop + Stop Confirm guard are now AppShell-level Box
+        // siblings AFTER the NavHost so they appear on EVERY destination while printing — not just
+        // WaterfallHome. The e-stop button is visible when print state is Printing or Paused. Tap raises
+        // the shared full-screen ConfirmGuard before issuing EMERGENCY_STOP (T-24-03-02 mitigation).
+        // UnitGrid for sizing: derive U from the minimum dimension (portrait- and landscape-safe).
+        // WR-05 (26-rev): redesigned screens that render their OWN FloatingEStop + ConfirmGuard as
+        // Focus Box siblings (FineTune, Temperature, Spool — per-screen placement is those screens'
+        // design intent and is asserted by their preview matrices) suppress the shell-level e-stop;
+        // otherwise two stacked e-stop buttons co-render in the same corner while printing, each
+        // opening its own guard. ONE owner per destination.
+        val estopDest = navBackStackEntry?.destination
+        val screenOwnsEstop = estopDest != null && (
+            estopDest.isRoute<NavDest.FineTune>() ||
+            estopDest.isRoute<NavDest.Temperature>() ||
+            estopDest.isRoute<NavDest.Spool>()
+        )
+        val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        FloatingEStop(
+            visible = !screenOwnsEstop &&
+                (printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused),
+            onClick = { showEstopGuard = true },
+            uDp = estopGrid.uDp,
+            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+        )
+        if (showEstopGuard) {
+            ConfirmGuard(
+                title = stringResource(R.string.printstatus_estop_guard_title),
+                message = stringResource(R.string.printstatus_estop_guard_message),
+                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
+                cancelLabel = stringResource(R.string.common_cancel),
+                onConfirm = {
+                    dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
+                    showEstopGuard = false
+                },
+                onCancel = { showEstopGuard = false },
+                destructive = true,
             )
         }
     }
@@ -1026,3 +950,13 @@ fun AppShell(
 
 /** Drag distance (px) past which an upward drag opens the drawer — a deliberate, non-accidental pull. */
 private const val SWIPE_UP_THRESHOLD_PX = 80f
+
+/**
+ * Type-safe route check for navigation-compose 2.8.x.
+ *
+ * `navDestination.hasRoute<T>()` in 2.8.x would pick up the instance method `hasRoute(String, Bundle?)`
+ * which does not accept type arguments. The generic `hasRoute<T>()` lives on the Companion object.
+ * This wrapper calls the Companion static via explicit receiver syntax.
+ */
+private inline fun <reified T : NavDest> androidx.navigation.NavDestination.isRoute(): Boolean =
+    route?.let { r -> r == T::class.qualifiedName || r.startsWith(T::class.qualifiedName + "?") } == true

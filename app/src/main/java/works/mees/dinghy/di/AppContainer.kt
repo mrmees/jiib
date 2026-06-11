@@ -1,5 +1,6 @@
 package works.mees.dinghy.di
 
+import androidx.compose.runtime.Stable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
@@ -8,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
@@ -38,6 +41,7 @@ import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
+import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
 /**
@@ -60,6 +64,17 @@ import works.mees.dinghy.ui.webcam.WebcamPrefs
  * delegate the service supplies via [bindSessionControl]; the container never holds a raw session
  * reference reachable by UI.
  */
+/**
+ * @Stable (Phase 22 A3/SC2): a single process-lifetime singleton whose identity never changes, so
+ * screens receiving it as a composable parameter can skip recomposition on it. All reactive state is
+ * exposed as `Flow`/`StateFlow` (Compose observes those via `collectAsState`). Stability audit: the
+ * only `var` is the `private @Volatile sessionControlDelegate` (not composable-visible). The two
+ * synchronous snapshot getters [currentSpoolmanClient]/[currentFileBrowser] return live `spine.value`
+ * snapshots that change without Compose notification, but they are BY DESIGN non-composable accessors
+ * (the reactive equivalents are the `fileBrowser`/Spoolman `Flow`s) — they don't undermine the skip
+ * guarantee, which rests on the singleton's permanently-stable identity.
+ */
+@Stable
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppContainer(
     themeDataStore: DataStore<Preferences>,
@@ -82,6 +97,15 @@ class AppContainer(
      * injected here.
      */
     babystepDataStore: DataStore<Preferences>,
+    /**
+     * The SEVENTH, INDEPENDENT file: tracestyle.preferences_pb (D-14, Phase 26). Backs the
+     * process-scoped per-sensor trace color + visibility settings ([TraceStylePrefs]: flat key-map
+     * of sensor-name→ARGB-Int for color, sensor-name→Boolean for visibility). Carries no secrets
+     * (like macros/webcam/babystep), kept on its own connection-independent lifecycle per the
+     * separate-file discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore
+     * single-writer invariant) and injected here.
+     */
+    traceStyleDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -117,6 +141,20 @@ class AppContainer(
      */
     private val writeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Process-lifetime scope for PROCESS-SCOPED derived [StateFlow]s (D-01, 22-07). Separate from
+     * [writeScope] (IO dispatcher) — these flows live on [Dispatchers.Default] because they are pure
+     * in-memory transformations with no disk I/O. Only PROCESS-SCOPE flows belong here: flows keyed on
+     * a session (`store`/`spine`) are SESSION-SCOPE and must stay shell-side (e.g. `errorLines`,
+     * keyed on `consoleHolder` which is `remember(store)`). Currently hosts:
+     *   - [activeProfileId] — `activeProfile.map { it?.id }` deduplicated StateFlow
+     *   - [activeName]      — `activeProfile.map { it?.displayName() }` deduplicated StateFlow
+     * Both are collected in AppShell to replace the two inline `.map{}` expressions that were creating
+     * new un-memoized Flow objects on every recomposition of the shell scope (killing Compose's structural
+     * equality check and re-collecting on every wide-recomposition tick).
+     */
+    private val stateScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /** Switch the active profile (D-02), durably — survives the Devices screen navigating away. */
     fun setActiveProfile(id: String) {
         writeScope.launch { profileStore.setActive(id) }
@@ -143,6 +181,22 @@ class AppContainer(
     }
 
     /**
+     * Toggle a macro bookmark (Macros ManageMode), durably — the [[dinghy-compose-write-scope-cancellation]]
+     * guard (WR-08): a composition-scoped launch is cancelled the instant its host leaves composition
+     * (e.g. a recovery Splash decomposing AppShell in the same frame as the tap), silently dropping the
+     * DataStore write mid-`edit` on slow flash. Always call this from UI — never
+     * `rememberCoroutineScope().launch { macroPrefs… }`.
+     */
+    fun toggleMacroBookmark(name: String) {
+        writeScope.launch { macroPrefs.toggleBookmark(name) }
+    }
+
+    /** Persist the Macros reveal-hidden toggle, durably (same write-scope rule as [toggleMacroBookmark]). */
+    fun setMacroRevealHidden(reveal: Boolean) {
+        writeScope.launch { macroPrefs.setRevealHidden(reveal) }
+    }
+
+    /**
      * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
      * A PURE pick: combine the sanitized profile set with the writer-owned active-id and pick by id
      * (RESEARCH Pattern 2). The D-12 auto-pick on delete lives in the [ProfileStore] writer, NOT here —
@@ -164,6 +218,28 @@ class AppContainer(
         activeProfile.map { it?.toConnectionConfig() }.distinctUntilChanged()
 
     /**
+     * The active profile's ID as a [StateFlow] (D-01 hoist, 22-07). Replaces the inline
+     * `container.activeProfile.map { it?.id }` expression in AppShell that created a new un-memoized
+     * Flow object on every shell recomposition — defeating Compose's structural equality check and
+     * forcing re-collection on every wide-recomposition tick. Hoisted here (PROCESS-SCOPE: derived
+     * off the process-scoped [activeProfile] with no session key) so it is a stable singleton.
+     * [WhileSubscribed(5000)] matches the app's standard upstream subscription pattern.
+     */
+    val activeProfileId: StateFlow<String?> =
+        activeProfile.map { it?.id }
+            .stateIn(stateScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The active profile's display name as a [StateFlow] (D-01 hoist, 22-07). Replaces the inline
+     * `container.activeProfile.map { it?.displayName() }` expression in AppShell for the same reason
+     * as [activeProfileId] above. Hoisted here (PROCESS-SCOPE) so it is a stable singleton.
+     * null when no active profile (the Devices drawer-tile subtitle hides on null).
+     */
+    val activeName: StateFlow<String?> =
+        activeProfile.map { it?.displayName() }
+            .stateIn(stateScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
      * Macro visibility persistence (MACRO-03 / 08-07 B1) — the SEPARATE macros.preferences_pb-backed
      * store holding the user's macro bookmarks ([Set]<String>) + the revealHidden toggle. It is
      * PROCESS-SCOPED and CONNECTION-INDEPENDENT (like [themePrefs]/[connectionStore], NOT a field on
@@ -172,6 +248,27 @@ class AppContainer(
      * and the System/Bookmarked screens.
      */
     val macroPrefs: MacroPrefs = MacroPrefs(macroDataStore)
+
+    /**
+     * Process-scoped [StateFlow] of the user's pinned macro NAMEs (WR-02 fix, review 24). Hoisted from
+     * AppShell's `stateIn(rememberCoroutineScope())` — a composition scope is cancelled when AppShell
+     * leaves the composition tree (e.g. on a FIX-3 recovery Splash), causing the stateIn coroutine to
+     * stop collecting; post-Splash, the cached StateFlow went stale and no longer updated. Hosting here
+     * on the process-lifetime [stateScope] ensures the upstream DataStore collection is NEVER interrupted
+     * by a UI lifecycle event. Eagerly matches the prior shell-side usage (macro surface needs it
+     * immediately on recomposition). See [[dinghy-compose-write-scope-cancellation]].
+     */
+    val macroBookmarks: StateFlow<Set<String>> =
+        macroPrefs.bookmarks.stateIn(stateScope, SharingStarted.Eagerly, emptySet())
+
+    /**
+     * Process-scoped [StateFlow] of the revealHidden toggle (WR-02 fix, review 24). Same rationale as
+     * [macroBookmarks] — moved from AppShell's composition-scoped `stateIn` to the process-lifetime
+     * [stateScope] so it outlives any Composable and survives recovery Splashes intact.
+     * Eagerly matches the prior shell-side usage.
+     */
+    val macroRevealHidden: StateFlow<Boolean> =
+        macroPrefs.revealHidden.stateIn(stateScope, SharingStarted.Eagerly, false)
 
     /**
      * Per-printer preferred-cam persistence (CAM-01 / 10-06 D-10) — the SEPARATE webcam.preferences_pb
@@ -213,6 +310,35 @@ class AppContainer(
      */
     fun setBabystepLayers(n: Int) {
         writeScope.launch { babystepPrefs.setLayerCount(n) }
+    }
+
+    /**
+     * Per-sensor trace color + visibility persistence (D-14, Phase 26) — the SEPARATE
+     * tracestyle.preferences_pb-backed store. Like [babystepPrefs]/[macroPrefs] it is
+     * PROCESS-SCOPED + CONNECTION-INDEPENDENT (not a field on SpineHandle): colors and visibility
+     * survive reconnects and printer swaps. The Temperature screen reads these through the holder's
+     * [works.mees.dinghy.ui.temperature.TemperatureHolder.traceColors] /
+     * [works.mees.dinghy.ui.temperature.TemperatureHolder.traceVisibility] StateFlows (seeded from
+     * this store at holder construction) and writes through [setTraceColor]/[setTraceVisibility].
+     */
+    val traceStylePrefs: TraceStylePrefs = TraceStylePrefs(traceStyleDataStore)
+
+    /**
+     * Persist a trace color (D-14), durably. Routes through the process-lifetime [writeScope]
+     * ([[dinghy-compose-write-scope-cancellation]]) — never `rememberCoroutineScope()`. The
+     * [argb] is an ARGB Int chosen from the fixed 8-color Colorful pool (T-26-03-01: no
+     * injection surface — the UI only passes pool members, never arbitrary user text).
+     */
+    fun setTraceColor(sensorName: String, argb: Int) {
+        writeScope.launch { traceStylePrefs.setTraceColor(sensorName, argb) }
+    }
+
+    /**
+     * Persist a trace visibility toggle (D-14), durably.
+     * Same write-scope discipline as [setTraceColor] ([[dinghy-compose-write-scope-cancellation]]).
+     */
+    fun setTraceVisibility(sensorName: String, visible: Boolean) {
+        writeScope.launch { traceStylePrefs.setTraceVisibility(sensorName, visible) }
     }
 
     /**

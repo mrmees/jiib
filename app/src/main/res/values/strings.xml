@@ -107,6 +107,9 @@
     <string name="cd_launcher_macros">Macros</string>
     <string name="cd_launcher_console">Console</string>
     <string name="cd_launcher_drawer">More</string>
+    <string name="cd_launcher_webcam">Webcam</string>
+    <string name="home_foot_preheat">Preheat</string>
+    <string name="home_foot_system">System</string>
     <string name="cd_tune">Tune</string>
 
     <!-- ========================== finetune ============================ -->
@@ -167,6 +170,47 @@
     <string name="cd_spool_set_active">Set the selected spool active; long-press to unload</string>
     <!-- The live QR-scan camera surface (D-05 preview stand-in label). -->
     <string name="cd_spool_camera">Camera (live on device)</string>
+    <!-- 23-06 rebuild: new foot-button + estop contentDescriptions. -->
+    <string name="cd_spool_home">Go to home screen</string>
+    <string name="cd_spool_load">Load this spool</string>
+    <string name="cd_spool_unload">Unload the active spool</string>
+    <!-- 23-06 e-stop guard strings (reused from printstatus; separate keys so they can diverge). -->
+    <string name="spool_estop_guard_title">Emergency stop?</string>
+    <string name="spool_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
+    <string name="spool_estop_guard_confirm">Emergency stop</string>
+    <!-- 23-06 filter picker in-Field footer labels. -->
+    <string name="spool_filter_clear">Clear</string>
+    <string name="spool_filter_done">Done</string>
+    <!-- 23-06 fill meter label: remaining/original g · percent (e.g. "735/1000 g · 74%"). -->
+    <string name="spool_fill_meter_label">%1$d/%2$d g · %3$d%%</string>
+    <string name="spool_fill_meter_label_no_original">%1$d g</string>
+    <!-- 23-06 contentDescriptions for the filter/sort control rows. -->
+    <string name="cd_spool_sort">Sort spools</string>
+    <string name="cd_spool_filter">Filter spools</string>
+    <string name="cd_spool_sort_name">Sort by name</string>
+    <string name="cd_spool_sort_date">Sort by last used date</string>
+    <string name="cd_spool_sort_remaining">Sort by remaining weight</string>
+    <string name="cd_spool_filter_type">Filter by material type</string>
+    <string name="cd_spool_filter_color">Filter by color</string>
+    <string name="cd_spool_filter_mfg">Filter by manufacturer</string>
+    <!-- 23-06 empty state + loading strings. -->
+    <string name="spool_loading">Loading spools…</string>
+    <string name="spool_empty_no_match">No spools match. Clear filters to see your inventory.</string>
+    <string name="spool_error_load">Could not load spools.</string>
+    <!-- 23-rev WR-03: short row-level status badges (distinct from the verbose spool_badge_* detail strings). -->
+    <string name="spool_row_badge_loaded">Loaded</string>
+    <string name="spool_row_badge_archived">Archived</string>
+    <string name="spool_mfg_empty">No manufacturers found.</string>
+
+    <!-- D-08 measured-weight Field-takeover (26-07): numeric IME entry for gross spool weight correction. -->
+    <string name="spool_measure_prompt">Total weighed weight (spool + filament)</string>
+    <string name="spool_measure_placeholder">0 g</string>
+    <string name="spool_measure_tare_label">Spool weight (empty)</string>
+    <string name="spool_measure_total_label">Current total (spool + filament)</string>
+    <string name="spool_measure_hint">Spoolman subtracts the spool weight from your weighed total to get filament remaining.</string>
+    <string name="spool_measure_back">Back</string>
+    <string name="spool_measure_set">Set</string>
+    <string name="spool_measure_weight_not_set">not set</string>
 
     <!-- Plurals proof (SC-3): count-aware quantity string. -->
     <plurals name="spool_count">
@@ -174,8 +218,10 @@
         <item quantity="other">%1$d spools</item>
     </plurals>
 
-    <!-- ============================ outputs (Phase 19) ============================ -->
+    <!-- ============================ outputs (Phase 19 / 26-05) ============================ -->
     <string name="outputs_title">Outputs</string>
+    <!-- Detail-in-Focus empty-state prompt (D-18): shown in the Focus when no output is selected. -->
+    <string name="outputs_select_prompt">Select an output</string>
     <!-- contentDescription for a per-output family glyph (icon law D-01..D-06). -->
     <string name="cd_output_glyph">Output</string>
     <!-- contentDescription for the LED color swatch chip (THEME-01 data-color carve-out). -->
@@ -227,5 +273,154 @@
     <string name="cd_sysinfo_mem_usage">Memory usage</string>
     <!-- contentDescription for the shape-coded health chip glyph. -->
     <string name="cd_sysinfo_health">Host health</string>
+
+    <!-- Design Kit layout primitives (Phase 23) — preview strings. -->
+    <string name="cd_unit_grid_demo">Unit grid demonstration</string>
+    <string name="layout_preview_row_1">Row 1</string>
+    <string name="layout_preview_row_2">Row 2</string>
+    <string name="layout_preview_row_3">Row 3</string>
+    <string name="layout_preview_row_4">Row 4</string>
+    <string name="layout_preview_row_5">Row 5</string>
+    <string name="layout_preview_unit_info">Unit grid info</string>
+
+    <!-- Design Kit component classes (Phase 23-05) — preview strings. -->
+    <!-- ListRow preview -->
+    <string name="kit_preview_spool_name">PLA+ White — 1 kg</string>
+    <string name="kit_preview_spool_weight">735 g remaining</string>
+    <string name="kit_preview_spool_name_2">PETG Blue — 1 kg</string>
+    <string name="kit_preview_spool_weight_2">1000 g remaining</string>
+    <!-- DetailCard preview -->
+    <string name="kit_preview_detail_title">PLA+ White</string>
+    <string name="kit_preview_detail_vendor">Bambu Lab</string>
+    <string name="kit_preview_detail_fill_label">735 / 1000 g · 74%</string>
+    <!-- SortRow option contentDescriptions -->
+    <string name="cd_sort_by_name">Sort by name</string>
+    <string name="cd_sort_by_material">Sort by material</string>
+    <string name="cd_sort_by_weight">Sort by remaining weight</string>
+    <!-- FilterRow option contentDescriptions -->
+    <string name="cd_filter_by_material">Filter by material type</string>
+    <string name="cd_filter_by_color">Filter by color</string>
+    <string name="cd_filter_by_vendor">Filter by vendor</string>
+    <!-- FootButtonBar preview -->
+    <string name="kit_preview_action_load">Load spool</string>
+    <string name="kit_preview_action_scan">Scan QR code</string>
+    <!-- FloatingEStop preview -->
+    <string name="cd_floating_estop">Emergency stop</string>
+
+    <!-- ============================ browse screens (Phase 25) ============================ -->
+    <!-- contentDescriptions for the newly-registered browse-screen icon tokens (D-20 / D-21).
+         Screen-label strings (titles, section headers, list captions) are appended by each
+         Wave-2 screen plan (25-03/04/05). Only the shared icon cd_* strings live here. -->
+    <!-- Files actions (cd_* = content-description / TalkBack; never visible text) -->
+    <string name="cd_files_print">Start print</string>
+    <string name="cd_files_delete">Delete file</string>
+    <string name="cd_files_sort_date">Sort by date</string>
+
+    <!-- Files screen visible labels (25-03 rebuild) -->
+    <!-- Foot bar -->
+    <string name="files_foot_print">Print</string>
+    <string name="files_foot_delete">Delete</string>
+    <!-- List states -->
+    <string name="files_loading">Loading files…</string>
+    <string name="files_empty">No printable gcode files. Add files in Moonraker, then reopen Files.</string>
+    <string name="files_error_load">Could not load files.</string>
+    <!-- Detail card stat labels -->
+    <string name="files_stat_est_time">Est</string>
+    <string name="files_stat_filament">Filament</string>
+    <string name="files_stat_layers">Layers</string>
+    <string name="files_stat_height">Height</string>
+    <string name="files_stat_size">Size</string>
+    <string name="files_stat_modified">Modified</string>
+    <string name="files_stat_preview">Preview</string>
+    <string name="files_stat_preview_loading">loading…</string>
+    <!-- Start-print confirm guard -->
+    <string name="files_confirm_print_title">Print %1$s?</string>
+    <string name="files_confirm_print_confirm">Print file</string>
+    <string name="files_confirm_print_cancel">Keep browsing</string>
+    <!-- Guard fallback name when no row is selected (defensive — guards open from a selection) -->
+    <string name="files_fallback_filename">file</string>
+    <!-- Confirm-guard detail lines (selectedFileDetails) -->
+    <string name="files_detail_time">Time %1$s</string>
+    <string name="files_detail_size">Size %1$s</string>
+    <string name="files_detail_modified">Modified %1$s</string>
+    <string name="files_detail_filament">Filament %1$d mm</string>
+    <string name="files_detail_layers">Layers %1$d</string>
+    <string name="files_detail_unavailable">Metadata is unavailable. The print can still start.</string>
+    <!-- Delete confirm guard -->
+    <string name="files_confirm_delete_title">Delete %1$s?</string>
+    <string name="files_confirm_delete_message">Removes this file from Moonraker. This cannot be undone.</string>
+    <string name="files_confirm_delete_confirm">Delete file</string>
+    <string name="files_confirm_delete_cancel">Keep file</string>
+    <!-- SpoolWarningGuard labels -->
+    <string name="files_spool_warning_subtitle">Spool check found something to review:</string>
+    <string name="files_spool_warning_pick_spool">Pick spool</string>
+    <string name="files_spool_warning_scan">Scan</string>
+    <string name="files_spool_warning_print_anyway">Print anyway</string>
+    <!-- Console filter toggle glyphs (the icon shown when that message type is hidden) -->
+    <string name="cd_console_hide_temps">Hide temperature messages</string>
+    <string name="cd_console_hide_timelapse">Hide timelapse messages</string>
+    <string name="cd_console_hide_prompts">Hide macro prompt messages</string>
+    <!-- Console screen labels (25-04) -->
+    <string name="console_empty_title">Console is quiet</string>
+    <string name="console_empty_body">Printer responses appear here. Run a command or macro and the reply shows up live.</string>
+    <string name="console_backfill_failed">History unavailable. Check the printer connection — live responses will still appear.</string>
+    <!-- Macros screen actions (cd_* registered in 25-02; screen labels added here in 25-05) -->
+    <string name="cd_macros_leader">Macros</string>
+    <string name="cd_macros_manage">Manage macros</string>
+    <string name="cd_macros_execute">Execute macro</string>
+    <string name="cd_macros_unbookmarked">Add to bookmarks</string>
+    <string name="cd_macros_bookmarked">Bookmarked</string>
+    <!-- Webcam screen labels (25-06) — chrome strings for cam picker -->
+    <string name="webcam_cam_unnamed">(unnamed)</string>
+    <string name="webcam_service_unknown">unknown service</string>
+    <string name="webcam_aspect_format">aspect %s</string>
+
+    <!-- Macros screen labels (25-05) — Launcher, ParamEntry, ManageMode -->
+    <string name="macros_empty_title">No macros pinned</string>
+    <string name="macros_empty_body">Pick the macros you use most in Manage, and they\'ll launch from here.</string>
+    <string name="macros_unavailable">This printer reports no gcode macros. Add gcode_macro entries in your config to use this screen.</string>
+    <string name="macros_loading_params">Loading parameters…</string>
+    <string name="macros_no_params">No parameters. Execute runs this macro as-is.</string>
+    <string name="macros_running">Running %s… waiting for the printer.</string>
+    <string name="macros_rejected" formatted="false">%s was rejected: %s</string>
+    <string name="macros_helper_hint">Underscore-prefixed helper macros are hidden. Show hidden to reveal them.</string>
+    <string name="macros_foot_back">Back</string>
+    <string name="macros_foot_manage">Manage</string>
+    <string name="macros_foot_execute">Execute</string>
+    <string name="macros_foot_show_hidden">Show hidden</string>
+
+    <!-- ========================== extrude (26-06) ============================ -->
+    <!-- Selector section labels (Field region) -->
+    <string name="extrude_distance_label">Distance (mm)</string>
+    <string name="extrude_speed_label">Feedrate (mm/s)</string>
+    <string name="extrude_tool_label">Tool</string>
+    <!-- Focus readout labels (inline IME entry, D-16) -->
+    <string name="extrude_distance_readout">Distance</string>
+    <string name="extrude_speed_readout">Speed</string>
+    <!-- BigCommand labels -->
+    <string name="extrude_cmd_extrude">Extrude</string>
+    <string name="extrude_cmd_retract">Retract</string>
+    <!-- Spool placeholder button -->
+    <string name="extrude_spool_placeholder">Spool</string>
+    <!-- FootButtonBar actions -->
+    <string name="extrude_load">Load</string>
+    <string name="extrude_unload">Unload</string>
+    <!-- Filament-preset takeover (D-17) -->
+    <string name="extrude_preset_title">Set nozzle temperature</string>
+    <string name="extrude_loaded_filament">Loaded filament</string>
+    <string name="extrude_loaded_prefix">%1$s (loaded)</string>
+
+    <!-- ============== Phase 26 adjustment surfaces (26-rev WR-11) ============== -->
+    <string name="common_apply">Apply</string>
+    <string name="adjuster_reset">Reset</string>
+    <!-- Inline baseline span next to the adjuster hero value; %1$s = formatted value + unit -->
+    <string name="adjuster_was">was %1$s</string>
+    <string name="finetune_reset_all">Reset All</string>
+    <string name="temp_presets">Presets</string>
+    <string name="temp_cooldown">Cooldown</string>
+    <string name="temp_preheat_preset">Preheat preset</string>
+    <string name="extrude_spoolman_coming_soon">Spoolman integration coming soon</string>
+    <string name="extrude_no_load_macro">No LOAD_FILAMENT macro configured</string>
+    <string name="extrude_no_unload_macro">No UNLOAD_FILAMENT macro configured</string>
 
 </resources>

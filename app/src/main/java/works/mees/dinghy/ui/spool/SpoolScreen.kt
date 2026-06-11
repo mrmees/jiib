@@ -1,19 +1,25 @@
 package works.mees.dinghy.ui.spool
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,26 +32,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
+import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FillMeter
+import works.mees.dinghy.designsystem.components.FilterOption
+import works.mees.dinghy.designsystem.components.FilterRow
+import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.SortOption
+import works.mees.dinghy.designsystem.components.SortRow
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.SpoolGlyph
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ListBlock as DesignListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.normalizeColorHex
+import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
@@ -53,35 +82,34 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
 /**
- * The Spool screen (Dest.Spool host; SPOOL-03, plan 11-06) — the Files-style picker built on
- * [ScreenScaffold] (Focus/Field/Gutter, LAYOUT.md is LAW). Focus = the selected-spool detail; Field =
- * [SpoolPicker] (the dense list + filter/sort chips); Gutter = red Back / green Set-active / accent Scan.
- * Portrait collapses to a stacked Field-first layout (the Focus shows only once a spool is selected, the
- * FilesScreen idiom). All color via [LocalTokens] (THEME-01); ratio-only sizing (NON-NEGOTIABLE 3).
+ * The Spool screen (Dest.Spool host; 23-06 jiib redesign rebuild) — now built on the new component-class
+ * kit: [DetailCard] + [FillMeter] in Focus, [ListBlock] of [ListRow]s + [FootButtonBar] in Field,
+ * [FloatingEStop] as Box sibling, [SortRow] + [FilterRow] at the Focus foot, `gutter = null`.
  *
- * Font scale matches the FilesScreen analogs (D-16): focus values 30sp+ (the remaining/used hero), detail
- * stat labels 17sp, metadata floor 15sp; gutter via [OutlinedControl] (18sp label). No hardcoded `.sp`.
+ * The Field-takeover filter picker ([FieldMode.FilterPicker]) replaces the old full-screen overlay —
+ * tapping a filter tile swaps the Field in-place (no separate screen push).
  *
- * ## Two transports (D-07), inherited from the holder
- * Inventory list/filter reads ride [holder] (the lean SpoolmanClient). The active-spool WRITE (Set/Clear)
- * is dispatched here through [dispatcher] (`server.spoolman.post_spool_id` — D-13 `{}` clears) — the
- * holder reconciles the resulting `notify_active_spool_set` into its "loaded" marks (D-10).
+ * ## Live FloatingEStop wiring
+ * [FloatingEStop] is wired to the LIVE [container.printerState] StateFlow — `isPrinting` derives from
+ * `printState == PrintState.Printing || PrintState.Paused` (the LastJobHolder convention reused). On
+ * tap it raises a red [ConfirmGuard] then dispatches `CommandRegistry.emergencyStop` via [dispatcher].
  *
  * @param holder the per-session picker holder (state + mutators).
- * @param dispatcher the session action dispatcher (null when idle — Set/Clear no-op until reconnected).
- * @param onBack the neutral Back gutter exit (D-10).
- * @param onScan opens the QR scan sub-surface (the 11-07 surface; a no-op hook until wired).
- * @param prefilter the D-04 gcode-aware prefilter seed carried from a Files spool-warning "Pick spool"
- *   (null on a plain drawer open); applied ONCE on entry then cleared via [onPrefilterConsumed].
- * @param onPrefilterConsumed clears the one-time [prefilter] seed after the picker applies it (so a later
- *   manual reopen is unseeded).
+ * @param dispatcher the session action dispatcher (null when idle — operations are safe no-ops).
+ * @param client the session Spoolman inventory reader (may be null when idle).
+ * @param container provides the live [printerState] StateFlow for the FloatingEStop gate.
+ * @param onHome navigates to the Home/PrintStatus screen.
+ * @param onScan opens the QR scan sub-surface.
+ * @param prefilter the D-04 gcode-aware prefilter seed (null on a plain drawer open).
+ * @param onPrefilterConsumed clears the one-time [prefilter] seed after the picker applies it.
  */
 @Composable
 fun SpoolScreen(
     holder: SpoolHolder,
     dispatcher: CommandDispatcher?,
     client: SpoolmanClient?,
-    onBack: () -> Unit,
+    container: works.mees.dinghy.di.AppContainer,
+    onHome: () -> Unit,
     onScan: () -> Unit,
     modifier: Modifier = Modifier,
     prefilter: SpoolPrefilterSeed? = null,
@@ -89,99 +117,92 @@ fun SpoolScreen(
 ) {
     val state by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    // Live printer-state for FloatingEStop (LastJobHolder convention — PrintState.Printing or Paused).
+    val printerState by container.printerState.collectAsStateWithLifecycle(
+        initialValue = works.mees.dinghy.state.PrinterState(),
+    )
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
+    // E-stop ConfirmGuard gate (same pattern as PrintStatusScreen).
+    var showEstopGuard by remember { mutableStateOf(false) }
     val selected = state.selected
-    // Which filter category's full-screen selector is open (null = none) — Matthew 2026-06-04.
-    var openFilter by remember { mutableStateOf<SpoolFilterCategory?>(null) }
-    // The spool whose measured-gross-weight page is open (null = none) — D-04 measured-weight correction.
-    var measureSpool by remember { mutableStateOf<SpoolmanSpool?>(null) }
+    val isSelectedLoaded = selected?.id != null && selected.id == state.activeStatus?.activeSpoolId
 
     LaunchedEffect(holder) { holder.load() }
-    // D-04: apply the gcode-aware prefilter seed ONCE (keyed on the seed identity), then clear it so a
-    // later manual reopen of the picker is unseeded. Runs after load() seeds the chip universes; seeding
-    // the filters re-issues the list read with the file's material family + color hint.
     LaunchedEffect(holder, prefilter) {
         val seed = prefilter ?: return@LaunchedEffect
         holder.seedPrefilter(seed)
         onPrefilterConsumed()
     }
 
-    // Focus = the selected-spool detail (top, flexible) + the filter/sort chips PINNED AT ITS BOTTOM
-    // (Matthew 2026-06-04); the Field is then a pure scrolling list that gets the whole Field height.
-    // Focus is always shown so the filters are always reachable (both orientations).
     Box(modifier.fillMaxSize()) {
         SpoolContent(
             state = state,
             selected = selected,
-            isActive = selected?.id == state.activeStatus?.activeSpoolId,
+            isSelectedLoaded = isSelectedLoaded,
+            isPrinting = isPrinting,
             onSelectSort = { scope.launch { holder.applySort(it) } },
-            onOpenFilter = { openFilter = it },
-            onRowClick = { holder.selectSpool(it) },
-            onMeasure = { selected?.let { measureSpool = it } },
-            onBack = onBack,
-            onScan = onScan,
-            // Set the selected spool active (D-13 → post_spool_id {spool_id}) via the holder's
-            // change-during-print mutator: this re-points active-spool tracking ONLY and does NOT interrupt
-            // a running print — there is NO print-state gating (the change is allowed mid-print, the whole
-            // point of change-during-print). The holder reconciles the resulting notify_active_spool_set
-            // into its "Loaded" mark (D-10). No-op when nothing is selected OR no live session.
-            onSetActive = {
-                val id = selected?.id
-                if (id != null) holder.setActiveSpool(dispatcher, id)
-            },
-            // Long-press UNLOADS whatever spool is currently loaded (D-13 → post_spool_id {}),
-            // Matthew 2026-06-04. No-op when nothing is loaded.
-            onClearActive = {
-                if (state.activeStatus?.activeSpoolId != null) holder.clearActiveSpool(dispatcher)
-            },
-        )
-
-        // The full-screen filter selector overlays the whole screen when a category button is tapped.
-        openFilter?.let { category ->
-            SpoolFilterPickerOverlay(
-                category = category,
-                state = state,
-                onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
-                onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
-                onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
-                onMultiColor = { scope.launch { holder.applyMultiColor() } },
-                onClear = {
+            onOpenFilter = { holder.openFilterPicker(it) },
+            onCloseFilter = { holder.closeFilterPicker() },
+            onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
+            onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
+            onTapSwatch = { scope.launch { holder.applyColorSwatch(it); holder.closeFilterPicker() } },
+            onMultiColor = { scope.launch { holder.applyMultiColor(); holder.closeFilterPicker() } },
+            onClearFilter = {
+                val mode = state.fieldMode
+                if (mode is FieldMode.FilterPicker) {
                     scope.launch {
-                        when (category) {
+                        when (mode.category) {
                             SpoolFilterCategory.TYPE -> holder.clearMaterialFamilies()
                             SpoolFilterCategory.COLOR -> holder.clearColor()
                             SpoolFilterCategory.MFG -> holder.clearVendor()
                         }
                     }
-                },
-                onDone = { openFilter = null },
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+                }
+            },
+            onRowClick = { holder.selectSpool(it) },
+            onMeasure = { selected?.let { holder.openMeasureWeight(it) } },
+            onCloseMeasure = { holder.closeMeasureWeight() },
+            // WR-10 (26-rev): the measure write goes through the holder's own scope, NOT the
+            // composition scope — same-frame navigation must not cancel a remote Spoolman write.
+            onApplyMeasure = { spool, grams -> holder.measureSpoolAsync(spool, grams) },
+            onHome = onHome,
+            onScan = onScan,
+            onLoad = {
+                val id = selected?.id
+                if (id != null) holder.setActiveSpool(dispatcher, id)
+            },
+            onUnload = {
+                if (state.activeStatus?.activeSpoolId != null) holder.clearActiveSpool(dispatcher)
+            },
+            onEmergencyStop = { showEstopGuard = true },
+        )
 
-        // The full-screen measured-gross-weight page overlays the screen when the detail weight is tapped
-        // (D-04). On a successful measure, refresh the list so the corrected remaining shows, then dismiss.
-        measureSpool?.let { target ->
-            MeasuredWeightPage(
-                spool = target,
-                client = client,
-                onCancel = { measureSpool = null },
-                onMeasured = {
-                    measureSpool = null
-                    scope.launch { holder.refresh() }
+        // The E-stop ConfirmGuard (same gate pattern as PrintStatusScreen).
+        if (showEstopGuard) {
+            ConfirmGuard(
+                title = stringResource(R.string.spool_estop_guard_title),
+                message = stringResource(R.string.spool_estop_guard_message),
+                confirmLabel = stringResource(R.string.spool_estop_guard_confirm),
+                cancelLabel = stringResource(R.string.common_cancel),
+                onConfirm = {
+                    dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
+                    showEstopGuard = false
                 },
-                modifier = Modifier.fillMaxSize(),
+                onCancel = { showEstopGuard = false },
+                destructive = true,
             )
         }
     }
 }
 
 /**
- * STATELESS preview/render seam (18-07, the D-01/D-02 Spool exemplar). Renders the same Focus/Field/Gutter
- * scaffold as the live [SpoolScreen] from a pure [SpoolPickerState] fixture — NO holder, NO dispatcher, NO
- * Moonraker — so the dense-data archetype previews in Studio across the theme combos + fs=L (SC-1). The
- * live-only overlays (filter selector, measured-weight page) are NOT part of this seam (they need the
- * holder/client); the preview proves the base list+detail+gutter surface, mirroring the anchor's treatment
- * of its live-only modals. All side-effect callbacks default to no-ops.
+ * STATELESS preview/render seam (23-06 rebuild). Renders the kit-based scaffold from a pure
+ * [SpoolPickerState] fixture — NO holder, NO dispatcher, NO Moonraker — so the preview matrix
+ * covers the rebuilt states (no-selection / selected+FillMeter / FieldMode.FilterPicker / printing).
+ *
+ * [isPrinting] drives the [FloatingEStop] visibility in previews; the live overload sources it
+ * from [container.printerState] directly without requiring callers to supply it.
  */
 @Composable
 fun SpoolScreen(
@@ -189,262 +210,901 @@ fun SpoolScreen(
     modifier: Modifier = Modifier,
     onSelectSort: (SpoolSortKey) -> Unit = {},
     onOpenFilter: (SpoolFilterCategory) -> Unit = {},
+    onCloseFilter: () -> Unit = {},
+    onToggleMaterial: (String) -> Unit = {},
+    onToggleVendor: (String) -> Unit = {},
+    onTapSwatch: (String) -> Unit = {},
+    onMultiColor: () -> Unit = {},
+    onClearFilter: () -> Unit = {},
     onRowClick: (SpoolmanSpool) -> Unit = {},
     onMeasure: () -> Unit = {},
-    onBack: () -> Unit = {},
+    onCloseMeasure: () -> Unit = {},
+    onApplyMeasure: (SpoolmanSpool, Double) -> Unit = { _, _ -> },
+    onHome: () -> Unit = {},
     onScan: () -> Unit = {},
-    onSetActive: () -> Unit = {},
-    onClearActive: () -> Unit = {},
+    onLoad: () -> Unit = {},
+    onUnload: () -> Unit = {},
+    onEmergencyStop: () -> Unit = {},
+    isPrinting: Boolean = false,
 ) {
+    val isSelectedLoaded = state.selected?.id != null &&
+        state.selected.id == state.activeStatus?.activeSpoolId
     Box(modifier.fillMaxSize()) {
         SpoolContent(
             state = state,
             selected = state.selected,
-            isActive = state.selected?.id == state.activeStatus?.activeSpoolId,
+            isSelectedLoaded = isSelectedLoaded,
+            isPrinting = isPrinting,
             onSelectSort = onSelectSort,
             onOpenFilter = onOpenFilter,
+            onCloseFilter = onCloseFilter,
+            onToggleMaterial = onToggleMaterial,
+            onToggleVendor = onToggleVendor,
+            onTapSwatch = onTapSwatch,
+            onMultiColor = onMultiColor,
+            onClearFilter = onClearFilter,
             onRowClick = onRowClick,
             onMeasure = onMeasure,
-            onBack = onBack,
+            onCloseMeasure = onCloseMeasure,
+            onApplyMeasure = onApplyMeasure,
+            onHome = onHome,
             onScan = onScan,
-            onSetActive = onSetActive,
-            onClearActive = onClearActive,
+            onLoad = onLoad,
+            onUnload = onUnload,
+            onEmergencyStop = onEmergencyStop,
         )
     }
 }
 
 /**
- * The shared, container-free scaffold (Focus = detail + filter chips · Field = the dense [SpoolPicker] list
- * · Gutter = red-free Back / accent Scan / green Set-active). Both the live [SpoolScreen] (holder/dispatcher
- * resolved) and the stateless preview overload render byte-identically through here — the side effects are
- * passed as lambdas so a preview drives it with no-ops (SC-1).
+ * The shared, container-free scaffold rebuilt on the new component kit (23-06):
+ * - Focus = [DetailCard] (color-reactive ring, [FillMeter]) + [SortRow] + [FilterRow] at the foot.
+ *   [FloatingEStop] is a Box sibling over the [DetailCard] (printing-only, TopStart).
+ * - Field = when([SpoolPickerState.fieldMode]) { [FieldMode.Spools] → [ListBlock]+[FootButtonBar];
+ *   [FieldMode.FilterPicker] → in-place option list + clear/done buttons }
+ * - gutter = null (redesigned; [FootButtonBar] lives in the field lambda).
  */
 @Composable
 private fun SpoolContent(
     state: SpoolPickerState,
     selected: SpoolmanSpool?,
-    isActive: Boolean,
+    isSelectedLoaded: Boolean,
+    isPrinting: Boolean,
     onSelectSort: (SpoolSortKey) -> Unit,
     onOpenFilter: (SpoolFilterCategory) -> Unit,
+    onCloseFilter: () -> Unit,
+    onToggleMaterial: (String) -> Unit,
+    onToggleVendor: (String) -> Unit,
+    onTapSwatch: (String) -> Unit,
+    onMultiColor: () -> Unit,
+    onClearFilter: () -> Unit,
     onRowClick: (SpoolmanSpool) -> Unit,
     onMeasure: () -> Unit,
-    onBack: () -> Unit,
+    onCloseMeasure: () -> Unit,
+    onApplyMeasure: (SpoolmanSpool, Double) -> Unit,
+    onHome: () -> Unit,
     onScan: () -> Unit,
-    onSetActive: () -> Unit,
-    onClearActive: () -> Unit,
+    onLoad: () -> Unit,
+    onUnload: () -> Unit,
+    onEmergencyStop: () -> Unit,
 ) {
-    ScreenScaffold(
-        focus = {
-            // Detail fills the flexible top; the chips sit at the bottom of the Focus pane.
-            Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
-                SpoolDetailFocus(
-                    spool = selected,
-                    isActive = isActive,
-                    onMeasure = onMeasure,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            SpoolFilterControls(
-                state = state,
-                onSelectSort = onSelectSort,
-                onOpenFilter = onOpenFilter,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            )
-        },
-        field = {
-            SpoolPicker(
-                state = state,
-                onRowClick = onRowClick,
-                modifier = Modifier.fillMaxSize().padding(8.dp),
-            )
-        },
-        gutter = {
-            Row(
-                Modifier.fillMaxWidth().padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedControl(
-                    label = stringResource(R.string.common_back),
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                    symbol = "arrow_back",
-                )
-                // Icon-only Scan/Set buttons: the shared OutlinedControl has no a11y cd param yet (its
-                // symbol/label API rides the Phase-22 backfill — out of this exemplar's tokenization
-                // boundary, Codex MEDIUM-6); their cd_spool_* keys are pre-seeded in strings.xml for that
-                // backfill to wire once OutlinedControl gains a contentDescription parameter.
-                OutlinedControl(
-                    label = "",
-                    onClick = onScan,
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent, // physical/command accent.
-                    symbol = "qr_code",
-                )
-                OutlinedControl(
-                    label = "",
-                    onClick = onSetActive,
-                    onLongClick = onClearActive,
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Go, // green accept/commit.
-                    symbol = "add_circle",
-                )
-            }
-        },
-    )
-}
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // U is derived once at the screen root from the landscape-constrained short edge, held constant
+        // through rotation (portrait width == landscape height for the same physical short edge).
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-/**
- * The Focus: the selected spool's detail (material / color split swatch / vendor / remaining·used linked
- * (D-04) / location / archived badge D-09). Empty state when nothing is selected (landscape only — portrait
- * never shows the empty Focus). Values via [LocalTokens]; the remaining/used pair is the GeistMono hero.
- */
-@Composable
-private fun SpoolDetailFocus(
-    spool: SpoolmanSpool?,
-    isActive: Boolean,
-    onMeasure: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    // Match the detail window's border to the selected spool's own color (Matthew 2026-06-04): the first
-    // valid swatch, falling back to the accent line (valid spool, unknown color) or the hair (no spool).
-    val spoolColor = spool?.filament?.colorSwatches?.firstNotNullOfOrNull { parseNormalizedHex(it) }
-    val borderColor = spoolColor ?: if (spool != null) t.accentLine else t.hair
-    Box(
-        modifier
-            .clip(shape)
-            .border(BorderStroke(3.dp, borderColor), shape)
-            .background(t.surface)
-            .padding(16.dp),
-    ) {
-        if (spool == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // D-06.4: the honest empty spool (band omitted, D-03) instead of the generic inventory box.
-                // Neutral token body/keyline; same t.text3 tint + fsSp(64f) size as the prior icon.
-                SpoolGlyph(
-                    swatches = emptyList(),
-                    bodyTint = t.text3,
-                    keyline = t.hair,
-                    sizeDp = fsSp(64f, t.fs).dp,
-                    contentDescription = stringResource(R.string.cd_spool_empty),
-                )
-            }
-            return@Box
+        // DEBUG-ONLY: log uDp so the owner can confirm U is equal in both orientations at the device gate.
+        if (BuildConfig.DEBUG) {
+            Log.d("UnitGrid", "uDp=${grid.uDp} count=${grid.count} min=${minOf(maxWidth, maxHeight)}")
         }
-        val filament = spool.filament
-        // The detail pane uses just TWO type sizes (Matthew 2026-06-04): one larger HEADER for the title,
-        // and one consistent smaller BODY size for every secondary line. Icons match the body.
-        val headerSp = fsSp(26f, t.fs)
-        val bodySp = fsSp(18f, t.fs)
-        val iconSp = fsSp(20f, t.fs)
-        // D-06.5/D-08: the reactive spool hero tinted by the SELECTED spool's OWN color (NOT the active
-        // spool). Resolved via the shared parser from the selected spool's swatches; a malformed/absent hex
-        // → empty list → empty spool (D-03), never a throw. Neutral token body/keyline.
-        val detailSwatches: List<Color> =
-            spool.filament?.colorSwatches?.mapNotNull(::parseNormalizedHex).orEmpty()
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                SpoolGlyph(
-                    swatches = detailSwatches,
-                    bodyTint = t.text2,
-                    keyline = t.hair,
-                    sizeDp = fsSp(64f, t.fs).dp,
-                    contentDescription = stringResource(R.string.cd_spool_color),
+
+        val t = LocalTokens.current
+        val spoolColor = selected?.filament?.colorSwatches?.firstNotNullOfOrNull { parseNormalizedHex(it) }
+
+        // Sort options — SortOption with registered DinghyIcons tokens.
+        val sortOptions = persistentListOf(
+            SortOption(
+                key = SpoolSortKey.NAME,
+                icon = DinghyIcons.MatchCase,
+                contentDescriptionRes = R.string.cd_spool_sort_name,
+                directionUp = if (state.sortKey == SpoolSortKey.NAME) state.sortAscending else null,
+            ),
+            SortOption(
+                key = SpoolSortKey.DATE,
+                icon = DinghyIcons.CalendarClock,
+                contentDescriptionRes = R.string.cd_spool_sort_date,
+                directionUp = if (state.sortKey == SpoolSortKey.DATE) state.sortAscending else null,
+            ),
+            SortOption(
+                key = SpoolSortKey.REMAINING,
+                icon = DinghyIcons.Scale,
+                contentDescriptionRes = R.string.cd_spool_sort_remaining,
+                directionUp = if (state.sortKey == SpoolSortKey.REMAINING) state.sortAscending else null,
+            ),
+        )
+
+        // Filter options — FilterOption with registered DinghyIcons tokens.
+        val filterOptions = persistentListOf(
+            FilterOption(
+                key = SpoolFilterCategory.TYPE,
+                icon = DinghyIcons.Experiment,
+                contentDescriptionRes = R.string.cd_spool_filter_type,
+                isActive = state.filters.materialFamilies.isNotEmpty(),
+            ),
+            FilterOption(
+                key = SpoolFilterCategory.COLOR,
+                icon = DinghyIcons.Palette,
+                contentDescriptionRes = R.string.cd_spool_filter_color,
+                isActive = state.filters.colorSwatchHex != null,
+            ),
+            FilterOption(
+                key = SpoolFilterCategory.MFG,
+                icon = DinghyIcons.Storefront,
+                contentDescriptionRes = R.string.cd_spool_filter_mfg,
+                isActive = state.filters.vendors.isNotEmpty(),
+            ),
+        )
+
+        ScreenScaffold(
+            focus = {
+                // Focus = DetailCard (color-reactive ring + FillMeter) with FloatingEStop as Box sibling.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    DetailCard(
+                        ringColor = spoolColor,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        SpoolDetailContent(
+                            spool = selected,
+                            isActive = isSelectedLoaded,
+                            spoolColor = spoolColor,
+                            onMeasure = onMeasure,
+                            t = t,
+                        )
+                    }
+                    // FloatingEStop: Box sibling over the DetailCard, printing-only (Pitfall 7).
+                    FloatingEStop(
+                        visible = isPrinting,
+                        onClick = onEmergencyStop,
+                        uDp = grid.uDp,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(14.dp),
+                    )
+                }
+                // Sort and Filter control rows pinned below the detail card, at the foot of Focus.
+                SortRow(
+                    options = sortOptions,
+                    activeKey = state.sortKey,
+                    onSelect = onSelectSort,
+                    uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
-            }
-            // Header line (LARGER): the D-08 split swatch + the filament MATERIAL only.
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DetailSwatch(filament?.colorSwatches ?: emptyList(), headerSp, t)
-                Text(
-                    text = filament?.material?.ifBlank { null }
-                        ?: stringResource(R.string.spool_unnamed, spool.id),
-                    color = t.text,
-                    fontFamily = Geist,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = headerSp.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                FilterRow(
+                    options = filterOptions,
+                    onSelect = onOpenFilter,
+                    uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
-            }
-            // Line 2 (BODY): storefront → vendor (no label) · palette → color/filament name (no label).
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DinghyIconView(DinghyIcons.Storefront, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_vendor))
-                DetailValue(filament?.vendor?.name, bodySp, Modifier.weight(1f), t)
-                DinghyIconView(DinghyIcons.Palette, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_color))
-                DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
-            }
-            // Line 3 (BODY): scale → "remaining/original g" (drop the "remaining" label). Tap to correct
-            // the measured gross weight (D-04) — the trailing edit glyph hints it's editable.
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(t.rCtrl)).clickable(onClick = onMeasure)
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DinghyIconView(DinghyIcons.Scale, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight))
-                Text(
-                    text = spoolWeightText(spool),
-                    color = if (spool.remainingWeight == null) t.text3 else t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = bodySp.sp,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
-                )
-                DinghyIconView(DinghyIcons.Edit, tint = t.text3, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight_edit))
-            }
-            // Line 4 (BODY): calendar_add_on → the Spoolman registration date (date part only).
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DinghyIconView(DinghyIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
-                Text(
-                    text = spool.registered?.substringBefore('T')?.ifBlank { null }
-                        ?: stringResource(R.string.spool_value_unset),
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontSize = bodySp.sp,
-                    maxLines = 1,
-                )
-            }
-            // Line 5 (BODY): nozzle → recommended nozzle temp · bed → recommended bed temp.
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
-                Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
-                DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
-                Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
-            }
-            if (isActive) {
-                DetailBadge(
-                    icon = DinghyIcons.CheckCircle,
-                    text = stringResource(R.string.spool_badge_loaded),
-                    contentDescription = stringResource(R.string.cd_spool_loaded),
-                    textSp = bodySp, iconSp = iconSp, color = t.go,
-                )
-            }
-            if (spool.archived) {
-                DetailBadge(
-                    icon = DinghyIcons.Archive,
-                    text = stringResource(R.string.spool_badge_archived),
-                    contentDescription = stringResource(R.string.cd_spool_archived),
-                    textSp = bodySp, iconSp = iconSp, color = t.heat,
-                )
-            }
+            },
+            field = {
+                when (val fieldMode = state.fieldMode) {
+                    is FieldMode.Spools -> {
+                        // Normal spool list.
+                        SpoolListField(
+                            state = state,
+                            isSelectedLoaded = isSelectedLoaded,
+                            uDp = grid.uDp,
+                            onRowClick = onRowClick,
+                            onHome = onHome,
+                            onScan = onScan,
+                            onLoad = onLoad,
+                            onUnload = onUnload,
+                            t = t,
+                        )
+                    }
+                    is FieldMode.FilterPicker -> {
+                        // In-place Field-takeover: show options for the selected filter category.
+                        SpoolFilterPickerField(
+                            category = fieldMode.category,
+                            state = state,
+                            uDp = grid.uDp,
+                            onToggleMaterial = onToggleMaterial,
+                            onToggleVendor = onToggleVendor,
+                            onTapSwatch = onTapSwatch,
+                            onMultiColor = onMultiColor,
+                            onClear = onClearFilter,
+                            onDone = onCloseFilter,
+                            t = t,
+                        )
+                    }
+                    is FieldMode.MeasureWeight -> {
+                        // D-08: in-place measured-weight numeric-IME Field-takeover.
+                        SpoolMeasureWeightField(
+                            spool = fieldMode.spool,
+                            uDp = grid.uDp,
+                            onCancel = onCloseMeasure,
+                            onApply = { grams -> onApplyMeasure(fieldMode.spool, grams) },
+                            t = t,
+                        )
+                    }
+                }
+            },
+            gutter = null, // Redesigned screen — FootButtonBar is in the field lambda (Pitfall 1).
+        )
+
+        // DEBUG-ONLY uDp badge in the bottom-start corner (release-stripped via BuildConfig.DEBUG).
+        if (BuildConfig.DEBUG) {
+            Text(
+                text = "U=${grid.uDp}",
+                color = t.accent2,
+                fontFamily = GeistMono,
+                fontSize = fsSp(11f, t.fs).sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(4.dp)
+                    .background(t.bg.copy(alpha = 0.8f))
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
         }
     }
 }
+
+/**
+ * The normal spool-list Field: [ListBlock] of [ListRow]s + [FootButtonBar] with the locked foot-button logic.
+ *
+ * Foot buttons (LOCKED per 23-06 plan): Home (accent) · Scan (accent) · conditional Load (expand_circle_up,
+ * accent) when NOT loaded / Unload (expand_circle_down, neutral) when loaded. No "Set Active" button.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
+    state: SpoolPickerState,
+    isSelectedLoaded: Boolean,
+    uDp: Dp,
+    onRowClick: (SpoolmanSpool) -> Unit,
+    onHome: () -> Unit,
+    onScan: () -> Unit,
+    onLoad: () -> Unit,
+    onUnload: () -> Unit,
+    t: ThemeTokens,
+) {
+    val activeId = state.activeStatus?.activeSpoolId
+    if (state.spools.isEmpty()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = when {
+                    state.loading -> stringResource(R.string.spool_loading)
+                    state.error != null -> stringResource(R.string.spool_error_load)
+                    else -> stringResource(R.string.spool_empty_no_match)
+                },
+                color = t.text2,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
+                modifier = Modifier.padding(16.dp),
+            )
+        }
+    } else {
+        DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            items(state.spools, key = { it.id }) { spool ->
+                ListRow(
+                    selected = spool.id == state.selected?.id,
+                    onClick = { onRowClick(spool) },
+                    uDp = uDp,
+                    leadingContent = { SpoolRowSwatch(spool.filament?.colorSwatches ?: emptyList(), t) },
+                    trailingContent = { SpoolRowTrailing(spool, activeId, t) },
+                ) {
+                    SpoolRowBody(spool, t)
+                }
+            }
+        }
+    }
+    FootButtonBar(
+        uDp = uDp,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        OutlinedControl(
+            label = "",
+            onClick = onHome,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Accent,
+            icon = DinghyIcons.Home,
+        )
+        OutlinedControl(
+            label = "",
+            onClick = onScan,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Accent,
+            icon = DinghyIcons.QrCode,
+        )
+        // Conditional Load / Unload (LOCKED logic — RESEARCH §"Foot button logic").
+        if (isSelectedLoaded) {
+            OutlinedControl(
+                label = "",
+                onClick = onUnload,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Neutral,
+                icon = DinghyIcons.ExpandCircleDown,
+            )
+        } else {
+            OutlinedControl(
+                label = "",
+                onClick = onLoad,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Accent,
+                icon = DinghyIcons.ExpandCircleUp,
+            )
+        }
+    }
+}
+
+/**
+ * The in-place Field-takeover filter picker (23-06 FieldMode.FilterPicker). The Field swaps to show
+ * the option list for [category]; picking an option or Done/Clear returns to [FieldMode.Spools].
+ */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerField(
+    category: SpoolFilterCategory,
+    state: SpoolPickerState,
+    uDp: Dp,
+    onToggleMaterial: (String) -> Unit,
+    onToggleVendor: (String) -> Unit,
+    onTapSwatch: (String) -> Unit,
+    onMultiColor: () -> Unit,
+    onClear: () -> Unit,
+    onDone: () -> Unit,
+    t: ThemeTokens,
+) {
+    when (category) {
+        SpoolFilterCategory.TYPE -> {
+            DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
+                    val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
+                    ListRow(
+                        selected = selected,
+                        onClick = { onToggleMaterial(label) },
+                        uDp = uDp,
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (selected) t.accent2 else t.text,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(18f, t.fs).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+        SpoolFilterCategory.COLOR -> {
+            // Color swatches: a fill grid (not a lazy list) — keep the existing ColorSwatchGrid.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+            ) {
+                ColorSwatchGrid(
+                    selectedHex = state.filters.colorSwatchHex,
+                    onTapSwatch = onTapSwatch,
+                    onMultiColor = onMultiColor,
+                    t = t,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        SpoolFilterCategory.MFG -> {
+            if (state.vendors.isEmpty()) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.spool_mfg_empty),
+                        color = t.text2,
+                        fontFamily = Geist,
+                        fontSize = fsSp(17f, t.fs).sp,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            } else {
+                DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                    items(state.vendors, key = { it }) { vendor ->
+                        val selected = state.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
+                        ListRow(
+                            selected = selected,
+                            onClick = { onToggleVendor(vendor) },
+                            uDp = uDp,
+                        ) {
+                            Text(
+                                text = vendor,
+                                color = if (selected) t.accent2 else t.text,
+                                fontFamily = Geist,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = fsSp(18f, t.fs).sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Filter picker footer: Clear (danger) · Done (go).
+    FootButtonBar(
+        uDp = uDp,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        OutlinedControl(
+            label = stringResource(R.string.spool_filter_clear),
+            onClick = onClear,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Danger,
+            symbol = "close", // TODO(23-rev WR-02): close glyph awaiting owner icon assignment
+        )
+        OutlinedControl(
+            label = stringResource(R.string.spool_filter_done),
+            onClick = onDone,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Go,
+            icon = DinghyIcons.Check,
+        )
+    }
+}
+
+/**
+ * D-08 measured-weight numeric-IME Field-takeover (26-07). Replaces the retired MeasuredWeightPage
+ * with an in-place Field composable: the user enters the TOTAL gross weight (spool + filament) via the
+ * system numeric keyboard; [onApply] receives the validated double. [onCancel] discards without writing.
+ *
+ * Security note (T-26-07-02): the raw text is filtered to digits + one decimal point; [onApply] is only
+ * called when the parsed value is > 0. No raw IME text ever reaches the network layer.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightField(
+    spool: SpoolmanSpool,
+    uDp: Dp,
+    onCancel: () -> Unit,
+    onApply: (Double) -> Unit,
+    t: ThemeTokens,
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var weightText by remember(spool.id) { mutableStateOf("") }
+    val grams = weightText.toDoubleOrNull()
+    val valid = grams != null && grams > 0.0
+
+    // Info header: spool name + tare + current total (migrated from the retired MeasuredWeightPage.SpoolWeightHeader).
+    val filament = spool.filament
+    val tare = spool.effectiveSpoolWeight
+    val believedTotal = if (tare != null && spool.remainingWeight != null) tare + spool.remainingWeight else null
+    val headerShape = RoundedCornerShape(t.rCard)
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Entry prompt label.
+        Text(
+            text = stringResource(R.string.spool_measure_prompt),
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+        )
+        // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07).
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(t.rCtrl))
+                .border(
+                    BorderStroke(2.dp, if (valid) t.accentLine else t.outline),
+                    RoundedCornerShape(t.rCtrl),
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            BasicTextField(
+                value = weightText,
+                onValueChange = { raw ->
+                    // Filter: digits + single decimal only, max 8 chars (T-26-07-02).
+                    val filtered = raw.filter { it.isDigit() || it == '.' }.let { s ->
+                        val dotIdx = s.indexOf('.')
+                        if (dotIdx >= 0) s.substring(0, dotIdx + 1) + s.substring(dotIdx + 1).filter { it.isDigit() }
+                        else s
+                    }.take(8)
+                    weightText = filtered
+                },
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                ),
+                cursorBrush = SolidColor(t.accent2),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    if (valid) {
+                        keyboardController?.hide()
+                        onApply(grams!!)
+                    }
+                }),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (weightText.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.spool_measure_placeholder),
+                    color = t.text3,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(30f, t.fs).sp,
+                )
+            }
+        }
+        // Info card: spool name + tare weight + current believed total.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(headerShape)
+                .background(t.surface)
+                .border(BorderStroke(2.dp, t.hair), headerShape)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ")
+                    .ifBlank { stringResource(R.string.spool_unnamed, spool.id) },
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(26f, t.fs).sp,
+                maxLines = 1,
+            )
+            SpoolMeasureWeightStat(stringResource(R.string.spool_measure_tare_label), tare, t)
+            SpoolMeasureWeightStat(stringResource(R.string.spool_measure_total_label), believedTotal, t)
+            Text(
+                text = stringResource(R.string.spool_measure_hint),
+                color = t.text2,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Medium,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
+        }
+    }
+    // Footer: Back (Danger — discards; C7 rule) · Set (Go — applies when valid).
+    FootButtonBar(
+        uDp = uDp,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        OutlinedControl(
+            label = stringResource(R.string.spool_measure_back),
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+            intent = Intent.Danger,
+            icon = DinghyIcons.Back,
+        )
+        OutlinedControl(
+            label = stringResource(R.string.spool_measure_set),
+            onClick = {
+                if (valid) {
+                    keyboardController?.hide()
+                    onApply(grams!!)
+                }
+            },
+            modifier = Modifier.weight(1f),
+            intent = Intent.Go,
+            icon = DinghyIcons.Check,
+        )
+    }
+}
+
+/** One labelled weight stat in the measure-weight header: label and grams or "not set" when null. */
+@Composable
+private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = t.text2,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Medium,
+            fontSize = fsSp(18f, t.fs).sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = grams?.let { "${it.roundToInt()} g" }
+                ?: stringResource(R.string.spool_measure_weight_not_set),
+            color = if (grams == null) t.text3 else t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.Bold,
+            fontSize = fsSp(26f, t.fs).sp,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The Detail card content for the selected spool (23-06 rebuild inside [DetailCard]).
+ * The [SpoolGlyph] from Phase 18.3 stays the spool visual — do NOT reinvent it.
+ * FillMeter shows the remaining fraction (remaining/original). No redundant Spoolman icon.
+ */
+@Composable
+private fun SpoolDetailContent(
+    spool: SpoolmanSpool?,
+    isActive: Boolean,
+    spoolColor: Color?,
+    onMeasure: () -> Unit,
+    t: ThemeTokens,
+) {
+    if (spool == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            SpoolGlyph(
+                swatches = emptyList(),
+                bodyTint = t.text3,
+                keyline = t.hair,
+                sizeDp = fsSp(64f, t.fs).dp,
+                contentDescription = stringResource(R.string.cd_spool_empty),
+            )
+        }
+        return
+    }
+    val filament = spool.filament
+    val headerSp = fsSp(26f, t.fs)
+    val bodySp = fsSp(18f, t.fs)
+    val iconSp = fsSp(20f, t.fs)
+    val detailSwatches: List<Color> =
+        filament?.colorSwatches?.mapNotNull(::parseNormalizedHex).orEmpty()
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Spool glyph (Phase 18.3 — img/spool.svg, reactive to filament color).
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            SpoolGlyph(
+                swatches = detailSwatches,
+                bodyTint = t.text2,
+                keyline = t.hair,
+                sizeDp = fsSp(64f, t.fs).dp,
+                contentDescription = stringResource(R.string.cd_spool_color),
+            )
+        }
+        // Header: color swatch + material name (no Spoolman icon — removed per redesign).
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DetailSwatch(filament?.colorSwatches ?: emptyList(), headerSp, t)
+            Text(
+                text = filament?.material?.ifBlank { null }
+                    ?: stringResource(R.string.spool_unnamed, spool.id),
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = headerSp.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // FillMeter — remaining fraction (remaining/original); fallback t.accent when no filament color.
+        val remaining = spool.remainingWeight
+        val original = spool.originalWeight
+        val fillFraction = if (remaining != null && original != null && original > 0.0) {
+            (remaining / original).toFloat()
+        } else if (remaining != null) {
+            0.5f // unknown original — show half as a neutral indicator
+        } else {
+            0f
+        }
+        val fillLabel = buildFillLabel(spool)
+        FillMeter(
+            fraction = fillFraction,
+            fillColor = spoolColor ?: t.accent,
+            modifier = Modifier.fillMaxWidth(),
+            label = fillLabel,
+        )
+        // Vendor + color name.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DinghyIconView(DinghyIcons.Storefront, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_vendor))
+            DetailValue(filament?.vendor?.name, bodySp, Modifier.weight(1f), t)
+            DinghyIconView(DinghyIcons.Palette, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_color))
+            DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
+        }
+        // Weight row (tappable to correct measured weight via D-04).
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(t.rCtrl)).clickable(onClick = onMeasure)
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DinghyIconView(DinghyIcons.Scale, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight))
+            Text(
+                text = spoolWeightText(spool),
+                color = if (spool.remainingWeight == null) t.text3 else t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = bodySp.sp,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            DinghyIconView(DinghyIcons.Edit, tint = t.text3, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight_edit))
+        }
+        // Registration date.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DinghyIconView(DinghyIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
+            Text(
+                text = spool.registered?.substringBefore('T')?.ifBlank { null }
+                    ?: stringResource(R.string.spool_value_unset),
+                color = t.text,
+                fontFamily = GeistMono,
+                fontSize = bodySp.sp,
+                maxLines = 1,
+            )
+        }
+        // Nozzle + bed recommended temps.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
+            Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+            DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
+            Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+        }
+        if (isActive) {
+            DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), bodySp, iconSp, t.go)
+        }
+        if (spool.archived) {
+            DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), bodySp, iconSp, t.heat)
+        }
+    }
+}
+
+/** Build the FillMeter label string: "remaining/original g · percent" or "remaining g". */
+@Composable
+private fun buildFillLabel(spool: SpoolmanSpool): String {
+    val remaining = spool.remainingWeight ?: return ""
+    val original = spool.originalWeight
+    return if (original != null && original > 0.0) {
+        val pct = ((remaining / original) * 100).roundToInt()
+        stringResource(R.string.spool_fill_meter_label, remaining.roundToInt(), original.roundToInt(), pct)
+    } else {
+        stringResource(R.string.spool_fill_meter_label_no_original, remaining.roundToInt())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spool list row sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Leading swatch cluster for a spool row (up to 3 color dots). */
+@Composable
+private fun SpoolRowSwatch(swatches: List<String>, t: ThemeTokens) {
+    val size = fsSp(18f, t.fs).dp
+    if (swatches.isEmpty()) {
+        Box(
+            Modifier.size(size).clip(CircleShape).background(t.surface2)
+                .border(BorderStroke(1.dp, t.hair), CircleShape),
+        )
+        return
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.padding(end = 8.dp),
+    ) {
+        swatches.take(3).forEach { hex ->
+            Box(
+                Modifier.size(size).clip(CircleShape)
+                    .background(parseNormalizedHex(hex) ?: t.surface2)
+                    .border(BorderStroke(1.dp, t.hair), CircleShape),
+            )
+        }
+    }
+}
+
+/** Row body content: material · name + vendor/location metadata line. */
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: SpoolmanSpool, t: ThemeTokens) {
+    val filament = spool.filament
+    Column(Modifier.weight(1f).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ")
+                .ifBlank { stringResource(R.string.spool_unnamed, spool.id) },
+            color = t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        val meta = listOfNotNull(
+            filament?.vendor?.name,
+            spool.location?.let { "@ $it" },
+        ).joinToString("  ")
+        if (meta.isNotBlank()) {
+            Text(
+                text = meta,
+                color = t.text2,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Trailing weight + loaded/archived badge for a spool row. */
+@Composable
+private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeTokens) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.padding(vertical = 6.dp),
+    ) {
+        Text(
+            text = spool.remainingWeight?.let { "${it.roundToInt()} g" }
+                ?: stringResource(R.string.spool_value_unset),
+            color = if (spool.remainingWeight == null) t.text3 else t.text,
+            fontFamily = GeistMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(18f, t.fs).sp,
+            maxLines = 1,
+        )
+        if (spool.id == activeId) {
+            Text(
+                text = stringResource(R.string.spool_row_badge_loaded),
+                color = t.go,
+                fontFamily = Geist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
+        } else if (spool.archived) {
+            Text(
+                text = stringResource(R.string.spool_row_badge_archived),
+                color = t.heat,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Detail card sub-components (reused from original SpoolScreen)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /** The detail split swatch (D-08 normalized; multi-color split; neutral marker on absence). */
 @Composable
@@ -465,7 +1125,7 @@ private fun DetailSwatch(swatches: List<String>, sizeSp: Float, t: ThemeTokens) 
     }
 }
 
-/** A label-less detail value (body size; "—" when absent). Used for the vendor / color-name on line 2. */
+/** A label-less detail value (body size; "—" when absent). */
 @Composable
 private fun DetailValue(value: String?, fontSizeSp: Float, modifier: Modifier, t: ThemeTokens) {
     Text(
@@ -492,12 +1152,12 @@ private fun spoolWeightText(spool: SpoolmanSpool): String {
     }
 }
 
-/** Line-5 temperature text from a Spoolman filament setting: `210°C`, or "—" when unset. */
+/** Line-5 temperature text: `210°C`, or "—" when unset. */
 @Composable
 private fun tempText(temp: Int?): String =
     temp?.let { stringResource(R.string.spool_temp, it) } ?: stringResource(R.string.spool_value_unset)
 
-/** An icon-led detail badge (loaded green / archived amber) at the body size. */
+/** An icon-led detail badge (loaded green / archived amber). */
 @Composable
 private fun DetailBadge(
     icon: DinghyIcon,
@@ -518,8 +1178,7 @@ private fun DetailBadge(
 
 /**
  * Parse a (possibly un-normalized) filament hex to a Compose [Color] (D-08); guards via
- * [normalizeColorHex] (accepts `#`/no-`#`, 6/8 hex digits, else null) and never throws — a
- * non-normalizable value yields `null` (the neutral marker / empty-spool signal).
+ * [normalizeColorHex] (accepts `#`/no-`#`, 6/8 hex digits, else null) and never throws.
  *
  * Promoted from `private` to `internal` top-level (18.3-01) so the SpoolGlyph (plan 02) and the
  * surface-wiring (plan 03) call this ONE shared helper instead of duplicating the parse logic

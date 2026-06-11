@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Filament Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #08090a;
+    --panel: #121316;
+    --tile: #17181c;
+    --tile-hi: #1d1f24;
+    --line: rgba(255,255,255,0.055);
+    --line-group: rgba(255,255,255,0.13);
+    --txt: #f3f4f6;
+    --txt-dim: #9aa0a8;
+    --txt-mute: #6b7178;
+    --blue: #3f7dff;
+    --green: #34c759;
+    --row-h: 112px;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: 'Nunito', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #root { height: 100%; }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1280px;
+    height: 800px;
+    transform-origin: center center;
+  }
+  .app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: 20px;
+    padding: 22px;
+  }
+  .col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .col-left { gap: 18px; }
+  .col-right { gap: 16px; }
+
+  /* ---------- Info card ---------- */
+  .info {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--panel);
+    border: 2px solid var(--ring, #2a2c30);
+    border-radius: 26px;
+    padding: 32px 34px 30px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color .35s ease;
+    position: relative;
+  }
+  .info-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .info-title { display: flex; align-items: center; gap: 22px; min-width: 0; }
+  .dot {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+  }
+  .dot-lg { width: 42px; height: 42px; }
+  .dot-md { width: 26px; height: 26px; }
+  .dot-sm { width: 20px; height: 20px; }
+  .material {
+    font-weight: 900;
+    font-size: clamp(40px, 5.4vw, 68px);
+    letter-spacing: -0.5px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .variant {
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--txt-dim);
+    margin-top: 8px;
+  }
+  .info-actions { flex: 0 0 auto; display: flex; gap: 12px; }
+  .icon-btn {
+    width: 66px; height: 66px;
+    border-radius: 16px;
+    border: 1.5px solid var(--line);
+    background: var(--tile);
+    color: var(--txt-dim);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: .18s ease;
+  }
+  .icon-btn:hover { background: var(--tile-hi); color: var(--txt); border-color: rgba(255,255,255,0.18); }
+  .icon-btn.danger:hover { color: #ff5a52; border-color: rgba(255,90,82,0.5); background: rgba(255,90,82,0.08); }
+
+  /* console-style readout */
+  .readout {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .read-row {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 0 2px;
+  }
+  .read-ico { flex: 0 0 32px; color: var(--txt-mute); display: flex; align-items: center; }
+  .read-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 27px;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .read-val .dim { color: var(--txt-mute); }
+  .read-val .cap { font-size: 17px; color: var(--txt-mute); }
+  .read-val .sep { color: var(--txt-mute); margin: 0 4px; }
+  .read-row.weight { flex-direction: column; align-items: stretch; justify-content: center; gap: 13px; }
+  .weight-line { display: flex; align-items: center; gap: 22px; }
+  .weight-line .read-val { flex: 1 1 auto; }
+  .weight-line .pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--txt-dim);
+  }
+  .read-bar {
+    height: 8px;
+    margin-left: 54px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
+    overflow: hidden;
+  }
+  .read-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--ring, #888);
+    transition: width .45s cubic-bezier(.2,.7,.2,1), background-color .35s ease;
+  }
+
+  /* ---------- Filter group ---------- */
+  .filter-group {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .filter {
+    height: var(--row-h);
+    border-radius: 16px;
+    border: 1.5px solid var(--line);
+    background: var(--tile);
+    color: var(--txt);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: .18s ease;
+  }
+  .filter:hover { background: var(--tile-hi); border-color: rgba(255,255,255,0.16); }
+  .filter.active {
+    border-color: var(--blue);
+    background: rgba(63,125,255,0.10);
+    color: #cdddff;
+  }
+  .filter .aa { font-weight: 900; font-size: 38px; letter-spacing: -1px; }
+  .sort-badge {
+    position: absolute;
+    top: 10px; right: 12px;
+    color: var(--blue);
+    display: grid; place-items: center;
+  }
+
+  /* ---------- List ---------- */
+  .list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-right: 6px;
+  }
+  .list::-webkit-scrollbar { width: 8px; }
+  .list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+  .list::-webkit-scrollbar-track { background: transparent; }
+
+  .row {
+    flex: 0 0 auto;
+    height: var(--row-h);
+    border-radius: 16px;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    padding: 0 26px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: .16s ease;
+  }
+  .row:hover { background: rgba(255,255,255,0.035); }
+  .row.selected {
+    border-color: var(--blue);
+    background: rgba(63,125,255,0.07);
+  }
+  .row-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .row-title {
+    font-weight: 800;
+    font-size: 27px;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row-brand { font-weight: 600; font-size: 18px; color: var(--txt-mute); }
+  .row-weight {
+    flex: 0 0 auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: -1px;
+  }
+  .row-weight .unit { color: var(--txt-mute); margin-left: 8px; }
+
+  /* ---------- Action bar (constrained to list width) ---------- */
+  .actions {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .action {
+    height: var(--row-h);
+    border-radius: 16px;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    background: var(--tile);
+    color: var(--txt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: .16s ease;
+  }
+  .action:hover { background: var(--tile-hi); }
+  .action.blue { border-color: var(--blue); }
+  .action.green { border-color: var(--green); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel">
+
+
+const { useState, useMemo } = React;
+
+/* ----- Icons (Lucide-style) ----- */
+const Svg = ({ size = 26, sw = 2, fill = "none", children }) =>
+<svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+
+const IconStore = (p) => <Svg {...p}>
+      <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+      <path d="M2 7h20" />
+      <path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-2-1a2.7 2.7 0 0 1-2 1 2.7 2.7 0 0 1-2-1 2.7 2.7 0 0 1-2 1 2.7 2.7 0 0 1-2-1 2.7 2.7 0 0 1-2 1 2.7 2.7 0 0 1-2-1 2.7 2.7 0 0 1-2 1A2 2 0 0 1 2 10V7" />
+    </Svg>;
+const IconPalette = ({ size = 26 }) =>
+<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="13.5" cy="6.5" r=".6" fill="currentColor" stroke="none" />
+        <circle cx="17.5" cy="10.5" r=".6" fill="currentColor" stroke="none" />
+        <circle cx="8.5" cy="7.5" r=".6" fill="currentColor" stroke="none" />
+        <circle cx="6.5" cy="12.5" r=".6" fill="currentColor" stroke="none" />
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+      </svg>;
+
+const IconWeight = (p) => <Svg {...p}>
+      <circle cx="12" cy="5" r="3" />
+      <path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.46A2 2 0 0 0 17.5 8Z" />
+    </Svg>;
+const IconCalendar = (p) => <Svg {...p}>
+      <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" />
+      <path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h6" />
+      <path d="M17.5 17.5 16 16.3V14" /><circle cx="16" cy="16" r="6" />
+    </Svg>;
+const IconFlask = (p) => <Svg {...p}>
+      <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" />
+      <path d="M8.5 2h7" /><path d="M7 16h10" />
+    </Svg>;
+const IconPencil = (p) => <Svg {...p}>
+      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+      <path d="m15 5 4 4" />
+    </Svg>;
+const IconBack = (p) => <Svg {...p}><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></Svg>;
+const IconHome = (p) => <Svg {...p}>
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M9 22V12h6v10" />
+    </Svg>;
+const IconScale = (p) => <Svg {...p}>
+      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="M7 21h10" /><path d="M12 3v18" />
+      <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+    </Svg>;
+const IconTrash = (p) => <Svg {...p}>
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M10 11v6" /><path d="M14 11v6" />
+    </Svg>;
+const IconThermo = (p) => <Svg {...p}>
+      <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+    </Svg>;
+const IconPlus = (p) => <Svg {...p}><circle cx="12" cy="12" r="9.5" /><path d="M8 12h8" /><path d="M12 8v8" /></Svg>;
+const IconQr = (p) => <Svg {...p}>
+      <rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" />
+      <rect width="5" height="5" x="3" y="16" rx="1" />
+      <path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" />
+      <path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" />
+      <path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" />
+    </Svg>;
+const IconArrow = ({ dir }) =>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        {dir === "asc" ?
+  <><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></> :
+  <><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></>}
+      </svg>;
+
+
+/* ----- Data ----- */
+const FILAMENTS = [
+{ id: 1, material: "ABS", name: "Black", brand: "Sunlu", color: "Black", hex: "#222428", ring: "#54585f", cur: 735, total: 1000, date: "2025-11-04", nozzle: 240, bed: 90 },
+{ id: 2, material: "ABS", name: "PolyLite™ ABS Orange", brand: "Polymaker", color: "Orange", hex: "#f0640f", ring: "#f0640f", cur: 218, total: 1000, date: "2025-09-22", nozzle: 250, bed: 100 },
+{ id: 3, material: "ABS", name: "White", brand: "Sunlu", color: "White", hex: "#f3f3f3", ring: "#f3f3f3", cur: 221, total: 1000, date: "2025-10-15", nozzle: 240, bed: 90 },
+{ id: 4, material: "ABS", name: "Yellow", brand: "Sunlu", color: "Yellow", hex: "#ffe000", ring: "#ffe000", cur: 418, total: 1000, date: "2025-12-30", nozzle: 240, bed: 90 },
+{ id: 5, material: "ABS", name: "Translucent · Orange", brand: "yxpolyer", color: "Orange", hex: "#f8821e", ring: "#f8821e", cur: 1000, total: 1000, date: "2026-01-12", nozzle: 245, bed: 95 },
+{ id: 6, material: "PETG", name: "Black", brand: "eSun", color: "Black", hex: "#222428", ring: "#54585f", cur: 485, total: 1000, date: "2025-08-30", nozzle: 240, bed: 80 },
+{ id: 7, material: "PETG", name: "Glacier White", brand: "Bambu Lab", color: "White", hex: "#f3f3f3", ring: "#f3f3f3", cur: 642, total: 1000, date: "2026-02-08", nozzle: 250, bed: 70 },
+{ id: 8, material: "PLA", name: "Matte Charcoal", brand: "Bambu Lab", color: "Gray", hex: "#3a3d42", ring: "#7b7f86", cur: 305, total: 1000, date: "2025-12-01", nozzle: 220, bed: 60 },
+{ id: 9, material: "PLA", name: "Fire Engine Red", brand: "Prusament", color: "Red", hex: "#d8352a", ring: "#e0473c", cur: 880, total: 1000, date: "2026-01-25", nozzle: 215, bed: 60 },
+{ id: 10, material: "TPU", name: "Clear", brand: "Overture", color: "Natural", hex: "#cfd6db", ring: "#cfd6db", cur: 540, total: 1000, date: "2025-07-19", nozzle: 225, bed: 45 }];
+
+
+const SORTS = [
+{ key: "name", icon: "aa" },
+{ key: "date", icon: <IconCalendar size={42} /> },
+{ key: "weight", icon: <IconWeight size={42} /> },
+{ key: "material", icon: <IconFlask size={42} /> },
+{ key: "color", icon: <IconPalette size={42} /> },
+{ key: "brand", icon: <IconStore size={42} /> }];
+
+
+function sortValue(f, key) {
+  if (key === "name") return (f.material + " " + f.name).toLowerCase();
+  if (key === "date") return f.date;
+  if (key === "weight") return f.cur;
+  if (key === "material") return f.material.toLowerCase();
+  if (key === "color") return f.color.toLowerCase();
+  if (key === "brand") return f.brand.toLowerCase();
+  return 0;
+}
+
+/* ----- Components ----- */
+function InfoCard({ f }) {
+  const pct = Math.round(f.cur / f.total * 100);
+  return (
+    <div className="info" style={{ "--ring": f.ring }}>
+          <div className="info-head">
+            <div className="info-title">
+              <span className="dot dot-lg" style={{ background: f.hex }} />
+              <div className="material">{f.material}</div>
+            </div>
+            <div className="info-actions">
+              <button className="icon-btn" title="Weigh"><IconScale size={34} /></button>
+              <button className="icon-btn danger" title="Delete"><IconTrash size={32} /></button>
+            </div>
+          </div>
+
+          <div className="readout">
+            <div className="read-row">
+              <span className="read-ico"><IconStore size={28} /></span>
+              <span className="read-val">{f.brand}</span>
+            </div>
+            <div className="read-row">
+              <span className="read-ico"><IconPalette size={28} /></span>
+              <span className="read-val">{f.color}</span>
+            </div>
+            <div className="read-row weight">
+              <div className="weight-line">
+                <span className="read-ico"><IconWeight size={28} /></span>
+                <span className="read-val">{f.cur} <span className="dim">/ {f.total} g</span></span>
+                <span className="pct">{pct}%</span>
+              </div>
+              <div className="read-bar"><div className="read-bar-fill" style={{ width: pct + "%" }} /></div>
+            </div>
+            <div className="read-row">
+              <span className="read-ico"><IconThermo size={28} /></span>
+              <span className="read-val">{f.nozzle}°<span className="cap"> nozzle</span><span className="sep">/</span>{f.bed}°<span className="cap"> bed</span></span>
+            </div>
+            <div className="read-row">
+              <span className="read-ico"><IconCalendar size={28} /></span>
+              <span className="read-val">{f.date}</span>
+            </div>
+          </div>
+        </div>);
+
+}
+
+function FilterGroup({ sortKey, dir, onPick }) {
+  return (
+    <div className="filter-group">
+          {SORTS.map((s) => {
+        const active = s.key === sortKey;
+        return (
+          <button key={s.key} className={"filter" + (active ? " active" : "")} onClick={() => onPick(s.key)}>
+                {s.icon === "aa" ? <span className="aa">Aa</span> : s.icon}
+                {active && <span className="sort-badge"><IconArrow dir={dir} /></span>}
+              </button>);
+
+      })}
+        </div>);
+
+}
+
+function Row({ f, selected, onClick }) {
+  return (
+    <div className={"row" + (selected ? " selected" : "")} onClick={onClick} style={{ padding: "3px", borderWidth: "2px", backgroundColor: "rgba(255, 255, 255, 0)", borderColor: "rgb(63, 125, 255)" }}>
+          <span className="dot dot-md" style={{ background: f.hex }} />
+          <div className="row-body">
+            <div className="row-title">{f.material} · {f.name}</div>
+            <div className="row-brand">{f.brand}</div>
+          </div>
+          <div className="row-weight">{f.cur}<span className="unit">g</span></div>
+        </div>);
+
+}
+
+function App() {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    function fit() {
+      const c = canvasRef.current;
+      if (!c) return;
+      const s = Math.min(window.innerWidth / 1280, window.innerHeight / 800);
+      c.style.transform = `translate(-50%, -50%) scale(${s})`;
+    }
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  const [selectedId, setSelectedId] = useState(4);
+  const [sortKey, setSortKey] = useState("name");
+  const [dir, setDir] = useState("asc");
+
+  const sorted = useMemo(() => {
+    const arr = [...FILAMENTS].sort((a, b) => {
+      const va = sortValue(a, sortKey),vb = sortValue(b, sortKey);
+      if (va < vb) return dir === "asc" ? -1 : 1;
+      if (va > vb) return dir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [sortKey, dir]);
+
+  const selected = FILAMENTS.find((f) => f.id === selectedId);
+
+  function pickSort(key) {
+    if (key === sortKey) setDir((d) => d === "asc" ? "desc" : "asc");else
+    {setSortKey(key);setDir("asc");}
+  }
+
+  return (
+    <div className="stage">
+          <div className="canvas" ref={canvasRef}>
+            <div className="app">
+              <div className="col col-left">
+                <InfoCard f={selected} />
+                <FilterGroup sortKey={sortKey} dir={dir} onPick={pickSort} />
+              </div>
+
+              <div className="col col-right">
+                <div className="list">
+                  {sorted.map((f) =>
+              <Row key={f.id} f={f} selected={f.id === selectedId} onClick={() => setSelectedId(f.id)} />
+              )}
+                </div>
+                <div className="actions">
+                  <button className="action" style={{ fontWeight: "700", borderWidth: "5px", borderColor: "rgb(63, 125, 255)" }}><IconHome size={36} /></button>
+                  <button className="action blue" style={{ borderWidth: "5px", borderColor: "rgba(255, 255, 255, 0.5)" }}><IconQr size={40} /></button>
+                  <button className="action green" style={{ borderWidth: "5px" }}><IconPlus size={40} /></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>);
+
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

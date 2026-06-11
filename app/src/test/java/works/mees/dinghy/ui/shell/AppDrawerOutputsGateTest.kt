@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.IconRef
-import works.mees.dinghy.ui.route.Dest
+import works.mees.dinghy.ui.route.NavDest
 
 /**
  * Host-side proof for the D-10 HIDE-not-grey Output drawer gate (19-07 Task 1). The decision is the PURE,
@@ -15,7 +15,7 @@ import works.mees.dinghy.ui.route.Dest
  *
  * The Output tile DIVERGES from the Webcam/Spool shown-but-greyed pattern: when the connected printer
  * reports zero controllable outputs the tile must be FILTERED OUT entirely (D-10), never just greyed. When
- * ≥1 output is present the tile is present, navigates to [Dest.Outputs] (D-11), and wears the owner-locked
+ * ≥1 output is present the tile is present, navigates to [NavDest.Outputs] (D-11), and wears the owner-locked
  * `output` glyph sourced from [DinghyIcons.OutputSection] (D-07) — never a hand-typed string.
  */
 class AppDrawerOutputsGateTest {
@@ -26,7 +26,7 @@ class AppDrawerOutputsGateTest {
         // The Output tile must be ABSENT (filtered out — hide, not grey).
         assertNull(
             "Output tile must be filtered out entirely when no outputs are present (D-10 hide-not-grey)",
-            result.firstOrNull { it.dest == Dest.Outputs },
+            result.firstOrNull { it.dest == NavDest.Outputs },
         )
         assertFalse(result.any { it.label == "Output" })
     }
@@ -36,7 +36,7 @@ class AppDrawerOutputsGateTest {
         val result = visibleDrawerTiles(DRAWER_TILES, outputsEnabled = true)
         val output = result.firstOrNull { it.label == "Output" }
         assertTrue("Output tile must be present when outputs are present", output != null)
-        assertEquals(Dest.Outputs, output!!.dest)
+        assertEquals(NavDest.Outputs, output!!.dest)
     }
 
     @Test
@@ -60,7 +60,7 @@ class AppDrawerOutputsGateTest {
         assertEquals(DRAWER_TILES.size, enabled.size)
         assertEquals(DRAWER_TILES.size - 1, disabled.size)
         // Every non-Output tile survives BOTH passes unchanged.
-        val nonOutput = DRAWER_TILES.filter { it.dest != Dest.Outputs }
+        val nonOutput = DRAWER_TILES.filter { it.dest != NavDest.Outputs }
         assertEquals(nonOutput, disabled)
         nonOutput.forEach { tile ->
             assertTrue("Tile ${tile.label} must survive the outputs-disabled filter", tile in disabled)

@@ -2,7 +2,7 @@
 phase: 21-webrtc-camera-streaming
 verified: 2026-06-08T22:00:00Z
 status: human_needed
-score: 3/4 roadmap success criteria verified (SC4 partial — E3 live verification owner-deferred)
+score: 4/4 roadmap success criteria verified (SC4 closed 2026-06-10 — E3 live verified at the UAT work-through; sole remaining human item is the env-blocked MJPEG fallback)
 overrides_applied: 0
 deferred:
   - truth: "Proven live on the real Ender 3 MediaMTX cameras (both printers)"
@@ -11,16 +11,16 @@ deferred:
   - truth: "Mid-playback rotation restores the H.264 feed without nav-away"
     addressed_in: "Phase 22"
     evidence: "21-UAT.md 'rotation-while-playing blanks the H.264 feed (CR-01, partially mitigated)' — documented v1 known-limitation; fix in Phase-22 pre-release pass"
-human_verification:
-  - test: "Verify H.264 feed renders on the Ender 3 (192.168.1.121) when crowsnest MediaMTX is running"
-    expected: "Live H.264 renders from the E3 cams with OMX.qcom hardware decode, ~1-2s latency, no crash, leak-free on exit — matching the E5+ result"
-    why_human: "Owner does not currently have a crowsnest instance running. Same webrtc-mediamtx H.264 stack, strong implication from E5+ proof, but live on-device measurement required for the phase-goal 'both printers' claim. Environmental blocker, not a code gap."
+resolved_human_items:
+  - test: "Verify H.264 feed renders on the Ender 3 (192.168.1.121)"
+    result: "PASSED 2026-06-10 — E3 now runs ravens-perch/MediaMTX (2 cams, full nested streams schema incl. RTSP lead); owner verified live on flox: 'They work great now.' (Owner layout nitpick — always preserve feed aspect ratio + overlay Back on the feed — captured as todo 2026-06-10-webcam-aspect-ratio-overlay-back.md, not a feed defect.)"
   - test: "Verify cross-printer camera selection holds (SC8 D-20c)"
-    expected: "Select a cam on E5+, switch to E3, switch back — each printer retains its own preferred cam (WR-03 null-key edge)"
-    why_human: "Requires both printers live simultaneously. E5+ single-printer selection verified. Cross-printer hold deferred per owner (no E3 crowsnest)."
+    result: "PASSED 2026-06-10 — owner verified on flox: each printer retains its own preferred cam across E3↔E5+ switches (WR-03 null-key edge exercised live)."
+human_verification:
   - test: "Verify live MJPEG/snapshot fallback with a real non-H.264 cam (SC5)"
     expected: "A cam without an H.264 pipe falls through to MJPEG/snapshot and renders frames; only dead-ends when all rungs are exhausted"
     why_human: "Every cam on both printers is webrtc-mediamtx (H.264). No non-H.264 cam exists to exercise the live fall-through path. Covered by Phase-10 MJPEG host tests and composite fall-through unit tests (compositeMedia3Feed FallThrough→lowerRung); live re-verify if/when a non-H.264 cam exists."
+    deferred_to: "Phase 29 (Release Hardening & Ship) — owner decision 2026-06-10 UAT work-through; same env blocker as the P10 MJPEG item"
 ---
 
 # Phase 21: Native H.264 Camera Streaming (MediaMTX) — Verification Report

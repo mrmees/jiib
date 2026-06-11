@@ -1,13 +1,10 @@
 ---
 phase: 14-multi-printer-switching
 verified: 2026-06-04T00:00:00Z
-status: human_needed
+status: passed
 score: 9/9 must-haves verified
 overrides_applied: 0
-human_verification:
-  - test: "Mid-print switch (D-04): with a print running on one printer, switch to the other and back"
-    expected: "The print continues untouched; the tablet just changes which printer it watches"
-    why_human: "UAT item 4 was owner-deferred by Matthew (filament cost). The rebind path is proven by items 1/2, but the live in-progress-print boundary has not been eyeballed on-device. Run opportunistically the next time a print is genuinely running."
+resolution: "Closed 2026-06-10 UAT work-through — mid-print switch (D-04) verified by accumulated real-world use: owner attests he has performed mid-print printer switches multiple times since this item was recorded, without issue. The 'run opportunistically next time a print is running' condition has been met repeatedly in normal operation."
 ---
 
 # Phase 14: Multi-Printer Switching Verification Report

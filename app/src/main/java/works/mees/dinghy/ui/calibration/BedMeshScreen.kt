@@ -38,6 +38,7 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import works.mees.dinghy.calibration.BedMeshHolder
 import works.mees.dinghy.calibration.BedMeshVm
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
@@ -51,6 +52,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.ui.screen.TokenTextField
 import works.mees.dinghy.theme.Geist
@@ -64,8 +66,8 @@ import works.mees.dinghy.theme.fsSp
  *
  *  - Focus = [BedMeshHeatmapHost] (passing the collected [tokens] + [BedMeshVm.model] + scaleMode),
  *    `aspectRatio(1f)` centered, with the scale-mode toggle overlaid top-left (white/setting intent,
- *    taps [onCycleScaleMode] — pure color re-map, no re-probe, D-09). Empty-state (Pitfall 4) shows
- *    "No active mesh" copy with Activate/Load still present.
+ *    taps [BedMeshHolder.cycleScaleMode] — pure color re-map, no re-probe, D-09). Empty-state (Pitfall 4)
+ *    shows "No active mesh" copy with Activate/Load still present.
  *  - Field = two rows. Row 1 is the full-width primary action: **Activate** (blue, dispatches
  *    [CommandRegistry.bedMeshCalibrate] — bare, KAMP defaults) when homed, else **Home All** (blue,
  *    [CommandRegistry.homeAll]) — BED_MESH_CALIBRATE probes the bed, so it is homed-gated (D-13). Row 2 is
@@ -80,21 +82,25 @@ import works.mees.dinghy.theme.fsSp
  * an invalid name never reaches [bedMeshProfileSave] (T-09-05-03). Ratio-only sizing; token-only color;
  * the screen renders [BedMeshVm] verbatim (no raw-JSON re-walk).
  *
- * @param vm                the resolved [BedMeshVm] (heatmap model + scale mode + profiles + error).
- * @param tokens            the active resolved tokens (passed to the Views heatmap host; THEME-01).
- * @param dispatcher        the live session dispatcher; all actions go through it (null until a session).
- * @param onCycleScaleMode  cycle the holder's color-scale mode (D-09 — re-color only, no re-probe).
- * @param onBack            leave the page (neutral Back, D-10).
+ * **D-01 move #2 (22-07):** migrated from `vm: BedMeshVm` parameter to `holder: BedMeshHolder` parameter,
+ * mirroring the existing [ScrewsTiltScreen] pattern. The screen collects [BedMeshHolder.vm] and
+ * [AppContainer.dispatcher] internally; [BedMeshHolder.cycleScaleMode] replaces the `onCycleScaleMode`
+ * lambda, eliminating two shell-side collections.
+ *
+ * @param container the service-locator (provides the session dispatcher).
+ * @param holder    the headless [BedMeshHolder] (heatmap model + scale mode + profiles + error).
+ * @param onBack    leave the page (neutral Back, D-10).
  */
 @Composable
 fun BedMeshScreen(
-    vm: BedMeshVm,
-    tokens: ThemeTokens,
-    dispatcher: CommandDispatcher?,
-    onCycleScaleMode: () -> Unit,
+    container: AppContainer,
+    holder: BedMeshHolder,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val vm by holder.vm.collectAsStateWithLifecycle()
+    val tokens = LocalTokens.current
     var dialog by remember { mutableStateOf<MeshDialog?>(null) }
     var saveName by remember { mutableStateOf("") }
     var removeTarget by remember { mutableStateOf<String?>(null) }
@@ -137,7 +143,7 @@ fun BedMeshScreen(
                 BedMeshFocus(
                     vm = vm,
                     tokens = tokens,
-                    onCycleScaleMode = onCycleScaleMode,
+                    onCycleScaleMode = { holder.cycleScaleMode() },
                     modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             },

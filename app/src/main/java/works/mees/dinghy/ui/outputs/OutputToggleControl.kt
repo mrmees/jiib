@@ -33,7 +33,7 @@ import works.mees.dinghy.theme.fsSp
  * active state's button wears the accent ([Intent.Accent]); the other is neutral. A read-only (static_value)
  * pin renders value-only with the toggle disabled (SC-3).
  *
- * Stateless content seam (no `remember`/dispatcher) — the live wiring lives in [OutputPinDetail], which feeds
+ * Stateless content seam (no `remember`/dispatcher) — the live wiring lives in [OutputFocusControl], which feeds
  * [onOn]/[onOff] the catalog dispatch.
  *
  * @param prettyName the output's display name.

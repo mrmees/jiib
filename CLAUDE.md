@@ -221,7 +221,7 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 <!-- GSD:skills-start source:skills/ -->
 ## Project Skills
 
-No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, `.github/skills/`, or `.codex/skills/` with a `SKILL.md` index file.
+- **Sketch findings (jiib redesign)** (design decisions, CSS patterns, component classes, visual direction from the 001–003 sketches — waterfall home, Spoolman lists/detail, Fine-Tune adjustment) → `Skill("sketch-findings-dinghy-display")`. **Auto-load before building any redesigned UI** (Layer-1 onward). Companion source-of-truth notes: `.planning/notes/2026-06-09-*.md`.
 <!-- GSD:skills-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

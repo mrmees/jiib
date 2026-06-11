@@ -65,7 +65,7 @@ NEEDED = {
     "arrow_back", "check", "edit", "instant_mix", "height", "altitude", "layers", "scale",
     "storefront", "timer_arrow_down", "timer_arrow_up", "donut_large", "pause_circle",
     "inventory_2", "palette", "calendar_add_on", "check_circle", "archive", "print_connect",
-    "thermostat", "open_with", "output_circle", "tune", "database", "bolt", "terminal",
+    "thermostat", "open_with", "output_circle", "tune", "bolt", "terminal",
     "more_horiz", "speed", "keyboard_return", "arrow_shape_up_stack_2", "sprint",
     "directions_boat", "rounded_corner", "avg_time", "input_circle",
     # D-08 conversion targets (drawables flipping to ligatures in later 18.1 waves)
@@ -82,6 +82,39 @@ NEEDED = {
     # All 10 confirmed resolvable in the v2.944 bundled ttf (20-RESEARCH Icon Gate, D-11).
     "pulse_alert", "dns", "schedule", "developer_board", "memory",
     "deployed_code", "code_blocks", "data_usage",
+    # Phase-23 (Design-Language Foundation) — the 6 new owner-assigned redesign ligatures
+    # (icon-assignments-redesign.md / 23-RESEARCH Icon Registry Changes). A1 gate discharged here.
+    # sort=sort-control-row leader, filter_list=filter-row leader,
+    # expand_circle_up=Load spool (replaces old play_circle bucket note),
+    # expand_circle_down=Unload spool (replaces old stop_circle bucket note),
+    # reset_wrench=reset-single-setting, reset_settings=reset-all-settings.
+    # All 6 verified resolvable in the v2.944 bundled ttf (23-01 Wave-0 gate).
+    "sort", "filter_list", "expand_circle_up", "expand_circle_down",
+    "reset_wrench", "reset_settings",
+    # Phase-23 plan 06 (SpoolScreen pilot) — 5 owner-assigned glyphs from img/material-icon-bucket.json.
+    # match_case=sort-by-name, calendar_clock=sort-by-date, experiment=filter-by-material-type,
+    # home=Home foot button (navigate to PrintStatus), qr_code=Scan foot button.
+    # All 5 verified resolvable in the v2.944 bundled ttf (23-06 Task-1 gate).
+    "match_case", "calendar_clock", "experiment", "home", "qr_code",
+    # Phase-24 plan 02 (morphing-root idle glyph registry) — 3 owner-confirmed glyphs.
+    # videocam=idle Webcam row (LauncherWebcam), chair_fireplace=idle Preheat foot button (FootPreheat),
+    # bottom_panel_open=idle System foot button (FootSystem, D-09 neutral — NOT Power/red).
+    # All 3 owner-confirmed 2026-06-10 and verified resolvable in the v2.944 bundled ttf (24-02 Task-2 gate).
+    "videocam", "chair_fireplace", "bottom_panel_open",
+    # Phase-25 plan 02 (browse-screen token registry, D-20/D-21) — 9 owner-assigned glyphs.
+    # Files: print=start-a-print (bucket), delete=delete-file (bucket).
+    # Console filters (hide-state): mode_heat_off=hide-temps (bucket), video_camera_back=hide-timelapse (bucket),
+    # chat_error=hide-prompts (bucket).
+    # Macros: code=section-leader (bucket "macros"), bookmark_manager=manage-mode foot button (bucket).
+    # play_arrow=Execute macro foot button (owner-approved new entry 2026-06-10, not in bucket).
+    # radio_button_unchecked=unbookmarked trailing affordance (owner-approved 2026-06-10, existing code ligature).
+    # All 9 verified resolvable in the v2.944 bundled ttf (25-02 Task-2 gate).
+    "print", "delete", "mode_heat_off", "video_camera_back", "chat_error",
+    "code", "bookmark_manager", "play_arrow", "radio_button_unchecked",
+    # Phase-25 review fix WR-07: the Macros Show-hidden toggle pair, carried forward verbatim from
+    # the old SystemMacrosScreen and now registered in DinghyIcons (Visibility/VisibilityOff).
+    # ("warning" — the SpoolWarningGuard glyph, now also registered — is already in the D-08 list above.)
+    "visibility", "visibility_off",
 }
 
 

@@ -38,6 +38,7 @@ import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.systeminfo.ProcStatQuery
 import works.mees.dinghy.systeminfo.SystemInfo
 import works.mees.dinghy.systeminfo.from
+import kotlinx.collections.immutable.toImmutableList
 import works.mees.dinghy.state.Screw
 import works.mees.dinghy.state.ScrewConfig
 import works.mees.dinghy.state.deriveCapabilities
@@ -639,7 +640,7 @@ class MoonrakerSession(
             }
         }
         if (screws.isEmpty()) return null
-        return ScrewConfig(screws = screws, screwThread = (sta["screw_thread"] as? JsonPrimitive)?.contentOrNull)
+        return ScrewConfig(screws = screws.toImmutableList(), screwThread = (sta["screw_thread"] as? JsonPrimitive)?.contentOrNull)
     }
 
     /**

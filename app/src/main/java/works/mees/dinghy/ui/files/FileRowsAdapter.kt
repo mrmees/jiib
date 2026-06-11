@@ -255,5 +255,13 @@ private fun formatBytes(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
+/**
+ * File modification date formatter — allocated ONCE and reused for all row binds (D-03 P3).
+ * `SimpleDateFormat` is NOT thread-safe, but file-row binding runs exclusively on the main thread
+ * (RecyclerView binds on the UI thread) so a single shared instance is correct here. Do NOT move
+ * binding off the main thread without replacing this with a thread-local or `DateTimeFormatter`.
+ */
+private val FILE_DATE_FORMAT = SimpleDateFormat("MMM d, HH:mm", Locale.US)
+
 private fun formatDate(epochSeconds: Double): String =
-    SimpleDateFormat("MMM d, HH:mm", Locale.US).format(Date((epochSeconds * 1000).toLong()))
+    FILE_DATE_FORMAT.format(Date((epochSeconds * 1000).toLong()))

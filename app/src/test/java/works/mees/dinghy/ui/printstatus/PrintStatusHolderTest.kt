@@ -10,6 +10,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.render.RingBuffer
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableMap
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.PrintState
@@ -28,8 +30,8 @@ import works.mees.dinghy.state.PrinterStateStore
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrintStatusHolderTest {
 
-    private fun heaters(vararg pairs: Pair<String, HeaterState>): Map<String, HeaterState> =
-        linkedMapOf(*pairs)
+    private fun heaters(vararg pairs: Pair<String, HeaterState>): ImmutableMap<String, HeaterState> =
+        linkedMapOf(*pairs).toImmutableMap()
 
     @Test
     fun primarySnapshotReflectsLatestExtruderTemp() = runTest(UnconfinedTestDispatcher()) {

@@ -1,18 +1,28 @@
 # Dinghy Display — project notes
 
 ## Design philosophy (bake into every screen)
-- **Focus / Field / Gutter layout grammar.** Every screen is built from three regions —
-  Focus (one primary item, with square visual content centered), Field (a divisible
-  info/control grid), Gutter (touch actions). Portrait stacks them full-width (~40/40/20,
-  gutter up to 2 rows); landscape is a single grid — Focus | Field as 50/50 columns with a
-  full-width gutter row sharing the same column lines. Either Focus or Field may be omitted.
-  No persistent status bar — context lives inside a region. See LAYOUT.md.
+- **Focus / Field grammar (Gutter removed in the jiib redesign).** Every redesigned screen is
+  built from two regions — Focus (one primary item, square visual content centered) and Field
+  (a divisible info/control surface, typically a scrollable list + `FootButtonBar`). Portrait
+  stacks them full-width; landscape is a single grid — Focus | Field as 50/50 columns.
+  Either region may be omitted. No persistent status bar — context lives inside a region.
+  **The Gutter is NO LONGER a first-class region** for new screens: its jobs are rehomed to a
+  foot-of-list `FootButtonBar` (per-screen actions), a floating `FloatingEStop` overlay (Stop,
+  printing-only), and the System page (power / device settings). Pre-redesign screens still use
+  the Kotlin `ScreenScaffold.gutter` slot for backward compatibility — that slot is preserved
+  in the code but the grammar no longer names it a first-class layout region.
+  See the rewritten `LAYOUT.md` for the full two-region law. See `COMPONENTS.md` for the
+  component-class catalog (ListRow, DetailCard, FillMeter, FootButtonBar, FloatingEStop,
+  SortFilterControlRow and more).
 - **Layout non-negotiables (see LAYOUT.md ⚠ section):** (1) everything tabular on one shared
-  grid — region divides align with gutter button edges/centers; (2) aspect ratios are sacred —
-  a square must render square (use `aspect-ratio`, center square content in its cell); the
-  1-row-landscape / 2-row-portrait gutter difference is the mechanism that protects this;
+  grid — region divides align with foot-button-row edges; (2) aspect ratios are sacred — a
+  square must render square (use `aspect-ratio`, center square content in its cell); the
+  portrait-stack / landscape-side-by-side layout difference is the mechanism that protects this;
   (3) no hardcoded sizes — every dimension is a %, `fr`, `aspect-ratio`, or container-relative
-  unit, never absolute px (except hairlines, the touch floor, and the `--fs` text step).
+  unit, never absolute px (except hairlines, the touch floor, and the `--fs` text step). **Plus
+  the unit `U`:** every vertical element in a redesigned screen is an integer number of units U
+  (DPI-derived from landscape content height, constant through rotation). See `LAYOUT.md §"The
+  unit U"` and `COMPONENTS.md §4`.
 - **Fill the usable space.** This is primarily control-surface software that doubles as a
   nicely formatted display during standby / normal printing. Every screen should fill its
   usable area with useful, structured information. Empty/negative space is only acceptable

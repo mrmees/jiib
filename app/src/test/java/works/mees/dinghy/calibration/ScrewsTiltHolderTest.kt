@@ -10,6 +10,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
@@ -47,7 +49,7 @@ class ScrewsTiltHolderTest {
                 "screw2" to ScrewResult(z = 0.047, sign = "CCW", adjust = "00:07", isBase = false),
                 "screw3" to ScrewResult(z = 0.196, sign = "CW", adjust = "00:06", isBase = false),
                 "screw4" to ScrewResult(z = 0.156, sign = "CW", adjust = "00:02", isBase = false),
-            ),
+            ).toImmutableMap(),
         ),
     )
 
@@ -57,7 +59,7 @@ class ScrewsTiltHolderTest {
             Screw(x = 270.0, y = 30.0, name = "front right screw"),
             Screw(x = 270.0, y = 270.0, name = "rear right screw"),
             Screw(x = 30.0, y = 270.0, name = "rear left screw"),
-        ),
+        ).toImmutableList(),
     )
 
     @Test

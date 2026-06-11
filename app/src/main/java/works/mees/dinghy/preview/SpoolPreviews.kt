@@ -52,8 +52,9 @@ import works.mees.dinghy.ui.spool.SpoolScreen
  */
 class SpoolSelectionProvider : PreviewParameterProvider<SpoolPickerState> {
     override val values: Sequence<SpoolPickerState> = sequenceOf(
-        noSelection,   // landscape empty-Focus glyph; portrait stays Field-first
-        firstSelected, // a dense row selected → the full detail pane
+        noSelection,           // landscape empty-Focus glyph; portrait stays Field-first
+        firstSelected,         // a dense row selected → the full detail pane
+        SampleFixtures.spoolWithFilterOpen, // Field-takeover: TYPE filter picker open (23-06 FieldMode)
     )
 }
 
@@ -157,3 +158,38 @@ private fun SpoolPseudolocaleSpotCheck() {
         SpoolScreen(state = firstSelected)
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// 23-06 new states: Field-takeover filter picker + printing-state FloatingEStop exercise
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The Field-takeover filter picker state (23-06 [FieldMode.FilterPicker]) — the Field swaps to the TYPE
+ * category option list in place. Drives the stateless [SpoolScreen] with [SampleFixtures.spoolWithFilterOpen]
+ * so the preview matrix covers the rebuilt picker path without full-screen overlay.
+ */
+@Nexus7Previews
+@Composable
+private fun SpoolFilterPickerOpen() =
+    PreviewBox(colorfulDark) { SpoolScreen(state = SampleFixtures.spoolWithFilterOpen) }
+
+/**
+ * The printing state — [FloatingEStop] visible in the Focus TopStart corner. Uses `isPrinting = true` on the
+ * stateless seam to exercise the overlay at design-time without a live [container.printerState] StateFlow.
+ * This is the only preview that exercises the FloatingEStop; the live overload sources it from the
+ * real printer state at runtime.
+ */
+@Nexus7Previews
+@Composable
+private fun SpoolPrintingState() =
+    PreviewBox(colorfulDark) { SpoolScreen(state = firstSelected, isPrinting = true) }
+
+/**
+ * The D-08 measured-weight Field-takeover (26-07 [FieldMode.MeasureWeight]) — the Field swaps to the
+ * inline numeric-IME weight-entry form in place of the spool list. Exercises [SpoolMeasureWeightField]
+ * at design-time so the info-card + entry box + footer layout is reviewable without a device.
+ */
+@Nexus7Previews
+@Composable
+private fun SpoolMeasureWeightOpen() =
+    PreviewBox(colorfulDark) { SpoolScreen(state = SampleFixtures.spoolWithMeasureOpen) }

@@ -47,6 +47,9 @@ okhttp = "4.12.0"           # minSdk 21 — one client for ws:// + http://
 retrofit = "2.11.0"
 kotlinxSerialization = "1.7.3"
 coroutines = "1.9.0"
+# 0.3.8 (not 0.5.0-beta01, which needs Kotlin 2.3.0; this project pins Kotlin 2.1.21).
+# ImmutableList/ImmutableMap stable Compose params (Phase 22 D-02).
+kotlinxCollectionsImmutable = "0.3.8"
 
 # --- Imaging (Coil 3, minSdk 23 exactly, fixed large-PNG OOM on API ≤23) ---
 coil = "3.1.0"
@@ -67,6 +70,11 @@ zxingCore = "3.3.3"
 # theme base, and custom token deltas. AndroidX 1.1.x line is minSdk-23-safe (June-2025 floor);
 # the MERGED-manifest floor is PROVEN by verifyMinSdk after adding it (RESEARCH Pitfall 6).
 datastore = "1.1.7"
+
+# --- Navigation-Compose (Phase 24, nav-spine — D-01/minSdk 21) ---
+# 2.8.x line: minSdk 21 (safe on our 23 floor), NOT BOM-governed, pinned to 2.8 per the
+# AGP-8.7/compileSdk-36 conservative stance. NOT 2.9.x (would pull compileSdk 37 / AGP 9).
+navigation = "2.8.9"
 
 # --- Media3 / ExoPlayer H.264 transport (Phase 21, CAM-11/13/14/16 — D-01/D-09) ---
 # Pin 1.10.1 = latest stable (2026-05-12); any >= 1.10.0 carries the load-bearing fix. The RTSP
@@ -116,6 +124,7 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 retrofit-converter-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 # Test-only sibling of the runtime coroutines lib (tracks the same 1.9.0 pin) —
 # gives JVM unit tests virtual time (runTest/TestScope) for Wave 2/3. NOT a runtime dep.
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
@@ -134,6 +143,9 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCo
 
 # --- Persistence (THEME-02/D-02) ---
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Navigation-Compose library entry (Phase 24) ---
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 # --- Media3 / ExoPlayer H.264 transport (Phase 21) ---
 # Three first-party AndroidX media3 artifacts (all version.ref = media3). Deliberately NOT including
