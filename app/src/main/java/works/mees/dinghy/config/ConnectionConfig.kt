@@ -19,13 +19,20 @@ data class ConnectionConfig(
     // so every pre-R7 persisted config keeps today's plain-LAN posture unchanged (migration safety).
     val useSecure: Boolean = false,
 ) {
-    /** REST base, e.g. `http://192.168.1.50:7125` (cleartext per D-10/D-11) — mirrors DevConfig.kt:34. */
-    val httpBase: String get() = "http://$host:$port"
+    /**
+     * REST base, e.g. `http://192.168.1.50:7125` — or `https://…` when [useSecure] is set (R7,
+     * 26.5-07). The default-cleartext posture is D-10/D-11 (mirrors DevConfig.kt:34); the [useSecure]
+     * toggle in the connection editor is the per-printer hardening mechanism for TLS-fronted Moonraker.
+     */
+    val httpBase: String get() = "${if (useSecure) "https" else "http"}://$host:$port"
 
-    /** WebSocket URL, e.g. `ws://192.168.1.50:7125/websocket` — mirrors DevConfig.kt:37. */
-    val wsUrl: String get() = "ws://$host:$port/websocket"
+    /**
+     * WebSocket URL, e.g. `ws://192.168.1.50:7125/websocket` — or `wss://…` when [useSecure] is set
+     * (R7, 26.5-07). Same posture note as [httpBase]; mirrors DevConfig.kt:37.
+     */
+    val wsUrl: String get() = "${if (useSecure) "wss" else "ws"}://$host:$port/websocket"
 
-    /** Redacts the API key (T-04-01-I) — never let the key reach a log line. */
+    /** Redacts the API key (T-04-01-I) — never let the key reach a log line. [useSecure] is non-secret. */
     override fun toString(): String =
-        "ConnectionConfig(host=$host, port=$port, apiKey=${if (apiKey != null) "***" else "null"})"
+        "ConnectionConfig(host=$host, port=$port, apiKey=${if (apiKey != null) "***" else "null"}, useSecure=$useSecure)"
 }
