@@ -22,3 +22,8 @@ keystore.properties
 # OS / misc
 .DS_Store
 Thumbs.db
+
+# local artifacts
+.claude/scheduled_tasks.lock
+*.apk.idsig
+tools/__pycache__/
