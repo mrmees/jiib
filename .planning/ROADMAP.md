@@ -81,6 +81,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 24: Navigation Spine** (jiib REDESIGN) - PrintStatusScreen → the morphing waterfall ROOT (idle/printing/terminal, no gutter; root when printing, not a destination); adopt Navigation-Compose back-stack; remove the gutter app-wide; floating printing-only e-stop; create the System-page shell (rehomes Power + device settings). (completed 2026-06-10)
 - [x] **Phase 25: Browse Screens** (jiib REDESIGN) - Migrate the list/collection screens onto the classes — Files, Macros (Bookmarked + System), Console, Webcam — reusing ListRow + sort/filter + Field-takeover picker. Conformance folds in per-screen. (completed 2026-06-10)
 - [x] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in. (completed 2026-06-10)
+- [ ] **Phase 26.5: Overnight Hardening Slate (audit R-packages)** (INSERTED 2026-06-11, overnight run) - The overnight-safe subset of `docs/top-down-audit-roadmap.md`: R5a guardrail infra (minus LICENSE) · R9 docs delint 1–3+5 · R10 touch responsiveness 2–4 · R1 install/display code-only (arm64 ABI, insets, predictive back, POST_NOTIFICATIONS) · R2 always-on code-only · R4 command map · R7 network posture. Device acceptance → morning UAT checklist.
 - [ ] **Phase 27: Motion + Calibration** (jiib REDESIGN) - Migrate Move/Motion (spatial jog STAYS A GRID) + the calibration cluster (Hub, Probe-Calibrate, Bed-Mesh, Screws-Tilt, Tilt wizard flows). Conformance folds in.
 - [ ] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in.
 - [ ] **Phase 29: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** (RENUMBERED from 25, 2026-06-09; LAST) - The deferred print-loop robustness (reconnect resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist against the complete redesigned app, R8 release build, PKG-01/03, signed sideloadable APK via GitHub Releases on a real Nexus 7, + jiib repo cutover — ships v1.
@@ -1227,8 +1228,38 @@ Plans:
 **Wave 7** *(blocked on Wave 6)*
 
 - [x] 26-07-PLAN.md — App-wide NumpadPage retirement: macro-param + measured-weight numeric IME, delete NumpadPage + MeasuredWeightPage (D-06/D-07/D-08/D-12)
+
 **UI hint**: yes
 **Research note**: COVERED — adjustment patterns locked in the sketch-findings skill (adjustment-controls); reuse the Phase-17 clamp-authority + Phase-19 scrubber lessons.
+
+### Phase 26.5: Overnight Hardening Slate (audit R-packages) (INSERTED)
+
+**Goal:** Execute the overnight-safe subset of `docs/top-down-audit-roadmap.md` (the work-order
+doc for this phase — its Part 4 package sections are the requirement source; cite, don't restate):
+**R5a** guardrail infra minus LICENSE (LICENSE = owner decision, recommend-only) · **R9** memory/docs
+delint steps 1–3+5 (step-4 deletions emitted as a script in the report, NOT executed) · **R10** touch
+responsiveness steps 2–4 + debug-flag instrumentation (code only; Part 5 is the analysis) · **R1**
+install & display correctness code-only (ABI both, edge-to-edge/insets, predictive back,
+POST_NOTIFICATIONS) · **R2** always-on code-only (keep-screen-on toggle + battery-exemption flow) ·
+**R4** build-time command map (roadmap Part 3 is the literal design) · **R7** network posture (NSC
+RFC-1918 scope + wss plumbing).
+**OUT of scope:** R3, R6-remainder (Phase 27/28-gated), R5b (LICENSE-gated), everything in the
+roadmap doc's "do NOT do" list. All on-device acceptance (flox / S25 Ultra) goes to a consolidated
+morning UAT checklist in OVERNIGHT-REPORT.md — the morning UAT run is the phase gate.
+**Requirements**: docs/top-down-audit-roadmap.md Part 4 (R5a, R9 1–3+5, R10 2–4, R1, R2, R4, R7) + Part 3 (R4 design) + Part 5 (R10 analysis)
+**Depends on:** Phase 26
+**Success Criteria** (what must be TRUE):
+
+  1. R5a: fresh-clone `./gradlew assembleDebug` works (gradlew +x), CI workflow + enforced lint baseline + debug StrictMode in place (roadmap §R5a acceptance, minus LICENSE)
+  2. R9: zero contradictions among active memory files; `Last verified` headers on active files; todos re-triaged; step-4 deletion script written but NOT run (roadmap §R9 acceptance)
+  3. R10: disabled controls truly non-clickable; dispatcher busy/debounce rejections give visible feedback; drawer swipe accumulates drag; immediate indication in scrollables — instrumentation behind a debug flag (roadmap §R10 steps 2–4)
+  4. R1: arm64-v8a + armeabi-v7a APKs build; edge-to-edge/insets, predictive back, POST_NOTIFICATIONS one-shot request landed; `verifyMinSdkRelease` green (roadmap §R1, device acceptance → morning UAT)
+  5. R2: keep-screen-on Settings toggle + battery-exemption flow landed (roadmap §R2, doze UAT → morning)
+  6. R4: `CommandMap.kt` per Part 3; renamed-slot test proves gate+emit; 4 call sites rewired (roadmap §R4 acceptance)
+  7. R7: NSC cleartext scoped to RFC-1918 + configured host; wss:// scheme plumbing (roadmap §R7, live-TLS check → morning)
+
+**Plans**: TBD (one plan per R-package; waves 0=R5a, 1=R9, 2=R10, 3=R1+R2, 4=R4+R7)
+**UI hint**: no
 
 ### Phase 27: Motion + Calibration
 
