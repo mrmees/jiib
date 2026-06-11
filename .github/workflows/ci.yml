@@ -23,3 +23,47 @@ jobs:
       # lintDebug enforces the shrink-only baseline (R5a step 4: "CI fails on any new violation");
       # runner JDK is 17 so the JDK-21 UAST hazard doesn't apply here.
       - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
+  # R9 step 5 (docs/top-down-audit-roadmap.md §R9): memory-hygiene guardrail.
+  # Scope = the ACTIVE context set ONLY — root CLAUDE.md, the four .planning/ root
+  # files, and docs/. It NEVER scans the phase archive (historical vocabulary like
+  # "superseded"/"old approach" is CORRECT there and would false-positive), and it
+  # excludes docs/top-down-audit-roadmap.md, which QUOTES the stale phrases as work
+  # items and would self-trip the gate. Checkout only — no JDK, no Gradle.
+  # Link check is a deterministic bash loop, NOT a marketplace markdown-link-check
+  # action (RESEARCH A8: unverifiable; T-26.5-06 prefers first-party/deterministic).
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stale-phrase check (active context set only)
+        run: |
+          if grep -rn "compileSdk 35\|Architecture not yet mapped" \
+            CLAUDE.md .planning/PROJECT.md .planning/REQUIREMENTS.md \
+            .planning/ROADMAP.md .planning/STATE.md docs/ \
+            --exclude=top-down-audit-roadmap.md; then
+            echo "FAIL: stale phrases found in active context files"; exit 1
+          fi
+          echo "OK: no stale phrases"
+      - name: Dead internal-link check (active context set only)
+        run: |
+          rm -f /tmp/dead-links
+          for src in CLAUDE.md .planning/PROJECT.md .planning/REQUIREMENTS.md \
+                     .planning/ROADMAP.md .planning/STATE.md docs/*.md; do
+            [ -f "$src" ] || continue
+            dir=$(dirname "$src")
+            # Extract relative .md link targets: [text](path.md) / [text](path.md#anchor)
+            grep -oE '\]\([^)# ]+\.md(#[^)]*)?\)' "$src" 2>/dev/null \
+              | sed -E 's/^\]\(//; s/#[^)]*//; s/\)$//' \
+              | sort -u \
+              | while read -r target; do
+                  case "$target" in
+                    http*|/*|*'\'*) continue ;;  # skip URLs, absolute and Windows paths
+                  esac
+                  # accept either file-relative or repo-root-relative targets
+                  if [ ! -e "$dir/$target" ] && [ ! -e "$target" ]; then
+                    echo "DEAD LINK in $src -> $target" | tee -a /tmp/dead-links
+                  fi
+                done
+          done
+          if [ -s /tmp/dead-links ]; then echo "FAIL: dead internal links"; exit 1; fi
+          echo "OK: no dead internal links"
