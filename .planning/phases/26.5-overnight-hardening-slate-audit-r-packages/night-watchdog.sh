@@ -13,7 +13,7 @@ LOGF=/tmp/dinghy-night-watchdog.log
 MARKER=/tmp/dinghy-night-relaunch.marker
 NIGHTLOG=$REPO/.planning/phases/26.5-overnight-hardening-slate-audit-r-packages/26.5-NIGHT-LOG.md
 BRANCH=gsd/phase-26.5-overnight-hardening
-STALE_MIN=90
+STALE_MIN=45   # owner-tuned 2026-06-11 ~01:50 (was 90)
 RETRY_MIN=90
 HARD_STOP_EPOCH=$(date -d 'today 09:30' +%s)  # stop watching at 09:30 CT (owner is up)
 
@@ -23,7 +23,9 @@ log "watchdog started (pid $$)"
 while true; do
   sleep 900  # 15 min
   [ "$(date +%s)" -gt "$HARD_STOP_EPOCH" ] && { log "hard stop time reached; exiting"; exit 0; }
-  grep -q "RUN COMPLETE" "$NIGHTLOG" 2>/dev/null && { log "RUN COMPLETE; exiting"; exit 0; }
+  # Line-anchored sentinel ONLY — un-anchored "RUN COMPLETE" matched the night-log's own
+  # instructions prose and killed the first watchdog at 00:15 (fixed ~01:55).
+  grep -q "^NIGHT_RUN_STATUS=COMPLETE" "$NIGHTLOG" 2>/dev/null && { log "completion sentinel found; exiting"; exit 0; }
   cd "$REPO" || { log "repo missing?"; continue; }
   last=$(git log -1 --format=%ct "$BRANCH" 2>/dev/null || echo 0)
   age_min=$(( ( $(date +%s) - last ) / 60 ))
@@ -37,7 +39,7 @@ while true; do
   touch "$MARKER"
   log "STALE ${age_min}m -> relaunching headless claude"
   cd "$REPO" && nohup /home/matt/.local/bin/claude -p \
-    "RESUME WATCHDOG RELAUNCH - Phase 26.5 overnight run. Read .planning/phases/26.5-overnight-hardening-slate-audit-r-packages/26.5-NIGHT-LOG.md and resume the run exactly per its 'How to resume' checklist. Branch $BRANCH, never master. If the night log says RUN COMPLETE, do nothing and exit." \
+    "RESUME WATCHDOG RELAUNCH - Phase 26.5 overnight run. Read .planning/phases/26.5-overnight-hardening-slate-audit-r-packages/26.5-NIGHT-LOG.md and resume the run exactly per its 'How to resume' checklist. Branch $BRANCH, never master. If the night log carries the line-anchored completion sentinel described in its top note, do nothing and exit." \
     --dangerously-skip-permissions >> /tmp/dinghy-night-relaunch.log 2>&1 &
   log "relaunch dispatched (pid $!)"
 done
