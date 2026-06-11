@@ -254,12 +254,15 @@ DECISIONS-NEEDED) · ~~R9 steps 1–3+5~~ **done 2026-06-11** (step 4 = reviewed
 NOT executed — owner review-then-run) · ~~R10 steps 2–3~~ **done 2026-06-11** + step-1
 instrumentation landed debug-gated (step 4 indication-immediacy DEFERRED — the parameter-plumbing
 approach was a no-op per codex review; needs custom press detection if morning instrumentation
-implicates cause #4; step 5 unimplemented by design) · ~~R1~~ **code done 2026-06-11** (S25/flox
-UAT pending) · ~~R2~~ **code done 2026-06-11** (doze UAT pending) · ~~R4~~ **done 2026-06-11**
+implicates cause #4; step 5 unimplemented by design) · ~~R1~~ **code done 2026-06-11** (Moto G Play
+2024 / API 34 UAT 2026-06-11 — arm64 install/predictive-back/notifications PASS, edge-to-edge
+PARTIAL → fixed in quick 260611-cj1; flox regression still pending) · ~~R2~~ **code done
+2026-06-11** (doze UAT pending) · ~~R4~~ **done 2026-06-11**
 (NOTE: six call sites, not four — PrinterCommands ×2, CommandRegistry ×2, ExtrudeHolder ×2;
 update Part 3's wording at R5b) · ~~R7~~ **code done 2026-06-11** (option B: useSecure toggle;
 the "cleartext to public IP refused" acceptance half DESCOPED — NSC cannot express RFC-1918 CIDR;
-live-wss UAT pending). Still open: R6 remainder, R3, R5b, R8 (standing). Full detail:
+live-wss UAT DEFERRED to Phase 29 polish per owner (2026-06-11)). Still open: R6 remainder, R3,
+R5b, R8 (standing). Full detail:
 `.planning/phases/26.5-overnight-hardening-slate-audit-r-packages/OVERNIGHT-REPORT.md`.
 
 ### R5a — Guardrail infra *(run FIRST; the infra half of the former R5)*

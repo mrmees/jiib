@@ -135,27 +135,41 @@ Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
 
 ### S25 Ultra group
 
-- [ ] **R1 arm64 install:** debug-sign + sideload
+> **2026-06-11 sitting:** run on a **Moto G Play 2024 (Android 14 / API 34, arm64)** standing in
+> for the planned S25 Ultra.
+
+- [x] **R1 arm64 install:** debug-sign + sideload
       `app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk` (versionCode 2) — installs
-      and runs (previously impossible: no arm64 slice existed).
-- [ ] **R1 edge-to-edge:** both orientations — content respects status bar / nav bar / cutout
+      and runs (previously impossible: no arm64 slice existed). **PASS** — the arm64-v8a APK
+      installs and runs on the Moto.
+- [x] **R1 edge-to-edge:** both orientations — content respects status bar / nav bar / cutout
       (safeDrawingPadding); the app background still paints edge-to-edge behind the bars; nothing
-      drawn-under or clipped.
-- [ ] **R1 predictive back:** back-gesture preview animates (enableOnBackInvokedCallback). ⚠ codex
+      drawn-under or clipped. **PARTIAL** — content insets correct, BUT dark theme showed a WHITE
+      navigation bar (the no-arg enableEdgeToEdge followed the system light theme) and bars
+      restyled when popups opened → fixed by quick task 260611-cj1
+      (`.planning/quick/260611-cj1-lock-edge-to-edge-system-bars-to-active-theme`).
+- [x] **R1 predictive back:** back-gesture preview animates (enableOnBackInvokedCallback). ⚠ codex
       deferred-MEDIUM: if the preview pops the NavHost UNDER the drawer/sub-stack overlays, note it —
-      the fix is overlay-handler registration order.
-- [ ] **R1 POST_NOTIFICATIONS one-shot:** first connect triggers exactly one permission dialog;
+      the fix is overlay-handler registration order. **PASS** — preview animates; no overlay-order
+      defect observed.
+- [x] **R1 POST_NOTIFICATIONS one-shot:** first connect triggers exactly one permission dialog;
       DENY → app fully functional, FGS notification simply absent. ⚠ codex deferred-MEDIUM: the
       asked-once latch is in-memory — a relaunch may re-ask once; if that annoys, the fix is
-      persisting the flag in DisplayPrefs.
-- [ ] **R7 toggle-ON failure is comprehensible + reversible:** Printers → edit a printer → toggle
-      "Use HTTPS/WSS" ON against a printer with NO TLS proxy → Save. Connection fails with a
-      readable error on the Splash (not a hang/crash); toggle back OFF + Save reconnects cleanly.
-- [ ] **R7 wss connect (best-effort, only if a TLS-fronted Moonraker is available):** toggle ON
-      against it → connects over wss/https (webcam + thumbnails ride the same scheme).
-- [ ] **R7 cert-failure message (best-effort, self-signed endpoint if handy):** the Splash shows
-      "TLS certificate not trusted — check the Moonraker reverse-proxy certificate" — the distinct
-      trust message, not the generic "Can't reach the printer". Retry + Edit connection both offered.
+      persisting the flag in DisplayPrefs. **PASS**
+- [x] **R2 display settings (keep-awake/battery rows on this device):** **PASS** — added at the
+      2026-06-11 Moto sitting (the R2 rows were exercised on this device alongside the R1 items).
+- [ ] **R7 toggle-ON failure is comprehensible + reversible:** **DEFERRED to Phase 29 polish per
+      owner (2026-06-11 — no TLS-fronted Moonraker exercised this sitting).** Printers → edit a
+      printer → toggle "Use HTTPS/WSS" ON against a printer with NO TLS proxy → Save. Connection
+      fails with a readable error on the Splash (not a hang/crash); toggle back OFF + Save
+      reconnects cleanly.
+- [ ] **R7 wss connect (best-effort, only if a TLS-fronted Moonraker is available):** **DEFERRED to
+      Phase 29 polish per owner (2026-06-11).** Toggle ON against it → connects over wss/https
+      (webcam + thumbnails ride the same scheme).
+- [ ] **R7 cert-failure message (best-effort, self-signed endpoint if handy):** **DEFERRED to
+      Phase 29 polish per owner (2026-06-11).** The Splash shows "TLS certificate not trusted —
+      check the Moonraker reverse-proxy certificate" — the distinct trust message, not the generic
+      "Can't reach the printer". Retry + Edit connection both offered.
       Note: roadmap §R7's "cleartext to a public IP refused on API 24+" half was DESCOPED — NSC
       cannot express RFC-1918 CIDR; the decision record lives in
       `app/src/main/res/xml/network_security_config.xml` (confirm the comment tells that story).
