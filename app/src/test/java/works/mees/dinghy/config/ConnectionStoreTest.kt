@@ -149,6 +149,19 @@ class ConnectionStoreTest {
     }
 
     @Test
+    fun roundTrip_useSecureTrue_persists() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            val cfg = ConnectionConfig("192.168.1.50", 7125, null, useSecure = true)
+            store.save(cfg)
+            settle()
+            val read = store.config.first()
+            assertEquals(cfg, read)
+            assertEquals(true, read?.useSecure)
+        }
+    }
+
+    @Test
     fun roundTrip_noKey_readsNullKey() = runTest {
         val (store, ioScope) = newStore()
         withContext(ioScope.coroutineContext) {

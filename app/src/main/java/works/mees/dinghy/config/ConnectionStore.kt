@@ -3,6 +3,7 @@ package works.mees.dinghy.config
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -41,7 +42,7 @@ class ConnectionStore(
                 // A corrupt store / read error is a fail-safe case, not a crash (D-02).
                 if (e is IOException) emit(emptyPreferences()) else throw e
             }
-            .map { prefs -> sanitize(prefs[KEY_HOST], prefs[KEY_PORT], prefs[KEY_API_KEY]) }
+            .map { prefs -> sanitize(prefs[KEY_HOST], prefs[KEY_PORT], prefs[KEY_API_KEY], prefs[KEY_USE_SECURE]) }
 
     /** Persist a connection. Writes host/port and either writes or clears the optional API key. */
     suspend fun save(config: ConnectionConfig) {
@@ -50,6 +51,7 @@ class ConnectionStore(
             prefs[KEY_PORT] = config.port
             val key = config.apiKey
             if (key.isNullOrBlank()) prefs.remove(KEY_API_KEY) else prefs[KEY_API_KEY] = key
+            prefs[KEY_USE_SECURE] = config.useSecure
         }
     }
 
@@ -65,6 +67,7 @@ class ConnectionStore(
         private val KEY_HOST = stringPreferencesKey("host")
         private val KEY_PORT = intPreferencesKey("port")
         private val KEY_API_KEY = stringPreferencesKey("api_key")
+        private val KEY_USE_SECURE = booleanPreferencesKey("use_secure")
 
         /** Inclusive valid TCP port range. */
         private val PORT_RANGE = 1..65535
@@ -75,8 +78,9 @@ class ConnectionStore(
          *   - null/blank host                 → null  (no connection → Connect prompt, D-11)
          *   - null or out-of-range port       → null  (reject before persist)
          *   - otherwise                       → trimmed host, valid port, blank apiKey normalized to null
+         *   - useSecure null (missing key — every pre-R7 store) → false (plain ws/http, migration-safe)
          */
-        fun sanitize(host: String?, port: Int?, apiKey: String?): ConnectionConfig? {
+        fun sanitize(host: String?, port: Int?, apiKey: String?, useSecure: Boolean? = null): ConnectionConfig? {
             val trimmedHost = host?.trim()
             if (trimmedHost.isNullOrBlank()) return null
             if (port == null || port !in PORT_RANGE) return null
@@ -84,6 +88,7 @@ class ConnectionStore(
                 host = trimmedHost,
                 port = port,
                 apiKey = apiKey?.takeIf { it.isNotBlank() },
+                useSecure = useSecure ?: false,
             )
         }
     }

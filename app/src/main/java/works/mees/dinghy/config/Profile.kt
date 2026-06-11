@@ -44,6 +44,9 @@ data class PersistedProfile(
     // always-available webcam behavior (the prior gate was capability-only `webcamCount > 0`). When false,
     // AppContainer.webcamTileEnabled greys the Webcam drawer tile/surface even on a printer that HAS cams.
     val webcamEnabled: Boolean = true,
+    // R7 (26.5-07): per-printer wss/https toggle. Defaults FALSE so every pre-R7 blob (no key present)
+    // decodes to today's plain ws/http posture — the webcamEnabled migration precedent exactly.
+    val useSecure: Boolean = false,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
     // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
@@ -56,7 +59,7 @@ data class PersistedProfile(
         "PersistedProfile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
             "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
-            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice)"
+            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
 }
 
 /**
@@ -81,13 +84,18 @@ data class Profile(
     val fsChoice: String = "M",
     // Per-profile feature toggle (D-04, 15.2-03) — see [PersistedProfile.webcamEnabled]. Default true.
     val webcamEnabled: Boolean = true,
+    // R7 (26.5-07): per-printer wss/https toggle — see [PersistedProfile.useSecure]. Default false.
+    val useSecure: Boolean = false,
 ) {
     /**
-     * The connection projection — host/port/apiKey ONLY. This is the value `distinctUntilChanged` keys
-     * on in plan 02 (AppContainer.activeConfig): two profiles differing only in name/theme MUST produce
-     * an EQUAL [ConnectionConfig] so a name/theme edit does NOT churn the spine (RESEARCH Pitfall 1).
+     * The connection projection — host/port/apiKey/useSecure ONLY. This is the value
+     * `distinctUntilChanged` keys on in plan 02 (AppContainer.activeConfig): two profiles differing
+     * only in name/theme MUST produce an EQUAL [ConnectionConfig] so a name/theme edit does NOT churn
+     * the spine (RESEARCH Pitfall 1). A [useSecure] flip DOES change the projection ON PURPOSE — the
+     * spine must rebind to pick up the new ws↔wss scheme (R7, 26.5-07).
      */
-    fun toConnectionConfig(): ConnectionConfig = ConnectionConfig(host = host, port = port, apiKey = apiKey)
+    fun toConnectionConfig(): ConnectionConfig =
+        ConnectionConfig(host = host, port = port, apiKey = apiKey, useSecure = useSecure)
 
     /** The display name (D-10): the optional [name], falling back to the host. */
     fun displayName(): String = name ?: host
@@ -125,13 +133,14 @@ data class Profile(
             poolOverrides = poolOverrides,
             fsChoice = fsChoice,
             webcamEnabled = webcamEnabled,
+            useSecure = useSecure,
         )
 
     override fun toString(): String =
         "Profile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
             "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
-            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice)"
+            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
 
     companion object {
         /** A stable, collision-safe profile identity (D-05). UUID is available since API 1. */
@@ -153,6 +162,7 @@ data class Profile(
                 poolOverrides = p.poolOverrides,
                 fsChoice = p.fsChoice,
                 webcamEnabled = p.webcamEnabled,
+                useSecure = p.useSecure,
             )
     }
 }
