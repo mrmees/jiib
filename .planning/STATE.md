@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T05:35:00.000Z"
-last_activity: "2026-06-11 - Completed 26.5-01-PLAN.md (R5a guardrail infra: CI, enforced lint baseline, StrictMode, gradlew +x)"
+last_updated: "2026-06-11T05:51:12.500Z"
+last_activity: 2026-06-11
 progress:
   total_phases: 36
   completed_phases: 30
@@ -12,8 +12,9 @@ progress:
   completed_plans: 202
   percent: 83
 ---
+
 **Last verified:** 2026-06-11
-**Status:** active
+**Status:** Ready to execute
 
 # Project State
 
@@ -27,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 26.5
-Plan: 01 of 07 complete
-Status: Executing (overnight unattended run, branch gsd/phase-26.5-overnight-hardening)
+Plan: 2 of 07 complete
+Status: Ready to execute
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
   → **Plan 24-04 (Morphing Waterfall Root: idle action list + foot bar + Crossfade morph + FIX-1/FIX-5) EXECUTED + COMPLETE 2026-06-10.** PrintStatusStandbyField rebuilt on ListBlock/ListRow + FootButtonBar; buildIdleActions wired with outputsPresent+webcamTileEnabled capability gates; FIX-5 resolved (LauncherWebcam icon + cd_launcher_webcam string swapped for Wave-0 placeholder); FIX-1 confirmed (showEstopGuard + in-screen ConfirmGuard removed; AppShell overlay owns FloatingEStop on every destination); Crossfade(tween(150), "PrintStatusMorph") wraps the when(mode) dispatch (D-13); gutter=null for Standby (SC-3). Commit: `ec0caf7`. SUMMARY `24-04-SUMMARY.md`. SC-1/SC-3/SC-4 closed.
@@ -71,7 +72,7 @@ Status: Executing (overnight unattended run, branch gsd/phase-26.5-overnight-har
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-11 - Completed quick task 260610-s8j: post-26 UAT formatting rules (UAT-1..UAT-5 codified + applied)
+Last activity: 2026-06-11
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -278,6 +279,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 26-adjustment-screens P03 | 7 | 3 tasks | 8 files |
 | Phase 26 P05 | 35 | 3 tasks | 10 files |
 | Phase 26-adjustment-screens P04 | 30 | 2 tasks | 4 files |
+| Phase 26.5 P02 | 11m | 3 tasks | 33 files |
 
 ## Accumulated Context
 
@@ -500,6 +502,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Pure testable seams (listRowUsesAccentFill/clampFraction) without ThemeTokens for JUnit4 host tests
 - [Phase ?]: FloatingEStop uses DinghyIcons.StatusStop — owner-assigned e-stop glyph, icon law compliance
 - [Phase ?]: SortFilterControlRow leading type-tile mandatory (bg2/non-interactive); arrow direction indicator via MaterialSymbol for future registry phase
+- [Phase 26.5]: 26.5-02: codebase/STACK.md macrobenchmark compileSdk line reworded truthfully (module IS still 35) instead of swept to 36 — sweep would have introduced a lie
+- [Phase 26.5]: 26.5-02: hygiene CI dead-link check is a deterministic bash loop, not the unverified markdown-link-check marketplace action (A8)
 
 ### Pending Todos
 
@@ -540,6 +544,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-11T05:27:07.039Z
+Last session: 2026-06-11T05:48:16.718Z
 Stopped at: Phase 27 context gathered
 Resume file: None
