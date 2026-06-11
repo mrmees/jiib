@@ -343,7 +343,7 @@ private fun FineTuneContent(
                         icon = DinghyIcons.Back,
                     )
                     OutlinedControl(
-                        label = "Reset All",
+                        label = stringResource(R.string.finetune_reset_all),
                         onClick = onResetAll,
                         modifier = Modifier.weight(1f),
                         intent = Intent.Warn,

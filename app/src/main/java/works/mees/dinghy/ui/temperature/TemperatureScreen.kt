@@ -500,13 +500,13 @@ private fun TemperatureContent(
                                 icon = DinghyIcons.Back,
                             )
                             OutlinedControl(
-                                label = "Presets",
+                                label = stringResource(R.string.temp_presets),
                                 onClick = { fieldMode = TempFieldMode.PresetPicker },
                                 modifier = Modifier.weight(1f),
                                 intent = if (heating) Intent.Neutral else Intent.Accent,
                             )
                             OutlinedControl(
-                                label = "Cooldown",
+                                label = stringResource(R.string.temp_cooldown),
                                 onClick = onCooldown,
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Warn,
@@ -624,7 +624,7 @@ private fun TemperatureAdjusterFocus(
             )
             // D-14: Done button to return to the graph view.
             OutlinedControl(
-                label = "Done",
+                label = stringResource(R.string.common_done),
                 onClick = onDone,
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral,
@@ -698,7 +698,7 @@ private fun TemperatureAdjusterFocus(
 
             // D-13: Per-heater Off (P19 GAP-A precedent — Intent.Warn, target=0).
             OutlinedControl(
-                label = "Off",
+                label = stringResource(R.string.output_off),
                 onClick = onOff,
                 modifier = Modifier.fillMaxWidth(),
                 intent = Intent.Warn,
@@ -757,7 +757,7 @@ internal fun PresetSelector(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Preheat preset",
+                text = stringResource(R.string.temp_preheat_preset),
                 color = t.text,
                 fontFamily = GeistMono,
                 fontWeight = FontWeight.Bold,
@@ -773,7 +773,7 @@ internal fun PresetSelector(
                 )
             }
             OutlinedControl(
-                label = "Cancel",
+                label = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
                 intent = Intent.Neutral,

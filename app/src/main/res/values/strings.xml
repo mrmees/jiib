@@ -410,4 +410,17 @@
     <string name="extrude_loaded_filament">Loaded filament</string>
     <string name="extrude_loaded_prefix">%1$s (loaded)</string>
 
+    <!-- ============== Phase 26 adjustment surfaces (26-rev WR-11) ============== -->
+    <string name="common_apply">Apply</string>
+    <string name="adjuster_reset">Reset</string>
+    <!-- Inline baseline span next to the adjuster hero value; %1$s = formatted value + unit -->
+    <string name="adjuster_was">was %1$s</string>
+    <string name="finetune_reset_all">Reset All</string>
+    <string name="temp_presets">Presets</string>
+    <string name="temp_cooldown">Cooldown</string>
+    <string name="temp_preheat_preset">Preheat preset</string>
+    <string name="extrude_spoolman_coming_soon">Spoolman integration coming soon</string>
+    <string name="extrude_no_load_macro">No LOAD_FILAMENT macro configured</string>
+    <string name="extrude_no_unload_macro">No UNLOAD_FILAMENT macro configured</string>
+
 </resources>

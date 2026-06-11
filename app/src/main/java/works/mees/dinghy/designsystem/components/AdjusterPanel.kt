@@ -13,12 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -122,7 +124,7 @@ fun AdjusterPanel(
             Spacer(modifier = Modifier.weight(1f))
             onReset?.let { reset ->
                 OutlinedControl(
-                    label = "Reset",
+                    label = stringResource(R.string.adjuster_reset),
                     onClick = { if (controlsEnabled) reset() },
                     modifier = Modifier
                         .heightIn(min = 40.dp)
@@ -152,7 +154,11 @@ fun AdjusterPanel(
                 // adjustment-controls.md anti-pattern: a second line overflows 5U phone-landscape Focus.
                 if (shouldShowBaseline(value, baseline, decimals)) {
                     Text(
-                        text = "  was ${fmtValue(baseline!!, decimals)}$unit",
+                        // Leading two spaces = the inline gap from the hero value (same Row, by design).
+                        text = "  " + stringResource(
+                            R.string.adjuster_was,
+                            fmtValue(baseline!!, decimals) + unit,
+                        ),
                         color = t.text3,
                         fontFamily = GeistMono,
                         fontSize = fsSp(18f, t.fs).sp,
@@ -170,6 +176,8 @@ fun AdjusterPanel(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // WR-11 exemption (documented): "−"/"+" are locale-independent math glyphs on the
+                // stepper tiles — not translatable copy — so they stay literal by decision.
                 OutlinedControl(
                     label = "−",
                     onClick = { if (controlsEnabled) onDecrement() },

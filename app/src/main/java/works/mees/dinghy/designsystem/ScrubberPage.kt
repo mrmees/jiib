@@ -26,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -377,13 +379,13 @@ fun ScrubberPage(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             OutlinedControl(
-                                label = "Cancel",
+                                label = stringResource(R.string.common_cancel),
                                 onClick = actions.onCancel,
                                 modifier = Modifier.weight(1f),
                                 intent = if (actions.destructiveDismiss) Intent.Danger else Intent.Neutral,
                             )
                             OutlinedControl(
-                                label = "Apply",
+                                label = stringResource(R.string.common_apply),
                                 onClick = { actions.onApply(working) },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Go,
@@ -402,13 +404,13 @@ fun ScrubberPage(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 OutlinedControl(
-                                    label = actions.offLabel ?: "Off",
+                                    label = actions.offLabel ?: stringResource(R.string.output_off),
                                     onClick = onOff,
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Danger,
                                 )
                                 OutlinedControl(
-                                    label = "Back",
+                                    label = stringResource(R.string.common_back),
                                     onClick = actions.onBack,
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Neutral,
@@ -419,7 +421,7 @@ fun ScrubberPage(
                                 Modifier.fillMaxWidth().padding(top = 12.dp),
                             ) {
                                 OutlinedControl(
-                                    label = "Back",
+                                    label = stringResource(R.string.common_back),
                                     onClick = actions.onBack,
                                     modifier = Modifier.fillMaxWidth(),
                                     intent = Intent.Neutral,

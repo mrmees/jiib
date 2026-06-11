@@ -292,6 +292,11 @@ private fun ExtrudeContent(
             },
             field = {
                 val t = LocalTokens.current
+                // WR-11 (26-rev): resolve toast copy at composition so the onClick lambdas below
+                // (non-composable scope) can assign it to infoText.
+                val spoolmanComingSoon = stringResource(R.string.extrude_spoolman_coming_soon)
+                val noLoadMacro = stringResource(R.string.extrude_no_load_macro)
+                val noUnloadMacro = stringResource(R.string.extrude_no_unload_macro)
                 when (fieldMode) {
                     is ExtrudeFieldMode.Main -> {
                         Column(
@@ -344,7 +349,7 @@ private fun ExtrudeContent(
                                 )
                                 FieldButton(
                                     text = stringResource(R.string.extrude_spool_placeholder),
-                                    onClick = { infoText = "Spoolman integration coming soon" },
+                                    onClick = { infoText = spoolmanComingSoon },
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     icon = {
                                         MaterialSymbol(
@@ -373,7 +378,7 @@ private fun ExtrudeContent(
                                 label = stringResource(R.string.extrude_load),
                                 onClick = {
                                     if (vm.hasLoadMacro) onLoad()
-                                    else infoText = "No LOAD_FILAMENT macro configured"
+                                    else infoText = noLoadMacro
                                 },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Accent, // physical command — drives filament in
@@ -383,7 +388,7 @@ private fun ExtrudeContent(
                                 label = stringResource(R.string.extrude_unload),
                                 onClick = {
                                     if (vm.hasUnloadMacro) onUnload()
-                                    else infoText = "No UNLOAD_FILAMENT macro configured"
+                                    else infoText = noUnloadMacro
                                 },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Warn, // amber — heats + drives filament out
