@@ -73,7 +73,7 @@
 - kotlinx-coroutines-test 1.9.0 — virtual time (`runTest`/`TestScope`) for coroutine unit tests
 - Compose UI Test (`compose-ui-test-junit4`) — BOM-governed; drives `ShellPresenceTest`
 - UiAutomator 2.3.0 — device rotation test (`ServiceSurvivesRotationTest`)
-- Macrobenchmark 1.3.3 — `:macrobenchmark` module; measures startup/jank on the real Nexus 7 in release mode; Baseline Profile is a NO-OP on API 23 (full AOT at install); `compileSdk 35` in that module (not bumped)
+- Macrobenchmark 1.3.3 — `:macrobenchmark` module; measures startup/jank on the real Nexus 7 in release mode; Baseline Profile is a NO-OP on API 23 (full AOT at install); `compileSdk = 35` in that module (deliberately NOT bumped to the app's 36 — the benchmark module trails the app)
 
 ## Key Dependencies
 

@@ -1,5 +1,7 @@
 # Codebase Concerns
 
+**Status:** historical — findings resolved by Phases 22–26 (stamped 2026-06-11)
+
 **Analysis Date:** 2026-06-08
 
 > **Priority lens:** Adreno 320 / 2 GB / 1920×1200 / ARMv7 (Nexus 7 2013, "flox") is the perf floor.

@@ -1,7 +1,9 @@
 ---
 phase: 14
 slug: multi-printer-switching
-status: draft
+status: superseded
+superseded_by: docs/ui_design/
+superseded_on: 2026-06-11
 shadcn_initialized: false
 preset: none
 created: 2026-06-04

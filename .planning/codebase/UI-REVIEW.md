@@ -1,5 +1,7 @@
 # Whole-App UI Review — jiib (Dinghy Display)
 
+**Status:** historical — findings resolved by Phases 22–26 (stamped 2026-06-11)
+
 **Audited:** 2026-06-08
 **Baseline:** `docs/ui_design/` UI LAW (CLAUDE.md philosophy, LAYOUT.md Focus/Field/Gutter grammar, THEMING.md token + intent law, the 10 hi-fi mockups in `docs/ui_design/images/`). Abstract 6-pillar standards applied where LAW is silent.
 **Method:** Code-only audit (native Android app — no web dev server; no on-device screenshots captured this pass). Visual judgment is reconstructed from source + the canonical mockups.

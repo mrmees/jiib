@@ -1,7 +1,9 @@
 ---
 phase: 15
 slug: theme-system-settings-redesign
-status: draft
+status: superseded
+superseded_by: docs/ui_design/
+superseded_on: 2026-06-11
 shadcn_initialized: false
 preset: none
 created: 2026-06-05

@@ -101,6 +101,7 @@ here rather than listing them as live cadence.)
 | print start/pause/resume/cancel | `printer.print.*` | JSON-RPC | one-shot | user action | per tap | OK |
 | emergency_stop / firmware_restart / restart | `printer.emergency_stop` etc. | JSON-RPC | one-shot | user action | per tap | OK |
 | gcode / preset / jog / home / extrude / calibration / save_config | `printer.gcode.script` | JSON-RPC (gcode) | one-shot | user action | per tap | OK (G4 120 s timeout for long scripts) |
+| Spoolman notify (push, server→client) | `notify_active_spool_set` / `notify_spoolman_status_changed` | JSON-RPC notification (no `id`, no request) | push | external spool change (Fluidd, runout macro) / Spoolman backend connect-disconnect | per server edge | OK — push-driven reconcile/re-fetch in `ActiveSpoolFacade` (D-10), never polled; payload shape per `docs/commands/moonraker-api.md` (~166–188): `params` is always a 1-element array |
 
 **Net cadence shape:** ONE persistent `objects.subscribe` carries all live data; a fixed set of one-shot
 seeds runs once per handshake; the rest are one-shots fired on a real edge (filename change, idle

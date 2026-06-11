@@ -66,7 +66,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | **DataStore (Preferences)** | androidx.datastore 1.1.x | Persist connection settings (host, port, API key, prefs) | Default choice. Coroutine/Flow-native, no main-thread ANR risk, supports minSdk 23. A handful of key/values = Preferences DataStore, not Proto, not Room. |
-| **androidx.profileinstaller + Baseline Profile** | 1.4.x | AOT-precompile hot paths on API 24+ | ⚠ **NO-OP on the API-23 target.** Baseline Profiles need profile-guided compilation (API 24+); Android 6 / API 23 already does **full AOT at install**, so the profile is never consulted on a Nexus 7 2013. Useful only if/when newer devices run the APK. Do NOT gate perf on it for the target — measure the plain release/R8 build. Still build the Macrobenchmark module (for measurement, not the profile). |
+| **androidx.profileinstaller + Baseline Profile** | 1.4.x | AOT-precompile hot paths on API 24+ | ⚠ **NO-OP on STOCK API 23 only.** Baseline Profiles need profile-guided compilation (API 24+); stock Android 6 / API 23 does **full AOT at install**, so the profile would never be consulted on a stock-Android Nexus 7 2013. **BUT the actual test device (flox) runs LineageOS 18.1 / API 30, where profiles DO apply** — and so do all modern phones in v1's broadened scope. This raises the priority of the `macrobenchmark-module-wiring` todo. Do NOT gate floor perf on it — measure the plain release/R8 build — but ship the profile for the API-24+ majority. Still build the Macrobenchmark module. |
 | **Vico** | 2.x | Temperature history chart *if* you want built-in axes/legends/markers | Only if custom Canvas chrome becomes tedious. Multiplatform, Compose + Views modules, draws via `android.graphics.Canvas`. See charting note — custom Canvas is the leaner default. |
 | **Navigation-Compose** | 2.8.x | Panel routing / back-stack | If you want structured nav for ~34 eventual panels. For v1's handful of panels a simple `when(screen)` state holder is lighter; adopt Nav-Compose when the panel count grows. |
 | **kotlinx-collections-immutable** | 0.3.x | `ImmutableList` for stable Compose params | Helps Compose skip recomposition for list params (lists are unstable by default). Cheap win on weak CPU. |
@@ -215,7 +215,7 @@ the Compose/Views stack (it is a reference, not code to copy verbatim).
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+Mapped in `.planning/codebase/ARCHITECTURE.md` (layer map, data flow, state holders, the single-subscribe spine) and `docs/adr/0001-ui-toolkit-decision.md` (Compose + classic-Views hybrid — which surfaces are Views and why). Read both before structural changes.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->
