@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +90,13 @@ fun AdjusterPanel(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
+    // WR-07 (26-rev): the busy-lock must DIM as well as inert (the P17 "group dims + inert" UX).
+    // OutlinedControl has no `enabled` param — apply the 25-03 convention (alpha 0.38 + semantics
+    // disabled, BookmarkedMacrosScreen precedent) to the stepper tiles and Reset so the lock is
+    // visible and TalkBack stops announcing them as actionable.
+    val controlsEnabled = enabled && value != null
+    val disabledModifier =
+        if (!controlsEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.SpaceBetween,
@@ -113,8 +123,10 @@ fun AdjusterPanel(
             onReset?.let { reset ->
                 OutlinedControl(
                     label = "Reset",
-                    onClick = reset,
-                    modifier = Modifier.heightIn(min = 40.dp),
+                    onClick = { if (controlsEnabled) reset() },
+                    modifier = Modifier
+                        .heightIn(min = 40.dp)
+                        .then(disabledModifier),
                     // D-21: caution/amber — NOT color-mix (red-bleed bug); use heat directly
                     intent = Intent.Warn,
                 )
@@ -160,14 +172,18 @@ fun AdjusterPanel(
             ) {
                 OutlinedControl(
                     label = "−",
-                    onClick = { if (enabled && value != null) onDecrement() },
-                    modifier = Modifier.weight(1f),
+                    onClick = { if (controlsEnabled) onDecrement() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(disabledModifier),
                     intent = Intent.Accent,
                 )
                 OutlinedControl(
                     label = "+",
-                    onClick = { if (enabled && value != null) onIncrement() },
-                    modifier = Modifier.weight(1f),
+                    onClick = { if (controlsEnabled) onIncrement() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(disabledModifier),
                     intent = Intent.Accent,
                 )
             }
