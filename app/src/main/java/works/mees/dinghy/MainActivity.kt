@@ -24,6 +24,7 @@ import works.mees.dinghy.service.MoonrakerService
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.theme.compose.DinghyTheme
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.SyncSystemBarsToTheme
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.shell.RootController
 import works.mees.dinghy.ui.shell.parseStartDest
@@ -127,6 +128,10 @@ class MainActivity : ComponentActivity() {
             // re-themes the whole app (Compose + Views) without persisting; the persisted path is a PURE
             // bake of the canonical tuple (never the async-lagged themeResolver.tokens).
             DinghyTheme(container.effectiveTokens) {
+                // 260611-cj1: system bars follow the ACTIVE tokens, not the system uiMode — the
+                // no-arg enableEdgeToEdge() baseline above is refined reactively from here (white
+                // nav bar on system-light API 34; live restyle on every theme change).
+                SyncSystemBarsToTheme()
                 // R1 (26.5-04): first-connect trigger for the POST_NOTIFICATIONS one-shot.
                 // Suspends on the FIRST emission of Connected (the spine's post-resync state),
                 // then asks exactly once (field latch + grant check inside the helper).
