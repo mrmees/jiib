@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.shell
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -40,6 +41,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
 import works.mees.dinghy.calibration.BedMeshHolder
 import works.mees.dinghy.calibration.CalibrationHubHolder
@@ -547,9 +549,26 @@ fun AppShell(
                     d.isRoute<NavDest.Extrude>()
                 ))
                 if (!suppressSwipe) {
-                    detectVerticalDragGestures { _, dragAmount ->
-                        if (dragAmount < -SWIPE_UP_THRESHOLD_PX) drawerOpen = true
-                    }
+                    // R10 (26.5-03, §R10 step 3): accumulate dragAmount across the GESTURE against
+                    // the unchanged 80px threshold instead of requiring one single event to clear
+                    // it (the per-event check was proven brittle — Part 5 cause #3; it is why
+                    // FineTuneNavTest's swipeUp() could never open the drawer). The accumulator is
+                    // a pure host-tested class; the BuildConfig.DEBUG log is the step-1 pointer
+                    // instrumentation (tag SwipeDetector — zero release-path cost).
+                    val acc = SwipeUpAccumulator(SWIPE_UP_THRESHOLD_PX)
+                    detectVerticalDragGestures(
+                        onDragStart = { acc.onDragStart() },
+                        onVerticalDrag = { _, dragAmount ->
+                            val fired = acc.onDrag(dragAmount)
+                            if (BuildConfig.DEBUG) {
+                                Log.d(
+                                    "SwipeDetector",
+                                    "drag: amt=$dragAmount total=${acc.totalPx} fired=$fired",
+                                )
+                            }
+                            if (fired) drawerOpen = true
+                        },
+                    )
                 }
             },
     ) {

@@ -1,9 +1,11 @@
 package works.mees.dinghy.designsystem.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,6 +107,11 @@ fun ListRow(
     val bgColor = if (listRowUsesAccentFill(selected)) t.accentSoft else Color.Transparent
     val borderColor = if (selected) t.accentLine else t.outline
     val borderWidth = listRowBorderWidthFor(selected)
+    // R10 (26.5-03, §R10 step 4): explicit interactionSource + LocalIndication so press indication
+    // is delivered IMMEDIATELY inside scrollable containers — Compose delays it by design for
+    // tap-vs-scroll disambiguation, and on a 20-30fps Adreno 320 that delay reads as a missed tap
+    // (Part 5 cause #4). Same indication, no visual redesign — just delivered now.
+    val interactionSource = remember { MutableInteractionSource() }
 
     Row(
         modifier
@@ -112,7 +120,11 @@ fun ListRow(
             .clip(shape)
             .background(bgColor)
             .border(BorderStroke(borderWidth, borderColor), shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
+            )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

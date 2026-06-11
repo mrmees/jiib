@@ -41,7 +41,11 @@ class SwipeUpAccumulator(private val thresholdPx: Float) {
      * total crosses the threshold; `false` otherwise (including every event after the latch).
      */
     fun onDrag(dragAmount: Float): Boolean {
-        // RED scaffold (26.5-03 Task 2): accumulation not yet implemented.
+        accumulated += dragAmount
+        if (!fired && accumulated <= -thresholdPx) {
+            fired = true
+            return true
+        }
         return false
     }
 }
