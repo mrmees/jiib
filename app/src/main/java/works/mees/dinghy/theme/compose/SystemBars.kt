@@ -2,15 +2,19 @@ package works.mees.dinghy.theme.compose
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 
 /**
  * System-bar theming (quick 260611-cj1): lock edge-to-edge bar styling (status/navigation icon
@@ -82,6 +86,44 @@ fun SyncSystemBarsToTheme() {
             SystemBarStyle.light(scrim, scrim)
         }
         activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+    }
+}
+
+/**
+ * Theme-reactive system-bar sync for a DIALOG window. A Compose [androidx.compose.ui.window.Dialog]
+ * creates its OWN window, which re-applies default (system-theme-derived) bar styling while open —
+ * the "bars restyle when popups open" flicker from the Moto UAT. Call this as the first statement
+ * inside the Dialog's content lambda to carry the active theme onto that window.
+ *
+ * The App Drawer is the app's ONLY window-creating popup (exhaustive audit in the 260611-cj1 plan:
+ * PromptDialog and the BedMesh save/load dialogs are in-app overlays with no window) — so this is
+ * a per-window fix, deliberately NOT a generic popup framework for one consumer.
+ *
+ * Implementation: resolves the dialog window via [DialogWindowProvider]; silently no-ops when the
+ * host is not a dialog (previews). A [SideEffect] (the window outlives recompositions; idempotent
+ * flag writes are cheap) sets `isAppearanceLight*` icon contrast from [isDarkBackdrop], and — gated
+ * `Build.VERSION.SDK_INT < 35` — the deprecated window bar colors to the bg token. All colors flow
+ * from [LocalTokens].
+ */
+@Composable
+fun SyncDialogWindowToTheme() {
+    val t = LocalTokens.current
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window ?: return
+    val dark = isDarkBackdrop(t.bg)
+    SideEffect {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !dark
+        controller.isAppearanceLightNavigationBars = !dark
+        if (Build.VERSION.SDK_INT < 35) {
+            // API 35+ IGNORES window bar colors (bars forced transparent, the dialog/activity
+            // backdrop shows through) — the deprecated setters are the intentional pre-35 path
+            // that paints the bars in the theme bg (the Moto / API 34 fix).
+            @Suppress("DEPRECATION")
+            run {
+                window.statusBarColor = t.bg.toArgb()
+                window.navigationBarColor = t.bg.toArgb()
+            }
+        }
     }
 }
 

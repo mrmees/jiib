@@ -35,6 +35,7 @@ import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.SyncDialogWindowToTheme
 import works.mees.dinghy.theme.fsSp
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -110,6 +111,9 @@ fun AppDrawer(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // 260611-cj1: the Dialog's OWN window must carry the active theme's bar styling, or the
+        // system bars restyle to the system theme while the drawer is open.
+        SyncDialogWindowToTheme()
         LazyVerticalGrid(
             columns = GridCells.Fixed(4), // denser grid — ~8 tiles visible in landscape (was 2 huge tiles)
             modifier = modifier
