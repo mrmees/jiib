@@ -248,6 +248,20 @@ step may trail anytime; only its correctness edits are order-critical. R6's rema
 should wait until the Phase-27/28 redesigns land (don't preview/polish screens about to be
 rebuilt).
 
+**Status 2026-06-11 (Phase 26.5 overnight run — code-side done, morning UAT = the gate):**
+~~R5a~~ **done 2026-06-11** (minus LICENSE — owner decision pending, see OVERNIGHT-REPORT
+DECISIONS-NEEDED) · ~~R9 steps 1–3+5~~ **done 2026-06-11** (step 4 = reviewed script artifact,
+NOT executed — owner review-then-run) · ~~R10 steps 2–3~~ **done 2026-06-11** + step-1
+instrumentation landed debug-gated (step 4 indication-immediacy DEFERRED — the parameter-plumbing
+approach was a no-op per codex review; needs custom press detection if morning instrumentation
+implicates cause #4; step 5 unimplemented by design) · ~~R1~~ **code done 2026-06-11** (S25/flox
+UAT pending) · ~~R2~~ **code done 2026-06-11** (doze UAT pending) · ~~R4~~ **done 2026-06-11**
+(NOTE: six call sites, not four — PrinterCommands ×2, CommandRegistry ×2, ExtrudeHolder ×2;
+update Part 3's wording at R5b) · ~~R7~~ **code done 2026-06-11** (option B: useSecure toggle;
+the "cleartext to public IP refused" acceptance half DESCOPED — NSC cannot express RFC-1918 CIDR;
+live-wss UAT pending). Still open: R6 remainder, R3, R5b, R8 (standing). Full detail:
+`.planning/phases/26.5-overnight-hardening-slate-audit-r-packages/OVERNIGHT-REPORT.md`.
+
 ### R5a — Guardrail infra *(run FIRST; the infra half of the former R5)*
 1. `git update-index --chmod=+x gradlew` (one command, do it first).
 2. **LICENSE** (your call — GPLv3 fits the Klipper ecosystem's norms; MIT/Apache-2.0 maximizes

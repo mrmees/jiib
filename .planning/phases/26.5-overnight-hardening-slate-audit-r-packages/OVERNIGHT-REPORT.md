@@ -39,7 +39,12 @@ the phase is NOT marked verified tonight per CONTEXT.
 | 26.5-04 | REVISE | `ContextCompat.startForegroundService` (latent API<26 launch crash, pre-existing since Phase 4); onVariants versionCode rewrite scoped to release (0ae62c4) | **MEDIUM:** POST_NOTIFICATIONS "asked once" is in-memory — denial + relaunch re-asks at next first-Connected (Android 13+ hard-suppresses after 2 denials; persist in DisplayPrefs if it annoys at S25 UAT). **MEDIUM:** BackHandler-vs-predictive-back composition order — S25-only verifiable; if the preview pops the NavHost under overlays, register overlay handlers after NavHost |
 | 26.5-05 | APPROVED | — | — |
 | 26.5-06 | REVISE | Macro-hint strings (`extrude_no_*_macro`) are format args fed from `CommandMap.*.macro`; CommandMapTest gained REAL registry/wire assertions (1114670) | — |
-| 26.5-07 | (orchestrator review after this report) | — | findings, if any, will be folded as a Post-review amendment to 26.5-07-SUMMARY.md |
+| 26.5-07 | REVISE | **HIGH:** TLS trust failure during the keyed-auth token fetch was collapsing into NetworkUnavailable — now classified (`isTlsTrustFailure`) and routed to `ConnectAttempt.TlsTrust`. **MEDIUM:** HLS derive preserved the source stream_url scheme instead of hardcoding http (1a79761) | **LOW:** the Splash TLS message is hardcoded — tokenize WITH the whole Splash string cluster (the known Phase-28/R6 remainder), not solo |
+
+**Phase verification (opus gsd-verifier, ~04:45):** `human_needed` — 7/7 success criteria
+code-complete and verified against the codebase; protected-surface audit CLEAN (cadence, render
+hot paths, M112, debounce timing, R9 protected list all untouched); host suite green incl. the
+D-10 drift guard. Morning UAT is the phase gate — do NOT mark the phase complete before it.
 
 ## DECISIONS-NEEDED
 
