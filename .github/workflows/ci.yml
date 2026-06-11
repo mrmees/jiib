@@ -1,0 +1,23 @@
+# R5a (docs/top-down-audit-roadmap.md §R5a step 3): unit tests + debug assemble on every
+# push to master / gsd/** and every PR to master. First-party actions only (actions/*,
+# gradle/actions) pinned to major version tags — no third-party marketplace actions, no
+# secrets consumed (threat register T-26.5-01).
+name: CI
+on:
+  push:
+    branches: [ master, "gsd/**" ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon

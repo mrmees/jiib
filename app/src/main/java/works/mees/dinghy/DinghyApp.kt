@@ -116,6 +116,24 @@ class DinghyApp : Application() {
         )
         // Seed the resolver from persisted theme prefs (one re-emit on first load, live thereafter).
         container.seedTheme(appScope)
+
+        // R5a (§R5a step 5): StrictMode detect-all in DEBUG builds only — the main thread is
+        // currently clean (efficiency audit); this keeps it that way for free. Log-only penalty
+        // (never crash): violations surface in logcat. Release builds unaffected.
+        if (BuildConfig.DEBUG) {
+            android.os.StrictMode.setThreadPolicy(
+                android.os.StrictMode.ThreadPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
+            android.os.StrictMode.setVmPolicy(
+                android.os.StrictMode.VmPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
+        }
     }
 }
 
