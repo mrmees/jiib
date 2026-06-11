@@ -1,3 +1,4 @@
+import com.android.build.api.variant.FilterConfiguration
 import java.util.Properties
 
 plugins {
@@ -23,6 +24,11 @@ val devProps = Properties().apply {
 fun devProp(key: String, default: String): String =
     (devProps.getProperty(key) ?: default)
 
+// R1 (26.5-04): the SINGLE versionCode base. defaultConfig reads it, and the per-ABI
+// onVariants block below derives each split's versionCode from it (v7a = base, arm64 = base+1)
+// — never hardcode a stale copy of this value anywhere else.
+val appVersionCode = 1
+
 android {
     namespace = "works.mees.dinghy"
     compileSdk = 36                                  // bumped 35→36 (Phase 21): media3 1.10.x AAR metadata
@@ -34,7 +40,7 @@ android {
         applicationId = "works.mees.dinghy"
         minSdk = 23                                  // PKG-02 floor (asserted on MERGED manifest by verifyMinSdk)
         targetSdk = 35                               // D-10/D-11 cleartext caveat applies on API 24+
-        versionCode = 1
+        versionCode = appVersionCode
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -46,15 +52,17 @@ android {
         buildConfigField("String", "MOONRAKER_API_KEY", "\"${devProp("moonraker.apiKey", "")}\"")
     }
 
-    // D-01a: the Nexus 7 2013 is 32-bit ARMv7. The ABI split restricts the APK
-    // to armeabi-v7a ONLY (asserted via `unzip -l | grep lib/`), so the release
-    // APK can never carry an arm64/x86 slice the device can't run. (NOTE: do NOT
-    // also set defaultConfig.ndk.abiFilters — AGP rejects the two together.)
+    // D-01a (amended R1, 26.5-04): per-ABI APK splits, no universal APK. The Nexus 7 2013
+    // (32-bit ARMv7 dev FLOOR) installs the armeabi-v7a APK; ship artifacts publish BOTH
+    // per-ABI APKs so 64-bit-only devices (Pixel 7+, S25 Ultra) can install the arm64-v8a
+    // one. Each split carries only its own native slice (asserted via `unzip -l | grep lib/`).
+    // (NOTE: do NOT also set defaultConfig.ndk.abiFilters — AGP rejects the two together.)
+    // Per-ABI versionCodes are assigned in the androidComponents.onVariants block below.
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a")
+            include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
         }
     }
@@ -127,6 +135,27 @@ android {
 // already target 17 and stay.
 kotlin {
     jvmToolchain(17)
+}
+
+// R1 (26.5-04): distinct versionCode per ABI split so the two release APKs never collide
+// in a package manager (Pitfall 3): armeabi-v7a = base, arm64-v8a = base+1. Uses the modern
+// variant API (androidComponents.onVariants), NOT the legacy applicationVariants.all.
+// AGP 8.7: output.versionCode is a Property<Int> — it MUST be .set(), plain assignment
+// does not compile. Base is the single `appVersionCode` hoisted above defaultConfig.
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters
+                .firstOrNull { it.filterType == FilterConfiguration.FilterType.ABI }
+                ?.identifier
+            val offset = when (abi) {
+                "armeabi-v7a" -> 0
+                "arm64-v8a" -> 1
+                else -> 0   // no ABI filter (shouldn't happen with isUniversalApk=false)
+            }
+            output.versionCode.set(appVersionCode + offset)
+        }
+    }
 }
 
 dependencies {
