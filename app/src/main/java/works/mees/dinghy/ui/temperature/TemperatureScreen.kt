@@ -302,7 +302,12 @@ private fun TemperatureContent(
     val t = LocalTokens.current
 
     // D-10: selected sensor triggers adjuster morph; null = graph fills Focus.
-    var selectedSensor by remember { mutableStateOf<SensorReadout?>(null) }
+    // CR-01 (26-rev): store the selected sensor NAME and resolve the LIVE readout from [legend] on
+    // every composition — a remembered SensorReadout snapshot freezes the adjuster's target (each
+    // ± tap re-dispatches the same base) and never reflects live updates. If the sensor vanishes
+    // (e.g. on reconnect), the lookup returns null and the Focus falls back to the graph automatically.
+    var selectedName by remember { mutableStateOf<String?>(null) }
+    val selectedSensor: SensorReadout? = selectedName?.let { n -> legend.firstOrNull { it.name == n } }
     // Session step memory for the heater adjuster.
     var activeStep by remember { mutableStateOf(TEMP_DEFAULT_STEP) }
     // D-12: Field-mode (SensorList | PresetPicker).
@@ -370,7 +375,8 @@ private fun TemperatureContent(
                         )
                     } else {
                         // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
-                        val sensor = selectedSensor!!
+                        // selectedSensor is a non-null LIVE readout here (resolved from legend above).
+                        val sensor = selectedSensor
                         DetailCard(modifier = Modifier.fillMaxSize()) {
                             TemperatureAdjusterFocus(
                                 sensor = sensor,
@@ -392,7 +398,7 @@ private fun TemperatureContent(
                                     onNudgeHeater(sensor.name, rawTarget)
                                 },
                                 onOff = { onNudgeHeater(sensor.name, 0) },
-                                onDone = { selectedSensor = null },
+                                onDone = { selectedName = null },
                                 onStepSelect = { activeStep = it },
                                 uDp = grid.uDp,
                                 modifier = Modifier
@@ -433,11 +439,11 @@ private fun TemperatureContent(
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
                                 val rowTint = traceColors[sensor.name] ?: t.seriesColor(idx)
-                                val isSelected = selectedSensor?.name == sensor.name
+                                val isSelected = selectedName == sensor.name
                                 ListRow(
                                     selected = isSelected,
                                     onClick = {
-                                        selectedSensor = if (isSelected) null else sensor
+                                        selectedName = if (isSelected) null else sensor.name
                                         // Reset step to default on new selection.
                                         if (!isSelected) activeStep = TEMP_DEFAULT_STEP
                                     },
