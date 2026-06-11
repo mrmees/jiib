@@ -1,20 +1,17 @@
 ---
 phase: 22-performance-architecture-refactor
 verified: 2026-06-09T00:00:00Z
-status: human_needed
-score: 4/5
-overrides_applied: 0
-human_verification:
-  - test: "Confirm recomposition skip behaviour is measurable on hot screens"
-    expected: "With PrinterState @Immutable and the god-component split, Compose should skip unaffected scopes (sail logo, nav grid, shell) on the 4 Hz state emission. Layout Inspector recomposition count snapshot or Compose compiler report showing counts dropped on the split scopes vs baseline."
-    why_human: "ROADMAP SC2 explicitly says 'verified via Layout-Inspector recomposition counts'. The phase used grep-verified annotations + structural code review as a proxy. The annotations are correct in the code, but the recomposition-count evidence the SC wording demands was never produced."
+status: passed
+score: 4/5 (SC2 closed as owner-accepted — substitute evidence)
+overrides_applied: 1
+resolution: "Closed at 2026-06-10 UAT audit — SC2's literal 'Layout-Inspector recomposition counts' evidence was substituted with grep-verified @Stable/@Immutable annotations + release gfxinfo deltas (idle PrintStatus p90 −13%, graph −12-13%) + regression tests; the owner accepted this substitution at phase close (2026-06-08). Doc-method gap, not a code gap. If recomposition-count evidence is ever wanted, capture it during a routine Android Studio session."
 ---
 
 # Phase 22: Performance & Architecture Refactor — Verification Report
 
 **Phase Goal:** With the feature set essentially complete (Phases 1–21), refactor for efficiency BEFORE ship — remove the structural wide-recomposition root causes on the Nexus 7 2013 (Adreno 320) perf floor without regressing any screen.
 **Verified:** 2026-06-09
-**Status:** human_needed
+**Status:** passed (SC2 closed as owner-accepted with substitute evidence at the 2026-06-10 UAT audit — see frontmatter resolution)
 **Re-verification:** No — initial verification
 
 ---
