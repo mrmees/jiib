@@ -25,3 +25,5 @@ LAYOUT.md). Phase 17 (Fine-Tune / Live-Adjust) is the natural home — it rework
 movement controls and will likely adopt the C2 3-cell increment picker (R1) at the same time, so the
 Z-vertical rework rides along with that pass. Keep within the Focus/Field/Gutter grammar and the sacred
 aspect-ratio rule.
+
+Triage 2026-06-11: target Phase 27 — Move is rebuilt in the Motion redesign; fold the C3 Z-button vertical rework into that migration.

@@ -1,4 +1,5 @@
 # Pitfalls Research
+**Status:** historical (research snapshot; see CLAUDE.md for current stack)
 
 **Domain:** Native Android Moonraker/Klipper printer-control client on old hardware (minSdk 23, Nexus 7 2013), sideloaded APK, always-on wall-mounted, single printer v1
 **Researched:** 2026-05-29

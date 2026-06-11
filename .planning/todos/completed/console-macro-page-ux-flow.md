@@ -46,3 +46,6 @@ console + user-macro pages together and address:
 ## Notes
 - Likely a small dedicated UI-polish phase (X.Y) or folded into a later console/macro phase.
 - All three are additive UX over a working core — none block the Phase 8 functional-core gate.
+
+---
+**Closed 2026-06-11 (26.5-02 R9 re-triage):** stale — Phase 25 (Browse cluster) collapsed Macros 3→1 and reworked the Console flow under the jiib redesign; this Phase-8-era UX flow note describes screens that no longer exist in that form.

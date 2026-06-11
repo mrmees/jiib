@@ -25,3 +25,5 @@ Low priority — only matters if the macrobenchmark FrameTimingMetric path is ac
 
 Also tracked separately: `verifyMinSdk` regex takes the first `minSdkVersion` match and doesn't
 handle codename API levels (WR — robustness, not currently triggered since the floor is numeric 23).
+
+Triage 2026-06-11: target Phase 29 — priority RAISED by 26.5 R9: flox runs LineageOS/API 30 where Baseline Profiles DO apply (the old NO-OP framing was stock-API-23-only); wire profileable + generate the profile with the release-build work.

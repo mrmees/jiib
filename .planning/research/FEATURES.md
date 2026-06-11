@@ -1,4 +1,5 @@
 # Feature Research
+**Status:** historical (research snapshot; see CLAUDE.md for current stack)
 
 **Domain:** Native Android touch-control client for a Klipper 3D printer over the Moonraker API (a self-contained KlipperScreen-equivalent for old Android tablets)
 **Researched:** 2026-05-29

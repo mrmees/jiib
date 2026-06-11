@@ -1,4 +1,6 @@
 # Requirements: Dinghy Display
+**Last verified:** 2026-06-11
+**Status:** active
 
 **Defined:** 2026-05-30
 **Core Value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.

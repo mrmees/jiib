@@ -22,3 +22,6 @@ Migrate `ShellPresenceTest.seedRoute` to seed the `profileStore` (an active `Pro
 addition to) `connectionStore`, and clear the device's persisted profile/DataStore before the run, so the
 whole-class run is deterministic. Relates to the broader Phase-14 `connectionStore` retirement
 ([[dinghy-display-mock-vs-reality]] / dead-store cleanup).
+
+---
+**Closed 2026-06-11 (26.5-02 R9 re-triage):** superseded — the per-event swipe threshold defect is fixed by R10 step 3 in plan 26.5-03; FineTuneNavTest re-run lands on the morning UAT checklist.

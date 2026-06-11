@@ -12,6 +12,8 @@ progress:
   completed_plans: 202
   percent: 83
 ---
+**Last verified:** 2026-06-11
+**Status:** active
 
 # Project State
 

@@ -1,4 +1,6 @@
 # Coding Conventions
+**Last verified:** 2026-06-11
+**Status:** active
 
 **Analysis Date:** 2026-06-08
 

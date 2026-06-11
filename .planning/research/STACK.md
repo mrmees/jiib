@@ -1,4 +1,5 @@
 # Stack Research
+**Status:** historical (research snapshot; see CLAUDE.md for current stack)
 
 **Domain:** Native Android Moonraker/Klipper control surface ("KlipperScreen-equivalent") for old hardware (Nexus 7 2013, API 23, 2GB RAM, Tegra-era GPU)
 **Researched:** 2026-05-29

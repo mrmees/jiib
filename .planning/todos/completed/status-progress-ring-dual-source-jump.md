@@ -40,3 +40,6 @@ different numbers (down, then up). The dual unconditional writes are the prime s
 ## Notes
 - Status screen is Phase-4 work (print-data layer); deferred per Matthew 2026-06-02.
 - The ring also multiplies `progress` for the centered "NN%" label and the arc — one fix covers both.
+
+---
+**Closed 2026-06-11 (26.5-02 R9 re-triage):** stale — the Status/progress-ring surface was fully rebuilt in the Phase 16 + Phase 24 redesigns; the dual-source jump as described no longer maps to current code. Re-file against the new spine if observed again.

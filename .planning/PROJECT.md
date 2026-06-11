@@ -1,4 +1,6 @@
 # Dinghy Display
+**Last verified:** 2026-06-11
+**Status:** active
 
 ## What This Is
 
@@ -17,9 +19,7 @@ budgeted against — not the only target.
 
 ## Core Value
 
-**Direct, reliable printer control from an old Android tablet over Moonraker — install an APK,
-point it at the printer, and drive a print.** If everything else fails, the connect → monitor →
-control-a-print loop must work flawlessly on a Nexus 7.
+Owned by `.planning/REQUIREMENTS.md` (single source — see its **Core Value** line; R9 ownership map 2026-06-11).
 
 ## Requirements
 
@@ -106,13 +106,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 ## Constraints
 
-- **Compatibility**: minSdk 23 (Android 6.0). Nexus 7 2013 is the **support FLOOR**, not the only target — v1 spans phones through tablets. Why: the cheap-old-hardware promise stays as the floor even as scope broadened.
-- **Performance**: The Adreno 320 (Snapdragon S4 Pro, 1920×1200, 2GB) is the **worst-case perf budget** — fill rate is the bottleneck; effects may be richer on capable hardware but must not break the floor.
-- **Orientation**: portrait AND landscape (responsive Focus/Field/Gutter grammar).
-- **UI / theming**: Governed by `docs/ui_design/` (LAW). Full semantic-token theming — dark + light + user custom — plus S/M/L text size. Geist/Geist Mono. No alphanumeric keyboard in printer controls (Settings screen owns text entry).
-- **Tech stack**: Native Android, Kotlin, Jetpack Compose + classic Views hybrid (ADR 0001) — Why: direct hardware/OS access, offline operation, broad-device compatibility.
-- **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; the printer and tablet share a LAN.
-- **Distribution**: Sideloaded signed APK via GitHub Releases — Why: no current Play Services on the target hardware.
+Owned by root `CLAUDE.md` (single source — see its **Constraints** + **Technology Stack** sections; R9 ownership map 2026-06-11: CLAUDE.md owns stack + constraints, STATE.md owns status, ROADMAP.md owns phases).
 
 ## Key Decisions
 

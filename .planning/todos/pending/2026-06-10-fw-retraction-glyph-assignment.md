@@ -34,3 +34,5 @@ DinghyIconsTest drift guard) and swap the row descriptors in `FineTuneParams.kt`
 
 - Four unique glyphs on the fw-retraction rows; no duplicate icon pairs on the Fine-Tune list
 - DinghyIconsTest + verify_ligatures.py green
+
+Triage 2026-06-11: target Phase 28 (as filed) — glyph assignment is owner-gated (icon law: never pick glyphs independently); rides the System-cluster pass.

@@ -32,3 +32,5 @@ in-flight echo.
   matches the displayed value)
 - Clamp authority preserved; no busy-lock regression on Fine-Tune (unchanged)
 - Owner re-checks feel on flox
+
+Triage 2026-06-11: target Phase 28 (as filed) — changes dispatcher/echo SEMANTICS, which is a protected surface tonight (26.5 R10 adds rejection feedback only, never timing changes).

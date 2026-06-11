@@ -1,4 +1,5 @@
 # Architecture Research
+**Status:** historical (research snapshot; see CLAUDE.md for current stack)
 
 **Domain:** Native Android client for a single real-time data source (Moonraker/Klipper printer control) on old hardware (minSdk 23, Nexus 7 2013, 2GB RAM, Tegra-era GPU)
 **Researched:** 2026-05-29

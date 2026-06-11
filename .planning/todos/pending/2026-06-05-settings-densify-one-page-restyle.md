@@ -30,3 +30,5 @@ alongside the related deferred settings-IA work. **Cross-link:** the existing
 `2026-06-05-settings-vs-devices-boundary.md` todo (the Settings-vs-Devices page-identity decision)
 should be resolved in the same pass — the page framing decision and the densify restyle are the same
 surface, so do them together.
+
+Triage 2026-06-11: target Phase 28 — C6 densify-to-one-page is literally Phase 28's scope (Settings/Theme cluster, C6-exempt).

@@ -24,3 +24,5 @@ Fold into a macros/UI polish pass (Phase 21 ship polish, or earlier if a macros 
 appears). Size the grid/list so ~9-12 entries fill the Field responsively
 (portrait + landscape); switch to scrolling beyond the threshold. Keep role tokens +
 fsSp scale.
+
+Triage 2026-06-11: target Phase 28 — BookmarkedMacrosScreen.kt still exists post-Phase-25 collapse; density restyle rides the System/Settings-adjacent polish pass (re-check it survived the collapse as described first).

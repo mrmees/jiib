@@ -35,3 +35,5 @@ The panel-drag also doesn't ACCUMULATE: `DevThemeCyclerOverlay.kt:~200` does
 starting point instead of tracking the finger. Fix: accumulate into a running offset
 (`offset = offset + delta` each event, or track from the captured start + total
 delta), in addition to the consume/region fix above.
+
+Triage 2026-06-11: standing — debug-only dev-tooling nicety (DevThemeCyclerOverlay); no ship gate, fix opportunistically.

@@ -23,3 +23,5 @@ The GitHub-Releases artifact MUST run on both the Nexus 7 2013 (armeabi-v7a floo
 - **Universal APK** (`isUniversalApk = true`) → one fatter APK carrying both slices (simpler for users, larger download).
 
 Keep the merged-manifest minSdk-23 floor assertion (`verifyMinSdkRelease`) intact regardless. Re-confirm the signed release variant installs + runs on BOTH a v7a device (flox) and an arm64 device (S25 Ultra) as part of the ship UAT. Note: the current `// D-01a` comment in build.gradle.kts asserting "v7a ONLY ... can never carry an arm64 slice" must be updated when this lands.
+
+Triage 2026-06-11: target Phase 29 — the ABI-split CODE lands tonight in 26.5 R1; the two-per-ABI-APK GitHub-Release publishing closes at Ship.

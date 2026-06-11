@@ -1,4 +1,5 @@
 # Project Research Summary
+**Status:** historical (research snapshot; see CLAUDE.md for current stack)
 
 **Project:** Dinghy Display
 **Domain:** Native Android Moonraker/Klipper printer-control touchscreen (KlipperScreen-equivalent for old Android tablets)

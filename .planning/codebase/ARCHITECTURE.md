@@ -1,4 +1,6 @@
 <!-- refreshed: 2026-06-08 -->
+**Last verified:** 2026-06-11
+**Status:** active
 # Architecture
 
 **Analysis Date:** 2026-06-08

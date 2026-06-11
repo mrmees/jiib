@@ -65,3 +65,5 @@ Fold into Phase 22 (ship) planning as a "spool resilience" slice.
    available lens instead of dropping into `Busy`.
 5. Make `FakeSpoolmanClient` implement `SpoolmanClient` and assert the real proxy method/path/body
    for `measure` (and ideally the other writes) so the live contract is pinned by tests.
+
+Triage 2026-06-11: target Phase 29 — robustness hardening belongs with Ship's "looks done but isn't" checklist; the spool screens themselves were already rebuilt in the redesign.

@@ -1,3 +1,5 @@
+**Last verified:** 2026-06-11
+**Status:** active
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 

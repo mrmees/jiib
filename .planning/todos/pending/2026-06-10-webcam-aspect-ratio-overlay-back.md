@@ -39,3 +39,5 @@ unique situation."
 - Back floats over the feed, ≥64px target, not in the top-left e-stop reserve
 - Exception documented in LAYOUT.md
 - Owner re-eyeball on flox
+
+Triage 2026-06-11: target Phase 28 (as filed) — webcam aspect/overlay-Back layout polish; LAYOUT.md doc touch rides the same pass.

@@ -27,3 +27,5 @@ mode; entries then respond to taps according to the active mode. Conform to THEM
 Phase 16 (the Home/Status redesign pass is the nearest foundation-surface phase) OR a dedicated Printers
 pass — pick whichever the discuss step finds the better fit; note the choice when scheduling. Cross-link
 the `2026-06-05-settings-vs-devices-boundary.md` todo if the Devices page identity shifts.
+
+Triage 2026-06-11: target Phase 28 — Printers (now PrintersScreen.kt, was DevicesScreen.kt) is in the System/Settings cluster restyle.

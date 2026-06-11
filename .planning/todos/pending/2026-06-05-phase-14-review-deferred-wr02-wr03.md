@@ -37,3 +37,5 @@ Neither is a crash or a user-visible defect in the proven flows; both need a spe
 idle/edge state to manifest. Batched with the other ship-phase (22) robustness hardening
 todo so the final pass cleans them up together. Info-level findings (stale KDocs) were
 already fixed in `4e4d83b`.
+
+Triage 2026-06-11: target Phase 29 — deferred code-review correctness items (idle seedTheme, webcam null-key); sweep with release-hardening.

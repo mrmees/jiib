@@ -25,3 +25,6 @@ fix these first so the numbers are clean:
 - Unbounded `SyntheticThumbnail.cache` (bound it).
 
 Not blocking: the harness is throwaway measurement code and the verdict is recorded. Track only.
+
+---
+**Closed 2026-06-11 (26.5-02 R9 re-triage):** stale — the Phase-1 benchmark harness served its ADR-0001 decision purpose; perf gating moved to release-mode gfxinfo on-device (Phase 22 baseline method, ADR-0001 Addendum 2). Harness fairness fixes are moot unless the harness is revived.

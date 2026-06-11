@@ -1,4 +1,6 @@
 # Roadmap: Dinghy Display
+**Last verified:** 2026-06-11
+**Status:** active
 
 ## Overview
 
