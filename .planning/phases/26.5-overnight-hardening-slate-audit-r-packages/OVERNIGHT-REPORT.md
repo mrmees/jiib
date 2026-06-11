@@ -3,28 +3,47 @@
 **Run started:** 2026-06-11 (overnight, unattended)
 **Branch:** `gsd/phase-26.5-overnight-hardening`
 **Work order:** `docs/top-down-audit-roadmap.md` Part 4 (overnight-safe subset)
+**Finalized:** 2026-06-11 ~07:55Z by plan 26.5-07 (the last plan of the night)
 
 ## Run Summary
 
-_(placeholder — plan 26.5-07 finalizes this from the per-plan SUMMARYs at end of night)_
+**All 7 plans landed — zero failures, zero reverts, zero fail-forward triggers.** Waves 0–4
+executed in order (R5a → R9 → R10 → R1+R2 → R4+R7), every per-plan build gate green
+(`:app:testDebugUnitTest :app:assembleDebug`, plus `:app:assembleRelease verifyMinSdkRelease`
+for R5a/R1), full host suite at 1054+ tests with zero failures throughout. Codex deep-reviewed
+every plan: 5 of 7 drew findings, all agreeable show-stoppers fixed same-night (see the codex
+table below); 26.5-05 was approved clean. Protected surfaces (PrinterStateStore cadence, render
+hot paths, M112, dispatcher debounce SEMANTICS, R9 protected list) were never touched —
+CommandCatalogDriftTest 6/6 green unmodified. The phase gate is the morning UAT sitting below;
+the phase is NOT marked verified tonight per CONTEXT.
 
 ## Per-Package Status
 
-| Package | Scope tonight | Status | Plan |
-|---|---|---|---|
-| R5a | Guardrail infra: gradlew +x, CI, lint baseline enforced, StrictMode | pending | 26.5-01 |
-| R9 | Memory/docs delint steps 1–3 + 5 (step 4 = script only) | pending | 26.5-02 |
-| R10 | Touch responsiveness steps 2–4 + debug-flag instrumentation | pending | 26.5-03 |
-| R1 | Install & display correctness (code-only) | pending | 26.5-04 |
-| R2 | Always-on (code-only): keep-screen-on + battery exemption | pending | 26.5-05 |
-| R4 | Build-time command map (CommandMap.kt + rewires) | pending | 26.5-06 |
-| R7 | Network posture: useSecure wss/https plumbing | pending | 26.5-06/07 |
+| Package | Scope tonight | Status | Plan | Commits |
+|---|---|---|---|---|
+| R5a | Guardrail infra: gradlew +x, CI, lint baseline enforced, StrictMode | **done** — full LOCAL lint enforcement preserved (one inert crasher detector disabled, stronger than the planned CI-only fallback) | 26.5-01 | 3ec6b7e, af75fcb + codex fix 332c0ff |
+| R9 | Memory/docs delint steps 1–3 + 5 (step 4 = script only) | **done** — active memory trued up + stamped; hygiene CI live; archive script written, NEVER run | 26.5-02 | 841a981, 27039a0, cbe1963 + codex fix c92aa03 |
+| R10 | Touch responsiveness steps 2–4 + debug-flag instrumentation | **done with one descope** — steps 2 (true disablement + rejection feedback) and 3 (swipe accumulation) shipped; step 4 (indication immediacy / Part-5 cause #4) DEFERRED to morning instrumentation after codex showed the draft was a no-op + perf pessimization | 26.5-03 | 4c2aa99, bb19217, 4d9d81a, d9c0b3e, fe705c8 + codex fix 2dd4bc7 |
+| R1 | Install & display correctness (code-only) | **done** — both per-ABI release APKs (v7a vc=1, arm64 vc=2), edge-to-edge + safeDrawingPadding, predictive-back opt-in, POST_NOTIFICATIONS one-shot; codex also fixed a latent pre-existing API<26 launch crash | 26.5-04 | be72f29, 34ea1ff + codex fix 0ae62c4 |
+| R2 | Always-on (code-only): keep-screen-on + battery exemption | **done** — DisplayPrefs store (TDD), Settings "Display" section, live window flag at AppShell root, exemption state surface + deep-link; codex approved clean | 26.5-05 | 5d4573c, a910a26, 64d9970 |
+| R4 | Build-time command map (CommandMap.kt + rewires) | **done** — six sites rewired (audit said four; research found six), symbolic propagation tests, M112 explicitly non-remappable | 26.5-06 | 35a31b8, 6c8f2ba + codex fix 1114670 |
+| R7 | Network posture: useSecure wss/https plumbing (option B) | **done** — scheme plumbing end-to-end (config → profile → editor toggle → socket), TLS cert-failure surfaces a distinct message on the existing Splash Unreachable surface, NSC decision record written; live-TLS connect = morning UAT | 26.5-07 | 31ad990, e508f6c, b38f132 |
 
-_(plan 26.5-07 updates each row to done / failed / partial from the SUMMARYs)_
+## Codex Findings — Acted / Deferred
+
+| Plan | Verdict | Acted (fixed same-night) | Deferred |
+|---|---|---|---|
+| 26.5-01 | REVISE | CI runs `lintDebug` so the baseline is actually enforced in CI; honest lint-JDK comments (332c0ff) | — |
+| 26.5-02 | REVISE | Archive script now guards unshipped phases 26.5/27/28/29 (self-test PASS); link-check pipefail guard (c92aa03) | — |
+| 26.5-03 | REVISE | Plain clickable paths RESTORED — the explicit `interactionSource + LocalIndication` draft did not deliver cause-#4 immediacy and eagerly allocated on the perf floor; `rejectedKey` collection made lifecycle-aware (`repeatOnLifecycle(STARTED)`) (2dd4bc7) | **R10 step 4 / Part-5 cause #4** — fix only after morning instrumentation implicates it (real fix = custom press detection / manual Press emission) |
+| 26.5-04 | REVISE | `ContextCompat.startForegroundService` (latent API<26 launch crash, pre-existing since Phase 4); onVariants versionCode rewrite scoped to release (0ae62c4) | **MEDIUM:** POST_NOTIFICATIONS "asked once" is in-memory — denial + relaunch re-asks at next first-Connected (Android 13+ hard-suppresses after 2 denials; persist in DisplayPrefs if it annoys at S25 UAT). **MEDIUM:** BackHandler-vs-predictive-back composition order — S25-only verifiable; if the preview pops the NavHost under overlays, register overlay handlers after NavHost |
+| 26.5-05 | APPROVED | — | — |
+| 26.5-06 | REVISE | Macro-hint strings (`extrude_no_*_macro`) are format args fed from `CommandMap.*.macro`; CommandMapTest gained REAL registry/wire assertions (1114670) | — |
+| 26.5-07 | (orchestrator review after this report) | — | findings, if any, will be folded as a Post-review amendment to 26.5-07-SUMMARY.md |
 
 ## DECISIONS-NEEDED
 
-### LICENSE choice (R5a step 2 — recommend-only; NO file was created pending the owner's call)
+### 1. LICENSE choice (R5a step 2 — recommend-only; NO file was created)
 
 **GPLv3** is the Klipper-ecosystem norm — Klipper, Moonraker, and Fluidd are all GPL, so a GPLv3
 jiib signals ecosystem citizenship and guarantees that any fork of the fork-and-edit `CommandMap`
@@ -36,54 +55,110 @@ of the GPL Klipper ecosystem, the sideload-an-APK audience loses nothing to copy
 No LICENSE file exists in the repo; R5b (README/CONTRIBUTING, the go-public gate) is blocked on
 this decision.
 
+### 2. R9 step-4 archive script — review then run (or decline)
+
+Owner-gated by the CONTEXT lock; **nothing was moved tonight.** See "R9 Archive Script" below
+for the pointer + numbers. Run order: `--self-test` → dry-run → `--execute`.
+
+### 3. `macrobenchmark-module-wiring` todo placement
+
+R9's delint established that Baseline Profiles DO apply on flox (LineageOS 18.1 / API 30) and all
+modern devices — the old "NO-OP on the target" claim was scoped to stock API 23 only, so this
+todo's priority was RAISED. Decide whether it lands in Phase 29 (recommended — alongside the
+release-build packaging work) or earlier.
+
 ## R9 Archive Script
 
-_(placeholder — plan 26.5-02 writes the reviewed, protected-list-guarded bulk-archive script to
-`26.5-r9-archive-script.sh` in this phase directory; review then run it yourself. NOT executed
-tonight per CONTEXT rails.)_
+- **Path:** `.planning/phases/26.5-overnight-hardening-slate-audit-r-packages/26.5-r9-archive-script.sh`
+- Would DELETE: **31** `*DISCUSSION-LOG*` files under `.planning/phases/` (§R9 said ~26; the count
+  grew as phases accrued since the audit).
+- Would MOVE: **113** shipped-phase CONTEXT/VALIDATION/VERIFICATION/REVIEW files →
+  `.planning/archive/<phase>/`. PLAN/SUMMARY pairs stay put (protected pattern), as do the
+  phases/01+13 captures, 15.2-AUDIT.md, PATTERNS 02/03/18, and the spoolman fixtures.
+- Dry-run by default; `--execute` is the owner gate; `--self-test` asserts every protected path is
+  blocked with zero mutations. Codex-hardened to also guard the unshipped 26.5/27/28/29 dirs.
+- ⚠ drvfs caveat: on `/mnt/e` the filesystem shows mode 0777 and chmod is a no-op — the
+  authoritative non-executable state is the git index mode `100644` (verified; `core.filemode false`).
 
 ## Morning UAT Checklist
 
 Ordered for ONE sitting — flox (Nexus 7, LineageOS 18.1/API 30) first, then S25 Ultra, then CI.
 
-### flox group
+**Before anything:** force-rebuild (`--rerun-tasks` or clean) and **check the APK mtime is newer
+than commit b38f132** before any install — the stale-APK trap has burned UAT before
+([[dinghy-stale-apk-uat-gate]]). Release APKs are unsigned: debug-sign via
+`E:\Android\sign-release.bat <in.apk> <out.apk>` before `adb install`. Debug builds
+(`installDebug`) need no signing and carry the R10 instrumentation.
+
+### flox group (use a DEBUG build — R10 instrumentation is `BuildConfig.DEBUG`-gated, no flag to flip)
+
+Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
+(`Dispatcher` → `reject: key=… reason=in_flight|debounce remaining=…ms`;
+`SwipeDetector` → `drag: amt=<delta> total=<runningTotal> fired=<bool>`).
 
 - [ ] **R10 tap torture:** 20 rapid taps per control class (stepper +/− on AdjusterPanel, ListRow,
       OutlinedControl command buttons) — ≥95% register with visible same-frame feedback; every tap
-      either acts or shows visible rejection feedback; zero silent swallows. Use a DEBUG build
-      (instrumentation is `BuildConfig.DEBUG`-gated — no flag to flip, just install debug; force-
-      rebuild + check APK mtime per [[dinghy-stale-apk-uat-gate]]). Logcat tags: `Dispatcher`
-      (reject: key=… reason=in_flight|debounce) and `SwipeDetector` (per-event delta + running total).
+      either acts or shows visible rejection feedback; zero silent swallows. Cross-check logcat:
+      a tap with a visible indicator but NO log line = real event loss, not an intentional rejection.
 - [ ] **R10 rejection flash:** rapid-tap a stepper during a busy window (e.g. while a heater command
       is settling) — the adjuster's hero value flashes amber (one-shot ~200ms), NOT nothing.
+      (Note: the Temperature heater stepper's old local pre-check was removed so the dispatcher owns
+      dedup exclusively — worth a glance that heater behavior is unchanged.)
 - [ ] **R10 disabled stepper = no ripple:** with a dimmed (busy-locked) stepper, a tap produces NO
-      ripple at all (the clickable is gone, not guarded).
+      ripple at all (the clickable is absent, not guarded).
 - [ ] **R10 drawer swipe:** swipe-up opens the App Drawer reliably with slow AND fast gestures
-      (drag accumulation fix); no more per-event 80px threshold misses.
-- [ ] **R10 on-device FineTuneNavTest:** run the instrumented test — the swipe accumulation fix
-      should also clear the harness defect ([[dinghy-instrumented-swipe-threshold]]).
-- [ ] **R2 doze survival:** leave the app foregrounded 20+ min with battery-optimization exemption
-      granted — websocket stays connected (no doze disconnect).
-- [ ] **R2 keep-awake toggle:** Settings toggle ON keeps the screen awake; OFF lets the system
-      timeout apply; default is ON.
-- [ ] **R1 Nexus-7-unchanged regression:** install the armeabi-v7a APK — app behaves exactly as
-      before (no edge-to-edge/inset regressions on API 30, no permission-prompt surprises).
+      (per-gesture drag accumulation); no more per-event 80px threshold misses.
+- [ ] **R10 cause #4 verdict (instrumentation):** if taps still feel laggy in scrollables despite
+      the above, the deferred indication-immediacy fix is implicated — log it for a follow-up phase
+      (the overnight draft was reverted as a no-op; a real fix needs custom press detection).
+- [ ] **R10 on-device FineTuneNavTest:** run the instrumented test — swipe accumulation should also
+      clear the harness defect ([[dinghy-instrumented-swipe-threshold]]).
+- [ ] **R2 keep-awake toggle:** Settings → Display: ON keeps the screen awake on the print surface;
+      OFF lets the system timeout apply (live, no relaunch); default is ON.
+- [ ] **R2 exemption flow:** Battery row reads "Optimized — tap…" → tap → system dialog (on
+      LineageOS the fallback may open the battery-optimization LIST — find jiib there; expected,
+      not a bug) → grant → row reads "Exempt…" on return (ON_RESUME re-check).
+- [ ] **R2 doze survival:** unplugged, screen off, 20+ minutes with the exemption granted —
+      reconnect is alive or resyncs cleanly on wake.
+- [ ] **R1 Nexus-7-unchanged regression:** install the **armeabi-v7a** APK
+      (`app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk`, versionCode 1) — app
+      behaves exactly as before (no inset regressions on API 30; safeDrawing resolves to ~0 in the
+      bar-less kiosk layout; no permission-prompt surprises).
+- [ ] **R7 plain-ws regression (BOTH printers):** with the new build, 192.168.1.120 (E5+) and
+      192.168.1.121 (E3) both still connect over plain ws:// with the Use HTTPS/WSS toggle OFF
+      (the default — old profiles must decode to OFF).
 
 ### S25 Ultra group
 
-- [ ] **R1 arm64 install:** the arm64-v8a APK installs and runs (previously no arm64 slice existed).
+- [ ] **R1 arm64 install:** debug-sign + sideload
+      `app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk` (versionCode 2) — installs
+      and runs (previously impossible: no arm64 slice existed).
 - [ ] **R1 edge-to-edge:** both orientations — content respects status bar / nav bar / cutout
-      (safeDrawingPadding), no drawn-under or clipped UI.
-- [ ] **R1 predictive back:** back-gesture preview animates (enableOnBackInvokedCallback).
-- [ ] **R1 POST_NOTIFICATIONS one-shot:** first connect triggers exactly one notification-permission
-      dialog; denial doesn't break the FGS.
-- [ ] **R7 wss connect:** point at a TLS-fronted Moonraker — `useSecure` ON connects over wss/https.
-- [ ] **R7 cert-failure message:** a bad/self-signed cert surfaces a readable cert-failure message,
-      not a silent spinner.
+      (safeDrawingPadding); the app background still paints edge-to-edge behind the bars; nothing
+      drawn-under or clipped.
+- [ ] **R1 predictive back:** back-gesture preview animates (enableOnBackInvokedCallback). ⚠ codex
+      deferred-MEDIUM: if the preview pops the NavHost UNDER the drawer/sub-stack overlays, note it —
+      the fix is overlay-handler registration order.
+- [ ] **R1 POST_NOTIFICATIONS one-shot:** first connect triggers exactly one permission dialog;
+      DENY → app fully functional, FGS notification simply absent. ⚠ codex deferred-MEDIUM: the
+      asked-once latch is in-memory — a relaunch may re-ask once; if that annoys, the fix is
+      persisting the flag in DisplayPrefs.
+- [ ] **R7 toggle-ON failure is comprehensible + reversible:** Printers → edit a printer → toggle
+      "Use HTTPS/WSS" ON against a printer with NO TLS proxy → Save. Connection fails with a
+      readable error on the Splash (not a hang/crash); toggle back OFF + Save reconnects cleanly.
+- [ ] **R7 wss connect (best-effort, only if a TLS-fronted Moonraker is available):** toggle ON
+      against it → connects over wss/https (webcam + thumbnails ride the same scheme).
+- [ ] **R7 cert-failure message (best-effort, self-signed endpoint if handy):** the Splash shows
+      "TLS certificate not trusted — check the Moonraker reverse-proxy certificate" — the distinct
+      trust message, not the generic "Can't reach the printer". Retry + Edit connection both offered.
+      Note: roadmap §R7's "cleartext to a public IP refused on API 24+" half was DESCOPED — NSC
+      cannot express RFC-1918 CIDR; the decision record lives in
+      `app/src/main/res/xml/network_security_config.xml` (confirm the comment tells that story).
 
-### CI
+### CI wrap-up
 
-- [ ] **R5a CI green:** GitHub Actions run on the `gsd/phase-26.5-overnight-hardening` push is GREEN
-      (this also proves the fresh-clone `./gradlew assembleDebug` acceptance — the ubuntu runner IS
-      a fresh clone with +x gradlew). If red: triage the failing step (likely action-version or
-      SDK-presence assumptions, RESEARCH A2/A3).
+- [ ] **R5a CI green:** the GitHub Actions run on the final `gsd/phase-26.5-overnight-hardening`
+      push is GREEN — unit tests + assembleDebug + lintDebug (baseline-enforced) + hygiene job
+      (stale-phrase grep + dead-link check). This also proves the fresh-clone `./gradlew` acceptance
+      (the ubuntu runner IS a fresh clone exercising the +x gradlew). If red: triage the failing
+      step (likely action-version or SDK-presence assumptions, RESEARCH A2/A3).
