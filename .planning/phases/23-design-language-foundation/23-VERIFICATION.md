@@ -1,13 +1,10 @@
 ---
 phase: 23-design-language-foundation
 verified: 2026-06-09T00:00:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
 overrides_applied: 0
-human_verification:
-  - test: "SpoolScreen on-device MFG/vendor multi-select filter"
-    expected: "After a confirmed-fresh build (post-commit 2b6c92a), tapping multiple vendor chips in the MFG filter picker selects them with OR-match and the spool list filters correctly by any selected vendor. Deferred because the executor's fresh-build re-test was done without owner present to re-confirm."
-    why_human: "Owner did not re-test the MFG filter after the vendor field was migrated from String? to List<String> + OR-match (2b6c92a). The stale-APK hypothesis is plausible but unconfirmed. Phase 29 must force-rebuild and re-verify on flox."
+resolution: "Closed 2026-06-10 — owner re-tested on a fresh mtime-verified build and the filter WAS genuinely broken (stale-APK hypothesis refuted): buildSpoolQuery sent repeated filament.vendor.name params which FastAPI collapses to the last (Spoolman's OR contract is comma-joined terms in ONE param), and the option list came from the manufacturers table instead of being derived from physical spools (mfg → filament → spool). Both fixed in 0b2daaf via debug session spool-mfg-filter-multiselect (archived in .planning/debug/resolved/), owner-confirmed on flox across two checkpoint rounds."
 ---
 
 # Phase 23: Design-Language Foundation — Verification Report
