@@ -3,7 +3,7 @@
 **What this is:** a whole-repo, top-down audit of Dinghy Display against four goals —
 cross-device compatibility, runtime efficiency, open-source maintainability, and
 future-friendliness — plus the design for the build-time gcode **command map**. It ends with a
-sequenced set of work packages (R1–R9), each sized for one CLI session and written so it can be
+sequenced set of work packages (R1–R10), each sized for one CLI session and written so it can be
 fed to `/gsd-execute-phase` (or quoted directly at the CLI) as-is.
 
 *Amended 2026-06-10:* added **R9 (memory/docs delint)** from the follow-up corpus audit, and
@@ -18,6 +18,17 @@ R5a → R9 → R1 → R2 → R6 → R3 → R4 → R7 → R5b (R8 stays a standin
 traps: a late lint baseline freezing in earlier packages' violations, sessions executing against
 un-delinted memory, and R3's 360dp sweep running before R6's previews exist.
 
+*Reconciled 2026-06-11 against Phases 22–26* (the "pre-ship quality slate", ~250 commits since
+this audit's baseline): ship renumbered **Phase 22 → Phase 29** (27 = motion+calibration,
+28 = system/settings cluster); M9 god-files resolved (PrintStatusScreen split 22-04, NavHost
+shell 24-03); this audit's efficiency verdict **corrected** (see TL;DR — the unstable
+`PrinterState` tree WAS a real recomposition storm; Phase 22 fixed it); previews/strings largely
+backfilled (Phases 25–26); M2 superseded by the Phase-25 Macros rebuild; two "do NOT do" entries
+(Navigation-Compose, immutable collections) **overruled by Phases 24/22 — correctly**. New
+**Part 5 (touch responsiveness)** + work package **R10** added from the owner-reported
+tap-reliability investigation. Several R9 items were pre-empted on master (Tegra paragraph,
+Phase-19 TBD, spoolman notify catalog, webcam todo pair) — struck in place.
+
 **How it was produced:** five parallel static deep-dives over the full source tree (385 Kotlin
 files), cross-checked against `docs/request-cadence-contract.md`, `docs/ui_design/*`, the
 `.planning/` phase record, and the Gradle build config. Every finding carries file:line evidence.
@@ -31,7 +42,7 @@ dependency resolution — so CI claims are from config inspection, not a run.)
 | Question | Verdict |
 |---|---|
 | **Cross-device: screen size, rotation, overflow?** | **Largely solved by design.** `ScreenScaffold` + `BoxWithConstraints` is a genuinely good responsive engine; text overflow discipline is consistent. Three real gaps: **zero insets handling** (content draws under status bar/cutout on Android 15+ where targetSdk 35 *forces* edge-to-edge), a fixed 72dp file-row height, and a 160dp macro-grid cell that wastes narrow-phone width. → **R1, R3** |
-| **Efficiency: redraw rate vs source rate?** | **Already excellent — do not touch.** The 250 ms two-plane conflation in `PrinterStateStore` is honored end-to-end; render surfaces are allocation-free; webcam decode stops when backgrounded; no polling, no looping animations. The cadence contract is real, not aspirational. → nothing to fix; **R8** has one micro-advisory |
+| **Efficiency: redraw rate vs source rate?** | **Cadence layer excellent; one verdict corrected (2026-06-11).** The 250 ms two-plane conflation in `PrinterStateStore` is honored end-to-end; render surfaces are allocation-free; webcam decode stops when backgrounded; no polling, no looping animations. **But this audit's "collections are immutable by pattern, annotations not needed" call was wrong:** the unstable `PrinterState` tree made every 250 ms tick recompose the whole home screen + shell (28 collects in one scope) — the navigation-lag root cause, caught by the repo's own `.planning/codebase/CONCERNS.md` audit. Phase 22 fixed it (@Immutable tree + ImmutableMap/List, collection hoisting/stateScope, PrintStatusScreen split, AndroidView invalidate guards). → remaining: console-eviction micro-advisory (**R8**) |
 | **Maintainable in Android Studio? Previews?** | **Architecture yes, wrapper no.** Holder+StateFlow pattern, manual DI, and pure-function routing are contributor-friendly; the test harness (fake socket + golden fixtures) is a standout. But: no README/CONTRIBUTING/LICENSE, no CI, `gradlew` committed without its executable bit, lint disabled, and **18 of 27 screens lack the @Preview matrices** your own convention doc mandates. → **R5a/R5b, R6** |
 | **Future-friendly: modern phones?** | **One hard blocker:** the release APK is armeabi-v7a-only (`isUniversalApk = false`), so 64-bit-only devices (Pixel 7+, S25 Ultra — your own 2026-06-08 todo confirms) **cannot install it at all**. Plus: no doze/battery-exemption story for always-on use, no predictive-back opt-in, no POST_NOTIFICATIONS runtime request. Dependency cliffs are well-documented in `libs.versions.toml` already. → **R1, R2, R7, R8** |
 
@@ -45,6 +56,12 @@ for free. The remap surface is genuinely small: extract it into one documented f
 ## Part 1 — What is already done well (do not rebuild)
 
 These came back clean across all five audits. Future phases should *protect* these, not revisit them.
+
+*(Status 2026-06-11: verified pre-Phase-22; still true with three deltas — #1's cadence is intact
+but the TL;DR's recomposition correction applies on top of it; #4's Gutter region was retired by
+the Phase-23 design-kit rework — the law is now two regions + `FootButtonBar` + the `U` unit grid,
+see `docs/ui_design/LAYOUT.md` + the new `COMPONENTS.md`; #10's BackHandler wiring now lives in
+the Phase-24 NavHost shell.)*
 
 1. **Request cadence** — `PrinterStateStore.kt:219–228` implements the contract exactly: high-rate
    numerics conflated to 250 ms, control-plane edges (`print_stats`, `webhooks`, `homed_axes`)
@@ -84,6 +101,15 @@ These came back clean across all five audits. Future phases should *protect* the
 ---
 
 ## Part 2 — Findings (by severity, with evidence)
+
+*(Status 2026-06-11, post Phases 22–26: **C1/C2/C3, H1, H3, M1, M3–M6, M8 remain OPEN** —
+the quality slate was design/perf work, not these items. **H2 largely CLOSED:** 17 `*Previews.kt`
+files now cover the rebuilt screens; remaining gaps are Move + the Calibration cluster,
+deliberately deferred until their Phase-27 redesign. **M2 SUPERSEDED:** the Phase-25 Macros
+rebuild replaced the grid with ListBlock/ListRow. **M7 partially closed** by Phase-26 WR-11;
+the Views-layer strings in `FileRowsAdapter` remain. **M9 largely CLOSED:** PrintStatusScreen
+1584 → 657 lines (22-04), AppShell's ~1000-line `when(dest)` replaced by NavHost (24-03,
+now 962 lines); CommandRegistry unchanged and fine. Console-eviction advisory still open.)*
 
 ### CRITICAL
 
@@ -207,17 +233,44 @@ unless noted.
 |---|---|---|
 | 1 | **R5a** guardrail infra | CI/lint/StrictMode exist before any code lands; baseline starts minimal |
 | 2 | **R9** memory/docs delint | the memory is true before sessions consume it |
-| 3 | **R1** install & display correctness | modern phones can install and render it |
-| 4 | **R2** always-on survival | the Phase-22 ship pair is complete |
-| 5 | **R6** preview + string backfill | full preview deck + token rule before the sweep |
-| 6 | **R3** phone-size polish | one complete 360dp/fs=L pass over all 27 screens |
-| 7 | **R4** command map | fork-and-edit customization ready for the README |
-| 8 | **R7** network posture | hardening before strangers run it |
-| 9 | **R5b** README + CONTRIBUTING | the "go public" gate — written once, against final state |
+| 3 | **R10** touch responsiveness | taps land reliably with immediate feedback (live UX pain; touches components Phases 27–28 build on) |
+| 4 | **R1** install & display correctness | modern phones can install and render it |
+| 5 | **R2** always-on survival | the ship pair (now Phase 29) is complete |
+| 6 | **R6** preview + string backfill | *largely done by Phases 25–26* — close the Move/Calibration + Views-strings remainder after Phase 27 |
+| 7 | **R3** phone-size polish | one complete 360dp/fs=L pass over all screens |
+| 8 | **R4** command map | fork-and-edit customization ready for the README |
+| 9 | **R7** network posture | hardening before strangers run it |
+| 10 | **R5b** README + CONTRIBUTING | the "go public" gate — written once, against final state |
 | — | **R8** dependency runway | standing doc section, no execution slot |
 
 R1↔R2 and R4↔R7 are order-free pairs — swap within a pair freely. R9's optional bulk-archive
-step may trail anytime; only its correctness edits are order-critical.
+step may trail anytime; only its correctness edits are order-critical. R6's remainder and R3
+should wait until the Phase-27/28 redesigns land (don't preview/polish screens about to be
+rebuilt).
+
+### R10 — Touch responsiveness *(owner-reported; full analysis in Part 5)*
+1. **Instrument before fixing** (one debug session on flox): enable Developer Options "Show
+   taps" + screen-record; add pointer-event logging to the shell swipe detector and one stepper;
+   correlate missed taps against (a) busy/debounce windows, (b) the 150 ms Crossfade morph,
+   (c) frame drops. Part 5 has the recipes — the fixes below are ranked hypotheses, not
+   confirmed causes, until this runs.
+2. **Kill the silent drops (highest-confidence fix):** thread a real `enabled` param through
+   `OutlinedControl`/stepper rows so disabled controls aren't clickable at all (today they
+   ripple, then swallow the click inside `if (controlsEnabled)` — AdjusterPanel); make
+   `CommandDispatcher`'s in-flight + 400 ms debounce rejections produce visible feedback
+   (brief dim-flash or settle tick) instead of dropping taps invisibly
+   (`CommandDispatcher.kt:108–116`).
+3. **Harden the shell swipe-up detector** (`AppShell.kt`, `SWIPE_UP_THRESHOLD_PX = 80f`):
+   accumulate drag across the gesture instead of requiring a single event's `dragAmount > 80f`
+   (the per-event check is already proven fragile — it's why `FineTuneNavTest`'s `swipeUp()`
+   can't open the drawer); fail fast on consumed downs (`requireUnconsumed`).
+4. **Indication immediacy:** explicit fast ripple/indication on `ListRow`/`OutlinedControl`
+   inside scrollable containers (Compose delays press indication in scrollables by design —
+   on a janky Adreno 320 that delay reads as a missed tap).
+5. **Crossfade tap-guard** on the home morph only if step 1 implicates it.
+- **Acceptance:** 20-tap torture run per control class on flox: ≥95% registered with visible
+  same-frame feedback; intentional rejections (busy/debounce) show feedback instead of nothing;
+  drawer swipe still opens reliably; `FineTuneNavTest` passes on-device.
 
 ### R5a — Guardrail infra *(run FIRST; the infra half of the former R5)*
 1. `git update-index --chmod=+x gradlew` (one command, do it first).
@@ -245,20 +298,24 @@ step may trail anytime; only its correctness edits are order-critical.
      the "Baseline Profile = NO-OP" framing — true for stock API 23, but flox runs LineageOS
      API 30 where profiles DO apply (this also raises the priority of the
      `macrobenchmark-module-wiring` todo).
-   - `.planning/PROJECT.md`: fix the wrong-generation "Tegra 3 / 1280×800" device paragraph
-     (flagged by Phase-1 CONTEXT, never corrected) and the pre-jiib-rebrand intro.
-   - `.planning/REQUIREMENTS.md`: Phase-19 description still says "TBD" — it shipped 2026-06-08.
+   - ~~`.planning/PROJECT.md` Tegra paragraph~~ **DONE on master** (corrected 2026-06).
+   - ~~`.planning/REQUIREMENTS.md` Phase-19 "TBD"~~ **DONE on master** (now "shipped 2026-06-08").
    - Mark UI-SPECs 07–16 `status: superseded / superseded_by: docs/ui_design/` (04's already is;
-     verified nothing in any of the 8 isn't covered by `docs/ui_design/`).
-   - Add `notify_active_spool_set` + `notify_spoolman_status_changed` to
-     `docs/commands/moonraker-api.md` and the `request-cadence-contract.md` table (Phase 11
-     wired the parsers; the catalogs were never updated).
-2. **Todo re-triage:** close `webcam-screen-crash` (fixed in Phase 21, commit `49f3fe2`) and
-   `webcam-tile-gating-verification` (Phase-21 UAT SC7 PASS); archive the 4 stale untargeted
-   todos (`status-progress-ring-dual-source-jump`, `console-macro-page-ux-flow`,
-   `benchmark-harness-fairness-fixes`, `shellpresencetest-device-determinism`); re-target the 5
-   items that slipped past their phase (`files-delete-gating-too-broad` open since Phase 7) into
-   Phase 22 or the R-packages. Adopt the rule: **re-triage `todos/pending/` at every phase close.**
+     verified nothing in any of the 8 isn't covered by `docs/ui_design/`). Note the design law
+     itself evolved in Phase 23 (Gutter retired, unit grid added) — making the supersession
+     markers MORE urgent, since those specs are now two generations stale.
+   - ~~spoolman notify entries in `docs/commands/moonraker-api.md`~~ **DONE on master**
+     (lines ~166–188); the `request-cadence-contract.md` table row is still missing.
+   - **NEW:** stamp `.planning/codebase/CONCERNS.md` + `UI-REVIEW.md` (the Phase-22-25 audit
+     inputs) as `Status: historical — findings resolved by Phases 22–26`; CONCERNS.md still
+     reads as a list of open CRITICALs and has already misled one analysis session into
+     reporting the @Immutable migration as un-landed.
+2. **Todo re-triage:** ~~close webcam-screen-crash + webcam-tile-gating~~ **DONE on master**;
+   still open: archive the 4 stale untargeted todos (`status-progress-ring-dual-source-jump`,
+   `console-macro-page-ux-flow`, `benchmark-harness-fairness-fixes`,
+   `shellpresencetest-device-determinism` — the last one becomes R10 step 3's test fix); 17
+   currently pending — re-triage against the new Phase-27/28/29 map. Adopt the rule:
+   **re-triage `todos/pending/` at every phase close.**
 3. **Single-sourcing + metadata headers:** assign one owner per fact — root CLAUDE.md owns
    stack + constraints; REQUIREMENTS.md owns core value + requirements; STATE.md owns status;
    ROADMAP.md owns phases — and delete the duplicated Constraints/Core-Value sections from
@@ -283,7 +340,7 @@ step may trail anytime; only its correctness edits are order-critical.
   current `Last verified` header; the 2 done todos closed and 4 stale ones archived; hygiene
   check green in CI.
 
-### R1 — Install & display correctness on modern devices *(merges with Phase-22 ABI todo)*
+### R1 — Install & display correctness on modern devices *(merges with the arm64 ABI todo; ship is now Phase 29)*
 1. ABI: `include("armeabi-v7a", "arm64-v8a")`, keep `isUniversalApk = false`; release CI/script
    publishes **both** per-ABI APKs as separate GitHub Release assets with clear names. Fix the
    `D-01a` comment to distinguish dev-floor from ship artifact.
@@ -298,7 +355,7 @@ step may trail anytime; only its correctness edits are order-critical.
   preview animates drawer-close and stack-pop; Nexus 7 behavior unchanged; `verifyMinSdkRelease`
   green.
 
-### R2 — Always-on survival *(= PKG-03, already researched in PITFALLS.md Pitfall 5)*
+### R2 — Always-on survival *(= PKG-03, lands with Phase 29; already researched in PITFALLS.md Pitfall 5)*
 1. `FLAG_KEEP_SCREEN_ON` on MainActivity's window, gated by a Settings toggle ("Keep screen
    awake", default ON for the dedicated-display use case), cleared in `onPause`.
 2. Declare `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; add a first-run/Settings step that deep-links
@@ -306,9 +363,11 @@ step may trail anytime; only its correctness edits are order-critical.
 3. UAT per PITFALLS: unplugged, screen off, 20+ min → connection alive or clean resync on wake.
 - **Acceptance:** the doze test passes on both the Nexus 7 (LineageOS) and a modern phone.
 
-### R6 — Preview & string backfill *(mechanical; parallelizable across sessions; = Phase-22 SC items; runs BEFORE R3 so the sweep covers all 27 screens)*
-- 18 missing `*Previews.kt` files from the exemplar template (6 theme combos + fs=L per screen);
-  extract the 16 remaining string literals; run the `en-XA` pseudolocale sweep on device to close.
+### R6 — Preview & string backfill *(LARGELY DONE by Phases 25–26 as of 2026-06-11; runs BEFORE R3 so the sweep covers all screens)*
+- ~~18 missing `*Previews.kt` files~~ → 17 `*Previews.kt` files now exist covering the rebuilt
+  screens. **Remainder:** Move + the Calibration cluster (do them WITH their Phase-27 redesign,
+  not before), the Views-layer strings in `FileRowsAdapter` ("SEL"/"UP"/"DIR"/"GCO" etc.), and
+  the on-device `en-XA` pseudolocale sweep to close.
 - Optional enforcement: a custom detekt/lint rule flagging raw `Color(0x…)`/hex literals and raw
   `.sp` values not routed through `fsSp()` inside `ui/` — turns the manual Phase-15.2
   token-conformance audit (`15.2-AUDIT.md`) into a self-enforcing gate.
@@ -360,13 +419,68 @@ archived).
 
 ### Explicit "do NOT do" list (decisions, recorded so future sessions don't relitigate)
 - No Material `WindowSizeClass` — continuous `BoxWithConstraints` is working and finer-grained.
-- No Hilt, no Navigation-Compose, no module split — the manual graph and `TopRoute.derive()` are
-  assets at this size; revisit only past ~2× current scope.
-- No changes to the cadence layer, the subscribe set, or the render hot paths without a
-  measured regression on the Nexus 7.
+  *(Still holds post-Phase-26.)*
+- No Hilt, no module split — the manual graph is an asset at this size; revisit only past ~2×
+  current scope. *(Still holds.)* ~~No Navigation-Compose~~ — **overruled by Phase 24, correctly:**
+  once the destination count and back-stack semantics outgrew the `when(dest)` hub, NavHost was
+  the right call (this audit's rationale was sized to the pre-redesign shell). Likewise
+  ~~immutable collections not needed~~ — **overruled by Phase 22**; the original verdict was wrong
+  (see TL;DR correction).
+- No changes to the cadence layer (`DEFAULT_SAMPLE_MS = 250` — unchanged and re-validated through
+  Phase 22), the subscribe set, or the render hot paths without a measured regression on the
+  Nexus 7.
 - No runtime gcode remap UI (R4 is build-time by decision); no WebRTC; no Play-services deps.
 - No new top-level context-doc fan-out (PROJECT_BRIEF.md, DEVICE_TARGETS.md,
   PERFORMANCE_BUDGETS.md, …): the corpus audit diagnosed *triplicated* facts as the main drift
   disease — consolidate into fewer canonical files (R9 step 3), never more.
 - No model-driven PR-review bot in CI; the deterministic gates (tests, lint baseline,
   token-purity rule, hygiene check) cover it for a solo-maintainer repo.
+
+---
+
+## Part 5 — Touch responsiveness (owner-reported 2026-06-11)
+
+**Symptom (flox / Nexus 7 2013):** quick taps are hit-or-miss; press-and-hold reliably works.
+Static analysis ranked the candidate mechanisms below. **Important:** the top-confidence items
+are *silent intentional rejections that look like misses*, not lost events — which matches
+"hold works" (by the time a hold settles, the busy/debounce window has expired and the retry
+lands). Run R10 step 1's instrumentation before trusting any single cause.
+
+### Ranked causes (evidence-backed first)
+
+| # | Mechanism | Type | Evidence | Confidence |
+|---|---|---|---|---|
+| 1 | **Busy-lock silent swallow.** AdjusterPanel steppers stay `clickable` while disabled — the tap ripples, then dies inside `if (controlsEnabled)`; the 0.38-alpha dim + `semantics{disabled()}` never removes the click handler. | Intentional rejection, zero feedback | `designsystem/components/AdjusterPanel.kt` (~100–107, ~192/200); Phase-26 WR-07 added the dim but not true disablement | HIGH (verified from code) |
+| 2 | **Dispatcher debounce + in-flight guard.** `CommandDispatcher.dispatch` silently returns if the key is in-flight OR within the 400 ms debounce — rapid stepper taps (the exact "quick taps" pattern) are dropped by design with no UI signal. | Intentional rejection, zero feedback | `command/CommandDispatcher.kt:108–116` | HIGH (verified from code) |
+| 3 | **Shell swipe-up detector fragility.** The drawer gesture requires a *single pointer event* with `dragAmount > 80f` (`SWIPE_UP_THRESHOLD_PX`); the detector sits over all content via `pointerInput` on the shell. Per-event thresholding is already proven brittle — `FineTuneNavTest`'s `swipeUp()` (~800px over 12 events) can't open the drawer. Interaction with child taps on a slow event loop is plausible but unproven. | Gesture fragility; possible tap interference | `ui/shell/AppShell.kt` (~523–554); 17-08-SUMMARY's deferred test defect | MEDIUM (drawer part verified; tap-loss part is hypothesis) |
+| 4 | **Press-indication delay in scrollables.** Compose intentionally delays press indication inside scrollable containers (tap-vs-scroll disambiguation). On a 20–30 fps Adreno 320, that delay + dropped frames reads as "nothing happened" even when the click fires. | Feedback latency (perceived miss) | ListRow/OutlinedControl instances inside `verticalScroll`/`LazyColumn` (Files, Console, Macros, Calibration) | MEDIUM |
+| 5 | **Crossfade morph hit-testing.** The 150 ms home morph (`PrintStatusScreen` `Crossfade(tween(150))`) spans 3–7 frames on this GPU; taps mid-transition can hit the outgoing layer. | Possible event loss in a narrow window | `ui/printstatus/PrintStatusScreen.kt` (~471) | LOW-MEDIUM (hypothesis) |
+| 6 | **Views/Compose interop edge** on Files/Console RecyclerViews. | Rare event loss | `ui/files/FileListView.kt`, `ui/console/ConsoleListView.kt` | LOW |
+
+### Instrumentation recipes (R10 step 1 — prove it before fixing)
+
+1. **Show taps + screen record** (Developer Options) on flox: 20 quick taps per control class
+   (stepper, ListRow, foot button, scrubber, drawer tile). Tap indicator visible but no response
+   = silent rejection (#1/#2). No tap indicator = real event loss (#3/#5/#6, or digitizer).
+2. **Log the rejection paths:** one-line logs at `CommandDispatcher.dispatch`'s two early
+   returns and AdjusterPanel's `controlsEnabled=false` branch — count how many "missed" taps
+   were actually rejected on purpose. Cheapest, highest-signal test.
+3. **Pointer logging** on the shell `pointerInput` and one stepper (DOWN/UP timestamps): UP
+   arriving >100 ms after DOWN under jank implicates frame pacing, not gesture logic.
+4. **Hardware sanity check:** this is an old digitizer on a LineageOS build — run a multitouch
+   tester / `getevent -lt` session to rule out dropped DOWN events at the kernel/input layer
+   before blaming Compose. (A worn touchscreen produces exactly this symptom profile.)
+
+### Fix directions (detail for R10 steps 2–5)
+
+- **True disablement:** `enabled: Boolean` param on `OutlinedControl`/stepper rows → no
+  `clickable` (and no ripple) when disabled; keep the dim.
+- **Visible rejection:** when dispatch is suppressed (busy/debounce), emit a UI event the
+  control renders as a brief flash/shake of the pending value — "heard you, still settling" —
+  instead of nothing. Keep the dispatcher semantics unchanged (they protect the printer and the
+  SBC; do NOT shorten the debounce as a first move).
+- **Swipe detector:** accumulate `dragAmount` per gesture against the 80px threshold; this fixes
+  both the test and real-world slow swipes, and removes any tap-window ambiguity. Also closes
+  the `shellpresencetest/FineTuneNavTest` harness defect (R9's todo list).
+- **Indication:** explicit immediate indication on kit controls inside scrollables.
+- The Crossfade guard only if instrumentation implicates it — don't pay the complexity blind.
