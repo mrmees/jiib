@@ -20,6 +20,7 @@ human_verification:
   - test: "Verify live MJPEG/snapshot fallback with a real non-H.264 cam (SC5)"
     expected: "A cam without an H.264 pipe falls through to MJPEG/snapshot and renders frames; only dead-ends when all rungs are exhausted"
     why_human: "Every cam on both printers is webrtc-mediamtx (H.264). No non-H.264 cam exists to exercise the live fall-through path. Covered by Phase-10 MJPEG host tests and composite fall-through unit tests (compositeMedia3Feed FallThrough→lowerRung); live re-verify if/when a non-H.264 cam exists."
+    deferred_to: "Phase 29 (Release Hardening & Ship) — owner decision 2026-06-10 UAT work-through; same env blocker as the P10 MJPEG item"
 ---
 
 # Phase 21: Native H.264 Camera Streaming (MediaMTX) — Verification Report

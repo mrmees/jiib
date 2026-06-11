@@ -8,12 +8,15 @@ human_verification:
   - test: "Open PrintStatusPreviews.kt in Android Studio and render all preview functions"
     expected: "PrintStatusStateMatrix shows 4/6 modes across portrait+landscape; six PrintStatusTheme* functions show 6 distinct themed combos (Colorful dark/light, Simple dark/light, HighContrast dark/light); PrintStatusFsLargeOverflow shows larger text without overflow/clipping; PrintStatusRtlSpotCheck shows mirrored RTL layout; GraphView + Coil thumbnail sites show labeled placeholder boxes (not blank regions)"
     why_human: "Host-rendered @Preview correctness (color, layout, overflow) cannot be verified by grep. No golden-image CI net until Phase 22 (compose-preview-screenshot)."
+    deferred_to: "Phase 29 — owner decision 2026-06-10 UAT work-through (needs an Android Studio session)"
   - test: "Open SpoolPreviews.kt in Android Studio and render all preview functions"
     expected: "SpoolSelectionMatrix shows no-selection / selected states; dense 8-entry spool list renders with material/color/vendor/location data; six SpoolTheme* siblings show 6 distinct themes; SpoolFsLargeOverflow + SpoolRtlSpotCheck render correctly; camera scan placeholder is labeled (not blank), not a Coil thumb"
     why_human: "Same as above. Additionally the CameraX surface is genuinely unreachable under @Preview — the labeled stand-in is the only observable result."
+    deferred_to: "Phase 29 — owner decision 2026-06-10 UAT work-through (needs an Android Studio session; Spool previews partially superseded by the P23 on-device pilot approval)"
   - test: "On the debug APK, switch device locale to English (XA) — the pseudolocale"
     expected: "User-facing strings that are tokenized (spool_*/finetune_*/printstatus_* keys) show accented/decorated text, confirming they route through strings.xml. Hardcoded literals (intentionally deferred per SC-3 fallback + Phase-22 backfill) show plain English — these are expected and do not constitute a failure for this phase."
     why_human: "The en-XA pseudolocale sweep is the manual SC-3 completeness check substituting for the deferred automated lint gate (detekt fallback fired in 18-01). Requires running the app with the pseudolocale active."
+    deferred_to: "Phase 29 — owner decision 2026-06-10 UAT work-through ('not important right now'); meaningful only after the tokenization backfill lands there"
 ---
 
 # Phase 18: Preview Harness & Tokenization Foundation — Verification Report

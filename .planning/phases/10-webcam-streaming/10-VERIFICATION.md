@@ -8,6 +8,7 @@ human_verification:
   - test: "Live MJPEG rung-1 eyeball — stand up a crowsnest/ustreamer camera, connect the app, confirm the MJPEG stream (multipart/x-mixed-replace) renders live frames with no jank, correct aspect, and the snapshot badge does NOT appear"
     expected: "Smooth live video stream renders in the rounded cutout at the declared decode policy (TARGET_FPS=12, ARGB_8888, inSampleSize from real frame bounds); no frozen frames; rung-2 snapshot badge absent"
     why_human: "Neither home printer exposes a multipart/x-mixed-replace stream (both are webrtc-mediamtx). The MJPEG decode path is proven by golden byte-stream unit tests (MjpegStreamDecoderTest) and the fix commits (WR-04 inJustDecodeBounds, WR-03 double-buffer) but has no live environmental subject on this developer's network. Requires a temporary crowsnest/ustreamer source to eyeball."
+    deferred_to: "Phase 29 (Release Hardening & Ship) — owner decision 2026-06-10 UAT work-through; env-blocked (no MJPEG cam on network), run only if a temp ustreamer is stood up for the ship checklist"
 ---
 
 # Phase 10: Webcam Streaming Verification Report
