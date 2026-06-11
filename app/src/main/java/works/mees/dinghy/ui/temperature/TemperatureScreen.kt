@@ -656,24 +656,28 @@ private fun TemperatureAdjusterFocus(
 
         // ── Heater controls (D-13 / D-22): only for adjustable sensors ──────────────────
         if (sensor.isAdjustable) {
+            // CR-02 (26-rev): when the heater is OFF (target == null), seed the adjuster from the
+            // live temperature so the stepper can heat an idle heater — AdjusterPanel renders DASH
+            // and disables both tiles on a null value, which would otherwise make the primary
+            // heater-setpoint control inert until a Preset was applied. clampHeaterTarget keeps the
+            // nudged result legal.
             val currentValue: Double? = currentTarget ?: sensor.current.let { if (it > 0.0) it else null }
-            val baselineTarget: Double? = currentTarget
 
             Spacer(modifier = Modifier.weight(1f))
 
             AdjusterPanel(
                 icon = iconForSensor(sensor.name),
                 name = sensor.label,
-                value = currentTarget,
+                value = currentValue,
                 unit = "°C",
                 baseline = null, // Temperature target has no persistent "entry baseline" — no Reset
                 decimals = 0,
                 onDecrement = {
-                    val base = currentTarget ?: 0.0
+                    val base = currentValue ?: 0.0
                     onDecrement(base)
                 },
                 onIncrement = {
-                    val base = currentTarget ?: 0.0
+                    val base = currentValue ?: 0.0
                     onIncrement(base)
                 },
                 onReset = null, // No baseline / Reset for temperature (target can be 0 via Off)
