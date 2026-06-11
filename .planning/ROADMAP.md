@@ -1260,12 +1260,12 @@ morning UAT checklist in OVERNIGHT-REPORT.md — the morning UAT run is the phas
   6. R4: `CommandMap.kt` per Part 3; renamed-slot test proves gate+emit; 4 call sites rewired (roadmap §R4 acceptance)
   7. R7: NSC cleartext scoped to RFC-1918 + configured host; wss:// scheme plumbing (roadmap §R7, live-TLS check → morning)
 
-**Plans:** 2/7 plans executed
+**Plans:** 3/7 plans executed
 
 Plans:
 - [x] 26.5-01-PLAN.md — R5a guardrail infra (wave 0): gradlew +x, CI, lint baseline under JDK-17 then enforced, debug StrictMode, OVERNIGHT-REPORT skeleton (LICENSE recommend-only)
 - [x] 26.5-02-PLAN.md — R9 memory/docs delint steps 1-3+5 (wave 1): correctness edits, todo re-triage, headers/single-sourcing, step-4 script artifact (NOT run), scoped hygiene CI
-- [ ] 26.5-03-PLAN.md — R10 touch responsiveness steps 2-4 (wave 2): true disablement, dispatcher rejection feedback, swipe accumulation, indication immediacy, debug-flag instrumentation
+- [x] 26.5-03-PLAN.md — R10 touch responsiveness steps 2-4 (wave 2): true disablement, dispatcher rejection feedback, swipe accumulation, indication immediacy, debug-flag instrumentation
 - [ ] 26.5-04-PLAN.md — R1 install/display correctness (wave 3): both-ABI splits + per-ABI versionCode, edge-to-edge/insets, predictive back, POST_NOTIFICATIONS one-shot
 - [ ] 26.5-05-PLAN.md — R2 always-on code-only (wave 3): keep-screen-on toggle (default ON) + battery-exemption flow
 - [ ] 26.5-06-PLAN.md — R4 build-time command map (wave 4): CommandMap.kt per Part 3, 6 site rewires, renamed-slot gate+emit tests

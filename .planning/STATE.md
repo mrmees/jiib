@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T05:51:12.500Z"
+last_updated: "2026-06-11T06:20:40.719Z"
 last_activity: 2026-06-11
 progress:
   total_phases: 36
   completed_phases: 30
   total_plans: 208
-  completed_plans: 202
+  completed_plans: 203
   percent: 83
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 ## Current Position
 
 Phase: 26.5
-Plan: 2 of 07 complete
+Plan: 3 of 07 complete
 Status: Ready to execute
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
@@ -280,6 +280,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 26 P05 | 35 | 3 tasks | 10 files |
 | Phase 26-adjustment-screens P04 | 30 | 2 tasks | 4 files |
 | Phase 26.5 P02 | 11m | 3 tasks | 33 files |
+| Phase 26.5 P03 | 30min | - tasks | - files |
 
 ## Accumulated Context
 
@@ -504,6 +505,8 @@ Recent decisions affecting current work:
 - [Phase ?]: SortFilterControlRow leading type-tile mandatory (bg2/non-interactive); arrow direction indicator via MaterialSymbol for future registry phase
 - [Phase 26.5]: 26.5-02: codebase/STACK.md macrobenchmark compileSdk line reworded truthfully (module IS still 35) instead of swept to 36 — sweep would have introduced a lie
 - [Phase 26.5]: 26.5-02: hygiene CI dead-link check is a deterministic bash loop, not the unverified markdown-link-check marketplace action (A8)
+- [Phase ?]: 26.5-03: Temperature WR-01 local in-flight pre-check removed — dispatcher's atomic busy guard owns same-key dedup and emits rejectedKey feedback
+- [Phase ?]: 26.5-03: host unit tests run with isReturnDefaultValues=true so BuildConfig.DEBUG Log.d instrumentation no-ops instead of throwing
 
 ### Pending Todos
 
@@ -544,6 +547,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-11T05:48:16.718Z
+Last session: 2026-06-11T06:20:32.845Z
 Stopped at: Phase 27 context gathered
 Resume file: None

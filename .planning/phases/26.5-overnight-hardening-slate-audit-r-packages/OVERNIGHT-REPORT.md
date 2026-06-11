@@ -49,8 +49,15 @@ Ordered for ONE sitting — flox (Nexus 7, LineageOS 18.1/API 30) first, then S2
 ### flox group
 
 - [ ] **R10 tap torture:** 20 rapid taps per control class (stepper +/− on AdjusterPanel, ListRow,
-      OutlinedControl command buttons) — every tap either acts or shows visible rejection feedback;
-      zero silent swallows. Flip the debug instrumentation flag to watch dispatcher reject logs.
+      OutlinedControl command buttons) — ≥95% register with visible same-frame feedback; every tap
+      either acts or shows visible rejection feedback; zero silent swallows. Use a DEBUG build
+      (instrumentation is `BuildConfig.DEBUG`-gated — no flag to flip, just install debug; force-
+      rebuild + check APK mtime per [[dinghy-stale-apk-uat-gate]]). Logcat tags: `Dispatcher`
+      (reject: key=… reason=in_flight|debounce) and `SwipeDetector` (per-event delta + running total).
+- [ ] **R10 rejection flash:** rapid-tap a stepper during a busy window (e.g. while a heater command
+      is settling) — the adjuster's hero value flashes amber (one-shot ~200ms), NOT nothing.
+- [ ] **R10 disabled stepper = no ripple:** with a dimmed (busy-locked) stepper, a tap produces NO
+      ripple at all (the clickable is gone, not guarded).
 - [ ] **R10 drawer swipe:** swipe-up opens the App Drawer reliably with slow AND fast gestures
       (drag accumulation fix); no more per-event 80px threshold misses.
 - [ ] **R10 on-device FineTuneNavTest:** run the instrumented test — the swipe accumulation fix
