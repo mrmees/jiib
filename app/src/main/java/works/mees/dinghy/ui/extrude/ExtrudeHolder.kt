@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import works.mees.dinghy.command.CommandMap
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
@@ -103,8 +104,9 @@ class ExtrudeHolder(
             tools = tools,
             showToolSelector = showToolSelector,
             // Case-insensitive macro presence — Moonraker lowercases macro names (Pitfall 2 / D-10).
-            hasLoadMacro = caps.hasMacroIgnoreCase("LOAD_FILAMENT"),
-            hasUnloadMacro = caps.hasMacroIgnoreCase("UNLOAD_FILAMENT"),
+            // Macro names come from CommandMap (R4) — the single fork-and-edit customization point.
+            hasLoadMacro = caps.hasMacroIgnoreCase(CommandMap.loadFilament.macro),
+            hasUnloadMacro = caps.hasMacroIgnoreCase(CommandMap.unloadFilament.macro),
             // Live nozzle temp/target for the in-field temp button; the active heater the temp set targets.
             nozzleTemp = heater?.temperature ?: 0.0,
             nozzleTarget = heater?.target ?: 0.0,

@@ -488,14 +488,14 @@ object CommandRegistry {
         catalogId = "KGC-LOAD_FILAMENT",
         key = { "load" },
         gcode = { PrinterCommands.loadFilament() },
-        availability = AvailabilityPredicate.MacroPresent("LOAD_FILAMENT"),
+        availability = AvailabilityPredicate.MacroPresent(CommandMap.loadFilament.macro),
     )
 
     val unloadFilament: CommandSpec<Unit> = gcode(
         catalogId = "KGC-UNLOAD_FILAMENT",
         key = { "unload" },
         gcode = { PrinterCommands.unloadFilament() },
-        availability = AvailabilityPredicate.MacroPresent("UNLOAD_FILAMENT"),
+        availability = AvailabilityPredicate.MacroPresent(CommandMap.unloadFilament.macro),
     )
 
     val cooldown: CommandSpec<Unit> = gcode(

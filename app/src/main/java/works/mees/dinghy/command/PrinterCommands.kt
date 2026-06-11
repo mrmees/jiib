@@ -326,11 +326,11 @@ object PrinterCommands {
     /** Select active tool by index (`T<index>`). [index] clamped to >= 0. */
     fun selectTool(index: Int): String = "T${index.coerceAtLeast(0)}"
 
-    /** Run the printer's LOAD_FILAMENT macro (popup-if-missing handled by the caller). */
-    fun loadFilament(): String = "LOAD_FILAMENT"
+    /** Run the printer's load-filament macro (popup-if-missing handled by the caller; name from [CommandMap]). */
+    fun loadFilament(): String = CommandMap.loadFilament.gcode
 
-    /** Run the printer's UNLOAD_FILAMENT macro (popup-if-missing handled by the caller). */
-    fun unloadFilament(): String = "UNLOAD_FILAMENT"
+    /** Run the printer's unload-filament macro (popup-if-missing handled by the caller; name from [CommandMap]). */
+    fun unloadFilament(): String = CommandMap.unloadFilament.gcode
 
     // --- Calibration parameterized builders (Phase 9) ---------------------------------------------
 

@@ -43,8 +43,9 @@ data class Capabilities(
     /**
      * Case-insensitive macro presence (EXTR-02 / D-10). Moonraker reports macro object names
      * LOWERCASE (Pitfall 2) — e.g. `gcode_macro load_filament` derives to `load_filament` here — so a
-     * case-sensitive `==` against a caller's `"LOAD_FILAMENT"` would miss it. Gating (e.g. the
-     * Extrude panel's load/unload buttons) must use this, not a raw [macros] membership check.
+     * case-sensitive `==` against a caller's uppercase macro name (e.g. `CommandMap.loadFilament.macro`)
+     * would miss it. Gating (e.g. the Extrude panel's load/unload buttons) must use this, not a raw
+     * [macros] membership check.
      */
     fun hasMacroIgnoreCase(name: String): Boolean = macros.any { it.equals(name, ignoreCase = true) }
 
