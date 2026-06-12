@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,13 +47,18 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.TestZArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
-import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -65,36 +72,21 @@ import works.mees.dinghy.theme.fsSp
 private val TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0)
 
 /**
- * The interactive manual-probe Z-calibrate page (CALIB-05 / D-01 / UI-SPEC §5). This is the ONE
- * stateful calibration page: Start opens a manual-probe session, the jog pad nudges Z via TESTZ,
- * Accept/Abort closes it, and an amber SAVE_CONFIG persists the captured offset.
+ * Thin VM-reading wrapper for ProbeCalibrateScreen. Collects `holder.vm`, computes the `starting`
+ * state and owns the SAVE_CONFIG guard state, then delegates to the stateless
+ * [ProbeCalibrateContent] overload (WARNING-5 preview seam — @Preview matrices target
+ * [ProbeCalibrateContent], not this screen).
  *
- * The three Focus/gutter states are driven purely by [ProbeCalibrateVm.state]
- * ([ProbePageState.Idle]/[ProbePageState.Active]/[ProbePageState.Accepted] — derived from
- * `manual_probe.is_active`). The screen NEVER infers state; it renders the vm verbatim.
+ * **D-09 / Back suppression:** The nav-layer `BackHandler` in `composable<NavDest.CalibrationProbe>`
+ * (AppShell.kt) owns system-Back suppression while `Active || starting`. This screen's
+ * Active-state FootButtonBar omits a Back button so the only exits are Accept/Abort (T-27-04-01).
  *
- * Layout (ScreenScaffold):
- *  - Focus: the nozzle + "expand" (Z-gap) icons side by side over a single centered cell holding the
- *    current Z offset read from the printer — saved `probe.z_offset` when Idle (your current calibration),
- *    the live `manual_probe.z_position` when Active (updates as you nudge), the captured offset when
- *    Accepted (green). See [ProbeFocus].
- *  - Field = the jog pad (Z nudge disabled until Active): row 1 = a [−]/[+] step selector walking
- *    [TESTZ_STEPS] with the current step shown between; row 2 = up/down arrows firing TESTZ(±step).
- *  - Gutter state-adaptive: Idle → Start (blue, the gated PROBE_CALIBRATE/Z_ENDSTOP_CALIBRATE) + Back
- *    (green); Active → Accept (green) + Abort (red) — BACK SUPPRESSED while a session is live
- *    (T-09-06-02 — leaving mid-probe leaves a dangling session); Accepted → Save (amber → ConfirmGuard
- *    restart gate → SAVE_CONFIG) + Back (green, discards the in-memory offset).
- *
- * Ratio-only sizing; token-only color.
- *
- * **D-01 move #2 (22-07):** migrated from `vm: ProbeCalibrateVm` parameter to `holder: ProbeCalibrateHolder`
- * parameter, mirroring the existing [ScrewsTiltScreen] pattern. The screen collects [ProbeCalibrateHolder.vm]
- * and [AppContainer.dispatcher] internally; [ProbeCalibrateHolder.reset] replaces `onEnter`,
- * [ProbeCalibrateHolder.markAborted] replaces `onAbort`, eliminating two shell-side collections.
+ * **Pitfall 3:** `LaunchedEffect(Unit) { holder.reset() }` is present — per-session holder's
+ * sawActive/captured latches survive re-entry; without reset a returning user sees stale Accepted.
  *
  * @param container the service-locator (provides the session dispatcher).
- * @param holder    the headless [ProbeCalibrateHolder] (state machine + live Z + bracket + start cmd + error).
- * @param onBack    leave the page (neutral Back, D-10; only offered when NOT Active).
+ * @param holder    the headless [ProbeCalibrateHolder] (state machine + live Z + bracket + start cmd).
+ * @param onBack    leave the page (neutral Back; only offered when NOT Active per D-09).
  */
 @Composable
 fun ProbeCalibrateScreen(
@@ -106,29 +98,22 @@ fun ProbeCalibrateScreen(
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val vm by holder.vm.collectAsStateWithLifecycle()
 
-    // Fresh-instance reset on entry (mirrors TiltScreen) — the per-session holder's sawActive/captured
-    // latches survive re-entry, so without this a returning user sees the previous round's offset as a
-    // stale Accepted page. Keyed on Unit → once per navigation into the page, not on recomposition.
+    // Pitfall 3: fresh-instance reset on entry — clears sawActive/captured from any prior session.
     LaunchedEffect(Unit) { holder.reset() }
 
-    var step by remember { mutableStateOf(0.05) } // default a sensible fine step.
+    var step by remember { mutableStateOf(0.05) }
     var saveGuard by remember { mutableStateOf(false) }
-    val active = vm.state == ProbePageState.Active
 
-    // Immediate "Starting…" feedback: the Start gcode is in flight but the session hasn't gone Active yet
-    // (the klicky macro homes/attaches/probes for several seconds before is_active flips). While that
-    // start key is in flight AND we're still Idle, the gutter shows a disabled "Starting…" so the tap is
-    // acknowledged instantly. Self-clears: success → state leaves Idle; failure → the key leaves inFlight.
+    // Immediate "Starting…" feedback: Start gcode in flight but session not yet Active (the klicky
+    // macro homes/attaches/probes for several seconds before is_active flips). Verbatim from prior
+    // implementation (Pitfall 6 — carry verbatim; also consumed by the nav-layer BackHandler).
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val starting = vm.state == ProbePageState.Idle &&
         ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
 
-    // Dismissable error toast: a rejected TESTZ/Accept/Start surfaces a redacted Failure. Drive the toast
-    // from local state so it can be dismissed (tap) and auto-clears after a few seconds — the holder's
-    // folded errorText persists, which previously left the popup stuck on screen. Seeded from live
-    // dispatcher Failures AND the holder fold (catches a failure that predated this collector).
+    // Dismissable error toast: rejected TESTZ/Accept/Start surfaces a redacted Failure.
     var toastError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(dispatcher) {
         val d = dispatcher ?: return@LaunchedEffect
@@ -142,179 +127,300 @@ fun ProbeCalibrateScreen(
         }
     }
 
-    Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            focus = {
-                ProbeFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
-            },
-            field = {
-                ProbeJogPad(
-                    // Disable the Z nudge while a TESTZ is in flight — gives visual feedback that the move
-                    // is happening and prevents a double-tap stacking moves before the new height confirms.
-                    // "testz" leaves inFlight when the gcode.script response lands (the height is settled).
-                    enabled = active && dispatcher != null && "testz" !in inFlight,
-                    step = step,
-                    onSelectStep = { step = it },
-                    onTestZ = { delta -> dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(delta)) },
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    when (vm.state) {
-                        ProbePageState.Idle -> if (starting) {
-                            // Start dispatched, session not yet live — acknowledge the tap, suppress Back
-                            // (a session is beginning, like the Active state).
-                            ProbeGutterButton(
-                                label = "Starting…",
-                                onClick = {},
-                                modifier = Modifier.weight(1f),
+    ProbeCalibrateContent(
+        vm = vm,
+        step = step,
+        starting = starting,
+        saveGuard = saveGuard,
+        toastError = toastError,
+        enabled = vm.state == ProbePageState.Active && dispatcher != null && "testz" !in inFlight,
+        onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
+        onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
+        onStepUp = { step = TESTZ_STEPS[(TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it } + 1).coerceAtMost(TESTZ_STEPS.lastIndex)] },
+        onStepDown = { step = TESTZ_STEPS[(TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it } - 1).coerceAtLeast(0)] },
+        onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+        onStart = {
+            val d = dispatcher ?: return@ProbeCalibrateContent
+            if (vm.startCommand == "Z_ENDSTOP_CALIBRATE") {
+                d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
+            } else {
+                d.dispatch(CommandRegistry.probeCalibrate, Unit)
+            }
+        },
+        onAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
+        onAbort = {
+            holder.markAborted()
+            dispatcher?.dispatch(CommandRegistry.abort, Unit)
+        },
+        onSaveGuardShow = { saveGuard = true },
+        onSaveConfirm = {
+            dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
+            saveGuard = false
+        },
+        onSaveCancel = { saveGuard = false },
+        onDismissError = { toastError = null },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless ProbeCalibrateScreen layout — the @Preview matrix targets this composable.
+ *
+ * Field = two vertical 3-cell columns side by side (the Move motif per D-08):
+ *  - Column 1 (Z-nudge): Z-up (TESTZ +step) / [ZReadoutDisplay] center (live Z, `t.directional.z`) / Z-down
+ *  - Column 2 (step selector): + (step up) / [StepDisplay] / − (step down)
+ *
+ * FootButtonBar is state-adaptive per D-09 (Idle-unhomed / starting / Idle-homed / Active / Accepted).
+ * The Active branch omits Back (nav-layer BackHandler owns system-Back, T-27-04-01).
+ */
+@Composable
+fun ProbeCalibrateContent(
+    vm: ProbeCalibrateVm,
+    step: Double,
+    starting: Boolean,
+    saveGuard: Boolean,
+    toastError: String?,
+    enabled: Boolean,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    onHomeAll: () -> Unit,
+    onStart: () -> Unit,
+    onAccept: () -> Unit,
+    onAbort: () -> Unit,
+    onSaveGuardShow: () -> Unit,
+    onSaveConfirm: () -> Unit,
+    onSaveCancel: () -> Unit,
+    onDismissError: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val idx = TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it }
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+
+        Box(Modifier.fillMaxSize()) {
+            ScreenScaffold(
+                focus = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        ProbeFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
+                        // UAT-4: FloatingEStop top-left corner reservation.
+                        FloatingEStop(
+                            visible = false, // calibration screen is a pop-to-root foot-gun
+                            onClick = {},
+                            uDp = grid.uDp,
+                            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+                        )
+                    }
+                },
+                field = {
+                    // D-08: two vertical 3-cell columns side by side (the Move motif).
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Column 1: Z-nudge column with live-Z readout center cell.
+                        // Outline = t.directional.z (Z-axis identity, same as Move's Z column).
+                        Column(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            // Z-up: TESTZ +step (accent, physical command)
+                            ProbeIconButton(
+                                glyphName = "arrow_upward",
+                                contentDescription = "Raise nozzle (TESTZ +)",
+                                onClick = onTestZUp,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
-                                enabled = false,
+                                iconTint = t.accent2,
+                                enabled = enabled,
                             )
-                        } else if (!vm.homedGate) {
-                            // Home All pre-flight (D-13) — replaces Start until the printer is homed, so we
-                            // never send PROBE_CALIBRATE unhomed (the klicky macro raises "Must Home … First!").
-                            ProbeGutterButton(
-                                label = "Home All",
-                                onClick = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-                                modifier = Modifier.weight(1f),
+                            // D-08 center cell: live-Z readout (Geist Mono, t.directional.z outline)
+                            ZReadoutDisplay(
+                                zValue = vm.zPosition ?: vm.savedZOffset,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                            )
+                            // Z-down: TESTZ -step (accent, physical command)
+                            ProbeIconButton(
+                                glyphName = "arrow_downward",
+                                contentDescription = "Lower nozzle (TESTZ -)",
+                                onClick = onTestZDown,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
-                                enabled = dispatcher != null,
-                            )
-                            ProbeGutterButton(
-                                label = "Back",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
-                            )
-                        } else {
-                            ProbeGutterButton(
-                                label = "Start",
-                                onClick = {
-                                    val d = dispatcher ?: return@ProbeGutterButton
-                                    // The gated Z-calibrate command (A3): PROBE_CALIBRATE vs Z_ENDSTOP_CALIBRATE.
-                                    if (vm.startCommand == "Z_ENDSTOP_CALIBRATE") {
-                                        d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
-                                    } else {
-                                        d.dispatch(CommandRegistry.probeCalibrate, Unit)
-                                    }
-                                    // onStartDispatched was a no-op at the AppShell call site (22-07)
-                                },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent,
-                                enabled = dispatcher != null,
-                            )
-                            ProbeGutterButton(
-                                label = "Back",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
+                                iconTint = t.accent2,
+                                enabled = enabled,
                             )
                         }
-                        ProbePageState.Active -> {
-                            // BACK SUPPRESSED while a session is live (T-09-06-02) — Accept or Abort to leave.
-                            ProbeGutterButton(
-                                label = "Accept",
-                                onClick = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Go,
-                                enabled = dispatcher != null,
+                        // Column 2: step selector (neutral — a setting, not a directional control).
+                        Column(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ProbeIconButton(
+                                glyphName = "add",
+                                contentDescription = "Larger step",
+                                onClick = onStepUp,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                intent = Intent.Neutral,
+                                enabled = idx < TESTZ_STEPS.lastIndex,
                             )
-                            ProbeGutterButton(
-                                label = "Abort",
-                                onClick = {
-                                    // Mark abort BEFORE dispatching so the is_active→false transition
-                                    // returns to Idle (Start/Back), not Accepted (no Save of a discarded run).
-                                    holder.markAborted()
-                                    dispatcher?.dispatch(CommandRegistry.abort, Unit)
-                                },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Danger,
-                                enabled = dispatcher != null,
-                            )
-                        }
-                        ProbePageState.Accepted -> {
-                            ProbeGutterButton(
-                                label = "Save",
-                                onClick = { saveGuard = true },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Warn,
-                                enabled = dispatcher != null,
-                            )
-                            ProbeGutterButton(
-                                label = "Back",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral, // D-10: plain nav spends no safety color.
+                            StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
+                            ProbeIconButton(
+                                glyphName = "remove",
+                                contentDescription = "Smaller step",
+                                onClick = onStepDown,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                intent = Intent.Neutral,
+                                enabled = idx > 0,
                             )
                         }
                     }
-                }
-            },
-        )
-
-        // Amber SAVE_CONFIG restart gate (D-12) — persists the captured probe offset.
-        if (saveGuard) {
-            ConfirmGuard(
-                title = "Save & restart?",
-                message = "This saves the new Z offset and restarts the printer — the expected result of " +
-                    "calibration. The connection will briefly drop and reconnect.",
-                confirmLabel = "Save & restart",
-                warn = true,
-                onConfirm = {
-                    dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
-                    saveGuard = false
+                    // D-09: state-adaptive FootButtonBar (verbatim semantics from prior gutter).
+                    FootButtonBar(
+                        uDp = grid.uDp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        when (vm.state) {
+                            ProbePageState.Idle -> if (starting) {
+                                // Start dispatched, session not yet live — disabled "Starting…" feedback.
+                                // Back is also suppressed here (nav-layer BackHandler handles it).
+                                OutlinedControl(
+                                    label = stringResource(R.string.probe_starting),
+                                    onClick = {},
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                    enabled = false,
+                                )
+                            } else if (!vm.homedGate) {
+                                // Home All pre-flight — printer must be homed before PROBE_CALIBRATE.
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_home_all),
+                                    onClick = onHomeAll,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                    icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                )
+                            } else {
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_start),
+                                    onClick = onStart,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                    icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                )
+                            }
+                            ProbePageState.Active -> {
+                                // Back SUPPRESSED — nav-layer BackHandler in AppShell swallows system Back (D-09 / T-27-04-01).
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_accept),
+                                    onClick = onAccept,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Go,
+                                )
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_abort),
+                                    onClick = onAbort,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Danger,
+                                )
+                            }
+                            ProbePageState.Accepted -> {
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_save_config),
+                                    onClick = onSaveGuardShow,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Warn,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                    icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                )
+                            }
+                        }
+                    }
                 },
-                onCancel = { saveGuard = false },
+                gutter = null, // LAW: rebuilt screens always null the gutter.
             )
-        }
 
-        // Failure → SeverityToast(Error) with the printer's REDACTED RpcError text (never e.message,
-        // T-09-06-05) — overlaid at the bottom so the user sees WHY a TESTZ/Accept/Start was refused.
-        // Tap to dismiss; also auto-clears after a few seconds (no longer a stuck popup).
-        val shownError = toastError
-        if (shownError != null) {
-            Box(
-                Modifier.fillMaxSize().padding(16.dp),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
-                SeverityToast(
-                    Severity.Error,
-                    shownError,
-                    Modifier.fillMaxWidth().clickable { toastError = null },
+            // T-27-04-02: amber SAVE_CONFIG restart gate (proceed-at-peril) — persists the captured offset.
+            if (saveGuard) {
+                ConfirmGuard(
+                    title = stringResource(R.string.calibration_save_config),
+                    message = stringResource(R.string.calibration_save_config_confirm),
+                    confirmLabel = stringResource(R.string.calibration_save_config),
+                    warn = true,
+                    onConfirm = onSaveConfirm,
+                    onCancel = onSaveCancel,
                 )
+            }
+
+            // Error toast: dismissed by tap + auto-clears after 5 s.
+            val shownError = toastError
+            if (shownError != null) {
+                Box(
+                    Modifier.fillMaxSize().padding(16.dp),
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    SeverityToast(
+                        Severity.Error,
+                        shownError,
+                        Modifier.fillMaxWidth().clickable { onDismissError() },
+                    )
+                }
             }
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Focus composable (unchanged information, restyled)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Focus = three icons (nozzle — expand — bed) over the focal Z value (theme accent). State-adaptive:
- *  - Idle → the saved `probe.z_offset` from config, shown NEGATED (Moonraker stores it positive; the
- *    nozzle-to-bed offset reads as negative);
- *  - Active → the LIVE `manual_probe.z_position` from the macro feedback (as reported), with the original
- *    saved offset (negated) shown smaller + non-accent underneath for reference;
+ * Focus = three icons (probe — expand — nozzle) over the focal Z value (theme accent). State-adaptive:
+ *  - Idle → the saved `probe.z_offset` from config (negated for display — Moonraker stores positive);
+ *  - Active → the LIVE `manual_probe.z_position` from macro feedback (live nudge position),
+ *    with the original saved offset shown smaller for reference;
  *  - Accepted → the captured offset, same saved-offset reference underneath.
  */
 @Composable
 private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val saved = vm.savedZOffset // raw, stored positive in Moonraker
-    // Where the printer thinks the head is — the macro-feedback current Z (live while Active, the captured
-    // value once Accepted).
     val currentZ = when (vm.state) {
         ProbePageState.Active -> vm.zPosition
         ProbePageState.Accepted -> vm.capturedOffset
         else -> null
     }
-    // The big focal value (theme accent) = "what the offset is going to be", negated for display (offsets
-    // read negative, matching the saved value):
-    //  - Idle: the current saved offset, negated (stored positive).
-    //  - In-process: the resulting offset = −(initial offset − current head Z) = current head Z − initial.
     val zText = when (vm.state) {
         ProbePageState.Idle -> saved?.let { fmtZ(-it) } ?: "—"
         else -> if (saved != null && currentZ != null) fmtZ(currentZ - saved) else "—"
@@ -325,18 +431,11 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Three icons side by side: detector (the probe) — expand (the Z gap) — nozzle — the
-        // "probe detects the bed, set the gap to the nozzle" story.
         Row(
             Modifier.fillMaxWidth(0.82f),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 18.1-03 (D-08/D-09): detector + expand swapped from drawables to Material Symbols ligatures
-            // via the a11y-aware DinghyIconView (real cd → free TalkBack, no registry entry). nozzle stays
-            // a custom drawable (D-10). The weight().aspectRatio(1f) cell magnitude is preserved (cells stay
-            // equal-width to the kept nozzle drawable); the ligature glyph centers in its square cell at a
-            // Focus-hero sizeDp (matching the app's fsSp(56) calibration-hero convention, e.g. ScrewsTilt).
             DinghyIconView(
                 icon = DinghyIcon(IconRef.Ligature("detector"), alternate = "detector"),
                 contentDescription = "Probe",
@@ -358,7 +457,6 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
         }
-        // The focal value — single centered cell under the icons, ~1.5× size, theme accent.
         Text(
             text = zText,
             color = zColor,
@@ -367,9 +465,6 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
             fontSize = fsSp(72f, t.fs).sp,
             modifier = Modifier.padding(top = 20.dp),
         )
-        // During the process, line 2 = the current saved offset (negated) and where the head is ("Z", the
-        // raw macro-feedback current). Both smaller + non-accent. So the three values read as: hero = the
-        // offset that's going to be set; "saved" = the offset currently in config; "Z" = the head position.
         if (vm.state != ProbePageState.Idle) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -398,68 +493,44 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// D-08: ZReadoutDisplay — the new center cell of the Z-nudge column
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * The jog pad. Row 1 = the step selector: a [−] button, the current step (mm), and a [+] button —
- * +/- walk [TESTZ_STEPS] (clamped at the ends); selecting a step is a setting (white/neutral), always
- * enabled so the step is set before Start. Row 2 = the Z nudge: an up-arrow / down-arrow (blue/accent
- * physical commands) firing TESTZ(+step)/TESTZ(-step), disabled until the session is Active.
+ * The live-Z readout center cell of the Z-nudge column (D-08). Shows the current probe-session Z
+ * position (or saved offset when Idle). Uses Geist Mono tabular numerals and `t.directional.z` outline
+ * for Z-axis visual identity.
  */
 @Composable
-private fun ProbeJogPad(
-    enabled: Boolean,
-    step: Double,
-    onSelectStep: (Double) -> Unit,
-    onTestZ: (Double) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun ZReadoutDisplay(zValue: Double?, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    val idx = TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it }
-    // Two columns (the field rotated 90°): each control stacks in its natural vertical logical order —
-    // larger/up on top, smaller/down on bottom — instead of laying a vertical relationship out sideways.
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Step selector column: [+] larger / current step / [−] smaller. Always enabled (the step is a setting).
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ProbeIconButton(
-                glyphName = "add",
-                contentDescription = "Larger step",
-                onClick = { onSelectStep(TESTZ_STEPS[(idx + 1).coerceAtMost(TESTZ_STEPS.lastIndex)]) },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                intent = Intent.Neutral,
-                enabled = idx < TESTZ_STEPS.lastIndex,
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier.clip(shape).border(BorderStroke(2.dp, t.directional.z), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = zValue?.let { fmtZ(it) } ?: "—",
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(22f, t.fs).sp,
             )
-            StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
-            ProbeIconButton(
-                glyphName = "remove",
-                contentDescription = "Smaller step",
-                onClick = { onSelectStep(TESTZ_STEPS[(idx - 1).coerceAtLeast(0)]) },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                intent = Intent.Neutral,
-                enabled = idx > 0,
-            )
-        }
-        // Z nudge column: ↑ raise on top, ↓ lower on bottom — accent icons (a physical command), TESTZ(±step).
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ProbeIconButton(
-                glyphName = "arrow_upward",
-                contentDescription = "Raise nozzle (TESTZ +)",
-                onClick = { onTestZ(step) },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                intent = Intent.Accent,
-                iconTint = t.accent2,
-                enabled = enabled,
-            )
-            ProbeIconButton(
-                glyphName = "arrow_downward",
-                contentDescription = "Lower nozzle (TESTZ -)",
-                onClick = { onTestZ(-step) },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                intent = Intent.Accent,
-                iconTint = t.accent2,
-                enabled = enabled,
+            Text(
+                text = "mm",
+                color = t.text3,
+                fontFamily = Geist,
+                fontSize = fsSp(15f, t.fs).sp,
             )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// StepDisplay (unchanged from prior implementation)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /** The current adjustment step (mm) — a neutral-outlined read-only cell between the [−]/[+] buttons. */
 @Composable
@@ -482,20 +553,24 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
                 text = "mm",
                 color = t.text3,
                 fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
+                fontSize = fsSp(15f, t.fs).sp,
             )
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeIconButton (unchanged from prior implementation)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * An outline-led icon button (mirrors [ProbeGutterButton] but renders a glyph, not a label).
+ * An outline-led icon button (renders a Material Symbols ligature, not a label).
  *
  * 18.1-03 (D-08/D-09): the glyph is a Material Symbols ligature named by [glyphName] (was a
  * `painter: Painter` drawable). It renders through the a11y-aware [DinghyIconView] so the real
- * [contentDescription] is the spoken TalkBack label (NOT the raw ligature name) — without promoting the
- * site into the [DinghyIcons] registry. The disabled/iconTint coloring and ≥64dp button chrome are
- * unchanged; the glyph is sized at a fixed Focus-jog magnitude (was `fillMaxHeight(0.5f).aspectRatio(1f)`).
+ * [contentDescription] is the spoken TalkBack label (NOT the raw ligature name) — without promoting
+ * the site into the [DinghyIcons] registry. The disabled/iconTint coloring and ≥64dp button chrome
+ * are unchanged; the glyph is sized at a fixed Focus-jog magnitude.
  */
 @Composable
 private fun ProbeIconButton(
@@ -504,7 +579,7 @@ private fun ProbeIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     intent: Intent = Intent.Neutral,
-    iconTint: Color? = null,
+    iconTint: androidx.compose.ui.graphics.Color? = null,
     enabled: Boolean = true,
 ) {
     val t = LocalTokens.current
@@ -526,35 +601,9 @@ private fun ProbeIconButton(
     }
 }
 
-@Composable
-private fun ProbeGutterButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    intent: Intent = Intent.Neutral,
-    enabled: Boolean = true,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    val outline = intentColor(intent, t)
-    val base = modifier
-        .heightIn(min = 64.dp)
-        .clip(shape)
-        .border(BorderStroke(2.dp, if (enabled) outline else t.hair), shape)
-        .background(if (enabled) Color.Transparent else t.surface)
-        .padding(horizontal = 12.dp, vertical = 18.dp)
-    val box = if (enabled) base.clickable(onClick = onClick) else base
-    Box(box, contentAlignment = Alignment.Center) {
-        Text(
-            text = label,
-            color = if (enabled) t.text else t.text3,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-            maxLines = 1,
-        )
-    }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Formatting helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 /** Three-decimal mm — manual-probe nudges are fine (down to 0.005 mm). */
 private fun fmtZ(v: Double): String = String.format(Locale.US, "%.3f", v)
