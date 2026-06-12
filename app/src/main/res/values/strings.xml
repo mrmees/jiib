@@ -542,6 +542,12 @@
     <string name="tilt_done_body">Gantry leveled.</string>
     <string name="tilt_adjustments_applied">Z adjustments applied:</string>
 
+    <!-- ============== settings — 28-07 dense restyle feature toggles ============== -->
+    <string name="settings_webcam">Webcam</string>
+    <string name="settings_babystep">Z-Babystep adjust</string>
+    <string name="settings_babystep_layers">First-layer window</string>
+    <string name="settings_babystep_layers_hint">Layers</string>
+
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>
     <string name="settings_keep_screen_on">Keep screen awake</string>
