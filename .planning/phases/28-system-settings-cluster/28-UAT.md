@@ -2,8 +2,12 @@
 phase: 28
 slug: system-settings-cluster
 plan: 09
-status: pending
+status: passed
 created: 2026-06-12
+completed: 2026-06-12
+total: 6
+passed: 6
+issues: 0
 ---
 
 # Phase 28 — On-Device UAT Record
@@ -28,12 +32,12 @@ created: 2026-06-12
 
 | # | Item | Requirement | Status | Owner Notes |
 |---|------|-------------|--------|-------------|
-| 1 | Restyled cluster + System page — both orientations | SC-1 | pending | |
-| 2 | C6 density + fit-one-page at S/M/L | SC-2/SC-3 | pending | |
-| 3 | fsSp S/M/L + rotation correctness | SC-4 | pending | |
-| 4 | No-regression live smoke (connection edit, theme apply incl. S/V restore, printer add/remove/switch, sysinfo read) | SC-5 | pending | |
-| 5 | Swipe-up gesture dead + DRAWER_TILES reachability | D-04/D-05 | pending | |
-| 6 | Mid-print e-stop reachable on System cluster screens | D-06 | pending | |
+| 1 | Restyled cluster + System page — both orientations | SC-1 | resolved | GAP-A (1U floor) found and fixed in-loop; after fix, approved |
+| 2 | C6 density + fit-one-page at S/M/L | SC-2/SC-3 | resolved | Settings scrolls slightly past one page at M/portrait after GAP-A fix (1U rows are taller than dense 10dp); owner accepted — "All 1U" ruling supersedes the one-page goal |
+| 3 | fsSp S/M/L + rotation correctness | SC-4 | resolved | All screens reflow correctly; text stays legible at all sizes |
+| 4 | No-regression live smoke (connection edit, theme apply incl. S/V restore, printer add/remove/switch, sysinfo read) | SC-5 | resolved | Full smoke passed against live printer on flox |
+| 5 | Swipe-up gesture dead + DRAWER_TILES reachability | D-04/D-05 | resolved | Drawer never appeared; all 10 former destinations reachable via new paths |
+| 6 | Mid-print e-stop reachable on System cluster screens | D-06 | resolved | FloatingEStop visible and functional on System page and all cluster sub-screens during a print |
 
 ---
 
@@ -56,7 +60,11 @@ Open each of the following screens in BOTH portrait and landscape orientation:
 - System page rows navigate directly to their destination on tap (no intermediate selection)
 - Printers screen: FootButtonBar shows Add/Edit/Delete/Back; tapping Edit arms edit mode (row opens inline editor); tapping Delete arms delete mode (row shows ConfirmGuard on tap); tapping armed button again or Back disarms
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** GAP-A (U-grid abandoned — dense 10dp rows instead of 1U) found
+during this walk and fixed in-loop (commits e51254c + 89a24b8). After the fix, the owner approved.
+See GAP-A section below for the full root-cause and fix record.
 
 ---
 
@@ -73,7 +81,13 @@ In the device Settings app, set text size to S, M, and L in turn. At each size:
 - About fits one page at M text size
 - Dense rows are legible at all three sizes; nothing clips at L
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** Approved. Known accepted consequence: after the GAP-A 1U-floor fix,
+Settings scrolls slightly past one page at M in portrait (1U rows are taller than the prior 10dp dense
+padding). The owner's own "All 1U" ruling takes precedence over the original one-page goal — D-11
+(fit-one-page at M) is softened by the ruling. About still fits one page. Density legible at all
+three sizes; nothing clips at L.
 
 ---
 
@@ -90,7 +104,10 @@ While on each major screen (System page, Settings, Theme Editor, Printers, Syste
 - No text below the 15sp legibility floor at L size
 - fsSp scaling is perceptibly larger at L vs S (not identical)
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** All screens reflow correctly on rotation. Text stays at or above the
+15sp floor at all sizes. fsSp scaling is perceptibly larger at L vs S.
 
 ---
 
@@ -111,7 +128,11 @@ While on each major screen (System page, Settings, Theme Editor, Printers, Syste
 - Printer add/switch/delete all work without crash
 - System Information shows live data from the connected printer
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** Full smoke passed. Connection edit, theme apply with S/V restore,
+printer add/switch/delete, and System Information read all worked correctly against a live printer
+on flox.
 
 ---
 
@@ -137,7 +158,12 @@ While on each major screen (System page, Settings, Theme Editor, Printers, Syste
 - Temperature, Console, Fine-Tune appear on the home idle list
 - System page rows navigate to their correct screens
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** Swipe-up gesture confirmed dead on all tested screens — no drawer
+appeared anywhere. All 10 former drawer destinations confirmed reachable via the new paths:
+Temperature/Console/Fine-Tune on the home idle list; Printers/Settings/Theme/System Info/About/Power
+on the System page; System entry on the printing shortcut grid.
 
 ---
 
@@ -155,7 +181,11 @@ While a print is actively running on a connected printer:
 - Tapping the FloatingEStop opens the full-screen Stop Confirm guard
 - E-stop is not accidentally hidden by any System cluster screen layout
 
-**Status:** pending
+**Status:** resolved
+
+**Owner verdict (2026-06-12):** FloatingEStop visible and functional during a live print on all
+System cluster screens. Tapping it opened the full-screen Stop Confirm guard. Not hidden by any
+System cluster layout.
 
 ---
 
@@ -193,6 +223,12 @@ honor the unit-grid 1U height floor.
 
 ## Overall Status
 
-**Status:** pending
+**Status:** passed
 
-*Will be updated to `passed` / `partial` / `failed` after the owner walk.*
+**Owner verdict (2026-06-12):** All 6 Manual-Only Verification items approved. One gap (GAP-A: U-grid
+abandoned — dense 10dp rows instead of 1U) was found during the UAT walk and resolved in-loop before
+final approval. The owner's "All 1U" ruling supersedes the original D-11 one-page-at-M goal — Settings
+now scrolls slightly past one page at M in portrait; this is an accepted consequence of the ruling, not
+a defect.
+
+**Summary:** 6/6 passed (0 deferred, 0 failed, 1 gap found-and-resolved in-loop).
