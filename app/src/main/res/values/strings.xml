@@ -425,6 +425,16 @@
     <string name="extrude_no_load_macro">No %1$s macro configured</string>
     <string name="extrude_no_unload_macro">No %1$s macro configured</string>
 
+    <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
+    <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /
+         RoutineScrewsTilt / RoutineZTilt / RoutineQgl DinghyIcons tokens registered in 27-01.
+         The routine row's visible text label covers the name; these are TalkBack-only. -->
+    <string name="cd_routine_probe_calibrate">Probe calibrate</string>
+    <string name="cd_routine_bed_mesh">Bed mesh</string>
+    <string name="cd_routine_screws_tilt">Screws tilt</string>
+    <string name="cd_routine_z_tilt">Z tilt</string>
+    <string name="cd_routine_qgl">Quad gantry level</string>
+
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>
     <string name="settings_keep_screen_on">Keep screen awake</string>

@@ -115,6 +115,12 @@ NEEDED = {
     # the old SystemMacrosScreen and now registered in DinghyIcons (Visibility/VisibilityOff).
     # ("warning" — the SpoolWarningGuard glyph, now also registered — is already in the D-08 list above.)
     "visibility", "visibility_off",
+    # Phase-27 plan 01 (calibration hub routine tokens) — 5 owner-blessed ligatures promoted from raw
+    # MaterialSymbol(name=...) usage in CalibrationHubScreen to registry tokens. Owner confirmed
+    # 2026-06-12: "Bless all 5 as-is." All 5 already present in the v2.944 bundled ttf (P18.1 gate).
+    # RoutineProbeCalibrate=straighten, RoutineBedMesh=grid_on, RoutineScrewsTilt=architecture,
+    # RoutineZTilt=vertical_align_center, RoutineQgl=crop_square.
+    "straighten", "grid_on", "architecture", "vertical_align_center", "crop_square",
 }
 
 
