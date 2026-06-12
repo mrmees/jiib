@@ -474,6 +474,21 @@
     <string name="calibration_save_config_confirm">Save calibration and restart Klipper? All pending changes will be applied.</string>
     <string name="probe_starting">Starting…</string>
 
+    <!-- Bed Mesh screen (Phase 27-05) -->
+    <string name="mesh_calibrate">Calibrate</string>
+    <string name="mesh_apply">Apply</string>
+    <string name="mesh_save">Save</string>
+    <string name="mesh_remove">Remove</string>
+    <string name="mesh_remove_confirm">Remove this profile? This cannot be undone.</string>
+    <string name="mesh_save_name_hint">Profile name</string>
+    <string name="mesh_save_name_label">Save Profile</string>
+    <string name="mesh_save_confirm">Save</string>
+    <string name="mesh_save_name_invalid">Name must use letters, numbers, underscores, dots, and hyphens only.</string>
+    <string name="mesh_profile_active">Active</string>
+    <string name="mesh_empty_state">No saved profiles</string>
+    <string name="mesh_empty_state_hint">Run Calibrate to create one.</string>
+    <string name="cd_mesh_heatmap">Bed mesh heatmap</string>
+
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>
     <string name="settings_keep_screen_on">Keep screen awake</string>
