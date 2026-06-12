@@ -632,4 +632,17 @@
     <string name="theme_status_slot_caution">Caution</string>
     <string name="theme_status_slot_go">Go</string>
 
+
+    <!-- Splash recovery surface (wide-pass string extraction, R14) -->
+    <string name="splash_setup_printer">Set up your printer</string>
+    <string name="splash_retry">Retry</string>
+    <string name="splash_restart_firmware">Restart firmware</string>
+    <string name="splash_restart_klipper">Restart Klipper</string>
+    <string name="splash_edit_connection">Edit connection</string>
+    <string name="splash_reason_tls">TLS certificate not trusted — check the Moonraker reverse-proxy certificate</string>
+    <string name="splash_reason_startup">Printer starting up…</string>
+    <string name="splash_reason_shutdown">Printer is shut down</string>
+    <string name="splash_reason_error">Printer firmware error</string>
+    <string name="splash_reason_unreachable">Can\'t reach the printer</string>
+    <string name="splash_reason_connected">Connected</string>
 </resources>

@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -143,12 +144,8 @@ fun SystemPageContent(
                                     )
                                 },
                             ) {
-                                Text(
-                                    text = stringResource(row.labelRes),
-                                    color = t.text,
-                                    fontFamily = Geist,
-                                    fontSize = fsSp(17f, t.fs).sp,
-                                )
+                                // Canonical list label (R22/R11).
+                                ListRowLabel(stringResource(row.labelRes))
                             }
                         }
 
@@ -165,7 +162,7 @@ fun SystemPageContent(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
+                            intent = Intent.Accent, // R5: Back = accent
                         )
                     }
                 },
@@ -243,14 +240,15 @@ private fun PowerStubRow(uDp: Dp) {
             icon = DinghyIcons.SystemRowPower,
             contentDescription = null,
             tint = t.stop.copy(alpha = 0.38f),
-            sizeDp = 22.dp,
-            modifier = Modifier.padding(end = 8.dp),
+            sizeDp = uDp * 0.6f, // R23 parity with ListRowIcon
+            modifier = Modifier.padding(end = 12.dp), // gapM parity with ListRow anatomy
         )
         Text(
             text = stringResource(R.string.system_row_power),
             color = t.stop.copy(alpha = 0.38f),
             fontFamily = Geist,
-            fontSize = fsSp(17f, t.fs).sp,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(20f, t.fs).sp, // R11/R22 parity with ListRowLabel
         )
         Spacer(Modifier.weight(1f))
         Text(

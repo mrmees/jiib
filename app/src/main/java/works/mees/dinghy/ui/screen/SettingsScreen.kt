@@ -210,7 +210,7 @@ fun SettingsContent(
                             text = stringResource(R.string.settings_babystep_layers),
                             color = if (babystepOn) t.text else t.text3,
                             fontFamily = Geist,
-                            fontSize = fsSp(17f, t.fs).sp,
+                            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
                         )
                         Spacer(Modifier.weight(1f))
                         TokenTextField(
@@ -256,7 +256,7 @@ fun SettingsContent(
                             text = stringResource(R.string.settings_battery_optimization),
                             color = if (isExempt) t.text3 else t.text,
                             fontFamily = Geist,
-                            fontSize = fsSp(17f, t.fs).sp,
+                            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
@@ -272,13 +272,13 @@ fun SettingsContent(
                     }
 
                     // ── Back foot ─────────────────────────────────────────────────────────────
-                    // Neutral — plain nav spends no safety color (D-10). Inside the Column so it
+                    // R5/R8 (supersedes D-10): Back = accent. Inside the Column so it
                     // is always visible at the foot of the single-page scroll.
                     OutlinedControl(
                         label = stringResource(R.string.common_back),
                         onClick = onBack,
-                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                        intent = Intent.Neutral,
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp), // gapM
+                        intent = Intent.Accent,
                     )
                 }
             },
@@ -324,7 +324,7 @@ private fun DenseToggleRow(
             text = label,
             color = if (enabled) t.text else t.text3,
             fontFamily = Geist,
-            fontSize = fsSp(17f, t.fs).sp,
+            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
         )
         Spacer(Modifier.weight(1f))
     }

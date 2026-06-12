@@ -136,7 +136,7 @@ fun AboutContent(
                         label = stringResource(R.string.common_back),
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        intent = Intent.Neutral,
+                        intent = Intent.Accent, // R5: Back = accent
                     )
                 }
             },

@@ -133,7 +133,7 @@ fun SystemInformationContent(
                                 text = stringResource(R.string.sysinfo_health),
                                 color = t.text,
                                 fontFamily = Geist,
-                                fontSize = fsSp(17f, t.fs).sp,
+                                fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
@@ -253,7 +253,7 @@ fun SystemInformationContent(
                         label = stringResource(R.string.common_back),
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = Intent.Accent, // R5: Back = accent
                     )
                 }
             },
@@ -293,7 +293,7 @@ private fun InfoListRow(
             text = label,
             color = t.text,
             fontFamily = Geist,
-            fontSize = fsSp(17f, t.fs).sp,
+            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
         )
         Spacer(Modifier.weight(1f))
         Text(

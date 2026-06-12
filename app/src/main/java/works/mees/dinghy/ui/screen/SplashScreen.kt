@@ -106,10 +106,10 @@ fun SplashScreen(
                             RecoveryMode.FirstRun -> {
                                 // D-11: the only escape is into Settings to set up the printer.
                                 OutlinedControl(
-                                    label = "Set up your printer",
+                                    label = stringResource(R.string.splash_setup_printer),
                                     onClick = onEditConnection,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go, // R5: the first-run expected action
                                 )
                             }
 
@@ -117,19 +117,19 @@ fun SplashScreen(
                                 // D-12: Moonraker reachable but Klipper is shut down / errored — offer
                                 // the firmware/host recovery commands (routed via SessionControl).
                                 OutlinedControl(
-                                    label = "Retry",
+                                    label = stringResource(R.string.splash_retry),
                                     onClick = sessionControl::requestReconnectNow,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go, // R5: the recovery surface's expected action
                                 )
                                 OutlinedControl(
-                                    label = "Restart firmware",
+                                    label = stringResource(R.string.splash_restart_firmware),
                                     onClick = sessionControl::restartFirmware,
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Warn,
                                 )
                                 OutlinedControl(
-                                    label = "Restart Klipper",
+                                    label = stringResource(R.string.splash_restart_klipper),
                                     onClick = sessionControl::restartHost,
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Warn,
@@ -140,16 +140,16 @@ fun SplashScreen(
                                 // D-13: a saved connection that won't connect — Klippy isn't reachable,
                                 // so NO firmware/restart here (they'd never land); offer Retry + Edit.
                                 OutlinedControl(
-                                    label = "Retry",
+                                    label = stringResource(R.string.splash_retry),
                                     onClick = sessionControl::requestReconnectNow,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go, // R5: the recovery surface's expected action
                                 )
                                 OutlinedControl(
-                                    label = "Edit connection",
+                                    label = stringResource(R.string.splash_edit_connection),
                                     onClick = onEditConnection,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
+                                    intent = Intent.Accent, // R5: plain navigation = accent
                                 )
                             }
 
@@ -219,22 +219,25 @@ private fun recoveryMode(hasConfig: Boolean, state: PrinterState): RecoveryMode 
  * the actual Klippy/Moonraker reason) when non-null; otherwise a terse enum-derived fallback that is
  * NEVER blank.
  */
+@Composable
 private fun reasonText(hasConfig: Boolean, state: PrinterState): String {
-    if (!hasConfig) return "Set up your printer"
+    if (!hasConfig) return stringResource(R.string.splash_setup_printer)
     // R7 (26.5-07): a TLS trust failure on a useSecure (wss/https) connect is the LIVE actionable
     // cause — it outranks any retained klippyStateMessage from a prior session. Distinct message,
     // same Unreachable surface (Retry + Edit connection); never a silent fail or a trust-all bypass.
     val conn = state.connection
     if (conn is ConnectionState.Error && conn.reason == ConnectionError.TlsTrustFailure) {
-        return "TLS certificate not trusted — check the Moonraker reverse-proxy certificate"
+        return stringResource(R.string.splash_reason_tls)
     }
+    // Live Klippy/Moonraker message = pass-through DATA (rendered verbatim — never tokenized).
     state.klippyStateMessage?.takeIf { it.isNotBlank() }?.let { return it }
     return when (state.klippyState) {
-        KlippyState.Startup -> "Printer starting up…"
-        KlippyState.Shutdown -> "Printer is shut down"
-        KlippyState.Error -> "Printer firmware error"
-        KlippyState.Disconnected -> "Can't reach the printer"
+        KlippyState.Startup -> stringResource(R.string.splash_reason_startup)
+        KlippyState.Shutdown -> stringResource(R.string.splash_reason_shutdown)
+        KlippyState.Error -> stringResource(R.string.splash_reason_error)
+        KlippyState.Disconnected -> stringResource(R.string.splash_reason_unreachable)
         KlippyState.Ready ->
-            if (state.connection is ConnectionState.Connected) "Connected" else "Can't reach the printer"
+            if (state.connection is ConnectionState.Connected) stringResource(R.string.splash_reason_connected)
+            else stringResource(R.string.splash_reason_unreachable)
     }
 }

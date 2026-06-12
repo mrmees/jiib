@@ -259,6 +259,14 @@ fun PrintersContent(
                 FootButtonBar(
                     uDp = grid.uDp,
                 ) {
+                    // Back FIRST (accent — R5/R8); armed toggles keep Neutral as the
+                    // inactive-state style (R18).
+                    OutlinedControl(
+                        label = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent,
+                    )
                     OutlinedControl(
                         label = stringResource(R.string.printers_add),
                         onClick = onAdd,
@@ -276,12 +284,6 @@ fun PrintersContent(
                         onClick = onArmDelete,
                         modifier = Modifier.weight(1f),
                         intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.common_back),
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
                     )
                 }
             },
