@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -630,18 +631,25 @@ private fun SaturationValueSquare(
 ) {
     val t = LocalTokens.current
     val pureHue = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f)
+    // WR-09: the gesture block never reads `hue`, so keying pointerInput on it only RESTARTED the
+    // suspending handler on every hue change (cancelling an active S/V drag mid-gesture under
+    // multi-touch). Key on Unit instead — and route the callbacks through rememberUpdatedState so
+    // the never-recaptured lambda always invokes the LATEST onHandleMove/onSettle (the live screen's
+    // closures over hasActive/slot targets would otherwise go stale until a recapture).
+    val currentOnHandleMove by rememberUpdatedState(onHandleMove)
+    val currentOnSettle by rememberUpdatedState(onSettle)
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .pointerInput(hue) {
+            .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val w = size.width.toFloat()
                     val h = size.height.toFloat()
                     var s = (down.position.x / w).coerceIn(0f, 1f)
                     var v = 1f - (down.position.y / h).coerceIn(0f, 1f)
-                    onHandleMove(s, v)
+                    currentOnHandleMove(s, v)
                     down.consume()
                     do {
                         val event = awaitPointerEvent()
@@ -649,12 +657,12 @@ private fun SaturationValueSquare(
                             if (change.pressed && change.positionChanged()) {
                                 s = (change.position.x / w).coerceIn(0f, 1f)
                                 v = 1f - (change.position.y / h).coerceIn(0f, 1f)
-                                onHandleMove(s, v)
+                                currentOnHandleMove(s, v)
                                 change.consume()
                             }
                         }
                     } while (event.changes.any { it.pressed })
-                    onSettle(s, v)
+                    currentOnSettle(s, v)
                 }
             },
     ) {
