@@ -222,7 +222,7 @@ private fun DevEnableRow(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text(
-                text = if (checked) "ON" else "OFF",
+                text = if (checked) stringResource(R.string.common_on) else stringResource(R.string.common_off),
                 color = if (checked) t.accent else t.text2,
                 fontFamily = Geist,
                 fontWeight = FontWeight.Bold,

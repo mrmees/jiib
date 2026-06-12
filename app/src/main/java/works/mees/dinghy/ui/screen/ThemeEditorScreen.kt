@@ -39,11 +39,13 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ColorWheel
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
@@ -152,10 +154,10 @@ fun ThemeEditorScreen(
 
     if (pendingReset) {
         ConfirmGuard(
-            title = "Reset theme?",
-            message = "This clears your custom pool colors and randomize back to the default.",
-            confirmLabel = "Reset",
-            cancelLabel = "Keep",
+            title = stringResource(R.string.theme_reset_confirm_title),
+            message = stringResource(R.string.theme_reset_confirm_body),
+            confirmLabel = stringResource(R.string.theme_reset),
+            cancelLabel = stringResource(R.string.theme_keep),
             onConfirm = {
                 container.resetActiveTheme(hasActive)
                 pendingReset = false
@@ -296,11 +298,11 @@ fun ThemeEditorScreen(
     )
 }
 
-/** The palette-mode chips (D-15) — `ThemeResolver` mode name → display label. Colorful is the default. */
-private val PALETTE_MODES: List<Pair<String, String>> = listOf(
-    ThemeResolver.MODE_COLORFUL to "Colorful",
-    ThemeResolver.MODE_SIMPLE to "Simple",
-    ThemeResolver.MODE_HIGH_CONTRAST to "High contrast",
+/** The palette-mode chips (D-15) — `ThemeResolver` mode name → label resource (WR-05). Colorful is the default. */
+private val PALETTE_MODES: List<Pair<String, Int>> = listOf(
+    ThemeResolver.MODE_COLORFUL to R.string.theme_mode_colorful,
+    ThemeResolver.MODE_SIMPLE to R.string.theme_mode_simple,
+    ThemeResolver.MODE_HIGH_CONTRAST to R.string.theme_mode_high_contrast,
 )
 
 /**
@@ -525,18 +527,18 @@ private fun effectiveStatusColor(t: ThemeTokens, slot: StatusSlot): Color =
         StatusSlot.Go -> t.go
     }
 
-/** A human label for a status slot (titles/sub-labels). */
-private fun StatusSlot.label(): String = when (this) {
-    StatusSlot.Stop -> "Stop"
-    StatusSlot.Caution -> "Caution"
-    StatusSlot.Go -> "Go"
+/** The label resource for a status slot (titles/sub-labels) — WR-05 stringResource LAW. */
+private fun StatusSlot.labelRes(): Int = when (this) {
+    StatusSlot.Stop -> R.string.theme_status_slot_stop
+    StatusSlot.Caution -> R.string.theme_status_slot_caution
+    StatusSlot.Go -> R.string.theme_status_slot_go
 }
 
-/** A human label for a palette mode (mode-awareness messaging). */
-private fun PaletteMode.label(): String = when (this) {
-    PaletteMode.Colorful -> "Colorful"
-    PaletteMode.Simple -> "Simple"
-    PaletteMode.HighContrast -> "High-contrast"
+/** The label resource for a palette mode (mode-awareness messaging) — WR-05 stringResource LAW. */
+private fun PaletteMode.labelRes(): Int = when (this) {
+    PaletteMode.Colorful -> R.string.theme_mode_colorful
+    PaletteMode.Simple -> R.string.theme_mode_simple
+    PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
 }
 
 @Composable
@@ -789,15 +791,15 @@ internal fun ThemeEditorContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            ScreenTitle("Pool color ${editingSlot + 1}")
-            SectionLabel("Pick a color")
+            ScreenTitle(stringResource(R.string.theme_pool_color_title, editingSlot + 1))
+            SectionLabel(stringResource(R.string.theme_pick_a_color))
             ColorWheel(
                 hue = slotHue,
                 onHandleMove = onSlotHueMove,
                 onSettle = onSlotHueSettle,
                 modifier = Modifier.fillMaxWidth(),
             )
-            SectionLabel("Saturation / Brightness")
+            SectionLabel(stringResource(R.string.theme_saturation_brightness))
             SaturationValueSquare(
                 hue = slotHue,
                 sat = sat,
@@ -806,8 +808,8 @@ internal fun ThemeEditorContent(
                 onSettle = onSlotSvSettle,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = "Clear", onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
-                OutlinedControl(label = "Done", onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
+                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.common_done), onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
             }
             Box(Modifier.height(24.dp))
         }
@@ -826,24 +828,26 @@ internal fun ThemeEditorContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            ScreenTitle("Status color — ${editingStatusSlot.label()}")
+            ScreenTitle(stringResource(R.string.theme_status_color_title, stringResource(editingStatusSlot.labelRes())))
             // Mode-awareness (D-04): tell the truth about whether the edit changes the rendered status now.
             if (overrideTakesEffect) {
-                SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
+                SubLabel(stringResource(R.string.theme_status_redundant_cue))
             } else {
                 SubLabel(
-                    "Saved for Colorful mode. This mode (" + t.mode.label() +
-                        ") renders status from its fixed safety palette, so the picked color won't show here.",
+                    stringResource(
+                        R.string.theme_status_saved_for_colorful,
+                        stringResource(t.mode.labelRes()),
+                    ),
                 )
             }
-            SectionLabel("Pick a color")
+            SectionLabel(stringResource(R.string.theme_pick_a_color))
             ColorWheel(
                 hue = slotHue,
                 onHandleMove = onSlotHueMove,
                 onSettle = onSlotHueSettle,
                 modifier = Modifier.fillMaxWidth(),
             )
-            SectionLabel("Saturation / Brightness")
+            SectionLabel(stringResource(R.string.theme_saturation_brightness))
             SaturationValueSquare(
                 hue = slotHue,
                 sat = sat,
@@ -852,8 +856,8 @@ internal fun ThemeEditorContent(
                 onSettle = onSlotSvSettle,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = "Clear", onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
-                OutlinedControl(label = "Done", onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
+                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.common_done), onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
             }
             Box(Modifier.height(24.dp))
         }
@@ -868,20 +872,20 @@ internal fun ThemeEditorContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        ScreenTitle("Edit theme")
+        ScreenTitle(stringResource(R.string.theme_editor_title))
 
         // ---- 0. APPEARANCE — dark/light + S/M/L + palette-mode (15.2-04 finding 3) ----------------
         // Dark / Light — chrome derives from the seed; this only flips polarity.
-        SectionLabel("Mode")
+        SectionLabel(stringResource(R.string.theme_section_mode))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(label = "Dark", onClick = { onDarkChange(true) }, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
-            OutlinedControl(label = "Light", onClick = { onDarkChange(false) }, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
+            OutlinedControl(label = stringResource(R.string.theme_dark), onClick = { onDarkChange(true) }, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
+            OutlinedControl(label = stringResource(R.string.theme_light), onClick = { onDarkChange(false) }, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
         }
 
         // S / M / L text size (the --fs authority). Each segment is filled with a POOL color from the
         // active palette so the selector visibly reflects the current mode; the selected segment gets
         // the accent ring. The fill is the literal pool color (data carve-out).
-        SectionLabel("Text size")
+        SectionLabel(stringResource(R.string.theme_section_text_size))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             FontScale.entries.forEachIndexed { i, choice ->
                 val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
@@ -890,16 +894,16 @@ internal fun ThemeEditorContent(
         }
 
         // Palette mode (D-15) — Colorful (default) / Simple / High contrast. Active = Intent.Accent.
-        SectionLabel("Palette mode")
+        SectionLabel(stringResource(R.string.theme_section_palette_mode))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            for ((mode, label) in PALETTE_MODES) {
-                OutlinedControl(label = label, onClick = { onPaletteModeChange(mode) }, modifier = Modifier.weight(1f), intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral)
+            for ((mode, labelRes) in PALETTE_MODES) {
+                OutlinedControl(label = stringResource(labelRes), onClick = { onPaletteModeChange(mode) }, modifier = Modifier.weight(1f), intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral)
             }
         }
 
         // ---- 1. SEED COLOR — the wheel + S/V square (settle-regen, D-07 / D-16) -------------------
-        SectionLabel("Seed color")
-        SubLabel("Pick a hue on the ring, then adjust saturation and brightness below")
+        SectionLabel(stringResource(R.string.theme_section_seed_color))
+        SubLabel(stringResource(R.string.theme_seed_hint))
         ColorWheel(hue = hue, onHandleMove = onSeedHueMove, onSettle = onSeedHueSettle, modifier = Modifier.fillMaxWidth())
         // S/V square (D-16): purely local preview for the seed hue — the seed path persists hue only
         // (the generator cusp-normalizes L/C); slot pickers use the square for full S/V storage.
@@ -907,7 +911,7 @@ internal fun ThemeEditorContent(
         HorizontalDivider(color = t.hair, thickness = 1.dp)
 
         // ---- 2. PRESETS — curated seed swatches (tap lands seed) ----------------------------------
-        SectionLabel("Presets")
+        SectionLabel(stringResource(R.string.theme_section_presets))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (presetHex in PRESET_SEEDS) {
                 val presetHue = seedHexToHue(presetHex)
@@ -916,7 +920,7 @@ internal fun ThemeEditorContent(
         }
 
         // ---- 3. PREVIEW — the generated swatch strip (live; the carve-out) ------------------------
-        SectionLabel("Preview")
+        SectionLabel(stringResource(R.string.theme_section_preview))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // accent + the first few pool colors + the three status colors, each its actual color.
             DataSwatch(t.accent, Modifier.weight(1f))
@@ -929,8 +933,8 @@ internal fun ThemeEditorContent(
         HorizontalDivider(color = t.hair, thickness = 1.dp)
 
         // ---- 4. POOL COLORS — per-slot override grid (D-09) ---------------------------------------
-        SectionLabel("Pool colors")
-        SubLabel("Tap a color to customize")
+        SectionLabel(stringResource(R.string.theme_section_pool_colors))
+        SubLabel(stringResource(R.string.theme_pool_hint))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             t.pool.take(4).forEachIndexed { i, c ->
                 PoolSlotSwatch(fill = c, overridden = poolOverrides.containsKey(i.toString()), onClick = { onPoolSlotTap(i) }, modifier = Modifier.weight(1f))
@@ -939,11 +943,11 @@ internal fun ThemeEditorContent(
         HorizontalDivider(color = t.hair, thickness = 1.dp)
 
         // ---- 4b. STATUS COLORS — per-slot status override (D-03) ----------------------------------
-        SectionLabel("Status colors")
+        SectionLabel(stringResource(R.string.theme_section_status_colors))
         if (t.mode == PaletteMode.Colorful) {
-            SubLabel("Tap to customize — shape carries the meaning, so color is yours")
+            SubLabel(stringResource(R.string.theme_status_hint_colorful))
         } else {
-            SubLabel("Tap to customize (applies in Colorful; this mode shows the fixed safety palette)")
+            SubLabel(stringResource(R.string.theme_status_hint_gated))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (s in StatusSlot.entries) {
@@ -953,10 +957,10 @@ internal fun ThemeEditorContent(
 
         // ---- 5. ACTIONS — Randomize / Reset / Done ------------------------------------------------
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(label = "Randomize", onClick = onRandomize, modifier = Modifier.weight(1f), intent = Intent.Warn)
-            OutlinedControl(label = "Reset", onClick = onReset, modifier = Modifier.weight(1f), intent = Intent.Danger)
+            OutlinedControl(label = stringResource(R.string.theme_randomize), onClick = onRandomize, modifier = Modifier.weight(1f), intent = Intent.Warn)
+            OutlinedControl(label = stringResource(R.string.theme_reset), onClick = onReset, modifier = Modifier.weight(1f), intent = Intent.Danger)
         }
-        OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.fillMaxWidth(), intent = Intent.Go)
+        OutlinedControl(label = stringResource(R.string.common_done), onClick = onBack, modifier = Modifier.fillMaxWidth(), intent = Intent.Go)
         Box(Modifier.height(24.dp))
     }
 }

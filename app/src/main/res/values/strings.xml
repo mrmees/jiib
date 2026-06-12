@@ -580,4 +580,56 @@
     <string name="printers_edit_port">Port</string>
     <string name="printers_edit_key">API Key (optional)</string>
 
+    <!-- ============== printers — connection editor + state labels (28 WR-05 stringResource sweep) ============== -->
+    <string name="common_on">ON</string>
+    <string name="common_off">OFF</string>
+    <string name="printers_error_host_required">Host is required.</string>
+    <string name="printers_error_port_range">Port must be 1–65535.</string>
+    <string name="printers_edit_key_keep_saved">API key (leave blank to keep saved key)</string>
+    <string name="printers_key_saved">Key saved</string>
+    <string name="printers_scanning">Scanning…</string>
+    <string name="printers_scan_mdns">Scan (mDNS)</string>
+    <string name="printers_clear_key">Clear key</string>
+    <string name="printers_scan_none_found">No printers found — enter the host manually.</string>
+    <string name="conn_state_connected">Connected</string>
+    <string name="conn_state_connecting">Connecting…</string>
+    <string name="conn_state_syncing">Syncing…</string>
+    <string name="conn_state_error">Error</string>
+    <string name="conn_state_disconnected">Disconnected</string>
+
+    <!-- ============== theme editor (28 WR-05 stringResource sweep) ============== -->
+    <string name="theme_editor_title">Edit theme</string>
+    <string name="theme_reset_confirm_title">Reset theme?</string>
+    <string name="theme_reset_confirm_body">This clears your custom pool colors and randomize back to the default.</string>
+    <string name="theme_reset">Reset</string>
+    <string name="theme_keep">Keep</string>
+    <string name="theme_randomize">Randomize</string>
+    <string name="theme_clear">Clear</string>
+    <string name="theme_pool_color_title">Pool color %1$d</string>
+    <string name="theme_status_color_title">Status color — %1$s</string>
+    <string name="theme_pick_a_color">Pick a color</string>
+    <string name="theme_saturation_brightness">Saturation / Brightness</string>
+    <string name="theme_section_mode">Mode</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_section_text_size">Text size</string>
+    <string name="theme_section_palette_mode">Palette mode</string>
+    <string name="theme_section_seed_color">Seed color</string>
+    <string name="theme_seed_hint">Pick a hue on the ring, then adjust saturation and brightness below</string>
+    <string name="theme_section_presets">Presets</string>
+    <string name="theme_section_preview">Preview</string>
+    <string name="theme_section_pool_colors">Pool colors</string>
+    <string name="theme_pool_hint">Tap a color to customize</string>
+    <string name="theme_section_status_colors">Status colors</string>
+    <string name="theme_status_hint_colorful">Tap to customize — shape carries the meaning, so color is yours</string>
+    <string name="theme_status_hint_gated">Tap to customize (applies in Colorful; this mode shows the fixed safety palette)</string>
+    <string name="theme_status_redundant_cue">Color is a redundant cue — shape carries the safety meaning. Pick any color.</string>
+    <string name="theme_status_saved_for_colorful">Saved for Colorful mode. This mode (%1$s) renders status from its fixed safety palette, so the picked color won\'t show here.</string>
+    <string name="theme_mode_colorful">Colorful</string>
+    <string name="theme_mode_simple">Simple</string>
+    <string name="theme_mode_high_contrast">High contrast</string>
+    <string name="theme_status_slot_stop">Stop</string>
+    <string name="theme_status_slot_caution">Caution</string>
+    <string name="theme_status_slot_go">Go</string>
+
 </resources>

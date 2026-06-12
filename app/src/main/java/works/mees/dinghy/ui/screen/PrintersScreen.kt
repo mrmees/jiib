@@ -192,7 +192,7 @@ fun PrintersContent(
                             fontSize = fsSp(15f, t.fs).sp,
                         )
                         Text(
-                            text = connectionState.label(),
+                            text = stringResource(connectionState.labelRes()),
                             color = ringColor ?: t.text2,
                             fontFamily = Geist,
                             fontSize = fsSp(15f, t.fs).sp,
@@ -515,7 +515,7 @@ private fun PrinterConnectionEditor(
         )
         if (hostError) {
             Text(
-                text = "Host is required.",
+                text = stringResource(R.string.printers_error_host_required),
                 color = t.stop,
                 fontFamily = GeistMono,
                 fontSize = fsSp(15f, t.fs).sp,
@@ -532,7 +532,7 @@ private fun PrinterConnectionEditor(
         )
         if (portError) {
             Text(
-                text = "Port must be 1–65535.",
+                text = stringResource(R.string.printers_error_port_range),
                 color = t.stop,
                 fontFamily = GeistMono,
                 fontSize = fsSp(15f, t.fs).sp,
@@ -542,17 +542,18 @@ private fun PrinterConnectionEditor(
         TokenTextField(
             value = apiKey,
             onValueChange = { apiKey = it },
-            label = if (keyAlreadySaved)
-                "API key (leave blank to keep saved key)"
-            else
-                stringResource(R.string.printers_edit_key),
+            label = if (keyAlreadySaved) {
+                stringResource(R.string.printers_edit_key_keep_saved)
+            } else {
+                stringResource(R.string.printers_edit_key)
+            },
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Password,
             isPassword = true,
         )
         if (keyAlreadySaved && apiKey.isBlank()) {
             Text(
-                text = "Key saved",
+                text = stringResource(R.string.printers_key_saved),
                 color = t.go,
                 fontFamily = GeistMono,
                 fontSize = fsSp(15f, t.fs).sp,
@@ -573,7 +574,7 @@ private fun PrinterConnectionEditor(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedControl(
-                label = if (scanning) "Scanning…" else "Scan (mDNS)",
+                label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.printers_scan_mdns),
                 onClick = {
                     if (!scanning) {
                         scanRequest++ // triggers LaunchedEffect(scanRequest)
@@ -584,7 +585,7 @@ private fun PrinterConnectionEditor(
             )
             if (keyAlreadySaved) {
                 OutlinedControl(
-                    label = "Clear key",
+                    label = stringResource(R.string.printers_clear_key),
                     onClick = {
                         profile?.let { p ->
                             container.saveProfile(
@@ -605,7 +606,7 @@ private fun PrinterConnectionEditor(
 
         if (scanned && discovered.isEmpty()) {
             Text(
-                text = "No printers found — enter the host manually.",
+                text = stringResource(R.string.printers_scan_none_found),
                 color = t.text2,
                 fontFamily = GeistMono,
                 fontSize = fsSp(15f, t.fs).sp,
@@ -624,7 +625,7 @@ private fun PrinterConnectionEditor(
         }
 
         OutlinedControl(
-            label = "Save",
+            label = stringResource(R.string.common_save),
             onClick = {
                 val portInt = port.trim().toIntOrNull()
                 val blankHost = host.isBlank()
@@ -678,14 +679,15 @@ private fun PrinterConnectionEditor(
 private const val SCAN_WINDOW_MS = 6000L
 
 /**
- * Returns a human-readable label for the connection state (used in the Focus DetailCard).
+ * The string resource for a connection state’s human label (used in the Focus DetailCard) —
+ * WR-05: resolved via stringResource at the call site (the stringResource LAW).
  */
-private fun ConnectionState.label(): String = when (this) {
-    ConnectionState.Connected    -> "Connected"
-    ConnectionState.Connecting   -> "Connecting…"
-    ConnectionState.Syncing      -> "Syncing…"
-    is ConnectionState.Error     -> "Error"
-    ConnectionState.Disconnected -> "Disconnected"
+private fun ConnectionState.labelRes(): Int = when (this) {
+    ConnectionState.Connected    -> R.string.conn_state_connected
+    ConnectionState.Connecting   -> R.string.conn_state_connecting
+    ConnectionState.Syncing      -> R.string.conn_state_syncing
+    is ConnectionState.Error     -> R.string.conn_state_error
+    ConnectionState.Disconnected -> R.string.conn_state_disconnected
 }
 
 /**
@@ -735,7 +737,7 @@ private fun SecureToggleRow(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
             Text(
-                text = if (checked) "ON" else "OFF",
+                text = if (checked) stringResource(R.string.common_on) else stringResource(R.string.common_off),
                 color = if (checked) t.accent else t.text2,
                 fontFamily = Geist,
                 fontWeight = FontWeight.Bold,
