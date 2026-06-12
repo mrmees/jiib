@@ -72,7 +72,8 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
 
 /**
  * The outline-led, touch-first control language (UI-02) — the single most-reused interactive
- * primitive. A 2px outline + intent color on a TRANSPARENT fill, with a ≥64dp touch target floor
+ * primitive. A 2dp outline + intent color on a FILLED `t.surface` base (R4 — fill says "button";
+ * the old transparent-fill control language is superseded), with a ≥64dp touch target floor
  * built for gloved, greasy, fat-fingered taps at arm's length (docs/ui_design/CLAUDE.md, hifi.css
  * `.ctl`). Every value comes from [LocalTokens] — no raw color, no raw px beyond the touch floor and
  * the `--fs`-scaled label (the only sanctioned fixed values, LAYOUT.md NON-NEGOTIABLE 3).

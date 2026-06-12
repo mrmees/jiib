@@ -46,7 +46,6 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FloatingEStop
@@ -328,7 +327,7 @@ internal fun BedMeshContent(
                                                         color = t.accent2,
                                                         fontFamily = Geist,
                                                         fontWeight = FontWeight.Medium,
-                                                        fontSize = fsSp(14f, t.fs).sp,
+                                                        fontSize = fsSp(15f, t.fs).sp,
                                                     )
                                                 }
                                             } else null,
@@ -338,7 +337,8 @@ internal fun BedMeshContent(
                                                 color = t.text,
                                                 fontFamily = GeistMono,
                                                 fontWeight = FontWeight.Medium,
-                                                fontSize = fsSp(16f, t.fs).sp,
+                                                // R11 type ramp: list-item labels at the 20sp default.
+                                                fontSize = fsSp(20f, t.fs).sp,
                                             )
                                         }
                                     }
@@ -352,32 +352,42 @@ internal fun BedMeshContent(
                             ) {
                                 when {
                                     !vm.homed -> {
-                                        // Unhomed branch: Home All + Back
-                                        OutlinedControl(
-                                            label = stringResource(R.string.calibration_home_all),
-                                            onClick = onHomeAll,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = dispatcherPresent,
-                                        )
+                                        // Unhomed branch: Back (accent, FIRST — R5/R8) + Home All
+                                        // (go — homing is this state's expected action, R19).
                                         OutlinedControl(
                                             label = "",
                                             onClick = onBack,
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Neutral,
+                                            intent = Intent.Accent,
                                             icon = DinghyIcons.Back,
                                             contentDescription = stringResource(R.string.common_back),
                                         )
+                                        OutlinedControl(
+                                            label = stringResource(R.string.calibration_home_all),
+                                            onClick = onHomeAll,
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Go,
+                                            enabled = dispatcherPresent,
+                                        )
                                     }
                                     selectedProfile != null -> {
-                                        // Profile selected: Apply + Remove + Back
+                                        // Profile selected: Back (accent, FIRST) + Apply (go —
+                                        // the selection state's expected action, R5) + Remove (stop).
+                                        OutlinedControl(
+                                            label = "",
+                                            onClick = onBack,
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            icon = DinghyIcons.Back,
+                                            contentDescription = stringResource(R.string.common_back),
+                                        )
                                         OutlinedControl(
                                             label = stringResource(R.string.mesh_apply),
                                             onClick = {
                                                 selectedProfile?.let { onApplyProfile(it) }
                                             },
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
+                                            intent = Intent.Go,
                                             enabled = dispatcherPresent,
                                         )
                                         OutlinedControl(
@@ -387,22 +397,24 @@ internal fun BedMeshContent(
                                             intent = Intent.Danger,
                                             enabled = dispatcherPresent,
                                         )
+                                    }
+                                    else -> {
+                                        // Homed, no selection: Back (accent, FIRST) + Calibrate
+                                        // (go — the screen's expected action, R5/R19) + Save
+                                        // (go — accept/commit class, R5).
                                         OutlinedControl(
                                             label = "",
                                             onClick = onBack,
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Neutral,
+                                            intent = Intent.Accent,
                                             icon = DinghyIcons.Back,
                                             contentDescription = stringResource(R.string.common_back),
                                         )
-                                    }
-                                    else -> {
-                                        // Homed, no selection: Calibrate + Save + Back
                                         OutlinedControl(
                                             label = stringResource(R.string.mesh_calibrate),
                                             onClick = onCalibrate,
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
+                                            intent = Intent.Go,
                                             enabled = dispatcherPresent,
                                         )
                                         // WR-05 (27-review): with no active mesh, BED_MESH_PROFILE SAVE
@@ -412,16 +424,8 @@ internal fun BedMeshContent(
                                             label = stringResource(R.string.mesh_save),
                                             onClick = onShowSaveName,
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Neutral,
+                                            intent = Intent.Go,
                                             enabled = dispatcherPresent && !vm.isEmpty,
-                                        )
-                                        OutlinedControl(
-                                            label = "",
-                                            onClick = onBack,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Neutral,
-                                            icon = DinghyIcons.Back,
-                                            contentDescription = stringResource(R.string.common_back),
                                         )
                                     }
                                 }
@@ -437,7 +441,7 @@ internal fun BedMeshContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 Text(
@@ -465,7 +469,8 @@ internal fun BedMeshContent(
                                 }
                             }
 
-                            // SaveName foot: Save (accent, disabled until valid) + Cancel (danger, C7)
+                            // SaveName foot: Save (go — accept/commit, R5; disabled until valid)
+                            // + Cancel (danger, C7 cancel-with-loss)
                             FootButtonBar(
                                 uDp = grid.uDp,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -474,7 +479,7 @@ internal fun BedMeshContent(
                                     label = stringResource(R.string.mesh_save_confirm),
                                     onClick = { onSaveNameConfirm(saveName) },
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go,
                                     enabled = valid && dispatcherPresent,
                                 )
                                 // C7: cancel-with-loss → Intent.Danger (red)
@@ -634,7 +639,14 @@ private fun ScaleToggle(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        MaterialSymbol("expand", tint = t.text, sizeSp = fsSp(22f, t.fs))
+        // C-G1: registry-routed (reuses the BabystepExpand "expand" ligature — owner-sanctioned
+        // reuse precedent, DinghyIcons.kt; decorative beside the label → null a11y).
+        DinghyIconView(
+            icon = DinghyIcons.BabystepExpand,
+            tint = t.text,
+            sizeDp = fsSp(22f, t.fs).dp,
+            contentDescription = null,
+        )
         Text(
             text = label,
             color = t.text,

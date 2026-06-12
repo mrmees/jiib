@@ -381,11 +381,12 @@ private fun FineTuneContent(
                             },
                             uDp = grid.uDp,
                             leadingContent = {
-                                // UAT-1 exception: dense list-pane icon stays small
+                                // UAT-1 exception + R16: dense list-pane icon stays small but
+                                // TRACKS the row label (fsSp(22)), not frozen dp.
                                 DinghyIconView(
                                     icon = param.icon,
                                     tint = groupColor,
-                                    sizeDp = 22.dp,
+                                    sizeDp = fsSp(22f, t.fs).dp,
                                 )
                             },
                             trailingContent = {
@@ -404,7 +405,8 @@ private fun FineTuneContent(
                                 text = param.name,
                                 fontFamily = Geist,
                                 fontWeight = FontWeight.Normal,
-                                fontSize = fsSp(18f, t.fs).sp,
+                                // R11 type ramp: list-item labels at the 20sp default.
+                                fontSize = fsSp(20f, t.fs).sp,
                                 color = t.text,
                             )
                         }
@@ -416,12 +418,12 @@ private fun FineTuneContent(
                     uDp = grid.uDp,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    // Back (neutral) + Reset All (warn/amber).
+                    // Back (accent, FIRST — R5/R8) + Reset All (warn/amber).
                     OutlinedControl(
                         label = "",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = Intent.Accent,
                         icon = DinghyIcons.Back,
                     )
                     OutlinedControl(
