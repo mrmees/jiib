@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.screen
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -134,6 +135,47 @@ class PrintersModeToggleTest {
             "row tap in DeleteArmed must produce RequestDelete",
             RowTapEffect.RequestDelete,
             result,
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // CR-01: Save-time API-key resolution after an explicit Clear
+    // (the stale editor snapshot must never resurrect the cleared key)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun resolveEditorKeyOnSave_clearedThenBlankSave_persistsNull() {
+        assertNull(
+            "Clear key followed by Save with a blank field must persist null — " +
+                "the stale snapshot's old key must NOT resurrect (CR-01)",
+            resolveEditorKeyOnSave(storedKey = "old-secret", keyCleared = true, fieldInput = ""),
+        )
+    }
+
+    @Test
+    fun resolveEditorKeyOnSave_clearedThenTypedSave_persistsTypedKey() {
+        assertEquals(
+            "Clear key followed by typing a NEW key must persist the typed key",
+            "new-secret",
+            resolveEditorKeyOnSave(storedKey = "old-secret", keyCleared = true, fieldInput = "new-secret"),
+        )
+    }
+
+    @Test
+    fun resolveEditorKeyOnSave_notClearedBlankSave_preservesStoredKey() {
+        assertEquals(
+            "Save with a blank field and no Clear must preserve the stored key",
+            "old-secret",
+            resolveEditorKeyOnSave(storedKey = "old-secret", keyCleared = false, fieldInput = ""),
+        )
+    }
+
+    @Test
+    fun resolveEditorKeyOnSave_notClearedTypedSave_replacesStoredKey() {
+        assertEquals(
+            "Save with a typed field must replace the stored key",
+            "new-secret",
+            resolveEditorKeyOnSave(storedKey = "old-secret", keyCleared = false, fieldInput = "new-secret"),
         )
     }
 }

@@ -100,6 +100,27 @@ fun rowTapEffect(mode: PrinterMode): RowTapEffect = when (mode) {
     PrinterMode.DeleteArmed -> RowTapEffect.RequestDelete
 }
 
+/**
+ * Save-time API-key resolution for the connection editor (CR-01).
+ *
+ * The editor holds a STALE `profile` snapshot (captured at row-tap time), so after an explicit
+ * "Clear key" the snapshot still carries the OLD key. Feeding that stale key straight into
+ * [AppContainer.resolveApiKeyEdit] silently resurrected a credential the user removed.
+ * This helper is the single Save-time source of truth:
+ *  - [keyCleared] + blank [fieldInput] → `null` (the clear sticks — nothing resurrects);
+ *  - [keyCleared] + non-blank [fieldInput] → the typed key (user cleared, then entered a new one);
+ *  - not cleared + blank → [storedKey] (PRESERVE — a save without retyping keeps it);
+ *  - not cleared + non-blank → the typed key (REPLACE).
+ *
+ * Pure + package-level so [works.mees.dinghy.ui.screen] host tests cover it without Compose.
+ */
+fun resolveEditorKeyOnSave(storedKey: String?, keyCleared: Boolean, fieldInput: String): String? =
+    AppContainer.resolveApiKeyEdit(
+        existing = if (keyCleared) null else storedKey,
+        fieldInput = fieldInput,
+        cleared = keyCleared && fieldInput.isBlank(),
+    )
+
 // =============================================================================
 // Stateless content seam (WARNING-5 preview convention) — @Preview targets this.
 // =============================================================================
@@ -543,6 +564,9 @@ private fun PrinterConnectionEditor(
     var apiKey by remember { mutableStateOf("") }
     var useSecure by remember { mutableStateOf(false) }
     var keyAlreadySaved by remember { mutableStateOf(false) }
+    // CR-01: an explicit "Clear key" must survive until Save — the `profile` param is a STALE
+    // snapshot whose old key would otherwise resurrect through resolveApiKeyEdit's preserve path.
+    var keyCleared by remember { mutableStateOf(false) }
     var hostError by remember { mutableStateOf(false) }
     var portError by remember { mutableStateOf(false) }
 
@@ -579,6 +603,7 @@ private fun PrinterConnectionEditor(
         apiKey = ""
         useSecure = profile?.useSecure ?: false
         keyAlreadySaved = profile?.apiKey != null
+        keyCleared = false
         hostError = false
         portError = false
         scanned = false
@@ -688,6 +713,9 @@ private fun PrinterConnectionEditor(
                         }
                         apiKey = ""
                         keyAlreadySaved = false
+                        // CR-01: remember the clear locally — the stale `profile` snapshot still
+                        // carries the old key, and Save must NOT resurrect it.
+                        keyCleared = true
                     },
                     modifier = Modifier.weight(1f),
                     intent = Intent.Danger,
@@ -724,10 +752,12 @@ private fun PrinterConnectionEditor(
                 hostError = blankHost
                 portError = badPort
                 if (!blankHost && !badPort) {
-                    val resolvedKey = AppContainer.resolveApiKeyEdit(
-                        existing = profile?.apiKey,
+                    // CR-01: Save-time resolution honors a prior "Clear key" — the stale snapshot's
+                    // old key must never resurrect through the blank-field preserve path.
+                    val resolvedKey = resolveEditorKeyOnSave(
+                        storedKey = profile?.apiKey,
+                        keyCleared = keyCleared,
                         fieldInput = apiKey,
-                        cleared = false,
                     )
                     val next = if (profile != null) {
                         profile.copy(
