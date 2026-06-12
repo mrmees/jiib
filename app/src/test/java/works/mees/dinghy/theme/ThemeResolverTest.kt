@@ -74,7 +74,6 @@ class ThemeResolverTest {
             dark = false,
             paletteMode = ThemeResolver.MODE_COLORFUL,
             poolShift = 0,
-            maxItems = DEFAULT_POOL_MAX_ITEMS,
             overrides = emptyMap(),
             fs = FontScale.S.multiplier,
         )

@@ -21,17 +21,15 @@ class ThemePrefsFallbackTest {
         dark: Boolean? = true,
         mode: String? = "Colorful",
         shift: Int? = 0,
-        maxItems: Int? = 4,
         fs: String? = FontScale.M.name,
         overrides: Map<String, Long> = emptyMap(),
-    ) = ThemePrefs.sanitizeTuple(seed, dark, mode, shift, maxItems, fs, overrides)
+    ) = ThemePrefs.sanitizeTuple(seed, dark, mode, shift, fs, overrides)
 
     /** A tuple is "fully usable" if every field is a sane, in-range value (the resolver can generate). */
     private fun assertFullyUsable(t: ThemePrefs.ThemeTuple) {
         assertTrue("seed is a valid hex", Regex("^#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$").matches(t.seedHex))
         assertTrue(t.paletteMode in setOf("Colorful", "Simple", "HighContrast"))
         assertTrue(t.poolShift in 0..360)
-        assertTrue(t.maxItems in 1..64)
         assertTrue(t.fs > 0f)
     }
 
@@ -71,20 +69,13 @@ class ThemePrefsFallbackTest {
         assertEquals("HighContrast", sanitize(mode = "HighContrast").paletteMode) // exact name honoured
     }
 
-    // ---- shift / maxItems --------------------------------------------------------------------------
+    // ---- shift -------------------------------------------------------------------------------------
 
     @Test
     fun outOfRangeShift_fallsBackToDefault() {
         assertEquals(ThemePrefs.DEFAULT_SHIFT, sanitize(shift = -10).poolShift)
         assertEquals(ThemePrefs.DEFAULT_SHIFT, sanitize(shift = 400).poolShift)
         assertEquals(120, sanitize(shift = 120).poolShift)
-    }
-
-    @Test
-    fun outOfRangeMaxItems_fallsBackToDefault() {
-        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, sanitize(maxItems = 0).maxItems)
-        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, sanitize(maxItems = 65).maxItems)
-        assertEquals(12, sanitize(maxItems = 12).maxItems)
     }
 
     // ---- fs ----------------------------------------------------------------------------------------
@@ -162,7 +153,6 @@ class ThemePrefsFallbackTest {
             seed = "???",
             mode = "???",
             shift = -999,
-            maxItems = 9999,
             fs = "???",
             overrides = mapOf("Nope" to 0xDEAD_BEEF_DEADL),
         )

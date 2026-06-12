@@ -61,7 +61,7 @@ class StatusOverrideTokenBridgeTest {
     private suspend fun resolveViaIdle(mode: String, wire: Map<String, Long>): ThemeTokens {
         val tuple = ThemePrefs.sanitizeTuple(
             rawSeed = seed, rawDark = true, rawMode = mode, rawShift = 0,
-            rawMaxItems = 4, rawFs = "M", rawOverrides = wire,
+            rawFs = "M", rawOverrides = wire,
         )
         return applyTuple(tuple)
     }
@@ -69,7 +69,7 @@ class StatusOverrideTokenBridgeTest {
     private suspend fun resolveViaActiveProfile(mode: String, wire: Map<String, Long>): ThemeTokens {
         val tuple = Profile(
             id = "p1", host = "h", seedHex = seed, dark = true, paletteMode = mode,
-            poolShift = 0, maxItems = 4, poolOverrides = wire, fsChoice = "M",
+            poolShift = 0, poolOverrides = wire, fsChoice = "M",
         ).toThemeTuple()
         return applyTuple(tuple)
     }
@@ -81,7 +81,6 @@ class StatusOverrideTokenBridgeTest {
             dark = tuple.dark,
             paletteMode = tuple.paletteMode,
             poolShift = tuple.poolShift,
-            maxItems = tuple.maxItems,
             overrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
             statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
             fs = tuple.fs,
@@ -181,7 +180,7 @@ class StatusOverrideTokenBridgeTest {
     fun sanitize_splitsKeysCorrectly_statusVsPool_dropsBoth() {
         val tuple = ThemePrefs.sanitizeTuple(
             rawSeed = seed, rawDark = true, rawMode = "Colorful", rawShift = 0,
-            rawMaxItems = 4, rawFs = "M",
+            rawFs = "M",
             rawOverrides = mapOf(
                 "stop" to 0xFFAB12CDL,       // status
                 "2" to 0xFF445566L,          // pool index

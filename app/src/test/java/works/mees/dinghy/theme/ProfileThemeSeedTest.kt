@@ -10,7 +10,7 @@ import works.mees.dinghy.config.Profile
  * Per-printer theme TUPLE derivation (D-03/D-08, RESEARCH Pattern 3) — the 15-05 rework.
  *
  * Exercises [Profile.toThemeTuple] (real, Task 1): a profile's persisted theme PRIMITIVES
- * (`seedHex`/`dark`/`paletteMode`/`poolShift`/`maxItems`/`poolOverrides`) resolve to the correct
+ * (`seedHex`/`dark`/`paletteMode`/`poolShift`/`poolOverrides`) resolve to the correct
  * [ThemePrefs.ThemeTuple], reusing [ThemePrefs.sanitizeTuple] so corrupt primitives fail safe to the
  * defaults PER ENTRY and NEVER throw (V5/T-15-05-01). Host-pure: no AppContainer/DataStore dependency.
  */
@@ -21,7 +21,6 @@ class ProfileThemeSeedTest {
         dark: Boolean = true,
         mode: String = "Colorful",
         shift: Int = 0,
-        maxItems: Int = 4,
         fs: String = "M",
         overrides: Map<String, Long> = emptyMap(),
     ) = Profile(
@@ -31,19 +30,17 @@ class ProfileThemeSeedTest {
         dark = dark,
         paletteMode = mode,
         poolShift = shift,
-        maxItems = maxItems,
         fsChoice = fs,
         poolOverrides = overrides,
     )
 
     @Test
     fun mapsTuplePrimitivesToResolved() {
-        val t = profile(seedHex = "#abcdef", dark = false, mode = "Simple", shift = 90, maxItems = 6, fs = "L").toThemeTuple()
+        val t = profile(seedHex = "#abcdef", dark = false, mode = "Simple", shift = 90, fs = "L").toThemeTuple()
         assertEquals("#abcdef", t.seedHex)
         assertFalse(t.dark)
         assertEquals("Simple", t.paletteMode)
         assertEquals(90, t.poolShift)
-        assertEquals(6, t.maxItems)
         assertEquals(FontScale.L.multiplier, t.fs)
     }
 
@@ -82,13 +79,6 @@ class ProfileThemeSeedTest {
     }
 
     @Test
-    fun outOfRangeMaxItems_failsSafeToDefault() {
-        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, profile(maxItems = 0).toThemeTuple().maxItems)
-        assertEquals(ThemePrefs.DEFAULT_MAX_ITEMS, profile(maxItems = 100).toThemeTuple().maxItems)
-        assertEquals(8, profile(maxItems = 8).toThemeTuple().maxItems) // in-range honoured
-    }
-
-    @Test
     fun badFs_failsSafeToM() {
         assertEquals(FontScale.M.multiplier, profile(fs = "XXL").toThemeTuple().fs)
     }
@@ -121,7 +111,6 @@ class ProfileThemeSeedTest {
             seedHex = "###",
             mode = "Nope",
             shift = -50,
-            maxItems = 999,
             fs = "???",
             overrides = mapOf("x" to 0x1_FFFF_FFFFL),
         ).toThemeTuple()

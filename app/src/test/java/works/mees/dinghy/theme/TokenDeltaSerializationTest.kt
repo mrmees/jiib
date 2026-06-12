@@ -39,11 +39,11 @@ class TokenDeltaSerializationTest {
 
         // The NEW tuple fields default (D-05 fresh-start — old theme is NOT migrated); the now-unknown
         // themeBase/themeDeltaArgb keys are silently skipped by ignoreUnknownKeys (no crash).
+        // D-17/28-04: the pool-size field was also removed from PersistedProfile; old blobs skip it too.
         assertEquals("#3f78ff", p.seedHex)
         assertTrue(p.dark)
         assertEquals("Colorful", p.paletteMode)
         assertEquals(0, p.poolShift)
-        assertEquals(4, p.maxItems)
         assertTrue(p.poolOverrides.isEmpty())
 
         val tuple = Profile.fromPersisted(p).toThemeTuple()
@@ -59,7 +59,6 @@ class TokenDeltaSerializationTest {
             dark = false,
             paletteMode = "Simple",
             poolShift = 90,
-            maxItems = 6,
             poolOverrides = mapOf("1" to 0xFF112233L, "3" to 0xFF445566L),
             fsChoice = "L",
         )
@@ -70,7 +69,6 @@ class TokenDeltaSerializationTest {
         assertEquals(false, back.dark)
         assertEquals("Simple", back.paletteMode)
         assertEquals(90, back.poolShift)
-        assertEquals(6, back.maxItems)
         assertEquals(mapOf("1" to 0xFF112233L, "3" to 0xFF445566L), back.poolOverrides)
         assertEquals("L", back.fsChoice)
         assertEquals(original, back)

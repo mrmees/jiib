@@ -70,7 +70,7 @@ class ConnectionConfigTest {
         val oldBlob = """
             [{"id":"e5plus","name":"Ender 5 Plus","host":"192.168.1.120","port":7125,
               "apiKey":"abc123","seedHex":"#3f78ff","dark":true,"paletteMode":"Colorful",
-              "poolShift":0,"maxItems":4,"poolOverrides":{},"fsChoice":"M","webcamEnabled":true}]
+              "poolShift":0,"poolOverrides":{},"fsChoice":"M","webcamEnabled":true}]
         """.trimIndent()
         val profiles = ProfileStore.sanitize(oldBlob)
         assertEquals(1, profiles.size)
