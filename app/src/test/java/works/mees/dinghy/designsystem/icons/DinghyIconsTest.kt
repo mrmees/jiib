@@ -71,7 +71,10 @@ class DinghyIconsTest {
         //   - "output_circle": OutputCircle (FineTune Extrusion-factor control) + LauncherExtrude
         //     (PrintStatus launcher Extrude tile) — the same official extrude/output glyph for the same
         //     concept, on different screens that never render together (260607-fts).
-        val allowedSharedLigatures = setOf("output_circle")
+        //   - "palette": Palette (Spool detail-pane color swatch) + SystemRowTheme (System page Theme row)
+        //     — Spool and System page never co-render; the D-21 owner-locked theme-row glyph assignment
+        //     reuses the palette ligature for a different semantic token on a different screen (28-01).
+        val allowedSharedLigatures = setOf("output_circle", "palette")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->

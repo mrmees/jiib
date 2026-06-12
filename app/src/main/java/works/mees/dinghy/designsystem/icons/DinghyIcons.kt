@@ -214,6 +214,18 @@ object DinghyIcons {
     val ScrewTurnCw = DinghyIcon(IconRef.Ligature("rotate_right"), alternate = "screw_turn_cw")         // ScrewsTilt: turn clockwise
     val MeshEmpty = DinghyIcon(IconRef.Ligature("grid_off"), alternate = "mesh_empty")                  // BedMesh: empty-state Focus
 
+    // --- Phase-28 System/Settings cluster glyphs (28-01, OWNER-LOCKED D-21).
+    // All ligatures verified resolvable in the bundled v2.944 Material Symbols ttf.
+    // `settings` / `info` / `power_settings_new` are new-to-NEEDED (not yet in verify_ligatures.py).
+    // `palette` is already registered as Palette (Spool detail pane) — `SystemRowTheme` and `Palette`
+    // never co-occur on one screen, so the shared ligature is allow-listed in DinghyIconsTest (WR-02).
+    val LauncherFineTune = DinghyIcon(IconRef.Ligature("line_style"), alternate = "launcher_fine_tune")
+    val SystemRowPrinters = DinghyIcon(IconRef.Ligature("android_wifi_3_bar_plus"), alternate = "system_row_printers")
+    val SystemRowSettings = DinghyIcon(IconRef.Ligature("settings"), alternate = "system_row_settings")
+    val SystemRowTheme = DinghyIcon(IconRef.Ligature("palette"), alternate = "system_row_theme")
+    val SystemRowAbout = DinghyIcon(IconRef.Ligature("info"), alternate = "system_row_about")
+    val SystemRowPower = DinghyIcon(IconRef.Ligature("power_settings_new"), alternate = "system_row_power")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -241,5 +253,7 @@ object DinghyIcons {
         JogXPlus, HomeStateHomed, HomeStateUnhomed,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
         MeshEmpty,
+        LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,
+        SystemRowAbout, SystemRowPower,
     )
 }

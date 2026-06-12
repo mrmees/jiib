@@ -127,6 +127,11 @@ NEEDED = {
     # preserved unchanged; this is drift-guarding, not icon selection.
     "arrow_forward", "in_home_mode", "wifi_home", "point_scan", "anchor", "commit",
     "rotate_left", "rotate_right", "grid_off",
+    # Phase-28 plan 01 (System/Settings cluster icon-registry foundation, D-21 OWNER-LOCKED).
+    # Six new tokens for the System page rows and the WaterfallHome idle-list Fine-Tune row.
+    # `palette` is ALREADY in NEEDED above (Spool detail Palette token) — de-dup applies, skip.
+    # All 5 below verified resolvable in the v2.944 bundled ttf (28-01 Task-1 gate).
+    "line_style", "android_wifi_3_bar_plus", "settings", "info", "power_settings_new",
 }
 
 
