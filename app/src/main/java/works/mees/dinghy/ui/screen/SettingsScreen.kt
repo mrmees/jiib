@@ -18,11 +18,13 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -152,8 +154,16 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    // Local field mirrors the persisted layer-count; re-seed when the stored value changes.
-    var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
+    // Local field mirrors the persisted layer-count. WR-03 (the Phase-19 value-not-sticking family):
+    // the DataStore round-trip echo must NOT clobber the buffer mid-edit — typing "12" raced the
+    // async flow emission for "1", which re-keyed the old remember(babystepLayers) and discarded the
+    // "2". Re-seed ONLY while the field is unfocused; on blur the field resyncs to the persisted
+    // (possibly coerced — setLayerCount floors at 1) value.
+    var layersEditing by remember { mutableStateOf(false) }
+    var layersField by remember { mutableStateOf(babystepLayers.toString()) }
+    LaunchedEffect(babystepLayers, layersEditing) {
+        if (!layersEditing) layersField = babystepLayers.toString()
+    }
 
     // BoxWithConstraints for grid — needed by ListRow (uDp for 1U height floor) and OutlinedControl.
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -214,7 +224,12 @@ fun SettingsContent(
                             },
                             label = stringResource(R.string.settings_babystep_layers_hint),
                             keyboardType = KeyboardType.Number,
-                                modifier = Modifier.weight(1f).padding(start = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                                // WR-03: while focused the persisted-value echo is held off the
+                                // buffer; on blur the LaunchedEffect above resyncs the field.
+                                .onFocusChanged { layersEditing = it.isFocused },
                         )
                     }
 
