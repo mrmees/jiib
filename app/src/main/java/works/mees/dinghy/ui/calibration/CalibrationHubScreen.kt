@@ -1,60 +1,57 @@
 package works.mees.dinghy.ui.calibration
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.R
 import works.mees.dinghy.calibration.CalibrationHubHolder
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.RoutineEntry
-import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.UnitGrid
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
 /**
- * The Calibration hub (CALIB-01 / D-14). One drawer destination listing ALL five routines as square
- * outline tiles (mirrors [works.mees.dinghy.ui.shell.AppDrawer]'s `DrawerTile` grammar). Per the
- * UI-SPEC §1 OWNER OVERRIDE, EVERY routine renders — supported routines first (accent outline),
- * unsupported greyed (`--outline` on `--surface-2`) and sorted last, but STILL tappable so the owner
- * can open and inspect each page even when the printer didn't report the object (the greyed state IS
- * the message). [CalibrationHubHolder] already returns the supported-first ordering.
- *
- * Field-only [ScreenScaffold] (Focus omitted). Gutter = single green `Back` (the hub is reached from
- * the drawer; LAYOUT.md keeps an explicit exit). Drawer-swipe is NOT suppressed (tiles are a grid, not
- * a scroll list). Static styling only (D-13) — outline + faint fill, no looping animation
- * (Adreno-320 floor). Every color routes through [LocalTokens] — NO raw color literal (THEME-01).
+ * Thin VM-reading wrapper for the CalibrationHub. Collects `holder.routines` + owns `selected`
+ * state, then delegates ALL layout to the stateless [CalibrationHubContent] overload (WARNING-5
+ * preview seam — the @Preview matrix targets [CalibrationHubContent], not this screen).
  *
  * @param holder  the headless hub holder (supported-first routine list, live off capabilities).
  * @param onOpen  invoked with the tapped [CalibrationRoutine] — navigates to the routine's NavDest
  *                sub-route via navController.navigate(routine.toNavDest()) (D-07, Phase 27).
- * @param onBack  the neutral Back gutter exit (D-10).
+ * @param onBack  the neutral Back footer exit.
  */
 @Composable
 fun CalibrationHubScreen(
@@ -64,146 +61,216 @@ fun CalibrationHubScreen(
     modifier: Modifier = Modifier,
 ) {
     val routines by holder.routines.collectAsStateWithLifecycle()
-    val t = LocalTokens.current
-
-    Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            field = {
-                Column(
-                    Modifier.fillMaxSize().padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Calibration",
-                        color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(24f, t.fs).sp,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                    )
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(routines, key = { it.routine.name }) { entry ->
-                            RoutineTile(entry = entry, onClick = { onOpen(entry.routine) })
-                        }
-                    }
-                }
-            },
-            gutter = {
-                Box(Modifier.fillMaxWidth().padding(8.dp)) {
-                    HubActionControl(
-                        label = "Back",
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
-                    )
-                }
-            },
-        )
+    var selected by remember { mutableStateOf<CalibrationRoutine?>(null) }
+    // D-05: pre-select the first entry so Focus is never empty on initial render.
+    LaunchedEffect(routines) {
+        if (selected == null) selected = routines.firstOrNull()?.routine
     }
+
+    CalibrationHubContent(
+        routines = routines,
+        selected = selected,
+        onSelect = { selected = it },
+        onOpen = onOpen,
+        onBack = onBack,
+        modifier = modifier,
+    )
 }
 
 /**
- * One routine tile. SUPPORTED → accent outline + full-strength text/glyph; UNSUPPORTED → hairline
- * outline + dimmed (`--surface-2` fill, `--text-3` content). BOTH are tappable (owner override §1 —
- * even greyed tiles navigate so the page can be inspected). Sacred square (`aspectRatio(1f)`).
+ * Stateless hub layout — the @Preview matrix targets this composable (no VM, no live Moonraker).
+ *
+ * Field = [ListBlock] of [ListRow]s (supported-first, greyed-if-unsupported per D-06 — all 5 always
+ * render, unsupported dimmed in [ThemeTokens.text3] but still selectable and openable).
+ * Focus = [DetailCard] with the selected routine's icon (UAT-1: ~75% of U), title, author-written
+ * description, and an accent Open button.
+ *
+ * D-05: the thin [CalibrationHubScreen] wrapper ensures [selected] is never null on first render
+ * (pre-select logic via LaunchedEffect). This composable handles null gracefully with an empty Focus.
  */
 @Composable
-private fun RoutineTile(entry: RoutineEntry, onClick: () -> Unit) {
+fun CalibrationHubContent(
+    routines: List<RoutineEntry>,
+    selected: CalibrationRoutine?,
+    onSelect: (CalibrationRoutine) -> Unit,
+    onOpen: (CalibrationRoutine) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
-    val supported = entry.isSupported
-    val shape = RoundedCornerShape(t.rCtrl)
-    val outline = if (supported) t.accentLine else t.hair
-    val contentColor = if (supported) t.text else t.text3
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .aspectRatio(1f)
-            .clip(shape)
-            .border(BorderStroke(2.dp, outline), shape)
-            .background(t.surface2)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(8.dp),
-        ) {
-            MaterialSymbol(name = entry.routine.glyph, tint = contentColor, sizeSp = fsSp(40f, t.fs))
-            Text(
-                text = entry.routine.label,
-                color = contentColor,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(15f, t.fs).sp,
-                textAlign = TextAlign.Center,
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        Box(Modifier.fillMaxSize()) {
+            ScreenScaffold(
+                focus = {
+                    // Focus: DetailCard with routine icon + title + description + Open button.
+                    // UAT-4: FloatingEStop reserves the top-left corner; keep content clear of it.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        DetailCard(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                            if (selected != null) {
+                                HubRoutineFocus(
+                                    routine = selected,
+                                    onOpen = { onOpen(selected) },
+                                    grid = grid,
+                                    t = t,
+                                )
+                            }
+                        }
+                        // UAT-4: FloatingEStop top-left corner reservation (printing-only overlay).
+                        // The hub is a pre-print/calibration screen so isPrinting is always false here;
+                        // the FloatingEStop correctly shows nothing. We still include it so the structural
+                        // contract is honoured if the app state ever allows this screen during printing.
+                        FloatingEStop(
+                            visible = false, // hub is a pop-to-root foot-gun — not shown during print
+                            onClick = {},
+                            uDp = grid.uDp,
+                            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+                        )
+                    }
+                },
+                field = {
+                    // Field: ListBlock suppresses swipe-up App Drawer automatically (scrollable Field).
+                    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                        items(routines, key = { it.routine.name }) { entry ->
+                            ListRow(
+                                selected = entry.routine == selected,
+                                onClick = { onSelect(entry.routine) },
+                                uDp = grid.uDp,
+                                leadingContent = {
+                                    // DinghyIconView — NOT raw MaterialSymbol (D-16 icon law).
+                                    DinghyIconView(
+                                        icon = routineIconToken(entry.routine),
+                                        contentDescription = null, // row label describes the row
+                                        tint = if (entry.isSupported) t.accent2 else t.text3,
+                                        sizeDp = grid.uDp * 0.5f,
+                                        modifier = Modifier.padding(end = 8.dp),
+                                    )
+                                },
+                            ) {
+                                Text(
+                                    text = stringResource(routineTitleRes(entry.routine)),
+                                    color = if (entry.isSupported) t.text else t.text3,
+                                    fontFamily = Geist,
+                                    fontSize = fsSp(16f, t.fs).sp,
+                                )
+                            }
+                        }
+                    }
+                    FootButtonBar(
+                        uDp = grid.uDp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        OutlinedControl(
+                            label = "",
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Neutral,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
+                    }
+                },
+                gutter = null, // LAW: rebuilt screens always null the gutter.
             )
         }
     }
 }
 
-/**
- * Hub tile glyph (Material Symbols ligature) — UNIQUE per routine on this screen (CLAUDE.md
- * "never the same glyph twice"): screws-tilt `architecture`, Z-tilt `vertical_align_center`, QGL
- * `crop_square`, bed-mesh `grid_on`, probe-calibrate `straighten`.
- */
-private val CalibrationRoutine.glyph: String
-    get() = when (this) {
-        CalibrationRoutine.SCREWS_TILT -> "architecture"
-        CalibrationRoutine.Z_TILT -> "vertical_align_center"
-        CalibrationRoutine.QUAD_GANTRY_LEVEL -> "crop_square"
-        CalibrationRoutine.BED_MESH -> "grid_on"
-        CalibrationRoutine.PROBE_CALIBRATE -> "straighten"
-    }
-
-/** Human label for the tile. */
-private val CalibrationRoutine.label: String
-    get() = when (this) {
-        CalibrationRoutine.SCREWS_TILT -> "Screws Tilt"
-        CalibrationRoutine.Z_TILT -> "Z Tilt"
-        CalibrationRoutine.QUAD_GANTRY_LEVEL -> "QGL"
-        CalibrationRoutine.BED_MESH -> "Bed Mesh"
-        CalibrationRoutine.PROBE_CALIBRATE -> "Probe Calibrate"
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// Hub Focus content (the DetailCard interior)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HubActionControl(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    intent: Intent = Intent.Neutral,
+private fun HubRoutineFocus(
+    routine: CalibrationRoutine,
+    onOpen: () -> Unit,
+    grid: UnitGrid,
+    t: ThemeTokens,
 ) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Box(
-        modifier
-            .heightIn(min = 64.dp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, intentColor(intent, t)), shape)
-            .padding(horizontal = 12.dp, vertical = 18.dp)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // UAT-1: prominent icon ~70-80% of U (75% = midpoint of range).
+        DinghyIconView(
+            icon = routineIconToken(routine),
+            contentDescription = null, // title below provides the label
+            tint = t.accent2,
+            sizeDp = grid.uDp * 0.75f,
+        )
         Text(
-            text = label,
+            text = stringResource(routineTitleRes(routine)),
             color = t.text,
             fontFamily = Geist,
             fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            fontSize = fsSp(20f, t.fs).sp,
+        )
+        Text(
+            text = stringResource(routineDescRes(routine)),
+            color = t.text2,
+            fontFamily = Geist,
+            fontSize = fsSp(15f, t.fs).sp,
+        )
+        OutlinedControl(
+            label = stringResource(R.string.calibration_open_routine),
+            onClick = onOpen,
+            modifier = Modifier.fillMaxWidth(),
+            intent = Intent.Accent,
         )
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Icon token mapping (owner-confirmed tokens from 27-01)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Maps a [CalibrationRoutine] to its owner-confirmed [DinghyIcons] token (27-01). */
+internal fun routineIconToken(routine: CalibrationRoutine) = when (routine) {
+    CalibrationRoutine.PROBE_CALIBRATE -> DinghyIcons.RoutineProbeCalibrate
+    CalibrationRoutine.BED_MESH -> DinghyIcons.RoutineBedMesh
+    CalibrationRoutine.SCREWS_TILT -> DinghyIcons.RoutineScrewsTilt
+    CalibrationRoutine.Z_TILT -> DinghyIcons.RoutineZTilt
+    CalibrationRoutine.QUAD_GANTRY_LEVEL -> DinghyIcons.RoutineQgl
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// String resource helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared calibration utilities (used by BedMeshScreen, ScrewsTiltScreen, TiltScreen,
+// ProbeCalibrateScreen — kept internal to the ui.calibration package)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Intent → outline color mapping. Shared by pre-redesign calibration screen helper buttons. */
 internal fun intentColor(intent: Intent, t: ThemeTokens) = when (intent) {
     Intent.Neutral -> t.outline
     Intent.Accent -> t.accentLine
     Intent.Warn -> t.heat
     Intent.Danger -> t.stop
     Intent.Go -> t.go
+}
+
+/** Maps a [CalibrationRoutine] to its title string resource ID. */
+private fun routineTitleRes(routine: CalibrationRoutine): Int = when (routine) {
+    CalibrationRoutine.PROBE_CALIBRATE -> R.string.calibration_routine_probe_title
+    CalibrationRoutine.BED_MESH -> R.string.calibration_routine_mesh_title
+    CalibrationRoutine.SCREWS_TILT -> R.string.calibration_routine_screws_title
+    CalibrationRoutine.Z_TILT -> R.string.calibration_routine_ztilt_title
+    CalibrationRoutine.QUAD_GANTRY_LEVEL -> R.string.calibration_routine_qgl_title
+}
+
+/** Maps a [CalibrationRoutine] to its description string resource ID. */
+private fun routineDescRes(routine: CalibrationRoutine): Int = when (routine) {
+    CalibrationRoutine.PROBE_CALIBRATE -> R.string.calibration_routine_probe_desc
+    CalibrationRoutine.BED_MESH -> R.string.calibration_routine_mesh_desc
+    CalibrationRoutine.SCREWS_TILT -> R.string.calibration_routine_screws_desc
+    CalibrationRoutine.Z_TILT -> R.string.calibration_routine_ztilt_desc
+    CalibrationRoutine.QUAD_GANTRY_LEVEL -> R.string.calibration_routine_qgl_desc
 }
