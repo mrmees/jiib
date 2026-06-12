@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -489,188 +491,195 @@ private fun PrinterConnectionEditor(
         discovered = emptyList()
     }
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(20f, t.fs).sp,
-        )
-
-        TokenTextField(
-            value = host,
-            onValueChange = { host = it; hostError = false },
-            label = stringResource(R.string.printers_edit_host),
-            modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text,
-            isError = hostError,
-        )
-        if (hostError) {
+    // WR-08 (GAP-A 'All 1U' ruling): the editor is a plain Column with no grid, so derive the
+    // unit here — the tappable rows below need the 1U heightIn floor like every sibling surface.
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Text(
-                text = stringResource(R.string.printers_error_host_required),
-                color = t.stop,
-                fontFamily = GeistMono,
-                fontSize = fsSp(15f, t.fs).sp,
+                text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
+                color = t.text,
+                fontFamily = Geist,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(20f, t.fs).sp,
             )
-        }
 
-        TokenTextField(
-            value = port,
-            onValueChange = { port = it; portError = false },
-            label = stringResource(R.string.printers_edit_port),
-            modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Number,
-            isError = portError,
-        )
-        if (portError) {
-            Text(
-                text = stringResource(R.string.printers_error_port_range),
-                color = t.stop,
-                fontFamily = GeistMono,
-                fontSize = fsSp(15f, t.fs).sp,
+            TokenTextField(
+                value = host,
+                onValueChange = { host = it; hostError = false },
+                label = stringResource(R.string.printers_edit_host),
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Text,
+                isError = hostError,
             )
-        }
-
-        TokenTextField(
-            value = apiKey,
-            onValueChange = { apiKey = it },
-            label = if (keyAlreadySaved) {
-                stringResource(R.string.printers_edit_key_keep_saved)
-            } else {
-                stringResource(R.string.printers_edit_key)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Password,
-            isPassword = true,
-        )
-        if (keyAlreadySaved && apiKey.isBlank()) {
-            Text(
-                text = stringResource(R.string.printers_key_saved),
-                color = t.go,
-                fontFamily = GeistMono,
-                fontSize = fsSp(15f, t.fs).sp,
-            )
-        }
-
-        // R7 (26.5-07): per-printer wss/https toggle.
-        SecureToggleRow(
-            label = stringResource(R.string.printers_use_secure),
-            subLabel = if (useSecure) {
-                stringResource(R.string.printers_use_secure_sub_on)
-            } else {
-                stringResource(R.string.printers_use_secure_sub_off)
-            },
-            checked = useSecure,
-            onToggle = { useSecure = it },
-        )
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(
-                label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.printers_scan_mdns),
-                onClick = {
-                    if (!scanning) {
-                        scanRequest++ // triggers LaunchedEffect(scanRequest)
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
-            )
-            if (keyAlreadySaved) {
-                OutlinedControl(
-                    label = stringResource(R.string.printers_clear_key),
-                    onClick = {
-                        profile?.let { p ->
-                            container.saveProfile(
-                                p.copy(apiKey = AppContainer.resolveApiKeyEdit(p.apiKey, apiKey, cleared = true)),
-                            )
-                        }
-                        apiKey = ""
-                        keyAlreadySaved = false
-                        // CR-01: remember the clear locally — the stale `profile` snapshot still
-                        // carries the old key, and Save must NOT resurrect it.
-                        keyCleared = true
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Danger,
+            if (hostError) {
+                Text(
+                    text = stringResource(R.string.printers_error_host_required),
+                    color = t.stop,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
                 )
             }
-        }
 
-        if (scanned && discovered.isEmpty()) {
-            Text(
-                text = stringResource(R.string.printers_scan_none_found),
-                color = t.text2,
-                fontFamily = GeistMono,
-                fontSize = fsSp(15f, t.fs).sp,
+            TokenTextField(
+                value = port,
+                onValueChange = { port = it; portError = false },
+                label = stringResource(R.string.printers_edit_port),
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Number,
+                isError = portError,
             )
-        }
-        for (printer in discovered) {
-            DiscoveredPrinterRow(
-                printer = printer,
-                onClick = {
-                    host = printer.host
-                    port = printer.port.toString()
-                    hostError = false
-                    portError = false
+            if (portError) {
+                Text(
+                    text = stringResource(R.string.printers_error_port_range),
+                    color = t.stop,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+            }
+
+            TokenTextField(
+                value = apiKey,
+                onValueChange = { apiKey = it },
+                label = if (keyAlreadySaved) {
+                    stringResource(R.string.printers_edit_key_keep_saved)
+                } else {
+                    stringResource(R.string.printers_edit_key)
                 },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Password,
+                isPassword = true,
+            )
+            if (keyAlreadySaved && apiKey.isBlank()) {
+                Text(
+                    text = stringResource(R.string.printers_key_saved),
+                    color = t.go,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+            }
+
+            // R7 (26.5-07): per-printer wss/https toggle.
+            SecureToggleRow(
+                uDp = grid.uDp,
+                label = stringResource(R.string.printers_use_secure),
+                subLabel = if (useSecure) {
+                    stringResource(R.string.printers_use_secure_sub_on)
+                } else {
+                    stringResource(R.string.printers_use_secure_sub_off)
+                },
+                checked = useSecure,
+                onToggle = { useSecure = it },
+            )
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(
+                    label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.printers_scan_mdns),
+                    onClick = {
+                        if (!scanning) {
+                            scanRequest++ // triggers LaunchedEffect(scanRequest)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent,
+                )
+                if (keyAlreadySaved) {
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_clear_key),
+                        onClick = {
+                            profile?.let { p ->
+                                container.saveProfile(
+                                    p.copy(apiKey = AppContainer.resolveApiKeyEdit(p.apiKey, apiKey, cleared = true)),
+                                )
+                            }
+                            apiKey = ""
+                            keyAlreadySaved = false
+                            // CR-01: remember the clear locally — the stale `profile` snapshot still
+                            // carries the old key, and Save must NOT resurrect it.
+                            keyCleared = true
+                        },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Danger,
+                    )
+                }
+            }
+
+            if (scanned && discovered.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.printers_scan_none_found),
+                    color = t.text2,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+            }
+            for (printer in discovered) {
+                DiscoveredPrinterRow(
+                    uDp = grid.uDp,
+                    printer = printer,
+                    onClick = {
+                        host = printer.host
+                        port = printer.port.toString()
+                        hostError = false
+                        portError = false
+                    },
+                )
+            }
+
+            OutlinedControl(
+                label = stringResource(R.string.common_save),
+                onClick = {
+                    val portInt = port.trim().toIntOrNull()
+                    val blankHost = host.isBlank()
+                    val badPort = portInt == null || portInt !in 1..65535
+                    hostError = blankHost
+                    portError = badPort
+                    if (!blankHost && !badPort) {
+                        // CR-01: Save-time resolution honors a prior "Clear key" — the stale snapshot's
+                        // old key must never resurrect through the blank-field preserve path.
+                        val resolvedKey = resolveEditorKeyOnSave(
+                            storedKey = profile?.apiKey,
+                            keyCleared = keyCleared,
+                            fieldInput = apiKey,
+                        )
+                        val next = if (profile != null) {
+                            profile.copy(
+                                host = host.trim(),
+                                port = portInt!!,
+                                apiKey = resolvedKey,
+                                useSecure = useSecure,
+                            )
+                        } else {
+                            Profile(
+                                id = Profile.newId(),
+                                name = null,
+                                host = host.trim(),
+                                port = portInt!!,
+                                apiKey = resolvedKey,
+                                useSecure = useSecure,
+                            )
+                        }
+                        container.saveProfile(next)
+                        apiKey = ""
+                        onDone()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Go,
+            )
+
+            OutlinedControl(
+                label = stringResource(R.string.common_back),
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Neutral,
             )
         }
-
-        OutlinedControl(
-            label = stringResource(R.string.common_save),
-            onClick = {
-                val portInt = port.trim().toIntOrNull()
-                val blankHost = host.isBlank()
-                val badPort = portInt == null || portInt !in 1..65535
-                hostError = blankHost
-                portError = badPort
-                if (!blankHost && !badPort) {
-                    // CR-01: Save-time resolution honors a prior "Clear key" — the stale snapshot's
-                    // old key must never resurrect through the blank-field preserve path.
-                    val resolvedKey = resolveEditorKeyOnSave(
-                        storedKey = profile?.apiKey,
-                        keyCleared = keyCleared,
-                        fieldInput = apiKey,
-                    )
-                    val next = if (profile != null) {
-                        profile.copy(
-                            host = host.trim(),
-                            port = portInt!!,
-                            apiKey = resolvedKey,
-                            useSecure = useSecure,
-                        )
-                    } else {
-                        Profile(
-                            id = Profile.newId(),
-                            name = null,
-                            host = host.trim(),
-                            port = portInt!!,
-                            apiKey = resolvedKey,
-                            useSecure = useSecure,
-                        )
-                    }
-                    container.saveProfile(next)
-                    apiKey = ""
-                    onDone()
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Go,
-        )
-
-        OutlinedControl(
-            label = stringResource(R.string.common_back),
-            onClick = onDone,
-            modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Neutral,
-        )
     }
 }
 
@@ -694,6 +703,7 @@ private fun ConnectionState.labelRes(): Int = when (this) {
  */
 @Composable
 private fun SecureToggleRow(
+    uDp: Dp,
     label: String,
     subLabel: String?,
     checked: Boolean,
@@ -705,10 +715,13 @@ private fun SecureToggleRow(
     Row(
         Modifier
             .fillMaxWidth()
+            // WR-08: 1U touch floor (GAP-A "All 1U" ruling) — fixed vertical padding alone fell
+            // below the floor at S text size.
+            .heightIn(min = uDp)
             .clip(shape)
             .border(BorderStroke(2.dp, outline), shape)
             .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -749,6 +762,7 @@ private fun SecureToggleRow(
 /** A discovered-printer row (mDNS), local to the connection editor. */
 @Composable
 private fun DiscoveredPrinterRow(
+    uDp: Dp,
     printer: DiscoveredPrinter,
     onClick: () -> Unit,
 ) {
@@ -757,10 +771,13 @@ private fun DiscoveredPrinterRow(
     Row(
         Modifier
             .fillMaxWidth()
+            // WR-08: 1U touch floor (GAP-A "All 1U" ruling).
+            .heightIn(min = uDp)
             .clip(shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = printer.name,
