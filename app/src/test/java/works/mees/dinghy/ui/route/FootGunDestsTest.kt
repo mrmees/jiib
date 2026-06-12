@@ -49,6 +49,8 @@ class FootGunDestsTest {
             NavDest.Theme,
             NavDest.Settings,
             NavDest.About,
+            // Phase 28 D-01/D-06: System cluster is mid-print reachable — never foot-gun
+            NavDest.System,
         )
         for (dest in midPrint) {
             assertTrue("$dest must NOT be in FOOT_GUN_DESTS", dest !in FOOT_GUN_DESTS)

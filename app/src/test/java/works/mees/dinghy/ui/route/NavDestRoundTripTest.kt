@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.route
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.ui.shell.parseStartDest
 
@@ -48,6 +49,27 @@ class NavDestRoundTripTest {
     @Test fun calibrationScrewsTilt_roundTrips()  { assertRoundTrip(NavDest.CalibrationScrewsTilt) }
     @Test fun calibrationZTilt_roundTrips()       { assertRoundTrip(NavDest.CalibrationZTilt) }
     @Test fun calibrationQgl_roundTrips()         { assertRoundTrip(NavDest.CalibrationQgl) }
+
+    // ---------------------------------------------------------------------------
+    // System page route (Phase 28, D-01)
+    // ---------------------------------------------------------------------------
+
+    /** NavDest.System must round-trip via parseStartDest (D-01, Phase 28). */
+    @Test fun system_roundTrips()  { assertRoundTrip(NavDest.System) }
+
+    /** NavDest.System must be in knownNavDests (count rises to 23). */
+    @Test
+    fun system_isInKnownNavDests() {
+        assertTrue("NavDest.System must be in knownNavDests",
+            NavDest.System in knownNavDests)
+    }
+
+    /** NavDest.System must NOT be in FOOT_GUN_DESTS — mid-print reachable (D-06). */
+    @Test
+    fun system_isNotInFootGunDests() {
+        assertTrue("NavDest.System must NOT be in FOOT_GUN_DESTS (mid-print reachable, D-06)",
+            NavDest.System !in FOOT_GUN_DESTS)
+    }
 
     // ---------------------------------------------------------------------------
     // All knownNavDests round-trip (completeness guard)

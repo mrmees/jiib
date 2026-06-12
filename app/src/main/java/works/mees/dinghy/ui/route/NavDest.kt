@@ -15,6 +15,10 @@ import works.mees.dinghy.calibration.CalibrationRoutine
  * routine sub-destinations — replacing the old in-screen `when(calibrationRoutine)` dispatch.
  * The NavHost back-stack is now the SINGLE source of truth for the active calibration screen.
  *
+ * ## System cluster (Phase 28, D-01)
+ * [NavDest.System] is the new System page that replaces the retired drawer-as-system-hub. It is
+ * intentionally mid-print reachable (D-06) and therefore NOT in [FOOT_GUN_DESTS].
+ *
  * ## Iteration
  * Sealed interfaces have no `.entries` (unlike enums). Use [knownNavDests] for iteration,
  * round-trip testing, and the [parseStartDest] safe-parse in [StartDestMapping].
@@ -50,10 +54,12 @@ sealed interface NavDest {
     @Serializable data object Theme                  : NavDest
     @Serializable data object Settings               : NavDest
     @Serializable data object About                  : NavDest
+    @Serializable data object System                 : NavDest   // System page hub (D-01, Phase 28)
 }
 
 /**
- * All 22 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes, D-07).
+ * All 23 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
+ * + 1 System page hub D-01/Phase 28).
  *
  * Sealed interfaces have no `.entries` — use this list for round-trip testing ([parseStartDest]),
  * verification coverage, and any place that previously iterated [Dest.entries].
@@ -81,6 +87,7 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.Theme,
     NavDest.Settings,
     NavDest.About,
+    NavDest.System,   // Phase 28 D-01: System page hub; count = 23
 )
 
 // ---------------------------------------------------------------------------
@@ -119,6 +126,9 @@ fun CalibrationRoutine.toNavDest(): NavDest = when (this) {
  * AppShell's [LaunchedEffect] uses [shouldPopToRoot] to pop the user back to [NavDest.WaterfallHome].
  * Screens that are valid mid-print (Temperature, Macros, Fine-Tune, Console, Webcam) are intentionally
  * NOT in this set — D-04 only pops foot-gun destinations, never valid-mid-print ones.
+ *
+ * [NavDest.System] and all System-cluster sub-screens are intentionally absent: the whole cluster is
+ * mid-print reachable (D-06, Phase 28). The `else -> null` fallback in [shouldPopToRoot] covers them.
  */
 val FOOT_GUN_DESTS: Set<NavDest> = setOf(
     NavDest.Move,
