@@ -3,11 +3,19 @@ package works.mees.dinghy.preview
 import works.mees.dinghy.calibration.BedMeshModel
 import works.mees.dinghy.calibration.BedMeshVm
 import works.mees.dinghy.calibration.CalibrationRoutine
+import works.mees.dinghy.calibration.GuidedLoopState
 import works.mees.dinghy.calibration.ProbeCalibrateVm
 import works.mees.dinghy.calibration.ProbePageState
 import works.mees.dinghy.calibration.RoutineEntry
+import works.mees.dinghy.calibration.ScrewPoint
+import works.mees.dinghy.calibration.ScrewTurn
+import works.mees.dinghy.calibration.ScrewsTiltVm
+import works.mees.dinghy.calibration.TiltState
+import works.mees.dinghy.calibration.TiltVm
+import works.mees.dinghy.calibration.ZAdjustment
 import works.mees.dinghy.render.BedMeshHeatmapView
 import works.mees.dinghy.ui.calibration.MeshFieldMode
+import works.mees.dinghy.ui.calibration.TiltVariant
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
@@ -304,6 +312,100 @@ object SampleFixtures {
             capturedOffset = 0.023, // accepted paper-test result
             savedZOffset = 1.425,
             homedGate = true,
+        )
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // ScrewsTiltContent fixtures (idle + result snapshots — 27-06)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [ScrewsTiltVm] idle snapshot (no results yet, all axes homed). The bed visualization
+     * shows the 4-screw layout at their real positions; the Field list shows "—" placeholders.
+     */
+    val screwsTiltIdle: ScrewsTiltVm = ScrewsTiltVm(
+        loop = GuidedLoopState(),
+        points = listOf(
+            ScrewPoint(key = "screw1", index = 1, name = "front left",  x = 30.0,  y = 30.0),
+            ScrewPoint(key = "screw2", index = 2, name = "front right", x = 200.0, y = 30.0),
+            ScrewPoint(key = "screw3", index = 3, name = "rear right",  x = 200.0, y = 200.0),
+            ScrewPoint(key = "screw4", index = 4, name = "rear left",   x = 30.0,  y = 200.0),
+        ),
+        hasCoords = true,
+        homedGate = true,
+        errorText = null,
+    )
+
+    /**
+     * A [ScrewsTiltVm] result snapshot — 4 screws measured, front-left is the base reference,
+     * rear-right needs the largest turn. The Field list shows turn instructions in the trailing slot.
+     */
+    val screwsTiltResult: ScrewsTiltVm = run {
+        fun turn(key: String, idx: Int, name: String, x: Double, y: Double,
+                 z: Double, sign: String?, adjust: String, isBase: Boolean = false): ScrewPoint {
+            val adjustSecs = if (adjust == "00:00") 0 else {
+                val parts = adjust.split(":"); parts[0].toInt() * 60 + parts[1].toInt()
+            }
+            val deg = adjustSecs * 6.0
+            val t = ScrewTurn(key, idx, name, z = z, sign = sign, adjust = adjust,
+                adjustSeconds = adjustSecs, degrees = deg,
+                isInTol = adjust == "00:00", isBase = isBase)
+            return ScrewPoint(key, idx, name, x, y, t)
+        }
+        val points = listOf(
+            turn("screw1", 1, "front left",  30.0,  30.0,  1.25, null, "00:00", isBase = true),
+            turn("screw2", 2, "front right", 200.0, 30.0,  1.17, "CW", "00:05"),
+            turn("screw3", 3, "rear right",  200.0, 200.0, 0.97, "CW", "01:45"),
+            turn("screw4", 4, "rear left",   30.0,  200.0, 1.20, "CCW","00:03"),
+        )
+        val screws = points.mapNotNull { it.turn }
+        ScrewsTiltVm(
+            loop = GuidedLoopState(
+                screws = screws,
+                worstScrew = screws.find { it.key == "screw3" },
+                inToleranceCount = 2,
+                totalScrews = 4,
+                error = false,
+            ),
+            points = points,
+            hasCoords = true,
+            homedGate = true,
+            errorText = null,
+        )
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // TiltContent fixtures (idle / running / result snapshots — 27-06)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [TiltVm] + [TiltState] snapshot pair for the given [state].
+     *
+     * @param variant  the [TiltVariant] (ZTilt or Qgl) — drives the title string.
+     * @param state    the [TiltState] to render (Idle / Running / Done / Failed).
+     * @param homedGate whether all axes are homed (only meaningful for [TiltState.Idle]).
+     */
+    fun tiltContent(
+        variant: TiltVariant = TiltVariant.ZTilt,
+        state: TiltState = TiltState.Idle,
+        homedGate: Boolean = true,
+    ): TiltVm = when (state) {
+        TiltState.Idle -> TiltVm(ran = false, homedGate = homedGate)
+        TiltState.Running -> TiltVm(ran = true, homedGate = true)  // running derives from in-flight
+        TiltState.Done -> TiltVm(
+            ran = true,
+            homedGate = true,
+            adjustments = listOf(
+                ZAdjustment("stepper_z",  0.0),
+                ZAdjustment("stepper_z1", -0.0523),
+                ZAdjustment("stepper_z2", 0.0312),
+            ),
+        )
+        TiltState.Failed -> TiltVm(
+            ran = true,
+            homedGate = true,
+            failed = true,
+            errorText = "bed level exceeds configured limits",
         )
     }
 }

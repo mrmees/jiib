@@ -4,10 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.ProbePageState
+import works.mees.dinghy.calibration.TiltState
 import works.mees.dinghy.ui.calibration.BedMeshContent
 import works.mees.dinghy.ui.calibration.CalibrationHubContent
 import works.mees.dinghy.ui.calibration.MeshFieldMode
 import works.mees.dinghy.ui.calibration.ProbeCalibrateContent
+import works.mees.dinghy.ui.calibration.ScrewsTiltContent
+import works.mees.dinghy.ui.calibration.TiltContent
+import works.mees.dinghy.ui.calibration.TiltVariant
 
 /**
  * @Preview matrix for CalibrationHubScreen + ProbeCalibrateScreen (27-04).
@@ -645,5 +649,366 @@ private fun BedMeshPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
     bedMeshPreview(
         vm = SampleFixtures.bedMeshVm(),
         selectedProfile = "default",
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ScrewsTiltContent previews (27-06)
+//
+// Targets the STATELESS ScrewsTiltContent seam (WARNING-5). No live Moonraker, no VM.
+//
+// ScrewsTilt axes:
+//  - State matrix: Idle (homed, no turns) / Result (4 screws with turn data in ListRows)
+//  - 6 theme combos on Idle (Focus spatial visualization + empty list)
+//  - fs = L overflow: Result state — verify screw name + turn instruction don't clip
+//  - Pseudolocale en-XA
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ScrewsTilt: Idle homed (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltIdlePortrait() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Preview(
+    name = "ScrewsTilt: Idle homed (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltIdleLandscape() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Preview(
+    name = "ScrewsTilt: Result with turn data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltResultPortrait() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltResult)
+}
+
+@Preview(
+    name = "ScrewsTilt: Result with turn data (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltResultLandscape() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltResult)
+}
+
+// ── 6-theme matrix on Idle state (Focus visualization + list baseline) ────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeSimpleDark() = PreviewBox(simpleDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeSimpleLight() = PreviewBox(simpleLight) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+@Nexus7Previews
+@Composable
+private fun ScrewsTiltThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+// ── fs = L overflow check (Result state — turn instruction trailing text) ─────────────────
+
+@Preview(
+    name = "ScrewsTilt fs=L Result portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltResult)
+}
+
+@Preview(
+    name = "ScrewsTilt fs=L Result landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltResult)
+}
+
+// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ScrewsTilt pseudolocale en-XA Idle",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun ScrewsTiltPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    ScrewsTiltContent(vm = SampleFixtures.screwsTiltIdle)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TiltContent previews (27-06)
+//
+// Targets the STATELESS TiltContent seam (WARNING-5). One parameterized composable
+// covers both TiltVariant.ZTilt and TiltVariant.Qgl.
+//
+// Tilt axes:
+//  - State matrix: Idle-unhomed / Idle-homed / Running / Done / Failed (ZTilt + Qgl variants)
+//  - 6 theme combos on Idle-homed ZTilt (most common landing state)
+//  - fs = L overflow: Done state — verify adjustment list + Z delta text don't clip
+//  - Pseudolocale en-XA
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "Tilt: ZTilt Idle-unhomed (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltZTiltIdleUnhomed() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = false),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Preview(
+    name = "Tilt: ZTilt Idle-homed ready (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltZTiltIdleHomed() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Preview(
+    name = "Tilt: ZTilt Running (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltZTiltRunning() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Running),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Running,
+        running = true,
+    )
+}
+
+@Preview(
+    name = "Tilt: ZTilt Done (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltZTiltDone() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Done),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Done,
+    )
+}
+
+@Preview(
+    name = "Tilt: ZTilt Failed (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltZTiltFailed() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Failed),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Failed,
+    )
+}
+
+@Preview(
+    name = "Tilt: QGL Idle-homed ready (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun TiltQglIdleHomed() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.Qgl, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.Qgl,
+        state = TiltState.Idle,
+    )
+}
+
+@Preview(
+    name = "Tilt: QGL Running (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun TiltQglRunning() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.Qgl, TiltState.Running),
+        variant = TiltVariant.Qgl,
+        state = TiltState.Running,
+        running = true,
+    )
+}
+
+@Preview(
+    name = "Tilt: QGL Done (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun TiltQglDone() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.Qgl, TiltState.Done),
+        variant = TiltVariant.Qgl,
+        state = TiltState.Done,
+    )
+}
+
+// ── 6-theme matrix on ZTilt Idle-homed (most common landing state) ────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeColorfulDark() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeColorfulLight() = PreviewBox(colorfulLight) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeSimpleDark() = PreviewBox(simpleDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeSimpleLight() = PreviewBox(simpleLight) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun TiltThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
+    )
+}
+
+// ── fs = L overflow check (Done state — adjustment list text) ─────────────────────────────
+
+@Preview(
+    name = "Tilt fs=L Done portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun TiltFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Done),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Done,
+    )
+}
+
+@Preview(
+    name = "Tilt fs=L Done landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun TiltFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Done),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Done,
+    )
+}
+
+// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
+
+@Preview(
+    name = "Tilt pseudolocale en-XA ZTilt Idle",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun TiltPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    TiltContent(
+        vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
+        variant = TiltVariant.ZTilt,
+        state = TiltState.Idle,
     )
 }
