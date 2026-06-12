@@ -189,6 +189,14 @@ ratify) · **[V]** verify in code during audit.
   22dp — with the R11 20sp label default, a frozen icon reads undersized at fs=L). Still must
   not be grown to the prominent tier.
 
+## RULINGS — Pilot session (owner, 2026-06-12)
+
+- **R21 — FootButtonBar container padding = gapS (8dp) both axes** (was per-site 8h/4v); owned
+  by the primitive, call sites pass no padding. No gapXS token.
+- **R22 (from pilot feedback) — ListRow OWNS its anatomy:** built-in 12dp leading gap +
+  content `weight(1f)` (trailing always end-aligned, UAT-2 by construction) + canonical
+  `ListRowLabel` (Geist SemiBold, 20sp) as THE list-label style. Recorded in COMPONENTS.md.
+
 ## D. Verify during audit [V]
 - Tune-tile flexible behavior (Q5); Back intent/position on every rebuilt screen (Q6);
   which screens pass `gutter = null` vs real gutter content (Q1); image-backed info card grammar
