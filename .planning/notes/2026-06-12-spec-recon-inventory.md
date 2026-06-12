@@ -196,6 +196,11 @@ ratify) · **[V]** verify in code during audit.
 - **R22 (from pilot feedback) — ListRow OWNS its anatomy:** built-in 12dp leading gap +
   content `weight(1f)` (trailing always end-aligned, UAT-2 by construction) + canonical
   `ListRowLabel` (Geist SemiBold, 20sp) as THE list-label style. Recorded in COMPONENTS.md.
+- **R24 — Button glyphs = 0.6U too (same ruler as R23).** `OutlinedControl` icon sizing reads the
+  new nullable `LocalUnitDp` (bounded CompositionLocal promotion per COMPONENTS §4's clause;
+  Phase-23 "no composition local" note amended — glyph channel only, layout stays explicit).
+  FootButtonBar provides it; icon-only buttons go ~50dp→0.6U, icon+label go 22sp→0.6U. Null
+  local = legacy sizing until the wide pass provides U at screen roots.
 - **R23 — List-row leading icons = 0.6U, U-RELATIVE (supersedes R16's text-tracked fsSp(22)).**
   Owner: text is readable, icons were barely distinguishable; U-fraction is easier to reason
   about since rows are fixed 1U. Icons do NOT grow with S/M/L; vertical center alignment holds.

@@ -1,6 +1,7 @@
 package works.mees.dinghy.designsystem.layout
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,8 +56,12 @@ import kotlin.math.roundToInt
  * and the portrait width in portrait (still the smaller dim) — they are the same
  * physical measurement, so `U` is CONSTANT through rotation (LAYOUT.md §"The unit U").
  *
- * Do NOT use a [androidx.compose.runtime.compositionLocalOf] for the grid in this phase;
- * pass `uDp: Dp` explicitly (per Phase-23 Open Q §1 decision).
+ * Layout sizing passes `uDp: Dp` explicitly (per Phase-23 Open Q §1 decision). The ONE bounded
+ * exception is [LocalUnitDp] — a nullable glyph-sizing channel promoted 2026-06-12 (R24) per
+ * COMPONENTS.md §4's "promote if call-chain depth grows" clause, so deep primitives like
+ * `OutlinedControl` can size icons at 0.6U without re-plumbing every call site. It is provided
+ * by U-aware containers (FootButtonBar; screen roots in the wide pass) and is NEVER used for
+ * row/region layout — layout stays explicit.
  *
  * @property uDp The size of one unit in density-independent pixels. Always ≥ 64.dp
  *               for `contentMinDim >= 320.dp`. `N × uDp == contentMinDim` exactly.
@@ -107,3 +112,14 @@ fun unitGridFor(contentMinDim: Dp): UnitGrid {
 @Composable
 fun rememberUnitGrid(contentMinDim: Dp): UnitGrid =
     remember(contentMinDim) { unitGridFor(contentMinDim) }
+
+/**
+ * Nullable glyph-sizing channel (R24, 2026-06-12) — carries one unit U to deep control
+ * primitives so button glyphs can size at the 0.6U icon tier without per-call-site plumbing.
+ *
+ * Provided by U-aware containers ([works.mees.dinghy.designsystem.components.FootButtonBar];
+ * screen roots as the normalization wide pass reaches them). `null` = container hasn't been
+ * migrated yet — consumers fall back to their legacy sizing. NOT for layout: rows, regions and
+ * touch floors keep taking `uDp` explicitly (Phase-23 Open Q §1).
+ */
+val LocalUnitDp = compositionLocalOf<Dp?> { null }

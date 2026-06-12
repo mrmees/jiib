@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 
 /**
  * A row of foot-of-list action controls (docs/ui_design/COMPONENTS.md §"Component catalog — FootButtonBar").
@@ -70,15 +72,19 @@ fun FootButtonBar(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            // Container padding owned here (gapS 8dp both axes — owner ruling, 2026-06-12;
-            // was per-call-site `horizontal = 8.dp, vertical = 4.dp`).
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-            .heightIn(min = uDp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
+    // R24: provide U to the controls inside so their glyphs size at the 0.6U icon tier
+    // (OutlinedControl reads LocalUnitDp; null elsewhere falls back to legacy sizing).
+    CompositionLocalProvider(LocalUnitDp provides uDp) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                // Container padding owned here (gapS 8dp both axes — owner ruling, 2026-06-12;
+                // was per-call-site `horizontal = 8.dp, vertical = 4.dp`).
+                .padding(horizontal = 8.dp, vertical = 8.dp)
+                .heightIn(min = uDp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
 }

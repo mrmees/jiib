@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalDensity
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.MaterialSymbol
@@ -146,25 +147,34 @@ fun OutlinedControl(
             .then(clickMod),
         contentAlignment = Alignment.Center,
     ) {
+        // R24 (2026-06-12): when a U-aware container (FootButtonBar; screen roots as the wide
+        // pass migrates them) provides LocalUnitDp, button glyphs size at the 0.6U icon tier —
+        // same ruler as ListRowIcon, U-relative, no growth with the S/M/L text setting. The
+        // divide-by-fontScale keeps the sp-rendered ligature at a fixed dp-equivalent (the
+        // 24-05 UAT fix). Null local = unmigrated context → legacy sizing unchanged.
+        val unitDp = LocalUnitDp.current
         if (symbol != null && label.isBlank()) {
-            // Icon-only control (a blank label + a symbol) — the glyph IS the affordance, so it fills the
-            // cell at a FONT-SCALE-STABLE dp-equivalent size (~50dp regardless of system font scale).
-            // Dividing by fontScale converts the sp value to a fixed-dp equivalent: at fontScale 1.0 the
-            // rendering is byte-identical to the old 50sp; at fontScale >1 (e.g. 1.3 on Accessibility) the
-            // glyph no longer balloons past the 2px border. UAT-driven fix: the FloatingEStop glyph
-            // overflowed its 0.7U border on flox at large system font scale (24-05 UAT).
+            // Icon-only control (a blank label + a symbol) — the glyph IS the affordance.
+            // Legacy fallback: ~50dp fixed equivalent (pre-R24 behavior).
             MaterialSymbol(
                 name = symbol,
                 modifier = symbolA11y,
                 tint = t.text,
-                sizeSp = 50f / LocalDensity.current.fontScale,
+                sizeSp = (unitDp?.let { it.value * 0.6f } ?: 50f) / LocalDensity.current.fontScale,
             )
         } else if (symbol != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MaterialSymbol(name = symbol, modifier = symbolA11y, tint = t.text, sizeSp = fsSp(22f, t.fs))
+                MaterialSymbol(
+                    name = symbol,
+                    modifier = symbolA11y,
+                    tint = t.text,
+                    // 0.6U when U is provided; legacy text-tracked 22sp otherwise.
+                    sizeSp = unitDp?.let { (it.value * 0.6f) / LocalDensity.current.fontScale }
+                        ?: fsSp(22f, t.fs),
+                )
                 Text(
                     text = label,
                     color = t.text,

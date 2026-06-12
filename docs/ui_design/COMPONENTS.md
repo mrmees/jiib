@@ -381,7 +381,7 @@ and a text-tracked icon in a fixed 1U cell overflows at fs=L (the 24-05 Floating
 |---|---|---|---|
 | **Inline / text-companion** | icon beside a label; status glyphs (`StatusStop`/triangle) riding a value | text | `fsSp(labelBase + 2).dp` |
 | **List-row leading** | `ListRow` leading glyphs — use **`ListRowIcon`** | **U** | **0.6U** (R23, 2026-06-12 — supersedes R16's text-tracked fsSp(22); rows are FIXED 1U so a U-fraction is stable; icon does NOT grow with S/M/L, vertically centered by ListRow) |
-| **Control** | foot-bar buttons, ≤1U labeled tiles | U | ~0.5U |
+| **Control** | foot-bar buttons, ≤1U labeled tiles (`OutlinedControl` glyphs) | U | **0.6U** (R24, 2026-06-12 — same ruler as ListRowIcon; carried by `LocalUnitDp`, provided by FootButtonBar / U-aware screen roots; unmigrated contexts fall back to legacy sizing until the wide pass) |
 | **Prominent / hero** | Focus anchors, icon-only tiles, adjuster headers | U | 0.7–0.8U (UAT-1); `coerceAtLeast(64.dp)` when the icon IS the touch target (FloatingEStop precedent) |
 
 Conformance: the normalization audit converts stragglers (stray fixed-dp and mis-tiered `fsSp`
