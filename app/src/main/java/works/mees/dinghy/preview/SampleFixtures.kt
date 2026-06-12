@@ -1,9 +1,13 @@
 package works.mees.dinghy.preview
 
+import works.mees.dinghy.calibration.BedMeshModel
+import works.mees.dinghy.calibration.BedMeshVm
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.ProbeCalibrateVm
 import works.mees.dinghy.calibration.ProbePageState
 import works.mees.dinghy.calibration.RoutineEntry
+import works.mees.dinghy.render.BedMeshHeatmapView
+import works.mees.dinghy.ui.calibration.MeshFieldMode
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
@@ -230,6 +234,56 @@ object SampleFixtures {
      * @param state         the [ProbePageState] to render (Idle / Active / Accepted).
      * @param homedGate     true when all axes are homed — only meaningful for [ProbePageState.Idle].
      */
+    // ---------------------------------------------------------------------------------------------
+    // BedMesh preview fixtures (Field profile-list + SaveName-takeover states — 27-05)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [BedMeshVm] snapshot for the given preview scenario.
+     *
+     * - [profiles] the saved-profile names shown in the Field list.
+     * - [activeProfile] the currently loaded mesh profile name (`""` = no active mesh).
+     * - [homed] whether all axes are homed (drives the D-14 foot branch).
+     */
+    fun bedMeshVm(
+        profiles: List<String> = listOf("default", "25.06.11_09.30", "adaptive"),
+        activeProfile: String = "default",
+        homed: Boolean = true,
+    ): BedMeshVm {
+        // Build a BedMeshModel that has the right profileNames + a non-empty (loaded) mesh when
+        // activeProfile is non-blank so that isEmpty returns false and the heatmap Focus branch renders.
+        val model = if (activeProfile.isNotEmpty()) {
+            BedMeshModel(
+                profileName = activeProfile,
+                // A tiny 2×2 meshMatrix so isEmpty is false (non-empty matrix + non-empty profileName).
+                meshMatrix = listOf(listOf(-0.05, 0.03), listOf(0.01, -0.02)),
+                profileNames = profiles,
+            )
+        } else {
+            // No active mesh (isEmpty = true): the Focus shows the empty-state copy.
+            BedMeshModel(profileNames = profiles)
+        }
+        return BedMeshVm(model = model, homed = homed, scaleMode = BedMeshHeatmapView.ScaleMode.RELATIVE)
+    }
+
+    /**
+     * A [BedMeshVm] for the empty-profiles / pre-calibration scenario (no saved profiles, no active mesh,
+     * unhomed). The Field shows the empty-state copy; the foot shows Home All + Back.
+     */
+    val bedMeshEmpty: BedMeshVm = BedMeshVm(
+        model = BedMeshModel(),   // profileNames = emptyList(), isEmpty = true
+        homed = false,
+    )
+
+    /**
+     * A [BedMeshVm] with profiles but no active mesh loaded (homed, no loaded profile). The Focus shows
+     * the empty-state copy ("No active mesh"); the Field shows the profile list; foot = Calibrate+Save+Back.
+     */
+    val bedMeshProfilesNoActive: BedMeshVm = BedMeshVm(
+        model = BedMeshModel(profileNames = listOf("default", "25.06.11_09.30", "adaptive")),
+        homed = true,
+    )
+
     fun probeVm(
         state: ProbePageState,
         homedGate: Boolean = true,

@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.ProbePageState
+import works.mees.dinghy.ui.calibration.BedMeshContent
 import works.mees.dinghy.ui.calibration.CalibrationHubContent
+import works.mees.dinghy.ui.calibration.MeshFieldMode
 import works.mees.dinghy.ui.calibration.ProbeCalibrateContent
 
 /**
@@ -458,5 +460,190 @@ private fun ProbePseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
         onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
         onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BedMeshContent previews (27-05)
+//
+// Targets the STATELESS BedMeshContent seam (WARNING-5). No live Moonraker, no VM.
+// The BedMeshHeatmapHost Focus renders via the LocalInspectionMode placeholder branch
+// inside BedMeshHeatmapHost itself (P22 D-05/D-04) — no Views host instantiated in preview.
+//
+// BedMesh axes:
+//  - State matrix: ProfileList-noSelection / ProfileList-selected / SaveName-takeover / empty-profiles
+//  - 6 theme combos on ProfileList-selected (most interactive state — Apply+Remove+Back foot)
+//  - fs = L overflow: SaveName takeover — verify field + validation text don't clip
+//  - Pseudolocale en-XA
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helper to reduce boilerplate in BedMeshContent preview calls.
+@Composable
+private fun bedMeshPreview(
+    vm: works.mees.dinghy.calibration.BedMeshVm = SampleFixtures.bedMeshVm(),
+    selectedProfile: String? = null,
+    fieldMode: MeshFieldMode = MeshFieldMode.ProfileList,
+    showRemoveGuard: Boolean = false,
+    showSaveConfigGuard: Boolean = false,
+    toastError: String? = null,
+    dispatcherPresent: Boolean = true,
+) {
+    BedMeshContent(
+        vm = vm,
+        selectedProfile = selectedProfile,
+        fieldMode = fieldMode,
+        showRemoveGuard = showRemoveGuard,
+        showSaveConfigGuard = showSaveConfigGuard,
+        toastError = toastError,
+        dispatcherPresent = dispatcherPresent,
+        onCycleScaleMode = {},
+        onSelectProfile = {},
+        onShowSaveName = {},
+        onSaveNameConfirm = {},
+        onSaveNameCancel = {},
+        onApplyProfile = {},
+        onShowRemoveGuard = {},
+        onRemoveConfirm = {},
+        onRemoveCancel = {},
+        onShowSaveConfigGuard = {},
+        onSaveConfigConfirm = {},
+        onSaveConfigCancel = {},
+        onHomeAll = {},
+        onCalibrate = {},
+        onDismissError = {},
+        onBack = {},
+    )
+}
+
+// ── State matrix (4 states: ProfileList-no-selection / selected / SaveName / empty) ──────────
+
+@Preview(
+    name = "BedMesh: ProfileList no selection (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshProfileListNoSelection() = PreviewBox(colorfulDark) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        selectedProfile = null,
+    )
+}
+
+@Preview(
+    name = "BedMesh: ProfileList profile selected (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshProfileListSelected() = PreviewBox(colorfulDark) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        selectedProfile = "adaptive",
+    )
+}
+
+@Preview(
+    name = "BedMesh: SaveName takeover (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshSaveNameTakeover() = PreviewBox(colorfulDark) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        fieldMode = MeshFieldMode.SaveName("26.06.11_14.30"),
+    )
+}
+
+@Preview(
+    name = "BedMesh: Empty profiles + unhomed (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshEmptyProfiles() = PreviewBox(colorfulDark) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshEmpty)
+}
+
+// ── 6-theme matrix on ProfileList-selected (most interactive state) ────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeColorfulDark() = PreviewBox(colorfulDark) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeColorfulLight() = PreviewBox(colorfulLight) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeSimpleDark() = PreviewBox(simpleDark) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeSimpleLight() = PreviewBox(simpleLight) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+@Nexus7Previews
+@Composable
+private fun BedMeshThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    bedMeshPreview(vm = SampleFixtures.bedMeshVm(), selectedProfile = "adaptive")
+}
+
+// ── fs = L overflow check (SaveName takeover — keyboard field + validation) ───────────────
+
+@Preview(
+    name = "BedMesh SaveName fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        fieldMode = MeshFieldMode.SaveName("26.06.11_14.30"),
+    )
+}
+
+@Preview(
+    name = "BedMesh SaveName fs=L landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun BedMeshFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        fieldMode = MeshFieldMode.SaveName("26.06.11_14.30"),
+    )
+}
+
+// ── Pseudolocale en-XA ──────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "BedMesh pseudolocale en-XA ProfileList",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun BedMeshPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    bedMeshPreview(
+        vm = SampleFixtures.bedMeshVm(),
+        selectedProfile = "default",
     )
 }
