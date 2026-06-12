@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
+import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
 import androidx.compose.ui.res.stringResource
 import works.mees.dinghy.R
@@ -70,9 +72,12 @@ import works.mees.dinghy.theme.fsSp
  * The last-adjusted [FineTuneTuner] is remembered for the session (composition lifetime); the
  * first param in the list is the fresh-entry fallback.
  *
- * ## Clamp authority (D-22 / 17-07 invariant)
- * All nudges route through [nudge] which calls [clampForTuner] before [FineTuneHolder.markPending].
- * The screen NEVER calls markPending directly.
+ * ## Trailing-commit batching + clamp authority (quick-rmr / D-22 / 17-07 invariant)
+ * Stepper taps accumulate a CLAMPED working value locally via [TrailingCommitBatcher.tap]
+ * ([clampForTuner] per tap — the display can never show an un-clamped value); ONE wire command
+ * dispatches per quiet window through [commitTunerValue] (re-clamp → [FineTuneHolder.markPending]
+ * → dispatch). The screen NEVER calls markPending directly. Resets cancel the pending working
+ * value and commit immediately; leaving the screen mid-burst COMMITS via dispose (flush).
  *
  * ## FloatingEStop
  * Wired to [container.printerState]; visible only when printing (PrintState.Printing or Paused).
@@ -103,6 +108,34 @@ fun FineTuneScreen(
     LaunchedEffect(inFlight) { holder.setInFlight(inFlight) }
     val groupBusy = inFlight.isNotEmpty() || holder.pendingStateFlip != null || vm.groupBusy
 
+    // quick-rmr: trailing-commit batcher — taps accumulate a clamped working value locally; ONE
+    // wire dispatch per ~500ms quiet window via commitTunerValue. Keys = FineTuneTuner.name (the
+    // four retraction tuners SHARE a dispatch key — keying by tuner keeps their working values
+    // independent; canCommit translates tuner → dispatch key at fire time).
+    val batcher = remember(dispatcher) {
+        TrailingCommitBatcher(
+            canCommit = { tunerName ->
+                // Fire-time read of the in-flight set (never a composition snapshot): the commit
+                // RESCHEDULES while this tuner's dispatch key is in flight, so markPending never
+                // arms for a guaranteed-rejected dispatch (which would re-create the backstop dim).
+                dispatchKeyForTuner(FineTuneTuner.valueOf(tunerName)) !in
+                    (dispatcher?.inFlight?.value ?: emptySet())
+            },
+            onCommit = { tunerName, value ->
+                // 19-09 stale-closure lesson: resolve holder.vm.value and the dispatcher AT FIRE
+                // TIME via the stable holder + delegated state read — never the composed snapshots.
+                val tuner = FineTuneTuner.valueOf(tunerName)
+                val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == tuner }
+                commitTunerValue(param, value, holder.vm.value, holder, dispatcher)
+            },
+        )
+    }
+    // Commit-on-dispose (design decision 1): a same-frame nav mid-burst flushes the pending
+    // working value; the dispatch rides CommandDispatcher's app-lifetime scope. Also covers the
+    // remember(dispatcher) re-key on reconnect.
+    DisposableEffect(batcher) { onDispose { batcher.dispose() } }
+    val working by batcher.working.collectAsStateWithLifecycle()
+
     LaunchedEffect(dispatcher) {
         failureText = null
         val d = dispatcher ?: return@LaunchedEffect
@@ -111,6 +144,8 @@ fun FineTuneScreen(
                 is DispatchEvent.Failure -> {
                     failureText = event.message
                     holder.clearPending()
+                    // Revert working values to live on failure (the SeverityToast explains why).
+                    batcher.cancelAll()
                 }
             }
         }
@@ -142,21 +177,24 @@ fun FineTuneScreen(
         FineTuneContent(
             vm = vm,
             isPrinting = isPrinting,
-            enabled = !groupBusy,
+            busy = groupBusy,
+            working = working,
             failureText = failureText,
             rejectTicks = rejectTicks,
             onBack = onBack,
-            onNudge = { param, currentValue, stepDelta ->
-                nudge(
-                    param = param,
-                    currentValue = currentValue,
-                    stepDelta = stepDelta,
-                    vm = vm,
-                    holder = holder,
-                    dispatcher = dispatcher,
-                )
+            onNudge = { param, _, stepDelta ->
+                // TAP path (quick-rmr): clamp per-tap, accumulate locally — NO markPending, NO
+                // dispatch. Base = the pending working value, else the live vm value (an
+                // unreported value stays a no-op, existing behavior — never fabricate a base).
+                val base = working[param.tuner.name] ?: vm.valueForTuner(param.tuner)
+                if (base != null) {
+                    batcher.tap(param.tuner.name, clampForTuner(param.tuner, base + stepDelta))
+                }
             },
             onNudgeToBaseline = { param, baseline ->
+                // Resets commit immediately (design decision 3): cancel the pending working value
+                // for this tuner, then the existing immediate path.
+                batcher.cancel(param.tuner.name)
                 nudgeToBaseline(
                     param = param,
                     baseline = baseline,
@@ -167,6 +205,7 @@ fun FineTuneScreen(
             },
             onResetAll = {
                 // Reset all params that have a baseline back to their baseline value.
+                batcher.cancelAll()
                 ALL_FINE_TUNE_PARAMS.forEach { param ->
                     val baseline = vm.baselineForTuner(param.tuner) ?: return@forEach
                     nudgeToBaseline(
@@ -202,7 +241,7 @@ fun FineTuneScreen(
         FineTuneContent(
             vm = vm,
             isPrinting = isPrinting,
-            enabled = !vm.groupBusy,
+            busy = vm.groupBusy,
             failureText = null,
             onBack = onBack,
             onNudge = { _, _, _ -> },
@@ -221,10 +260,11 @@ fun FineTuneScreen(
 private fun FineTuneContent(
     vm: FineTuneVm,
     isPrinting: Boolean,
-    enabled: Boolean,
+    busy: Boolean,
     failureText: String?,
     onBack: () -> Unit,
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
+    working: ImmutableMap<String, Double> = persistentMapOf(),
     onNudge: (param: FineTuneParam, currentValue: Double?, stepDelta: Double) -> Unit,
     onNudgeToBaseline: (param: FineTuneParam, baseline: Double) -> Unit,
     onResetAll: () -> Unit,
@@ -264,7 +304,9 @@ private fun FineTuneContent(
                         .padding(8.dp),
                 ) {
                     DetailCard(modifier = Modifier.fillMaxSize()) {
-                        val value = vm.valueForTuner(selectedTuner)
+                        // quick-rmr: the pending WORKING value wins over the live vm value, so a
+                        // tap burst follows the thumb instantly (and survives the echo window).
+                        val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
                         val baseline = vm.baselineForTuner(selectedTuner)
                         AdjusterPanel(
                             icon = selectedParam.icon,
@@ -282,7 +324,10 @@ private fun FineTuneContent(
                             onReset = baseline?.let { base ->
                                 { onNudgeToBaseline(selectedParam, base) }
                             },
-                            enabled = enabled,
+                            // quick-rmr: never lock out during a tap burst — busy only DIMS the
+                            // −/+ tiles (taps accumulate); Reset is disabled while busy.
+                            enabled = true,
+                            busy = busy,
                             incrementPicker = {
                                 IncrementPicker(
                                     steps = selectedParam.steps,

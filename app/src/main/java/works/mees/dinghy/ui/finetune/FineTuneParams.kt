@@ -348,42 +348,18 @@ fun commitTunerValue(
     holder: FineTuneHolder,
     dispatcher: CommandDispatcher?,
 ) {
-    TODO("RED stub — implemented with the trailing-commit wiring (GREEN)")
-}
-
-/**
- * Route a nudge for [param] from [currentValue] ± [stepDelta] through the D-22 clamp-authority
- * invariant: clamp first, then [FineTuneHolder.markPending] with the CLAMPED target, then dispatch.
- *
- * This is the ONLY call site that writes to the holder for Fine-Tune nudges; the screen never calls
- * [FineTuneHolder.markPending] directly (source law: any markPending call in the screen must be via nudge).
- *
- * @param param          the descriptor for the tuner being nudged.
- * @param currentValue   the current display-unit value (null = no-op: can't nudge unreported value).
- * @param stepDelta      signed step to add to currentValue (e.g. +5.0 or -5.0).
- * @param vm             the live [FineTuneVm] (used for FW-retraction sibling values in the command).
- * @param holder         the [FineTuneHolder] whose [FineTuneHolder.markPending] receives the clamped target.
- * @param dispatcher     the live [CommandDispatcher] (null = no dispatch, e.g. offline or in preview).
- */
-fun nudge(
-    param: FineTuneParam,
-    currentValue: Double?,
-    stepDelta: Double,
-    vm: FineTuneVm,
-    holder: FineTuneHolder,
-    dispatcher: CommandDispatcher?,
-) {
-    val cur = currentValue ?: return  // unreported value: no-op
-    val rawTarget = cur + stepDelta
-    val clamped = clampForTuner(param.tuner, rawTarget)
     // D-22 invariant: markPending receives the CLAMPED value the wire will actually send.
+    val clamped = clampForTuner(param.tuner, target)
     holder.markPending(param.tuner, clamped)
-    dispatchForTuner(param.tuner, rawTarget, clamped, vm, dispatcher)
+    // The CLAMPED value is also the wire arg — the builders re-clamp identically (same result);
+    // commit-time has no meaningful "raw" anymore.
+    dispatchForTuner(param.tuner, clamped, clamped, vm, dispatcher)
 }
 
 /**
- * Route a reset nudge — sets the tuner to [baseline] exactly (bypasses step delta, applies the
- * same D-22 clamp + markPending pattern).
+ * Route a reset — sets the tuner to [baseline] exactly via [commitTunerValue] (identical
+ * clamp → markPending → dispatch semantics; kept so the reset call sites stay readable).
+ * Resets commit IMMEDIATELY (no batching) — the screen cancels any pending working value first.
  */
 fun nudgeToBaseline(
     param: FineTuneParam,
@@ -392,9 +368,7 @@ fun nudgeToBaseline(
     holder: FineTuneHolder,
     dispatcher: CommandDispatcher?,
 ) {
-    val clamped = clampForTuner(param.tuner, baseline)
-    holder.markPending(param.tuner, clamped)
-    dispatchForTuner(param.tuner, baseline, clamped, vm, dispatcher)
+    commitTunerValue(param, baseline, vm, holder, dispatcher)
 }
 
 /**

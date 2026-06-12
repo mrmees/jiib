@@ -63,9 +63,14 @@ import kotlin.math.roundToInt
  * adjustment archetype — "proceed at peril" for a reset. **NEVER** `color-mix(in oklch, heat, outline)`
  * — that produces a red bleed (adjustment-controls.md § "What to Avoid").
  *
- * ## Enabled state
- * [enabled] gates both the "−" and "+" stepper tiles. When [value] is null (unreported / DASH)
- * the tiles are disabled regardless of [enabled].
+ * ## Enabled state vs busy dim (quick-rmr)
+ * TRUE disablement: when [enabled] is false or [value] is null (unreported / DASH) the stepper
+ * tiles get no clickable, no ripple, and `semantics { disabled() }` (R10 law) — unchanged.
+ *
+ * BUSY dim: [busy] DIMS the "−"/"+" tiles (alpha 0.38) but keeps them CLICKABLE with semantics
+ * enabled — taps landing during an in-flight trailing commit must accumulate into the next
+ * working value, never be swallowed. Only Reset is truly disabled while busy (a deliberate
+ * single action shouldn't stack on an in-flight commit).
  *
  * @param icon           the param's [DinghyIcon] registry token; tinted [works.mees.dinghy.theme.ThemeTokens.accent2] in the header.
  * @param name           the human-readable param name (e.g. "Print Speed").
@@ -78,7 +83,10 @@ import kotlin.math.roundToInt
  *                       (D-22 clamp authority invariant — this component has no knowledge of limits).
  * @param onIncrement    called on "+" tap; same clamp requirement.
  * @param onReset        called on Reset tap; null when no baseline is available (hides the button).
- * @param enabled        busy-lock gate from the holder; when false both stepper tiles are inert.
+ * @param enabled        TRUE-disablement gate; when false both stepper tiles are inert (no clickable).
+ * @param busy           in-flight commit dim (quick-rmr): the −/+ tiles dim to alpha 0.38 but STAY
+ *                       tappable (taps accumulate during the commit); Reset is disabled while busy.
+ *                       Default false keeps previews and legacy call sites unchanged.
  * @param incrementPicker caller-provided [IncrementPicker] slot (the step-set selector row).
  * @param rejectTick     R10 (26.5-03) rejection-feedback tick: the caller increments this when the
  *                       dispatcher reports a busy/debounce rejection for THIS panel's dispatch key
@@ -106,6 +114,7 @@ fun AdjusterPanel(
     incrementPicker: @Composable () -> Unit,
     uDp: Dp = 64.dp,
     rejectTick: Long = 0L,
+    busy: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -117,6 +126,14 @@ fun AdjusterPanel(
     val controlsEnabled = enabled && value != null
     val disabledModifier =
         if (!controlsEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
+    // quick-rmr busy dim: dimmed but TAPPABLE — no semantics{disabled()}, clickable stays installed
+    // so taps during the in-flight commit accumulate into the next working value.
+    val busyDimModifier =
+        if (controlsEnabled && busy) Modifier.alpha(0.38f) else Modifier
+    // Reset IS truly disabled while busy (a deliberate single action shouldn't stack on a commit).
+    val resetEnabled = controlsEnabled && !busy
+    val resetDisabledModifier =
+        if (!resetEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
 
     // R10 (26.5-03): one-shot rejection flash — the hero value briefly tints to the warn token
     // (heat) and settles back to text over REJECT_FLASH_MS. lerp between two LocalTokens roles
@@ -161,10 +178,10 @@ fun AdjusterPanel(
                 OutlinedControl(
                     label = stringResource(R.string.adjuster_reset),
                     onClick = reset,
-                    enabled = controlsEnabled,
+                    enabled = resetEnabled,
                     modifier = Modifier
                         .heightIn(min = 40.dp)
-                        .then(disabledModifier),
+                        .then(resetDisabledModifier),
                     // D-21: caution/amber — NOT color-mix (red-bleed bug); use heat directly
                     intent = Intent.Warn,
                 )
@@ -221,7 +238,8 @@ fun AdjusterPanel(
                     enabled = controlsEnabled,
                     modifier = Modifier
                         .weight(1f)
-                        .then(disabledModifier),
+                        .then(disabledModifier)
+                        .then(busyDimModifier),
                     intent = Intent.Accent,
                 )
                 OutlinedControl(
@@ -230,7 +248,8 @@ fun AdjusterPanel(
                     enabled = controlsEnabled,
                     modifier = Modifier
                         .weight(1f)
-                        .then(disabledModifier),
+                        .then(disabledModifier)
+                        .then(busyDimModifier),
                     intent = Intent.Accent,
                 )
             }
