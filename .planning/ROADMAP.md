@@ -1335,7 +1335,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 28-02-PLAN.md — NavDest.System + SystemPageScreen (static ratio-capped Focus, direct-tap rows, inert Power stub) + previews (wave 2)
+- [x] 28-02-PLAN.md — NavDest.System + SystemPageScreen (static ratio-capped Focus, direct-tap rows, inert Power stub) + previews (wave 2)
 - [ ] 28-03-PLAN.md — Rehome Temperature/Console/Fine-Tune onto the home idle list (buildIdleActions) + HomeActionTest 8→11 (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
