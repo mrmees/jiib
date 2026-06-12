@@ -62,8 +62,8 @@ import works.mees.dinghy.ui.route.buildIdleActions
  *    "—") · Dismiss / Reprint; Terminal(Error) appends the AppShell-projected ≤3 [errorLines].
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
- * @param onNavigate launcher/forward-nav seam — every Standby launcher tile dispatches a real [Dest].
- * @param onOpenDrawer opens the swipe-up App Drawer (the flexible Drawer launcher tile).
+ * @param onNavigate launcher/forward-nav seam — every Standby launcher tile dispatches a real [NavDest];
+ *   the System foot button routes to [NavDest.System] (D-04/28-05).
  * @param onScanSpool opens the QR scan surface (the active-spool card Scan action).
  * @param errorLines the bounded ≤3 ERROR-line projection AppShell passes for Terminal(Error).
  */
@@ -71,14 +71,13 @@ import works.mees.dinghy.ui.route.buildIdleActions
 fun PrintStatusScreen(
     container: AppContainer,
     onNavigate: (NavDest) -> Unit = {},
-    onOpenDrawer: () -> Unit = {},
     onScanSpool: () -> Unit = {},
     errorLines: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
-    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(NavDest.*) /
-    // onOpenDrawer(); the active-spool card Change/Open routes to the Spool screen. Local aliases keep
-    // the existing card-wiring below readable while Tasks 2-4 fill the Standby/Terminal bodies.
+    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(NavDest.*);
+    // the System foot button navigates to NavDest.System (D-04/28-05); the active-spool card Change/Open
+    // routes to the Spool screen. Local aliases keep the existing card-wiring below readable.
     val onOpenFiles: () -> Unit = { onNavigate(NavDest.Files) }
     val onOpenSpool: () -> Unit = { onNavigate(NavDest.Spool) }
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -315,7 +314,6 @@ fun PrintStatusScreen(
             onBabystepExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
             onCycleBabystepStep = { babystepStep = nextBabystepStep(babystepStep) },
             onNavigate = onNavigate,
-            onOpenDrawer = onOpenDrawer,
             onPreheat = ::runPreheat,
         )
 
@@ -389,7 +387,6 @@ fun PrintStatusScreen(
     ),
     babystepStep: Double = works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first(),
     onNavigate: (NavDest) -> Unit = {},
-    onOpenDrawer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val mode = classifyPrintStatus(state)
@@ -426,7 +423,6 @@ fun PrintStatusScreen(
             onBabystepExpand = {},
             onCycleBabystepStep = {},
             onNavigate = onNavigate,
-            onOpenDrawer = onOpenDrawer,
             onPreheat = {},
         )
     }
@@ -465,7 +461,6 @@ private fun PrintStatusContent(
     onBabystepExpand: () -> Unit,
     onCycleBabystepStep: () -> Unit,
     onNavigate: (NavDest) -> Unit,
-    onOpenDrawer: () -> Unit,
     onPreheat: () -> Unit,
 ) {
     // D-13: one-shot ~150ms Crossfade for idle ↔ printing ↔ terminal transitions.
@@ -491,7 +486,6 @@ private fun PrintStatusContent(
                     idleActions = idleActions,
                     failureText = failureText,
                     onNavigate = onNavigate,
-                    onOpenDrawer = onOpenDrawer,
                     onPreheat = onPreheat,
                 )
             },

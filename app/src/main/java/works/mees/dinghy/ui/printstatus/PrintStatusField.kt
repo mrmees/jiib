@@ -60,7 +60,8 @@ import works.mees.dinghy.ui.spool.ActiveSpoolCardState
  * Replaces the old `LauncherDest` tile-grid (Phase-24 jiib redesign, D-05/D-06/D-08/D-09/D-10).
  * Renders [idleActions] (built by [works.mees.dinghy.ui.route.buildIdleActions]) as a scrollable
  * [ListBlock] of [ListRow]s; capability-absent rows are absent (D-08 — never greyed). Tapping a
- * row calls [onNavigate] with the row's [NavDest]; the System foot button calls [onOpenDrawer].
+ * row calls [onNavigate] with the row's [NavDest]; the System foot button navigates to [NavDest.System]
+ * (D-04/28-05 — formerly opened the App Drawer, now routes to the System page directly).
  *
  * The foot bar contains exactly two [Intent.Neutral] [OutlinedControl]s — Preheat and System —
  * placed below the list per the foot-of-list pattern (the gutter is gone from this screen;
@@ -76,7 +77,6 @@ internal fun PrintStatusStandbyField(
     idleActions: List<HomeAction>,
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
-    onOpenDrawer: () -> Unit,
     onPreheat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -122,7 +122,8 @@ internal fun PrintStatusStandbyField(
             failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
 
             // Idle foot bar: Preheat + System — both Intent.Neutral (D-09/D-10).
-            // "System" opens the App Drawer (the interim hub, D-09). NOT red, NOT Power.
+            // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
+            // NOT red, NOT Power.
             FootButtonBar(uDp = grid.uDp) {
                 OutlinedControl(
                     label = stringResource(R.string.home_foot_preheat),
@@ -133,7 +134,7 @@ internal fun PrintStatusStandbyField(
                 )
                 OutlinedControl(
                     label = stringResource(R.string.home_foot_system),
-                    onClick = onOpenDrawer,
+                    onClick = { onNavigate(NavDest.System) },
                     modifier = Modifier.weight(1f),
                     icon = DinghyIcons.FootSystem,
                     intent = Intent.Neutral,
@@ -423,56 +424,37 @@ internal fun IconValueCell(
 // --- Phase-16 four-state surfaces: Standby launcher -----------------------------------------------
 
 /**
- * The Standby adaptive launcher grid (UI-SPEC). Every tile dispatches a real Dest via [onNavigate], or
- * the flexible/growing Drawer tile via [onOpenDrawer] — NO tile is bound to a no-op. The Drawer tile is
- * the explicitly-chosen flexible tile (interactive-grid flexible-tile rule): it spans the remaining
- * column(s) on the last row so the rest of the grid stays regular.
+ * The Standby adaptive launcher grid (UI-SPEC). Every tile dispatches a real Dest via [onNavigate] —
+ * NO tile is bound to a no-op. The Drawer tile variant is retired (D-04/28-05): the System foot button
+ * in [PrintStatusStandbyField] now routes to [NavDest.System] directly.
  */
 @Composable
 internal fun LauncherGrid(
     dests: ImmutableList<LauncherDest>,
     spoolSwatches: ImmutableList<Color>,
     onNavigate: (NavDest) -> Unit,
-    onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2 columns (portrait-stable, touch-friendly ≥64px). The Drawer tile (always last) participates in
-    // the row flow and ABSORBS any leftover cell: an ODD nonDrawer count → Drawer fills the single
-    // leftover slot next to the last item (grid stays tight, no gap); an EVEN count → Drawer lands alone
-    // on a fresh final row and GROWS to full width (the flexible tile, interactive-grid rule).
+    // 2 columns (portrait-stable, touch-friendly ≥64px).
     val columns = 2
-    val nonDrawer = dests.filter { it != LauncherDest.Drawer }
-    val ordered = nonDrawer + LauncherDest.Drawer
-    val rows = ordered.chunked(columns)
+    val rows = dests.chunked(columns)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { rowItems ->
-            // The Drawer alone on the final row (even nonDrawer count) → grow to full width.
-            val drawerLone = rowItems.size == 1 && rowItems.first() == LauncherDest.Drawer
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rowItems.forEach { d ->
-                    val cellWeight = if (drawerLone) columns.toFloat() else 1f
-                    if (d == LauncherDest.Drawer) {
-                        LauncherTile(
-                            dest = LauncherDest.Drawer,
-                            spoolSwatches = spoolSwatches,
-                            onClick = onOpenDrawer,
-                            modifier = Modifier.weight(cellWeight).fillMaxHeight(),
-                        )
-                    } else {
-                        LauncherTile(
-                            dest = d,
-                            spoolSwatches = spoolSwatches,
-                            onClick = { launcherDestTarget(d)?.let(onNavigate) },
-                            modifier = Modifier.weight(cellWeight).fillMaxHeight(),
-                        )
-                    }
+                    LauncherTile(
+                        dest = d,
+                        spoolSwatches = spoolSwatches,
+                        onClick = { launcherDestTarget(d)?.let(onNavigate) },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
                 }
             }
         }
     }
 }
 
-/** Map a [LauncherDest] to its route [NavDest] (Drawer → null, it opens the drawer not a NavDest). */
+/** Map a [LauncherDest] to its route [NavDest]. */
 internal fun launcherDestTarget(d: LauncherDest): NavDest? = when (d) {
     LauncherDest.Files -> NavDest.Files
     LauncherDest.Temperature -> NavDest.Temperature
@@ -482,7 +464,6 @@ internal fun launcherDestTarget(d: LauncherDest): NavDest? = when (d) {
     LauncherDest.Spool -> NavDest.Spool
     LauncherDest.Macros -> NavDest.Macros
     LauncherDest.Console -> NavDest.Console
-    LauncherDest.Drawer -> null
 }
 
 /** One neutral-outline launcher tile (navigation intent = neutral, UI-SPEC). ICON-ONLY (the text label
@@ -541,7 +522,6 @@ internal fun launcherIcon(d: LauncherDest): works.mees.dinghy.designsystem.icons
     LauncherDest.Spool -> DinghyIcons.LauncherSpool
     LauncherDest.Macros -> DinghyIcons.LauncherMacros
     LauncherDest.Console -> DinghyIcons.LauncherConsole
-    LauncherDest.Drawer -> DinghyIcons.LauncherDrawer
 }
 
 /** The tile's a11y label string-resource id (icon-only tiles; the label feeds TalkBack only). */
@@ -554,7 +534,6 @@ internal fun launcherLabelRes(d: LauncherDest): Int = when (d) {
     LauncherDest.Spool -> R.string.cd_launcher_spool
     LauncherDest.Macros -> R.string.cd_launcher_macros
     LauncherDest.Console -> R.string.cd_launcher_console
-    LauncherDest.Drawer -> R.string.cd_launcher_drawer
 }
 
 /**
@@ -585,9 +564,35 @@ internal fun TuneShortcutTile(onClick: () -> Unit, modifier: Modifier = Modifier
 }
 
 /**
- * The Printing/Paused shortcut row (UI-SPEC combination matrix). Tune is the flexible/growing tile (the
- * P17 stub, no-op); the other three slots are navigation tiles per the Spoolman × bookmarked-macros
- * combination. NO Drawer tile mid-print (drawer stays swipe-only).
+ * The LIVE Print-Status shortcut System tile (D-06/28-05) — provides mid-print access to the System
+ * cluster ([NavDest.System]). Icon-only, mirroring [TuneShortcutTile] (hair outline, ≥64dp,
+ * `bottom_panel_open` glyph — DISTINCT from the Fine-Tune `instant_mix`, icon-no-repeat).
+ */
+@Composable
+internal fun SystemShortcutTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier
+            .heightIn(min = 64.dp)
+            .clip(shape)
+            .border(BorderStroke(2.dp, t.hair), shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        DinghyIconView(
+            DinghyIcons.FootSystem,
+            tint = t.text2,
+            sizeDp = fsSp(40f, t.fs).dp,
+            contentDescription = stringResource(R.string.home_foot_system),
+        )
+    }
+}
+
+/**
+ * The Printing/Paused shortcut row (UI-SPEC combination matrix). Tune is the flexible/growing tile;
+ * a System tile (D-06/28-05) provides mid-print access to the System cluster. The other slots are
+ * navigation tiles per the Spoolman × bookmarked-macros combination.
  */
 @Composable
 internal fun ShortcutRow(
@@ -597,7 +602,7 @@ internal fun ShortcutRow(
     onNavigate: (NavDest) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The trailing nav slots per the matrix (Tune is always first + flexible).
+    // The trailing nav slots per the matrix (Tune + System are always first; rest fills the row).
     val tail: List<LauncherDest> = when {
         spoolmanPresent && hasBookmarkedMacros -> listOf(LauncherDest.Temperature, LauncherDest.Macros, LauncherDest.Spool)
         !spoolmanPresent && hasBookmarkedMacros -> listOf(LauncherDest.Temperature, LauncherDest.Macros, LauncherDest.Console)
@@ -606,9 +611,7 @@ internal fun ShortcutRow(
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Tune = the flexible/growing tile (weight grows when the row is short — the "Tune grows" case).
-        // TUNE-01 / D-21: now LIVE — taps open the Fine-Tune Hub (Dest.FineTune). This is the mid-print
-        // Print-Status entry into the live-adjust panel (the gutter Tune control stays a disabled stub,
-        // PrintStatusControlModel). Distinct `instant_mix` glyph (icon-no-repeat; `tune` is Calibration's).
+        // TUNE-01 / D-21: taps open the Fine-Tune Hub (NavDest.FineTune). Distinct `instant_mix` glyph.
         val tuneWeight = if (tail.size < 3) 2f else 1f
         Box(Modifier.weight(tuneWeight)) {
             TuneShortcutTile(
@@ -616,6 +619,12 @@ internal fun ShortcutRow(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        // System shortcut tile (D-06/28-05): mid-print access to the System cluster.
+        // Shell-level FloatingEStop is NOT suppressed on NavDest.System (D-06 — intentional).
+        SystemShortcutTile(
+            onClick = { onNavigate(NavDest.System) },
+            modifier = Modifier.weight(1f),
+        )
         tail.forEach { d ->
             LauncherTile(
                 dest = d,
