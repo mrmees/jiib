@@ -1,7 +1,8 @@
 ---
 phase: 27-motion-calibration
 verified: 2026-06-12T14:30:00Z
-status: human_needed
+status: passed
+human_verified: 2026-06-12 — owner "approved" all 3 CR-01 Back-path checks on flox (fresh post-fix APK, install verified non-stale)
 score: 5/5
 overrides_applied: 0
 human_verification:

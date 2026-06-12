@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-06-12T13:06:31.822Z"
+status: ready_to_plan
+last_updated: 2026-06-12T13:52:36.565Z
 last_activity: 2026-06-12
 progress:
   total_phases: 36
@@ -11,10 +11,11 @@ progress:
   total_plans: 215
   completed_plans: 214
   percent: 89
+stopped_at: Phase 27 complete (7/7) — ready to discuss Phase 28
 ---
 
 **Last verified:** 2026-06-11
-**Status:** Phase complete — ready for verification
+**Status:** Ready to plan
 
 # Project State
 
@@ -23,12 +24,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 27 — motion-calibration
+**Current focus:** Phase 28 — system / settings cluster
 
 ## Current Position
 
-Phase: 27 (motion-calibration) — EXECUTING
-Plan: 7 of 7
+Phase: 28
+Plan: Not started
 Status: Phase complete — ready for verification
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
@@ -80,7 +81,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 171
+- Total plans completed: 178
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -114,6 +115,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 25 | 7 | - | - |
 | 26 | 7 | - | - |
 | 26.5 | 7 | - | - |
+| 27 | 7 | - | - |
 
 **Recent Trend:**
 
