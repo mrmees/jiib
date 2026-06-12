@@ -408,4 +408,20 @@ object SampleFixtures {
             errorText = "bed level exceeds configured limits",
         )
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // SystemPageContent fixtures (28-02)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Active printer display name used by [SystemPageContent] preview panels.
+     * Pure immutable string — no network, no coroutines.
+     */
+    const val systemPageActivePrinter: String = "Ender 5 Plus"
+
+    /**
+     * App version string used by [SystemPageContent] preview panels.
+     * Mirrors [BuildConfig.VERSION_NAME] shape at preview time; static fixture.
+     */
+    const val systemPageVersion: String = "0.1.0-debug"
 }
