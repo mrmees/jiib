@@ -22,7 +22,6 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -336,6 +335,8 @@ private fun healthChipVisual(
     t: ThemeTokens,
 ): Triple<DinghyIcon, androidx.compose.ui.graphics.Color, Int> = when (health) {
     HealthState.Caution -> Triple(DinghyIcons.StatusStop, t.stop, R.string.sysinfo_health_caution)
-    HealthState.Warn -> Triple(DinghyIcon(IconRef.Ligature("warning"), alternate = "sysinfo_warn"), t.heat, R.string.sysinfo_health_warn)
+    // WR-06 (icon-registry-only LAW): use the REGISTERED Warning token — an inline DinghyIcon(
+    // IconRef.Ligature(...)) bypasses DinghyIconsTest's drift guards and the subset-tool registry walk.
+    HealthState.Warn -> Triple(DinghyIcons.Warning, t.heat, R.string.sysinfo_health_warn)
     HealthState.Healthy -> Triple(DinghyIcons.CheckCircle, t.go, R.string.sysinfo_health_healthy)
 }
