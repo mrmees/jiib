@@ -121,6 +121,64 @@ ratify) · **[V]** verify in code during audit.
 
 ---
 
+## RULINGS — Round 1 (owner, 2026-06-12)
+
+- **R1 (Q1) — Gutter:** retired as a full-width REGION; it lives on as the primary button area
+  under field sections (`FootButtonBar` is the gutter's successor) and is NOT required on every
+  page. Code slot disposition (folded, consistent with ruling): no new `gutter`-slot use; existing
+  users migrate as their Step-2 verdicts execute; delete the slot when the last user migrates.
+- **R2 (Q2) — README:** rewrite as the new front door (doc map + two-region summary + pointers).
+- **R3 (Q3) — North star:** hi-fi bundle (`hifi.css`, `Print Status Hi-Fi.html`, images/) demoted
+  to historical reference, marked as such. North star of record = the as-built Spoolman screen +
+  sketch skill sources (incl. `themes/default.css`) + THEMING.md tokens.
+- **R4 (Q4) — Buttons are FILLED** (list rows stay translucent/outline) — fill denotes button-ness.
+- **R5 (Q4 follow-up, supersedes C1/C5/D-10) — NEW button intent scheme:**
+  - **stop** = could be destructive
+  - **warning/caution** = could be destructive but part of the process (jog, load filament, resets)
+  - **go** = the EXPECTED action (Files' Print, Spoolman's Load, Save, accept)
+  - **accent** = neutral items / plain navigation (Back, Home-screen nav)
+  - **neutral/outline RETIRES as a button intent.** Audit gets a repaint column; C1/C5/D-10
+    rewritten to this scheme. (Confirmed explicitly against old law before adoption.)
+- **R6 (Q4) — "Glow":** owner unsure of term; real blur isn't on the API floor. Keep the glow
+  tokens defined as a cheap static alpha treatment; achieving a true glow via clever caching is
+  ASPIRATIONAL polish, not law. Audit flags current glow renders for review, doesn't enforce.
+
+## RULINGS — Round 2 (owner, 2026-06-12)
+
+- **R7 (Q5) — Flexible-tile rule KEPT as law;** instance table corrected to real instances only
+  (verify Tune tile + any others during audit).
+- **R8 (Q6) — Back = FIRST (start-aligned) button in a FootButtonBar, app-wide.** Law + a Step-2
+  audit column (position + the new accent intent per R5). Closes the 15.2 HONEST DEFERRAL.
+- **R9 (Q7) — Sketch-004 SeekBar-style ringed-thumb scrubber is LAW** (6px track, accent fill /
+  surface-3 remainder; surface knob + 5px accent ring ~34px visible, ~74px invisible touch target,
+  accent-soft press halo; labels under, value above, snap-to-step; build-once/update-in-place drag
+  rule per fa97efb). Fill-bar style DEPRECATED → migration items in the audit (Outputs LED
+  brightness, inline scrubbers); UAT-3's "while in use" hedge resolved (the 1U height cap
+  carries over to the new style); dead `ScrubberPage.kt` deleted this sweep.
+- **R10 (Q8) — oklch caution-reads-red fix IN SCOPE** (it undermines R5's warning-vs-stop
+  distinguishability). Generator/bridge clamp fix rides the sweep.
+
+## RULINGS — Round 3 (owner, 2026-06-12)
+
+- **R11 (Q9) — Type ramp ratified WITH ONE STRUCTURAL TWEAK:** the default list-item/button text
+  size becomes what the fs=L setting renders TODAY for field/list items (Move/Extrude/Calibration
+  rows etc.). Derivation: current base 17–18sp × L(1.32) ≈ 22–24sp rendered → **new base ≈ 20sp**
+  (default-M renders ~23sp; L grows to ~26sp). Secondary text / measurement units may sit smaller
+  per-case. Rest of ramp re-anchors around it: 15sp floor (metadata) · **20sp list/button default**
+  · 22–24 titles · 26 tabular stats · 28+ focus heroes. Sub-15 stragglers (11/13/14sp) = audit
+  flags. [Interpretation derived from owner wording — confirm before THEMING.md rewrite.]
+- **R12 (Q10) — Stroke/floor table APPROVED AS-BUILT** (ListRow 1.5/2 · DetailCard 3/1 ·
+  OutlinedControl 2, 64dp floor · FillMeter 6 · scrubber 6/34/5/74 · SortFilter U−12, 8dp gaps ·
+  FloatingEStop 0.7U≥64, 14dp pad · floors: controls ≥64dp, absolute ≥48dp), **with a "minimal
+  style" consolidation mandate** — audit proposes value consolidations (e.g. fewer distinct
+  stroke weights) as owner-call polish items rather than enshrining every variant forever.
+- **R13 (Q11) — Spacing ratified as NAMED TOKENS at as-built values** (e.g. gapS=8dp, gapM=12dp,
+  padFloat=14dp), documented beside the radii; "no hardcoded sizes" amended to "spacing from the
+  named set." No visual change; audit enforces the names.
+- **R14 (Q12) — Backfill SPLIT:** string extraction + icon call-site migration ride THIS sweep
+  (they gate vocabulary/registry conformance); exhaustive @Preview matrices + golden screenshots
+  move to Ship as release-hardening.
+
 ## D. Verify during audit [V]
 - Tune-tile flexible behavior (Q5); Back intent/position on every rebuilt screen (Q6);
   which screens pass `gutter = null` vs real gutter content (Q1); image-backed info card grammar
