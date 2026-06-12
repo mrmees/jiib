@@ -48,7 +48,11 @@ D-10 drift guard. Morning UAT is the phase gate — do NOT mark the phase comple
 
 ## DECISIONS-NEEDED
 
-### 1. LICENSE choice (R5a step 2 — recommend-only; NO file was created)
+### 1. LICENSE choice — ✅ RESOLVED 2026-06-11: owner chose GPLv3; canonical gpl-3.0.txt committed as LICENSE (R5b unblocked)
+
+*(original decision text retained below)*
+
+### ~~1. LICENSE choice (R5a step 2 — recommend-only; NO file was created)~~
 
 **GPLv3** is the Klipper-ecosystem norm — Klipper, Moonraker, and Fluidd are all GPL, so a GPLv3
 jiib signals ecosystem citizenship and guarantees that any fork of the fork-and-edit `CommandMap`
