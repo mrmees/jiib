@@ -224,7 +224,7 @@ private fun WebcamBackBar(
             label = stringResource(R.string.common_back),
             onClick = onBack,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
+            intent = Intent.Accent, // R5/R8 (supersedes D-10): Back = accent.
             icon = DinghyIcons.Back,
         )
     }
@@ -310,7 +310,7 @@ private fun CamPicker(
                     color = if (isSelected) t.accent2 else t.text,
                     fontFamily = GeistMono,
                     fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(16f, t.fs).sp,
+                    fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
                 )
                 if (isSelected) {
                     // Expanded Moonraker info for the selected cam (service + resolution/aspect).

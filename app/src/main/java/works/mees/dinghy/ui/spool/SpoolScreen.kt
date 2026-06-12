@@ -531,7 +531,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
                 label = "",
                 onClick = onUnload,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
+                intent = Intent.Go, // R5: the selection state's expected action
                 icon = DinghyIcons.ExpandCircleDown,
             )
         } else {
@@ -539,7 +539,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
                 label = "",
                 onClick = onLoad,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
+                intent = Intent.Go, // R5: the selection state's expected action
                 icon = DinghyIcons.ExpandCircleUp,
             )
         }

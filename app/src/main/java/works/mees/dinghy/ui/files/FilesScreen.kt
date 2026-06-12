@@ -608,7 +608,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             label = stringResource(R.string.common_back),
             onClick = onBack,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral,
+            intent = Intent.Accent, // R5: Back = accent
             icon = DinghyIcons.Back,
         )
         OutlinedControl(
@@ -618,7 +618,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                 .weight(1f)
                 .alpha(if (startEnabled) 1f else 0.38f)
                 .then(if (!startEnabled) Modifier.semantics { disabled() } else Modifier),
-            intent = Intent.Accent,
+            intent = Intent.Go, // R5: Print = the expected action
             icon = DinghyIcons.Print,
             contentDescription = stringResource(R.string.cd_files_print),
         )

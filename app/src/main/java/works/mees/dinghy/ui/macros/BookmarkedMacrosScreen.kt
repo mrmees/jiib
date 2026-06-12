@@ -323,14 +323,14 @@ private fun ColumnScope.MacroLauncherField(
             label = stringResource(R.string.macros_foot_back),
             onClick = onBack,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral,
+            intent = Intent.Accent, // R5: Back = accent
             icon = DinghyIcons.Back,
         )
         OutlinedControl(
             label = stringResource(R.string.macros_foot_manage),
             onClick = onManage,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral,
+            intent = Intent.Accent, // R5: plain navigation = accent
             icon = DinghyIcons.ManageMacros,
             contentDescription = stringResource(R.string.cd_macros_manage),
         )
@@ -525,7 +525,7 @@ private fun ColumnScope.MacroParamEntryField(
             label = stringResource(R.string.macros_foot_back),
             onClick = onBack,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral,
+            intent = Intent.Accent, // R5: Back = accent
             icon = DinghyIcons.Back,
         )
         // Execute: disabled while !bodyLoaded (WR-03) OR running (PRIM-05).
@@ -545,7 +545,7 @@ private fun ColumnScope.MacroParamEntryField(
                         Modifier
                     },
                 ),
-            intent = Intent.Accent,
+            intent = Intent.Go, // R5: Execute = the expected action
             icon = DinghyIcons.ExecuteMacro,
             contentDescription = stringResource(R.string.cd_macros_execute),
         )
@@ -706,7 +706,7 @@ private fun ColumnScope.MacroManageField(
             label = stringResource(R.string.macros_foot_back),
             onClick = onBack,
             modifier = Modifier.weight(1f),
-            intent = Intent.Neutral,
+            intent = Intent.Accent, // R5: Back = accent
             icon = DinghyIcons.Back,
         )
         // Show hidden toggle: the old SystemMacrosScreen glyph pair, now routed through the registry

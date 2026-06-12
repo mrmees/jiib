@@ -202,6 +202,15 @@ private fun ConsoleContent(
                     FootButtonBar(
                         uDp = grid.uDp,
                     ) {
+                        // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
+                        OutlinedControl(
+                            label = "",
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
                         // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
                         // semantics — active-filter state is otherwise outline-color-only.
                         // Hide-temperatures toggle
@@ -236,15 +245,6 @@ private fun ConsoleContent(
                             intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
                             icon = DinghyIcons.HidePrompts,
                             contentDescription = stringResource(R.string.cd_console_hide_prompts),
-                        )
-                        // Back (plain nav — D-10: neutral, spends no safety color)
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
                         )
                     }
                 },
