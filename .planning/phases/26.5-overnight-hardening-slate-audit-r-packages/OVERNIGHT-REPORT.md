@@ -64,7 +64,9 @@ of the GPL Klipper ecosystem, the sideload-an-APK audience loses nothing to copy
 No LICENSE file exists in the repo; R5b (README/CONTRIBUTING, the go-public gate) is blocked on
 this decision.
 
-### 2. R9 step-4 archive script — review then run (or decline)
+### 2. R9 step-4 archive script — ✅ RESOLVED 2026-06-11: owner approved; executed (30 deleted / 112 archived, self-test PASS, protected list intact, commit ec8b6b5)
+
+### ~~2. R9 step-4 archive script — review then run (or decline)~~
 
 Owner-gated by the CONTEXT lock; **nothing was moved tonight.** See "R9 Archive Script" below
 for the pointer + numbers. Run order: `--self-test` → dry-run → `--execute`.
