@@ -1301,7 +1301,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 27-05-PLAN.md — BedMesh: Field profile list + SaveName takeover, dialogs die (D-11..D-14) + preview
+- [x] 27-05-PLAN.md — BedMesh: Field profile list + SaveName takeover, dialogs die (D-11..D-14) + preview
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
