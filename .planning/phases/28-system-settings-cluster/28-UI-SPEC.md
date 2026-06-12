@@ -66,8 +66,9 @@ to the same 8-point scale at standard density (mdpi). The unit `U` governs all n
 | 2xl | 48 dp | Page-level top/bottom padding on SysInfo when scrolling freely |
 | 3xl | 64 dp | Not used this phase |
 
-**C6 dense row target:** `10.dp` vertical padding top+bottom (≈ 20dp total per row vs standard
-1U ≈ 44–72dp). Implemented as `dense = true` flag on `ListRow` or equivalent overload.
+**C6 row height:** `heightIn(min = uDp)` — same 1U floor as all other surfaces.
+**REVOKED:** the original "10dp dense row" concept is superseded by the owner UAT ruling
+(2026-06-12). See the Dense jiib ListRow variant section and 28-UAT.md §Gaps GAP-A.
 
 **Exceptions:**
 - System page Focus strip: capped at **20% of screen HEIGHT in portrait / 40% of WIDTH in
@@ -443,11 +444,18 @@ Reusable kit extension. One visual family:
 ```
 Content (browsable):   transparent fill, t.outline (1.5dp border)
 Controls:              t.surface fill, t.outline border (or intent-line when active)
-C6 dense modifier:     vertical padding 10dp top + 10dp bottom (instead of U-derived min)
+C6 height:             heightIn(min = uDp) — SAME AS ALL OTHER SURFACES (see UAT ruling below)
 ```
 
-The `dense = true` flag on `ListRow` suspends `heightIn(min = uDp)`. All other ListRow
-conventions (leading icon, name start-aligned, value end-aligned with `Spacer(weight(1f))`) hold.
+> **UAT ruling — Phase 28, 2026-06-12 (owner, on-device):** The `dense = true` flag concept
+> is REVOKED. All rows and controls on all surfaces (including C6 settings-class screens) use
+> `heightIn(min = uDp)` unconditionally. The `dense` parameter has been deleted from `ListRow`
+> and `TokenTextField`. C6 densification = tighter section grouping, inline keyboard fields,
+> fit-on-one-page layout — **NEVER sub-1U or fixed-dp row heights**. The original
+> "10dp vertical padding each side" dense contract from this spec is superseded by this ruling.
+
+All other ListRow conventions (leading icon, name start-aligned, value end-aligned with
+`Spacer(weight(1f))`) hold.
 
 ### Printers mode-toggle state machine
 

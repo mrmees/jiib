@@ -159,6 +159,38 @@ While a print is actively running on a connected printer:
 
 ---
 
+---
+
+## Gaps
+
+### GAP-A — U-grid abandoned on Phase-28 surfaces (dense 10dp rows instead of 1U)
+
+**Root cause:** UI-SPEC D-09 / CONTEXT D-09 said "sub-1U rows"; the UI-SPEC's Interaction Contract
+section flattened that to "vertical padding 10dp top + 10dp bottom (instead of U-derived min)".
+`ListRow.dense = true` implemented this as `Modifier.padding(vertical = 10.dp)` with no
+`heightIn` floor. On device: row heights floated with content, no shared vertical rhythm.
+
+**Owner UAT ruling (2026-06-12, verbatim intent):** "All 1U." Every row/control on every
+Phase-28 screen (including System page, Settings, SysInfo, About, Printers, ThemeEditor) must
+honor the unit-grid 1U height floor.
+
+**Fix:**
+- `ListRow`: deleted `dense` param; `heightIn(min = uDp)` applied unconditionally
+- `TokenTextField`: deleted `dense` param and `heightIn(max = 48.dp)` cap
+- `SystemPageScreen.PowerStubRow`: `heightIn(min = uDp)` added; `padding(vertical = 10.dp)` removed
+- `AboutScreen.DevEnableRow`: `heightIn(min = uDp)` added; `BoxWithConstraints/rememberUnitGrid` wired
+- All `dense = true` call sites removed in: SettingsScreen, PrintersScreen, SystemInformationScreen, SystemPageScreen
+
+**Fix commit:** `e51254c fix(28-09): restore 1U height floor on all Phase-28 surfaces (GAP-A)`
+
+**Docs updated:**
+- `docs/ui_design/LAYOUT.md` C6 bullet amended — "sub-1U rows" concept revoked
+- `28-UI-SPEC.md` Dense Row section amended with UAT ruling note
+
+**Status:** resolved
+
+---
+
 ## Overall Status
 
 **Status:** pending

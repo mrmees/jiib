@@ -238,13 +238,16 @@ arrangement and target sizing:
   for a vertical quantity (e.g. **Z**) must NOT be placed in a horizontal row when the active
   orientation (landscape vs portrait) layout affords a vertical arrangement. (The Z-row in *Move* is
   the worked example — see AUDIT R2 / Phase 17 for the rework.)
-- **C6 — Config/settings-type surfaces are EXEMPT from the ≥64dp touch minimum and should be
-  DENSIFIED.** Settings-class surfaces (Settings, Theme editor, and similar config pages) are a
-  deliberate **close-interaction** use case — held in the hand, not read across the room — so they are
-  **exempt from the ≥64dp minimum-target floor** (NON-NEGOTIABLE 3's touch floor) and should be
-  **densified**: tighter rows, toggles / dropdowns / popups, fit-on-one-page. The **print-control
-  surfaces remain fully bound by the ≥64dp floor** — C6 does not relax them. The unit `U` derivation
-  is also exempt for settings-class screens (C6 applies).
+- **C6 — Config/settings-type surfaces should be DENSIFIED, but NOT below 1U row height.** Settings-
+  class surfaces (Settings, Theme editor, and similar config pages) are a deliberate **close-
+  interaction** use case — held in the hand, not read across the room — so they should be
+  **densified**: tighter section grouping, inline keyboard fields, toggles / dropdowns / popups,
+  fit-on-one-page where sensible. **C6 densification does NOT mean sub-1U rows.** All row and
+  control heights remain `heightIn(min = uDp)` (the 1U floor) even on C6 screens — owner UAT
+  ruling, Phase 28, 2026-06-12. C6 densification = tighter grouping/sections, inline keyboard
+  fields, no wasted vertical whitespace between sections — **NEVER fixed-dp row heights or sub-1U
+  padding-only rows.** The **print-control surfaces remain fully bound by the ≥64dp floor** — C6
+  does not relax them.
 
 ---
 
