@@ -2,26 +2,29 @@ package works.mees.dinghy.ui.finetune
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Test
+import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.PrinterCommands
+import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 
 /**
- * Regression proof for the D-22 clamp-authority invariant in the new flat Fine-Tune screen.
+ * Regression proof for the D-22 clamp-authority invariant on the trailing-commit path
+ * (quick-rmr): [commitTunerValue] is now the SINGLE commit-time write path — for every over-cap
+ * commit the [FineTuneHolder.markPending] target equals the PrinterCommands clamp ceiling, NOT
+ * the raw over-cap value (the P17 UAT Check-6 permanent busy-lock wedge guard), and a burst of
+ * batched taps dispatches exactly ONE wire request carrying the final clamped value.
  *
- * Verifies: for every over-cap nudge via [nudge], the [FineTuneHolder.markPending] target equals
- * the PrinterCommands clamp ceiling — NOT the raw over-cap value. This is the P17 UAT Check-6
- * regression guard: an UNCLAMPED markPending target above the cap would arm a flip the wire command
- * can never reach, wedging the whole group's busy lock permanently.
- *
- * See also [FineTuneHolderTest] which tests the holder itself.
+ * See also [FineTuneHolderTest] which tests the holder itself (UNCHANGED by quick-rmr).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FineTuneScreenNudgeTest {
@@ -31,29 +34,28 @@ class FineTuneScreenNudgeTest {
     // ─── MAX_VELOCITY cap test ────────────────────────────────────────────────────
 
     /**
-     * An over-cap nudge on MAX_VELOCITY (above VEL_MAX=1000 mm/s) must arm markPending at
+     * An over-cap commit on MAX_VELOCITY (above VEL_MAX=1000 mm/s) must arm markPending at
      * exactly the VEL_MAX ceiling — not the raw value.
      *
-     * Proof of D-22: [nudge] calls [clampForTuner] before [FineTuneHolder.markPending], so the
-     * armed target == clamped ceiling == wire value → no permanent busy-lock wedge.
+     * Proof of D-22: [commitTunerValue] calls [clampForTuner] before [FineTuneHolder.markPending],
+     * so the armed target == clamped ceiling == wire value → no permanent busy-lock wedge.
      */
     @Test
     fun velocity_overCap_armsMarkPendingAtClampCeiling() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
         val holder = FineTuneHolder(backgroundScope, store)
         store.setCapabilities(caps("toolhead"))
-        // Seed a valid below-cap velocity so we can test the over-cap nudge.
+        // Seed a valid below-cap velocity so we can test the over-cap commit.
         store.seed(PrinterState(maxVelocity = 990.0))
         runCurrent()
 
         val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.MAX_VELOCITY }
         val vm = holder.vm.value
 
-        // Over-cap raw target: 990 + 100 = 1090, but VEL_MAX = 1000.
-        nudge(
+        // Over-cap absolute target: 990 + 100 = 1090, but VEL_MAX = 1000.
+        commitTunerValue(
             param = param,
-            currentValue = 990.0,
-            stepDelta = 100.0,
+            target = 1090.0,
             vm = vm,
             holder = holder,
             dispatcher = null,
@@ -63,9 +65,9 @@ class FineTuneScreenNudgeTest {
         // The armed target must be the clamp ceiling, NOT the raw 1090.
         val pending = holder.pendingStateFlip
         if (pending != null) {
-            // Nudge was > epsilon away from cap → armed; target must be clamped.
+            // Commit was > epsilon away from cap → armed; target must be clamped.
             assertEquals(
-                "over-cap velocity nudge arms markPending at VEL_MAX (not raw 1090)",
+                "over-cap velocity commit arms markPending at VEL_MAX (not raw 1090)",
                 PrinterCommands.VEL_MAX,
                 pending.target,
                 0.001,
@@ -82,7 +84,7 @@ class FineTuneScreenNudgeTest {
     }
 
     /**
-     * An at-cap velocity (already at VEL_MAX) nudged further should skip-arm (no-op):
+     * An at-cap velocity (already at VEL_MAX) committed further should skip-arm (no-op):
      * markPending's skip-arm fires because clamped target ≈ current value.
      */
     @Test
@@ -96,10 +98,9 @@ class FineTuneScreenNudgeTest {
         val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.MAX_VELOCITY }
         val vm = holder.vm.value
 
-        nudge(
+        commitTunerValue(
             param = param,
-            currentValue = PrinterCommands.VEL_MAX,
-            stepDelta = 100.0,
+            target = PrinterCommands.VEL_MAX + 100.0,
             vm = vm,
             holder = holder,
             dispatcher = null,
@@ -107,7 +108,7 @@ class FineTuneScreenNudgeTest {
         runCurrent()
 
         assertNull(
-            "at-cap velocity nudge skip-arms (no permanent busy-lock wedge)",
+            "at-cap velocity commit skip-arms (no permanent busy-lock wedge)",
             holder.pendingStateFlip,
         )
         assertFalse("no false busy lock at velocity cap", holder.vm.value.groupBusy)
@@ -116,7 +117,7 @@ class FineTuneScreenNudgeTest {
     // ─── SCV cap test ─────────────────────────────────────────────────────────────
 
     /**
-     * An over-cap nudge on SCV (above SCV_MAX=20 mm/s) must arm markPending at the SCV_MAX ceiling.
+     * An over-cap commit on SCV (above SCV_MAX=20 mm/s) must arm markPending at the SCV_MAX ceiling.
      *
      * SCV is one of the small-step tuners (step=0.1 mm/s, epsilon=step×0.1=0.01 mm/s, wire precision=1dp)
      * where the P17 UAT Check-6 bug was most dangerous (tight epsilon + off-grid targets).
@@ -133,11 +134,10 @@ class FineTuneScreenNudgeTest {
         val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.SCV }
         val vm = holder.vm.value
 
-        // Over-cap raw target: 19.5 + 1.0 = 20.5, but SCV_MAX = 20.0.
-        nudge(
+        // Over-cap absolute target: 19.5 + 1.0 = 20.5, but SCV_MAX = 20.0.
+        commitTunerValue(
             param = param,
-            currentValue = 19.5,
-            stepDelta = 1.0,
+            target = 20.5,
             vm = vm,
             holder = holder,
             dispatcher = null,
@@ -147,7 +147,7 @@ class FineTuneScreenNudgeTest {
         val pending = holder.pendingStateFlip
         if (pending != null) {
             assertEquals(
-                "over-cap SCV nudge arms markPending at SCV_MAX (not raw 20.5)",
+                "over-cap SCV commit arms markPending at SCV_MAX (not raw 20.5)",
                 PrinterCommands.SCV_MAX,
                 pending.target,
                 0.001,
@@ -161,8 +161,8 @@ class FineTuneScreenNudgeTest {
     }
 
     /**
-     * An at-cap SCV nudge skip-arms (mirrors the [FineTuneHolderTest.smallStep_atCap_noop_releases]
-     * pattern, but exercised via the screen's [nudge] function to prove the call path is clean).
+     * An at-cap SCV commit skip-arms (mirrors the [FineTuneHolderTest] at-cap pattern, but
+     * exercised via the screen's commit path to prove the call path is clean).
      */
     @Test
     fun scv_atCap_skipArms() = runTest(UnconfinedTestDispatcher()) {
@@ -175,18 +175,121 @@ class FineTuneScreenNudgeTest {
         val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.SCV }
         val vm = holder.vm.value
 
-        nudge(
+        commitTunerValue(
             param = param,
-            currentValue = PrinterCommands.SCV_MAX,
-            stepDelta = 0.1,
+            target = PrinterCommands.SCV_MAX + 0.1,
             vm = vm,
             holder = holder,
             dispatcher = null,
         )
         runCurrent()
 
-        assertNull("at-cap SCV nudge skip-arms", holder.pendingStateFlip)
+        assertNull("at-cap SCV commit skip-arms", holder.pendingStateFlip)
         assertFalse("no false busy lock at SCV cap", holder.vm.value.groupBusy)
+    }
+
+    // ─── Trailing-commit batching (quick-rmr, the money test) ─────────────────────
+
+    /**
+     * A 5-tap FLOW burst through a [TrailingCommitBatcher] whose onCommit resolves
+     * `holder.vm.value` AT FIRE TIME (19-09 stale-closure lesson) dispatches EXACTLY ONE wire
+     * request after the quiet window, with the pending flip armed at the final clamped value —
+     * and ZERO requests during the burst.
+     */
+    @Test
+    fun burst_dispatchesExactlyOnce_withFinalClampedValue() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("gcode_move"))
+        store.seed(PrinterState(extrudeFactor = 1.0)) // FLOW = 100%
+        runCurrent()
+
+        // Real CommandDispatcher with a request-counting lambda + virtual timeSource
+        // (CommandDispatcherTest pattern).
+        val requests = mutableListOf<String>()
+        val dispatcher = CommandDispatcher(
+            request = { method, _, _ ->
+                requests += method
+                kotlinx.serialization.json.JsonNull
+            },
+            scope = backgroundScope,
+            timeSource = { testScheduler.currentTime },
+        )
+        val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.FLOW }
+        val batcher = TrailingCommitBatcher(
+            scope = backgroundScope,
+            canCommit = { tunerName ->
+                dispatchKeyForTuner(FineTuneTuner.valueOf(tunerName)) !in dispatcher.inFlight.value
+            },
+            onCommit = { tunerName, value ->
+                // Fire-time resolution: holder.vm.value + the live dispatcher (19-09 lesson).
+                val tuner = FineTuneTuner.valueOf(tunerName)
+                val p = ALL_FINE_TUNE_PARAMS.first { it.tuner == tuner }
+                commitTunerValue(p, value, holder.vm.value, holder, dispatcher)
+            },
+        )
+
+        // 5 rapid FLOW taps (clampForTuner per tap, batcher.tap per tap): 100 → 105, 100ms apart.
+        var working = holder.vm.value.flowPct!!.toDouble()
+        repeat(5) { i ->
+            working = clampForTuner(FineTuneTuner.FLOW, working + 1.0)
+            batcher.tap(FineTuneTuner.FLOW.name, working)
+            runCurrent()
+            assertEquals("zero wire requests during the burst (tap ${i + 1})", 0, requests.size)
+            advanceTimeBy(100)
+        }
+
+        // Quiet window elapses after the LAST tap → exactly ONE dispatch.
+        advanceTimeBy(600)
+        runCurrent()
+
+        assertEquals("exactly one wire request after the quiet window", 1, requests.size)
+        val pending = holder.pendingStateFlip
+        assertNotNull("single commit armed a pending flip", pending)
+        assertEquals(
+            "pending flip target == the final clamped working value",
+            105.0,
+            pending!!.target,
+            0.001,
+        )
+        batcher.dispose()
+    }
+
+    // ─── Off-grid wire-precision rounding (WR-01/02 on the SINGLE commit) ─────────
+
+    /**
+     * Committing an off-grid SCV value arms a pending target rounded to the 1dp wire precision —
+     * proves the WR-01/02 rounding still guards the SINGLE commit (the holder's own off-grid
+     * tests stay untouched as the deeper proof).
+     */
+    @Test
+    fun offGridCommit_armsWirePrecisionRoundedTarget() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = FineTuneHolder(backgroundScope, store)
+        store.setCapabilities(caps("toolhead"))
+        store.seed(PrinterState(squareCornerVelocity = 5.0))
+        runCurrent()
+
+        val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.SCV }
+
+        // 4.07 is off the 1dp wire grid; the armed target must be the half-up 1dp rounding (4.1).
+        commitTunerValue(
+            param = param,
+            target = 4.07,
+            vm = holder.vm.value,
+            holder = holder,
+            dispatcher = null,
+        )
+        runCurrent()
+
+        val pending = holder.pendingStateFlip
+        assertNotNull("off-grid SCV commit arms a pending flip", pending)
+        assertEquals(
+            "armed target equals the 1dp wire-precision rounding of the off-grid commit",
+            4.1,
+            pending!!.target,
+            1e-9,
+        )
     }
 
     // ─── ALL_FINE_TUNE_PARAMS completeness assertion ─────────────────────────────

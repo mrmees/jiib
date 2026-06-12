@@ -326,6 +326,32 @@ fun clampForTuner(tuner: FineTuneTuner, rawTarget: Double): Double = when (tuner
 }
 
 /**
+ * COMMIT-time write path for a tuner value (quick-rmr trailing-commit batching): re-clamp →
+ * [FineTuneHolder.markPending] with the clamped target → dispatch the clamped value.
+ *
+ * This is the ONLY call site that writes [FineTuneHolder.markPending] (source law) — the screen's
+ * per-tap path only accumulates a clamped working value in
+ * [works.mees.dinghy.command.TrailingCommitBatcher]; markPending fires once per commit.
+ *
+ * @param param      the descriptor for the tuner being committed.
+ * @param target     the absolute target value (the batcher's final working value, or a baseline).
+ *                   Idempotently re-clamped here — the hard invariant "clamp BEFORE markPending"
+ *                   holds even if a caller forgot (17-07 Check-6).
+ * @param vm         the live [FineTuneVm] (FW-retraction sibling values in the command).
+ * @param holder     the [FineTuneHolder] whose [FineTuneHolder.markPending] receives the clamped target.
+ * @param dispatcher the live [CommandDispatcher] (null = no dispatch, e.g. offline or in preview).
+ */
+fun commitTunerValue(
+    param: FineTuneParam,
+    target: Double,
+    vm: FineTuneVm,
+    holder: FineTuneHolder,
+    dispatcher: CommandDispatcher?,
+) {
+    TODO("RED stub — implemented with the trailing-commit wiring (GREEN)")
+}
+
+/**
  * Route a nudge for [param] from [currentValue] ± [stepDelta] through the D-22 clamp-authority
  * invariant: clamp first, then [FineTuneHolder.markPending] with the CLAMPED target, then dispatch.
  *
