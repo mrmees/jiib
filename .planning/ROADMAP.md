@@ -1331,7 +1331,7 @@ Plans:
 **Wave 1**
 
 - [x] 28-01-PLAN.md — Icon registry (6 D-21 tokens) + dense ListRow/TokenTextField kit + strings (wave 1)
-- [ ] 28-04-PLAN.md — Delete the maxItems persistence axis (D-17), hardcode the 4-slot default, update theme/config tests (wave 1)
+- [x] 28-04-PLAN.md — Delete the maxItems persistence axis (D-17), hardcode the 4-slot default, update theme/config tests (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
