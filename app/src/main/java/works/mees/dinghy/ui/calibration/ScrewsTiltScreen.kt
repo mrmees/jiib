@@ -249,7 +249,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
     val turn = point.turn
     val turnText = when {
         turn == null -> "—"
-        turn.isBase -> "base"
+        turn.isBase -> stringResource(R.string.screws_turn_base)
         else -> "${turn.adjust} ${turn.sign ?: ""}".trim()
     }
     ListRow(
@@ -305,7 +305,11 @@ private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
             )
         } else {
             Text(
-                text = if (vm.loop.totalScrews > 0) "Bed screw map unavailable" else "Run to probe the bed screws",
+                text = if (vm.loop.totalScrews > 0) {
+                    stringResource(R.string.screws_map_unavailable)
+                } else {
+                    stringResource(R.string.screws_run_prompt)
+                },
                 color = t.text2,
                 fontFamily = Geist,
                 fontSize = fsSp(16f, t.fs).sp,

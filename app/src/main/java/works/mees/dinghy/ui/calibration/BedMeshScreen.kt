@@ -551,7 +551,7 @@ private fun BedMeshFocusRegion(
                 ) {
                     MaterialSymbol("grid_off", tint = t.text3, sizeSp = fsSp(48f, t.fs))
                     Text(
-                        text = "No active mesh",
+                        text = stringResource(R.string.mesh_no_active_mesh),
                         color = t.text,
                         fontFamily = Geist,
                         fontWeight = FontWeight.SemiBold,
@@ -560,7 +560,7 @@ private fun BedMeshFocusRegion(
                         modifier = Modifier.padding(top = 8.dp),
                     )
                     Text(
-                        text = "Activate a bed mesh, or load a saved profile.",
+                        text = stringResource(R.string.mesh_no_active_mesh_hint),
                         color = t.text2,
                         fontFamily = Geist,
                         fontSize = fsSp(15f, t.fs).sp,

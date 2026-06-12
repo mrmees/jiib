@@ -473,6 +473,16 @@
     <string name="calibration_save_config">Save &amp; Restart</string>
     <string name="calibration_save_config_confirm">Save calibration and restart Klipper? All pending changes will be applied.</string>
     <string name="probe_starting">Starting…</string>
+    <!-- Probe Calibrate — extracted literals (27-review WR-03; copy verbatim) -->
+    <string name="probe_cd_raise">Raise nozzle (TESTZ +)</string>
+    <string name="probe_cd_lower">Lower nozzle (TESTZ -)</string>
+    <string name="probe_cd_step_larger">Larger step</string>
+    <string name="probe_cd_step_smaller">Smaller step</string>
+    <string name="probe_cd_probe">Probe</string>
+    <string name="probe_cd_z_offset">Z offset</string>
+    <string name="probe_cd_nozzle">Nozzle</string>
+    <!-- Quoted to preserve the deliberate double space between label and value. -->
+    <string name="probe_saved_ref">"saved  %1$s"</string>
 
     <!-- Bed Mesh screen (Phase 27-05) -->
     <string name="mesh_calibrate">Calibrate</string>
@@ -488,11 +498,34 @@
     <string name="mesh_empty_state">No saved profiles</string>
     <string name="mesh_empty_state_hint">Run Calibrate to create one.</string>
     <string name="cd_mesh_heatmap">Bed mesh heatmap</string>
+    <!-- Bed Mesh — extracted Focus empty-state literals (27-review WR-03; copy verbatim) -->
+    <string name="mesh_no_active_mesh">No active mesh</string>
+    <string name="mesh_no_active_mesh_hint">Activate a bed mesh, or load a saved profile.</string>
 
     <!-- ScrewsTilt + Tilt screens (Phase 27-06) -->
     <string name="calibration_run">Run</string>
     <string name="calibration_run_again">Run Again</string>
     <string name="calibration_running">Running…</string>
+    <!-- Screws Tilt — extracted literals (27-review WR-03; copy verbatim) -->
+    <string name="screws_turn_base">base</string>
+    <string name="screws_map_unavailable">Bed screw map unavailable</string>
+    <string name="screws_run_prompt">Run to probe the bed screws</string>
+    <!-- Tilt (Z-Tilt / QGL shared screen) — extracted literals (27-review WR-03; copy verbatim).
+         The Running headline reuses calibration_running above (identical copy). -->
+    <string name="tilt_title_ztilt">Z-Tilt Adjust</string>
+    <string name="tilt_title_qgl">Quad Gantry Level</string>
+    <string name="tilt_run_label_ztilt">Z-Tilt</string>
+    <string name="tilt_run_label_qgl">QGL</string>
+    <string name="tilt_ready_headline">%1$s Ready to Run</string>
+    <string name="tilt_ready_body">Run to level the gantry automatically.</string>
+    <string name="tilt_home_first_headline">Home Axis First</string>
+    <string name="tilt_home_first_body">Home all axes before running %1$s.</string>
+    <string name="tilt_running_body">Probing and adjusting. Hands-off — wait for it to converge.</string>
+    <string name="tilt_failed_headline">Failed</string>
+    <string name="tilt_failed_body">The printer rejected the routine.</string>
+    <string name="tilt_done_headline">Leveled</string>
+    <string name="tilt_done_body">Gantry leveled.</string>
+    <string name="tilt_adjustments_applied">Z adjustments applied:</string>
 
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>

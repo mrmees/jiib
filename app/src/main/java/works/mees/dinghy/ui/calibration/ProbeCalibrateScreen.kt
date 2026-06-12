@@ -239,7 +239,7 @@ fun ProbeCalibrateContent(
                             // Z-up: TESTZ +step (accent, physical command)
                             ProbeIconButton(
                                 glyphName = "arrow_upward",
-                                contentDescription = "Raise nozzle (TESTZ +)",
+                                contentDescription = stringResource(R.string.probe_cd_raise),
                                 onClick = onTestZUp,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
@@ -254,7 +254,7 @@ fun ProbeCalibrateContent(
                             // Z-down: TESTZ -step (accent, physical command)
                             ProbeIconButton(
                                 glyphName = "arrow_downward",
-                                contentDescription = "Lower nozzle (TESTZ -)",
+                                contentDescription = stringResource(R.string.probe_cd_lower),
                                 onClick = onTestZDown,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
@@ -269,7 +269,7 @@ fun ProbeCalibrateContent(
                         ) {
                             ProbeIconButton(
                                 glyphName = "add",
-                                contentDescription = "Larger step",
+                                contentDescription = stringResource(R.string.probe_cd_step_larger),
                                 onClick = onStepUp,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Neutral,
@@ -278,7 +278,7 @@ fun ProbeCalibrateContent(
                             StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
                             ProbeIconButton(
                                 glyphName = "remove",
-                                contentDescription = "Smaller step",
+                                contentDescription = stringResource(R.string.probe_cd_step_smaller),
                                 onClick = onStepDown,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Neutral,
@@ -438,21 +438,21 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
         ) {
             DinghyIconView(
                 icon = DinghyIcon(IconRef.Ligature("detector"), alternate = "detector"),
-                contentDescription = "Probe",
+                contentDescription = stringResource(R.string.probe_cd_probe),
                 tint = t.text2,
                 sizeDp = fsSp(56f, t.fs).dp,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
             DinghyIconView(
                 icon = DinghyIcon(IconRef.Ligature("expand"), alternate = "expand"),
-                contentDescription = "Z offset",
+                contentDescription = stringResource(R.string.probe_cd_z_offset),
                 tint = t.text2,
                 sizeDp = fsSp(56f, t.fs).dp,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
             Icon(
                 painter = painterResource(R.drawable.nozzle),
-                contentDescription = "Nozzle",
+                contentDescription = stringResource(R.string.probe_cd_nozzle),
                 tint = t.text2,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
@@ -472,7 +472,7 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
             ) {
                 saved?.let {
                     Text(
-                        text = "saved  ${fmtZ(-it)}",
+                        text = stringResource(R.string.probe_saved_ref, fmtZ(-it)),
                         color = t.text2,
                         fontFamily = GeistMono,
                         fontWeight = FontWeight.Medium,

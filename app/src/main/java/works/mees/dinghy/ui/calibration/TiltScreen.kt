@@ -125,13 +125,14 @@ fun TiltContent(
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // WR-03 (27-review): all user-facing copy resolves through stringResource (PREVIEW_AND_TOKENS law).
     val title = when (variant) {
-        TiltVariant.ZTilt -> "Z-Tilt Adjust"
-        TiltVariant.Qgl -> "Quad Gantry Level"
+        TiltVariant.ZTilt -> stringResource(R.string.tilt_title_ztilt)
+        TiltVariant.Qgl -> stringResource(R.string.tilt_title_qgl)
     }
     val runLabel = when (variant) {
-        TiltVariant.ZTilt -> "Z-Tilt"
-        TiltVariant.Qgl -> "QGL"
+        TiltVariant.ZTilt -> stringResource(R.string.tilt_run_label_ztilt)
+        TiltVariant.Qgl -> stringResource(R.string.tilt_run_label_qgl)
     }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -279,26 +280,26 @@ private fun TiltFieldBody(
         when (state) {
             TiltState.Idle ->
                 if (homedGate) {
-                    TiltHeadlineText("$runLabel Ready to Run", t.text)
-                    TiltBodyText("Run to level the gantry automatically.")
+                    TiltHeadlineText(stringResource(R.string.tilt_ready_headline, runLabel), t.text)
+                    TiltBodyText(stringResource(R.string.tilt_ready_body))
                 } else {
-                    TiltHeadlineText("Home Axis First", t.heat)
-                    TiltBodyText("Home all axes before running $runLabel.")
+                    TiltHeadlineText(stringResource(R.string.tilt_home_first_headline), t.heat)
+                    TiltBodyText(stringResource(R.string.tilt_home_first_body, runLabel))
                 }
             TiltState.Running -> {
-                TiltHeadlineText("Running…", t.text)
-                TiltBodyText("Probing and adjusting. Hands-off — wait for it to converge.")
+                TiltHeadlineText(stringResource(R.string.calibration_running), t.text)
+                TiltBodyText(stringResource(R.string.tilt_running_body))
             }
             TiltState.Failed -> {
-                TiltHeadlineText("Failed", t.stop)
-                TiltBodyText(errorText ?: "The printer rejected the routine.")
+                TiltHeadlineText(stringResource(R.string.tilt_failed_headline), t.stop)
+                TiltBodyText(errorText ?: stringResource(R.string.tilt_failed_body))
             }
             TiltState.Done -> {
-                TiltHeadlineText("Leveled", t.go)
+                TiltHeadlineText(stringResource(R.string.tilt_done_headline), t.go)
                 if (adjustments.isEmpty()) {
-                    TiltBodyText("Gantry leveled.")
+                    TiltBodyText(stringResource(R.string.tilt_done_body))
                 } else {
-                    TiltBodyText("Z adjustments applied:")
+                    TiltBodyText(stringResource(R.string.tilt_adjustments_applied))
                     adjustments.forEach { adj ->
                         Row(
                             Modifier.padding(top = 6.dp),
