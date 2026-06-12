@@ -35,10 +35,41 @@ class PopToRootTest {
         assertTrue(shouldPopToRoot(current = NavDest.Extrude, printActive = false))
     }
 
+    // D-07 (Phase 27): Calibration split to 6 sub-routes — all are foot-gun (D-17).
     @Test
-    fun calibration_isFootGun_returnsTrue() {
-        assertTrue(shouldPopToRoot(current = NavDest.Calibration, printActive = true))
-        assertTrue(shouldPopToRoot(current = NavDest.Calibration, printActive = false))
+    fun calibrationHub_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationHub, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationHub, printActive = false))
+    }
+
+    @Test
+    fun calibrationProbe_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationProbe, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationProbe, printActive = false))
+    }
+
+    @Test
+    fun calibrationBedMesh_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationBedMesh, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationBedMesh, printActive = false))
+    }
+
+    @Test
+    fun calibrationScrewsTilt_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationScrewsTilt, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationScrewsTilt, printActive = false))
+    }
+
+    @Test
+    fun calibrationZTilt_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationZTilt, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationZTilt, printActive = false))
+    }
+
+    @Test
+    fun calibrationQgl_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationQgl, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.CalibrationQgl, printActive = false))
     }
 
     // ---------------------------------------------------------------------------
@@ -95,12 +126,18 @@ class PopToRootTest {
     // FOOT_GUN_DESTS set membership sanity check
     // ---------------------------------------------------------------------------
 
+    // D-07 (Phase 27): FOOT_GUN_DESTS expanded from 3 to 8 members (Move + Extrude + 6 CalibrationXxx).
     @Test
-    fun footGunDests_containsExactlyThreeMembers() {
-        assertEquals(3, FOOT_GUN_DESTS.size)
-        assertTrue(NavDest.Move        in FOOT_GUN_DESTS)
-        assertTrue(NavDest.Extrude     in FOOT_GUN_DESTS)
-        assertTrue(NavDest.Calibration in FOOT_GUN_DESTS)
+    fun footGunDests_containsExactlyEightMembers() {
+        assertEquals(8, FOOT_GUN_DESTS.size)
+        assertTrue(NavDest.Move                  in FOOT_GUN_DESTS)
+        assertTrue(NavDest.Extrude               in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationHub        in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationProbe      in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationBedMesh    in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationScrewsTilt in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationZTilt      in FOOT_GUN_DESTS)
+        assertTrue(NavDest.CalibrationQgl        in FOOT_GUN_DESTS)
     }
 
     // Not importing assertEquals from JUnit Assert because it's the plain comparison flavor

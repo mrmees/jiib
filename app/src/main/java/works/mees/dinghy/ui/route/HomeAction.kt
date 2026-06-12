@@ -122,7 +122,7 @@ fun buildIdleActions(
     }
 
     add(HomeAction.Destination(
-        dest     = NavDest.Calibration,
+        dest     = NavDest.CalibrationHub,
         labelRes = R.string.cd_launcher_calibration,
         icon     = DinghyIcons.LauncherCalibration,
     ))

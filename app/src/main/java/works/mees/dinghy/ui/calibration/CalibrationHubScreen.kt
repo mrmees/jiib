@@ -51,14 +51,15 @@ import works.mees.dinghy.theme.fsSp
  * a scroll list). Static styling only (D-13) — outline + faint fill, no looping animation
  * (Adreno-320 floor). Every color routes through [LocalTokens] — NO raw color literal (THEME-01).
  *
- * @param holder     the headless hub holder (supported-first routine list, live off capabilities).
- * @param onNavigate invoked with the tapped [CalibrationRoutine] (09-07 wires the sub-routes).
- * @param onBack     the neutral Back gutter exit (D-10).
+ * @param holder  the headless hub holder (supported-first routine list, live off capabilities).
+ * @param onOpen  invoked with the tapped [CalibrationRoutine] — navigates to the routine's NavDest
+ *                sub-route via navController.navigate(routine.toNavDest()) (D-07, Phase 27).
+ * @param onBack  the neutral Back gutter exit (D-10).
  */
 @Composable
 fun CalibrationHubScreen(
     holder: CalibrationHubHolder,
-    onNavigate: (CalibrationRoutine) -> Unit,
+    onOpen: (CalibrationRoutine) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,7 +88,7 @@ fun CalibrationHubScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(routines, key = { it.routine.name }) { entry ->
-                            RoutineTile(entry = entry, onClick = { onNavigate(entry.routine) })
+                            RoutineTile(entry = entry, onClick = { onOpen(entry.routine) })
                         }
                     }
                 }

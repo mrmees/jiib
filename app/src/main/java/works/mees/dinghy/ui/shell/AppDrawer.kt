@@ -207,7 +207,7 @@ internal val DRAWER_TILES: List<DrawerTileSpec> = listOf(
     DrawerTileSpec(label = "Console", symbol = "terminal", dest = NavDest.Console),
     // `tune` is the single Calibration tile (D-14) — unique among DRAWER_TILES glyphs (icon-no-repeat
     // law). It opens the Calibration hub, which sub-routes to all five routine pages (09-07).
-    DrawerTileSpec(label = "Calibration", symbol = "tune", dest = NavDest.Calibration),
+    DrawerTileSpec(label = "Calibration", symbol = "tune", dest = NavDest.CalibrationHub),
     // Fine-Tune (17-06, TUNE-01 / D-21) — the live-adjust panel. `instant_mix` (the sliders/mixer glyph)
     // is DISTINCT from Calibration's `tune` (icon-no-repeat law) and reads as "live adjustment". Opens the
     // Fine-Tune Hub, which sub-routes to Motion / Extrusion / FW-Retraction (a LOCAL back-stack within

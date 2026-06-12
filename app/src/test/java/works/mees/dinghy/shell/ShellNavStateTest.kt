@@ -61,38 +61,42 @@ class ShellNavStateTest {
         assertNull("Macros entry should clear macroPopupFor", nav.macroPopupFor)
     }
 
-    /** applyEntryReset on Calibration clears calibrationRoutine. */
+    /**
+     * applyEntryReset on CalibrationHub is a no-op in the body (calibrationRoutine field was removed
+     * in Phase 27 — the NavHost back-stack is now the single source of truth, D-07). The call must
+     * not crash and must not perturb other sub-nav state.
+     */
     @Test
-    fun applyEntryReset_calibration_clears_sub_nav() {
+    fun applyEntryReset_calibrationHub_noop_nocrash() {
         val nav = ShellNavState()
-        nav.calibrationRoutine = works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH
-        nav.applyEntryReset(NavDest.Calibration)
-        assertNull("Calibration entry should reset calibrationRoutine to null", nav.calibrationRoutine)
+        nav.macroShowSystem = true
+        // Verify calling applyEntryReset on CalibrationHub does not crash and does not clear macroShowSystem.
+        nav.applyEntryReset(NavDest.CalibrationHub)
+        assertTrue("CalibrationHub entry must not clear macroShowSystem", nav.macroShowSystem)
+        assertNull("CalibrationHub entry must not set macroPopupFor", nav.macroPopupFor)
     }
 
     /**
      * applyEntryReset on a dest that has no sub-nav is a no-op (does not crash).
      * Note: fineTuneGroup was removed in 26-02 (Fine-Tune is now a flat single-screen, no sub-nav).
+     * Note: calibrationRoutine was removed in 27-02 (NavHost back-stack owns calibration sub-nav, D-07).
      */
     @Test
     fun applyEntryReset_other_dest_noop() {
         val nav = ShellNavState()
         nav.macroShowSystem = true
-        nav.calibrationRoutine = works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH
-        // Move has no applyEntryReset side-effects — other sub-nav unchanged.
+        // Move has no applyEntryReset side-effects — macroShowSystem unchanged.
         nav.applyEntryReset(NavDest.Move)
         assertTrue("Move entry must not clear macroShowSystem", nav.macroShowSystem)
-        assertEquals("Move entry must not clear calibrationRoutine",
-            works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH, nav.calibrationRoutine)
+        assertNull("Move entry must not set macroPopupFor", nav.macroPopupFor)
     }
 
-    /** resetTransient clears scanActive, macroPopupFor, and spoolPrefilter but not calibrationRoutine. */
+    /** resetTransient clears scanActive, macroPopupFor, and spoolPrefilter but NOT macroShowSystem. */
     @Test
     fun resetTransient_clears_transient_state_only() {
         val nav = ShellNavState()
         nav.scanActive = true
         nav.spoolPrefilter = works.mees.dinghy.ui.spool.SpoolPrefilterSeed(listOf("PLA"), emptyList())
-        nav.calibrationRoutine = works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH
         nav.macroShowSystem = true
 
         nav.resetTransient()
@@ -101,8 +105,7 @@ class ShellNavStateTest {
         assertNull("resetTransient must clear macroPopupFor", nav.macroPopupFor)
         assertNull("resetTransient must clear spoolPrefilter", nav.spoolPrefilter)
         // Non-transient state is PRESERVED (G-A1 — user returns to their sub-nav state after recovery).
-        assertEquals("resetTransient must NOT clear calibrationRoutine",
-            works.mees.dinghy.calibration.CalibrationRoutine.BED_MESH, nav.calibrationRoutine)
+        // NOTE: calibrationRoutine was removed in Phase 27 — the NavHost back-stack owns that state.
         assertTrue("resetTransient must NOT clear macroShowSystem", nav.macroShowSystem)
     }
 

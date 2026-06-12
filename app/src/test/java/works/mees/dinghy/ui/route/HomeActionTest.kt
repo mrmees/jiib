@@ -145,7 +145,7 @@ class HomeActionTest {
         assertTrue(NavDest.Move        in dests)
         assertTrue(NavDest.Extrude     in dests)
         assertTrue(NavDest.Macros      in dests)
-        assertTrue(NavDest.Calibration in dests)
+        assertTrue(NavDest.CalibrationHub in dests)
         assertTrue(NavDest.Outputs     in dests)
         assertTrue(NavDest.Webcam      in dests)
     }
@@ -164,7 +164,7 @@ class HomeActionTest {
         assertTrue(NavDest.Files       in dests)
         assertTrue(NavDest.Move        in dests)
         assertTrue(NavDest.Extrude     in dests)
-        assertTrue(NavDest.Calibration in dests)
+        assertTrue(NavDest.CalibrationHub in dests)
         // None of the capability-gated rows:
         assertFalse(NavDest.Spool   in dests)
         assertFalse(NavDest.Macros  in dests)
@@ -200,7 +200,7 @@ class HomeActionTest {
                 NavDest.Move,
                 NavDest.Extrude,
                 NavDest.Macros,
-                NavDest.Calibration,
+                NavDest.CalibrationHub,
                 NavDest.Outputs,
                 NavDest.Webcam,
             ),

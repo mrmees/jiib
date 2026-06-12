@@ -106,8 +106,8 @@ fun RootController(container: AppContainer, startDest: NavDest? = null) {
 
     // On RETURN from a recovery Splash (the EFFECTIVE splash is now down), clear the TRANSIENT sub-nav
     // state ([macroPopupFor]) — a half-state macro popup must not survive a reconnect — while
-    // [dest]/[backStack]/[calibrationRoutine]/[macroShowSystem] are deliberately PRESERVED (G-A1: the
-    // user returns to their screen, not Home).
+    // [macroShowSystem] is deliberately PRESERVED (G-A1: the user returns to their sub-nav state,
+    // not the hub, after recovery). NOTE: calibrationRoutine was removed in Phase 27 (plan 27-02).
     LaunchedEffect(showSplash) {
         if (!showSplash) nav.resetTransient()
     }

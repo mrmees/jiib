@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.ui.macros.MacroVm
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
@@ -17,8 +16,12 @@ import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
  * The top-level destination (`dest`) and the drill-down back-stack (`backStack` / `navigateTo` /
  * `goBack`) have been REMOVED — Navigation-Compose's [NavHost] now owns the drill-down back-stack.
  * This class retains only the **in-screen sub-nav** state for the D-01 holdouts
- * (Calibration routine, Macros bookmarked-vs-system, Outputs detail) and the
- * transient overlay flags (scan, spool prefilter).
+ * (Macros bookmarked-vs-system, Outputs detail) and the transient overlay flags (scan, spool prefilter).
+ *
+ * ## Phase 27 migration (plan 27-02)
+ * The `calibrationRoutine` field (the in-screen Calibration sub-nav) has been REMOVED — the NavHost
+ * back-stack is now the SINGLE source of truth for the active calibration screen (D-07). Each routine
+ * is a real [NavDest] sub-route navigated to via `navController.navigate(routine.toNavDest())`.
  *
  * ## Accepted regression (FIX-3 — owner-locked 2026-06-09)
  * After a recovery Splash the user LANDS ON [NavDest.WaterfallHome] (the morphing root) and each
@@ -52,8 +55,9 @@ class ShellNavState(val startDest: NavDest? = null) {
     /** Macro Execution popup target. TRANSIENT — reset on return from a recovery Splash ([resetTransient]). */
     var macroPopupFor by mutableStateOf<MacroVm?>(null)
 
-    /** Calibration sub-nav: null = the hub, non-null = that routine's page. Preserved across a Splash blip. */
-    var calibrationRoutine by mutableStateOf<CalibrationRoutine?>(null)
+    // NOTE: calibrationRoutine REMOVED in Phase 27 (plan 27-02). The NavHost back-stack is now
+    // the single source of truth for the active calibration screen (D-07). Use
+    // navController.navigate(routine.toNavDest()) and navController.popBackStack() instead.
 
     /**
      * Spool QR-scan sub-surface (11-07): true = the full-screen camera scan surface is open. TRANSIENT
@@ -85,17 +89,21 @@ class ShellNavState(val startDest: NavDest? = null) {
             macroShowSystem = false
             macroPopupFor = null
         }
-        // Entering the Calibration surface always starts on the hub (no routine selected).
-        if (target == NavDest.Calibration) {
-            calibrationRoutine = null
-        }
+        // NOTE: NavDest.CalibrationHub reset is now a no-op in the body — the NavHost back-stack
+        // is the single source of truth for sub-nav (D-07, Phase 27). The call-site in AppShell's
+        // composable<NavDest.CalibrationHub> LaunchedEffect(Unit) is KEPT for FIX-3 symmetry
+        // (re-entering the hub clears any route the NavHost may have stacked under a recovery Splash).
+        // No field to clear here — calibrationRoutine was removed in plan 27-02.
     }
 
     /**
      * Clear the TRANSIENT sub-nav state on return from a recovery Splash. Only [macroPopupFor],
      * [scanActive], and [spoolPrefilter] are transient (half-state overlays must not survive a reconnect);
-     * [calibrationRoutine] and [macroShowSystem] are deliberately PRESERVED (G-A1 —
-     * the user returns to their sub-nav state, not the hub, after recovery).
+     * [macroShowSystem] is deliberately PRESERVED (G-A1 — the user returns to their sub-nav state,
+     * not the hub, after recovery).
+     *
+     * NOTE: `calibrationRoutine` was REMOVED in Phase 27 (plan 27-02). The NavHost back-stack is
+     * now the single source of truth for the active calibration screen.
      */
     fun resetTransient() {
         macroPopupFor = null

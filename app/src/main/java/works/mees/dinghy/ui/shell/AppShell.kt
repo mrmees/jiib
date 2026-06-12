@@ -90,6 +90,7 @@ import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.route.FOOT_GUN_DESTS
 import works.mees.dinghy.ui.route.shouldPopToRoot
+import works.mees.dinghy.ui.route.toNavDest
 import works.mees.dinghy.ui.spool.SpoolHolder
 import works.mees.dinghy.ui.spool.SpoolPrefilterSeed
 import works.mees.dinghy.ui.spool.SpoolScreen
@@ -180,8 +181,7 @@ fun AppShell(
     // In-screen sub-nav aliases (D-01 holdouts — NOT promoted to NavHost routes).
     // macroShowSystem + macroPopupFor removed: Macros merged to a single FieldMode screen (25-05).
     // fineTuneGroup removed: Fine-Tune is now a flat single-screen (26-02), no sub-nav.
-    // ShellNavState still owns calibrationRoutine (applyEntryReset + ShellNavState reset-on-Splash).
-    val calibrationRoutine = nav.calibrationRoutine
+    // calibrationRoutine removed: D-07 (Phase 27) — NavHost back-stack is the single source of truth.
 
     // Build the Print Status holder from the LIVE per-session store; re-key it when the spine rebuilds.
     val spine by container.spine.collectAsStateWithLifecycle()
@@ -507,12 +507,8 @@ fun AppShell(
     // The old generic "pop backStack" BackHandler is REMOVED — NavHost now owns drill-down Back.
     // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
     // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
-    // Calibration sub-state intercepts Back — an open routine page returns to the hub.
-    BackHandler(
-        enabled = !drawerOpen && navBackStackEntry?.destination?.isRoute<NavDest.Calibration>() == true && calibrationRoutine != null
-    ) {
-        nav.calibrationRoutine = null
-    }
+    // Calibration sub-state BackHandler REMOVED (D-07, Phase 27): NavHost back-stack owns Calibration
+    // sub-routes. The D-09 probe-session BackHandler is now inside composable<NavDest.CalibrationProbe>.
     // The open QR scan overlay intercepts Back: close the scan (releasing the camera via
     // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
     BackHandler(enabled = !drawerOpen && nav.scanActive) {
@@ -540,17 +536,23 @@ fun AppShell(
             .pointerInput(navBackStackEntry, promptView.visible) {
                 // The swipe-suppress set — destinations where a full-canvas vertical-drag detector
                 // would fight list scroll, overlay taps, or keyboard content.
-                // Files, Console, Macros, Calibration, Webcam, Spool, Outputs, SystemInfo, Devices,
-                // Theme, Settings, About — plus any visible Macro Prompt (floats over ANY screen).
-                // WR-06 (26-rev): the Phase-26 rebuilds qualify under the same criteria — Temperature
-                // and FineTune host scrollable ListBlock Fields, Extrude hosts BasicTextField IME
-                // entry — so they join the set (consistent with their sibling list screens).
+                // Files, Console, Macros, CalibrationHub + 5 CalibrationXxx routines, Webcam, Spool,
+                // Outputs, SystemInfo, Devices, Theme, Settings, About — plus any visible Macro Prompt
+                // (floats over ANY screen). WR-06 (26-rev): Temperature and FineTune host scrollable
+                // ListBlock Fields, Extrude hosts BasicTextField IME entry — so they join the set.
+                // D-07 (Phase 27): ALL SIX CalibrationXxx routes are listed so a scrollable routine Field
+                // does not fight the swipe-up drawer on any calibration screen (Codex SHOW-STOPPER-2).
                 val d = navBackStackEntry?.destination
                 val suppressSwipe = promptView.visible || (d != null && (
                     d.isRoute<NavDest.Files>() ||
                     d.isRoute<NavDest.Console>() ||
                     d.isRoute<NavDest.Macros>() ||
-                    d.isRoute<NavDest.Calibration>() ||
+                    d.isRoute<NavDest.CalibrationHub>() ||
+                    d.isRoute<NavDest.CalibrationProbe>() ||
+                    d.isRoute<NavDest.CalibrationBedMesh>() ||
+                    d.isRoute<NavDest.CalibrationScrewsTilt>() ||
+                    d.isRoute<NavDest.CalibrationZTilt>() ||
+                    d.isRoute<NavDest.CalibrationQgl>() ||
                     d.isRoute<NavDest.Webcam>() ||
                     d.isRoute<NavDest.Spool>() ||
                     d.isRoute<NavDest.Outputs>() ||
@@ -684,49 +686,73 @@ fun AppShell(
                     backfillFailed = consoleBackfillFailed,
                 )
             }
-            composable<NavDest.Calibration> {
-                // Entry reset: entering Calibration always starts on the hub (FIX-3).
-                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Calibration) }
+            // D-07 (Phase 27): Calibration sub-nav converted to real NavHost routes.
+            // SIX composable<> blocks replace the old when(calibrationRoutine) dispatch.
 
-                // The calibration surface: the hub (a routine grid) OR the selected routine page. The
-                // hub's onNavigate pushes the LOCAL sub-dest; each page's green Back (and system Back)
-                // pops back to the hub by clearing [calibrationRoutine] — a lean local back-stack within
-                // NavDest.Calibration (NOT five top-level Dests, D-01). The two tilt variants share ONE
-                // TiltScreen via [TiltVariant] + a per-variant holder.
-                when (val routine = calibrationRoutine) {
-                    null -> CalibrationHubScreen(
-                        holder = calibrationHubHolder,
-                        onNavigate = { nav.calibrationRoutine = it },
-                        onBack = { navController.popBackStack() },
-                    )
-                    CalibrationRoutine.SCREWS_TILT -> ScrewsTiltScreen(
-                        container = container,
-                        holder = screwsTiltHolder,
-                        onBack = { nav.calibrationRoutine = null },
-                    )
-                    CalibrationRoutine.Z_TILT -> TiltScreen(
-                        container = container,
-                        holder = zTiltHolder,
-                        variant = TiltVariant.ZTilt,
-                        onBack = { nav.calibrationRoutine = null },
-                    )
-                    CalibrationRoutine.QUAD_GANTRY_LEVEL -> TiltScreen(
-                        container = container,
-                        holder = qglHolder,
-                        variant = TiltVariant.Qgl,
-                        onBack = { nav.calibrationRoutine = null },
-                    )
-                    CalibrationRoutine.BED_MESH -> BedMeshScreen(
-                        container = container,
-                        holder = bedMeshHolder,
-                        onBack = { nav.calibrationRoutine = null },
-                    )
-                    CalibrationRoutine.PROBE_CALIBRATE -> ProbeCalibrateScreen(
-                        container = container,
-                        holder = probeCalibrateHolder,
-                        onBack = { nav.calibrationRoutine = null },
-                    )
+            composable<NavDest.CalibrationHub> {
+                // Entry reset: entering the hub always resets sub-nav for FIX-3 symmetry (no-op body
+                // since calibrationRoutine was removed, but kept for future-proofing and documentation).
+                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.CalibrationHub) }
+                CalibrationHubScreen(
+                    holder = calibrationHubHolder,
+                    onOpen = { routine -> navController.navigate(routine.toNavDest()) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.CalibrationProbe> {
+                // Collect the probe VM and inFlight set for the D-09 BackHandler gating.
+                val vm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val inFlight by remember(dispatcher) {
+                    dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+                }.collectAsStateWithLifecycle(initialValue = emptySet())
+                val starting = vm.state == works.mees.dinghy.calibration.ProbePageState.Idle &&
+                    ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
+                // D-09 BackHandler: swallow system Back while a probe session is Active OR starting.
+                // GATED to require no overlay visible (D-09, Codex WARNING-6) — the probe handler is
+                // registered INNER (higher priority than AppShell-level overlay handlers). Without the
+                // overlay gate, an active probe session would out-prioritize scan/prompt overlay dismissal.
+                // drawerOpen, nav.scanActive, and promptView.visible are captured from the outer AppShell.
+                BackHandler(
+                    enabled = (vm.state == works.mees.dinghy.calibration.ProbePageState.Active || starting) &&
+                        !drawerOpen && !nav.scanActive && !promptView.visible
+                ) {
+                    // Intentionally swallow — abandoning a live probe nozzle descent is unsafe.
                 }
+                ProbeCalibrateScreen(
+                    container = container,
+                    holder = probeCalibrateHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.CalibrationBedMesh> {
+                BedMeshScreen(
+                    container = container,
+                    holder = bedMeshHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.CalibrationScrewsTilt> {
+                ScrewsTiltScreen(
+                    container = container,
+                    holder = screwsTiltHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.CalibrationZTilt> {
+                TiltScreen(
+                    container = container,
+                    holder = zTiltHolder,
+                    variant = TiltVariant.ZTilt,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.CalibrationQgl> {
+                TiltScreen(
+                    container = container,
+                    holder = qglHolder,
+                    variant = TiltVariant.Qgl,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable<NavDest.FineTune> {
                 // 26-02: flat single-screen Fine-Tune (replaces Hub + 3 group sub-pages).
@@ -823,7 +849,14 @@ fun AppShell(
                 d == null -> null
                 d.isRoute<NavDest.Move>() -> NavDest.Move
                 d.isRoute<NavDest.Extrude>() -> NavDest.Extrude
-                d.isRoute<NavDest.Calibration>() -> NavDest.Calibration
+                // D-07 (Phase 27): ALL SIX calibration routes mapped so pop-to-root fires from ANY
+                // routine, not just the hub (Codex SHOW-STOPPER-2 / D-17).
+                d.isRoute<NavDest.CalibrationHub>()         -> NavDest.CalibrationHub
+                d.isRoute<NavDest.CalibrationProbe>()       -> NavDest.CalibrationProbe
+                d.isRoute<NavDest.CalibrationBedMesh>()     -> NavDest.CalibrationBedMesh
+                d.isRoute<NavDest.CalibrationScrewsTilt>()  -> NavDest.CalibrationScrewsTilt
+                d.isRoute<NavDest.CalibrationZTilt>()       -> NavDest.CalibrationZTilt
+                d.isRoute<NavDest.CalibrationQgl>()         -> NavDest.CalibrationQgl
                 // Non-foot-gun destinations — shouldPopToRoot returns false for these.
                 else -> null
             }

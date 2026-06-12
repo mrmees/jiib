@@ -478,7 +478,7 @@ internal fun launcherDestTarget(d: LauncherDest): NavDest? = when (d) {
     LauncherDest.Temperature -> NavDest.Temperature
     LauncherDest.Move -> NavDest.Move
     LauncherDest.Extrude -> NavDest.Extrude
-    LauncherDest.Calibration -> NavDest.Calibration
+    LauncherDest.Calibration -> NavDest.CalibrationHub
     LauncherDest.Spool -> NavDest.Spool
     LauncherDest.Macros -> NavDest.Macros
     LauncherDest.Console -> NavDest.Console
