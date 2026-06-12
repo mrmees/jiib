@@ -1,19 +1,14 @@
 package works.mees.dinghy.ui.calibration
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +17,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,46 +33,34 @@ import works.mees.dinghy.calibration.TiltState
 import works.mees.dinghy.calibration.TiltVm
 import works.mees.dinghy.calibration.ZAdjustment
 import works.mees.dinghy.calibration.tiltState
-import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
-/** The two routines this ONE screen serves (D-02 shared automatic-flow code path). */
+/** The two routines this ONE screen serves (D-10 shared automatic-flow code path). */
 enum class TiltVariant { ZTilt, Qgl }
 
 /**
- * The Z-tilt / QGL shared automatic-flow screen (CALIB-03 / UI-SPEC §3). ONE code path serves both
- * routines — [variant] selects the title + which [CommandRegistry] command Run dispatches.
+ * The Z-tilt / QGL shared automatic-flow screen (CALIB-03 / D-10 jiib restyle). ONE code path
+ * serves both routines — [variant] selects the title + which [CommandRegistry] command Run dispatches.
  *
- * This is a "run it and watch it converge" page with NO mid-run user action (no Abort; Klipper has no
- * clean cancel — the routine is short and hands-off). State is LOAD-scoped: every entry resets to the
- * landing state (the holder's [TiltHolder.reset]) because the printer has no reliable persistent
- * "applied" flag to read. The landing is "Ready to Run" (homed) or "Home Axis First" (unhomed). Once
- * Run fires, the in-flight set drives Running → Done; a dispatcher Failure → Failed. On Done the parsed
- * per-stepper Z adjustments (from the run's console output) are shown.
- *
- * **D-01 move #2 (22-07):** migrated from `vm: TiltVm` parameter to `holder: TiltHolder` parameter,
- * mirroring the existing [ScrewsTiltScreen] pattern. The screen collects [TiltHolder.vm] and
- * [AppContainer.dispatcher] internally and owns its own entry-reset ([TiltHolder.reset]) +
- * dispatch-mark ([TiltHolder.markDispatched]) so those four shell-side collections are eliminated.
- *
- * Layout (ScreenScaffold):
- *  - Focus = the single `bed_tilt` icon, theme-tinted (NO state overlay glyph).
- *  - Field = the status headline + body; on Done, the per-stepper adjustment list.
- *  - Gutter = Run (homed; disabled while Running) OR Home All (unhomed) + Back.
- *
- * Ratio-only sizing; token-only color.
+ * Thin VM-collecting wrapper that forwards a plain snapshot to the STATELESS [TiltContent]
+ * composable (WARNING-5 seam). [TiltContent] is the @Preview target.
  *
  * @param container the service-locator (provides the session dispatcher).
  * @param holder    the headless [TiltHolder] (load-scoped run facts + homed gate + adjustments + error).
- * @param variant   Z-tilt or QGL — selects the title + dispatched command (D-02).
+ * @param variant   Z-tilt or QGL — selects the title + dispatched command.
  * @param onBack    leave the page (neutral Back, D-10).
  */
 @Composable
@@ -91,6 +74,57 @@ fun TiltScreen(
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val vm by holder.vm.collectAsStateWithLifecycle()
 
+    val runCommand = when (variant) {
+        TiltVariant.ZTilt -> CommandRegistry.zTiltAdjust
+        TiltVariant.Qgl -> CommandRegistry.quadGantryLevel
+    }
+
+    // Every entry resets to the Idle landing state.
+    LaunchedEffect(Unit) { holder.reset() }
+
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val running = runCommand.dispatchKey(Unit) in inFlight
+    val state = tiltState(ran = vm.ran, running = running, failed = vm.failed)
+
+    TiltContent(
+        vm = vm,
+        variant = variant,
+        state = state,
+        running = running,
+        onRun = {
+            val d = dispatcher ?: return@TiltContent
+            d.dispatch(runCommand, Unit)
+            holder.markDispatched()
+        },
+        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless layout for the Z-tilt / QGL page — @Preview target (WARNING-5 seam).
+ *
+ * Both [TiltVariant.ZTilt] and [TiltVariant.Qgl] render from this ONE parameterized composable.
+ *
+ * Layout:
+ *  - Focus = bed-tilt icon + state headline (token-restyled, unchanged information).
+ *  - Field = status body text + adjustment recommendations (result state). No scrollable list.
+ *  - Foot = state-adaptive [FootButtonBar] (gutter = null, D-10).
+ */
+@Composable
+fun TiltContent(
+    vm: TiltVm,
+    variant: TiltVariant = TiltVariant.ZTilt,
+    state: TiltState = TiltState.Idle,
+    running: Boolean = false,
+    onRun: () -> Unit = {},
+    onHome: () -> Unit = {},
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val title = when (variant) {
         TiltVariant.ZTilt -> "Z-Tilt Adjust"
         TiltVariant.Qgl -> "Quad Gantry Level"
@@ -99,79 +133,109 @@ fun TiltScreen(
         TiltVariant.ZTilt -> "Z-Tilt"
         TiltVariant.Qgl -> "QGL"
     }
-    val runCommand = when (variant) {
-        TiltVariant.ZTilt -> CommandRegistry.zTiltAdjust
-        TiltVariant.Qgl -> CommandRegistry.quadGantryLevel
-    }
 
-    // Every entry resets to the Idle landing state — a prior run never persists across loads.
-    LaunchedEffect(Unit) { holder.reset() }
-
-    // Running vs Done is the dispatcher's in-flight truth (this screen owns the dispatcher). Done is the
-    // run leaving the in-flight set without a Failure; we never read the persisted z_tilt.applied flag.
-    val inFlight by remember(dispatcher) {
-        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
-    }.collectAsStateWithLifecycle(initialValue = emptySet())
-    val running = runCommand.dispatchKey(Unit) in inFlight
-    val state = tiltState(ran = vm.ran, running = running, failed = vm.failed)
-
-    Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            focus = {
-                TiltFocus(title = title, modifier = Modifier.fillMaxSize().padding(8.dp))
-            },
-            field = {
-                TiltField(
-                    state = state,
-                    homedGate = vm.homedGate,
-                    runLabel = runLabel,
-                    adjustments = vm.adjustments,
-                    errorText = vm.errorText,
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
-            },
-            gutter = {
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (!vm.homedGate) {
-                        // Home All pre-flight (D-13) — replaces Run until the printer is homed.
-                        TiltGutterButton(
-                            label = "Home All",
-                            onClick = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        Box(Modifier.fillMaxSize()) {
+            ScreenScaffold(
+                focus = {
+                    TiltFocus(
+                        title = title,
+                        state = state,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                    )
+                },
+                field = {
+                    TiltFieldBody(
+                        state = state,
+                        homedGate = vm.homedGate,
+                        runLabel = runLabel,
+                        adjustments = vm.adjustments,
+                        errorText = vm.errorText,
+                        modifier = Modifier.weight(1f).padding(8.dp),
+                    )
+                    // State-adaptive FootButtonBar (gutter = null, D-10).
+                    FootButtonBar(
+                        uDp = grid.uDp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        when {
+                            !vm.homedGate -> {
+                                // Unhomed: offer Home All.
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_home_all),
+                                    onClick = onHome,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                )
+                            }
+                            running -> {
+                                // Running: non-interactive.
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_running),
+                                    onClick = {},
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                    enabled = false,
+                                )
+                            }
+                            state == TiltState.Done || state == TiltState.Failed -> {
+                                // Result shown: Run Again.
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_run_again),
+                                    onClick = onRun,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Neutral,
+                                )
+                            }
+                            else -> {
+                                // Homed idle: Run (variant-selected, gated on not Running).
+                                OutlinedControl(
+                                    label = stringResource(R.string.calibration_run),
+                                    onClick = onRun,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    enabled = !running,
+                                )
+                            }
+                        }
+                        OutlinedControl(
+                            label = "",
+                            onClick = onBack,
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                            enabled = dispatcher != null,
-                        )
-                    } else {
-                        TiltGutterButton(
-                            label = if (running) "Running…" else "Run",
-                            onClick = {
-                                val d = dispatcher ?: return@TiltGutterButton
-                                d.dispatch(runCommand, Unit)
-                                holder.markDispatched()
-                            },
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                            enabled = dispatcher != null && !running,
+                            intent = Intent.Neutral,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.common_back),
                         )
                     }
-                    TiltGutterButton(
-                        label = "Back",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral, // D-10: plain nav spends no safety color.
-                    )
-                }
-            },
-        )
+                },
+                gutter = null,
+            )
+            // FloatingEStop top-left corner reservation (UAT-4).
+            // Calibration = pop-to-root foot-gun: Tilt is only reachable while idle.
+            FloatingEStop(
+                visible = false,
+                onClick = {},
+                uDp = grid.uDp,
+                modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+            )
+        }
     }
 }
 
 @Composable
-private fun TiltFocus(title: String, modifier: Modifier = Modifier) {
+private fun TiltFocus(
+    title: String,
+    state: TiltState,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
+    val headlineColor = when (state) {
+        TiltState.Done -> t.go
+        TiltState.Failed -> t.stop
+        TiltState.Running -> t.text
+        TiltState.Idle -> t.text
+    }
     Column(
         modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -190,11 +254,11 @@ private fun TiltFocus(title: String, modifier: Modifier = Modifier) {
             Modifier.fillMaxWidth(0.9f).aspectRatio(1f),
             contentAlignment = Alignment.Center,
         ) {
-            // bed_tilt → token-tinted (THEME-01). The single Focus asset for both routines — no overlay.
+            // bed_tilt → token-tinted (THEME-01). ONE Focus asset for both variants — no overlay.
             Icon(
                 painter = painterResource(R.drawable.bed_tilt),
                 contentDescription = title,
-                tint = t.text2,
+                tint = headlineColor,
                 modifier = Modifier.fillMaxSize(0.9f),
             )
         }
@@ -202,7 +266,7 @@ private fun TiltFocus(title: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TiltField(
+private fun TiltFieldBody(
     state: TiltState,
     homedGate: Boolean,
     runLabel: String,
@@ -215,26 +279,26 @@ private fun TiltField(
         when (state) {
             TiltState.Idle ->
                 if (homedGate) {
-                    HeadlineText("$runLabel Ready to Run", t.text)
-                    BodyText("Run to level the gantry automatically.")
+                    TiltHeadlineText("$runLabel Ready to Run", t.text)
+                    TiltBodyText("Run to level the gantry automatically.")
                 } else {
-                    HeadlineText("Home Axis First", t.heat)
-                    BodyText("Home all axes before running $runLabel.")
+                    TiltHeadlineText("Home Axis First", t.heat)
+                    TiltBodyText("Home all axes before running $runLabel.")
                 }
             TiltState.Running -> {
-                HeadlineText("Running…", t.text)
-                BodyText("Probing and adjusting. Hands-off — wait for it to converge.")
+                TiltHeadlineText("Running…", t.text)
+                TiltBodyText("Probing and adjusting. Hands-off — wait for it to converge.")
             }
             TiltState.Failed -> {
-                HeadlineText("Failed", t.stop)
-                BodyText(errorText ?: "The printer rejected the routine.")
+                TiltHeadlineText("Failed", t.stop)
+                TiltBodyText(errorText ?: "The printer rejected the routine.")
             }
             TiltState.Done -> {
-                HeadlineText("Leveled", t.go)
+                TiltHeadlineText("Leveled", t.go)
                 if (adjustments.isEmpty()) {
-                    BodyText("Gantry leveled.")
+                    TiltBodyText("Gantry leveled.")
                 } else {
-                    BodyText("Z adjustments applied:")
+                    TiltBodyText("Z adjustments applied:")
                     adjustments.forEach { adj ->
                         Row(
                             Modifier.padding(top = 6.dp),
@@ -263,7 +327,7 @@ private fun TiltField(
 }
 
 @Composable
-private fun HeadlineText(text: String, color: Color) {
+private fun TiltHeadlineText(text: String, color: Color) {
     val t = LocalTokens.current
     Text(
         text = text,
@@ -275,7 +339,7 @@ private fun HeadlineText(text: String, color: Color) {
 }
 
 @Composable
-private fun BodyText(text: String) {
+private fun TiltBodyText(text: String) {
     val t = LocalTokens.current
     Text(
         text = text,
@@ -285,34 +349,4 @@ private fun BodyText(text: String) {
         fontSize = fsSp(16f, t.fs).sp,
         modifier = Modifier.padding(top = 8.dp),
     )
-}
-
-@Composable
-private fun TiltGutterButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    intent: Intent = Intent.Neutral,
-    enabled: Boolean = true,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    val outline = intentColor(intent, t)
-    val base = modifier
-        .heightIn(min = 64.dp)
-        .clip(shape)
-        .border(BorderStroke(2.dp, if (enabled) outline else t.hair), shape)
-        .background(if (enabled) Color.Transparent else t.surface)
-        .padding(horizontal = 12.dp, vertical = 18.dp)
-    val box = if (enabled) base.clickable(onClick = onClick) else base
-    Box(box, contentAlignment = Alignment.Center) {
-        Text(
-            text = label,
-            color = if (enabled) t.text else t.text3,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
-            maxLines = 1,
-        )
-    }
 }
