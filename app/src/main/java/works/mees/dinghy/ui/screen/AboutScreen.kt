@@ -4,11 +4,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +34,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -81,59 +85,65 @@ fun AboutContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ScreenScaffold(
-        field = {
-            Column(
-                modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // ── jiib wordmark ─────────────────────────────────────────────────────────
-                // D-05/D-06: accent-tinted via brandTint WCAG-3:1 contrast-floor helper.
-                AboutWordmark()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-                // ── App info ──────────────────────────────────────────────────────────────
-                InfoRow(
-                    label = stringResource(R.string.about_version),
-                    value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                )
-                Text(
-                    text = stringResource(R.string.about_tagline),
-                    color = LocalTokens.current.text3,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, LocalTokens.current.fs).sp,
-                )
-                // D-11: the jib-explainer note, directly below the kept tagline (D-10).
-                Text(
-                    text = stringResource(R.string.about_jib_note),
-                    color = LocalTokens.current.text3,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, LocalTokens.current.fs).sp,
-                )
+        ScreenScaffold(
+            field = {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // ── jiib wordmark ─────────────────────────────────────────────────────────
+                    // D-05/D-06: accent-tinted via brandTint WCAG-3:1 contrast-floor helper.
+                    AboutWordmark()
 
-                // ── Developer section ─────────────────────────────────────────────────────
-                // The hidden dev-widget enable toggle (D-08) — discoverable but out of the way.
-                DevEnableRow(
-                    checked = devEnabled,
-                    onToggle = onDevToggle,
-                )
+                    // ── App info ──────────────────────────────────────────────────────────────
+                    InfoRow(
+                        label = stringResource(R.string.about_version),
+                        value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    )
+                    Text(
+                        text = stringResource(R.string.about_tagline),
+                        color = LocalTokens.current.text3,
+                        fontFamily = Geist,
+                        fontSize = fsSp(15f, LocalTokens.current.fs).sp,
+                    )
+                    // D-11: the jib-explainer note, directly below the kept tagline (D-10).
+                    Text(
+                        text = stringResource(R.string.about_jib_note),
+                        color = LocalTokens.current.text3,
+                        fontFamily = Geist,
+                        fontSize = fsSp(15f, LocalTokens.current.fs).sp,
+                    )
 
-                // ── Back foot ────────────────────────────────────────────────────────────
-                // Neutral — plain nav spends no safety color (D-10). Inside the Column so it
-                // is always visible at the foot of the one-page scroll.
-                OutlinedControl(
-                    label = stringResource(R.string.common_back),
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    intent = Intent.Neutral,
-                )
-            }
-        },
-        modifier = modifier,
-        gutter = null,
-    )
+                    // ── Developer section ─────────────────────────────────────────────────────
+                    // The hidden dev-widget enable toggle (D-08) — discoverable but out of the way.
+                    // 1U height floor applied to the clickable row (owner UAT ruling, Phase 28, 2026-06-12).
+                    DevEnableRow(
+                        checked = devEnabled,
+                        onToggle = onDevToggle,
+                        uDp = grid.uDp,
+                    )
+
+                    // ── Back foot ────────────────────────────────────────────────────────────
+                    // Neutral — plain nav spends no safety color (D-10). Inside the Column so it
+                    // is always visible at the foot of the one-page scroll.
+                    OutlinedControl(
+                        label = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        intent = Intent.Neutral,
+                    )
+                }
+            },
+            modifier = modifier,
+            gutter = null,
+        )
+    }
 }
 
 /**
@@ -169,17 +179,20 @@ internal fun AboutWordmark() {
 private fun DevEnableRow(
     checked: Boolean,
     onToggle: (Boolean) -> Unit,
+    uDp: Dp,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCard)
     val outline = if (checked) t.accentLine else t.outline
+    // 1U height floor — owner UAT ruling, Phase 28, 2026-06-12.
     Row(
         Modifier
             .fillMaxWidth()
+            .heightIn(min = uDp)
             .clip(shape)
             .border(BorderStroke(2.dp, outline), shape)
             .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {

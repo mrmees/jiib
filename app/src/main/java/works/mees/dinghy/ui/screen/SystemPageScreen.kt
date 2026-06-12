@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
+import androidx.compose.foundation.layout.heightIn
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
@@ -40,6 +41,7 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import androidx.compose.ui.unit.Dp
 import works.mees.dinghy.ui.route.NavDest
 
 /**
@@ -128,7 +130,6 @@ fun SystemPageContent(
                         // Rows 1-5: direct-tap (onClick navigates immediately; no selection state).
                         items(systemNavRows()) { row ->
                             ListRow(
-                                dense = true,
                                 selected = false,   // nav, not a picker — never selected
                                 onClick = { onNavigate(row.dest) },
                                 uDp = grid.uDp,
@@ -153,7 +154,7 @@ fun SystemPageContent(
 
                         // Row 6: Power stub — D-08. No onClick. stop-tinted at alpha 0.38; inert.
                         item {
-                            PowerStubRow()
+                            PowerStubRow(uDp = grid.uDp)
                         }
                     }
 
@@ -229,12 +230,14 @@ private fun SystemFocusContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun PowerStubRow() {
+private fun PowerStubRow(uDp: Dp) {
     val t = LocalTokens.current
+    // 1U height floor — unit grid rules ALL rows (owner UAT ruling, Phase 28, 2026-06-12).
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .heightIn(min = uDp)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(

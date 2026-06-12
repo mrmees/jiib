@@ -46,7 +46,7 @@ import works.mees.dinghy.theme.fsSp
 
 /**
  * The **System Information** drawer destination (Phase 20, SYS-01..05) — dense C6-exempt restyle
- * (28-07, D-11). Restyled to `ListRow(dense = true)` rows inside a `ListBlock`; scrolls freely
+ * (28-07, D-11). Restyled to `ListRow` rows inside a `ListBlock`; scrolls freely
  * (no fit-one-page requirement for SysInfo). Nothing on this page dispatches a command.
  *
  * ## Layout (28-07 dense restyle)
@@ -119,7 +119,6 @@ fun SystemInformationContent(
                             selected = false,
                             onClick = {},
                             uDp = grid.uDp,
-                            dense = true,
                             leadingContent = {
                                 DinghyIconView(
                                     icon = icon,
@@ -281,7 +280,6 @@ private fun InfoListRow(
         selected = false,
         onClick = {},
         uDp = uDp,
-        dense = true,
         leadingContent = {
             DinghyIconView(
                 icon = icon,

@@ -51,8 +51,8 @@ import works.mees.dinghy.theme.fsSp
  *
  * ## Layout (D-11/D-12)
  * Field-only `ScreenScaffold(gutter = null)`. Back is the last control inside the scrolling Column.
- * All toggles use the `ListRow(dense = true)` anatomy with a trailing `Switch` token-tinted via
- * `t.accent` for the checked state. The numeric babystep field uses `TokenTextField(dense = true)`
+ * All toggles use the `ListRow` anatomy with a trailing `Switch` token-tinted via
+ * `t.accent` for the checked state. The numeric babystep field uses `TokenTextField`
  * with a numeric keyboard. All persistence routes through the process-lifetime `container.set*`
  * writeScope intent helpers — never a composition scope (T-28-07-02).
  *
@@ -155,7 +155,7 @@ fun SettingsContent(
     // Local field mirrors the persisted layer-count; re-seed when the stored value changes.
     var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
 
-    // BoxWithConstraints for grid — needed by ListRow (dense uDp sentinel) and OutlinedControl.
+    // BoxWithConstraints for grid — needed by ListRow (uDp for 1U height floor) and OutlinedControl.
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
@@ -195,7 +195,6 @@ fun SettingsContent(
                         selected = false,
                         onClick = {},
                         uDp = grid.uDp,
-                        dense = true,
                     ) {
                         Text(
                             text = stringResource(R.string.settings_babystep_layers),
@@ -215,8 +214,7 @@ fun SettingsContent(
                             },
                             label = stringResource(R.string.settings_babystep_layers_hint),
                             keyboardType = KeyboardType.Number,
-                            dense = true,
-                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                                modifier = Modifier.weight(1f).padding(start = 8.dp),
                         )
                     }
 
@@ -238,7 +236,6 @@ fun SettingsContent(
                         selected = false,
                         onClick = { if (!isExempt) onRequestExempt() },
                         uDp = grid.uDp,
-                        dense = true,
                     ) {
                         Text(
                             text = stringResource(R.string.settings_battery_optimization),
@@ -295,7 +292,6 @@ private fun DenseToggleRow(
         selected = false,
         onClick = { if (enabled) onToggle(!checked) },
         uDp = uDp,
-        dense = true,
         trailingContent = {
             Switch(
                 checked = checked,

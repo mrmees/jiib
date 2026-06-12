@@ -208,7 +208,6 @@ fun PrintersContent(
                     ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                         items(profiles, key = { it.id }) { profile ->
                             ListRow(
-                                dense = true,
                                 selected = profile.id == activeId,
                                 onClick = { onRowClick(profile) },
                                 uDp = grid.uDp,
@@ -433,7 +432,6 @@ fun PrintersScreen(
                     ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                         items(profiles, key = { it.id }) { profile ->
                             ListRow(
-                                dense = true,
                                 selected = profile.id == activeId,
                                 onClick = {
                                     when (rowTapEffect(printerMode)) {
@@ -609,7 +607,6 @@ private fun PrinterConnectionEditor(
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Text,
             isError = hostError,
-            dense = true,
         )
         if (hostError) {
             Text(
@@ -627,7 +624,6 @@ private fun PrinterConnectionEditor(
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Number,
             isError = portError,
-            dense = true,
         )
         if (portError) {
             Text(
@@ -648,7 +644,6 @@ private fun PrinterConnectionEditor(
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Password,
             isPassword = true,
-            dense = true,
         )
         if (keyAlreadySaved && apiKey.isBlank()) {
             Text(
