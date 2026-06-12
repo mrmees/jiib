@@ -1,7 +1,7 @@
 ---
 phase: 28-system-settings-cluster
 verified: 2026-06-12T20:12:18Z
-status: human_needed
+status: passed
 score: 5/5
 overrides_applied: 0
 human_verification:
@@ -183,3 +183,7 @@ The "Coming soon" text on the Power stub row is intentional per plan (D-08).
 
 _Verified: 2026-06-12T20:12:18Z_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+**Human verification CLOSED 2026-06-12:** owner walked all 5 review-fix items on flox (fresh signed build, adb-installed, mtime-verified) plus the CR-01 cleared-key round-trip — verdict **approved**. See 28-HUMAN-UAT.md (5/5 pass). Status promoted human_needed → passed.
