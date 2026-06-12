@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-12T04:57:31.504Z"
+status: verifying
+last_updated: "2026-06-12T13:06:31.822Z"
 last_activity: 2026-06-12
 progress:
   total_phases: 36
-  completed_phases: 31
+  completed_phases: 32
   total_plans: 215
-  completed_plans: 213
-  percent: 86
+  completed_plans: 214
+  percent: 89
 ---
 
 **Last verified:** 2026-06-11
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 
 # Project State
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 27 (motion-calibration) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
   → **Plan 24-04 (Morphing Waterfall Root: idle action list + foot bar + Crossfade morph + FIX-1/FIX-5) EXECUTED + COMPLETE 2026-06-10.** PrintStatusStandbyField rebuilt on ListBlock/ListRow + FootButtonBar; buildIdleActions wired with outputsPresent+webcamTileEnabled capability gates; FIX-5 resolved (LauncherWebcam icon + cd_launcher_webcam string swapped for Wave-0 placeholder); FIX-1 confirmed (showEstopGuard + in-screen ConfirmGuard removed; AppShell overlay owns FloatingEStop on every destination); Crossfade(tween(150), "PrintStatusMorph") wraps the when(mode) dispatch (D-13); gutter=null for Standby (SC-3). Commit: `ec0caf7`. SUMMARY `24-04-SUMMARY.md`. SC-1/SC-3/SC-4 closed.
@@ -290,6 +290,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 27-motion-calibration P04 | 40 | 3 tasks | 5 files |
 | Phase 27 P05 | 240 | 2 tasks | 4 files |
 | Phase 27-motion-calibration P06 | 45 | 3 tasks | 5 files |
+| Phase 27-motion-calibration P07 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -523,6 +524,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Owner blessed all 5 calibration hub routine ligatures as-is as DinghyIcons tokens (straighten/grid_on/architecture/vertical_align_center/crop_square)
 - [Phase ?]: Move/TESTZ distance-stepper +/- cells REUSE BabystepExpand/BabystepCompress; no new stepper tokens registered
 - [Phase ?]: BoxWithConstraints portrait 60%-height pad cap (D-03) + stateless MoveContent seam for @Preview (WARNING-5)
+- [Phase ?]: Blanket owner approval treated as covering all SC-1/SC-2/SC-5 items including vertical Z column (D-01/C3 closure) — 27-07
 
 ### Pending Todos
 
@@ -563,6 +565,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-12T04:57:31.375Z
-Stopped at: Completed 27-01 icon token registration
+Last session: 2026-06-12T13:06:31.694Z
+Stopped at: Completed 27-07-PLAN.md — Phase 27 UAT gate passed, C3 todo closed
 Resume file: None
