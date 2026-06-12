@@ -1291,7 +1291,7 @@ Plans:
 **Plans**: 7 plans (waves 0-5)
 **Wave 1**
 
-- [ ] 27-01-PLAN.md — Owner icon gate: register 5 calibration routine glyphs + distance-stepper +/- (D-16, checkpoint)
+- [x] 27-01-PLAN.md — Owner icon gate: register 5 calibration routine glyphs + distance-stepper +/- (D-16, checkpoint)
 - [ ] 27-02-PLAN.md — D-07 nav conversion: 6 calibration NavDest routes + remove calibrationRoutine + D-09 nav-layer back-suppression
 - [ ] 27-03-PLAN.md — MoveScreen rebuild: spatial grid + vertical Z column + distance stepper (D-01..D-04) + MovePreviews
 
