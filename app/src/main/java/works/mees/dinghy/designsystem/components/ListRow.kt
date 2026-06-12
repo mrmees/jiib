@@ -84,6 +84,10 @@ internal fun listRowBorderWidthFor(selected: Boolean): Dp =
  * @param uDp            one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
  *                       used as the [heightIn] minimum so the touch target equals the unit grid.
  * @param modifier       caller-supplied modifier chain.
+ * @param dense          when true, suspends the [uDp]-derived [heightIn] floor and applies
+ *                       a fixed 10dp vertical padding instead (C6 exempt surfaces — settings-class
+ *                       screens held in hand where the ≥64dp touch floor intentionally does NOT
+ *                       apply). Default false — all existing call sites are unaffected.
  * @param leadingContent optional leading slot (e.g. color swatch, icon, avatar).
  * @param trailingContent optional trailing slot (e.g. weight value, arrow).
  * @param content        primary row body (rendered between leading and trailing, center-aligned).
@@ -94,6 +98,7 @@ fun ListRow(
     onClick: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
+    dense: Boolean = false,             // C6 exempt surfaces pass true to suspend the U touch floor
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
@@ -113,7 +118,12 @@ fun ListRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = uDp)            // touch floor = U (≥ 64dp enforced by unit grid)
+            .then(
+                // dense=true → C6 exempt: fixed 10dp vertical padding, no U floor.
+                // dense=false → standard: U touch floor (≥ 64dp enforced by unit grid).
+                if (dense) Modifier.padding(vertical = 10.dp)
+                else Modifier.heightIn(min = uDp)
+            )
             .clip(shape)
             .background(bgColor)
             .border(BorderStroke(borderWidth, borderColor), shape)

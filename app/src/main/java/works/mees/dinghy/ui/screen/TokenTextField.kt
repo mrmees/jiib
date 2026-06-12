@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.screen
 
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -10,6 +11,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -39,9 +41,14 @@ import works.mees.dinghy.theme.fsSp
  * @param value the current field text.
  * @param onValueChange invoked on every edit.
  * @param label the field label (Geist, `--fs`-scaled).
+ * @param modifier caller-supplied modifier chain.
  * @param keyboardType the system keyboard variant (Text / Number / Password) — PRIM-02.
  * @param isPassword when true, masks the input with a [PasswordVisualTransformation] (the API key).
  * @param isError when true, paints the border/label with the `stop` role (an inline validation error).
+ * @param dense when true, reduces the field's internal vertical content padding to ~6dp (C6 exempt
+ *              surfaces — settings-class screens where the standard text-field height is too tall).
+ *              Default false — all existing call sites are unaffected. Numeric-keyboard option and
+ *              all validation behavior are unchanged.
  */
 @Composable
 fun TokenTextField(
@@ -52,12 +59,18 @@ fun TokenTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false,
     isError: Boolean = false,
+    dense: Boolean = false,             // C6 surfaces pass true for reduced vertical padding
 ) {
     val t = LocalTokens.current
+    // dense=true → C6 exempt: cap field height so the visual vertical padding is ≈6dp less than the
+    // default OutlinedTextField height (which is ~56dp). The value-String overload of OutlinedTextField
+    // does not expose contentPadding — we apply a sizeIn constraint on the outer modifier instead.
+    // dense=false → standard: no height constraint, OutlinedTextField renders at its natural height.
+    val resolvedModifier = if (dense) modifier.heightIn(max = 48.dp) else modifier
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = resolvedModifier,
         label = {
             Text(
                 text = label,
