@@ -1328,15 +1328,34 @@ Plans:
   5. No functional regressions (host tests green; on-device smoke) — connection edit, theme apply, printer add/remove, sysinfo read intact
 
 **Plans**: 9 plans (waves 1–5)
+**Wave 1**
+
 - [ ] 28-01-PLAN.md — Icon registry (6 D-21 tokens) + dense ListRow/TokenTextField kit + strings (wave 1)
+- [ ] 28-04-PLAN.md — Delete the maxItems persistence axis (D-17), hardcode the 4-slot default, update theme/config tests (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 28-02-PLAN.md — NavDest.System + SystemPageScreen (static ratio-capped Focus, direct-tap rows, inert Power stub) + previews (wave 2)
 - [ ] 28-03-PLAN.md — Rehome Temperature/Console/Fine-Tune onto the home idle list (buildIdleActions) + HomeActionTest 8→11 (wave 2)
-- [ ] 28-04-PLAN.md — Delete the maxItems persistence axis (D-17), hardcode the 4-slot default, update theme/config tests (wave 1)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 28-05-PLAN.md — Delete AppDrawer + swipe-up (D-04) atomically; wire NavDest.System into AppShell + PrintStatusField (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 28-06-PLAN.md — Rebuild PrintersScreen: DetailCard Focus + Edit/Delete mode-toggle foot bar (D-13/D-15) + pure mode test (wave 4)
 - [ ] 28-07-PLAN.md — Dense-restyle Settings (one-page) + SystemInformation + About (one-page) (wave 4)
 - [ ] 28-08-PLAN.md — ThemeEditor: S/V square (D-16) + dense scroll (D-18) + reactive idle seed (D-19) + dev-cycler drag (D-20) (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 28-09-PLAN.md — On-device UAT gate on flox (SC-1/SC-5): verified-fresh release build + owner walk + 28-UAT.md (wave 5)
+
+**Cross-cutting constraints:**
+
+- All persistence routes through container intent helpers (writeScope) — never rememberCoroutineScope()
+
 **UI hint**: yes
 **Research note**: STANDARD — C6 densification rules already in THEMING.md/LAYOUT.md; existing settings-IA todos under `.planning/todos/pending/`.
 
