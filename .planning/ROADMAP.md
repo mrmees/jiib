@@ -1289,13 +1289,28 @@ Plans:
   5. No functional regressions (host tests green; on-device smoke) — homing/jog, probe/mesh/screws routines intact
 
 **Plans**: 7 plans (waves 0-5)
+**Wave 1**
+
 - [ ] 27-01-PLAN.md — Owner icon gate: register 5 calibration routine glyphs + distance-stepper +/- (D-16, checkpoint)
 - [ ] 27-02-PLAN.md — D-07 nav conversion: 6 calibration NavDest routes + remove calibrationRoutine + D-09 nav-layer back-suppression
 - [ ] 27-03-PLAN.md — MoveScreen rebuild: spatial grid + vertical Z column + distance stepper (D-01..D-04) + MovePreviews
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 27-04-PLAN.md — CalibrationHub list+Focus (D-05/D-06) + ProbeCalibrate vertical TESTZ cols + state-adaptive foot (D-08/D-09) + previews
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 27-05-PLAN.md — BedMesh: Field profile list + SaveName takeover, dialogs die (D-11..D-14) + preview
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 27-06-PLAN.md — ScrewsTilt + Tilt pure restyle (D-10) + finish CalibrationPreviews (all 6 screens)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 27-07-PLAN.md — On-device UAT gate on flox + live printer (SC-1/SC-2/SC-5, checkpoint)
+
 **UI hint**: yes
 **Research note**: STANDARD — wizard-flow reconciliation against the redesigned grammar; the spatial-grid carve-out is already in the LAW.
 
