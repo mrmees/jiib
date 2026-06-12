@@ -1,5 +1,9 @@
 package works.mees.dinghy.preview
 
+import works.mees.dinghy.calibration.CalibrationRoutine
+import works.mees.dinghy.calibration.ProbeCalibrateVm
+import works.mees.dinghy.calibration.ProbePageState
+import works.mees.dinghy.calibration.RoutineEntry
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
@@ -191,5 +195,61 @@ object SampleFixtures {
             i < 30 -> 22f + (215f - 22f) * (i / 29f)            // ramp from ambient to target
             else -> 215f + (((i % 3) - 1) * 0.6f)               // plateau ±0.6 jitter
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Calibration hub fixtures (all 5 routines, supported-first per CalibrationGate order — 27-04)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * All 5 calibration routines in supported-first order matching [works.mees.dinghy.calibration.calibrationSupport]:
+     * PROBE_CALIBRATE, BED_MESH, SCREWS_TILT are supported; Z_TILT and QUAD_GANTRY_LEVEL are greyed
+     * (unsupported — D-06: all 5 always render, unsupported dimmed `t.text3` but still selectable).
+     *
+     * The E3/E5 test printer profile (no `z_tilt` / no `quad_gantry_level` objects). Mirrors the
+     * real-device fixture that the on-device UAT (27-07) will exercise.
+     */
+    val calibrationRoutineList: List<RoutineEntry> = listOf(
+        RoutineEntry(CalibrationRoutine.PROBE_CALIBRATE, isSupported = true),
+        RoutineEntry(CalibrationRoutine.BED_MESH, isSupported = true),
+        RoutineEntry(CalibrationRoutine.SCREWS_TILT, isSupported = true),
+        RoutineEntry(CalibrationRoutine.Z_TILT, isSupported = false),
+        RoutineEntry(CalibrationRoutine.QUAD_GANTRY_LEVEL, isSupported = false),
+    )
+
+    // ---------------------------------------------------------------------------------------------
+    // ProbeCalibrateContent fixtures (per-state stub snapshots — no live VM — 27-04)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [ProbeCalibrateVm] snapshot for the given [state] (no live Moonraker, no holder).
+     *
+     * Active supplies a representative live-Z position (the klicky-probe paper-test sweet spot).
+     * Accepted supplies a captured offset so the Focus card's delta text is non-empty.
+     *
+     * @param state         the [ProbePageState] to render (Idle / Active / Accepted).
+     * @param homedGate     true when all axes are homed — only meaningful for [ProbePageState.Idle].
+     */
+    fun probeVm(
+        state: ProbePageState,
+        homedGate: Boolean = true,
+    ): ProbeCalibrateVm = when (state) {
+        ProbePageState.Idle -> ProbeCalibrateVm(
+            state = ProbePageState.Idle,
+            savedZOffset = 1.425,   // typical klicky probe z_offset (mm, positive)
+            homedGate = homedGate,
+        )
+        ProbePageState.Active -> ProbeCalibrateVm(
+            state = ProbePageState.Active,
+            zPosition = 0.050,      // paper-test gap: mid-descent, ~0.05 mm above bed
+            savedZOffset = 1.425,
+            homedGate = true,
+        )
+        ProbePageState.Accepted -> ProbeCalibrateVm(
+            state = ProbePageState.Accepted,
+            capturedOffset = 0.023, // accepted paper-test result
+            savedZOffset = 1.425,
+            homedGate = true,
+        )
     }
 }
