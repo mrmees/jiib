@@ -334,9 +334,12 @@ fun PrintersScreen(
     // Pending delete for ConfirmGuard.
     var pendingDelete by remember { mutableStateOf<Profile?>(null) }
 
-    // BackHandler: disarm mode if armed; else dismiss editor/confirm if open.
-    BackHandler(printerMode != PrinterMode.Normal || editingTarget != null) {
+    // BackHandler priority (WR-02): dismiss the delete ConfirmGuard first (= "Keep"), then the
+    // editor, then disarm the mode. Without pendingDelete in the gate, the second Back found the
+    // handler disabled and NavHost popped the whole route out from under an open destructive guard.
+    BackHandler(pendingDelete != null || printerMode != PrinterMode.Normal || editingTarget != null) {
         when {
+            pendingDelete != null -> pendingDelete = null
             editingTarget != null -> editingTarget = null
             else -> printerMode = disarm()
         }
