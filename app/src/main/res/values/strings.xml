@@ -489,6 +489,11 @@
     <string name="mesh_empty_state_hint">Run Calibrate to create one.</string>
     <string name="cd_mesh_heatmap">Bed mesh heatmap</string>
 
+    <!-- ScrewsTilt + Tilt screens (Phase 27-06) -->
+    <string name="calibration_run">Run</string>
+    <string name="calibration_run_again">Run Again</string>
+    <string name="calibration_running">Running…</string>
+
     <!-- ============== settings — display / always-on (§R2, 26.5-05) ============== -->
     <string name="settings_display_section">Display</string>
     <string name="settings_keep_screen_on">Keep screen awake</string>
