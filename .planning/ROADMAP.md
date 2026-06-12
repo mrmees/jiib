@@ -1344,7 +1344,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 28-06-PLAN.md — Rebuild PrintersScreen: DetailCard Focus + Edit/Delete mode-toggle foot bar (D-13/D-15) + pure mode test (wave 4)
+- [x] 28-06-PLAN.md — Rebuild PrintersScreen: DetailCard Focus + Edit/Delete mode-toggle foot bar (D-13/D-15) + pure mode test (wave 4)
 - [ ] 28-07-PLAN.md — Dense-restyle Settings (one-page) + SystemInformation + About (one-page) (wave 4)
 - [ ] 28-08-PLAN.md — ThemeEditor: S/V square (D-16) + dense scroll (D-18) + reactive idle seed (D-19) + dev-cycler drag (D-20) (wave 4)
 
