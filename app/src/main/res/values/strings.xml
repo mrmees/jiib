@@ -542,6 +542,12 @@
     <string name="tilt_done_body">Gantry leveled.</string>
     <string name="tilt_adjustments_applied">Z adjustments applied:</string>
 
+    <!-- ============== about — 28-07 dense restyle strings ============== -->
+    <string name="about_version">Version</string>
+    <string name="about_dev_widgets">Theme dev widgets</string>
+    <string name="about_dev_widgets_on">Floating Style/Size cyclers shown. Turn off to hide them and restore your theme.</string>
+    <string name="about_dev_widgets_off">Show the floating Style/Size theme cyclers over every screen.</string>
+
     <!-- ============== settings — 28-07 dense restyle feature toggles ============== -->
     <string name="settings_webcam">Webcam</string>
     <string name="settings_babystep">Z-Babystep adjust</string>
