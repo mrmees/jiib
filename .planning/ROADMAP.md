@@ -1297,7 +1297,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 27-04-PLAN.md — CalibrationHub list+Focus (D-05/D-06) + ProbeCalibrate vertical TESTZ cols + state-adaptive foot (D-08/D-09) + previews
+- [x] 27-04-PLAN.md — CalibrationHub list+Focus (D-05/D-06) + ProbeCalibrate vertical TESTZ cols + state-adaptive foot (D-08/D-09) + previews
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
