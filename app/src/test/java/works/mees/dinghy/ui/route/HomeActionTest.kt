@@ -139,15 +139,20 @@ class HomeActionTest {
             webcamEnabled   = true,
         )
         val dests = actions.destinations()
-        assertEquals("Full list must have 8 destination rows", 8, dests.size)
-        assertTrue(NavDest.Spool       in dests)
-        assertTrue(NavDest.Files       in dests)
-        assertTrue(NavDest.Move        in dests)
-        assertTrue(NavDest.Extrude     in dests)
-        assertTrue(NavDest.Macros      in dests)
+        // 28-03 (D-05): Temperature + Console + Fine-Tune rehomed to idle list (always-present).
+        // Full list = 8 original + 3 new unconditional rows = 11.
+        assertEquals("Full list must have 11 destination rows", 11, dests.size)
+        assertTrue(NavDest.Spool          in dests)
+        assertTrue(NavDest.Files          in dests)
+        assertTrue(NavDest.Move           in dests)
+        assertTrue(NavDest.Extrude        in dests)
+        assertTrue(NavDest.Macros         in dests)
         assertTrue(NavDest.CalibrationHub in dests)
-        assertTrue(NavDest.Outputs     in dests)
-        assertTrue(NavDest.Webcam      in dests)
+        assertTrue(NavDest.Temperature    in dests)
+        assertTrue(NavDest.Console        in dests)
+        assertTrue(NavDest.FineTune       in dests)
+        assertTrue(NavDest.Outputs        in dests)
+        assertTrue(NavDest.Webcam         in dests)
     }
 
     @Test
@@ -159,12 +164,15 @@ class HomeActionTest {
             webcamEnabled   = false,
         )
         val dests = actions.destinations()
-        // Always-present: Files, Move, Extrude, Calibration (D-07 / D-08 — 4 rows)
-        assertEquals("Minimal list must have 4 destination rows", 4, dests.size)
-        assertTrue(NavDest.Files       in dests)
-        assertTrue(NavDest.Move        in dests)
-        assertTrue(NavDest.Extrude     in dests)
+        // Always-present: Files, Move, Extrude, Calibration + Temperature, Console, Fine-Tune (D-05 / D-08 — 7 rows)
+        assertEquals("Minimal list must have 7 destination rows", 7, dests.size)
+        assertTrue(NavDest.Files          in dests)
+        assertTrue(NavDest.Move           in dests)
+        assertTrue(NavDest.Extrude        in dests)
         assertTrue(NavDest.CalibrationHub in dests)
+        assertTrue(NavDest.Temperature    in dests)
+        assertTrue(NavDest.Console        in dests)
+        assertTrue(NavDest.FineTune       in dests)
         // None of the capability-gated rows:
         assertFalse(NavDest.Spool   in dests)
         assertFalse(NavDest.Macros  in dests)
@@ -177,10 +185,11 @@ class HomeActionTest {
     // ---------------------------------------------------------------------------
 
     /**
-     * The v1 idle list order is LOCKED by the owner (D-06):
-     * `Spool → Files → Move → Extrude → Macros → Calibration → Outputs → Webcam`
+     * The v1 idle list order is LOCKED by the owner (D-05/D-06):
+     * `Spool → Files → Move → Extrude → Macros → Calibration → Temperature → Console → Fine-Tune → Outputs → Webcam`
      *
-     * This test asserts the exact sequence when all capabilities are present.
+     * 28-03 adds Temperature, Console, Fine-Tune after Calibration and before Outputs (D-05).
+     * This test asserts the exact 11-row sequence when all capabilities are present.
      */
     @Test
     fun v1OrderIsPreserved() {
@@ -193,7 +202,7 @@ class HomeActionTest {
         val dests = actions.destinations()
 
         assertEquals(
-            "D-06 order must be Spool → Files → Move → Extrude → Macros → Calibration → Outputs → Webcam",
+            "D-05/D-06 order must be Spool → Files → Move → Extrude → Macros → Calibration → Temperature → Console → Fine-Tune → Outputs → Webcam",
             listOf(
                 NavDest.Spool,
                 NavDest.Files,
@@ -201,6 +210,9 @@ class HomeActionTest {
                 NavDest.Extrude,
                 NavDest.Macros,
                 NavDest.CalibrationHub,
+                NavDest.Temperature,
+                NavDest.Console,
+                NavDest.FineTune,
                 NavDest.Outputs,
                 NavDest.Webcam,
             ),
