@@ -289,7 +289,6 @@ fun ProbeCalibrateContent(
                     // D-09: state-adaptive FootButtonBar (verbatim semantics from prior gutter).
                     FootButtonBar(
                         uDp = grid.uDp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         when (vm.state) {
                             ProbePageState.Idle -> if (starting) {

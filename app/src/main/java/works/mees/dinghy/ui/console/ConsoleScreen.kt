@@ -201,7 +201,6 @@ private fun ConsoleContent(
                     // D-15: filter toggles + Back live in the FootButtonBar inside the field (gutter = null).
                     FootButtonBar(
                         uDp = grid.uDp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
                         // semantics — active-filter state is otherwise outline-color-only.

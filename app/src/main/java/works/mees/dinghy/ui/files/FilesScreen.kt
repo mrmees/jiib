@@ -603,7 +603,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
     // OutlinedControl does not have an `enabled` param; use alpha + semantics disabled to gate.
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.common_back),

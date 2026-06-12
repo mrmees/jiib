@@ -411,7 +411,6 @@ private fun FineTuneContent(
                 // FootButtonBar is INSIDE the field lambda (gutter = null — D-23 / shared pattern).
                 FootButtonBar(
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     // Back (accent, FIRST — R5/R8) + Reset All (warn/amber).
                     OutlinedControl(

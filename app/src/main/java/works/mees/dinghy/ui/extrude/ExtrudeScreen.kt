@@ -371,7 +371,6 @@ private fun ExtrudeContent(
                         }
                         FootButtonBar(
                             uDp = grid.uDp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             OutlinedControl(
                                 label = "",
@@ -446,7 +445,6 @@ private fun ExtrudeContent(
                         }
                         FootButtonBar(
                             uDp = grid.uDp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             OutlinedControl(
                                 label = "",

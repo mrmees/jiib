@@ -344,7 +344,6 @@ internal fun BedMeshContent(
                             // D-14 state-adaptive FootButtonBar
                             FootButtonBar(
                                 uDp = grid.uDp,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             ) {
                                 when {
                                     !vm.homed -> {
@@ -469,7 +468,6 @@ internal fun BedMeshContent(
                             // + Cancel (danger, C7 cancel-with-loss)
                             FootButtonBar(
                                 uDp = grid.uDp,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             ) {
                                 OutlinedControl(
                                     label = stringResource(R.string.mesh_save_confirm),

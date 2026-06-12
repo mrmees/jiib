@@ -318,7 +318,6 @@ private fun ColumnScope.MacroLauncherField(
     }
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.macros_foot_back),
@@ -521,7 +520,6 @@ private fun ColumnScope.MacroParamEntryField(
 
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.macros_foot_back),
@@ -703,7 +701,6 @@ private fun ColumnScope.MacroManageField(
     }
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.macros_foot_back),

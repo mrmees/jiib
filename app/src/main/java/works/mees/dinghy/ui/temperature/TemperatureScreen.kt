@@ -583,7 +583,6 @@ private fun TemperatureContent(
                         val heating = legend.any { it.target != null }
                         FootButtonBar(
                             uDp = grid.uDp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             OutlinedControl(
                                 label = "",
@@ -638,7 +637,6 @@ private fun TemperatureContent(
                         }
                         FootButtonBar(
                             uDp = grid.uDp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             OutlinedControl(
                                 label = "",

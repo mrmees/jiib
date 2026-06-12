@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +59,8 @@ import androidx.compose.ui.unit.dp
  *
  * @param uDp      one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
  *                 used as the row's [heightIn] minimum so the foot bar matches the grid unit.
- * @param modifier caller-supplied modifier (e.g. `Modifier.padding(8.dp)`).
+ * @param modifier caller-supplied modifier — container padding is OWNED by the bar (gapS 8dp
+ *                 both axes, owner ruling 2026-06-12); do NOT re-add padding at call sites.
  * @param content  the [OutlinedControl] instances rendered with `Modifier.weight(1f)` for
  *                 equal distribution.
  */
@@ -71,6 +73,9 @@ fun FootButtonBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Container padding owned here (gapS 8dp both axes — owner ruling, 2026-06-12;
+            // was per-call-site `horizontal = 8.dp, vertical = 4.dp`).
+            .padding(horizontal = 8.dp, vertical = 8.dp)
             .heightIn(min = uDp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -510,7 +510,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
     }
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = "",
@@ -654,7 +653,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
     // Filter picker footer: Clear (danger) · Done (go).
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.spool_filter_clear),
@@ -801,7 +799,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     // Footer: Back (Danger — discards; C7 rule) · Set (Go — applies when valid).
     FootButtonBar(
         uDp = uDp,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         OutlinedControl(
             label = stringResource(R.string.spool_measure_back),

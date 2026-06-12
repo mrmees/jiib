@@ -258,7 +258,6 @@ fun PrintersContent(
                 }
                 FootButtonBar(
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     OutlinedControl(
                         label = stringResource(R.string.printers_add),
