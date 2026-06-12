@@ -105,11 +105,28 @@ fun BedMeshScreen(
     var showRemoveGuard by remember { mutableStateOf(false) }
     var showSaveConfigGuard by remember { mutableStateOf(false) }
 
+    // WR-05 (27-review): the stable dispatch keys of the two persist-relevant profile commands
+    // (their key lambdas ignore the profile name). A Failure under one of these keys means nothing
+    // was persisted — used below to retract the SAVE_CONFIG guard instead of inviting a pointless
+    // Klipper restart.
+    val profilePersistKeys = remember {
+        val probe = BedMeshProfileArgs("")
+        setOf(
+            CommandRegistry.bedMeshProfileSave.dispatchKey(probe),
+            CommandRegistry.bedMeshProfileRemove.dispatchKey(probe),
+        )
+    }
+
     // Toast state (dismissable error + auto-dismiss).
     var toastError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(dispatcher) {
         val d = dispatcher ?: return@LaunchedEffect
-        d.events.collect { event -> if (event is DispatchEvent.Failure) toastError = event.message }
+        d.events.collect { event ->
+            if (event is DispatchEvent.Failure) {
+                toastError = event.message
+                if (event.key in profilePersistKeys) showSaveConfigGuard = false
+            }
+        }
     }
     LaunchedEffect(vm.errorText) { vm.errorText?.let { toastError = it } }
     LaunchedEffect(toastError) {
@@ -131,9 +148,15 @@ fun BedMeshScreen(
         onSelectProfile = { name -> selectedProfile = name },
         onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
         onSaveNameConfirm = { name ->
-            dispatcher?.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(name))
+            val d = dispatcher
             fieldMode = MeshFieldMode.ProfileList
-            showSaveConfigGuard = true
+            // WR-05 (27-review): raise the amber SAVE_CONFIG restart guard only when the save
+            // dispatch was actually sent — never invite a Klipper restart for a save that never
+            // went out. (A server-side Failure under the save key retracts the guard above.)
+            if (d != null) {
+                d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(name))
+                showSaveConfigGuard = true
+            }
         },
         onSaveNameCancel = { fieldMode = MeshFieldMode.ProfileList },
         onApplyProfile = { name ->
@@ -382,12 +405,15 @@ internal fun BedMeshContent(
                                             intent = Intent.Accent,
                                             enabled = dispatcherPresent,
                                         )
+                                        // WR-05 (27-review): with no active mesh, BED_MESH_PROFILE SAVE
+                                        // errors in Klipper — Save is gated on a mesh being loaded (the
+                                        // empty-state Focus already tells the user to calibrate first).
                                         OutlinedControl(
                                             label = stringResource(R.string.mesh_save),
                                             onClick = onShowSaveName,
                                             modifier = Modifier.weight(1f),
                                             intent = Intent.Neutral,
-                                            enabled = dispatcherPresent,
+                                            enabled = dispatcherPresent && !vm.isEmpty,
                                         )
                                         OutlinedControl(
                                             label = "",
