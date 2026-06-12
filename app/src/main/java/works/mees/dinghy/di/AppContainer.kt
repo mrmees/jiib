@@ -658,7 +658,6 @@ class AppContainer(
                         dark = tuple.dark,
                         paletteMode = tuple.paletteMode,
                         poolShift = tuple.poolShift,
-                        maxItems = tuple.maxItems,
                         // Shared ARGB-Long → Color helper (StatusSlot.kt) — the proven `.toInt()`-based
                         // conversion, never Color(longArgb). Status overrides are applied MODE-GATED in
                         // TokenBridge (Colorful only), so this resolution path honors D-04 too.
@@ -769,8 +768,9 @@ class AppContainer(
     }
 
     /**
-     * Reset the theme to the validated defaults (D-09) — clears seed/mode/shift/maxItems/overrides back to
+     * Reset the theme to the validated defaults (D-09) — clears seed/mode/shift/overrides back to
      * the out-of-box tuple. Active profile, else global. fsChoice is a SEPARATE setting and is NOT reset.
+     * maxItems is no longer a per-profile axis (D-17 / 28-04) — nothing to reset.
      */
     fun resetActiveTheme(active: Boolean) {
         if (active) {
@@ -780,7 +780,6 @@ class AppContainer(
                     dark = true,
                     paletteMode = ThemePrefs.DEFAULT_MODE,
                     poolShift = ThemePrefs.DEFAULT_SHIFT,
-                    maxItems = ThemePrefs.DEFAULT_MAX_ITEMS,
                     poolOverrides = emptyMap(),
                 )
             }

@@ -33,7 +33,8 @@ class ThemeResolver(
     private var dark: Boolean = true,
     private var paletteMode: String = MODE_COLORFUL,
     private var poolShift: Int = 0,
-    private var maxItems: Int = DEFAULT_POOL_MAX_ITEMS,
+    // maxItems removed as a stored field — D-17 (28-04): pool size hardcoded at DEFAULT_POOL_MAX_ITEMS=4
+    // at the Palette.generate boundary. Palette.generate(maxItems=...) param is PRESERVED.
     private var poolOverrides: Map<Int, Color> = emptyMap(),
     // The 3 status-slot overrides (D-03), keyed by [StatusSlot.key]. Applied MODE-GATED in
     // [TokenBridge.build] — honored in Colorful, IGNORED in Simple/High-Contrast (D-04).
@@ -110,13 +111,13 @@ class ThemeResolver(
      * Apply the FULL tuple at once (e.g. when the persisted theme loads, 15-05). Sets every field then
      * recomputes ONCE — Pitfall 3: never a sequence of set*() calls (each would re-emit = multiple
      * theme-switch flickers). Exactly ONE new [ThemeTokens] is emitted.
+     * maxItems removed from this signature — D-17 (28-04): pool size is hardcoded at DEFAULT_POOL_MAX_ITEMS.
      */
     fun apply(
         seedHex: String,
         dark: Boolean,
         paletteMode: String,
         poolShift: Int,
-        maxItems: Int,
         overrides: Map<Int, Color>,
         fs: Float,
         statusOverrides: Map<String, Color> = emptyMap(),
@@ -125,7 +126,6 @@ class ThemeResolver(
         this.dark = dark
         this.paletteMode = paletteMode
         this.poolShift = poolShift
-        this.maxItems = maxItems
         this.poolOverrides = overrides
         this.statusOverrides = statusOverrides
         this.fs = fs
@@ -149,7 +149,7 @@ class ThemeResolver(
      * [computeFrom] so the live `apply()`/`set*()` path is byte-identical to a [bake] of the same inputs.
      */
     private fun compute(): ThemeTokens =
-        computeFrom(seedHex, dark, paletteMode, poolShift, maxItems, poolOverrides, statusOverrides, fs)
+        computeFrom(seedHex, dark, paletteMode, poolShift, poolOverrides, statusOverrides, fs)
 
     /**
      * Bake an arbitrary theme TUPLE to a snapshot [ThemeTokens] PURELY (HIGH-2): it reads NO `var` field,
@@ -165,7 +165,6 @@ class ThemeResolver(
             dark = tuple.dark,
             paletteMode = tuple.paletteMode,
             poolShift = tuple.poolShift,
-            maxItems = tuple.maxItems,
             poolOverrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
             statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
             fs = tuple.fs,
@@ -176,13 +175,14 @@ class ThemeResolver(
      * generate (Palette.generate → TokenBridge.build), wrapped in a try/catch fail-safe — on ANY throw it
      * falls back to the [BakedTokens] default snapshot so the printer surface NEVER goes dark (T-15-04-01).
      * Both the live [compute] and the pure [bake] route through here so the two paths can never diverge.
+     * Pool size is hardcoded at [DEFAULT_POOL_MAX_ITEMS] (D-17 / 28-04); Palette.generate's maxItems
+     * param is preserved — TemperatureScreen's dedicated maxItems=8 swatch pool still calls it directly.
      */
     private fun computeFrom(
         seedHex: String,
         dark: Boolean,
         paletteMode: String,
         poolShift: Int,
-        maxItems: Int,
         poolOverrides: Map<Int, Color>,
         statusOverrides: Map<String, Color>,
         fs: Float,
@@ -193,7 +193,7 @@ class ThemeResolver(
             val generated = Palette.generate(
                 seedHex = seedHex,
                 dark = dark,
-                maxItems = maxItems,
+                maxItems = DEFAULT_POOL_MAX_ITEMS,
                 poolShift = poolShift,
                 statusFromPool = true,
                 simple = simple,

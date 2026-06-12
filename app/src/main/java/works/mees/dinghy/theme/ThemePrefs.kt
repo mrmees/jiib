@@ -14,16 +14,18 @@ import java.io.IOException
 
 /**
  * DataStore(Preferences) persistence of the theme (THEME-02/D-02) — the FIRST DataStore in the repo.
- * Persists the generate-and-cache theme TUPLE (seed, dark, paletteMode, poolShift, maxItems, the sparse
+ * Persists the generate-and-cache theme TUPLE (seed, dark, paletteMode, poolShift, the sparse
  * per-pool-slot overrides) + the S/M/L `--fs` choice. The OLD per-role TokenDelta chrome-override
  * persistence was RETIRED in 15-06 (D-04): chrome is fully seed-derived; only the data-pool is editable.
+ * maxItems was removed as a user-configurable axis in D-17 (28-04): the 4-slot pool grid is hardcoded at
+ * the [works.mees.dinghy.theme.ThemeResolver] → [Palette.generate] boundary (DEFAULT_POOL_MAX_ITEMS=4).
  *
  * DETERMINISTIC FAIL-SAFE CONTRACT (D-02/D-03, threat T-15-05-01): because persistence exists before any
  * validating editor, a corrupt/partial blob MUST NEVER crash or black-screen the printer display.
  * The read path ([sanitizeTuple]) ALWAYS resolves to a complete, usable [ThemeTuple] and never throws:
  *   • unparseable seed (not 6/8-hex)             → default seed
  *   • bad mode (∉ Colorful|Simple|HighContrast)  → Colorful
- *   • out-of-range poolShift / maxItems          → defaults
+ *   • out-of-range poolShift                     → defaults
  *   • a malformed pool override                  → drop ONLY that slot, keep the good ones (per-entry)
  *
  * The sanitization is a PURE function over the stored primitives ([sanitizeTuple]) so it is unit-testable
@@ -51,7 +53,6 @@ class ThemePrefs(
                     rawDark = prefs[KEY_DARK],
                     rawMode = prefs[KEY_MODE],
                     rawShift = prefs[KEY_SHIFT],
-                    rawMaxItems = prefs[KEY_MAX_ITEMS],
                     rawFs = prefs[KEY_FS],
                     rawOverrides = readOverrides(prefs),
                 )
@@ -71,10 +72,6 @@ class ThemePrefs(
 
     suspend fun setShift(shift: Int) {
         dataStore.edit { it[KEY_SHIFT] = shift }
-    }
-
-    suspend fun setMaxItems(maxItems: Int) {
-        dataStore.edit { it[KEY_MAX_ITEMS] = maxItems }
     }
 
     /** Persist the sparse pool overrides: one ARGB long per pool-index-as-string. Replaces the whole set. */
@@ -127,10 +124,10 @@ class ThemePrefs(
     }
 
     /**
-     * Reset the whole theme tuple (seed/dark/mode/shift/maxItems/overrides) to the validated out-of-box
+     * Reset the whole theme tuple (seed/dark/mode/shift/overrides) to the validated out-of-box
      * defaults in ONE [dataStore.edit] (WR-03). fsChoice is a SEPARATE setting and is deliberately NOT
-     * reset here. Doing all writes in a single edit means [tupleFlow] emits ONCE — the old six sequential
-     * `set*()` edits each re-emitted, producing up to six partial-reset theme repaints (RESEARCH Pitfall 3).
+     * reset here. Doing all writes in a single edit means [tupleFlow] emits ONCE — the old sequential
+     * `set*()` edits each re-emitted, producing partial-reset theme repaints (RESEARCH Pitfall 3).
      */
     suspend fun resetToDefaults() {
         dataStore.edit { prefs ->
@@ -138,7 +135,6 @@ class ThemePrefs(
             prefs[KEY_DARK] = true
             prefs[KEY_MODE] = DEFAULT_MODE
             prefs[KEY_SHIFT] = DEFAULT_SHIFT
-            prefs[KEY_MAX_ITEMS] = DEFAULT_MAX_ITEMS
             writeOverrides(prefs, emptyMap())
         }
     }
@@ -147,13 +143,14 @@ class ThemePrefs(
      * The complete, validated theme TUPLE (D-03/15-05) — the generate-and-cache inputs the
      * [ThemeResolver] applies. `poolOverrides` is Int-keyed/[Color]-valued here (the sanitized runtime
      * form); persistence stores the String→Long wire form. NEVER carries a baked [ThemeTokens].
+     * maxItems was removed as a configurable axis in D-17 (28-04); the pool size is hardcoded at 4 in
+     * the resolver's [works.mees.dinghy.theme.ThemeResolver.DEFAULT_POOL_MAX_ITEMS] boundary constant.
      */
     data class ThemeTuple(
         val seedHex: String,
         val dark: Boolean,
         val paletteMode: String,
         val poolShift: Int,
-        val maxItems: Int,
         val poolOverrides: Map<Int, Long>,
         // The 3 status-slot overrides (D-03), split out of the SAME String→Long wire map as
         // [poolOverrides] (the Int-keyed map cannot hold "stop"/"caution"/"go"). Keyed by the canonical
@@ -168,7 +165,7 @@ class ThemePrefs(
         private val KEY_DARK = androidx.datastore.preferences.core.booleanPreferencesKey("theme_dark")
         private val KEY_MODE = stringPreferencesKey("theme_mode")
         private val KEY_SHIFT = androidx.datastore.preferences.core.intPreferencesKey("theme_shift")
-        private val KEY_MAX_ITEMS = androidx.datastore.preferences.core.intPreferencesKey("theme_max_items")
+        // D-17 (28-04): pool size hardcoded at ThemeResolver.DEFAULT_POOL_MAX_ITEMS=4; the old theme_max_items key is orphaned and ignored on read.
         private val KEY_OVERRIDE_KEYS = stringSetPreferencesKey("pool_override_keys")
         private fun overrideArgbKey(idxName: String) = "pool_override_argb_$idxName"
 
@@ -184,21 +181,20 @@ class ThemePrefs(
         const val DEFAULT_SEED: String = "#3f78ff"
         const val DEFAULT_MODE: String = "Colorful"
         const val DEFAULT_SHIFT: Int = 0
-        const val DEFAULT_MAX_ITEMS: Int = 4
+        // D-17 (28-04): the old per-axis pool-size constants are gone; pool size is now hardcoded at
+        // ThemeResolver.DEFAULT_POOL_MAX_ITEMS=4; no user-configurable axis exists anymore.
         private val VALID_MODES = setOf("Colorful", "Simple", "HighContrast")
         private val HEX_SEED = Regex("^#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$")
         // WR-04: 0..359, not 0..360 — a shift of 360 wraps to 0 (`(seedH + shift) % 360`), so 360 is a
         // duplicate of 0. Bound the validation to the 360 meaningfully-distinct hue rotations.
         private val SHIFT_RANGE = 0..359
-        private val MAX_ITEMS_RANGE = 1..64
 
-        /** The fail-safe default TUPLE: default seed, dark, Colorful, no shift, 4 items, no overrides, M fs. */
+        /** The fail-safe default TUPLE: default seed, dark, Colorful, no shift, no overrides, M fs. */
         val TUPLE_DEFAULT = ThemeTuple(
             seedHex = DEFAULT_SEED,
             dark = true,
             paletteMode = DEFAULT_MODE,
             poolShift = DEFAULT_SHIFT,
-            maxItems = DEFAULT_MAX_ITEMS,
             poolOverrides = emptyMap(),
             fs = FontScale.M.multiplier,
         )
@@ -230,7 +226,7 @@ class ThemePrefs(
          * NEVER throws, NEVER black-screens:
          *   • unparseable seed (not 6/8-digit hex)     → default seed
          *   • bad mode (not Colorful|Simple|HighContrast) → Colorful
-         *   • out-of-range poolShift (0..360) / maxItems (1..64) → defaults
+         *   • out-of-range poolShift (0..359)          → default shift
          *   • poolOverrides: parse each String key → Int index, validate the ARGB; DROP only the bad
          *     entry, KEEP the good ones (kotlinx ignoreUnknownKeys does NOT cover malformed VALUES, so a
          *     String→Long map + this PER-ENTRY parse is what keeps one bad slot from nuking the whole map).
@@ -238,13 +234,13 @@ class ThemePrefs(
          *     "stop"/"caution"/"go"; route a key matching [StatusSlot.fromKey] into the String-keyed
          *     statusOverrides (validating the ARGB per-entry). A key that is NEITHER an integer-string NOR
          *     a valid status key is DROPPED — it never reaches `key.toInt()` (malformed-key safety).
+         * maxItems was a configurable axis prior to D-17 (28-04); it is now hardcoded in ThemeResolver.
          */
         fun sanitizeTuple(
             rawSeed: String?,
             rawDark: Boolean?,
             rawMode: String?,
             rawShift: Int?,
-            rawMaxItems: Int?,
             rawFs: String?,
             rawOverrides: Map<String, Long>?,
         ): ThemeTuple {
@@ -252,7 +248,6 @@ class ThemePrefs(
             val dark = rawDark ?: true
             val mode = if (rawMode in VALID_MODES) rawMode!! else DEFAULT_MODE
             val shift = if (rawShift != null && rawShift in SHIFT_RANGE) rawShift else DEFAULT_SHIFT
-            val maxItems = if (rawMaxItems != null && rawMaxItems in MAX_ITEMS_RANGE) rawMaxItems else DEFAULT_MAX_ITEMS
             val fs = (enumValuesOrNull<FontScale>(rawFs) ?: FontScale.M).multiplier
 
             val overrides = mutableMapOf<Int, Long>()
@@ -273,7 +268,6 @@ class ThemePrefs(
                 dark = dark,
                 paletteMode = mode,
                 poolShift = shift,
-                maxItems = maxItems,
                 poolOverrides = overrides,
                 statusOverrides = statusOverrides,
                 fs = fs,

@@ -37,7 +37,8 @@ data class PersistedProfile(
     val dark: Boolean = true,
     val paletteMode: String = "Colorful",
     val poolShift: Int = 0,
-    val maxItems: Int = 4,
+    // D-17 (28-04): pool size hardcoded at ThemeResolver.DEFAULT_POOL_MAX_ITEMS=4.
+    // Old stored blobs with the deleted field still decode cleanly via kotlinx ignoreUnknownKeys.
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M", // FontScale.name — a SEPARATE setting (D-05), NOT folded into the theme tuple.
     // Per-profile FEATURE TOGGLE (D-04, 15.2-03) — NOT app-global. Defaults TRUE to preserve today's
@@ -58,7 +59,7 @@ data class PersistedProfile(
     override fun toString(): String =
         "PersistedProfile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
-            "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
+            "paletteMode=$paletteMode, poolShift=$poolShift, " +
             "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
 }
 
@@ -75,11 +76,11 @@ data class Profile(
     val port: Int = 7125,
     val apiKey: String? = null,
     // The generate-and-cache theme TUPLE (D-03, 15-05) — String-keyed poolOverrides for per-entry tolerance.
+    // Pool size hardcoded at ThemeResolver.DEFAULT_POOL_MAX_ITEMS (D-17 / 28-04); not a Profile field.
     val seedHex: String = "#3f78ff",
     val dark: Boolean = true,
     val paletteMode: String = "Colorful",
     val poolShift: Int = 0,
-    val maxItems: Int = 4,
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M",
     // Per-profile feature toggle (D-04, 15.2-03) — see [PersistedProfile.webcamEnabled]. Default true.
@@ -103,7 +104,7 @@ data class Profile(
     /**
      * Resolve this profile's FULL theme (D-03) from its persisted TUPLE primitives, reusing
      * [ThemePrefs.sanitizeTuple] so corrupt theme data fails safe to the defaults (junk seed → default seed,
-     * bad mode → Colorful, out-of-range shift/maxItems → defaults, one malformed pool override dropped
+     * bad mode → Colorful, out-of-range shift → defaults, one malformed pool override dropped
      * per-entry). NEVER throws, NEVER bakes a [works.mees.dinghy.theme.ThemeTokens].
      */
     fun toThemeTuple(): ThemePrefs.ThemeTuple =
@@ -112,7 +113,6 @@ data class Profile(
             rawDark = dark,
             rawMode = paletteMode,
             rawShift = poolShift,
-            rawMaxItems = maxItems,
             rawFs = fsChoice,
             rawOverrides = poolOverrides,
         )
@@ -129,7 +129,6 @@ data class Profile(
             dark = dark,
             paletteMode = paletteMode,
             poolShift = poolShift,
-            maxItems = maxItems,
             poolOverrides = poolOverrides,
             fsChoice = fsChoice,
             webcamEnabled = webcamEnabled,
@@ -139,7 +138,7 @@ data class Profile(
     override fun toString(): String =
         "Profile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
-            "paletteMode=$paletteMode, poolShift=$poolShift, maxItems=$maxItems, " +
+            "paletteMode=$paletteMode, poolShift=$poolShift, " +
             "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
 
     companion object {
@@ -158,7 +157,6 @@ data class Profile(
                 dark = p.dark,
                 paletteMode = p.paletteMode,
                 poolShift = p.poolShift,
-                maxItems = p.maxItems,
                 poolOverrides = p.poolOverrides,
                 fsChoice = p.fsChoice,
                 webcamEnabled = p.webcamEnabled,
