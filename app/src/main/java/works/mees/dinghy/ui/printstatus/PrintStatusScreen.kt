@@ -34,6 +34,8 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
 import works.mees.dinghy.ui.spool.parseNormalizedHex
+import androidx.compose.foundation.layout.BoxWithConstraints
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.ui.route.HomeAction
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.route.buildIdleActions
@@ -463,6 +465,11 @@ private fun PrintStatusContent(
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
 ) {
+    // Pilot fix 2026-06-12: ONE screen-root unit grid (LAYOUT.md §"The unit U" — derived from the
+    // SCREEN short edge, constant through rotation), passed down to U-consumers. The standby field
+    // previously self-derived from its Field-slot box → smaller rows than every other screen.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
     // D-13: one-shot ~150ms Crossfade for idle ↔ printing ↔ terminal transitions.
     // No continuous/looping animation (Adreno-320 fill-rate budget; LAYOUT.md motion rule).
     androidx.compose.animation.Crossfade(
@@ -487,6 +494,7 @@ private fun PrintStatusContent(
                     failureText = failureText,
                     onNavigate = onNavigate,
                     onPreheat = onPreheat,
+                    uDp = grid.uDp,
                 )
             },
             gutter = null,
@@ -574,6 +582,7 @@ private fun PrintStatusContent(
         )
     }
     } // end Crossfade
+    } // end screen-root BoxWithConstraints (unit grid)
 }
 
 // --- formatters / resolution (catalog-aligned) — internal so all PrintStatus*.kt files can read them

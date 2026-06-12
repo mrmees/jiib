@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.basicMarquee
@@ -43,7 +44,6 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
-import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
@@ -80,10 +80,14 @@ internal fun PrintStatusStandbyField(
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+    // Pilot fix 2026-06-12: U is now PASSED from the SCREEN root, not derived here. Deriving it
+    // from this Field-slot box gave the home list a SMALLER U than every other screen (the field
+    // box ≠ the screen short edge, esp. in landscape's 50% column) and made U vary with rotation
+    // — both LAYOUT.md §"The unit U" violations. One screen = one U, derived at the root.
+    Box(modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -98,14 +102,14 @@ internal fun PrintStatusStandbyField(
                     ListRow(
                         selected = false,
                         onClick = { onNavigate(action.dest) },
-                        uDp = grid.uDp,
+                        uDp = uDp,
                         leadingContent = {
                             // Leading icon — always a registered DinghyIcons token (icon law enforced
                             // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
                             // R23: canonical 0.6U list-row icon, U-relative.
                             ListRowIcon(
                                 icon = action.icon,
-                                uDp = grid.uDp,
+                                uDp = uDp,
                                 tint = LocalTokens.current.text2,
                             )
                         },
@@ -121,7 +125,7 @@ internal fun PrintStatusStandbyField(
             // Idle foot bar: Preheat + System — both Intent.Neutral (D-09/D-10).
             // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
             // NOT red, NOT Power.
-            FootButtonBar(uDp = grid.uDp) {
+            FootButtonBar(uDp = uDp) {
                 OutlinedControl(
                     label = stringResource(R.string.home_foot_preheat),
                     onClick = onPreheat,
