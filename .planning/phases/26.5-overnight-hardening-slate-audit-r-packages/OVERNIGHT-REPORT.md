@@ -97,6 +97,15 @@ than commit b38f132** before any install — the stale-APK trap has burned UAT b
 
 ### flox group (use a DEBUG build — R10 instrumentation is `BuildConfig.DEBUG`-gated, no flag to flip)
 
+> **2026-06-11 sitting #3 (flox, at-device):** owner ran the flox group on the real Nexus 7.
+> R2 doze, R10 drawer swipe, and R10 disabled-stepper PASS (marked below). Overall tap feel
+> **improved**, BUT the rejection-flash UX is **REJECTED by owner** — after a few stepper taps
+> the value flashes amber then the controls lock out ~5s (markPending-per-tap busy churn).
+> Owner direction: "batch commands by waiting for a user to not press for half a second before
+> sending the current value." → Superseded by quick task **260611-rmr** (stepper trailing-commit
+> batching); stepper items get a re-test on the new build. Side remark captured as a deferred
+> todo: swipe-up nav may be retired entirely in favor of the new navigation method.
+
 Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
 (`Dispatcher` → `reject: key=… reason=in_flight|debounce remaining=…ms`;
 `SwipeDetector` → `drag: amt=<delta> total=<runningTotal> fired=<bool>`).
@@ -105,14 +114,22 @@ Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
       OutlinedControl command buttons) — ≥95% register with visible same-frame feedback; every tap
       either acts or shows visible rejection feedback; zero silent swallows. Cross-check logcat:
       a tap with a visible indicator but NO log line = real event loss, not an intentional rejection.
+      *2026-06-11 flox sitting: overall tap feel IMPROVED; final stepper verdict deferred to the
+      post-260611-rmr re-test (trailing-commit batching changes the stepper tap model).*
 - [ ] **R10 rejection flash:** rapid-tap a stepper during a busy window (e.g. while a heater command
       is settling) — the adjuster's hero value flashes amber (one-shot ~200ms), NOT nothing.
       (Note: the Temperature heater stepper's old local pre-check was removed so the dispatcher owns
       dedup exclusively — worth a glance that heater behavior is unchanged.)
-- [ ] **R10 disabled stepper = no ripple:** with a dimmed (busy-locked) stepper, a tap produces NO
-      ripple at all (the clickable is absent, not guarded).
-- [ ] **R10 drawer swipe:** swipe-up opens the App Drawer reliably with slow AND fast gestures
-      (per-gesture drag accumulation); no more per-event 80px threshold misses.
+      *2026-06-11 flox sitting: **REJECTED by owner** — the flash itself works, but a tap burst
+      flashes amber then busy-locks the controls ~5s (markPending-per-tap churn). **Superseded by
+      quick task 260611-rmr** (trailing-commit batching: taps accumulate locally, ONE dispatch per
+      500ms quiet window; rejection flash retained as fallback signal only). Kept as historical
+      record — do not re-verify against the per-tap model.*
+- [x] **R10 disabled stepper = no ripple:** with a dimmed (busy-locked) stepper, a tap produces NO
+      ripple at all (the clickable is absent, not guarded). — **PASS (2026-06-11 flox sitting).**
+- [x] **R10 drawer swipe:** swipe-up opens the App Drawer reliably with slow AND fast gestures
+      (per-gesture drag accumulation); no more per-event 80px threshold misses. — **PASS
+      (2026-06-11 flox sitting: slow deliberate swipe opens reliably).**
 - [ ] **R10 cause #4 verdict (instrumentation):** if taps still feel laggy in scrollables despite
       the above, the deferred indication-immediacy fix is implicated — log it for a follow-up phase
       (the overnight draft was reverted as a no-op; a real fix needs custom press detection).
@@ -123,8 +140,9 @@ Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
 - [ ] **R2 exemption flow:** Battery row reads "Optimized — tap…" → tap → system dialog (on
       LineageOS the fallback may open the battery-optimization LIST — find jiib there; expected,
       not a bug) → grant → row reads "Exempt…" on return (ON_RESUME re-check).
-- [ ] **R2 doze survival:** unplugged, screen off, 20+ minutes with the exemption granted —
-      reconnect is alive or resyncs cleanly on wake.
+- [x] **R2 doze survival:** unplugged, screen off, 20+ minutes with the exemption granted —
+      reconnect is alive or resyncs cleanly on wake. — **PASS (2026-06-11 flox sitting: forced
+      deep idle, websocket survived, double-checked).**
 - [ ] **R1 Nexus-7-unchanged regression:** install the **armeabi-v7a** APK
       (`app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk`, versionCode 1) — app
       behaves exactly as before (no inset regressions on API 30; safeDrawing resolves to ~0 in the
