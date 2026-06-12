@@ -203,20 +203,30 @@ fun DevThemeCyclerOverlay(
                 Modifier
                     .fillMaxWidth()
                     .height(20.dp)
-                    .pointerInput(boxSize) {
+                    .pointerInput(Unit) {
                         // Drag the panel via this dedicated strip. This is the ONLY motion in the widget —
                         // it moves only while a finger drags it (no looping/continuous animation; Adreno-320 motion LAW).
+                        //
+                        // WR-01 ([[dinghy-compose-write-scope-cancellation]] sibling — the pointerInput
+                        // stale-closure trap): deltas must accumulate onto the LIVE `offset` MutableState,
+                        // never the composition-scope `pos` val. `pointerInput` only re-captures its lambda
+                        // when the key changes, so a captured `pos` froze at its first-layout value — every
+                        // drag event computed oldCapturedPos + thisEvent'sDelta and the panel never followed
+                        // the finger. Reading `offset`/`boxSize` (both MutableState delegates) inside the
+                        // handler is live, which also lets the key drop to Unit.
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             down.consume()
                             drag(down.id) { change ->
                                 val delta = change.positionChange()
-                                offset = Offset(pos.x + delta.x, pos.y + delta.y).let { o ->
-                                    // keep it on screen (best-effort clamp to parent bounds)
-                                    val maxX = (boxSize.width - 1).coerceAtLeast(0).toFloat()
-                                    val maxY = (boxSize.height - 1).coerceAtLeast(0).toFloat()
-                                    Offset(o.x.coerceIn(0f, maxX), o.y.coerceIn(0f, maxY))
-                                }
+                                val cur = offset ?: Offset(startInsetPx, startInsetPx)
+                                // keep it on screen (best-effort clamp to parent bounds)
+                                val maxX = (boxSize.width - 1).coerceAtLeast(0).toFloat()
+                                val maxY = (boxSize.height - 1).coerceAtLeast(0).toFloat()
+                                offset = Offset(
+                                    (cur.x + delta.x).coerceIn(0f, maxX),
+                                    (cur.y + delta.y).coerceIn(0f, maxY),
+                                )
                                 change.consume()
                             }
                         }
