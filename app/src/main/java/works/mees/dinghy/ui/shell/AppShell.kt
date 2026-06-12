@@ -1,28 +1,23 @@
 package works.mees.dinghy.ui.shell
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -42,7 +37,6 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
 import works.mees.dinghy.calibration.BedMeshHolder
 import works.mees.dinghy.calibration.CalibrationHubHolder
@@ -101,6 +95,7 @@ import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
+import works.mees.dinghy.ui.screen.SystemPageScreen
 import works.mees.dinghy.ui.screen.ThemeScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
 import works.mees.dinghy.ui.temperature.TemperatureScreen
@@ -136,13 +131,13 @@ import android.graphics.Bitmap
  * (webcam/spool/console/macro) are preserved verbatim above the [NavHost].
  *
  * ## Overlays
- * All overlays (MacroPopup, ScanSurface, PromptDialog, DevThemeCycler, AppDrawer, bottom-edge bar, and the
- * printing-only [FloatingEStop] + Stop Confirm guard) float as Box siblings AFTER the [NavHost] so they
- * render above EVERY destination (FIX-1 — the e-stop is now app-level, reachable from any screen).
+ * All overlays (ScanSurface, PromptDialog, DevThemeCycler, and the printing-only [FloatingEStop] +
+ * Stop Confirm guard) float as Box siblings AFTER the [NavHost] so they render above EVERY destination
+ * (FIX-1 — the e-stop is now app-level, reachable from any screen).
  *
  * ## Settings is an IN-SHELL destination
- * Settings is reached via the drawer's "Settings" tile ([NavDest.Settings]) and rendered here like any
- * other destination. There is deliberately NO `onOpenSettings` callback on this shell.
+ * Settings is reached via the System page ([NavDest.System] → [NavDest.Settings]) and rendered here
+ * like any other destination. There is deliberately NO `onOpenSettings` callback on this shell.
  *
  * @param container the process-scoped service-locator (provides the live spine + theme + dispatcher).
  */
@@ -160,9 +155,6 @@ fun AppShell(
     // WaterfallHome). Read ONCE into the startDestination param — NOT via a LaunchedEffect (RESEARCH Pitfall 2).
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-
-    // Drawer state stays shell-local (it is meaningless while the shell is decomposed — not hoisted).
-    var drawerOpen by remember { mutableStateOf(false) }
 
     // ---- Keep-screen-on (§R2 step 1, 26.5-05) --------------------------------------------------------
     // Applied at the SHELL root via View.keepScreenOn — the Compose-idiomatic equivalent of
@@ -504,10 +496,6 @@ fun AppShell(
     //      register AFTER NavHost's internal handler during the destination's composition.
     //   3. The scan/prompt overlay handlers (composed after the whole NavHost — see the overlay blocks).
     //
-    // The drawer handler below is the one exception that may stay here: AppDrawer is hosted in a
-    // window-backed Dialog whose own window consumes Back via onDismissRequest, so this handler is a
-    // belt-and-braces fallback, never the live Back path.
-    BackHandler(enabled = drawerOpen) { drawerOpen = false }
     // The old generic "pop backStack" BackHandler is REMOVED — NavHost now owns drill-down Back.
     // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
     // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
@@ -518,66 +506,7 @@ fun AppShell(
     BoxWithConstraints(
         modifier
             .fillMaxSize()
-            .background(t.bg)
-            // Swipe UP from anywhere on the canvas reveals the drawer (the one nav affordance).
-            // EXCEPT on finger-scrollable picker/scrollback screens and overlay-heavy screens that
-            // own the whole canvas — those screens keep an explicit green Back in their gutter as
-            // the exit (D-05). Now keyed on [navBackStackEntry] instead of the old `dest` enum.
-            .pointerInput(navBackStackEntry, promptView.visible) {
-                // The swipe-suppress set — destinations where a full-canvas vertical-drag detector
-                // would fight list scroll, overlay taps, or keyboard content.
-                // Files, Console, Macros, CalibrationHub + 5 CalibrationXxx routines, Webcam, Spool,
-                // Outputs, SystemInfo, Devices, Theme, Settings, About — plus any visible Macro Prompt
-                // (floats over ANY screen). WR-06 (26-rev): Temperature and FineTune host scrollable
-                // ListBlock Fields, Extrude hosts BasicTextField IME entry — so they join the set.
-                // D-07 (Phase 27): ALL SIX CalibrationXxx routes are listed so a scrollable routine Field
-                // does not fight the swipe-up drawer on any calibration screen (Codex SHOW-STOPPER-2).
-                val d = navBackStackEntry?.destination
-                val suppressSwipe = promptView.visible || (d != null && (
-                    d.isRoute<NavDest.Files>() ||
-                    d.isRoute<NavDest.Console>() ||
-                    d.isRoute<NavDest.Macros>() ||
-                    d.isRoute<NavDest.CalibrationHub>() ||
-                    d.isRoute<NavDest.CalibrationProbe>() ||
-                    d.isRoute<NavDest.CalibrationBedMesh>() ||
-                    d.isRoute<NavDest.CalibrationScrewsTilt>() ||
-                    d.isRoute<NavDest.CalibrationZTilt>() ||
-                    d.isRoute<NavDest.CalibrationQgl>() ||
-                    d.isRoute<NavDest.Webcam>() ||
-                    d.isRoute<NavDest.Spool>() ||
-                    d.isRoute<NavDest.Outputs>() ||
-                    d.isRoute<NavDest.SystemInfo>() ||
-                    d.isRoute<NavDest.Devices>() ||
-                    d.isRoute<NavDest.Theme>() ||
-                    d.isRoute<NavDest.Settings>() ||
-                    d.isRoute<NavDest.About>() ||
-                    d.isRoute<NavDest.Temperature>() ||
-                    d.isRoute<NavDest.FineTune>() ||
-                    d.isRoute<NavDest.Extrude>()
-                ))
-                if (!suppressSwipe) {
-                    // R10 (26.5-03, §R10 step 3): accumulate dragAmount across the GESTURE against
-                    // the unchanged 80px threshold instead of requiring one single event to clear
-                    // it (the per-event check was proven brittle — Part 5 cause #3; it is why
-                    // FineTuneNavTest's swipeUp() could never open the drawer). The accumulator is
-                    // a pure host-tested class; the BuildConfig.DEBUG log is the step-1 pointer
-                    // instrumentation (tag SwipeDetector — zero release-path cost).
-                    val acc = SwipeUpAccumulator(SWIPE_UP_THRESHOLD_PX)
-                    detectVerticalDragGestures(
-                        onDragStart = { acc.onDragStart() },
-                        onVerticalDrag = { _, dragAmount ->
-                            val fired = acc.onDrag(dragAmount)
-                            if (BuildConfig.DEBUG) {
-                                Log.d(
-                                    "SwipeDetector",
-                                    "drag: amt=$dragAmount total=${acc.totalPx} fired=$fired",
-                                )
-                            }
-                            if (fired) drawerOpen = true
-                        },
-                    )
-                }
-            },
+            .background(t.bg),
     ) {
         // ---- NavHost (replaces the old when(dest) hub-and-spoke) -----------------------------------
         // FIX-7: start destination derived from the dev-gated nav.startDest seed (null in release →
@@ -594,9 +523,8 @@ fun AppShell(
                 PrintStatusScreen(
                     container = container,
                     // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real NavDest
-                    // via onNavigate; the always-present flexible Drawer tile opens the swipe-up drawer.
+                    // via onNavigate; the System foot button navigates to NavDest.System (D-04/28-05).
                     onNavigate = { navController.navigate(it) },
-                    onOpenDrawer = { drawerOpen = true },
                     // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
                     onScanSpool = { nav.scanActive = true },
                     // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
@@ -701,12 +629,11 @@ fun AppShell(
                 // GATED to require no overlay visible (D-09, Codex WARNING-6). After CR-01 (27-review)
                 // the scan/prompt overlay handlers are composed AFTER the whole NavHost and therefore
                 // out-prioritize this one whenever an overlay is visible — the overlay conditions here
-                // are belt-and-braces so this gate's enabled-ness MATCHES the actual dispatch priority
-                // (and the drawer is a window-backed Dialog that consumes Back at the window level).
-                // drawerOpen, nav.scanActive, and promptView.visible are captured from the outer AppShell.
+                // are belt-and-braces so this gate's enabled-ness MATCHES the actual dispatch priority.
+                // nav.scanActive and promptView.visible are captured from the outer AppShell.
                 BackHandler(
                     enabled = (vm.state == works.mees.dinghy.calibration.ProbePageState.Active || starting) &&
-                        !drawerOpen && !nav.scanActive && !promptView.visible
+                        !nav.scanActive && !promptView.visible
                 ) {
                     // Intentionally swallow — abandoning a live probe nozzle descent is unsafe.
                 }
@@ -824,6 +751,18 @@ fun AppShell(
                 // NavDest.About (15.2-04 D-05): app-global remainder + dev-enable toggle. Gutter Back pops.
                 AboutScreen(
                     container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.System> {
+                // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
+                // D-03 direct-tap dense rows (Printers/Settings/Theme/SystemInfo/About) + inert Power stub.
+                // Intentionally absent from screenOwnsEstop and FOOT_GUN_DESTS: the shell-level FloatingEStop
+                // fires on this cluster while printing (D-06); the else -> null path in shouldPopToRoot covers
+                // System correctly (non-foot-gun destination — pop-to-root never fires from here).
+                SystemPageScreen(
+                    container = container,
+                    onNavigate = { navController.navigate(it) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -958,29 +897,6 @@ fun AppShell(
             )
         }
 
-        // App Drawer (D-12 — kept LIVE as-is, the interim System hub + testing affordance).
-        // D-11: the "Power" tile stays inert/unwired.
-        if (drawerOpen) {
-            AppDrawer(
-                onDestination = { navController.navigate(it) },
-                onDismiss = { drawerOpen = false },
-                webcamEnabled = webcamEnabled,
-                spoolEnabled = spoolEnabled,
-                spoolSwatches = drawerSpoolSwatches,
-                activeName = activeName,
-                outputsEnabled = outputsEnabled,
-            )
-        }
-
-        // A thin bottom-edge affordance: a deliberate, discoverable swipe-up handle at the bottom.
-        Box(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(8.dp)
-                .background(t.hair),
-        )
-
         // FIX-1 (D-14): the printing-only FloatingEStop + Stop Confirm guard are now AppShell-level Box
         // siblings AFTER the NavHost so they appear on EVERY destination while printing — not just
         // WaterfallHome. The e-stop button is visible when print state is Printing or Paused. Tap raises
@@ -1021,9 +937,6 @@ fun AppShell(
         }
     }
 }
-
-/** Drag distance (px) past which an upward drag opens the drawer — a deliberate, non-accidental pull. */
-private const val SWIPE_UP_THRESHOLD_PX = 80f
 
 /**
  * Type-safe route check for navigation-compose 2.8.x.
