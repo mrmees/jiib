@@ -55,6 +55,20 @@ printer capability; print-control surfaces (they keep the ≥64px floor).
   same visual-reminder posture as the greyed calibration routines. Real power control is deferred
   to its own phase.
 
+### Owner glyph assignments (LOCKED 2026-06-12, post-research — icon law satisfied)
+- **D-21: Glyphs for the rehomed/new surfaces** (owner-picked from rendered candidates; all
+  verified resolvable in the bundled font v2.944 via `tools/verify_ligatures.py` logic):
+  - Fine-Tune home idle-list row → **`line_style`** (NEW — register as `LauncherFineTune`;
+    deliberately different from the drawer's `instant_mix`)
+  - Printers System-page row → **`android_wifi_3_bar_plus`** (NEW — replaces the drawer's
+    `cable`; matches the owner's icon-bucket note "printer connection menu item")
+  - Settings → `settings`, Theme → `palette`, About → `info` (carry over from drawer)
+  - System Info → `pulse_alert` (existing `DinghyIcons.SysInfoTile`), Power stub →
+    `power_settings_new`, Temperature → `thermostat` (`LauncherTemperature`), Console →
+    `terminal` (`LauncherConsole`)
+  - Any new tokens register in `DinghyIcons` (drift guard `DinghyIconsTest` must stay green).
+    NO other glyph choices are delegated — anything beyond this list is STOP-AND-ASK.
+
 ### Densification grammar (C6)
 - **D-09: Dense jiib ListRow variant** as a reusable kit component — same translucent-outline
   list language, leading icon, but compact sub-1U rows and tighter spacing. One visual family
