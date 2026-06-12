@@ -45,7 +45,9 @@ sourceset compiles at every commit ([[dinghy-wave0-red-scaffold-compile]]). Mapp
 - `PrintersModeToggleTest` (new pure state-machine test, written RED-first) → **28-06**
 - `maxItems` test purge across the theme/config sourceset (verified `ProfileStore.Json` has
   `ignoreUnknownKeys=true` first) → **28-04** (with the schema deletion; full-suite gate)
-- `AppDrawerOutputsGateTest` / `SwipeUpAccumulatorTest` deletion → **28-05** (same commit as source delete)
+- `AppDrawerOutputsGateTest` / `SwipeUpAccumulatorTest` (host) + `ShellPresenceTest` / `DrawerWebcamGatingTest` /
+  `FineTuneNavTest` (androidTest, all drawer/swipe-dependent) deletion → **28-05** (same commit as source delete)
+- `PrintStatusUiModelTest` `LauncherDest.Drawer` assertion removal → **28-05** (atomic with the enum variant deletion)
 - `DinghyIconsTest` / `verify_ligatures.py` drift guard stays green on new tokens → **28-01**
 - `@Preview` 6-combo + fsL matrices → each rebuild plan (28-02/06/07/08)
 
@@ -64,9 +66,9 @@ sourceset compiles at every commit ([[dinghy-wave0-red-scaffold-compile]]). Mapp
 | 28-03-T2 | 28-03 | 2 | — (SC-5 host) | T-28-03-01 | exact 11-row count + order asserted | unit | `gw.bat :app:testDebugUnitTest --tests *HomeActionTest` | HomeActionTest.kt | ⬜ pending |
 | 28-04-T1 | 28-04 | 1 | — (D-17) | T-28-04-01/02 | maxItems axis deleted; 4-slot default at Palette boundary; migration-safe | compile | `gw.bat :app:compileDebugKotlin` | ThemePrefs/ThemeResolver/Profile/AppContainer | ⬜ pending |
 | 28-04-T2 | 28-04 | 1 | — (D-17) | — | whole test sourceset compiles + passes after deletion | unit | `gw.bat :app:testDebugUnitTest` (full) | theme/config test files | ⬜ pending |
-| 28-05-T1 | 28-05 | 3 | — (D-04) | T-28-05-01 | drawer source+tests deleted atomically; OpenDrawer removed | shell | `test ! -f AppDrawer.kt && ...` | (deletions) | ⬜ pending |
+| 28-05-T1 | 28-05 | 3 | — (D-04) | T-28-05-01 | 7 drawer/swipe files (4 core + 3 androidTest) deleted atomically; OpenDrawer + LauncherDest.Drawer (+ test assertions) removed; androidTest has zero drawer/swipe hits | shell | `test ! -f AppDrawer.kt && ... && grep -rilE 'drawer\|swipeup' app/src/androidTest/` | (deletions) | ⬜ pending |
 | 28-05-T2 | 28-05 | 3 | — (D-04/D-06) | T-28-05-02 | AppShell drawer-free; System wired; e-stop applies mid-print | compile | `gw.bat :app:compileDebugKotlin` | AppShell.kt | ⬜ pending |
-| 28-05-T3 | 28-05 | 3 | — (D-06) | T-28-05-02 | System reachable from idle foot + standby tile + printing grid | unit | `gw.bat :app:testDebugUnitTest` (full) | PrintStatusField.kt | ⬜ pending |
+| 28-05-T3 | 28-05 | 3 | — (D-01/D-06) | T-28-05-02 | System reachable from idle foot + standby tile + printing grid; onOpenDrawer retired at ALL callsites (`grep -r onOpenDrawer app/src/` = 0) | unit | `gw.bat :app:testDebugUnitTest` (full) | PrintStatusField.kt / PrintStatusScreen.kt | ⬜ pending |
 | 28-06-T1 | 28-06 | 4 | — (D-13) | T-28-06-03 | mode-toggle state machine (arm/disarm/confirm) pure-tested | unit | `gw.bat :app:testDebugUnitTest --tests *PrintersModeToggleTest` | PrintersModeToggleTest.kt | ⬜ pending |
 | 28-06-T2 | 28-06 | 4 | — (D-13/D-15) | T-28-06-01/02 | writeScope-only; ConfirmGuard delete; masked key; dense | compile | `gw.bat :app:compileDebugKotlin` | PrintersScreen.kt | ⬜ pending |
 | 28-06-T3 | 28-06 | 4 | — (SC-1 preview) | — | Normal/Edit/Delete/Empty preview matrix compiles | compile | `gw.bat :app:assembleDebug` | PrintersPreviews.kt | ⬜ pending |
@@ -89,7 +91,8 @@ sourceset compiles at every commit ([[dinghy-wave0-red-scaffold-compile]]). Mapp
 - [x] `HomeActionTest` count/order assertions updated alongside D-05 (8 → 11 idle rows) — research Pitfall 2 → **28-03**
 - [x] Grep `maxItems` across the ENTIRE test sourceset before D-17 deletion lands (ThemePrefsFallbackTest / PaletteGoldenTest golden paths) — research Pitfall 1; whole-sourceset compile gate ([[dinghy-wave0-red-scaffold-compile]]) → **28-04**
 - [x] Ligature drift guard (`DinghyIconsTest` / `verify_ligatures.py`) must stay green if any new icon tokens register (LauncherFineTune, System-page row tokens) → **28-01**
-- [x] Drawer test deletion (`AppDrawer`/`SwipeUpAccumulator` test files) lands in the same commit as the source deletion so the sourceset never breaks → **28-05**
+- [x] Drawer test deletion (`AppDrawer`/`SwipeUpAccumulator` host tests + `ShellPresenceTest`/`DrawerWebcamGatingTest`/`FineTuneNavTest` androidTests) lands in the same commit as the source deletion so BOTH the host AND androidTest sourcesets compile post-deletion (no surviving drawer/swipe assertion) → **28-05**
+- [x] `LauncherDest.Drawer` enum variant + its `PrintStatusUiModelTest` assertions removed atomically; `onOpenDrawer` retired at all PrintStatusScreen/Field callsites (`grep -r onOpenDrawer app/src/` = 0) — Codex SS-1/SS-2/WR-1 → **28-05**
 - [x] Verify `ProfileStore.Json` carries `ignoreUnknownKeys = true` BEFORE the maxItems persistence-axis deletion (stored-profile migration safety) — CONFIRMED present at `ProfileStore.kt:128`; re-checked in **28-04** Task 1
 
 *Existing infrastructure covers host-test needs; no framework install required.*
