@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
 import works.mees.dinghy.command.ApplyPresetArgs
 import works.mees.dinghy.command.CommandDispatcher
@@ -50,6 +52,7 @@ import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.SetHeaterArgs
+import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
@@ -160,12 +163,50 @@ fun TemperatureScreen(
     )
     var failureText by remember { mutableStateOf<String?>(null) }
 
+    // quick-rmr: lifecycle-aware in-flight collection — DISPLAY ONLY (the heater AdjusterPanel
+    // busy dim). This does NOT reintroduce the 26.5-03-removed dedup pre-check; the dispatcher
+    // still owns dedup exclusively.
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+
+    // quick-rmr: trailing-commit batcher keyed by SENSOR NAME — heater stepper taps accumulate a
+    // clamped working target locally; ONE setHeater dispatch per ~500ms quiet window.
+    val batcher = remember(dispatcher) {
+        TrailingCommitBatcher(
+            canCommit = { name ->
+                // Fire-time read (never a composition snapshot): reschedule while this heater's
+                // dispatch key is in flight instead of dispatching into a guaranteed rejection.
+                heaterDispatchKey(name) !in (dispatcher?.inFlight?.value ?: emptySet())
+            },
+            onCommit = { name, value ->
+                // Dispatcher resolved at fire time (19-09 lesson); clamp re-applied at commit.
+                dispatcher?.dispatch(
+                    CommandRegistry.setHeater,
+                    SetHeaterArgs(
+                        name,
+                        PrinterCommands.clampHeaterTarget(value.roundToInt()),
+                        heaterDispatchKey(name),
+                    ),
+                )
+            },
+        )
+    }
+    // Commit-on-dispose: a nav-out mid-burst flushes the pending target (the dispatch rides
+    // CommandDispatcher's app-lifetime scope); also covers the remember(dispatcher) re-key.
+    DisposableEffect(batcher) { onDispose { batcher.dispose() } }
+    val workingTargets by batcher.working.collectAsStateWithLifecycle()
+
     LaunchedEffect(dispatcher) {
         failureText = null
         val d = dispatcher ?: return@LaunchedEffect
         d.events.collect { event ->
             when (event) {
-                is DispatchEvent.Failure -> failureText = event.message
+                is DispatchEvent.Failure -> {
+                    failureText = event.message
+                    // Revert working targets to live on failure (the toast explains why).
+                    batcher.cancelAll()
+                }
             }
         }
     }
@@ -202,6 +243,8 @@ fun TemperatureScreen(
             isPrinting = isPrinting,
             failureText = failureText,
             rejectTicks = rejectTicks,
+            workingTargets = workingTargets,
+            inFlight = inFlight,
             seedHex = themeTuple.seedHex,
             dark = themeTuple.dark,
             onBack = onBack,
@@ -214,16 +257,19 @@ fun TemperatureScreen(
                 container.setTraceVisibility(sensorName, visible)
             },
             onNudgeHeater = { sensorName, rawTarget ->
-                val clamped = PrinterCommands.clampHeaterTarget(rawTarget)
-                // WR-01 (26-rev) dedup, R10 (26.5-03) revision: the dispatcher's own in-flight busy
-                // guard performs this exact same-key drop ATOMICALLY (_inFlight.value, not the
-                // composition-collected snapshot) AND now emits rejectedKey so the stepper flashes.
-                // The old local `!in inFlight` pre-check duplicated that drop with a stale snapshot
-                // and swallowed the tap BEFORE the dispatcher could emit feedback — removed so busy
-                // re-taps produce the visible rejection flash instead of nothing (Part 5 cause #2).
+                // quick-rmr TAP handler: clamp per-tap (the display can never exceed bounds) and
+                // accumulate locally — NO dispatch on tap. One setHeater command fires per quiet
+                // window via the batcher's onCommit (rejections become structurally rare; the
+                // rejectedKey flash stays wired as the fallback signal).
+                batcher.tap(sensorName, PrinterCommands.clampHeaterTarget(rawTarget).toDouble())
+            },
+            onHeaterOff = { sensorName ->
+                // Off is a single deliberate tap (design decision 3): cancel any pending working
+                // target for this heater, then dispatch target=0 immediately.
+                batcher.cancel(sensorName)
                 dispatcher?.dispatch(
                     CommandRegistry.setHeater,
-                    SetHeaterArgs(sensorName, clamped, heaterDispatchKey(sensorName)),
+                    SetHeaterArgs(sensorName, 0, heaterDispatchKey(sensorName)),
                 )
             },
             onApplyPreset = { preset ->
@@ -272,6 +318,7 @@ fun TemperatureScreen(
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
     onNudgeHeater: (String, Int) -> Unit = { _, _ -> },
+    onHeaterOff: (String) -> Unit = {},
     onApplyPreset: (PrinterCommands.Preset) -> Unit = {},
     onCooldown: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -292,6 +339,7 @@ fun TemperatureScreen(
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
             onNudgeHeater = onNudgeHeater,
+            onHeaterOff = onHeaterOff,
             onApplyPreset = onApplyPreset,
             onCooldown = onCooldown,
         )
@@ -315,10 +363,16 @@ private fun TemperatureContent(
     seedHex: String,
     dark: Boolean,
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
+    // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
+    // live target for display; the stateless/preview seam defaults to empty.
+    workingTargets: ImmutableMap<String, Double> = persistentMapOf(),
+    // quick-rmr: dispatcher in-flight keys, DISPLAY ONLY (heater AdjusterPanel busy dim).
+    inFlight: Set<String> = emptySet(),
     onBack: () -> Unit,
     onSetTraceColor: (String, Color) -> Unit,
     onSetTraceVisibility: (String, Boolean) -> Unit,
     onNudgeHeater: (String, Int) -> Unit,
+    onHeaterOff: (String) -> Unit = {},
     onApplyPreset: (PrinterCommands.Preset) -> Unit,
     onCooldown: () -> Unit,
     onEmergencyStop: () -> Unit = {},
@@ -409,7 +463,10 @@ private fun TemperatureContent(
                                 traceVisible = traceVisibility[sensor.name] ?: true,
                                 colorfulSwatches = colorfulSwatches,
                                 activeStep = activeStep,
-                                currentTarget = sensor.target,
+                                // quick-rmr: the pending working target wins over the live target
+                                // (the CR-02 live-temp seed inside TemperatureAdjusterFocus then
+                                // composes naturally on top — working wins when present).
+                                currentTarget = workingTargets[sensor.name] ?: sensor.target,
                                 onColorSelect = { color -> onSetTraceColor(sensor.name, color) },
                                 onVisibilityToggle = {
                                     onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
@@ -422,9 +479,12 @@ private fun TemperatureContent(
                                     val rawTarget = (current + activeStep).roundToInt()
                                     onNudgeHeater(sensor.name, rawTarget)
                                 },
-                                onOff = { onNudgeHeater(sensor.name, 0) },
+                                onOff = { onHeaterOff(sensor.name) },
                                 onDone = { selectedName = null },
                                 onStepSelect = { activeStep = it },
+                                // quick-rmr: dim-but-tappable while THIS heater's commit is in
+                                // flight (taps keep accumulating — never a lockout).
+                                busy = heaterDispatchKey(sensor.name) in inFlight,
                                 // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
                                 rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
                                 uDp = grid.uDp,
@@ -627,6 +687,7 @@ private fun TemperatureAdjusterFocus(
     onStepSelect: (Double) -> Unit,
     uDp: androidx.compose.ui.unit.Dp,
     rejectTick: Long = 0L,
+    busy: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -711,6 +772,7 @@ private fun TemperatureAdjusterFocus(
                 },
                 onReset = null, // No baseline / Reset for temperature (target can be 0 via Off)
                 enabled = true,
+                busy = busy,
                 incrementPicker = {
                     IncrementPicker(
                         steps = TEMP_STEPS,
