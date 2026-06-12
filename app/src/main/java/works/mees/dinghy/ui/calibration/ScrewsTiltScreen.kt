@@ -173,6 +173,15 @@ fun ScrewsTiltContent(
                     FootButtonBar(
                         uDp = grid.uDp,
                     ) {
+                        // Back FIRST (accent — R5/R8), before the state-adaptive primary.
+                        OutlinedControl(
+                            label = "",
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
                         when {
                             !vm.homedGate -> {
                                 // Unhomed: offer Home All instead of Run.
@@ -180,7 +189,7 @@ fun ScrewsTiltContent(
                                     label = stringResource(R.string.calibration_home_all),
                                     onClick = onHome,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go, // R19: this state's expected action
                                 )
                             }
                             running -> {
@@ -199,7 +208,7 @@ fun ScrewsTiltContent(
                                     label = stringResource(R.string.calibration_run_again),
                                     onClick = onRun,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
+                                    intent = Intent.Go, // R5: expected re-run action
                                 )
                             }
                             else -> {
@@ -208,18 +217,10 @@ fun ScrewsTiltContent(
                                     label = stringResource(R.string.calibration_run),
                                     onClick = onRun,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go, // R5: the screen's expected action
                                 )
                             }
                         }
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
                     }
                 },
                 gutter = null,
@@ -260,7 +261,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
                 text = turnText,
                 fontFamily = GeistMono,
                 fontWeight = FontWeight.Medium,
-                fontSize = fsSp(14f, t.fs).sp,
+                fontSize = fsSp(15f, t.fs).sp, // R11 floor
                 color = t.text2,
                 maxLines = 1,
                 modifier = Modifier.padding(start = 8.dp),

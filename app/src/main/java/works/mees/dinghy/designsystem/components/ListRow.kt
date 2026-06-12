@@ -159,11 +159,15 @@ fun ListRow(
  * (mono = live/tabular data, THEMING §type) — they are values, not labels.
  */
 @Composable
-fun ListRowLabel(text: String, modifier: Modifier = Modifier) {
+fun ListRowLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color? = null,
+) {
     val t = LocalTokens.current
     Text(
         text = text,
-        color = t.text,
+        color = color ?: t.text,
         fontFamily = Geist,
         fontWeight = FontWeight.SemiBold,
         fontSize = fsSp(20f, t.fs).sp,

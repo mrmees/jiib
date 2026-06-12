@@ -91,6 +91,9 @@
   StatusStop/Warning, tinted on the swatch) — no carve-out.
 - **Pilot-first execution:** owner wants 1–2 pilot screens fully polished and reviewed on-device
   BEFORE the wide pass.
+- **R25 (post-pilot, owner): pilot APPROVED → wide pass GO, but Move and Extrude are OMITTED
+  ENTIRELY** — both get their own rework later (they were REBUILD-flagged anyway). Wide-pass
+  scope = the list/button system + intents + type + icons + strings on the remaining screens.
 
 ## 4. Focus-treatment inventory (input to the future Focus-standardization pass)
 

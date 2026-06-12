@@ -302,35 +302,37 @@ fun ProbeCalibrateContent(
                                     enabled = false,
                                 )
                             } else if (!vm.homedGate) {
-                                // Home All pre-flight — printer must be homed before PROBE_CALIBRATE.
+                                // Back FIRST (accent — R5/R8); Home All = go (this state's
+                                // expected action, R19 motion-as-purpose).
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                )
                                 OutlinedControl(
                                     label = stringResource(R.string.calibration_home_all),
                                     onClick = onHomeAll,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
+                                    intent = Intent.Go,
                                 )
+                            } else {
+                                // Back FIRST (accent); Start = go (the screen's expected action).
                                 OutlinedControl(
                                     label = "",
                                     onClick = onBack,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
+                                    intent = Intent.Accent,
                                     icon = DinghyIcons.Back,
                                     contentDescription = stringResource(R.string.common_back),
                                 )
-                            } else {
                                 OutlinedControl(
                                     label = stringResource(R.string.calibration_start),
                                     onClick = onStart,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                )
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.common_back),
+                                    intent = Intent.Go,
                                 )
                             }
                             ProbePageState.Active -> {
@@ -349,19 +351,21 @@ fun ProbeCalibrateContent(
                                 )
                             }
                             ProbePageState.Accepted -> {
+                                // Back FIRST (accent); SAVE_CONFIG stays warn (restarts Klipper —
+                                // hazard-in-process, R5).
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                )
                                 OutlinedControl(
                                     label = stringResource(R.string.calibration_save_config),
                                     onClick = onSaveGuardShow,
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Warn,
-                                )
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.common_back),
                                 )
                             }
                         }
@@ -386,7 +390,7 @@ fun ProbeCalibrateContent(
             val shownError = toastError
             if (shownError != null) {
                 Box(
-                    Modifier.fillMaxSize().padding(16.dp),
+                    Modifier.fillMaxSize().padding(12.dp), // gapM (R13)
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     SeverityToast(
@@ -432,7 +436,7 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
     ) {
         Row(
             Modifier.fillMaxWidth(0.82f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp), // gapM (R13)
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DinghyIconView(

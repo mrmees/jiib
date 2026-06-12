@@ -31,6 +31,7 @@ import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -151,11 +152,10 @@ fun CalibrationHubContent(
                                     )
                                 },
                             ) {
-                                Text(
+                                // Canonical list label (R22); D-06 dim survives via the color override.
+                                ListRowLabel(
                                     text = stringResource(routineTitleRes(entry.routine)),
                                     color = if (entry.isSupported) t.text else t.text3,
-                                    fontFamily = Geist,
-                                    fontSize = fsSp(16f, t.fs).sp,
                                 )
                             }
                         }
@@ -167,7 +167,7 @@ fun CalibrationHubContent(
                             label = "",
                             onClick = onBack,
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
+                            intent = Intent.Accent, // R5: Back = accent
                             icon = DinghyIcons.Back,
                             contentDescription = stringResource(R.string.common_back),
                         )
@@ -219,7 +219,7 @@ private fun HubRoutineFocus(
             label = stringResource(R.string.calibration_open_routine),
             onClick = onOpen,
             modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Accent,
+            intent = Intent.Go, // R5: Open = the expected action
         )
     }
 }
