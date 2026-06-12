@@ -380,7 +380,7 @@ and a text-tracked icon in a fixed 1U cell overflows at fs=L (the 24-05 Floating
 | Tier | What | Idiom | Size |
 |---|---|---|---|
 | **Inline / text-companion** | icon beside a label; status glyphs (`StatusStop`/triangle) riding a value | text | `fsSp(labelBase + 2).dp` |
-| **Dense list leading** | `ListRow` leading glyphs in dense lists | text | `fsSp(22).dp` (R16 — amends UAT-1's frozen 22dp; tracks the row label) |
+| **List-row leading** | `ListRow` leading glyphs — use **`ListRowIcon`** | **U** | **0.6U** (R23, 2026-06-12 — supersedes R16's text-tracked fsSp(22); rows are FIXED 1U so a U-fraction is stable; icon does NOT grow with S/M/L, vertically centered by ListRow) |
 | **Control** | foot-bar buttons, ≤1U labeled tiles | U | ~0.5U |
 | **Prominent / hero** | Focus anchors, icon-only tiles, adjuster headers | U | 0.7–0.8U (UAT-1); `coerceAtLeast(64.dp)` when the icon IS the touch target (FloatingEStop precedent) |
 

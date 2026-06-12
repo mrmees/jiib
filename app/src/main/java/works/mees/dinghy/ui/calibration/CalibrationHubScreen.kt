@@ -30,6 +30,7 @@ import works.mees.dinghy.designsystem.components.DetailCard
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -142,12 +143,11 @@ fun CalibrationHubContent(
                                 onClick = { onSelect(entry.routine) },
                                 uDp = grid.uDp,
                                 leadingContent = {
-                                    // DinghyIconView — NOT raw MaterialSymbol (D-16 icon law).
-                                    DinghyIconView(
+                                    // R23: canonical 0.6U list-row icon (registry-routed, D-16).
+                                    ListRowIcon(
                                         icon = routineIconToken(entry.routine),
-                                        contentDescription = null, // row label describes the row
+                                        uDp = grid.uDp,
                                         tint = if (entry.isSupported) t.accent2 else t.text3,
-                                        sizeDp = grid.uDp * 0.5f,
                                     )
                                 },
                             ) {

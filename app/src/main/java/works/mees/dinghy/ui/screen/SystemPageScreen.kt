@@ -27,6 +27,7 @@ import works.mees.dinghy.R
 import androidx.compose.foundation.layout.heightIn
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -134,11 +135,11 @@ fun SystemPageContent(
                                 onClick = { onNavigate(row.dest) },
                                 uDp = grid.uDp,
                                 leadingContent = {
-                                    DinghyIconView(
+                                    // R23: canonical 0.6U list-row icon.
+                                    ListRowIcon(
                                         icon = row.icon,
-                                        contentDescription = null,  // row label describes the row
+                                        uDp = grid.uDp,
                                         tint = t.text,
-                                        sizeDp = 22.dp,
                                     )
                                 },
                             ) {

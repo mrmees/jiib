@@ -36,6 +36,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -101,11 +102,11 @@ internal fun PrintStatusStandbyField(
                         leadingContent = {
                             // Leading icon — always a registered DinghyIcons token (icon law enforced
                             // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
-                            // Gap after the icon is OWNED by ListRow (12dp standard anatomy).
-                            DinghyIconView(
+                            // R23: canonical 0.6U list-row icon, U-relative.
+                            ListRowIcon(
                                 icon = action.icon,
+                                uDp = grid.uDp,
                                 tint = LocalTokens.current.text2,
-                                sizeDp = fsSp(22f, LocalTokens.current.fs).dp,
                             )
                         },
                     ) {

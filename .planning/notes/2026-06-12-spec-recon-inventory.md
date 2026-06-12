@@ -196,6 +196,11 @@ ratify) · **[V]** verify in code during audit.
 - **R22 (from pilot feedback) — ListRow OWNS its anatomy:** built-in 12dp leading gap +
   content `weight(1f)` (trailing always end-aligned, UAT-2 by construction) + canonical
   `ListRowLabel` (Geist SemiBold, 20sp) as THE list-label style. Recorded in COMPONENTS.md.
+- **R23 — List-row leading icons = 0.6U, U-RELATIVE (supersedes R16's text-tracked fsSp(22)).**
+  Owner: text is readable, icons were barely distinguishable; U-fraction is easier to reason
+  about since rows are fixed 1U. Icons do NOT grow with S/M/L; vertical center alignment holds.
+  Implemented as `ListRowIcon` (primitive-owned); `ListRowLabel` pinned to maxLines=1 + ellipsis
+  to keep rows fixed-height (the R23 precondition).
 
 ## D. Verify during audit [V]
 - Tune-tile flexible behavior (Q5); Back intent/position on every rebuilt screen (Q6);

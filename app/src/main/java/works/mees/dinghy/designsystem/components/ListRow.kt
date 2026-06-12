@@ -19,9 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -164,6 +167,36 @@ fun ListRowLabel(text: String, modifier: Modifier = Modifier) {
         fontFamily = Geist,
         fontWeight = FontWeight.SemiBold,
         fontSize = fsSp(20f, t.fs).sp,
+        // Rows are FIXED at 1U (R23 precondition: multiline must not grow them) — one line,
+        // ellipsized. A genuinely-overflowing line may marquee per the panel-text law instead.
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier,
+    )
+}
+
+/**
+ * The canonical [ListRow] leading icon — **0.6U, U-relative, does NOT grow with the S/M/L text
+ * setting** (owner ruling R23, 2026-06-12; revises R16's text-tracked fsSp(22)). Rows are fixed
+ * 1U, so a U-fraction is visually stable on every device; vertical centering comes from
+ * [ListRow]'s row alignment.
+ *
+ * @param icon the registered [DinghyIcon] (icon law: registry-only).
+ * @param uDp  one unit U from the screen's unit grid (same value passed to [ListRow]).
+ * @param tint icon tint (token-routed at the call site).
+ * @param contentDescription a11y label, or null when the row label already speaks.
+ */
+@Composable
+fun ListRowIcon(
+    icon: DinghyIcon,
+    uDp: Dp,
+    tint: androidx.compose.ui.graphics.Color,
+    contentDescription: String? = null,
+) {
+    DinghyIconView(
+        icon = icon,
+        tint = tint,
+        sizeDp = uDp * 0.6f,
+        contentDescription = contentDescription,
     )
 }

@@ -311,12 +311,12 @@ U-relative idiom, e.g. `(uDp * 0.75f).coerceIn(minDp, maxDp)`, never a hardcoded
 "Prominent" means: Focus-area heroes, adjuster-panel headers, big command-tile glyphs — anything the
 eye goes to first.
 
-**EXPLICIT EXCEPTION — dense list-pane icons (AMENDED by R16, 2026-06-12):** Icons inside a
-detailed/dense list row (`ListRow` leading glyphs in Fine-Tune param list, Temperature sensor
-list, Files list) are **not** the prominent case. They size at **`fsSp(22).dp`** — tracking the
-row label so icon and text scale together under S/M/L (amends the original "frozen ~22dp"; with
-the R11 20sp label default, a frozen icon reads undersized at fs=L). They must NOT be grown to
-the prominent 70-80%-of-U tier.
+**EXPLICIT EXCEPTION — list-row leading icons (RE-AMENDED by R23, 2026-06-12; supersedes R16):**
+Icons inside a `ListRow` (Fine-Tune param list, Temperature sensor list, Files list, home list)
+size at **0.6U — U-relative via `ListRowIcon`**, NOT text-tracked and NOT the prominent
+70-80%-of-U tier. Rationale: rows are FIXED at 1U (labels are single-line ellipsized), so a
+U-fraction is visually stable on every device and easy to reason about; the icon does not grow
+with the S/M/L setting (only text does). Vertical centering is owned by ListRow's row alignment.
 
 Existing precedent: `FloatingEStop` sizes its glyph at `(uDp * 0.7f).coerceAtLeast(64.dp)` — the
 same U-relative idiom. Reuse it.

@@ -44,6 +44,7 @@ import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -382,13 +383,9 @@ private fun FineTuneContent(
                             },
                             uDp = grid.uDp,
                             leadingContent = {
-                                // UAT-1 exception + R16: dense list-pane icon stays small but
-                                // TRACKS the row label (fsSp(22)), not frozen dp.
-                                DinghyIconView(
-                                    icon = param.icon,
-                                    tint = groupColor,
-                                    sizeDp = fsSp(22f, t.fs).dp,
-                                )
+                                // R23: canonical list-row icon — 0.6U, U-relative (does not
+                                // grow with the text setting).
+                                ListRowIcon(icon = param.icon, uDp = grid.uDp, tint = groupColor)
                             },
                             trailingContent = {
                                 // Trailing: current-value readout in GeistMono (D-23 fsSp floor).

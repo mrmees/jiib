@@ -24,6 +24,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.DetailCard
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -192,12 +193,12 @@ private fun OutputsContent(
                             onClick = { onSelect(row.descriptor.objectKey) },
                             uDp = grid.uDp,
                             leadingContent = {
-                                DinghyIconView(
+                                // R23: canonical 0.6U list-row icon.
+                                ListRowIcon(
                                     icon = glyphFor(row.descriptor.family),
+                                    uDp = grid.uDp,
                                     tint = t.accent2,
-                                    sizeDp = fsSp(22f, t.fs).dp,
                                     contentDescription = stringResource(R.string.cd_output_glyph),
-                                    modifier = Modifier.size(fsSp(22f, t.fs).dp),
                                 )
                             },
                             trailingContent = if (row.displayValue != null) {
