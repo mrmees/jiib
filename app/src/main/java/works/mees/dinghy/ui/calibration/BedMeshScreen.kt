@@ -140,14 +140,19 @@ fun BedMeshScreen(
         },
         onShowRemoveGuard = { showRemoveGuard = true },
         onRemoveConfirm = {
-            selectedProfile?.let { name ->
-                dispatcher?.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(name))
+            val d = dispatcher
+            val name = selectedProfile
+            if (d != null && name != null) {
+                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(name))
+                // WR-02 (27-review): BED_MESH_PROFILE REMOVE only mutates Klipper's RUNTIME state —
+                // without SAVE_CONFIG the profile resurrects on the next firmware restart. Surface
+                // the amber restart guard after the remove dispatch, mirroring the save path.
+                showSaveConfigGuard = true
             }
             selectedProfile = null
             showRemoveGuard = false
         },
         onRemoveCancel = { showRemoveGuard = false },
-        onShowSaveConfigGuard = { showSaveConfigGuard = true },
         onSaveConfigConfirm = {
             dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
             showSaveConfigGuard = false
@@ -227,7 +232,6 @@ internal fun BedMeshContent(
     onShowRemoveGuard: () -> Unit,
     onRemoveConfirm: () -> Unit,
     onRemoveCancel: () -> Unit,
-    onShowSaveConfigGuard: () -> Unit,
     onSaveConfigConfirm: () -> Unit,
     onSaveConfigCancel: () -> Unit,
     onHomeAll: () -> Unit,

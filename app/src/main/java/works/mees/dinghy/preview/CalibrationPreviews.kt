@@ -509,7 +509,6 @@ private fun bedMeshPreview(
         onShowRemoveGuard = {},
         onRemoveConfirm = {},
         onRemoveCancel = {},
-        onShowSaveConfigGuard = {},
         onSaveConfigConfirm = {},
         onSaveConfigCancel = {},
         onHomeAll = {},
