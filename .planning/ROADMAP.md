@@ -86,7 +86,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 26: Adjustment Screens** (jiib REDESIGN) - Migrate the numeric-adjustment screens onto the stepper + scrubber + baseline-readout adjuster — Temperature, Extrude/Extrusion, Outputs, Fine-Tune + FW-retraction, single-setting pages (Scrubber/Numpad/MeasuredWeight). Conformance folds in. (completed 2026-06-10)
 - [x] **Phase 26.5: Overnight Hardening Slate (audit R-packages)** (INSERTED 2026-06-11, overnight run) - The overnight-safe subset of `docs/top-down-audit-roadmap.md`: R5a guardrail infra (minus LICENSE) · R9 docs delint 1–3+5 · R10 touch responsiveness 2–4 · R1 install/display code-only (arm64 ABI, insets, predictive back, POST_NOTIFICATIONS) · R2 always-on code-only · R4 command map · R7 network posture. Device acceptance → morning UAT checklist. (completed 2026-06-11)
 - [x] **Phase 27: Motion + Calibration** (jiib REDESIGN) - Migrate Move/Motion (spatial jog STAYS A GRID) + the calibration cluster (Hub, Probe-Calibrate, Bed-Mesh, Screws-Tilt, Tilt wizard flows). Conformance folds in. (completed 2026-06-12)
-- [ ] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in.
+- [x] **Phase 28: System / Settings Cluster** (jiib REDESIGN) - Restyle the System-page contents — Settings, Theme/Theme-Editor, Printers, System-Information, About — C6-EXEMPT (denser close-interaction, keyboard allowed). Conformance (relevant parts) folds in. (completed 2026-06-12)
 - [ ] **Phase 29: Release Hardening & Ship — Always-On, Lifecycle & Signed APK** (RENUMBERED from 25, 2026-06-09; LAST) - The deferred print-loop robustness (reconnect resync + process-death recovery) PLUS full Doze/always-on survival, burn-in screensaver, the "looks done but isn't" checklist against the complete redesigned app, R8 release build, PKG-01/03, signed sideloadable APK via GitHub Releases on a real Nexus 7, + jiib repo cutover — ships v1.
 
 ## Phase Details
@@ -1350,7 +1350,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 28-09-PLAN.md — On-device UAT gate on flox (SC-1/SC-5): verified-fresh release build + owner walk + 28-UAT.md (wave 5)
+- [x] 28-09-PLAN.md — On-device UAT gate on flox (SC-1/SC-5): verified-fresh release build + owner walk + 28-UAT.md (wave 5)
 
 **Cross-cutting constraints:**
 

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-12T18:32:22.647Z"
+status: verifying
+last_updated: "2026-06-12T19:27:07.015Z"
 last_activity: 2026-06-12
 progress:
   total_phases: 36
-  completed_phases: 32
+  completed_phases: 33
   total_plans: 224
-  completed_plans: 222
-  percent: 89
+  completed_plans: 223
+  percent: 92
 ---
 
 **Last verified:** 2026-06-11
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 
 # Project State
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-03)
 
 Phase: 28 (system-settings-cluster) — EXECUTING
 Plan: 9 of 9
-Status: Ready to execute
+Status: Phase complete — ready for verification
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
   → **Plan 24-04 (Morphing Waterfall Root: idle action list + foot bar + Crossfade morph + FIX-1/FIX-5) EXECUTED + COMPLETE 2026-06-10.** PrintStatusStandbyField rebuilt on ListBlock/ListRow + FootButtonBar; buildIdleActions wired with outputsPresent+webcamTileEnabled capability gates; FIX-5 resolved (LauncherWebcam icon + cd_launcher_webcam string swapped for Wave-0 placeholder); FIX-1 confirmed (showEstopGuard + in-screen ConfirmGuard removed; AppShell overlay owns FloatingEStop on every destination); Crossfade(tween(150), "PrintStatusMorph") wraps the when(mode) dispatch (D-13); gutter=null for Standby (SC-3). Commit: `ec0caf7`. SUMMARY `24-04-SUMMARY.md`. SC-1/SC-3/SC-4 closed.
@@ -297,6 +297,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | Phase 28 P02 | 18m | 3 tasks | 6 files |
 | Phase 28-system-settings-cluster P03 | 3 | 2 tasks | 2 files |
 | Phase 28 P06 | 75 | 3 tasks | 5 files |
+| Phase 28-system-settings-cluster P09 | 55 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -535,6 +536,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Printers screen is the Devices dest (28-02)
 - [Phase ?]: Temperature/Console/FineTune rehomed from drawer to buildIdleActions idle list (D-05); always-present unconditional rows
 - [Phase ?]: HomeAction.OpenDrawer left intact in 28-03; atomic removal owned by 28-05
+- [Phase ?]: GAP-A: All Phase-28 rows honor 1U height floor unconditionally — ListRow.dense param deleted; owner ruling 2026-06-12
+- [Phase ?]: D-11 softened: Settings scrolls past one page at M/portrait after 1U fix; owner All-1U ruling supersedes the one-page goal — accepted consequence
 
 ### Pending Todos
 
@@ -575,6 +578,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-12T18:32:22.518Z
-Stopped at: Completed 28-04-PLAN.md
+Last session: 2026-06-12T19:27:06.883Z
+Stopped at: Completed 28-09-PLAN.md
 Resume file: None
