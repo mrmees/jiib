@@ -488,42 +488,32 @@ fun AppShell(
     // screen only when printing". The guard is reachable from Move/Extrude/Console/etc. while printing.
     var showEstopGuard by remember { mutableStateOf(false) }
 
-    // ---- BackHandler priority (FIX-2) --------------------------------------------------------------
-    // Compose BackHandler priority: most-recently-COMPOSED ENABLED handler wins. NavHost registers its
-    // own internal back handler when composed. By placing AppShell-level overlay handlers BEFORE the
-    // NavHost call, they have LOWER priority than handlers inside composable<> lambdas. The overlay
-    // handlers placed AFTER the NavHost (or more accurately, alongside it in the Box) outprioritize
-    // the NavHost because Compose processes BackHandlers in reverse composition order (later = higher).
-    // The strategy: overlay BackHandlers are placed so a VISIBLE overlay consumes Back BEFORE NavHost pops.
+    // ---- BackHandler priority (FIX-2, corrected by 27-review CR-01) --------------------------------
+    // OnBackPressedDispatcher fires the MOST RECENTLY REGISTERED enabled callback. Compose BackHandlers
+    // register in composition order, and enabled-ness does NOT reorder priority — registration order
+    // does. NavHost (in the BoxWithConstraints below) registers its own internal back handler that pops
+    // drill-down whenever the back stack is deeper than root, so any overlay handler composed BEFORE
+    // the NavHost would LOSE to that internal pop (the CR-01 priority inversion: Back with a scan/prompt
+    // overlay open popped the route UNDERNEATH the overlay, re-opening the D-09 abandon-live-probe hole).
     //
-    // Concretely: BackHandlers for drawer/scan/prompt are registered here (in composition order before
-    // the BoxWithConstraints body that contains the NavHost), giving them lower priority than in-screen
-    // sub-nav handlers inside NavHost composable lambdas. However, since they are ENABLED conditionally
-    // and NavHost's internal handler pops when enabled, the net effect is:
-    //   1. An active overlay (drawer/scan/prompt) is enabled → its handler fires FIRST.
-    //   2. NavHost pops drill-down when no overlay is active.
-    //   3. In-screen sub-nav BackHandlers inside composable<> lambdas have even higher priority (innermost).
+    // Therefore the scan/prompt overlay Back interception lives INSIDE the overlay `if` blocks — Box
+    // siblings composed AFTER the NavHost — so a visible overlay consumes Back before NavHost can pop.
+    // Net priority, lowest → highest:
+    //   1. NavHost internal pop (drill-down Back when no overlay is visible).
+    //   2. In-screen BackHandlers inside composable<> lambdas (e.g. the D-09 probe gate) — they
+    //      register AFTER NavHost's internal handler during the destination's composition.
+    //   3. The scan/prompt overlay handlers (composed after the whole NavHost — see the overlay blocks).
+    //
+    // The drawer handler below is the one exception that may stay here: AppDrawer is hosted in a
+    // window-backed Dialog whose own window consumes Back via onDismissRequest, so this handler is a
+    // belt-and-braces fallback, never the live Back path.
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
     // The old generic "pop backStack" BackHandler is REMOVED — NavHost now owns drill-down Back.
     // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
     // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
     // Calibration sub-state BackHandler REMOVED (D-07, Phase 27): NavHost back-stack owns Calibration
     // sub-routes. The D-09 probe-session BackHandler is now inside composable<NavDest.CalibrationProbe>.
-    // The open QR scan overlay intercepts Back: close the scan (releasing the camera via
-    // ScanSurface's onDispose) and return to the underlying screen, rather than popping the back-stack.
-    BackHandler(enabled = !drawerOpen && nav.scanActive) {
-        nav.scanActive = false
-    }
-    // An open Macro Prompt intercepts Back as an EXPLICIT user dismissal (registered last = highest priority
-    // among AppShell-level handlers). Dispatch `action:prompt_end` so the prompt closes via the echoed
-    // prompt_end round-trip — NOT a local teardown. (Disconnect closes the prompt LOCALLY with NO dispatch.)
-    BackHandler(enabled = !drawerOpen && promptView.visible) {
-        dispatcher?.dispatch(
-            promptEngine.closeKey,
-            JsonRpcMethods.GCODE_SCRIPT,
-            promptEngine.scriptParamsFor(promptEngine.closeGcode),
-        )
-    }
+    // The scan/prompt overlay BackHandlers MOVED into their overlay `if` blocks after the NavHost (CR-01).
 
     BoxWithConstraints(
         modifier
@@ -708,9 +698,11 @@ fun AppShell(
                 val starting = vm.state == works.mees.dinghy.calibration.ProbePageState.Idle &&
                     ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
                 // D-09 BackHandler: swallow system Back while a probe session is Active OR starting.
-                // GATED to require no overlay visible (D-09, Codex WARNING-6) — the probe handler is
-                // registered INNER (higher priority than AppShell-level overlay handlers). Without the
-                // overlay gate, an active probe session would out-prioritize scan/prompt overlay dismissal.
+                // GATED to require no overlay visible (D-09, Codex WARNING-6). After CR-01 (27-review)
+                // the scan/prompt overlay handlers are composed AFTER the whole NavHost and therefore
+                // out-prioritize this one whenever an overlay is visible — the overlay conditions here
+                // are belt-and-braces so this gate's enabled-ness MATCHES the actual dispatch priority
+                // (and the drawer is a window-backed Dialog that consumes Back at the window level).
                 // drawerOpen, nav.scanActive, and promptView.visible are captured from the outer AppShell.
                 BackHandler(
                     enabled = (vm.state == works.mees.dinghy.calibration.ProbePageState.Active || starting) &&
@@ -875,6 +867,10 @@ fun AppShell(
 
         // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen.
         if (nav.scanActive) {
+            // CR-01 (27-review): composed AFTER the NavHost so an open scan overlay out-prioritizes
+            // NavHost's internal pop — Back closes the scan (releasing the camera via ScanSurface's
+            // onDispose) and returns to the underlying screen, instead of popping the route beneath it.
+            BackHandler { nav.scanActive = false }
             ScanSurface(
                 client = spoolmanClient,
                 onConfirm = { id ->
@@ -893,6 +889,17 @@ fun AppShell(
         // floats over ANY destination. Content/footer buttons + the always-present close fire gcode through
         // the SHARED CommandDispatcher under the engine's stable keys.
         if (promptView.visible) {
+            // CR-01 (27-review): composed AFTER the NavHost (and after the scan handler above, so a
+            // prompt over a scan still wins) — a visible Macro Prompt owns Back as an EXPLICIT user
+            // dismissal. Dispatch `action:prompt_end` so the prompt closes via the echoed prompt_end
+            // round-trip — NOT a local teardown. (Disconnect closes the prompt LOCALLY with NO dispatch.)
+            BackHandler {
+                dispatcher?.dispatch(
+                    promptEngine.closeKey,
+                    JsonRpcMethods.GCODE_SCRIPT,
+                    promptEngine.scriptParamsFor(promptEngine.closeGcode),
+                )
+            }
             val inFlightKeys by (dispatcher?.inFlight
                 ?: remember { MutableStateFlow(emptySet<String>()) })
                 .collectAsStateWithLifecycle(initialValue = emptySet())
