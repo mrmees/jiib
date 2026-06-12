@@ -1340,7 +1340,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 28-05-PLAN.md — Delete AppDrawer + swipe-up (D-04) atomically; wire NavDest.System into AppShell + PrintStatusField (wave 3)
+- [x] 28-05-PLAN.md — Delete AppDrawer + swipe-up (D-04) atomically; wire NavDest.System into AppShell + PrintStatusField (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
