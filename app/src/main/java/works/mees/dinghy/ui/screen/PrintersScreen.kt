@@ -101,6 +101,175 @@ fun rowTapEffect(mode: PrinterMode): RowTapEffect = when (mode) {
 }
 
 // =============================================================================
+// Stateless content seam (WARNING-5 preview convention) — @Preview targets this.
+// =============================================================================
+
+/**
+ * Stateless Printers layout — the `@Preview` matrix targets this composable (no VM, no live
+ * Moonraker). Drives all four preview axes: Normal / Edit-armed / Delete-armed / Empty.
+ *
+ * @param profiles       the printer profile list to display.
+ * @param activeId       the id of the currently-active profile (null = no active profile).
+ * @param connectionState the current [ConnectionState] for the active printer.
+ * @param printerMode    the current [PrinterMode] for the foot bar (preview injects specific modes).
+ * @param onRowClick     row click handler.
+ * @param onAdd          Add button click handler.
+ * @param onArmEdit      Edit foot button click handler.
+ * @param onArmDelete    Delete foot button click handler.
+ * @param onBack         Back foot button click handler.
+ * @param modifier       caller-supplied modifier.
+ */
+@Composable
+fun PrintersContent(
+    profiles: List<works.mees.dinghy.config.Profile>,
+    activeId: String?,
+    connectionState: ConnectionState,
+    printerMode: PrinterMode,
+    onRowClick: (works.mees.dinghy.config.Profile) -> Unit,
+    onAdd: () -> Unit,
+    onArmEdit: () -> Unit,
+    onArmDelete: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    val ringColor: Color? = when (connectionState) {
+        ConnectionState.Connected    -> t.accent
+        ConnectionState.Connecting   -> t.heat
+        ConnectionState.Syncing      -> t.heat
+        is ConnectionState.Error     -> t.stop
+        ConnectionState.Disconnected -> null
+    }
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        val activeProfile = profiles.firstOrNull { it.id == activeId } ?: profiles.firstOrNull()
+
+        ScreenScaffold(
+            focus = {
+                if (activeProfile != null) {
+                    DetailCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ringColor = ringColor,
+                    ) {
+                        Text(
+                            text = activeProfile.displayName(),
+                            color = t.text,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(20f, t.fs).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${activeProfile.host}:${activeProfile.port}",
+                            color = t.text2,
+                            fontFamily = GeistMono,
+                            fontSize = fsSp(15f, t.fs).sp,
+                        )
+                        Text(
+                            text = connectionState.label(),
+                            color = ringColor ?: t.text2,
+                            fontFamily = Geist,
+                            fontSize = fsSp(15f, t.fs).sp,
+                        )
+                    }
+                }
+            },
+            field = {
+                if (profiles.isEmpty()) {
+                    Box(
+                        Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.printers_empty_headline),
+                                color = t.text,
+                                fontFamily = Geist,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = fsSp(17f, t.fs).sp,
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = stringResource(R.string.printers_empty_body),
+                                color = t.text2,
+                                fontFamily = Geist,
+                                fontSize = fsSp(15f, t.fs).sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
+                } else {
+                    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                        items(profiles, key = { it.id }) { profile ->
+                            ListRow(
+                                dense = true,
+                                selected = profile.id == activeId,
+                                onClick = { onRowClick(profile) },
+                                uDp = grid.uDp,
+                            ) {
+                                Text(
+                                    text = profile.displayName(),
+                                    color = t.text,
+                                    fontFamily = Geist,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = fsSp(17f, t.fs).sp,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "${profile.host}:${profile.port}",
+                                    color = t.text2,
+                                    fontFamily = GeistMono,
+                                    fontSize = fsSp(15f, t.fs).sp,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_add),
+                        onClick = onAdd,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_edit),
+                        onClick = onArmEdit,
+                        modifier = Modifier.weight(1f),
+                        intent = if (printerMode == PrinterMode.EditArmed) Intent.Accent else Intent.Neutral,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_delete),
+                        onClick = onArmDelete,
+                        modifier = Modifier.weight(1f),
+                        intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Neutral,
+                    )
+                }
+            },
+            gutter = null,
+        )
+    }
+}
+
+// =============================================================================
 // Printers screen (rebuilt 28-06, D-13/D-15)
 // =============================================================================
 

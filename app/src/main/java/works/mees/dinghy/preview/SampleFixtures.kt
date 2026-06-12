@@ -16,6 +16,7 @@ import works.mees.dinghy.calibration.ZAdjustment
 import works.mees.dinghy.render.BedMeshHeatmapView
 import works.mees.dinghy.ui.calibration.MeshFieldMode
 import works.mees.dinghy.ui.calibration.TiltVariant
+import works.mees.dinghy.config.Profile
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
@@ -424,4 +425,29 @@ object SampleFixtures {
      * Mirrors [BuildConfig.VERSION_NAME] shape at preview time; static fixture.
      */
     const val systemPageVersion: String = "0.1.0-debug"
+
+    // ---------------------------------------------------------------------------------------------
+    // Printers screen fixtures (28-06, D-15)
+    // 2 profiles: the first (id="fixture-ender5") is the active one; the second is inactive.
+    // Built against the post-28-04 Profile shape (no maxItems field).
+    // ---------------------------------------------------------------------------------------------
+
+    /** The stable ID for the active-printer fixture (Ender 5 Plus). */
+    const val printerActiveId: String = "fixture-ender5"
+
+    /** 2 printer profiles — one active, one inactive. Pure immutable data; no network. */
+    val printerProfileList: List<Profile> = listOf(
+        Profile(
+            id = printerActiveId,
+            name = "Ender 5 Plus",
+            host = "192.168.1.120",
+            port = 7125,
+        ),
+        Profile(
+            id = "fixture-ender3",
+            name = "Ender 3 Pro",
+            host = "192.168.1.121",
+            port = 7125,
+        ),
+    )
 }
