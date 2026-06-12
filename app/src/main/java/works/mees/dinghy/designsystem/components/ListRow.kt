@@ -6,18 +6,25 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding  // used for horizontal content padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.fsSp
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure host-testable helpers — ListRowTest asserts these directly
@@ -123,8 +130,40 @@ fun ListRow(
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        leadingContent?.invoke()
-        content()
+        // Row anatomy is OWNED HERE (UAT-2 / pilot finding 2026-06-12): a standard gapM (12dp)
+        // after the leading slot, and the content slot absorbs all slack via weight(1f) so the
+        // trailing slot is ALWAYS end-aligned — call sites cannot drift the anatomy.
+        leadingContent?.let {
+            it()
+            Spacer(Modifier.width(12.dp))
+        }
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            content()
+        }
         trailingContent?.invoke()
     }
+}
+
+/**
+ * The canonical [ListRow] primary-label text — ONE place owns the list-label look so screens
+ * cannot drift (pilot finding, 2026-06-12: FineTune/BedMesh labels diverged from the home list
+ * in family/weight). Geist SemiBold at the R11 20sp list/button default, `t.text`.
+ *
+ * Use this for the row's NAME/label. Trailing VALUE readouts stay Geist Mono at the call site
+ * (mono = live/tabular data, THEMING §type) — they are values, not labels.
+ */
+@Composable
+fun ListRowLabel(text: String, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    Text(
+        text = text,
+        color = t.text,
+        fontFamily = Geist,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = fsSp(20f, t.fs).sp,
+        modifier = modifier,
+    )
 }

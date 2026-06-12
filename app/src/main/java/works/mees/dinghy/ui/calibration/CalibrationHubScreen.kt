@@ -148,7 +148,6 @@ fun CalibrationHubContent(
                                         contentDescription = null, // row label describes the row
                                         tint = if (entry.isSupported) t.accent2 else t.text3,
                                         sizeDp = grid.uDp * 0.5f,
-                                        modifier = Modifier.padding(end = 8.dp),
                                     )
                                 },
                             ) {

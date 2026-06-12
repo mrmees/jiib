@@ -44,6 +44,7 @@ import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -401,14 +402,8 @@ private fun FineTuneContent(
                                 )
                             },
                         ) {
-                            Text(
-                                text = param.name,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.Normal,
-                                // R11 type ramp: list-item labels at the 20sp default.
-                                fontSize = fsSp(20f, t.fs).sp,
-                                color = t.text,
-                            )
+                            // Canonical list-label look — owned by the design system (pilot fix).
+                            ListRowLabel(param.name)
                         }
                     }
                 }

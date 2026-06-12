@@ -93,6 +93,13 @@ Slots:
 - `content` — main label(s) — fills available width
 - `trailingContent` — weight, value, trailing symbol (optional)
 
+**Anatomy is OWNED BY THE PRIMITIVE (pilot ruling, 2026-06-12):** ListRow itself inserts the
+standard **12dp gap** after the leading slot and gives the content slot **`weight(1f)`**, so the
+trailing slot is ALWAYS end-aligned (UAT-2) — call sites must NOT add their own leading end-padding
+or weight. The row's primary label renders via **`ListRowLabel(text)`** (Geist SemiBold, R11 20sp
+default, `t.text`) — the ONE place that owns the list-label look; trailing VALUE readouts stay
+Geist Mono at the call site (values, not labels).
+
 #### `DetailCard`
 
 The selected-item detail pane. Filled background (`t.surface`), corner radius `t.rCard` (22dp),

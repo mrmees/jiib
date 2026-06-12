@@ -124,7 +124,6 @@ fun SystemInformationContent(
                                     tint = tint,
                                     sizeDp = 22.dp,
                                     contentDescription = stringResource(R.string.cd_sysinfo_health),
-                                    modifier = Modifier.padding(end = 8.dp),
                                 )
                             },
                         ) {
@@ -285,7 +284,6 @@ private fun InfoListRow(
                 tint = t.text2,
                 sizeDp = 22.dp,
                 contentDescription = cd,
-                modifier = Modifier.padding(end = 8.dp),
             )
         },
     ) {

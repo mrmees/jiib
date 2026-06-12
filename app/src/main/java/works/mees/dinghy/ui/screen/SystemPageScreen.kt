@@ -139,7 +139,6 @@ fun SystemPageContent(
                                         contentDescription = null,  // row label describes the row
                                         tint = t.text,
                                         sizeDp = 22.dp,
-                                        modifier = Modifier.padding(end = 8.dp),
                                     )
                                 },
                             ) {

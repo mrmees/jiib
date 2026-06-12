@@ -51,6 +51,7 @@ import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -332,14 +333,9 @@ internal fun BedMeshContent(
                                                 }
                                             } else null,
                                         ) {
-                                            Text(
-                                                text = name,
-                                                color = t.text,
-                                                fontFamily = GeistMono,
-                                                fontWeight = FontWeight.Medium,
-                                                // R11 type ramp: list-item labels at the 20sp default.
-                                                fontSize = fsSp(20f, t.fs).sp,
-                                            )
+                                            // Canonical list-label look (Geist SemiBold 20) — the
+                                            // profile NAME is the row label; mono stays for VALUES.
+                                            ListRowLabel(name)
                                         }
                                     }
                                 }

@@ -36,6 +36,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -97,24 +98,19 @@ internal fun PrintStatusStandbyField(
                         selected = false,
                         onClick = { onNavigate(action.dest) },
                         uDp = grid.uDp,
+                        leadingContent = {
+                            // Leading icon — always a registered DinghyIcons token (icon law enforced
+                            // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
+                            // Gap after the icon is OWNED by ListRow (12dp standard anatomy).
+                            DinghyIconView(
+                                icon = action.icon,
+                                tint = LocalTokens.current.text2,
+                                sizeDp = fsSp(22f, LocalTokens.current.fs).dp,
+                            )
+                        },
                     ) {
-                        // Leading icon — always a registered DinghyIcons token (icon law enforced by
-                        // HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
-                        DinghyIconView(
-                            icon = action.icon,
-                            tint = LocalTokens.current.text2,
-                            sizeDp = fsSp(22f, LocalTokens.current.fs).dp,
-                            modifier = Modifier.padding(end = 12.dp),
-                        )
-                        // Row label — stringResource resolves the @StringRes from HomeAction.Destination.
-                        Text(
-                            text = stringResource(action.labelRes),
-                            color = LocalTokens.current.text,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, LocalTokens.current.fs).sp,
-                            modifier = Modifier.weight(1f),
-                        )
+                        // Canonical list-label look — ListRowLabel (Geist SemiBold, R11 20sp default).
+                        ListRowLabel(stringResource(action.labelRes))
                     }
                 }
             }

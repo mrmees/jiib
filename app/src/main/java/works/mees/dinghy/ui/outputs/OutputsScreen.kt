@@ -197,9 +197,7 @@ private fun OutputsContent(
                                     tint = t.accent2,
                                     sizeDp = fsSp(22f, t.fs).dp,
                                     contentDescription = stringResource(R.string.cd_output_glyph),
-                                    modifier = Modifier
-                                        .size(fsSp(22f, t.fs).dp)
-                                        .padding(end = 8.dp),
+                                    modifier = Modifier.size(fsSp(22f, t.fs).dp),
                                 )
                             },
                             trailingContent = if (row.displayValue != null) {
