@@ -51,7 +51,7 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.toComposeColor
-import kotlinx.coroutines.flow.firstOrNull
+import works.mees.dinghy.theme.ThemePrefs
 import kotlin.random.Random
 
 /**
@@ -111,15 +111,21 @@ fun ThemeEditorScreen(
     var fsChoice by remember { mutableStateOf(FontScale.M) }
     var paletteMode by remember { mutableStateOf(ThemeResolver.MODE_COLORFUL) }
 
+    // Reactively collect the global idle theme tuple (D-19): replaces the old one-shot firstOrNull()
+    // so that editing the global theme while idle (no active profile) re-seeds the editor immediately.
+    // When an active profile exists this value is unused (the profile's toThemeTuple() takes priority).
+    val globalTuple by container.themePrefs.tupleFlow.collectAsStateWithLifecycle(
+        initialValue = ThemePrefs.TUPLE_DEFAULT
+    )
+
     // Seed the Appearance mirror from the ACTIVE profile's theme tuple when one exists (so the screen
     // opens reflecting the active printer's look, D-09), else from the global theme tuple (idle default).
-    LaunchedEffect(activeProfile?.id) {
-        val tuple = activeProfile?.toThemeTuple() ?: container.themePrefs.tupleFlow.firstOrNull()
-        if (tuple != null) {
-            dark = tuple.dark
-            fsChoice = FontScale.entries.firstOrNull { it.multiplier == tuple.fs } ?: FontScale.M
-            paletteMode = tuple.paletteMode
-        }
+    // Keyed on BOTH activeProfile?.id AND globalTuple so a global-theme change re-seeds while idle.
+    LaunchedEffect(activeProfile?.id, globalTuple) {
+        val tuple = activeProfile?.toThemeTuple() ?: globalTuple
+        dark = tuple.dark
+        fsChoice = FontScale.entries.firstOrNull { it.multiplier == tuple.fs } ?: FontScale.M
+        paletteMode = tuple.paletteMode
     }
 
     // The Reset confirm guard (D-09) — hoisted over the whole editor, mirrors the Settings delete guard.
