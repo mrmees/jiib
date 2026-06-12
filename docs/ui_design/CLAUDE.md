@@ -38,10 +38,12 @@
 - **Button intent = color, by SAFETY of the action — the FOUR-CLASS scheme (R5, 2026-06-12;
   supersedes the old C1/C5/D-10 assignments).** Buttons (never list rows) are FILLED — fill is what
   says "button." **Red/stop** = could be destructive (cancel, e-stop, disable steppers) ·
-  **Amber/warning** = could be destructive but part of the process (toolhead jog, load/heat
-  filament, resets) · **Green/go** = the screen's EXPECTED action (Print, Load, Save, accept) ·
-  **Accent** = neutral items and plain navigation (Back, Home). The old white/neutral-outline
-  button intent is RETIRED. Overridable per case. See THEMING.md for the full law + worked examples.
+  **Amber/warning** = could be destructive but part of the process (load/heat filament, resets,
+  force-move-class hazards — NOT ordinary jog/home, see go) · **Green/go** = the screen's
+  EXPECTED action (Print, Load, Save, accept — incl. motion when motion is the screen's purpose,
+  R19) · **Accent** = neutral items and plain navigation (Back, Home). The old white/neutral-outline
+  button intent is RETIRED for actions; `Intent.Neutral` survives only as the INACTIVE
+  toggle-state style (R18). Overridable per case. See THEMING.md for the full law + worked examples.
 - **Back = ACCENT, FIRST position (R5/R8, 2026-06-12; supersedes D-10's neutral-Back).** Plain
   navigation wears the accent, and Back is always the **first (start-aligned) button** in a
   `FootButtonBar`, app-wide — muscle memory holds. A Back/Cancel that DISCARDS pending input is a

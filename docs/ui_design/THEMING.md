@@ -119,14 +119,19 @@ risky is this tap?", not what kind of widget it is:
 - **Red** (`--stop`) — **could be destructive**: stop / e-stop, cancel print, disable steppers
   (loses homing), force-move armed, host interruption.
 - **Amber / warning** (`--heat`, the caution family) — **could be destructive but is part of the
-  process**: toolhead jog, load/heat filament, resets, undo, unexpected live change.
+  process**: load/heat filament, resets, undo, unexpected live change, force-move-class hazards.
+  (Ordinary jog/home motion is NOT warning — see go, next, and R19.)
 - **Green** (`--go`) — **the screen's EXPECTED action**: Print on Files, Load/Unload on Spoolman,
-  Save, accept/commit. The "reason you came to this screen" button is green.
+  Save, accept/commit — **and motion commands when motion is the screen's/state's purpose**
+  (jog arrows and Home on the Move screen; a Home-All gate on a calibration screen) (R19,
+  2026-06-12). The "reason you came to this screen" button is green.
 - **Accent** (`--accent`) — **neutral items and plain navigation**: Back, Home, secondary
   follow-ups with no printer-state consequence. Nav wears the user's signature color.
 
-**The white/neutral-outline button intent is RETIRED** (buttons no longer spend "no color" —
-accent IS the no-consequence color). These are defaults, overridable per case, but keep them
+**The white/neutral-outline button intent is RETIRED for ACTION buttons** — accent IS the
+no-consequence color. **`Intent.Neutral` survives in exactly ONE role (R18, 2026-06-12): the
+INACTIVE half of a toggle/choice pattern** (unselected step tiles, filter options, show-hidden)
+— "not chosen" rightly spends no color. These are defaults, overridable per case, but keep them
 consistent — color *is* the affordance signal.
 
 ### Back = ACCENT, FIRST position (R5/R8 — supersedes D-10's neutral-Back)
@@ -147,11 +152,11 @@ pending result** is a cancel-with-loss and stays **red** (`stop`) — e.g. `Meas
 > **testable conformance checks** so the 15.2 app-wide sweep (and every future phase) audits against
 > them. Each maps to a column / finding in `.planning/phases/15.2-…/15.2-AUDIT.md`.
 
-- **C1 — Expected action wears GO; hazard class is judged per-action (REWRITTEN per R5,
-  2026-06-12).** A button that performs a screen's EXPECTED action uses the **go** intent. An
-  action that could wreck the print/machine but is part of the normal process (jog, load/heat
-  filament, reset) is **warning** even when it is the screen's reason-to-exist — safety class
-  outranks expectedness when both apply. (The original C1 made the expected action ACCENT;
+- **C1 — Expected action wears GO, including motion when motion is the screen's purpose
+  (REWRITTEN per R5 + R19, 2026-06-12).** A button that performs a screen's EXPECTED action uses
+  the **go** intent — jog/home on the Move screen included (R19). **Warning** outranks
+  expectedness only for the genuinely hazardous classes: force-move, load/heat filament, resets.
+  (The original C1 made the expected action ACCENT; an interim R5 reading made jog warning; both
   superseded.)
 - **C2 — The increment picker is a 3-cell pattern.** Any increment/step picker is `[decrement] [center
   value display] [increment]` (three cells), with two interaction modes:
@@ -188,12 +193,12 @@ pending result** is a cancel-with-loss and stays **red** (`stop`) — e.g. `Meas
 
 **Worked examples (under the R5 four-class scheme; exact per-button calls land in the 2026-06
 normalization audit's repaint column):**
-- *Move foot bar* — **Back** (accent, FIRST position) · **Disable** (stop — un-homes, could be
-  destructive) · homing (warning — automated motion, hazard-in-process).
+- *Move foot bar* — **Back** (accent, FIRST position) · **Home All** (go — motion is the Move
+  screen's expected action, R19) · **Disable** (stop — un-homes, could be destructive).
 - *Move jog pad* — directional arrows. The **OUTLINE carries group identity** — the XY pad outline reads
   `directional.xy` (= `pool[0]`) and the Z-row outline reads `directional.z` (= `pool[1]`) (D-08); the
   home buttons' outlines likewise wear their group's directional color. The **ICON color carries STATE**:
-  gray (unavailable) / warning (normal jog — motion is hazard-in-process) / red (force-move armed).
+  gray (unavailable) / go (normal jog — expected motion, R19) / red (force-move armed).
   **Force-move (D-12):** a **green closed-padlock when SAFE**, a **red open-padlock when ARMED** — the
   lock **open/closed silhouette** is the redundant non-color signal.
 - *Extrude foot bar* — **Back** (accent, FIRST) · **Load** (warning — heats + drives filament) ·

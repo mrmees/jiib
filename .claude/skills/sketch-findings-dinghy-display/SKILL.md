@@ -26,11 +26,13 @@ Sketch session wrapped: 2026-06-09 (sketches 001–003).
   at 5U.
 - **Content vs controls:** list items translucent (outline only); buttons/tiles/cards filled.
 - **No labels where structure suffices** — leading type-icons + outline/fill/accent do the grouping.
-- **Intent = color (UPDATED by R5, 2026-06-12 — supersedes the sketch-era assignment):** stop/red
-  (could be destructive) · caution/amber (could be destructive but part of the process — jog,
-  load, resets) · go (the screen's EXPECTED action — Print, Load, Save) · accent (neutral items +
-  plain nav: Back, Home; Back = FIRST foot-bar button per R8). Neutral-white button intent
-  RETIRED. Buttons filled; rows translucent. Law: `docs/ui_design/THEMING.md`.
+- **Intent = color (UPDATED by R5+R18+R19, 2026-06-12 — supersedes the sketch-era assignment):**
+  stop/red (could be destructive) · caution/amber (could be destructive but part of the process —
+  load/heat filament, resets, force-move; NOT ordinary jog/home) · go (the screen's EXPECTED
+  action — Print, Load, Save, AND motion when motion is the screen's purpose, R19) · accent
+  (neutral items + plain nav: Back, Home; Back = FIRST foot-bar button per R8). Neutral RETIRED
+  for action buttons; survives only as the inactive toggle-state style (R18). Buttons filled;
+  rows translucent. Law: `docs/ui_design/THEMING.md`.
 - **Icons:** owner-curated registry only (`material-icon-bucket.json` + `DinghyIcons.kt`), Material
   Symbols by ligature; **never auto-pick a glyph — ask**. Icon tiles ~70-80% of U (prominent
   icons; dense list-pane icons stay small — see Post-Phase-26 UAT rules below).

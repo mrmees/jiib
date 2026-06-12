@@ -73,6 +73,25 @@
 - **Q-C — ThemeEditor status-shape-on-swatch raw symbols:** carve-out (they decorate DATA colors)
   or route via registry?
 
+## RULINGS — Verdict session (owner, 2026-06-12)
+
+- **R17 — Verdicts accepted, REBUILDs DEFERRED.** The sweep is POLISH-ONLY for now: the 5
+  structural items (PrintStatus gutter migration, Extrude PresetRow, Outputs LedBrightnessControl
+  → 004 scrubber, About rows, Printers rows/bar) move to a LATER structural slate. Those 5
+  screens still receive their NON-structural polish items (Back, type ramp, intents, spacing,
+  strings) in the wide pass. ScrubberPage.kt deletion still fine (dead code, no structure).
+- **R18 — `Intent.Neutral` SURVIVES as the inactive-toggle-state style ONLY** (the unselected
+  half of step pickers / filter tiles / show-hidden). Retired for action buttons. One law
+  sentence added to THEMING.
+- **R19 — Motion = GO when motion is the screen's/state's purpose** (jog arrows, Home All, Z
+  moves on Move; Home-All gates on calibration screens). Amber/warning reserves for genuinely
+  hazardous motion-adjacent acts: force-move, load/heat filament, resets. REVISES C1 + the
+  THEMING worked examples (which said jog = warning).
+- **R20 — ThemeEditor swatch status-glyphs route via the registry** (DinghyIconView with
+  StatusStop/Warning, tinted on the swatch) — no carve-out.
+- **Pilot-first execution:** owner wants 1–2 pilot screens fully polished and reviewed on-device
+  BEFORE the wide pass.
+
 ## 4. Focus-treatment inventory (input to the future Focus-standardization pass)
 
 | Candidate archetype | Screens using it |
