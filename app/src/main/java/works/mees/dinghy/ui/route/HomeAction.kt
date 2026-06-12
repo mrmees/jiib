@@ -40,12 +40,6 @@ sealed interface HomeAction {
         val icon: DinghyIcon,
     ) : HomeAction
 
-    /**
-     * Opens the App Drawer (the interim "System" hub, D-09/D-10). This is NOT a navigation
-     * destination — it is a contextual action that surfaces the drawer over the current screen.
-     */
-    data object OpenDrawer : HomeAction
-
     // v2: data class InlineControl(val controlId: String) : HomeAction
     // v2: data class UserCustomAction(…)  — editor + persist layer deferred to the v2 milestone
 }

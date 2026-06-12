@@ -10,8 +10,8 @@ import works.mees.dinghy.state.PrinterState
 
 /**
  * The 16-06 host gate: the pure [uiModel] mode→layout/control derivation. Covers each mode's gutter
- * set, the curated Standby launcher order (incl. the spool/macros conditionals + always-last flexible
- * Drawer), the shortcut-vs-babystep Field row pick, and the Terminal error-line flag.
+ * set, the curated Standby launcher order (incl. the spool/macros conditionals), the shortcut-vs-babystep
+ * Field row pick, and the Terminal error-line flag.
  */
 class PrintStatusUiModelTest {
 
@@ -32,7 +32,7 @@ class PrintStatusUiModelTest {
     }
 
     @Test
-    fun standby_launcherIsTheFixedCuratedOrder_drawerAlwaysLast() {
+    fun standby_launcherIsTheFixedCuratedOrder_consoleAlwaysLast() {
         val m = standby() // no spool, no bookmarked macros
         assertEquals(
             listOf(
@@ -42,12 +42,11 @@ class PrintStatusUiModelTest {
                 LauncherDest.Extrude,
                 LauncherDest.Calibration,
                 LauncherDest.Console,
-                LauncherDest.Drawer,
             ),
             m.launcherDests,
         )
-        // Drawer is ALWAYS the last (flexible/growing) tile.
-        assertEquals(LauncherDest.Drawer, m.launcherDests.last())
+        // Console is the last tile in the base case (no spool, no macros).
+        assertEquals(LauncherDest.Console, m.launcherDests.last())
     }
 
     @Test
@@ -68,7 +67,6 @@ class PrintStatusUiModelTest {
                 LauncherDest.Spool,
                 LauncherDest.Macros,
                 LauncherDest.Console,
-                LauncherDest.Drawer,
             ),
             m.launcherDests,
         )

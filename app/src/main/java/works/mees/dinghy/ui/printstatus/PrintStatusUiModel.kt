@@ -25,7 +25,7 @@ import works.mees.dinghy.state.PrinterState
  */
 
 /** A launcher destination on the Standby grid. Decoupled from `ui.route.Dest` so this stays pure
- *  (no UI import) — the screen maps each [LauncherDest] to its `Dest` + `onNavigate`/`onOpenDrawer`. */
+ *  (no UI import) — the screen maps each [LauncherDest] to its `Dest` + `onNavigate`. */
 enum class LauncherDest {
     Files,
     Temperature,
@@ -35,9 +35,6 @@ enum class LauncherDest {
     Spool,
     Macros,
     Console,
-
-    /** The always-present flexible/growing tile — opens the swipe-up App Drawer (not a `Dest`). */
-    Drawer,
 }
 
 /** Which Field row the Printing/Paused mode shows: the normal shortcut grid, or the babystep 3-cell
@@ -115,8 +112,8 @@ fun uiModel(
 /**
  * The fixed, curated Standby launcher order (UI-SPEC "Launcher order"):
  * Files · Temperature · Move · Extrude · Calibration · Spool[if present] · Macros[if bookmarked] ·
- * Console · Drawer (always last, the flexible/growing tile). Forward stubs (Output/SysInfo) do NOT
- * appear here — they live in the App Drawer only (D-02).
+ * Console. Forward stubs and system destinations (System page) are reached via WaterfallHome's
+ * System foot button (NavDest.System) rather than via a launcher tile.
  */
 private fun standbyLauncherDests(
     spoolmanPresent: Boolean,
@@ -130,5 +127,4 @@ private fun standbyLauncherDests(
     if (spoolmanPresent) add(LauncherDest.Spool)
     if (hasBookmarkedMacros) add(LauncherDest.Macros)
     add(LauncherDest.Console)
-    add(LauncherDest.Drawer)
 }.toImmutableList()
