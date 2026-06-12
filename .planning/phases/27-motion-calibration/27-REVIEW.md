@@ -34,6 +34,12 @@ findings:
   info: 6
   total: 12
 status: issues_found
+fix_pass:
+  fixed_at: 2026-06-12
+  scope: CR-01 + WR-02..WR-05 (WR-01 and Info excluded by owner direction)
+  fixed: 5
+  skipped: 7
+  gate: ":app:testDebugUnitTest :app:assembleDebug BUILD SUCCESSFUL; verify_ligatures.py exit 0 (missing: [])"
 ---
 
 # Phase 27: Code Review Report
@@ -70,6 +76,8 @@ abandon-live-probe hole through the prompt/scan overlay path.
 ## Critical Issues
 
 ### CR-01: NavHost's internal back handler out-prioritizes the scan/prompt overlay BackHandlers — the D-09 probe gate assumption is inverted
+
+**Status:** fixed (`c6f4a0d`) — scan/prompt BackHandlers moved inside their overlay `if` blocks (Box siblings AFTER the NavHost); dead pre-NavHost handlers deleted; FIX-2 + probe-gate comments corrected. Drawer handler unchanged (window-backed Dialog). On-device Back-path spot-check (Spool→Scan→Back, prompt-over-screen→Back, prompt-during-probe→Back) recommended at next UAT.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/shell/AppShell.kt:506-526` (handlers), `:599` (NavHost), `:715-720` (probe gate)
 
@@ -122,6 +130,8 @@ prompt-during-active-probe→Back.
 
 ### WR-01: Pop-to-root fires on EVERY printState transition and never on mid-print entry — `printActive` is dead weight
 
+**Status:** skipped (by owner direction) — previously adjudicated BY-DESIGN at Phase 24; print-gating the Move/Calibration drawer tiles is a separately-deferred owner item. Code unchanged.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/route/NavDest.kt:151-152`, `app/src/main/java/works/mees/dinghy/ui/shell/AppShell.kt:846-868`
 
 **Issue:** `shouldPopToRoot` ignores its `printActive` parameter, and the AppShell
@@ -142,6 +152,8 @@ Move/Extrude/Calibration tiles while printing, mirroring the webcam/spool grey p
 
 ### WR-02: BedMesh profile REMOVE never offers SAVE_CONFIG — removed profiles resurrect after Klipper restart; `onShowSaveConfigGuard` is a dead parameter
 
+**Status:** fixed (`68072ca`) — `onRemoveConfirm` raises the amber SAVE_CONFIG guard after the remove dispatch is actually sent (mirroring the save path); the dead `onShowSaveConfigGuard` parameter dropped from `BedMeshContent` + the preview helper.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/calibration/BedMeshScreen.kt:142-150` (wrapper), `:213-238` (dead param)
 
 **Issue:** `BED_MESH_PROFILE REMOVE` only mutates Klipper's runtime state; without a
@@ -157,6 +169,8 @@ lost in the D-11 dialog→Field migration.
 persist UX is intended.
 
 ### WR-03: Hardcoded user-facing English literals across the rebuilt screens — violates the stringResource law; the phase's own pseudolocale previews cannot catch them
+
+**Status:** fixed (`1f020f1`) — all flagged literals extracted verbatim to `strings.xml` under the existing `tilt_*`/`screws_*`/`mesh_*`/`probe_*` conventions (Running headline reuses `calibration_running`; `probe_saved_ref` quoted to preserve its double space). No copy changes.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/calibration/TiltScreen.kt:128-135, 282-301`; `ScrewsTiltScreen.kt:251-253, 308`; `BedMeshScreen.kt:550, 559`; `ProbeCalibrateScreen.kt:242, 257, 272, 281, 441-457, 474`
 
@@ -180,6 +194,8 @@ the worst offenders.
 the obvious home) and re-check the en-XA previews actually expand.
 
 ### WR-04: Raw, un-registered ligature glyphs in the rebuilt screens bypass both the DinghyIcons registry and the verify_ligatures.py gate — guaranteed tofu when the planned font subset lands
+
+**Status:** fixed (`b69a2b0`) — all 9 glyphs promoted VERBATIM to DinghyIcons tokens (JogXPlus / HomeStateHomed / HomeStateUnhomed / ScrewPending / ScrewBase / ScrewInTolerance / ScrewTurnCcw / ScrewTurnCw / MeshEmpty — existing shipping glyphs preserved, drift-guarding NOT icon selection), added to `NEEDED`, call sites routed through `DinghyIconView`. Gate: 101 needed, missing `[]`, exit 0.
 
 **File:** `app/src/main/java/works/mees/dinghy/ui/move/MoveScreen.kt:635, 703`; `ScrewsTiltScreen.kt:363-369`; `BedMeshScreen.kt:548, 605`; `ProbeCalibrateScreen.kt:440-451, 596`; `tools/verify_ligatures.py:63-124`
 
@@ -206,6 +222,8 @@ the 27-01 "bless as-is" precedent) and route the call sites through `DinghyIconV
 
 ### WR-05: BedMesh "Save" is offered with no active mesh, and the SAVE_CONFIG guard is raised before the save is known to succeed
 
+**Status:** fixed (`f97b72b`) — Save foot button gated on `dispatcherPresent && !vm.isEmpty`; the guard is raised only after the save dispatch actually goes out; a server-side `Failure` under the profile save/remove dispatch keys retracts an open guard.
+
 **File:** `app/src/main/java/works/mees/dinghy/ui/calibration/BedMeshScreen.kt:131-136, 380-386`
 
 **Issue:** The homed/no-selection foot branch shows Calibrate + **Save** regardless of
@@ -219,6 +237,8 @@ user to calibrate first), and/or raise the SAVE_CONFIG guard only after the save
 resolves without a Failure event.
 
 ## Info
+
+_All six Info findings: skipped — out of fix scope (fix pass covered CR-01 + WR-02..WR-05 only, per owner direction)._
 
 ### IN-01: Dead code — `LauncherGrid` has zero callers
 
