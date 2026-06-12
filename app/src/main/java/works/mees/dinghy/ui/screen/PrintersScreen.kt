@@ -7,16 +7,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,11 +23,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,130 +36,317 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
+// =============================================================================
+// Pure mode-toggle state machine (28-06, D-13)
+//
+// These are package-level symbols — importable by PrintersModeToggleTest without
+// pulling in any Compose/Android runtime. The composable below consumes them via
+// `remember { mutableStateOf(PrinterMode.Normal) }` only.
+// =============================================================================
+
 /**
- * The **Printers** surface (15.2-03, D-02) — the SINGLE per-printer management screen. It is the
- * RENAMED, EXTENDED former `DevicesScreen` (LOW-1: rename-in-place, NOT a divergent copy): the printer
- * switcher tile-grid is carried VERBATIM, and it now also ABSORBS the Connection (host/port/key) editing
- * that used to live in `SettingsScreen` (D-02 — Connection moves OUT of Settings). Printers thus owns
- * add / remove / switch AND connection, killing the Connection-redundant-with-Devices problem the owner
- * flagged in Phase-15 UAT.
+ * The three operating modes of the Printers screen foot bar (D-13).
  *
- * Two modes, owned by [editingTarget] (a local back-stack like SettingsScreen's editor seam):
- *  - **Grid mode** (default) — the full-screen Field of square printer tiles (one per saved [Profile], the
- *    ACTIVE one accent-emphasised) + an "Add printer" tile. Tapping a tile PERSISTS it active and signals
- *    [onSwitched]; tapping the active tile's edit affordance (or "Add printer") enters editor mode.
- *  - **Editor mode** — the absorbed Connection form (host/port/apiKey + mDNS scan) for ONE profile
- *    (`Some(profile)` edits it, `New` is a blank new-printer form). A [BackHandler] returns to the grid.
+ *  - [Normal]      — row tap switches the active printer; Edit+Delete are outline (unarmed).
+ *  - [EditArmed]   — row tap opens the inline connection editor; Edit button is highlighted.
+ *  - [DeleteArmed] — row tap raises a [ConfirmGuard]; Delete button is filled stop (C4 rule).
+ */
+enum class PrinterMode { Normal, EditArmed, DeleteArmed }
+
+/**
+ * The effect produced when the user taps a profile row.  Pure — no composable symbols.
+ */
+enum class RowTapEffect { SwitchActive, OpenEditor, RequestDelete }
+
+/** Arm Edit (or disarm if already EditArmed, or switch from DeleteArmed). */
+fun armEdit(current: PrinterMode): PrinterMode = when (current) {
+    PrinterMode.EditArmed -> PrinterMode.Normal   // tap again → disarm
+    else -> PrinterMode.EditArmed
+}
+
+/** Arm Delete (or disarm if already DeleteArmed, or switch from EditArmed). */
+fun armDelete(current: PrinterMode): PrinterMode = when (current) {
+    PrinterMode.DeleteArmed -> PrinterMode.Normal // tap again → disarm
+    else -> PrinterMode.DeleteArmed
+}
+
+/** Disarm to Normal (Back key handler). */
+fun disarm(): PrinterMode = PrinterMode.Normal
+
+/** Map a row tap under [mode] to one of three outcomes. */
+fun rowTapEffect(mode: PrinterMode): RowTapEffect = when (mode) {
+    PrinterMode.Normal      -> RowTapEffect.SwitchActive
+    PrinterMode.EditArmed   -> RowTapEffect.OpenEditor
+    PrinterMode.DeleteArmed -> RowTapEffect.RequestDelete
+}
+
+// =============================================================================
+// Printers screen (rebuilt 28-06, D-13/D-15)
+// =============================================================================
+
+/**
+ * The **Printers** surface — rebuilt on the jiib kit (28-06) with the R4 Edit/Delete mode-toggle
+ * foot bar (D-13) and the D-15 Focus/Field/Foot layout.
+ *
+ * - **Focus** = active printer [DetailCard] (name, host:port, connection-state ring, Klippy state).
+ * - **Field** = dense profile-row [ListBlock]; active row accent-tinted; row tap dispatched by mode.
+ * - **Foot** = [FootButtonBar] (1U): Add(Accent) / Edit(Neutral↔highlighted) / Delete(Neutral↔filled
+ *   stop, C4) / Back(Neutral).
+ *
+ * ## Mode-toggle (D-13)
+ *  - Edit armed: row tap opens the inline connection editor; Edit foot highlighted.
+ *  - Delete armed: row tap raises [ConfirmGuard]; Delete foot filled stop.
+ *  - Tap armed toggle again or Back → Normal.
  *
  * ## Write-scope law ([[dinghy-compose-write-scope-cancellation]])
- * EVERY persist routes through the process-lifetime [AppContainer] intents ([AppContainer.setActiveProfile]
- * / [AppContainer.saveProfile] / [AppContainer.deleteProfile]) — NEVER a `rememberCoroutineScope().launch
- * { profileStore… }`, which a same-frame navigation would cancel mid-`.tmp`→rename on slow flash.
+ * EVERY persist routes through [AppContainer] intent helpers — process-scoped writeScope only.
  *
- * ## apiKey semantics (MEDIUM-5 / V7)
- * The apiKey field NEVER pre-fills the raw stored key (it starts blank, with a "Key saved" hint when one
- * exists). On save the key is resolved by the pure [AppContainer.resolveApiKeyEdit]: a blank field PRESERVES
- * the stored key, an explicit **Clear key** writes null, a non-blank entry REPLACES it. [Profile.toString]
- * keeps masking the key to `***` (V7).
- *
- * ## Grammar (carried from DevicesScreen)
- * [ScreenScaffold] Field-only grid + a green gutter Back; sacred square tiles; static outline + glow only
- * (no looping animation — Adreno-320 floor); every color routes through [LocalTokens] (THEME-01). The
- * scrollable Field keeps `Dest.Devices` in the swipe-suppress set (AppShell).
- *
- * @param container    the process-scoped service-locator (the `profileStore` source + the durable intents).
- * @param onAddPrinter retained for API compatibility with the former Devices call site; the Add-printer
- *                     tile now opens the in-screen editor, so the shell hook is a no-op fallback (plan 04
- *                     repoints the call site / drawer label).
- * @param onSwitched   the D-02 navigation hook — invoked after `setActive`; the shell maps it to
- *                     `navigateTo(Dest.PrintStatus)` so the recovery Splash lands on the new printer's Status.
- * @param onBack       the explicit neutral gutter Back exit (D-10; the swipe-drawer is suppressed for this Field).
+ * ## Security (T-28-06-01)
+ * The API key field NEVER pre-fills the raw stored key. Blank = preserve stored key;
+ * explicit Clear = write null ([AppContainer.resolveApiKeyEdit]).
  */
 @Composable
 fun PrintersScreen(
     container: AppContainer,
-    onAddPrinter: () -> Unit,
-    onSwitched: () -> Unit,
+    onAddPrinter: () -> Unit = {},
+    onSwitched: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
     val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeId by container.profileStore.activeId.collectAsStateWithLifecycle(null)
+    val connectionState by container.connectionState.collectAsStateWithLifecycle(ConnectionState.Disconnected)
 
-    // The Connection editor target: null = grid mode; an EditorTarget = editing that profile (or new).
+    // Mode-toggle state machine (28-06 D-13) — pure PrinterMode driven by foot bar buttons + BackHandler.
+    var printerMode by remember { mutableStateOf(PrinterMode.Normal) }
+    // Inline editor target: null = list view; Some(profile) = editing; EditorTarget.New = adding.
     var editingTarget by remember { mutableStateOf<EditorTarget?>(null) }
-    BackHandler(editingTarget != null) { editingTarget = null }
+    // Pending delete for ConfirmGuard.
+    var pendingDelete by remember { mutableStateOf<Profile?>(null) }
 
+    // BackHandler: disarm mode if armed; else dismiss editor/confirm if open.
+    BackHandler(printerMode != PrinterMode.Normal || editingTarget != null) {
+        when {
+            editingTarget != null -> editingTarget = null
+            else -> printerMode = disarm()
+        }
+    }
+
+    // ConfirmGuard for Delete-mode row tap.
+    pendingDelete?.let { victim ->
+        ConfirmGuard(
+            title = stringResource(R.string.printers_delete_confirm_title),
+            message = stringResource(R.string.printers_delete_confirm_body),
+            confirmLabel = stringResource(R.string.printers_delete),
+            cancelLabel = stringResource(R.string.common_back),
+            onConfirm = {
+                container.deleteProfile(victim.id)
+                pendingDelete = null
+                printerMode = disarm()
+            },
+            onCancel = { pendingDelete = null },
+            destructive = true,
+        )
+        return
+    }
+
+    // Inline connection editor (Edit mode row tap or Add).
     val target = editingTarget
     if (target != null) {
-        ConnectionEditor(
+        PrinterConnectionEditor(
             container = container,
             profile = if (target is EditorTarget.Edit) target.profile else null,
-            onDone = { editingTarget = null },
+            onDone = {
+                editingTarget = null
+                // Stay in EditArmed after saving so the user can continue editing other printers.
+            },
             modifier = modifier,
         )
         return
     }
 
-    Box(modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+
+        // Active-printer data for the Focus card.
+        val activeProfile = profiles.firstOrNull { it.id == activeId } ?: profiles.firstOrNull()
+
+        // Connection-state ring color (THEME-01 data carve-out — raw color not brandTint-clamped).
+        val ringColor: Color? = when (connectionState) {
+            ConnectionState.Connected    -> t.accent
+            ConnectionState.Connecting   -> t.heat
+            ConnectionState.Syncing      -> t.heat
+            is ConnectionState.Error     -> t.stop
+            ConnectionState.Disconnected -> null
+        }
+
         ScreenScaffold(
-            field = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(t.bg)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(profiles, key = { it.id }) { profile ->
-                        PrinterTile(
-                            profile = profile,
-                            active = profile.id == activeId,
-                            onClick = {
-                                // D-02: persist active (PROCESS-scoped writeScope, NOT a composition scope —
-                                // onSwitched() navigates away the same frame) → the runConfigLoop seam rebinds.
-                                container.setActiveProfile(profile.id)
-                                onSwitched()
-                            },
-                            onEdit = { editingTarget = EditorTarget.Edit(profile) },
+            focus = {
+                if (activeProfile != null) {
+                    DetailCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ringColor = ringColor,
+                    ) {
+                        Text(
+                            text = activeProfile.displayName(),
+                            color = t.text,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = fsSp(20f, t.fs).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                    }
-                    item(key = "__add_printer__") {
-                        AddPrinterTile(onClick = { editingTarget = EditorTarget.New })
+                        Text(
+                            text = "${activeProfile.host}:${activeProfile.port}",
+                            color = t.text2,
+                            fontFamily = GeistMono,
+                            fontSize = fsSp(15f, t.fs).sp,
+                        )
+                        Text(
+                            text = connectionState.label(),
+                            color = ringColor ?: t.text2,
+                            fontFamily = Geist,
+                            fontSize = fsSp(15f, t.fs).sp,
+                        )
                     }
                 }
             },
-            gutter = {
-                OutlinedControl(
-                    label = "Back",
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                    symbol = "arrow_back",
-                )
+            field = {
+                if (profiles.isEmpty()) {
+                    // Empty state.
+                    Box(
+                        Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.printers_empty_headline),
+                                color = t.text,
+                                fontFamily = Geist,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = fsSp(17f, t.fs).sp,
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = stringResource(R.string.printers_empty_body),
+                                color = t.text2,
+                                fontFamily = Geist,
+                                fontSize = fsSp(15f, t.fs).sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
+                } else {
+                    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                        items(profiles, key = { it.id }) { profile ->
+                            ListRow(
+                                dense = true,
+                                selected = profile.id == activeId,
+                                onClick = {
+                                    when (rowTapEffect(printerMode)) {
+                                        RowTapEffect.SwitchActive -> {
+                                            container.setActiveProfile(profile.id)
+                                            onSwitched()
+                                        }
+                                        RowTapEffect.OpenEditor -> {
+                                            editingTarget = EditorTarget.Edit(profile)
+                                        }
+                                        RowTapEffect.RequestDelete -> {
+                                            pendingDelete = profile
+                                        }
+                                    }
+                                },
+                                uDp = grid.uDp,
+                            ) {
+                                Text(
+                                    text = profile.displayName(),
+                                    color = t.text,
+                                    fontFamily = Geist,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = fsSp(17f, t.fs).sp,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "${profile.host}:${profile.port}",
+                                    color = t.text2,
+                                    fontFamily = GeistMono,
+                                    fontSize = fsSp(15f, t.fs).sp,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_add),
+                        onClick = { editingTarget = EditorTarget.New },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_edit),
+                        onClick = { printerMode = armEdit(printerMode) },
+                        modifier = Modifier.weight(1f),
+                        intent = if (printerMode == PrinterMode.EditArmed) Intent.Accent else Intent.Neutral,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.printers_delete),
+                        onClick = { printerMode = armDelete(printerMode) },
+                        modifier = Modifier.weight(1f),
+                        intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.common_back),
+                        onClick = {
+                            if (printerMode != PrinterMode.Normal) {
+                                printerMode = disarm()
+                            } else {
+                                onBack()
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Neutral,
+                    )
+                }
             },
+            gutter = null,
         )
     }
 }
+
+// =============================================================================
+// Connection editor (inline — opened from Edit mode or Add)
+// =============================================================================
 
 /** Which profile the Connection editor targets — an existing one to [Edit], or a blank [New] printer. */
 private sealed interface EditorTarget {
@@ -171,35 +355,57 @@ private sealed interface EditorTarget {
 }
 
 /**
- * The absorbed Connection editor (D-02) — moved VERBATIM from `SettingsScreen` (host/port/apiKey + mDNS
- * scan + the host/port validators, V5). Edits [profile] (null = a blank new-printer form). Persists through
- * the durable [AppContainer] intents only; resolves the apiKey via [AppContainer.resolveApiKeyEdit].
+ * The inline densified connection editor (28-06, D-12/D-15).
+ *
+ * Fields: Host (text) / Port (numeric keyboard) / API key (masked). Persists through
+ * [AppContainer] writeScope intent helpers only (process-lifetime scope — no composition scope writes).
+ * API key semantics (T-28-06-01): never pre-fills raw key; blank = preserve stored key;
+ * "Clear key" button = write null via [AppContainer.resolveApiKeyEdit].
  */
 @Composable
-private fun ConnectionEditor(
+private fun PrinterConnectionEditor(
     container: AppContainer,
     profile: Profile?,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val scope = rememberCoroutineScope() // mDNS scan ONLY — never a profile persist (write-scope law).
 
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("7125") }
     var apiKey by remember { mutableStateOf("") }
-    var useSecure by remember { mutableStateOf(false) } // R7 (26.5-07): per-printer wss/https toggle.
+    var useSecure by remember { mutableStateOf(false) }
     var keyAlreadySaved by remember { mutableStateOf(false) }
     var hostError by remember { mutableStateOf(false) }
     var portError by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf<Profile?>(null) }
 
+    // mDNS scan state — LaunchedEffect(scanRequest) triggered by button tap (write-scope law).
+    var scanRequest by remember { mutableStateOf(0) }  // incremented to trigger a scan
     var scanning by remember { mutableStateOf(false) }
     var scanned by remember { mutableStateOf(false) }
     var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
 
-    // Seed the form from the target — NEVER pre-fill the raw apiKey into the field (MEDIUM-5/V7); show a
-    // "Key saved" hint instead. Re-seed when the target id changes.
+    // mDNS scan — bounded LaunchedEffect(scanRequest); no persistence, safe to cancel on nav.
+    LaunchedEffect(scanRequest) {
+        if (scanRequest == 0) return@LaunchedEffect
+        scanning = true
+        scanned = false
+        discovered = emptyList()
+        try {
+            withTimeoutOrNull(SCAN_WINDOW_MS) {
+                container.discovery.discover().collect { printer ->
+                    if (discovered.none { it.host == printer.host && it.port == printer.port }) {
+                        discovered = discovered + printer
+                    }
+                }
+            }
+        } finally {
+            scanning = false
+            scanned = true
+        }
+    }
+
+    // Seed from profile on open — NEVER pre-fill raw API key (T-28-06-01 / MEDIUM-5 / V7).
     LaunchedEffect(profile?.id) {
         host = profile?.host ?: ""
         port = profile?.port?.toString() ?: "7125"
@@ -212,84 +418,79 @@ private fun ConnectionEditor(
         discovered = emptyList()
     }
 
-    pendingDelete?.let { victim ->
-        ConfirmGuard(
-            title = "Delete printer?",
-            message = "This removes ${victim.displayName()} and its saved theme. This can't be undone.",
-            confirmLabel = "Delete",
-            cancelLabel = "Keep",
-            onConfirm = {
-                container.deleteProfile(victim.id)
-                pendingDelete = null
-                onDone()
-            },
-            onCancel = { pendingDelete = null },
-            destructive = true,
-        )
-        return
-    }
-
     Column(
         modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        EditorSectionHeader(if (profile != null) "Edit printer" else "Add printer")
+        Text(
+            text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
+            color = t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.Bold,
+            fontSize = fsSp(20f, t.fs).sp,
+        )
 
-        if (profile != null) {
+        TokenTextField(
+            value = host,
+            onValueChange = { host = it; hostError = false },
+            label = stringResource(R.string.printers_edit_host),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardType = KeyboardType.Text,
+            isError = hostError,
+            dense = true,
+        )
+        if (hostError) {
             Text(
-                text = "Editing ${profile.displayName()}",
-                color = t.text2,
+                text = "Host is required.",
+                color = t.stop,
                 fontFamily = GeistMono,
                 fontSize = fsSp(15f, t.fs).sp,
             )
         }
 
         TokenTextField(
-            value = host,
-            onValueChange = { host = it; hostError = false },
-            label = "Host (IP or hostname)",
-            modifier = Modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text,
-            isError = hostError,
-        )
-        if (hostError) EditorFieldError("Host is required.")
-
-        TokenTextField(
             value = port,
             onValueChange = { port = it; portError = false },
-            label = "Port",
+            label = stringResource(R.string.printers_edit_port),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Number,
             isError = portError,
+            dense = true,
         )
-        if (portError) EditorFieldError("Port must be 1–65535.")
+        if (portError) {
+            Text(
+                text = "Port must be 1–65535.",
+                color = t.stop,
+                fontFamily = GeistMono,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
+        }
 
         TokenTextField(
             value = apiKey,
             onValueChange = { apiKey = it },
-            label = if (keyAlreadySaved) "API key (leave blank to keep saved key)" else "API key (optional)",
+            label = if (keyAlreadySaved)
+                "API key (leave blank to keep saved key)"
+            else
+                stringResource(R.string.printers_edit_key),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Password,
             isPassword = true,
+            dense = true,
         )
         if (keyAlreadySaved && apiKey.isBlank()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Key saved",
-                    color = t.go,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-            }
+            Text(
+                text = "Key saved",
+                color = t.go,
+                fontFamily = GeistMono,
+                fontSize = fsSp(15f, t.fs).sp,
+            )
         }
 
-        // R7 (26.5-07): per-printer wss/https toggle, co-located with host/port/apiKey (this IS the
-        // connection-settings surface post-Phase-14). LOCAL state until Save — it persists through
-        // the SAME durable saveProfile intent as the other fields (write-scope law), never its own
-        // composition-scope write. Plain toggle row, no icon (icon law).
+        // R7 (26.5-07): per-printer wss/https toggle.
         SecureToggleRow(
             label = stringResource(R.string.printers_use_secure),
             subLabel = if (useSecure) {
@@ -306,23 +507,7 @@ private fun ConnectionEditor(
                 label = if (scanning) "Scanning…" else "Scan (mDNS)",
                 onClick = {
                     if (!scanning) {
-                        scanning = true
-                        scanned = false
-                        discovered = emptyList()
-                        scope.launch {
-                            try {
-                                withTimeoutOrNull(SCAN_WINDOW_MS) {
-                                    container.discovery.discover().collect { printer ->
-                                        if (discovered.none { it.host == printer.host && it.port == printer.port }) {
-                                            discovered = discovered + printer
-                                        }
-                                    }
-                                }
-                            } finally {
-                                scanning = false
-                                scanned = true
-                            }
-                        }
+                        scanRequest++ // triggers LaunchedEffect(scanRequest)
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -332,8 +517,6 @@ private fun ConnectionEditor(
                 OutlinedControl(
                     label = "Clear key",
                     onClick = {
-                        // Explicit Clear → resolveApiKeyEdit(cleared=true) returns null. Persist via the
-                        // durable intent (saveProfile), NOT a composition scope.
                         profile?.let { p ->
                             container.saveProfile(
                                 p.copy(apiKey = AppContainer.resolveApiKeyEdit(p.apiKey, apiKey, cleared = true)),
@@ -377,35 +560,28 @@ private fun ConnectionEditor(
                 hostError = blankHost
                 portError = badPort
                 if (!blankHost && !badPort) {
-                    // MEDIUM-5: blank field PRESERVES the stored key; a non-blank entry REPLACES it (no
-                    // explicit Clear on the Save path — Clear is its own button above).
                     val resolvedKey = AppContainer.resolveApiKeyEdit(
                         existing = profile?.apiKey,
                         fieldInput = apiKey,
                         cleared = false,
                     )
-                    val next =
-                        if (profile != null) {
-                            // EDIT — preserve the stable id + theme tuple + the per-profile toggles.
-                            profile.copy(
-                                host = host.trim(),
-                                port = portInt!!,
-                                apiKey = resolvedKey,
-                                useSecure = useSecure, // R7 (26.5-07)
-                            )
-                        } else {
-                            // NEW — a fresh printer at the validated default theme tuple (D-05 fresh-start).
-                            Profile(
-                                id = Profile.newId(),
-                                name = null,
-                                host = host.trim(),
-                                port = portInt!!,
-                                apiKey = resolvedKey,
-                                useSecure = useSecure, // R7 (26.5-07)
-                            )
-                        }
-                    // Durable container scope (D-11 auto-selects the FIRST profile active). NEVER a
-                    // rememberCoroutineScope() ([[dinghy-compose-write-scope-cancellation]]).
+                    val next = if (profile != null) {
+                        profile.copy(
+                            host = host.trim(),
+                            port = portInt!!,
+                            apiKey = resolvedKey,
+                            useSecure = useSecure,
+                        )
+                    } else {
+                        Profile(
+                            id = Profile.newId(),
+                            name = null,
+                            host = host.trim(),
+                            port = portInt!!,
+                            apiKey = resolvedKey,
+                            useSecure = useSecure,
+                        )
+                    }
                     container.saveProfile(next)
                     apiKey = ""
                     onDone()
@@ -415,34 +591,31 @@ private fun ConnectionEditor(
             intent = Intent.Go,
         )
 
-        if (profile != null) {
-            OutlinedControl(
-                label = "Delete this printer",
-                onClick = { pendingDelete = profile },
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Danger,
-            )
-        }
-
         OutlinedControl(
-            label = "Back",
+            label = stringResource(R.string.common_back),
             onClick = onDone,
             modifier = Modifier.fillMaxWidth(),
             intent = Intent.Neutral,
         )
-
-        Box(Modifier.height(24.dp))
     }
 }
 
-/** Bounded settle window for an mDNS scan — long enough to resolve LAN printers, short enough to end. */
+/** Bounded settle window for mDNS scan. */
 private const val SCAN_WINDOW_MS = 6000L
 
 /**
- * The R7 (26.5-07) useSecure toggle row — SettingsScreen's ToggleRow grammar verbatim (outlined
- * tappable row, ON/OFF pill as a redundant cue to the accent color, whole row ≥64dp touch target,
- * token colors + fsSp only, NO icon). Local copy because ToggleRow is private to SettingsScreen and
- * this row is editor-local state (committed by Save), not a live persist.
+ * Returns a human-readable label for the connection state (used in the Focus DetailCard).
+ */
+private fun ConnectionState.label(): String = when (this) {
+    ConnectionState.Connected    -> "Connected"
+    ConnectionState.Connecting   -> "Connecting…"
+    ConnectionState.Syncing      -> "Syncing…"
+    is ConnectionState.Error     -> "Error"
+    ConnectionState.Disconnected -> "Disconnected"
+}
+
+/**
+ * The R7 (26.5-07) useSecure toggle row — preserved from the original PrintersScreen.
  */
 @Composable
 private fun SecureToggleRow(
@@ -460,7 +633,7 @@ private fun SecureToggleRow(
             .clip(shape)
             .border(BorderStroke(2.dp, outline), shape)
             .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp, vertical = 18.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -469,24 +642,23 @@ private fun SecureToggleRow(
                 color = t.text,
                 fontFamily = Geist,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
+                fontSize = fsSp(17f, t.fs).sp,
             )
             if (subLabel != null) {
                 Text(
                     text = subLabel,
-                    color = t.text3,
+                    color = t.text2,
                     fontFamily = Geist,
                     fontSize = fsSp(15f, t.fs).sp,
                 )
             }
         }
-        // The ON/OFF state pill — accent-outlined ON, hairline OFF (no color-only meaning).
         val pillShape = RoundedCornerShape(t.rPill)
         Box(
             Modifier
                 .clip(pillShape)
                 .border(BorderStroke(2.dp, if (checked) t.accentLine else t.outline), pillShape)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
             Text(
                 text = if (checked) "ON" else "OFF",
@@ -499,124 +671,7 @@ private fun SecureToggleRow(
     }
 }
 
-/**
- * One saved-printer tile. Reuses the `DrawerTile` square-tile grammar verbatim. The ACTIVE tile (D-03)
- * gets accent emphasis. A small top-start `edit` glyph opens the Connection editor for this profile
- * (distinct from the tap-to-switch body and the active `bolt` marker — icon-no-repeat law).
- */
-@Composable
-private fun PrinterTile(
-    profile: Profile,
-    active: Boolean,
-    onClick: () -> Unit,
-    onEdit: () -> Unit,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    val fill = if (active) t.accentSoft else t.surface2
-    Box(
-        Modifier
-            .fillMaxSize()
-            .aspectRatio(1f) // sacred square (LAYOUT.md NON-NEGOTIABLE 2).
-            .clip(shape)
-            .background(fill)
-            .border(BorderStroke(2.dp, t.accentLine), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (active) {
-            MaterialSymbol(
-                name = "bolt",
-                tint = t.accent,
-                sizeSp = fsSp(20f, t.fs),
-                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
-            )
-        }
-        // Edit affordance (top-start) — opens the absorbed Connection editor for this printer.
-        MaterialSymbol(
-            name = "edit",
-            tint = t.text2,
-            sizeSp = fsSp(20f, t.fs),
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(6.dp)
-                .clickable(onClick = onEdit),
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(8.dp),
-        ) {
-            MaterialSymbol(
-                name = "dns",
-                tint = t.text,
-                sizeSp = fsSp(40f, t.fs),
-            )
-            Text(
-                text = profile.displayName(),
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(20f, t.fs).sp,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "${profile.host}:${profile.port}",
-                color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Normal,
-                fontSize = fsSp(17f, t.fs).sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-/**
- * The "Add printer" tile (D-01) — a live accent tile with an `add` glyph that opens the blank Connection
- * editor. `add` is unique on this screen (not `dns`/`bolt`/`edit`/`arrow_back` — icon-no-repeat law).
- */
-@Composable
-private fun AddPrinterTile(onClick: () -> Unit) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .aspectRatio(1f)
-            .clip(shape)
-            .background(t.surface2)
-            .border(BorderStroke(2.dp, t.accentLine), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(8.dp),
-        ) {
-            MaterialSymbol(
-                name = "add",
-                tint = t.text,
-                sizeSp = fsSp(40f, t.fs),
-            )
-            Text(
-                text = "Add printer",
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(16f, t.fs).sp,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-/** A discovered-printer row (mDNS), local to the absorbed editor (mirrors the former SettingsScreen row). */
+/** A discovered-printer row (mDNS), local to the connection editor. */
 @Composable
 private fun DiscoveredPrinterRow(
     printer: DiscoveredPrinter,
@@ -647,27 +702,4 @@ private fun DiscoveredPrinterRow(
             fontSize = fsSp(15f, t.fs).sp,
         )
     }
-}
-
-@Composable
-private fun EditorFieldError(text: String) {
-    val t = LocalTokens.current
-    Text(
-        text = text,
-        color = t.stop,
-        fontFamily = GeistMono,
-        fontSize = fsSp(15f, t.fs).sp,
-    )
-}
-
-@Composable
-private fun EditorSectionHeader(text: String) {
-    val t = LocalTokens.current
-    Text(
-        text = text,
-        color = t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Bold,
-        fontSize = fsSp(22f, t.fs).sp,
-    )
 }

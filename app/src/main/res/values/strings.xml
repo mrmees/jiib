@@ -556,4 +556,16 @@
     <string name="printers_use_secure_sub_on">wss/https — requires a TLS reverse proxy in front of Moonraker</string>
     <string name="printers_use_secure_sub_off">Plain ws/http on the local network</string>
 
+    <!-- ============== printers — 28-06 rebuilt screen mode-toggle foot bar ============== -->
+    <string name="printers_add">Add</string>
+    <string name="printers_edit">Edit</string>
+    <string name="printers_delete">Delete</string>
+    <string name="printers_delete_confirm_title">Remove Printer?</string>
+    <string name="printers_delete_confirm_body">This will remove the connection profile. The printer itself is unaffected.</string>
+    <string name="printers_empty_headline">No printers configured</string>
+    <string name="printers_empty_body">Tap Add to set up your first printer.</string>
+    <string name="printers_edit_host">Host / IP address</string>
+    <string name="printers_edit_port">Port</string>
+    <string name="printers_edit_key">API Key (optional)</string>
+
 </resources>
