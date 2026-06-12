@@ -123,7 +123,6 @@ fun RootController(container: AppContainer, startDest: NavDest? = null) {
         rawRoute is TopRoute.Connect || settingsEscape -> {
             PrintersScreen(
                 container = container,
-                onAddPrinter = { },
                 onSwitched = { settingsEscape = false },
                 onBack = { settingsEscape = false },
             )

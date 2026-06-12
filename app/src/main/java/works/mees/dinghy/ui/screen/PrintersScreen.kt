@@ -317,7 +317,6 @@ fun PrintersContent(
 @Composable
 fun PrintersScreen(
     container: AppContainer,
-    onAddPrinter: () -> Unit = {},
     onSwitched: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier,

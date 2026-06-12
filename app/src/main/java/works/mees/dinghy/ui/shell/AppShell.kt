@@ -729,7 +729,6 @@ fun AppShell(
                 // system Back (WR-03 fix). popBackStack is idempotent at root. NO rebind/disconnect here.
                 PrintersScreen(
                     container = container,
-                    onAddPrinter = { navController.navigate(NavDest.Settings) },
                     onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
                     onBack = { navController.popBackStack() },
                 )
