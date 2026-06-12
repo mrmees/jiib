@@ -4,10 +4,14 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Per-key TRAILING-COMMIT debouncer for stepper-style controls (quick-rmr).
@@ -88,32 +92,87 @@ class TrailingCommitBatcher(
      */
     val working: StateFlow<PersistentMap<String, Double>> = _working.asStateFlow()
 
+    /** Per-key pending quiet-window timer Jobs (a key here = an UNCOMMITTED working value). */
+    private val timerJobs = mutableMapOf<String, Job>()
+
+    /** Per-key post-commit settle-clear Jobs (a key here = committed, in display retention). */
+    private val settleJobs = mutableMapOf<String, Job>()
+
     /** Store the ALREADY-CLAMPED [value] for [key] and (re)start its trailing quiet timer. */
     fun tap(key: String, value: Double) {
-        TODO("RED stub — implemented in the GREEN commit")
+        // Cancel-and-restart timer discipline: cancel BEFORE relaunch so no stale timer can fire
+        // (the holder's timeoutJob hygiene); a tap during settle retention re-arms (cancels clear).
+        settleJobs.remove(key)?.cancel()
+        timerJobs.remove(key)?.cancel()
+        _working.value = _working.value.put(key, value)
+        timerJobs[key] = scope.launch {
+            delay(quietMs)
+            // canCommit reschedule gate: while the key's dispatch is in flight, re-wait one quiet
+            // window instead of dispatching into a guaranteed rejection. Bounded — the dispatcher
+            // always removes the in-flight key in `finally`.
+            while (!canCommit(key)) delay(quietMs)
+            commitNow(key)
+        }
     }
 
     /** Drop [key]'s working value and timers WITHOUT committing (a reset supersedes it). */
     fun cancel(key: String) {
-        TODO("RED stub — implemented in the GREEN commit")
+        timerJobs.remove(key)?.cancel()
+        settleJobs.remove(key)?.cancel()
+        _working.value = _working.value.remove(key)
     }
 
     /** [cancel] every key (dispatch-Failure revert: working values fall back to live). */
     fun cancelAll() {
-        TODO("RED stub — implemented in the GREEN commit")
+        timerJobs.values.forEach { it.cancel() }
+        timerJobs.clear()
+        settleJobs.values.forEach { it.cancel() }
+        settleJobs.clear()
+        _working.value = persistentMapOf()
     }
 
     /**
-     * Commit every key with a still-pending (uncommitted) timer immediately and synchronously.
-     * Keys already committed and merely in settle-retention are NOT re-committed.
+     * Commit every key with a still-pending (uncommitted) timer immediately and synchronously —
+     * NO [canCommit] wait (accepted corner 1). Keys already committed and merely in
+     * settle-retention are NOT re-committed.
      */
     fun flush() {
-        TODO("RED stub — implemented in the GREEN commit")
+        for (key in timerJobs.keys.toList()) {
+            timerJobs.remove(key)?.cancel()
+            val value = _working.value[key] ?: continue
+            onCommit(key, value)
+            scheduleSettleClear(key)
+        }
     }
 
     /** [flush], then cancel all timers (and the owned production scope). Commit-on-dispose. */
     fun dispose() {
-        TODO("RED stub — implemented in the GREEN commit")
+        flush()
+        timerJobs.values.forEach { it.cancel() }
+        timerJobs.clear()
+        settleJobs.values.forEach { it.cancel() }
+        settleJobs.clear()
+        // The dispatched network call rides CommandDispatcher's app-lifetime scope, so it
+        // completes even though this (production-owned) scope dies with the screen.
+        if (ownsScope) scope.cancel()
+    }
+
+    /** Fire [onCommit] with [key]'s current working value and start its settle-clear retention. */
+    private fun commitNow(key: String) {
+        timerJobs.remove(key)
+        val value = _working.value[key] ?: return
+        onCommit(key, value)
+        scheduleSettleClear(key)
+    }
+
+    /** Retain working[key] for [settleMs] (display retention over the echo window), then clear. */
+    private fun scheduleSettleClear(key: String) {
+        settleJobs.remove(key)?.cancel()
+        settleJobs[key] = scope.launch {
+            delay(settleMs)
+            settleJobs.remove(key)
+            _working.value = _working.value.remove(key)
+        }
     }
 
     companion object {
