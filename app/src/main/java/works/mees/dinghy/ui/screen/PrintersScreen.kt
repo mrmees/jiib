@@ -322,7 +322,6 @@ fun PrintersScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
     val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeId by container.profileStore.activeId.collectAsStateWithLifecycle(null)
     val connectionState by container.connectionState.collectAsStateWithLifecycle(ConnectionState.Disconnected)
@@ -378,161 +377,39 @@ fun PrintersScreen(
         return
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-
-        // Active-printer data for the Focus card.
-        val activeProfile = profiles.firstOrNull { it.id == activeId } ?: profiles.firstOrNull()
-
-        // Connection-state ring color (THEME-01 data carve-out — raw color not brandTint-clamped).
-        val ringColor: Color? = when (connectionState) {
-            ConnectionState.Connected    -> t.accent
-            ConnectionState.Connecting   -> t.heat
-            ConnectionState.Syncing      -> t.heat
-            is ConnectionState.Error     -> t.stop
-            ConnectionState.Disconnected -> null
-        }
-
-        ScreenScaffold(
-            focus = {
-                if (activeProfile != null) {
-                    DetailCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        ringColor = ringColor,
-                    ) {
-                        Text(
-                            text = activeProfile.displayName(),
-                            color = t.text,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(20f, t.fs).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "${activeProfile.host}:${activeProfile.port}",
-                            color = t.text2,
-                            fontFamily = GeistMono,
-                            fontSize = fsSp(15f, t.fs).sp,
-                        )
-                        Text(
-                            text = connectionState.label(),
-                            color = ringColor ?: t.text2,
-                            fontFamily = Geist,
-                            fontSize = fsSp(15f, t.fs).sp,
-                        )
-                    }
+    // WR-04 (preview-first LAW): the live screen DELEGATES to the stateless [PrintersContent] seam —
+    // the exact layout body the @Preview matrix renders — so screen and previews cannot drift.
+    PrintersContent(
+        profiles = profiles,
+        activeId = activeId,
+        connectionState = connectionState,
+        printerMode = printerMode,
+        onRowClick = { profile ->
+            when (rowTapEffect(printerMode)) {
+                RowTapEffect.SwitchActive -> {
+                    container.setActiveProfile(profile.id)
+                    onSwitched()
                 }
-            },
-            field = {
-                if (profiles.isEmpty()) {
-                    // Empty state.
-                    Box(
-                        Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = stringResource(R.string.printers_empty_headline),
-                                color = t.text,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(17f, t.fs).sp,
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                text = stringResource(R.string.printers_empty_body),
-                                color = t.text2,
-                                fontFamily = Geist,
-                                fontSize = fsSp(15f, t.fs).sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
-                } else {
-                    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                        items(profiles, key = { it.id }) { profile ->
-                            ListRow(
-                                selected = profile.id == activeId,
-                                onClick = {
-                                    when (rowTapEffect(printerMode)) {
-                                        RowTapEffect.SwitchActive -> {
-                                            container.setActiveProfile(profile.id)
-                                            onSwitched()
-                                        }
-                                        RowTapEffect.OpenEditor -> {
-                                            editingTarget = EditorTarget.Edit(profile)
-                                        }
-                                        RowTapEffect.RequestDelete -> {
-                                            pendingDelete = profile
-                                        }
-                                    }
-                                },
-                                uDp = grid.uDp,
-                            ) {
-                                Text(
-                                    text = profile.displayName(),
-                                    color = t.text,
-                                    fontFamily = Geist,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = fsSp(17f, t.fs).sp,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = "${profile.host}:${profile.port}",
-                                    color = t.text2,
-                                    fontFamily = GeistMono,
-                                    fontSize = fsSp(15f, t.fs).sp,
-                                    maxLines = 1,
-                                )
-                            }
-                        }
-                    }
+                RowTapEffect.OpenEditor -> {
+                    editingTarget = EditorTarget.Edit(profile)
                 }
-                FootButtonBar(
-                    uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_add),
-                        onClick = { editingTarget = EditorTarget.New },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_edit),
-                        onClick = { printerMode = armEdit(printerMode) },
-                        modifier = Modifier.weight(1f),
-                        intent = if (printerMode == PrinterMode.EditArmed) Intent.Accent else Intent.Neutral,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_delete),
-                        onClick = { printerMode = armDelete(printerMode) },
-                        modifier = Modifier.weight(1f),
-                        intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.common_back),
-                        onClick = {
-                            if (printerMode != PrinterMode.Normal) {
-                                printerMode = disarm()
-                            } else {
-                                onBack()
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
-                    )
+                RowTapEffect.RequestDelete -> {
+                    pendingDelete = profile
                 }
-            },
-            gutter = null,
-        )
-    }
+            }
+        },
+        onAdd = { editingTarget = EditorTarget.New },
+        onArmEdit = { printerMode = armEdit(printerMode) },
+        onArmDelete = { printerMode = armDelete(printerMode) },
+        onBack = {
+            if (printerMode != PrinterMode.Normal) {
+                printerMode = disarm()
+            } else {
+                onBack()
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 // =============================================================================

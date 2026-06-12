@@ -166,357 +166,134 @@ fun ThemeEditorScreen(
         return
     }
 
-    // Per-slot override picker — hue wheel + S/V square; writes ONE pool slot on settle (D-09).
+    // ---- Picker seeding (D-16) — hoisted here so the STATELESS [ThemeEditorContent] seam can
+    // render either picker (WR-04: the live screen and the @Preview matrix share ONE layout body).
     val slot = editingSlot
-    if (slot != null) {
-        // WR-06 + D-16: seed hue/sat/value from the STORED ARGB (override or base generated).
-        // Re-opening a slot the user set to teal at 80% saturation must show that exact color.
-        val storedSlotArgb = activeProfile?.poolOverrides?.get(slot.toString())
-        val seedSlotColor = when {
-            storedSlotArgb != null -> Color(storedSlotArgb.toInt())
-            t.pool.isNotEmpty() -> t.pool[slot % t.pool.size]
-            else -> t.accent
-        }
-        var slotHue by remember(slot) { mutableFloatStateOf(colorToHue(seedSlotColor)) }
-        // Seed sat/value from stored ARGB (D-16 — restore full color on re-open via colorToHSV).
-        LaunchedEffect(slot) {
-            val hsv = FloatArray(3)
-            android.graphics.Color.colorToHSV(seedSlotColor.toArgb(), hsv)
-            sat = hsv[1]
-            value = hsv[2]
-        }
-        Column(
-            modifier
-                .fillMaxSize()
-                .background(t.bg)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            ScreenTitle("Pool color ${slot + 1}")
-            SectionLabel("Pick a color")
-            ColorWheel(
-                hue = slotHue,
-                onHandleMove = { slotHue = it },
-                onSettle = { settled ->
-                    slotHue = settled
-                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(settled, sat, value))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SectionLabel("Saturation / Brightness")
-            SaturationValueSquare(
-                hue = slotHue,
-                sat = sat,
-                value = value,
-                onHandleMove = { s, v -> sat = s; value = v },
-                onSettle = { s, v ->
-                    sat = s; value = v
-                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(slotHue, s, v))
-                },
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(
-                    label = "Clear",
-                    onClick = {
-                        container.setActiveOverride(hasActive, slot, null)
-                        editingSlot = null
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Warn,
-                )
-                OutlinedControl(
-                    label = "Done",
-                    onClick = { editingSlot = null },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Go,
-                )
-            }
-            Box(Modifier.height(24.dp))
-        }
-        return
-    }
-
-    // Per-status-slot override picker (D-03) — hue wheel + S/V square; writes via the durable
-    // setActiveStatusOverride intent (writeScope), NEVER a rememberCoroutineScope (see the KDoc above).
     val statusSlot = editingStatusSlot
-    if (statusSlot != null) {
-        // The EFFECTIVE rendered color for this slot (mode-gated — Simple/High-Contrast ignore the override).
-        val effective = effectiveStatusColor(t, statusSlot)
-        // The STORED override (the user's pick, if any) — read from the active profile's wire map. In the
-        // idle/no-profile case the stored override is not surfaced (mirrors the pool grid's limitation).
-        val storedArgb = activeProfile?.poolOverrides?.get(statusSlot.key)
-        val seedStatusColor = storedArgb?.toComposeColor() ?: effective
-        var slotHue by remember(statusSlot) { mutableFloatStateOf(colorToHue(seedStatusColor)) }
-        // D-16: seed sat/value from stored ARGB so re-opening a status slot restores the full color.
-        LaunchedEffect(statusSlot) {
+    // The color the open picker seeds from: stored override ARGB → base generated → accent.
+    // Re-opening a slot the user set to teal at 80% saturation must show that exact color.
+    val pickerSeedColor: Color? = when {
+        slot != null -> {
+            val storedSlotArgb = activeProfile?.poolOverrides?.get(slot.toString())
+            when {
+                storedSlotArgb != null -> Color(storedSlotArgb.toInt())
+                t.pool.isNotEmpty() -> t.pool[slot % t.pool.size]
+                else -> t.accent
+            }
+        }
+        statusSlot != null -> {
+            // The STORED override (the user's pick, if any) — read from the active profile's wire
+            // map; else the EFFECTIVE rendered color (mode-gated — Simple/High-Contrast ignore the
+            // override). In the idle/no-profile case the stored override is not surfaced (mirrors
+            // the pool grid's limitation).
+            val storedArgb = activeProfile?.poolOverrides?.get(statusSlot.key)
+            storedArgb?.toComposeColor() ?: effectiveStatusColor(t, statusSlot)
+        }
+        else -> null
+    }
+    // Picker wheel hue — keyed on the OPEN slot so re-opening reseeds from the stored color.
+    var slotHue by remember(slot, statusSlot) {
+        mutableFloatStateOf(pickerSeedColor?.let { colorToHue(it) } ?: 0f)
+    }
+    // D-16: seed sat/value from the stored ARGB so re-opening a slot restores the full color.
+    LaunchedEffect(slot, statusSlot) {
+        if (pickerSeedColor != null) {
             val hsv = FloatArray(3)
-            android.graphics.Color.colorToHSV(seedStatusColor.toArgb(), hsv)
+            android.graphics.Color.colorToHSV(pickerSeedColor.toArgb(), hsv)
             sat = hsv[1]
             value = hsv[2]
         }
-        // Whether the live override actually changes what the app renders in the CURRENT mode (Colorful only).
-        val overrideTakesEffect = t.mode == PaletteMode.Colorful
-        Column(
-            modifier
-                .fillMaxSize()
-                .background(t.bg)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            ScreenTitle("Status color — ${statusSlot.label()}")
-            // Mode-awareness (D-04): tell the truth about whether the edit changes the rendered status now.
-            if (overrideTakesEffect) {
-                SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
-            } else {
-                SubLabel(
-                    "Saved for Colorful mode. This mode (" + t.mode.label() +
-                        ") renders status from its fixed safety palette, so the picked color won't show here.",
-                )
-            }
-            SectionLabel("Pick a color")
-            ColorWheel(
-                hue = slotHue,
-                onHandleMove = { slotHue = it },
-                onSettle = { settled ->
-                    slotHue = settled
-                    // [[dinghy-compose-write-scope-cancellation]] — durable intent on writeScope, NOT a
-                    // composition scope. No editability guard on status (D-03 — shape carries safety).
+    }
+
+    // WR-04 (preview-first LAW): delegate ALL rendering to the stateless [ThemeEditorContent] seam
+    // the @Preview matrix targets, so screen and previews cannot drift. Every persist below routes
+    // through the durable AppContainer intents (writeScope + mutateActiveProfile — NEVER a
+    // rememberCoroutineScope, [[dinghy-compose-write-scope-cancellation]]).
+    ThemeEditorContent(
+        hue = hue,
+        sat = sat,
+        value = value,
+        dark = dark,
+        fsChoice = fsChoice,
+        paletteMode = paletteMode,
+        poolOverrides = activeProfile?.poolOverrides ?: emptyMap(),
+        statusOverrides = activeProfile?.poolOverrides ?: emptyMap(),
+        editingSlot = slot,
+        editingStatusSlot = statusSlot,
+        onBack = onBack,
+        modifier = modifier,
+        slotHue = slotHue,
+        onSlotHueMove = { slotHue = it },
+        onSlotHueSettle = { settled ->
+            slotHue = settled
+            when {
+                slot != null ->
+                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(settled, sat, value))
+                statusSlot != null ->
+                    // No editability guard on status (D-03 — shape carries safety).
                     container.setActiveStatusOverride(hasActive, statusSlot, hsvToArgbLong(settled, sat, value))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SectionLabel("Saturation / Brightness")
-            SaturationValueSquare(
-                hue = slotHue,
-                sat = sat,
-                value = value,
-                onHandleMove = { s, v -> sat = s; value = v },
-                onSettle = { s, v ->
-                    sat = s; value = v
+            }
+        },
+        onSlotSvMove = { s, v -> sat = s; value = v },
+        onSlotSvSettle = { s, v ->
+            sat = s; value = v
+            when {
+                slot != null ->
+                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(slotHue, s, v))
+                statusSlot != null ->
                     container.setActiveStatusOverride(hasActive, statusSlot, hsvToArgbLong(slotHue, s, v))
-                },
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(
-                    label = "Clear",
-                    onClick = {
-                        container.setActiveStatusOverride(hasActive, statusSlot, null)
-                        editingStatusSlot = null
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Warn,
-                )
-                OutlinedControl(
-                    label = "Done",
-                    onClick = { editingStatusSlot = null },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Go,
-                )
             }
-            Box(Modifier.height(24.dp))
-        }
-        return
-    }
-
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(t.bg)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        ScreenTitle("Edit theme")
-
-        // ---- 0. APPEARANCE — dark/light + S/M/L + palette-mode (15.2-04 finding 3) ------------------
-        // Relocated from the deleted SettingsScreen Appearance section. Each control drives the LIVE
-        // resolver AND persists via the durable AppContainer intents (writeScope). The existing Preview
-        // strip below (section 3) is the single coherent palette preview — no second competing row.
-
-        // Dark / Light — chrome derives from the seed; this only flips polarity.
-        SectionLabel("Mode")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(
-                label = "Dark",
-                onClick = {
-                    dark = true
-                    container.themeResolver.setDark(true) // live
-                    container.setActiveDark(hasActive, true) // durable
-                },
-                modifier = Modifier.weight(1f),
-                intent = if (dark) Intent.Accent else Intent.Neutral,
-            )
-            OutlinedControl(
-                label = "Light",
-                onClick = {
-                    dark = false
-                    container.themeResolver.setDark(false) // live
-                    container.setActiveDark(hasActive, false) // durable
-                },
-                modifier = Modifier.weight(1f),
-                intent = if (!dark) Intent.Accent else Intent.Neutral,
-            )
-        }
-
-        // S / M / L text size (the --fs authority). Each segment is filled with a POOL color from the
-        // active palette so the selector visibly reflects the current mode; the selected segment gets the
-        // accent ring. The fill is the literal pool color (data carve-out).
-        SectionLabel("Text size")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FontScale.entries.forEachIndexed { i, choice ->
-                val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
-                PoolSizeSegment(
-                    label = choice.name,
-                    fill = poolColor,
-                    selected = fsChoice == choice,
-                    onClick = {
-                        fsChoice = choice
-                        container.themeResolver.setFs(choice.multiplier) // live
-                        container.setActiveFs(hasActive, choice) // durable (process-lifetime writeScope)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+        },
+        onSlotClear = {
+            when {
+                slot != null -> {
+                    container.setActiveOverride(hasActive, slot, null)
+                    editingSlot = null
+                }
+                statusSlot != null -> {
+                    container.setActiveStatusOverride(hasActive, statusSlot, null)
+                    editingStatusSlot = null
+                }
             }
-        }
-
-        // Palette mode (D-15) — Colorful (default) / Simple / High contrast. Active = Intent.Accent.
-        SectionLabel("Palette mode")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            for ((mode, label) in PALETTE_MODES) {
-                OutlinedControl(
-                    label = label,
-                    onClick = {
-                        paletteMode = mode
-                        container.themeResolver.setMode(mode) // live
-                        container.setActiveMode(hasActive, mode) // durable
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral,
-                )
-            }
-        }
-
-        // ---- 1. SEED COLOR — the wheel + S/V square (settle-regen, D-07 / D-16) --------------------
-        SectionLabel("Seed color")
-        SubLabel("Pick a hue on the ring, then adjust saturation and brightness below")
-        ColorWheel(
-            hue = hue,
-            onHandleMove = { hue = it }, // cheap: handle-only repaint, NO regen (D-07).
-            onSettle = { settled ->
-                hue = settled
-                container.setActiveSeed(hasActive, hueToHex(settled)) // regen + retheme + persist ONCE.
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        // S/V square (D-16): adjusts the saturation/value of the seed picker — purely local preview
-        // for the seed hue. The seed path only persists hue (the generator cusp-normalizes L/C), so
-        // the S/V square here is a "see the hue in context" aid; slot pickers use it for full S/V storage.
-        SaturationValueSquare(
-            hue = hue,
-            sat = sat,
-            value = value,
-            onHandleMove = { s, v -> sat = s; value = v },
-            onSettle = { s, v -> sat = s; value = v }, // seed path: no additional persist (hue-only seed)
-        )
-
-        HorizontalDivider(color = t.hair, thickness = 1.dp)
-
-        // ---- 2. PRESETS — curated seed swatches (tap lands seed) ------------------------------------
-        SectionLabel("Presets")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (presetHex in PRESET_SEEDS) {
-                val presetHue = seedHexToHue(presetHex)
-                SeedSwatch(
-                    fill = Color(parseHex(presetHex)),
-                    selected = approxSameHue(hue, presetHue),
-                    onClick = {
-                        hue = presetHue
-                        container.setActiveSeed(hasActive, presetHex)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        // ---- 3. PREVIEW — the generated swatch strip (live; the carve-out) --------------------------
-        SectionLabel("Preview")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // accent + the first few pool colors + the three status colors, each its actual color.
-            DataSwatch(t.accent, Modifier.weight(1f))
-            for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
-            // Status swatches preview the status color WITH its safety shape (D-01/D-02) — disabled_by_default
-            // (stop) on stop, warning on caution; go stays shapeless. Makes "color is redundant to shape" visible.
-            DataSwatch(t.stop, Modifier.weight(1f), glyphName = "disabled_by_default")
-            DataSwatch(t.heat, Modifier.weight(1f), glyphName = "warning")
-            DataSwatch(t.go, Modifier.weight(1f))
-        }
-
-        HorizontalDivider(color = t.hair, thickness = 1.dp)
-
-        // ---- 4. POOL COLORS — per-slot override grid (D-09) ----------------------------------------
-        SectionLabel("Pool colors")
-        SubLabel("Tap a color to customize")
-        val overrides = activeProfile?.poolOverrides ?: emptyMap()
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            t.pool.take(4).forEachIndexed { i, c ->
-                PoolSlotSwatch(
-                    fill = c,
-                    overridden = overrides.containsKey(i.toString()),
-                    onClick = { editingSlot = i },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        HorizontalDivider(color = t.hair, thickness = 1.dp)
-
-        // ---- 4b. STATUS COLORS — per-slot status override (D-03) -----------------------------------
-        SectionLabel("Status colors")
-        if (t.mode == PaletteMode.Colorful) {
-            SubLabel("Tap to customize — shape carries the meaning, so color is yours")
-        } else {
-            SubLabel("Tap to customize (applies in Colorful; this mode shows the fixed safety palette)")
-        }
-        val statusOverrides = activeProfile?.poolOverrides ?: emptyMap()
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (s in StatusSlot.entries) {
-                StatusSlotSwatch(
-                    fill = effectiveStatusColor(t, s),
-                    slot = s,
-                    overridden = statusOverrides.containsKey(s.key),
-                    onClick = { editingStatusSlot = s },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        // ---- 5. ACTIONS — Randomize / Reset / Done -------------------------------------------------
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(
-                label = "Randomize",
-                // WR-04: exclusive upper bound → [0,359], matching SHIFT_RANGE (360 ≡ 0 is a duplicate hue).
-                onClick = { container.setActiveShift(hasActive, Random.nextInt(0, 360)) },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Warn, // an unexpected live palette change — proceed-at-peril (amber).
-            )
-            OutlinedControl(
-                label = "Reset",
-                onClick = { pendingReset = true },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Danger, // clears the user's overrides — destructive, guarded.
-            )
-        }
-        OutlinedControl(
-            label = "Done",
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Go, // backing out is non-destructive (changes already persisted live).
-        )
-
-        Box(Modifier.height(24.dp))
-    }
+        },
+        onSlotDone = {
+            editingSlot = null
+            editingStatusSlot = null
+        },
+        onDarkChange = { d ->
+            dark = d
+            container.themeResolver.setDark(d) // live
+            container.setActiveDark(hasActive, d) // durable
+        },
+        onFsChoiceChange = { choice ->
+            fsChoice = choice
+            container.themeResolver.setFs(choice.multiplier) // live
+            container.setActiveFs(hasActive, choice) // durable (process-lifetime writeScope)
+        },
+        onPaletteModeChange = { mode ->
+            paletteMode = mode
+            container.themeResolver.setMode(mode) // live
+            container.setActiveMode(hasActive, mode) // durable
+        },
+        onSeedHueMove = { hue = it }, // cheap: handle-only repaint, NO regen (D-07).
+        onSeedHueSettle = { settled ->
+            hue = settled
+            container.setActiveSeed(hasActive, hueToHex(settled)) // regen + retheme + persist ONCE.
+        },
+        onSeedSvMove = { s, v -> sat = s; value = v },
+        onSeedSvSettle = { s, v -> sat = s; value = v }, // seed path: no extra persist (hue-only seed)
+        onPresetPick = { presetHex ->
+            hue = seedHexToHue(presetHex)
+            container.setActiveSeed(hasActive, presetHex)
+        },
+        onPoolSlotTap = { editingSlot = it },
+        onStatusSlotTap = { editingStatusSlot = it },
+        onRandomize = {
+            // P15 WR-04: exclusive upper bound → [0,359], matching SHIFT_RANGE (360 ≡ 0 is a dupe hue).
+            container.setActiveShift(hasActive, Random.nextInt(0, 360))
+        },
+        onReset = { pendingReset = true },
+    )
 }
 
 /** The palette-mode chips (D-15) — `ThemeResolver` mode name → display label. Colorful is the default. */
@@ -932,10 +709,14 @@ private fun approxSameHue(a: Float, b: Float): Boolean {
 }
 
 /**
- * Stateless editor content seam for `@Preview` matrices (PREVIEW_AND_TOKENS.md convention).
+ * Stateless editor content seam (PREVIEW_AND_TOKENS.md convention) — the ONE layout body shared by
+ * the live [ThemeEditorScreen] and the `@Preview` matrices (WR-04: drift is impossible because the
+ * running app delegates here).
  *
  * Drives the main editor body (dense scroll: wheel + S/V square + presets + pool slots + status slots
  * + actions) from explicit state params — no Moonraker, no AppContainer, no coroutines in previews.
+ * All interaction callbacks default to no-ops so the preview matrix stays static; the live screen
+ * supplies the durable-write wiring.
  *
  * The interesting preview axis is the slot picker OPEN vs CLOSED: pass a non-null [editingSlot] or
  * [editingStatusSlot] to render a picker, or leave both null for the main dense body.
@@ -946,11 +727,21 @@ private fun approxSameHue(a: Float, b: Float): Boolean {
  * @param dark          dark/light mode selection.
  * @param fsChoice      active S/M/L text-size choice.
  * @param paletteMode   active palette mode string.
- * @param poolOverrides mock pool slot override map (index string → ARGB Long).
- * @param statusOverrides mock status slot override map (slot key → ARGB Long).
+ * @param poolOverrides pool slot override map (index string → ARGB Long).
+ * @param statusOverrides status slot override map (slot key → ARGB Long).
  * @param editingSlot   if non-null, render the pool picker for this slot index instead of the main body.
  * @param editingStatusSlot if non-null, render the status picker for this slot instead of the main body.
  * @param onBack        Back/Done callback (no-op in previews).
+ * @param slotHue       wheel hue for an OPEN picker (defaults to [hue] for static previews).
+ * @param onSlotHueMove / [onSlotHueSettle] picker wheel callbacks (settle = durable write).
+ * @param onSlotSvMove / [onSlotSvSettle] picker S/V square callbacks (settle = durable write).
+ * @param onSlotClear / [onSlotDone] picker action-row callbacks (Clear writes null; Done closes).
+ * @param onDarkChange / [onFsChoiceChange] / [onPaletteModeChange] appearance-section callbacks.
+ * @param onSeedHueMove / [onSeedHueSettle] seed wheel callbacks (settle = regen + persist).
+ * @param onSeedSvMove / [onSeedSvSettle] seed S/V callbacks (local preview only — hue-only seed).
+ * @param onPresetPick  preset swatch tap (lands the seed hex).
+ * @param onPoolSlotTap / [onStatusSlotTap] open the per-slot override pickers.
+ * @param onRandomize / [onReset] action-row callbacks (Reset raises the screen-level ConfirmGuard).
  */
 @Composable
 internal fun ThemeEditorContent(
@@ -966,9 +757,29 @@ internal fun ThemeEditorContent(
     editingStatusSlot: StatusSlot?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    slotHue: Float = hue,
+    onSlotHueMove: (Float) -> Unit = {},
+    onSlotHueSettle: (Float) -> Unit = {},
+    onSlotSvMove: (Float, Float) -> Unit = { _, _ -> },
+    onSlotSvSettle: (Float, Float) -> Unit = { _, _ -> },
+    onSlotClear: () -> Unit = {},
+    onSlotDone: () -> Unit = {},
+    onDarkChange: (Boolean) -> Unit = {},
+    onFsChoiceChange: (FontScale) -> Unit = {},
+    onPaletteModeChange: (String) -> Unit = {},
+    onSeedHueMove: (Float) -> Unit = {},
+    onSeedHueSettle: (Float) -> Unit = {},
+    onSeedSvMove: (Float, Float) -> Unit = { _, _ -> },
+    onSeedSvSettle: (Float, Float) -> Unit = { _, _ -> },
+    onPresetPick: (String) -> Unit = {},
+    onPoolSlotTap: (Int) -> Unit = {},
+    onStatusSlotTap: (StatusSlot) -> Unit = {},
+    onRandomize: () -> Unit = {},
+    onReset: () -> Unit = {},
 ) {
     val t = LocalTokens.current
 
+    // Per-slot pool override picker — hue wheel + S/V square; writes ONE pool slot on settle (D-09).
     if (editingSlot != null) {
         Column(
             modifier
@@ -980,18 +791,33 @@ internal fun ThemeEditorContent(
         ) {
             ScreenTitle("Pool color ${editingSlot + 1}")
             SectionLabel("Pick a color")
-            ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
+            ColorWheel(
+                hue = slotHue,
+                onHandleMove = onSlotHueMove,
+                onSettle = onSlotHueSettle,
+                modifier = Modifier.fillMaxWidth(),
+            )
             SectionLabel("Saturation / Brightness")
-            SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
+            SaturationValueSquare(
+                hue = slotHue,
+                sat = sat,
+                value = value,
+                onHandleMove = onSlotSvMove,
+                onSettle = onSlotSvSettle,
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = "Clear", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
-                OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.weight(1f), intent = Intent.Go)
+                OutlinedControl(label = "Clear", onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = "Done", onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
             }
+            Box(Modifier.height(24.dp))
         }
         return
     }
 
+    // Per-status-slot override picker (D-03) — settle writes route through the live screen's wiring.
     if (editingStatusSlot != null) {
+        // Whether the override actually changes what the app renders in the CURRENT mode (Colorful only).
+        val overrideTakesEffect = t.mode == PaletteMode.Colorful
         Column(
             modifier
                 .fillMaxSize()
@@ -1001,15 +827,35 @@ internal fun ThemeEditorContent(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             ScreenTitle("Status color — ${editingStatusSlot.label()}")
-            SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
-            SectionLabel("Pick a color")
-            ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
-            SectionLabel("Saturation / Brightness")
-            SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = "Clear", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
-                OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.weight(1f), intent = Intent.Go)
+            // Mode-awareness (D-04): tell the truth about whether the edit changes the rendered status now.
+            if (overrideTakesEffect) {
+                SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
+            } else {
+                SubLabel(
+                    "Saved for Colorful mode. This mode (" + t.mode.label() +
+                        ") renders status from its fixed safety palette, so the picked color won't show here.",
+                )
             }
+            SectionLabel("Pick a color")
+            ColorWheel(
+                hue = slotHue,
+                onHandleMove = onSlotHueMove,
+                onSettle = onSlotHueSettle,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SectionLabel("Saturation / Brightness")
+            SaturationValueSquare(
+                hue = slotHue,
+                sat = sat,
+                value = value,
+                onHandleMove = onSlotSvMove,
+                onSettle = onSlotSvSettle,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(label = "Clear", onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = "Done", onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
+            }
+            Box(Modifier.height(24.dp))
         }
         return
     }
@@ -1023,63 +869,92 @@ internal fun ThemeEditorContent(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         ScreenTitle("Edit theme")
+
+        // ---- 0. APPEARANCE — dark/light + S/M/L + palette-mode (15.2-04 finding 3) ----------------
+        // Dark / Light — chrome derives from the seed; this only flips polarity.
         SectionLabel("Mode")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(label = "Dark", onClick = {}, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
-            OutlinedControl(label = "Light", onClick = {}, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
+            OutlinedControl(label = "Dark", onClick = { onDarkChange(true) }, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
+            OutlinedControl(label = "Light", onClick = { onDarkChange(false) }, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
         }
+
+        // S / M / L text size (the --fs authority). Each segment is filled with a POOL color from the
+        // active palette so the selector visibly reflects the current mode; the selected segment gets
+        // the accent ring. The fill is the literal pool color (data carve-out).
         SectionLabel("Text size")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             FontScale.entries.forEachIndexed { i, choice ->
                 val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
-                PoolSizeSegment(label = choice.name, fill = poolColor, selected = fsChoice == choice, onClick = {}, modifier = Modifier.weight(1f))
+                PoolSizeSegment(label = choice.name, fill = poolColor, selected = fsChoice == choice, onClick = { onFsChoiceChange(choice) }, modifier = Modifier.weight(1f))
             }
         }
+
+        // Palette mode (D-15) — Colorful (default) / Simple / High contrast. Active = Intent.Accent.
         SectionLabel("Palette mode")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             for ((mode, label) in PALETTE_MODES) {
-                OutlinedControl(label = label, onClick = {}, modifier = Modifier.weight(1f), intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral)
+                OutlinedControl(label = label, onClick = { onPaletteModeChange(mode) }, modifier = Modifier.weight(1f), intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral)
             }
         }
+
+        // ---- 1. SEED COLOR — the wheel + S/V square (settle-regen, D-07 / D-16) -------------------
         SectionLabel("Seed color")
         SubLabel("Pick a hue on the ring, then adjust saturation and brightness below")
-        ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
-        SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
+        ColorWheel(hue = hue, onHandleMove = onSeedHueMove, onSettle = onSeedHueSettle, modifier = Modifier.fillMaxWidth())
+        // S/V square (D-16): purely local preview for the seed hue — the seed path persists hue only
+        // (the generator cusp-normalizes L/C); slot pickers use the square for full S/V storage.
+        SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = onSeedSvMove, onSettle = onSeedSvSettle)
         HorizontalDivider(color = t.hair, thickness = 1.dp)
+
+        // ---- 2. PRESETS — curated seed swatches (tap lands seed) ----------------------------------
         SectionLabel("Presets")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (presetHex in PRESET_SEEDS) {
                 val presetHue = seedHexToHue(presetHex)
-                SeedSwatch(fill = Color(parseHex(presetHex)), selected = approxSameHue(hue, presetHue), onClick = {}, modifier = Modifier.weight(1f))
+                SeedSwatch(fill = Color(parseHex(presetHex)), selected = approxSameHue(hue, presetHue), onClick = { onPresetPick(presetHex) }, modifier = Modifier.weight(1f))
             }
         }
+
+        // ---- 3. PREVIEW — the generated swatch strip (live; the carve-out) ------------------------
         SectionLabel("Preview")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // accent + the first few pool colors + the three status colors, each its actual color.
             DataSwatch(t.accent, Modifier.weight(1f))
             for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
+            // Status swatches preview the status color WITH its safety shape (D-01/D-02).
             DataSwatch(t.stop, Modifier.weight(1f), glyphName = "disabled_by_default")
             DataSwatch(t.heat, Modifier.weight(1f), glyphName = "warning")
             DataSwatch(t.go, Modifier.weight(1f))
         }
         HorizontalDivider(color = t.hair, thickness = 1.dp)
+
+        // ---- 4. POOL COLORS — per-slot override grid (D-09) ---------------------------------------
         SectionLabel("Pool colors")
         SubLabel("Tap a color to customize")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             t.pool.take(4).forEachIndexed { i, c ->
-                PoolSlotSwatch(fill = c, overridden = poolOverrides.containsKey(i.toString()), onClick = {}, modifier = Modifier.weight(1f))
+                PoolSlotSwatch(fill = c, overridden = poolOverrides.containsKey(i.toString()), onClick = { onPoolSlotTap(i) }, modifier = Modifier.weight(1f))
             }
         }
         HorizontalDivider(color = t.hair, thickness = 1.dp)
+
+        // ---- 4b. STATUS COLORS — per-slot status override (D-03) ----------------------------------
         SectionLabel("Status colors")
-        SubLabel("Tap to customize — shape carries the meaning, so color is yours")
+        if (t.mode == PaletteMode.Colorful) {
+            SubLabel("Tap to customize — shape carries the meaning, so color is yours")
+        } else {
+            SubLabel("Tap to customize (applies in Colorful; this mode shows the fixed safety palette)")
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (s in StatusSlot.entries) {
-                StatusSlotSwatch(fill = effectiveStatusColor(t, s), slot = s, overridden = statusOverrides.containsKey(s.key), onClick = {}, modifier = Modifier.weight(1f))
+                StatusSlotSwatch(fill = effectiveStatusColor(t, s), slot = s, overridden = statusOverrides.containsKey(s.key), onClick = { onStatusSlotTap(s) }, modifier = Modifier.weight(1f))
             }
         }
+
+        // ---- 5. ACTIONS — Randomize / Reset / Done ------------------------------------------------
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedControl(label = "Randomize", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
-            OutlinedControl(label = "Reset", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Danger)
+            OutlinedControl(label = "Randomize", onClick = onRandomize, modifier = Modifier.weight(1f), intent = Intent.Warn)
+            OutlinedControl(label = "Reset", onClick = onReset, modifier = Modifier.weight(1f), intent = Intent.Danger)
         }
         OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.fillMaxWidth(), intent = Intent.Go)
         Box(Modifier.height(24.dp))
