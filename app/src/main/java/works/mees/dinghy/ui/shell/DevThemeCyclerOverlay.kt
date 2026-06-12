@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -189,28 +191,38 @@ fun DevThemeCyclerOverlay(
                 .offset { IntOffset(pos.x.roundToInt(), pos.y.roundToInt()) }
                 .background(t.surface2, RoundedCornerShape(10.dp))
                 .border(2.dp, t.outline, RoundedCornerShape(10.dp))
-                .pointerInput(boxSize) {
-                    // Drag the whole panel (consume the position changes); a one-finger drag relocates it.
-                    // This is the ONLY motion in the widget — it moves only while a finger drags it
-                    // (no looping/continuous animation; Adreno-320 motion LAW).
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        drag(down.id) { change ->
-                            val delta = change.positionChange()
-                            offset = Offset(pos.x + delta.x, pos.y + delta.y).let { o ->
-                                // keep it on screen (best-effort clamp to parent bounds)
-                                val maxX = (boxSize.width - 1).coerceAtLeast(0).toFloat()
-                                val maxY = (boxSize.height - 1).coerceAtLeast(0).toFloat()
-                                Offset(o.x.coerceIn(0f, maxX), o.y.coerceIn(0f, maxY))
-                            }
-                            change.consume()
-                        }
-                    }
-                }
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // Header + dismiss
+            // D-20 DRAG STRIP — a bare-surface region that owns the panel-drag gesture.
+            // The bug was that chip taps consumed DOWN before the Column's awaitFirstDown could see it,
+            // so the whole panel stopped relocating when a press landed on a chip. The fix: move the
+            // drag to a DEDICATED inert strip separate from the chips. Chip taps still consume their own
+            // events (preventing bleed) and the drag strip sees its own independent gesture.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .pointerInput(boxSize) {
+                        // Drag the panel via this dedicated strip. This is the ONLY motion in the widget —
+                        // it moves only while a finger drags it (no looping/continuous animation; Adreno-320 motion LAW).
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            down.consume()
+                            drag(down.id) { change ->
+                                val delta = change.positionChange()
+                                offset = Offset(pos.x + delta.x, pos.y + delta.y).let { o ->
+                                    // keep it on screen (best-effort clamp to parent bounds)
+                                    val maxX = (boxSize.width - 1).coerceAtLeast(0).toFloat()
+                                    val maxY = (boxSize.height - 1).coerceAtLeast(0).toFloat()
+                                    Offset(o.x.coerceIn(0f, maxX), o.y.coerceIn(0f, maxY))
+                                }
+                                change.consume()
+                            }
+                        }
+                    },
+            )
+            // Header + dismiss (below the drag strip — taps consumed by DismissChip, not by the drag strip)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,

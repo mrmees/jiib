@@ -930,3 +930,158 @@ private fun approxSameHue(a: Float, b: Float): Boolean {
     val d = kotlin.math.abs(((a - b + 540f) % 360f) - 180f)
     return d <= 8f
 }
+
+/**
+ * Stateless editor content seam for `@Preview` matrices (PREVIEW_AND_TOKENS.md convention).
+ *
+ * Drives the main editor body (dense scroll: wheel + S/V square + presets + pool slots + status slots
+ * + actions) from explicit state params — no Moonraker, no AppContainer, no coroutines in previews.
+ *
+ * The interesting preview axis is the slot picker OPEN vs CLOSED: pass a non-null [editingSlot] or
+ * [editingStatusSlot] to render a picker, or leave both null for the main dense body.
+ *
+ * @param hue           seed hue 0..360 for the ColorWheel handle.
+ * @param sat           saturation 0..1 for the S/V crosshair.
+ * @param value         value/brightness 0..1 for the S/V crosshair.
+ * @param dark          dark/light mode selection.
+ * @param fsChoice      active S/M/L text-size choice.
+ * @param paletteMode   active palette mode string.
+ * @param poolOverrides mock pool slot override map (index string → ARGB Long).
+ * @param statusOverrides mock status slot override map (slot key → ARGB Long).
+ * @param editingSlot   if non-null, render the pool picker for this slot index instead of the main body.
+ * @param editingStatusSlot if non-null, render the status picker for this slot instead of the main body.
+ * @param onBack        Back/Done callback (no-op in previews).
+ */
+@Composable
+internal fun ThemeEditorContent(
+    hue: Float,
+    sat: Float,
+    value: Float,
+    dark: Boolean,
+    fsChoice: FontScale,
+    paletteMode: String,
+    poolOverrides: Map<String, Long>,
+    statusOverrides: Map<String, Long>,
+    editingSlot: Int?,
+    editingStatusSlot: StatusSlot?,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    if (editingSlot != null) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .background(t.bg)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            ScreenTitle("Pool color ${editingSlot + 1}")
+            SectionLabel("Pick a color")
+            ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
+            SectionLabel("Saturation / Brightness")
+            SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(label = "Clear", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.weight(1f), intent = Intent.Go)
+            }
+        }
+        return
+    }
+
+    if (editingStatusSlot != null) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .background(t.bg)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            ScreenTitle("Status color — ${editingStatusSlot.label()}")
+            SubLabel("Color is a redundant cue — shape carries the safety meaning. Pick any color.")
+            SectionLabel("Pick a color")
+            ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
+            SectionLabel("Saturation / Brightness")
+            SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedControl(label = "Clear", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.weight(1f), intent = Intent.Go)
+            }
+        }
+        return
+    }
+
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(t.bg)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        ScreenTitle("Edit theme")
+        SectionLabel("Mode")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedControl(label = "Dark", onClick = {}, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
+            OutlinedControl(label = "Light", onClick = {}, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
+        }
+        SectionLabel("Text size")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FontScale.entries.forEachIndexed { i, choice ->
+                val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
+                PoolSizeSegment(label = choice.name, fill = poolColor, selected = fsChoice == choice, onClick = {}, modifier = Modifier.weight(1f))
+            }
+        }
+        SectionLabel("Palette mode")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            for ((mode, label) in PALETTE_MODES) {
+                OutlinedControl(label = label, onClick = {}, modifier = Modifier.weight(1f), intent = if (paletteMode == mode) Intent.Accent else Intent.Neutral)
+            }
+        }
+        SectionLabel("Seed color")
+        SubLabel("Pick a hue on the ring, then adjust saturation and brightness below")
+        ColorWheel(hue = hue, onHandleMove = {}, onSettle = {}, modifier = Modifier.fillMaxWidth())
+        SaturationValueSquare(hue = hue, sat = sat, value = value, onHandleMove = { _, _ -> }, onSettle = { _, _ -> })
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
+        SectionLabel("Presets")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (presetHex in PRESET_SEEDS) {
+                val presetHue = seedHexToHue(presetHex)
+                SeedSwatch(fill = Color(parseHex(presetHex)), selected = approxSameHue(hue, presetHue), onClick = {}, modifier = Modifier.weight(1f))
+            }
+        }
+        SectionLabel("Preview")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DataSwatch(t.accent, Modifier.weight(1f))
+            for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
+            DataSwatch(t.stop, Modifier.weight(1f), glyphName = "disabled_by_default")
+            DataSwatch(t.heat, Modifier.weight(1f), glyphName = "warning")
+            DataSwatch(t.go, Modifier.weight(1f))
+        }
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
+        SectionLabel("Pool colors")
+        SubLabel("Tap a color to customize")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            t.pool.take(4).forEachIndexed { i, c ->
+                PoolSlotSwatch(fill = c, overridden = poolOverrides.containsKey(i.toString()), onClick = {}, modifier = Modifier.weight(1f))
+            }
+        }
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
+        SectionLabel("Status colors")
+        SubLabel("Tap to customize — shape carries the meaning, so color is yours")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (s in StatusSlot.entries) {
+                StatusSlotSwatch(fill = effectiveStatusColor(t, s), slot = s, overridden = statusOverrides.containsKey(s.key), onClick = {}, modifier = Modifier.weight(1f))
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedControl(label = "Randomize", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Warn)
+            OutlinedControl(label = "Reset", onClick = {}, modifier = Modifier.weight(1f), intent = Intent.Danger)
+        }
+        OutlinedControl(label = "Done", onClick = onBack, modifier = Modifier.fillMaxWidth(), intent = Intent.Go)
+        Box(Modifier.height(24.dp))
+    }
+}
