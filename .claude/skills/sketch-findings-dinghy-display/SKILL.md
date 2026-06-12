@@ -26,8 +26,11 @@ Sketch session wrapped: 2026-06-09 (sketches 001–003).
   at 5U.
 - **Content vs controls:** list items translucent (outline only); buttons/tiles/cards filled.
 - **No labels where structure suffices** — leading type-icons + outline/fill/accent do the grouping.
-- **Intent = color:** accent (physical command + expected action) · go (accept) · caution/amber
-  (proceed-at-peril incl. resets) · stop/red (destructive/e-stop) · neutral white (plain setting).
+- **Intent = color (UPDATED by R5, 2026-06-12 — supersedes the sketch-era assignment):** stop/red
+  (could be destructive) · caution/amber (could be destructive but part of the process — jog,
+  load, resets) · go (the screen's EXPECTED action — Print, Load, Save) · accent (neutral items +
+  plain nav: Back, Home; Back = FIRST foot-bar button per R8). Neutral-white button intent
+  RETIRED. Buttons filled; rows translucent. Law: `docs/ui_design/THEMING.md`.
 - **Icons:** owner-curated registry only (`material-icon-bucket.json` + `DinghyIcons.kt`), Material
   Symbols by ligature; **never auto-pick a glyph — ask**. Icon tiles ~70-80% of U (prominent
   icons; dense list-pane icons stay small — see Post-Phase-26 UAT rules below).
@@ -67,7 +70,9 @@ at `sources/002-spoolman-reconcile/reference-mock.html`.
 ## Companion notes (live decisions / follow-ups)
 - `.planning/notes/2026-06-09-icon-assignments-redesign.md` — owner glyph assignments to register
   (incl. the `play_circle`/`stop_circle` load-unload conflict to clean up).
-- MANIFEST "Open follow-ups" — scrubber style TBD, oklch caution-reads-red fix.
+- Former open follow-ups, both RESOLVED 2026-06-12: scrubber style = the 004 ringed-thumb
+  SeekBar port (R9 — law in `docs/ui_design/COMPONENTS.md §7`); oklch caution-reads-red fix is
+  in the normalization sweep's scope (R10).
 </findings_index>
 
 <metadata>

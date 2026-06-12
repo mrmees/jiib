@@ -1,4 +1,4 @@
-# Theming — Dinghy Display (canonical token-law)
+# Theming — jiib (canonical token-law)
 
 > **This is UI LAW (D-13).** Every later phase builds against this doc. It is the canonical,
 > in-repo description of the **as-built** Phase-15.1 theme model — reconciled to the actual
@@ -106,40 +106,39 @@ with them). A user *may* even make `stop` green. **This is safe because shape + 
 mode force-overrides status back to stoplight RYG** regardless of the user's override (the CVD/
 accessibility escape hatch — see Palette Modes).
 
-## Button intent = color (semantic, by SAFETY of the action)
+## Button intent = color — the FOUR-CLASS scheme (R5, owner, 2026-06-12)
 
-**Color is determined primarily by the SAFETY of the action** — a spectrum safe → ordinary → caution
-→ dangerous. This especially governs the **gutter** (primary actions). Pick the color by asking "how
-risky is this tap?", not by the kind of widget.
+> **SUPERSEDES** the previous five-class assignment (and the original C1/C5/D-10 readings).
+> The old scheme put the expected action on ACCENT and Back on NEUTRAL/outline; the owner
+> re-ruled both in the 2026-06-12 normalization recon. The audit repaints existing screens.
 
-- **Green** (`--go`) — **safe / non-destructive**: accept, done, commit.
-- **Blue / accent** (`--accent`) — an **ordinary physical command with no special hazard**: home,
-  unload filament, toggle a fan.
-- **Amber / caution** (`--heat`, the caution family) — **proceed at peril**: anything that moves the
-  toolhead or drives heat/filament where a mistake can crash or burn — jog motion, load/heat filament —
-  plus reset / undo / unexpected live change.
-- **Red** (`--stop`) — **destructive or dangerous**: stop / e-stop, disable steppers (loses the homing
-  state), force-move while armed, host interruption.
-- **White / neutral** (`--text` on `--outline`) — basic setting adjustment / secondary follow-up,
-  **and plain navigation** (see Back, next).
+**Buttons are FILLED** (`t.surface` base, intent-tinted) — fill is what distinguishes a button
+from a translucent list row (R4). Color is determined by the SAFETY of the action — ask "how
+risky is this tap?", not what kind of widget it is:
 
-### Back = NEUTRAL / outline (D-10)
+- **Red** (`--stop`) — **could be destructive**: stop / e-stop, cancel print, disable steppers
+  (loses homing), force-move armed, host interruption.
+- **Amber / warning** (`--heat`, the caution family) — **could be destructive but is part of the
+  process**: toolhead jog, load/heat filament, resets, undo, unexpected live change.
+- **Green** (`--go`) — **the screen's EXPECTED action**: Print on Files, Load/Unload on Spoolman,
+  Save, accept/commit. The "reason you came to this screen" button is green.
+- **Accent** (`--accent`) — **neutral items and plain navigation**: Back, Home, secondary
+  follow-ups with no printer-state consequence. Nav wears the user's signature color.
 
-**Back is NEUTRAL / outline — never red, never green.** By the earns-color grammar, plain navigation
-changes no printer state and so spends **no safety color**: it is `--text` on `--outline`. (This
-supersedes the old assignments that put Back on the destructive-red or success-green slots entirely —
-neither applies to plain navigation.)
+**The white/neutral-outline button intent is RETIRED** (buttons no longer spend "no color" —
+accent IS the no-consequence color). These are defaults, overridable per case, but keep them
+consistent — color *is* the affordance signal.
 
-**Back-position-consistency rule:** the Back control occupies a **consistent gutter location app-wide**
-— right-aligned (centered also acceptable), never varying screen to screen — so muscle memory holds.
+### Back = ACCENT, FIRST position (R5/R8 — supersedes D-10's neutral-Back)
 
-> **HONEST DEFERRAL — 15.1 applied Back-neutral on the MOVE screen ONLY.** Phase 15.1 *established*
-> the Back = neutral/outline + consistent-gutter-position RULE and applied it on the **Move** screen.
-> The **app-wide Back inventory/sweep** — auditing and conforming every existing surface's Back control
-> to this rule — is **DEFERRED to the Phase 15.2 conformance audit**. Nothing here implies Back is
-> already app-wide neutral; it is not. **→ 15.2 todo: app-wide Back-control sweep.**
+**Back wears the accent** (plain navigation = neutral item) and occupies the **FIRST
+(start-aligned) slot of the `FootButtonBar`, app-wide** — never varying screen to screen, so
+muscle memory holds. The 15.x "HONEST DEFERRAL" on the app-wide Back sweep is closed: the
+2026-06 normalization audit carries a Back column (position + intent) for every screen.
 
-These are defaults, overridable per case, but keep them consistent — color *is* the affordance signal.
+**Exception (old C7 logic, kept):** a Back/Cancel that **DISCARDS pending input** or **REJECTS a
+pending result** is a cancel-with-loss and stays **red** (`stop`) — e.g. `MeasuredWeightPage` and
+`ScanConfirmCard`.
 
 ### Conformance criteria — the C-series (15.2 D-10 guided core-screen review)
 
@@ -148,11 +147,12 @@ These are defaults, overridable per case, but keep them consistent — color *is
 > **testable conformance checks** so the 15.2 app-wide sweep (and every future phase) audits against
 > them. Each maps to a column / finding in `.planning/phases/15.2-…/15.2-AUDIT.md`.
 
-- **C1 — Expected physical action is ACCENT, not caution/danger.** A button that performs a screen's
-  EXPECTED physical action uses the **accent** intent — not caution/amber, not danger/red. (Reinforces
-  "accent = an ordinary physical command with no special hazard": jogging an axis on the *Move* screen
-  is the expected action of that screen, so it is accent, NOT caution. Caution/danger are reserved for
-  genuinely hazardous or destructive taps, not the screen's own reason-to-exist.)
+- **C1 — Expected action wears GO; hazard class is judged per-action (REWRITTEN per R5,
+  2026-06-12).** A button that performs a screen's EXPECTED action uses the **go** intent. An
+  action that could wreck the print/machine but is part of the normal process (jog, load/heat
+  filament, reset) is **warning** even when it is the screen's reason-to-exist — safety class
+  outranks expectedness when both apply. (The original C1 made the expected action ACCENT;
+  superseded.)
 - **C2 — The increment picker is a 3-cell pattern.** Any increment/step picker is `[decrement] [center
   value display] [increment]` (three cells), with two interaction modes:
   - **(a) SHARED increment** (multiple controls share one step value): the **+/- buttons step the
@@ -169,36 +169,37 @@ These are defaults, overridable per case, but keep them consistent — color *is
   a control arms a dangerous/catastrophic mode (e.g. **force-move unlock**), its active state is **filled
   with the stop color** (not merely outlined) — the filled stop-red is the unmistakable "you are now in a
   dangerous mode" signal. (Complements the shape signal, e.g. the open-padlock silhouette.)
-- **C5 — The screen's NATURAL PRIMARY ACTION takes ACCENT, and may be context-dependent.** The single
-  action that is the reason the user came to the screen wears the **accent** intent, and which action
-  that *is* may depend on state. Examples: **Temperature** — *Presets* is the accent action when not
-  heating, but *Cooldown* becomes the active/accent action once heating; **Files** — *Print file* is the
-  accent action.
-- **C6 — Config/settings-type surfaces are EXEMPT from the ≥64px touch minimum and should be DENSIFIED.**
-  Settings-class surfaces (Settings, Theme editor, and similar config pages) are a deliberate
-  **close-interaction** use case — held in the hand, not read across the room — so they are **exempt from
-  the ≥64px "super-touch-friendly" minimum-target rule** and should be **densified**: tighter rows,
-  toggles / dropdowns / popups, fit-on-one-page. The **print-control surfaces remain fully bound by the
-  ≥64px touch-friendly rule** — C6 does not relax them. (A layout/density rule — also recorded in
-  LAYOUT.md.)
-- **C7 — BACK is Neutral ONLY for plain navigation; a discarding/rejecting Back stays RED.** Plain
-  navigational Back is **Neutral/outline** (D-10). But a Back/Cancel that **DISCARDS pending input** or
-  **REJECTS a pending result** is a cancel-with-loss and stays **Danger/red** (`stop`). (This is why the
-  Task-1 sweep correctly left `MeasuredWeightPage` and `ScanConfirmCard` Backs red — they discard a
-  pending measurement / reject a pending scan result. No code change needed; this documents the rule.)
-  See the `OutlinedControl`/`Intent` docstring for the matching code-level statement.
+- **C5 — The screen's NATURAL PRIMARY ACTION takes GO, and may be context-dependent (REWRITTEN
+  per R5).** The single action that is the reason the user came to the screen wears the **go**
+  intent, and which action that *is* may depend on state. Examples: **Temperature** — *Presets*
+  is the go action when not heating, *Cooldown* becomes it once heating; **Files** — *Print
+  file* is the go action. (Was accent; superseded.)
+- **C6 — Config/settings-type surfaces are DENSIFIED but NEVER below the 1U floor (REWRITTEN per
+  the Phase-28 "All 1U" owner ruling, 2026-06-12).** Settings-class surfaces are a deliberate
+  close-interaction use case and should be densified — tighter grouping, inline keyboard fields,
+  toggles/dropdowns/popups, no wasted vertical whitespace — but **all row and control heights
+  remain `heightIn(min = uDp)`**. The original "exempt from the ≥64px minimum" text is
+  superseded. Print-control surfaces were always fully bound. (Also recorded in LAYOUT.md C6.)
+- **C7 — BACK is ACCENT for plain navigation; a discarding/rejecting Back stays RED (REWRITTEN
+  per R5).** Plain navigational Back wears **accent** (was neutral/outline under D-10). A
+  Back/Cancel that **DISCARDS pending input** or **REJECTS a pending result** is a
+  cancel-with-loss and stays **red** (`stop`) — `MeasuredWeightPage` and `ScanConfirmCard` remain
+  the worked examples. See the `OutlinedControl`/`Intent` docstring for the code-level statement.
 
-**Worked examples (the v1 panels), as built:**
-- *Move gutter* — **All / home** (accent — the primary physical command) · **Disable** (red, un-homes)
-  · **Back** (**neutral/outline**, D-10).
+**Worked examples (under the R5 four-class scheme; exact per-button calls land in the 2026-06
+normalization audit's repaint column):**
+- *Move foot bar* — **Back** (accent, FIRST position) · **Disable** (stop — un-homes, could be
+  destructive) · homing (warning — automated motion, hazard-in-process).
 - *Move jog pad* — directional arrows. The **OUTLINE carries group identity** — the XY pad outline reads
   `directional.xy` (= `pool[0]`) and the Z-row outline reads `directional.z` (= `pool[1]`) (D-08); the
   home buttons' outlines likewise wear their group's directional color. The **ICON color carries STATE**:
-  gray (unavailable) / caution (normal jog) / red (force-move armed). **Force-move (D-12):** a **green
-  closed-padlock when SAFE**, a **red open-padlock when ARMED** — the lock **open/closed silhouette** is
-  the redundant non-color signal.
-- *Extrude gutter* — **Load** (caution, heats + drives filament) · **Unload** (accent) · **Back**
-  (**neutral/outline**, D-10).
+  gray (unavailable) / warning (normal jog — motion is hazard-in-process) / red (force-move armed).
+  **Force-move (D-12):** a **green closed-padlock when SAFE**, a **red open-padlock when ARMED** — the
+  lock **open/closed silhouette** is the redundant non-color signal.
+- *Extrude foot bar* — **Back** (accent, FIRST) · **Load** (warning — heats + drives filament) ·
+  **Unload** (go when it is the selection state's expected action — cf. COMPONENTS.md
+  §Conditional Load/Unload).
+- *Files foot bar* — **Back** (accent, FIRST) · **Print** (go — the expected action).
 
 ## Status Shape Vocabulary — shape IS the safety mechanism (D-01/D-02)
 
@@ -209,17 +210,17 @@ touch targets — every element keeps its current form (rect buttons, round dots
 
 | State | Glyph | Notes |
 |---|---|---|
-| **stop** | **octagon-✕** (`ic_status_octagon`) | the universal "stop" silhouette |
-| **caution** | **triangle-!** (`ic_status_triangle`) | the universal "warning" silhouette |
-| **go / ok / homed** | **NONE — color only** | benign states stay quiet; **no circle glyph in dinghy** |
+| **stop** | **square-✕** — `DinghyIcons.StatusStop` (`disabled_by_default` ligature) | renamed from the old octagon token in 18.1; the silhouette is a square+✕, NOT an octagon |
+| **caution** | **triangle-!** — `DinghyIcons.Warning` (`warning` ligature) | the universal "warning" silhouette |
+| **go / ok / homed** | **NONE — color only** | benign states stay quiet; **no circle glyph in jiib** |
 
-**Coverage = safety-critical only.** Only `stop` (octagon) and `caution` (triangle) get a glyph,
+**Coverage = safety-critical only.** Only `stop` (square-✕) and `caution` (triangle) get a glyph,
 everywhere status appears — Print-Status dot, Move homed/unhomed axis letters + force-move, Stop/e-stop/
-power buttons, console severity (ERROR=octagon, WARNING=triangle). Benign `go`/ok/homed states are
+power buttons, console severity (ERROR=square-✕, WARNING=triangle). Benign `go`/ok/homed states are
 **color-only** (no glyph) so a normal print stays calm — the salience ladder: calm state quiet,
-attention states pop. *(This adjusts the sibling spec's "go = circle": go has NO glyph in dinghy.)*
+attention states pop. *(This adjusts the sibling spec's "go = circle": go has NO glyph in jiib.)*
 
-The three glyphs MUST read as genuinely distinct **silhouettes** (octagon vs triangle) so shape — not
+The glyphs MUST read as genuinely distinct **silhouettes** (square-✕ vs triangle) so shape — not
 just the inner mark — carries meaning at a glance. **The status icon's COLOR encodes state; a
 surrounding control OUTLINE may encode a separate axis (e.g. Move's directional group color).** The
 **lock open/closed** silhouette is its own shape signal for force-move armed/safe (D-12).
@@ -242,7 +243,7 @@ the rule depends on the active `PaletteMode`:
 - **Colorful NEVER uses status colors for data** (a normal trace is never stop-red — data wraps within
   `accent + pool`, cleaner than borrowing status slots).
 - **High-Contrast deliberately presses RYG status colors into data duty** (the pool has collapsed; safe
-  because actual status signals carry shape-glyphs + fixed position, so a red *line* ≠ the octagon
+  because actual status signals carry shape-glyphs + fixed position, so a red *line* ≠ the square-✕
   e-stop).
 - **No user-facing cap — wrap and repeat (D-09).** The series wraps forever via modulo; the generator's
   `maxItems` is an INTERNAL pool-size boundary only and does NOT cap how many series colors a consumer
@@ -301,10 +302,10 @@ spot. (A red/green height ramp would falsely imply pass/fail.) 32 stops, baked O
 
 | Token | Value | Use |
 |---|---|---|
-| `--r-screen` | `30px` | screen / bezel radius |
-| `--r-card` | `22px` | cards |
-| `--r-ctrl` | `16px` | controls / buttons |
-| `--r-pill` | `999px` | pills / chips |
+| `--r-screen` | `30dp` | screen / bezel radius |
+| `--r-card` | `22dp` | cards |
+| `--r-ctrl` | `16dp` | controls / buttons |
+| `--r-pill` | `999dp` | pills / chips |
 | `--ui` | `'Geist', system-ui, sans-serif` | all UI text |
 | `--mono` | `'Geist Mono', ui-monospace, monospace` | live numeric data (tabular) |
 | `--fs` | `1.15` (M) | **user text-size multiplier** — S≈1.0 / M≈1.15 / L≈1.32 |
@@ -366,8 +367,30 @@ filament stays red).
 The Phase-15.2 / later theme-UI conformance audit should treat author-hex inside PromptMarkup text runs
 **and the spool glyph's filament spiral** as sanctioned by this carve-out, not flag them.
 
-## The control language (the outline rule)
+## The control language (REWRITTEN per R4/R6, 2026-06-12 — supersedes the old outline rule)
 
-Interactive elements are a **2px outline + soft glow on a transparent fill**; primary/pressed
-states tint faintly with the relevant color token. The outline bounds the touch target without
-competing with content. See `.ctl` and its variants in `reference/hifi.css`.
+**Buttons are FILLED; content is transparent.** An interactive button/tile/bar sits on a
+`t.surface` fill with a 2dp intent-colored border (see the four-class intent scheme above);
+a browsable list row is transparent with a 1.5dp `t.outline` border (2dp `accentLine` +
+`accentSoft` fill when selected). Fill is what says "button"; transparency is what says
+"content." Authoritative stroke values: `COMPONENTS.md §7b`.
+
+The old "2px outline + soft glow on a transparent fill" treatment (the hi-fi bundle's `.ctl`)
+is HISTORICAL. "Glow" today = the static alpha tokens (`edgeGlow`/`accentGlow` …) where used;
+a true blur glow is not on the API floor — achieving one via cached rendering is aspirational
+polish (R6), never a conformance requirement.
+
+## The type ramp (R11, owner, 2026-06-12)
+
+All sizes are `fsSp(baseSp, fs)` — base × the S/M/L multiplier; never a bare sp/px. The ramp:
+
+| Tier | Base sp | Use |
+|---|---|---|
+| Metadata floor | **15** | captions, timestamps, fine print — NOTHING renders below this |
+| **List/button default** | **20** | every list-item label and button label (R11: the size fs=L used to render at the old 17–18 base is now the DEFAULT rendering) |
+| Titles | **22–24** | screen/section titles |
+| Tabular stats | **26** | live value readouts (Geist Mono, tabular) |
+| Focus heroes | **28+** | the Focus region's primary value — sized to be read across the room |
+
+Secondary text and measurement-unit suffixes may sit below the 20sp default per-case (≥15).
+Bases of 11/13/14sp found in code are NON-CONFORMANT — normalization-audit flags.

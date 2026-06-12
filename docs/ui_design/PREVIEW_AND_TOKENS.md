@@ -1,4 +1,4 @@
-# Preview-First & Tokenized-First — Dinghy Display (the screen-build convention)
+# Preview-First & Tokenized-First — jiib (the screen-build convention)
 
 > **This is UI LAW (Phase 18).** Every screen built or touched from Phase 19 onward ships, from
 > day one: (a) a `@Preview` matrix that renders in Android Studio across the **6 theme combos +
@@ -7,9 +7,10 @@
 > copy-template — the 3 Phase-18 exemplars (`PrintStatusPreviews.kt`, `FineTunePreviews.kt`,
 > `SpoolPreviews.kt`) are the worked reference; copy them.
 >
-> Sibling LAW: `docs/ui_design/LAYOUT.md` (Focus/Field/Gutter grammar) and `THEMING.md` (the role
-> tokens these previews exercise). Where this doc and the harness code (`app/.../preview/`,
-> `designsystem/icons/`) ever drift, **the code is authoritative and this doc is the bug.**
+> Sibling LAW: `docs/ui_design/LAYOUT.md` (the two-region Focus/Field grammar) and `THEMING.md`
+> (the role tokens these previews exercise). Where this doc and the harness code
+> (`app/.../preview/`, `designsystem/icons/`) ever drift, **the code is authoritative and this
+> doc is the bug.**
 
 The whole point: a screen's correctness across themes, text sizes, RTL, and capability/state
 variants is provable in Studio in seconds — *before* it ever reaches the flox device — and its
@@ -239,10 +240,12 @@ building a screen:
   directly edit for it ONLY. Shared components ride the Phase-22 backfill (the detekt baseline
   tolerates their literals). Pre-seed their `cd_*` keys if convenient, but do not reshape the shared
   component's signature for one screen.
-- **The exhaustive every-screen backfill** — all remaining `@Previews`, the ~240-literal string
-  extraction, full icon call-site migration, the app-wide a11y/RTL/`@Stable` riders, and the
-  `compose-preview-screenshot` golden-image net — is **ONE co-sequenced per-screen pass in Phase
-  22** (SC-5). Phase 18 proved the convention on 3 exemplars; Phase 22 applies it everywhere.
+- **The exhaustive every-screen backfill** was originally pointed at the old Phase 22, which the
+  2026-06-08 roadmap reshape re-purposed into the perf refactor. **Current homes (R14, owner,
+  2026-06-12):** the **string extraction + icon call-site migration** ride the 2026-06 visual
+  normalization sweep (they gate vocabulary/registry conformance); the **remaining `@Preview`
+  matrices, a11y/RTL riders, and the golden-image net** land in the **Ship phase** as
+  release-hardening.
 
 The lint gate (SC-3) tolerates not-yet-tokenized literals via a baseline — that deferral is
-deliberate and is reconciled in Phase 22, not screen-by-screen now.
+deliberate and is reconciled per the R14 split above, not screen-by-screen now.

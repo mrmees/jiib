@@ -127,10 +127,13 @@ column element — NOT in the `gutter` slot. Pass `gutter = null` on redesigned 
 Button distribution: each `OutlinedControl` uses `Modifier.weight(1f)` for equal width. Weighted
 buttons (one wider primary action) are allowed if they stay on the grid (integer-ish fractions).
 
-Intent follows the standard button-intent-color rule (see `THEMING.md §"Button intent = color"`):
-- Load spool = `Intent.Accent` (ordinary physical command)
-- Unload spool = `Intent.Neutral` (no hazard)
-- Home = `Intent.Accent`
+**Back is always the FIRST (start-aligned) button** (R8, 2026-06-12), app-wide. The bar is
+**optional per page** (R1) — it is the old gutter's successor, not a required element.
+
+Intent follows the four-class scheme (R5 — see `THEMING.md §"Button intent = color"`):
+- Load / Unload spool = `Intent.Go` (the expected action of the current selection state)
+- Back / Home (navigation) = `Intent.Accent` (neutral nav)
+- Anything that could wreck a print mid-process = `Intent.Caution`; destructive = `Intent.Stop`
 
 #### `FloatingEStop`
 
@@ -143,8 +146,7 @@ a `Box` that wraps Focus content as a sibling.
 Important: place Focus main content (progress ring, detail card) with awareness that the very
 top-left corner is reserved for the e-stop. Do not overlap it with important readout data.
 
-Phase-23 scope: built and wired to SpoolScreen (printing-state visibility). Full integration to
-every screen is Phase 24.
+Piloted on SpoolScreen (Phase 23), integrated app-wide (Phase 24) — a shipped, standing element.
 
 #### `SortFilterControlRow` — LOCKED compound anatomy
 
@@ -205,8 +207,11 @@ dp-derived reasoning.** This section records the derived usage:
 and passed explicitly to each component. Promote to `CompositionLocal<UnitGrid>` if call-chain
 depth grows past 3 levels.
 
-**Settings/config surfaces** (C6 exempt): the unit grid does NOT apply to Settings-class screens
-(Settings, Theme editor) — they use denser rows and ignore the touch-floor minimum.
+**Settings/config surfaces** (C6): densified by design — tighter grouping, inline keyboard
+fields, no wasted vertical whitespace — but **NEVER below the 1U row floor**. All row/control
+heights remain `heightIn(min = uDp)` even on C6 screens (owner "All 1U" ruling, Phase 28,
+2026-06-12 — this supersedes the earlier "ignore the touch-floor minimum" text that previously
+lived here).
 
 ---
 
@@ -261,8 +266,8 @@ spool is currently the loaded one**:
 
 | State | Button | Icon | Intent |
 |---|---|---|---|
-| Selected spool **IS** the loaded one | **Unload** | `DinghyIcons.ExpandCircleDown` (`expand_circle_down`) | `Intent.Neutral` |
-| Selected spool is **NOT** the loaded one | **Load** | `DinghyIcons.ExpandCircleUp` (`expand_circle_up`) | `Intent.Accent` |
+| Selected spool **IS** the loaded one | **Unload** | `DinghyIcons.ExpandCircleDown` (`expand_circle_down`) | `Intent.Go` (R5 — expected action of this state; was Neutral) |
+| Selected spool is **NOT** the loaded one | **Load** | `DinghyIcons.ExpandCircleUp` (`expand_circle_up`) | `Intent.Go` (R5 — was Accent) |
 
 The other foot buttons (Home, Scan) are always present. This three-button foot bar is the
 canonical `FootButtonBar` usage.
@@ -289,11 +294,10 @@ LOCKED compound anatomy"). Key invariants:
 
 ---
 
-## 7. Stepper and scrubber — post-Phase-26 sizing rules
+## 7. Stepper and scrubber
 
-> **UAT-3 (scrubber ≤ 1U):** While the current fill-bar scrubber style (`ScrubberControl` /
-> `LedBrightnessControl`) is in use, the scrubber track + thumb must be constrained to a single U
-> of height via `Modifier.heightIn(max = uDp)`. See `LAYOUT.md UAT-3`.
+> **UAT-3 (scrubber ≤ 1U):** track + thumb constrained to a single U of height via
+> `Modifier.heightIn(max = uDp)`. See `LAYOUT.md UAT-3`.
 >
 > **UAT-5 (controls ≤ 1U):** All Output controls respect the 1U height cap. The LED `ColorWheel`
 > is the **sole sanctioned >1U exception**. See `LAYOUT.md UAT-5`.
@@ -304,19 +308,60 @@ LOCKED compound anatomy"). Key invariants:
 > **UAT-4 (e-stop top-left reserve):** `FloatingEStop` occupies `Alignment.TopStart` of the Focus
 > Box — leave that corner clear of important content. See `LAYOUT.md UAT-4`.
 
-### Stepper and scrubber — vocabulary
+### Stepper
 
-The stepper (increment-picker) and scrubber (ScrubberPage) are **named in the jiib redesign
-vocabulary** and ARE part of the component catalog in concept:
+A step-based adjuster (preferred over drag on the perf floor); 3-zone Focus layout; inline
+`was X` baseline readout. See
+`.claude/skills/sketch-findings-dinghy-display/references/adjustment-controls.md` for the locked
+design. Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs) on it.
 
-- **Stepper:** a step-based adjuster (no scrubber on the perf floor); 3-zone Focus layout; inline
-  `was X` baseline readout. See `.claude/skills/sketch-findings-dinghy-display/references/adjustment-controls.md`
-  for the locked design.
-- **Scrubber (ScrubberPage):** current fill-bar style; track + thumb constrained to ≤ 1U per UAT-3.
+### Scrubber — THE style is the sketch-004 ringed thumb (R9, owner, 2026-06-12)
 
-Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs). The UAT sizing
-rules above (UAT-3/UAT-5/UAT-1/UAT-4) are the conformance criteria for these and all future
-adjustment screens. The existing `ScrubberPage.kt` and stepper implementations are in active use.
+The canonical drag-adjust control, owner-referenced Android-SeekBar style ported to tokens:
+
+- **Track:** thin (~6dp, pill-rounded). Filled side = `accent`, remainder = `surface3`.
+  Left/start-anchored fill.
+- **Thumb:** `surface`-colored knob with a thick **5dp `accent` ring** (~34dp visible) and an
+  **enlarged invisible touch target (~74dp)** for the floor. Press state = `accentSoft` halo.
+- Min/max labels under the track; live value above. **Snaps to step.**
+- **Load-bearing impl rule (the `fa97efb` lesson):** build the element ONCE; update fill width,
+  thumb position, and value **in place** during drag. NEVER rebuild/recompose the dragged element
+  per move — it detaches the node / stales the drag closure and the gesture dies.
+- Source sketch: `.claude/skills/sketch-findings-dinghy-display/sources/004-scrubber-style/`.
+
+**Deprecations (R9):** the legacy fill-bar style (`ScrubberControl` / `LedBrightnessControl`
+visuals) is deprecated — surfaces migrate per the 2026-06 normalization-audit verdicts (UAT-3's
+1U cap binds both styles in the interim). `ScrubberPage.kt` is dead code (debug gallery only)
+and is deleted in the sweep.
+
+## 7b. Stroke, floor & spacing tables (R12/R13, owner-approved as-built, 2026-06-12)
+
+The authoritative **dp** values. Any "px" stroke/size mention elsewhere in prose is shorthand
+for these; where prose and this table disagree, this table wins.
+
+| Element | Value (dp) |
+|---|---|
+| `ListRow` border — unselected / selected | 1.5 / 2 |
+| `DetailCard` ring / inner hair border / inner padding | 3 / 1 / 16 |
+| `OutlinedControl` border / min height | 2 / 64 |
+| `FillMeter` track height | 6 (pill) |
+| Scrubber track / thumb visible / thumb ring / touch target | 6 / 34 / 5 / 74 |
+| `SortFilterControlRow` tile height / floor | U−12 / 48 |
+| `FloatingEStop` size / corner padding | 0.7U (min 64) / 14 |
+| Touch floors (stated once, app-wide) | controls ≥ 64 · absolute minimum ≥ 48 |
+
+**Consolidation mandate (owner):** style should trend MINIMAL — the normalization audit proposes
+value consolidations (e.g. fewer distinct stroke weights) as owner-call items; new components
+must reuse a value from this table rather than introduce a new one.
+
+**Named spacing tokens (R13)** — spacing is lawful ONLY from this set (amends LAYOUT.md
+NON-NEGOTIABLE 3: spacing comes from the named set, not from U-derivation or ad-hoc dp):
+
+| Token | Value | Use |
+|---|---|---|
+| `gapS` | 8dp | grid/tile gaps, intra-row element spacing |
+| `gapM` | 12dp | inter-row rhythm (e.g. SortFilter tile = U − gapM) |
+| `padFloat` | 14dp | floating-overlay corner padding (FloatingEStop) |
 
 ---
 

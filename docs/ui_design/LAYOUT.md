@@ -126,7 +126,9 @@ device.
 - **Must survive at 5 units (phone landscape)** — that is the worst case every screen is
   measured against. The essential landscape layout must fit in 5U.
 - **Count flexes, unit stays ≈ constant.** A bigger screen shows *more* units, not bigger rows.
-- **Settings/config surfaces (C6) are exempt** — they are denser by design.
+- **Settings/config surfaces (C6) are exempt from DENSITY expectations only** — denser grouping
+  by design, but **never below the 1U row floor** (see §Conformance criteria C6 — the Phase-28
+  "All 1U" owner ruling).
 
 ---
 
@@ -159,6 +161,9 @@ that list** inside a `FootButtonBar`. This replaces the old gutter for list-scre
 - It lives **inside the Field slot lambda**, as the last element of the field column — NOT in
   the `gutter` slot of `ScreenScaffold`.
 - With 3 buttons, each button is `weight(1f)` of the Field width.
+- **Back is always the FIRST (start-aligned) button** (R8, 2026-06-12), app-wide.
+- It is **optional per page** (R1) — a screen whose Field holds all its actions needs no foot bar,
+  but then must still provide an explicit exit.
 - The Spoolman screen (3-button foot: Home · Scan · Load/Unload) is the canonical prototype.
 
 **Structural note:** `ScreenScaffold.gutter` still exists for backward compatibility with
@@ -181,8 +186,8 @@ shown on every screen but **only when the printer is actively printing**. It is:
   the very top-left of the Focus region. Place main focus content (progress ring, detail card)
   below this reserved corner.
 
-Phase 23 builds and wires `FloatingEStop` on the SpoolScreen pilot. Full waterfall root
-integration (every screen) is Phase 24.
+`FloatingEStop` was piloted on SpoolScreen (Phase 23) and integrated app-wide with the waterfall
+root (Phase 24); it is a shipped, standing element on every screen.
 
 ---
 
@@ -206,12 +211,14 @@ does **NOT** apply to:
 For those, the regular grid and NON-NEGOTIABLE 1 (everything tabular, balanced divisions) still
 govern — do **not** grow a stat/info cell to absorb leftover space.
 
-**The growing tile is named explicitly per screen — never implicit.** The Phase-16 flexible tiles:
+**The growing tile is named explicitly per screen — never implicit.** Rule KEPT as law (R7,
+2026-06-12); the instance table below reflects post-Phase-28 reality (the old Drawer instance
+died with the App Drawer — the standby launcher grid is now all-equal weights):
 
 | Screen / grid | Flexible (growing) tile |
 |---|---|
-| Standby **launcher grid** | **Drawer** (always last; the swipe-up App Drawer's tap alternative) |
-| Active (Printing / Paused) **shortcut grid** | **Tune** (absorbs space when the shortcut row needs it) |
+| Standby **launcher grid** | **none** (all-equal weights since 28-05; Drawer tile retired) |
+| Active (Printing / Paused) **shortcut grid** | **Tune** (absorbs space when the shortcut row needs it) — *verify in the 2026-06 normalization audit* |
 
 ### Babystep row — explicit C3 exception (recorded here with the rule)
 
@@ -285,9 +292,9 @@ Portrait shows more unit-rows (scrolls); landscape shows the same number side-by
 - **Panel text fills the cell width.** A text block takes the FULL cell width, not an arbitrary inner
   ruler. Size text to fit up to the box; a single line that overflows the full width may marquee —
   never lock scroll lines to a narrower width (reads as stopping mid-screen).
-- **Scroll Field ⇒ no swipe-up drawer.** A screen whose Field is a finger-scrollable list suppresses
-  the global swipe-up App Drawer (the drag fights the scroll) and MUST keep an explicit exit in its
-  `FootButtonBar`.
+- **Every screen keeps an explicit exit.** There is no global nav gesture (the swipe-up App Drawer
+  was deleted in Phase 28). Each screen's `FootButtonBar` carries Back as its FIRST button (R8); a
+  screen without a foot bar must still provide an explicit way out.
 
 ---
 
@@ -322,12 +329,13 @@ This is what `ListRow`'s leading/trailing slots and `AdjusterPanel`'s Zone-1 hea
 → gap → name → `Spacer(weight(1f))` → trailing value. That is the **canonical pattern**. Do not
 break the start/end alignment in new or rebuilt rows.
 
-### UAT-3 — Current-style scrubber ≤ 1U tall
+### UAT-3 — Scrubber ≤ 1U tall
 
-While the current fill-bar scrubber style is in use (`ScrubberControl` / `LedBrightnessControl`),
-the scrubber track + thumb is **constrained to a single U of height**. Implement via
-`Modifier.heightIn(max = uDp)` on the fill-bar track; do not let a weight-based slot grow the
-scrubber to fill the entire Focus.
+The scrubber (now the sketch-004 ringed-thumb style — R9, 2026-06-12; see `COMPONENTS.md §7`)
+is **constrained to a single U of height**, track + thumb. Implement via
+`Modifier.heightIn(max = uDp)`; do not let a weight-based slot grow the scrubber to fill the
+entire Focus. (Legacy fill-bar scrubbers are deprecated and migrate per the normalization-audit
+verdicts; the 1U cap binds them too until they're gone.)
 
 ### UAT-4 — Keep useful content out of the Focus top-left e-stop reserve
 

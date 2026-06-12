@@ -90,6 +90,13 @@ Matthew on flox. Taste flags during the walk are in-scope fixes.
 - Conformance matrix doc (durable: the flox-walk script now, the scoring rubric for future screens).
 - This note.
 
+## Follow-on pass (owner, 2026-06-12): Focus standardization
+
+Focus-region treatments are still per-screen artisanal (detail cards, jog pad, glance overlays,
+adjuster zones, webcam, ring). Standardizing them needs DESIGN decisions (archetype definitions),
+not conformance — so it is a SEPARATE pass after this sweep. This sweep's audit contributes the
+input: a per-screen Focus-treatment inventory grouped into candidate archetypes.
+
 ## Out of scope
 
 - Non-visual hardening (e.g. the deferred H.264 rotation re-prepare fix, MJPEG fallback testing).

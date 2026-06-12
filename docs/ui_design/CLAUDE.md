@@ -1,4 +1,4 @@
-# Dinghy Display — project notes
+# jiib — design philosophy & non-negotiables
 
 ## Design philosophy (bake into every screen)
 - **Focus / Field grammar (Gutter removed in the jiib redesign).** Every redesigned screen is
@@ -35,25 +35,25 @@
   targets are big (≥64px tall) — built for gloved, greasy, fat-fingered taps at arm's length.
 - **Structured blocks over loose pills.** Prefer structured, aligned blocks of information to
   scattered chips.
-- **Button intent = color, by SAFETY of the action** (esp. the gutter). Green = safe /
-  non-destructive (accept, done, commit) · Blue/accent = ordinary physical command, no special hazard
-  (home, unload, fan) · Amber(yellow) = proceed at peril / caution (toolhead jog motion, load/heat
-  filament, reset, undo, unexpected live change) · Red = destructive or dangerous (stop/e-stop, disable
-  steppers [loses homing], force-move armed, host interruption) · White/neutral = basic setting
-  adjustment AND plain navigation. Overridable per case. See THEMING.md for the full spectrum + worked
-  examples.
-- **Back = NEUTRAL / outline (D-10), NOT red and NOT green.** Plain navigation changes no printer state,
-  so it spends no safety color — Back is `--text` on `--outline`. Its gutter POSITION must be consistent
-  app-wide (right-aligned/centered, never varying screen to screen). 15.1 applies this on the Move screen
-  only; the **app-wide Back inventory/sweep is DEFERRED to Phase 15.2's conformance audit** — do NOT
-  assume Back is already app-wide neutral. See THEMING.md → "Back = NEUTRAL / outline" for the full rule.
+- **Button intent = color, by SAFETY of the action — the FOUR-CLASS scheme (R5, 2026-06-12;
+  supersedes the old C1/C5/D-10 assignments).** Buttons (never list rows) are FILLED — fill is what
+  says "button." **Red/stop** = could be destructive (cancel, e-stop, disable steppers) ·
+  **Amber/warning** = could be destructive but part of the process (toolhead jog, load/heat
+  filament, resets) · **Green/go** = the screen's EXPECTED action (Print, Load, Save, accept) ·
+  **Accent** = neutral items and plain navigation (Back, Home). The old white/neutral-outline
+  button intent is RETIRED. Overridable per case. See THEMING.md for the full law + worked examples.
+- **Back = ACCENT, FIRST position (R5/R8, 2026-06-12; supersedes D-10's neutral-Back).** Plain
+  navigation wears the accent, and Back is always the **first (start-aligned) button** in a
+  `FootButtonBar`, app-wide — muscle memory holds. A Back/Cancel that DISCARDS pending input is a
+  cancel-with-loss and stays **stop/red** (the old C7 logic carries over). The long-deferred
+  app-wide Back sweep is a checklist column in the 2026-06 normalization audit.
 - **Icons: never the same glyph twice on one screen.** If you'd repeat one, use a 1–3 letter
   text label instead (e.g. "XY"/"Z" homes vs. arrows; chevrons for Z vs. arrows for the XY pad).
 - **Icons are real Material Symbols by default** — `IconRef.Ligature` (rendered from the bundled
   font) when the glyph is present, or an OFFICIAL Google vector drawable (path data verbatim, never
   hand-traced) when the bundled font is too old to carry it. Hand-authored custom drawables are ONLY
   for genuinely-custom printer-domain glyphs Material Symbols lacks (nozzle, bed, bed-tilt, spool).
-  The shape-coded status indicators (octagon/triangle) ARE in the font and are NOT custom. Retires
+  The shape-coded status indicators (square-✕ `StatusStop` / triangle) ARE in the font and are NOT custom. Retires
   D-17's "no Material Symbols font" stance — the font is already a shipped dependency used app-wide.
   (The "never the same glyph twice on one screen" rule above still holds.)
 - **🚫 NEVER create an icon or choose a glyph independently — ASK. (Owner law, 2026-06-07.)** Claude does
@@ -72,13 +72,15 @@
 - **Square the smallest buttons.** When a Field stacks multiple button rows, the shortest row's
   height should equal its per-column width (equal spans) so the smallest targets are square.
 - **Dense cells drop labels.** At ≥3 columns (portrait) / ≥6 (landscape), a cell shows a single
-  icon or ≤3-char value scaled to ~75% of its constraining dimension — no text labels (the Gutter
-  is exempt; it keeps icon+label). When a cell must show a value AND its source, overlay the value
-  on a large background glyph (e.g. the big axis letter behind the live X/Y/Z value).
-- **Scrollable Fields disable the swipe-up drawer.** The global nav affordance is a swipe-up App
-  Drawer — EXCEPT on any screen whose Field is a finger-scrollable list (Files; console later): a
-  full-canvas vertical-drag detector fights the list's own scroll. Those screens suppress the swipe
-  and MUST keep an explicit exit in the Gutter (e.g. Files' "Cancel picker"). (2026-06-02.)
+  icon or ≤3-char value scaled to ~75% of its constraining dimension — no text labels
+  (`FootButtonBar` buttons keep icon+label; they are 1-per-row-third, not dense cells). When a
+  cell must show a value AND its source, overlay the value on a large background glyph (e.g. the
+  big axis letter behind the live X/Y/Z value).
+- **Every screen keeps an explicit exit.** There is no global nav gesture (the swipe-up App
+  Drawer was deleted in Phase 28); navigation is explicit — the waterfall root reaches screens,
+  and each screen's `FootButtonBar` carries Back (first position). A screen without a foot bar
+  must still have an explicit way out. (Supersedes the old "scrollable Fields suppress the
+  swipe-up drawer" rule, which guarded an affordance that no longer exists.)
 - **Content images fit, they don't crop.** A thumbnail/preview shown as content — including as a
   dimmed card background — uses `Fit` so the WHOLE image is visible, centered/letterboxed on the
   surface. `Crop` zooms into a center strip in the tall, narrow landscape Focus/Field panes (it
@@ -145,12 +147,19 @@
   The Splash's Disconnected/Error "Unreachable" surface (Retry + Edit connection) is preserved, so a
   printer that is simply OFF stays reachable, not an eternal dead "Syncing". (Matthew, 2026-06-03; 13-05.)
 
-## Hi-fi visual language
-- Type: Geist + Geist Mono (tabular numerals for live data).
-- Accent: seed-generated signature color (the user's). Heat = the CAUTION color (D-13), no longer a
-  nozzle/bed identity — temperature identity rides `directional.temperature` (= accent) + the data pool.
-  Go/Stop: green/red (user-overridable; shape carries safety). Surfaces are pure-neutral (D-16).
-- Shape: soft — 22px cards, 16px controls, pill chips; status safety carried by SHAPE (octagon=stop,
-  triangle=caution; go is shapeless). See THEMING.md.
-- Motion: alive — progress fills + sheen, ring draws on (static glow; no continuous breathing — Adreno-320 budget).
-- Files: `hifi.css` (tokens + components), `Print Status Hi-Fi.html` (design canvas).
+## Visual language
+- Type: Geist + Geist Mono (tabular numerals for live data). Type ramp: see THEMING.md §"The
+  type ramp" (R11 — 20sp list/button default).
+- Accent: seed-generated signature color (the user's). Heat = the CAUTION/warning color (D-13), no
+  longer a nozzle/bed identity — temperature identity rides `directional.temperature` (= accent) +
+  the data pool. Go/Stop: green/red (user-overridable; shape carries safety). Surfaces are
+  pure-neutral (D-16).
+- Shape: soft — 22dp cards, 16dp controls, pill chips; status safety carried by SHAPE
+  (square-✕ `StatusStop` = stop, triangle-! = caution; go is shapeless). See THEMING.md.
+- Motion: alive but cheap — progress fills, ring draws on; NO continuous breathing/looping
+  animation (Adreno-320 budget). "Glow" as a real blur is not on the API floor; glow tokens render
+  as static alpha treatments (R6 — a true cached glow is aspirational polish, not law).
+- North star of record: the as-built Spoolman screen + sketch sources
+  (`.claude/skills/sketch-findings-dinghy-display/sources/`) + THEMING.md. The old hi-fi bundle
+  (`reference/hifi.css`, `Print Status Hi-Fi.html`, `images/`) is HISTORICAL — superseded by the
+  2026-06-09 jiib redesign; do not build from it.

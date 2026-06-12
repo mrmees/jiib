@@ -22,7 +22,7 @@ control-a-print loop must work flawlessly on a Nexus 7.
 
 - **Compatibility**: minSdk 23 (Android 6.0). The Nexus 7 2013 is the **support FLOOR** (the must-run worst case), not the only target — v1 targets phones through tablets. Why: the "runs on cheap old hardware" promise is the project's soul; it stays as the floor even though scope broadened.
 - **Performance**: The Adreno 320 (Snapdragon S4 Pro, 32-bit ARMv7, 1920×1200, 2GB) is the **worst-case perf budget** everything is measured against — fill rate is the bottleneck; a janky printer screen is worse than none. Richer effects are fine on capable hardware but must not break the floor. (The *2013* Nexus 7 is Adreno 320 / 1920×1200 — NOT the *2012* Tegra 3 / 1280×800.)
-- **Orientation**: **Portrait AND landscape** (was landscape-only). Every screen is responsive via the Focus/Field/Gutter grammar — see UI Design System below.
+- **Orientation**: **Portrait AND landscape** (was landscape-only). Every screen is responsive via the two-region Focus/Field grammar — see UI Design System below.
 - **Theming**: **Full semantic-token theme system — dark + light + user custom — plus an S/M/L text-size setting.** All UI routes through role tokens, never raw colors (see `docs/ui_design/THEMING.md`).
 - **Tech stack**: Native Android, Kotlin, Jetpack Compose + classic Views hybrid (ADR 0001). Why: direct hardware/OS access, offline operation, broad-device compatibility.
 - **Connectivity**: Local-network Moonraker (websocket + REST), optional API-key/trusted-client auth — Why: Moonraker is the only integration surface; printer and tablet share a LAN.
@@ -193,25 +193,26 @@ keep view-models toolkit-agnostic (StateFlow to both). See `docs/adr/0001-ui-too
 
 ## UI Design System (LAW — read `docs/ui_design/` before building any screen)
 
-The complete visual + interaction contract for the WHOLE app lives in **`docs/ui_design/`** (authored by
-Matthew in a dedicated design session, 2026-05-31). It **supersedes** any earlier per-phase UI-SPEC.
-Fidelity is HIGH — `reference/hifi.css` is the canonical token/component source; reproduce its values in
-the Compose/Views stack (it is a reference, not code to copy verbatim).
+The complete visual + interaction contract for the WHOLE app lives in **`docs/ui_design/`**
+(originally authored 2026-05-31; **reconciled to one post-jiib-redesign law 2026-06-12** — rulings
+R1–R14 in `.planning/notes/2026-06-12-spec-recon-inventory.md`). It supersedes any earlier
+per-phase UI-SPEC. North star of record = the as-built Spoolman screen + the sketch skill sources
++ THEMING.md tokens; the old `reference/hifi.css` bundle is HISTORICAL (do not build from it).
 
 **Read in this order (they are the law):**
-- `docs/ui_design/CLAUDE.md` — design philosophy + non-negotiables.
-- `docs/ui_design/LAYOUT.md` — the **Focus / Field / Gutter** grammar (regions, orientation rules, the ⚠ non-negotiables: one shared tabular grid, sacred aspect ratios, ratio-only sizing — no hardcoded px).
-- `docs/ui_design/THEMING.md` — the semantic token system, dark/light values, button-intent colors, `--fs`.
-- `docs/ui_design/PREVIEW_AND_TOKENS.md` — the **preview-first / tokenized-first** build convention (Phase 18): every new screen ships a `@Preview` matrix (6 theme combos + `fs=L`, no live Moonraker), `stringResource` strings, and `DinghyIcon` tokens from day one.
-- `docs/ui_design/images/*.png` — hi-fi mockups of all 10 core screens (portrait + landscape).
+- `docs/ui_design/README.md` — front door: reading order + the grammar and intent scheme in brief.
+- `docs/ui_design/CLAUDE.md` — design philosophy + non-negotiables (icon law: NEVER pick a glyph — ask).
+- `docs/ui_design/LAYOUT.md` — the **two-region Focus / Field** grammar, the unit **U**, UAT-1..5, the ⚠ non-negotiables (one shared tabular grid, sacred aspect ratios, ratio-only sizing).
+- `docs/ui_design/COMPONENTS.md` — component classes (ListRow, DetailCard, FootButtonBar, FloatingEStop, the 004 ringed-thumb scrubber), stroke/floor/spacing tables.
+- `docs/ui_design/THEMING.md` — seed-generated tokens, the **four-class button-intent scheme (R5)**, the type ramp (20sp list/button default), status shape vocabulary, `--fs`.
+- `docs/ui_design/PREVIEW_AND_TOKENS.md` — the preview-first / tokenized-first build convention.
 
-**Load-bearing rules (and the decisions that reconcile them with this project's constraints):**
-- **Focus / Field / Gutter** on one shared grid; portrait stacks, landscape is Focus|Field 50/50 + full-width gutter. No persistent status bar — status is **color on an existing element** (homed axis green / unhomed amber).
-- **Outline-led, touch-first controls** (2px outline + glow, ≥64px targets). **Button intent = color**: red = stop/cancel/back, green = accept, amber = proceed-at-peril, accent(blue) = physical command, white = setting.
-- **Navigation = swipe-up full-screen App Drawer** (tiles incl. Settings + red Power). **Stop → full-screen Confirm guard** (not a hold gesture, not a dialog). **Single-setting scrubber/stepper page** for every numeric value.
-- **No alphanumeric keyboard in printer controls.** The **Settings screen** (conventional Android, keyboard allowed) owns connection (host/port/key), theme, and feature toggles. Controls needing alphanumeric input (console, macro params, file search) are triaged per-control in their own phases.
-- **Type:** Geist + Geist Mono (tabular numerals for live data). **Theming:** dark + light + user custom via role tokens; **S/M/L** text-size (`--fs`).
-- **Motion:** static glow YES; **no continuous "breathing"/looping animation** (Adreno-320 budget — match the aesthetic without a CPU-cycle burner). One-shot transitions OK if cheap.
+**Load-bearing rules (post-redesign):**
+- **Focus / Field** (Gutter RETIRED as a region — `FootButtonBar` is its successor, optional per page); portrait stacks, landscape 50/50. Unit grid **U**: integer-U heights, 1U control cap (UAT-5), must survive 5U. No persistent status bar; no App Drawer (deleted Phase 28) — the morphing waterfall home is the root, Back = FIRST foot-bar button.
+- **Buttons FILLED, list rows translucent.** **Intent (R5): red = could destroy · amber = hazardous-but-in-process · green = the EXPECTED action · accent = neutral/nav (Back, Home).** Neutral-outline button intent retired.
+- **No alphanumeric keyboard in printer controls** (Settings screen + Save-name fields are the sanctioned exceptions). Numeric adjust = stepper (preferred) or the 004 ringed-thumb scrubber.
+- **Type:** Geist + Geist Mono (tabular for live data); ramp floor 15sp, list/button default 20sp (`fsSp`). **Theming:** dark + light + custom via role tokens; S/M/L (`--fs`).
+- **Motion:** static treatments only; **no continuous "breathing"/looping animation** (Adreno-320 budget). One-shot transitions OK if cheap.
 - **Target/floor:** v1 = phones→tablets, portrait + landscape; the **Nexus 7 2013 (Adreno 320) is the perf floor**, not the only target.
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
