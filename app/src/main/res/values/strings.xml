@@ -425,6 +425,17 @@
     <string name="extrude_no_load_macro">No %1$s macro configured</string>
     <string name="extrude_no_unload_macro">No %1$s macro configured</string>
 
+    <!-- ============== move screen (Phase 27 / 27-03) ============================ -->
+    <string name="move_z_up">Z Up</string>
+    <string name="move_z_down">Z Down</string>
+    <string name="move_z_home">Home Z</string>
+    <string name="move_distance_increase">Increase step</string>
+    <string name="move_distance_decrease">Decrease step</string>
+    <string name="move_home_all">Home All</string>
+    <string name="move_disable_steppers">Disable Steppers</string>
+    <string name="move_disable_confirm">Disable steppers? This will un-home all axes.</string>
+    <string name="cd_move_jog_pad">Move jog pad</string>
+
     <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
     <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /
          RoutineScrewsTilt / RoutineZTilt / RoutineQgl DinghyIcons tokens registered in 27-01.

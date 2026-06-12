@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,13 +28,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.DispatchEvent
@@ -45,9 +49,12 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
@@ -62,46 +69,15 @@ private const val FEED_Z = 600
 private val DISTANCES = listOf(0.1, 1.0, 10.0, 25.0, 50.0, 100.0)
 
 /**
- * The Move panel (MOVE-01..04) — the printer-motion control surface, LAW per
- * docs/ui_design/images/04-move.png + README §4 (captured verbatim, D-03). Built on [ScreenScaffold]
- * (Focus/Field/Gutter); all color routes through [LocalTokens] role tokens (THEME-01); all live
- * numbers use GeistMono tabular numerals.
+ * The Move panel — thin VM-reading wrapper that forwards to the stateless [MoveContent].
  *
- * ## Focus — the 3×3 jog pad (sacred squares, one per cell)
- * Mirrors the mockup grid exactly:
- * ```
- *   [Y corner]  [ ↑ Y+ ]  [ Override ]
- *   [ ← X− ]    [ XY home][ → X+ ]
- *   [Z corner]  [ ↓ Y− ]  [X corner]
- * ```
- *  - Edge cells = directional jog arrows → `jog("Y",±d)` / `jog("X",±d)` (MOVE-01).
- *  - Center cell = XY home → `homeXY()` (G28 X Y — XY ONLY, never a full G28; D-03 / MOVE-02).
- *  - Corner cells render the live X/Y/Z value-on-glyph (a big axis letter behind the GeistMono value),
- *    the letter colored green ([ThemeTokens.go]) when that axis is homed else amber ([ThemeTokens.heat]);
- *    tapping an axis corner homes THAT axis → `homeAxis(a)` (per-axis home, MOVE-02 / MOVE-04).
- *  - The amber Override cell ([Intent.Warn]) is the deliberate proceed-at-peril escape: when an axis is
- *    unhomed it jogs that axis via `overrideJog(axis,±d)` (SET_KINEMATIC_POSITION X=0 Y=0 Z=0 + relative
- *    move). Normal jog of an unhomed axis is GATED off (amber, disabled); Override is the only way (D-03).
+ * This public entry-point reads the live holder/dispatcher state and wires callbacks to the
+ * stateless [MoveContent] composable (WARNING-5: `@Preview` targets [MoveContent] directly,
+ * not this VM-bound wrapper — no AppContainer or VM is instantiated in previews).
  *
- * ## Field — Z row + the 6-up distance selector
- *  - A Z row of 3 squares: `∧` (Z+), the live Z value-on-glyph center, `∨` (Z−).
- *  - A 6-up fixed distance selector (0.1/1/10/25/50/100 mm); the active step is accent-outlined.
- *
- * ## Gutter (D-07) + Disable → ConfirmGuard (MOVE-03)
- *  - Home ([Intent.Accent]) → `homeAll()` (G28, all axes).
- *  - Disable ([Intent.Warn], amber) → raises the full-screen [ConfirmGuard] (`destructive=false` →
- *    amber proceed-at-peril); confirming dispatches `DISABLE_STEPPERS` (M84).
- *  - Back ([Intent.Neutral], outline) → [onBack] (D-10: plain nav spends no safety color; Move only
- *    this phase, app-wide Back sweep deferred to 15.2).
- *
- * Every action dispatches a registry gcode entry via the per-session
- * [works.mees.dinghy.command.CommandDispatcher], never a raw rpc request. A control whose dispatch key
- * is in-flight is disabled (T-05-06-T). A dispatcher [DispatchEvent.Failure] (e.g. a gcode error from an
- * Override) surfaces a [SeverityToast].
- *
- * @param container the service-locator (provides the live `printerState` + the session dispatcher).
- * @param holder    the toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating).
- * @param onBack    invoked by the red Back gutter tile.
+ * @param container service-locator (provides live `printerState` + session dispatcher).
+ * @param holder    toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating).
+ * @param onBack    invoked by the Back foot button.
  */
 @Composable
 fun MoveScreen(
@@ -115,14 +91,8 @@ fun MoveScreen(
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
-    val t = LocalTokens.current
 
-    var distance by remember { mutableStateOf(10.0) } // default highlighted step (mockup shows 10).
-    var showDisableGuard by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
-    // Force-move ("unlocked") mode: jog issues FORCE_MOVE (no homing/limits) instead of G1. The red
-    // override toggle arms it; default OFF (locked/safe). EXTR-/MOVE redesign 2026-06-01.
-    var forceMove by remember { mutableStateOf(false) }
 
     // Surface a dispatch failure (redacted message) as an error toast (PRIM-04). Reset on session swap.
     LaunchedEffect(dispatcher) {
@@ -147,101 +117,211 @@ fun MoveScreen(
         dispatcher?.dispatch(command, args)
     }
 
-    Box(modifier.fillMaxSize()) {
-        ScreenScaffold(
-            // Portrait: the jog pad is a sacred 1:1 square that fills the WIDTH; the field absorbs the
-            // remaining height (the Z row + distance). Landscape is the normal 50/50 Focus|Field split.
-            portraitFocusAspect = 1f,
-            focus = {
+    MoveContent(
+        vm = vm,
+        inFlight = inFlight,
+        failureText = failureText,
+        onJog = { axis, mm, feed -> dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, feed)) },
+        onForceJog = { axis, mm, feed -> dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs(axis, mm, feed / 60)) },
+        onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
+        onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
+        onHomeAll = { dispatchCommand(CommandRegistry.homeAll, Unit) },
+        onDisable = { dispatchCommand(CommandRegistry.disableSteppers, Unit) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless preview seam for [MoveScreen] (WARNING-5 / ExtrudeScreen.kt:209 pattern).
+ *
+ * All callbacks default to no-ops; all data is injected. Used by `MovePreviews.kt`.
+ * This overload has no VM/AppContainer dependency so `@Preview` can render it without
+ * a live Moonraker connection.
+ */
+@Composable
+fun MoveScreen(
+    vm: MoveVm = MoveVm(),
+    inFlight: Set<String> = emptySet(),
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    MoveContent(
+        vm = vm,
+        inFlight = inFlight,
+        failureText = null,
+        onJog = { _, _, _ -> },
+        onForceJog = { _, _, _ -> },
+        onHomeXY = {},
+        onHomeAxis = {},
+        onHomeAll = {},
+        onDisable = {},
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless layout composable for the Move panel. Accepts all VM data and callbacks as plain
+ * parameters — no live Moonraker, no AppContainer, no ViewModel. Targeted directly by
+ * [MovePreviews.kt] (WARNING-5 seam).
+ *
+ * ## Layout
+ *
+ * Uses [BoxWithConstraints] for manual sizing (NOT `portraitFocusAspect` — the Move screen has a
+ * specialized-layout exemption like Extrude's D-15, since the spatial jog pad must stay a grid).
+ *
+ * **Portrait (D-03):**
+ * `padSize = (maxHeight * 0.60f).coerceAtMost(maxWidth)` — the 60%-of-height cap guarantees
+ * room for the Z/distance columns beneath the pad.
+ *
+ * **Landscape:**
+ * The pad fills full height of its half; Z column + distance stepper sit beside it.
+ *
+ * **Gutter = null** — Home All / Disable / Back live in [FootButtonBar] inside the layout.
+ *
+ * ## Sacred-square JogPad (D-04)
+ * Pad internals carry over unchanged: home-XY center, axis-corner live readouts + tap-to-home,
+ * red force-move toggle. Only the chrome tokens are updated.
+ */
+@Composable
+internal fun MoveContent(
+    vm: MoveVm,
+    inFlight: Set<String>,
+    failureText: String?,
+    onJog: (axis: String, mm: Double, feed: Int) -> Unit,
+    onForceJog: (axis: String, mm: Double, feed: Int) -> Unit,
+    onHomeXY: () -> Unit,
+    onHomeAxis: (axis: String) -> Unit,
+    onHomeAll: () -> Unit,
+    onDisable: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var distance by remember { mutableStateOf(10.0) } // default highlighted step (mockup shows 10).
+    var showDisableGuard by remember { mutableStateOf(false) }
+    var forceMove by remember { mutableStateOf(false) }
+
+    // Wrap jog dispatch with force-move mode awareness
+    fun jog(axis: String, mm: Double, feed: Int) {
+        if (forceMove) onForceJog(axis, mm, feed) else onJog(axis, mm, feed)
+    }
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+        val landscape = maxWidth > maxHeight
+
+        if (landscape) {
+            // Landscape: JogPad fills left half; right half = Z col + distance col + FootButtonBar
+            Row(Modifier.fillMaxSize()) {
                 JogPad(
                     vm = vm,
                     distance = distance,
                     inFlight = inFlight,
                     forceMove = forceMove,
-                    onJog = { axis, mm, feed ->
-                        if (forceMove) {
-                            dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs(axis, mm, feed / 60))
-                        } else {
-                            dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, feed))
-                        }
-                    },
-                    onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
-                    onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
+                    onJog = ::jog,
+                    onHomeXY = onHomeXY,
+                    onHomeAxis = onHomeAxis,
                     onToggleForceMove = { forceMove = !forceMove },
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                    modifier = Modifier.weight(1f).fillMaxHeight().padding(8.dp),
                 )
-            },
-            field = {
                 Column(
-                    Modifier.fillMaxSize().padding(8.dp),
+                    Modifier.weight(1f).fillMaxHeight().padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ZRow(
-                        zHomed = vm.zHomed,
-                        inFlight = inFlight,
-                        forceMove = forceMove,
-                        onJogZ = { mm ->
-                            if (forceMove) {
-                                dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs("Z", mm, FEED_Z / 60))
-                            } else {
-                                dispatchCommand(CommandRegistry.jog, JogArgs("Z", mm, FEED_Z))
-                            }
-                        },
-                        onHomeZ = { dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs("Z")) },
-                        distance = distance,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                    )
-                    DistanceSelector(
-                        selected = distance,
-                        onSelect = { distance = it },
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                    )
+                    Row(
+                        Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ZColumn(
+                            zHomed = vm.zHomed,
+                            zValue = vm.z,
+                            inFlight = inFlight,
+                            forceMove = forceMove,
+                            onJogZ = { mm -> jog("Z", mm, FEED_Z) },
+                            onHomeZ = { onHomeAxis("Z") },
+                            distance = distance,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                        DistanceStepperColumn(
+                            distance = distance,
+                            onSelect = { distance = it },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
                     failureText?.let { msg ->
                         SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                     }
+                    FootButtonBar(
+                        uDp = grid.uDp,
+                        modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        MoveFootButtons(onHomeAll, { showDisableGuard = true }, onBack, Modifier.weight(1f))
+                    }
                 }
-            },
-            gutter = {
+            }
+        } else {
+            // Portrait (D-03): JogPad capped at 60% HEIGHT; remaining height = Z col + distance col + footer
+            val padSize: Dp = (maxHeight * 0.60f).coerceAtMost(maxWidth)
+            Column(Modifier.fillMaxSize()) {
+                // Top: JogPad at padSize × padSize, centered horizontally
+                Box(
+                    Modifier.fillMaxWidth().height(padSize),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    JogPad(
+                        vm = vm,
+                        distance = distance,
+                        inFlight = inFlight,
+                        forceMove = forceMove,
+                        onJog = ::jog,
+                        onHomeXY = onHomeXY,
+                        onHomeAxis = onHomeAxis,
+                        onToggleForceMove = { forceMove = !forceMove },
+                        modifier = Modifier.size(padSize).padding(8.dp),
+                    )
+                }
+                // Bottom: Z col + distance col + footer bar
                 Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
+                    Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedControl(
-                        label = "All",
-                        onClick = { dispatchCommand(CommandRegistry.homeAll, Unit) },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        symbol = "home_and_garden",
+                    ZColumn(
+                        zHomed = vm.zHomed,
+                        zValue = vm.z,
+                        inFlight = inFlight,
+                        forceMove = forceMove,
+                        onJogZ = { mm -> jog("Z", mm, FEED_Z) },
+                        onHomeZ = { onHomeAxis("Z") },
+                        distance = distance,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
-                    OutlinedControl(
-                        label = "Disable",
-                        onClick = { showDisableGuard = true },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Danger, // destructive: releasing steppers un-homes the axes.
-                    )
-                    OutlinedControl(
-                        label = "Back",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        // D-10: plain nav spends NO safety color — Back is NEUTRAL/outline, not red and
-                        // not green, in a consistent gutter slot (right-aligned, the last tile). This is
-                        // the D-10 rule established ON MOVE this phase; the app-wide Back sweep is
-                        // deferred to Phase 15.2's conformance audit (plan 08).
-                        intent = Intent.Neutral,
+                    DistanceStepperColumn(
+                        distance = distance,
+                        onSelect = { distance = it },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
-            },
-        )
+                failureText?.let { msg ->
+                    SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    MoveFootButtons(onHomeAll, { showDisableGuard = true }, onBack, Modifier.weight(1f))
+                }
+            }
+        }
 
+        // Disable ConfirmGuard (D-04: carry over unchanged semantics)
         if (showDisableGuard) {
-            // Destructive (red confirm): releasing steppers un-homes the axes. The guard dispatches
-            // NOTHING — onConfirm does (PRIM-03).
             ConfirmGuard(
-                title = "Disable steppers?",
-                message = "Motors release; the toolhead can be moved by hand and axes become un-homed.",
-                confirmLabel = "DISABLE",
+                title = stringResource(R.string.move_disable_steppers),
+                message = stringResource(R.string.move_disable_confirm),
+                confirmLabel = stringResource(R.string.move_disable_steppers).uppercase(),
                 onConfirm = {
-                    dispatchCommand(CommandRegistry.disableSteppers, Unit)
+                    onDisable()
                     showDisableGuard = false
                 },
                 onCancel = { showDisableGuard = false },
@@ -251,11 +331,273 @@ fun MoveScreen(
     }
 }
 
+/** The three foot buttons shared between portrait and landscape: Home All | Disable | Back. */
+@Composable
+private fun MoveFootButtons(
+    onHomeAll: () -> Unit,
+    onShowDisable: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedControl(
+        label = stringResource(R.string.move_home_all),
+        onClick = onHomeAll,
+        modifier = modifier,
+        intent = Intent.Accent,
+        icon = DinghyIcons.LauncherMove,
+        contentDescription = stringResource(R.string.move_home_all),
+    )
+    OutlinedControl(
+        label = stringResource(R.string.move_disable_steppers),
+        onClick = onShowDisable,
+        modifier = modifier,
+        intent = Intent.Danger,
+    )
+    OutlinedControl(
+        label = "",
+        onClick = onBack,
+        modifier = modifier,
+        intent = Intent.Neutral,
+        icon = DinghyIcons.Back,
+        contentDescription = stringResource(R.string.common_back),
+    )
+}
+
 /**
- * The 3×3 jog pad — sacred-square cells, arranged per the mockup. Edge arrows jog X/Y by [distance];
- * the center homes XY; the Y/Z/X corners render the live value and tap to home that axis; the top-right
- * is the force-move toggle (the unhomed-jog escape). When [forceMove] is on, jog arrows issue
- * FORCE_MOVE and stay active even when unhomed; off, they jog with G1 gated on the axis being homed.
+ * The vertical 3-cell Z column (D-01): Z-up / live-Z readout + home / Z-down.
+ *
+ * Uses `t.directional.z` outline on both jog cells to identify the Z motion plane.
+ * The center cell shows the live Z value (Geist Mono tabular numerals) AND acts as the
+ * Z home button — the SAME z value read by the JogPad Z corner (Pitfall 7: both surfaces
+ * read [vm.z] / [zValue] — no divergence).
+ *
+ * All three cells use `Modifier.weight(1f)` — equal thirds. No cell uses weight(2f)
+ * to accommodate a larger readout (Pitfall 4 / anti-pattern 7).
+ */
+@Composable
+private fun ZColumn(
+    zHomed: Boolean,
+    zValue: Double?,
+    inFlight: Set<String>,
+    forceMove: Boolean,
+    onJogZ: (mm: Double) -> Unit,
+    onHomeZ: () -> Unit,
+    distance: Double,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val disabled = "jog_Z" in inFlight || (!forceMove && !zHomed)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Top: Z+ jog with directional.z outline
+        JogColumnCell(
+            symbol = "expand",
+            contentDescription = stringResource(R.string.move_z_up),
+            outline = t.directional.z,
+            onClick = { onJogZ(distance) },
+            disabled = disabled,
+            forceMove = forceMove,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        // Center: live Z readout + tap-to-home (Pitfall 7 — same z value as JogPad Z corner)
+        HomeZCell(
+            zHomed = zHomed,
+            zValue = zValue,
+            onHomeZ = onHomeZ,
+            inFlight = inFlight,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        // Bottom: Z- jog with directional.z outline
+        JogColumnCell(
+            symbol = "compress",
+            contentDescription = stringResource(R.string.move_z_down),
+            outline = t.directional.z,
+            onClick = { onJogZ(-distance) },
+            disabled = disabled,
+            forceMove = forceMove,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * The vertical 3-cell distance stepper column (D-02): + / active-step readout / −.
+ *
+ * Cycles the fixed [DISTANCES] set with index coercion — no free numeric entry.
+ * Uses `t.outline` (neutral) — this is a step-selector, not a directional control.
+ * Uses [DinghyIcons.BabystepExpand] / [DinghyIcons.BabystepCompress] per the owner
+ * decision in 27-01 SUMMARY (Group B: reuse expand/compress).
+ *
+ * All three cells use `Modifier.weight(1f)` (equal thirds — Pitfall 4).
+ */
+@Composable
+private fun DistanceStepperColumn(
+    distance: Double,
+    onSelect: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val idx = DISTANCES.indexOf(distance).coerceAtLeast(0)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Top: increase distance
+        DistanceStepCell(
+            icon = DinghyIcons.BabystepExpand,
+            contentDescription = stringResource(R.string.move_distance_increase),
+            onClick = { onSelect(DISTANCES[(idx + 1).coerceAtMost(DISTANCES.lastIndex)]) },
+            enabled = idx < DISTANCES.lastIndex,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        // Center: current distance readout
+        DistanceDisplay(
+            distance = distance,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        // Bottom: decrease distance
+        DistanceStepCell(
+            icon = DinghyIcons.BabystepCompress,
+            contentDescription = stringResource(R.string.move_distance_decrease),
+            onClick = { onSelect(DISTANCES[(idx - 1).coerceAtLeast(0)]) },
+            enabled = idx > 0,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * A single + or − cell in the distance stepper column.
+ * Neutral outline (step-selector identity, not directional).
+ */
+@Composable
+private fun DistanceStepCell(
+    icon: works.mees.dinghy.designsystem.icons.DinghyIcon,
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val outline = if (enabled) t.outline else t.hair
+    var box = modifier
+        .clip(shape)
+        .border(BorderStroke(2.dp, outline), shape)
+    if (enabled) box = box.clickable(onClick = onClick)
+    Box(box, contentAlignment = Alignment.Center) {
+        DinghyIconView(
+            icon = icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) t.text else t.text3,
+            sizeDp = 40.dp,
+        )
+    }
+}
+
+/**
+ * The current jog distance readout (center cell of the distance stepper column).
+ * Geist Mono tabular numerals; neutral outline (step-selector identity).
+ */
+@Composable
+private fun DistanceDisplay(distance: Double, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier.clip(shape).border(BorderStroke(2.dp, t.outline), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = fmtDist(distance),
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(22f, t.fs).sp,
+            )
+            Text(
+                text = "mm",
+                color = t.text2,
+                fontFamily = GeistMono,
+                fontSize = fsSp(14f, t.fs).sp,
+            )
+        }
+    }
+}
+
+/**
+ * The Z column center cell: live Z readout + tap-to-home.
+ *
+ * Shows the same `zValue` as the JogPad Z corner AxisCorner — the IDENTICAL value
+ * (Pitfall 7: both surfaces must read the same data source; they are wired via the
+ * same [MoveVm.z] flowing from [MoveHolder]).
+ * Tapping homes the Z axis via [onHomeZ].
+ */
+@Composable
+private fun HomeZCell(
+    zHomed: Boolean,
+    zValue: Double?,
+    onHomeZ: () -> Unit,
+    inFlight: Set<String>,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val homeDisabled = "home_Z" in inFlight
+    val shape = RoundedCornerShape(t.rCtrl)
+    var box = modifier
+        .clip(shape)
+        .border(BorderStroke(2.dp, if (homeDisabled) t.hair else t.directional.z), shape)
+    if (!homeDisabled) box = box.clickable(onClick = onHomeZ)
+    Box(box, contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = zValue?.let { fmt(it) } ?: "—",
+                color = t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = fsSp(22f, t.fs).sp,
+            )
+            Text(
+                text = stringResource(R.string.move_z_home),
+                color = if (zHomed) t.go else t.heat,
+                fontSize = fsSp(13f, t.fs).sp,
+            )
+        }
+    }
+}
+
+/**
+ * A directional jog cell for the Z column (expand = Z+, compress = Z−).
+ * Uses the specified [outline] color (directional.z for the Z column).
+ */
+@Composable
+private fun JogColumnCell(
+    symbol: String,
+    contentDescription: String,
+    outline: Color,
+    onClick: () -> Unit,
+    disabled: Boolean,
+    forceMove: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val activeOutline = if (disabled) t.hair else outline
+    var box = modifier
+        .clip(shape)
+        .border(BorderStroke(2.dp, activeOutline), shape)
+    if (!disabled) box = box.clickable(onClick = onClick)
+    Box(box, contentAlignment = Alignment.Center) {
+        MaterialSymbol(
+            name = symbol,
+            modifier = Modifier.clearAndSetSemantics {},
+            tint = jogIconTint(t, disabled, forceMove),
+            sizeSp = fsSp(40f, t.fs),
+        )
+    }
+}
+
+/**
+ * The 3×3 jog pad — sacred-square cells, arranged per the mockup (D-04: internals carry over
+ * unchanged). Edge arrows jog X/Y by [distance]; the center homes XY; the Y/Z/X corners render
+ * the live value and tap to home that axis; the top-right is the force-move toggle (the
+ * unhomed-jog escape). When [forceMove] is on, jog arrows issue FORCE_MOVE and stay active
+ * even when unhomed; off, they jog with G1 gated on the axis being homed.
  */
 @Composable
 private fun JogPad(
@@ -274,11 +616,7 @@ private fun JogPad(
     fun jogDisabled(axisHomed: Boolean, key: String): Boolean =
         key in inFlight || (!forceMove && !axisHomed)
 
-    // Sacred-square fit (NON-NEGOTIABLE 2): the 3×3 pad is the largest CENTERED square that fits the
-    // focus region — sized to the SMALLER of the two dimensions so the aspect-ratio cells never overflow
-    // their weighted rows (the bug: width-driven squares overran a short focus, eating the row gaps and
-    // overlapping in portrait / touching in landscape). With a square pad, weight rows + weight cells +
-    // the 8dp gaps land each cell exactly (S−16)/3 square, gaps intact, in BOTH orientations.
+    // Sacred-square fit: the 3×3 pad is the largest CENTERED square that fits the focus region.
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         Column(
             Modifier.size(minOf(maxWidth, maxHeight)),
@@ -296,7 +634,7 @@ private fun JogPad(
                 HomeCell(homed = vm.xHomed && vm.yHomed, onHome = onHomeXY, disabled = "home_xy" in inFlight, modifier = Modifier.weight(1f))
                 JogCell("arrow_forward", { onJog("X", distance, FEED_XY) }, jogDisabled(vm.xHomed, "jog_X"), forceMove, Modifier.weight(1f))
             }
-            // Row 2: Z readout · Y− · X readout
+            // Row 2: Z readout · Y− · X readout (Pitfall 7: Z corner also reads vm.z — same source as ZColumn)
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AxisCorner("Z", vm.z, vm.zHomed, { onHomeAxis("Z") }, "home_Z" in inFlight, Modifier.weight(1f))
                 JogCell("arrow_downward", { onJog("Y", -distance, FEED_XY) }, jogDisabled(vm.yHomed, "jog_Y"), forceMove, Modifier.weight(1f))
@@ -307,14 +645,10 @@ private fun JogPad(
 }
 
 /**
- * Directional-jog ICON tint (the outline stays the directional-plane color — state is carried by the
- * icon color only, 2026-06-01): GRAY when unavailable, ACCENT in normal mode (jogging is the Move
- * screen's EXPECTED physical action, so it wears the accent per C1 — NOT caution/amber), RED in
- * force-move mode (no homing/limits — genuinely dangerous, so it earns the stop color).
+ * Directional-jog ICON tint: GRAY when unavailable, ACCENT in normal mode, RED in force-move mode.
  *
- * 15.2-06 (M1 / C1): normal-jog was amber/caution; the C1 conformance criterion (a button performing a
- * screen's EXPECTED physical action is ACCENT, not caution/danger) routes the everyday jog to the accent
- * and reserves the stop color for the genuinely hazardous force-move-armed state.
+ * 15.2-06 (M1 / C1): normal-jog is ACCENT (the screen's EXPECTED physical action — C1), not caution.
+ * Force-move-armed is the stop color (genuinely hazardous — no homing/limits).
  */
 private fun jogIconTint(t: ThemeTokens, disabled: Boolean, forceMove: Boolean): Color = when {
     disabled -> t.text3
@@ -324,9 +658,8 @@ private fun jogIconTint(t: ThemeTokens, disabled: Boolean, forceMove: Boolean): 
 
 /**
  * A directional jog arrow (Material Symbol). The outline wears the XY-plane directional color
- * ([ThemeTokens.directional]`.xy`, 15-07 / D-13) — the jog arrows identify the XY motion plane, so
- * they carry the plane color rather than the theme accent. The icon color signals state via
- * [jogIconTint] (gray/yellow/red). Disabled cells ignore taps.
+ * ([ThemeTokens.directional]`.xy`). The icon color signals state via [jogIconTint].
+ * Disabled cells ignore taps.
  */
 @Composable
 private fun JogCell(
@@ -345,6 +678,7 @@ private fun JogCell(
     ) {
         MaterialSymbol(
             name = symbol,
+            modifier = Modifier.clearAndSetSemantics {},
             tint = jogIconTint(t, disabled, forceMove),
             sizeSp = fsSp(44f, t.fs),
         )
@@ -354,8 +688,7 @@ private fun JogCell(
 /**
  * A home button cell (MOVE-02): a Material-Symbol home-state icon — `in_home_mode` when [homed],
  * `wifi_home` when it still needs homing (green/amber status-as-color). The outline wears the XY-plane
- * directional color ([ThemeTokens.directional]`.xy`) so the XY home reads as part of the XY group; the
- * icon color is the ONLY state carrier (go/heat). Tapping issues the home command.
+ * directional color so the XY home reads as part of the XY group.
  */
 @Composable
 private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modifier: Modifier = Modifier) {
@@ -368,6 +701,7 @@ private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modi
     ) {
         MaterialSymbol(
             name = if (homed) "in_home_mode" else "wifi_home",
+            modifier = Modifier.clearAndSetSemantics {},
             tint = if (homed) t.go else t.heat,
             sizeSp = fsSp(48f, t.fs),
         )
@@ -375,14 +709,9 @@ private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modi
 }
 
 /**
- * An axis readout cell: the axis letter (green=homed / amber=unhomed) stacked OVER the live value,
- * both large and readable (GeistMono). Tapping homes that axis (MOVE-02). The letter+value are stacked
- * (not overlaid) so neither is obscured (2026-06-01 fix to the old value-on-glyph collision).
- *
- * D-01/D-02 shape-coded safety layer: an UNHOMED axis additionally shows the caution-triangle shape
- * glyph (tinted [ThemeTokens.heat]) so the unhomed state reads without relying on the amber color
- * (survives grayscale/CVD). The HOMED state stays color-only — go/green needs no shape (D-02: shapes
- * mark only the safety-critical not-yet-safe state, never the all-good state).
+ * An axis readout cell: the axis letter (green=homed / amber=unhomed) stacked over the live value,
+ * both in GeistMono. Tapping homes that axis (MOVE-02). An UNHOMED axis additionally shows the
+ * caution-triangle shape glyph (D-01/D-02 shape-coded safety layer).
  */
 @Composable
 private fun AxisCorner(
@@ -394,7 +723,7 @@ private fun AxisCorner(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val glyphColor = if (homed) t.go else t.heat // green=homed / amber=unhomed (status-as-color).
+    val glyphColor = if (homed) t.go else t.heat
     PadCell(
         outline = t.outline,
         onClick = onHome,
@@ -417,8 +746,6 @@ private fun AxisCorner(
                     fontSize = fsSp(34f, t.fs).sp,
                 )
                 if (!homed) {
-                    // Unhomed caution shape (D-01/D-02) — the redundant non-color signal for the
-                    // not-yet-homed state; sized via fsSp, NOT the 96dp vector intrinsic.
                     StatusShape(
                         glyphName = "warning",
                         tint = t.heat,
@@ -438,22 +765,13 @@ private fun AxisCorner(
 }
 
 /**
- * Render a status SHAPE Material Symbols ligature (warning / lock_open_right / lock …) tinted from a
- * role token at an EXPLICIT fsSp size (NOT the 96dp vector intrinsic — Item 6). The shape silhouette
- * is the D-01/D-02/D-12 redundant non-color safety signal; the [tint] is the matching status color.
- *
- * 18.1-03 (D-08): swapped from `painter:` drawables to ligatures by name. These are DECORATIVE status
- * shapes (no contentDescription — the meaning is carried by the labeled element they sit on), so the
- * [MaterialSymbol] is marked decorative via `clearAndSetSemantics {}` (TalkBack speaks nothing — the
- * raw ligature name must NOT leak, matching [DinghyIconView]'s null-cd path). The [tint]/[sizeSp] params
- * are preserved 1:1 (THEME-01 + no size regression).
+ * Render a status SHAPE Material Symbols ligature tinted from a role token at an EXPLICIT fsSp size.
+ * Decorative status shapes carry no contentDescription (the meaning is in the labeled element they sit on).
  */
 @Composable
 private fun StatusShape(glyphName: String, tint: Color, sizeSp: Float, modifier: Modifier = Modifier) {
     MaterialSymbol(
         name = glyphName,
-        // Decorative status shape (D-01/D-02): the meaning is carried by the labeled element it sits on,
-        // so suppress the raw ligature name from TalkBack (matches DinghyIconView's null-cd behavior).
         modifier = modifier.clearAndSetSemantics {},
         tint = tint,
         sizeSp = sizeSp,
@@ -461,21 +779,14 @@ private fun StatusShape(glyphName: String, tint: Color, sizeSp: Float, modifier:
 }
 
 /**
- * The force-move toggle (replaces the old Override cell, 2026-06-01). A latching lock with the D-12
- * shape-coded safety layer: when OFF (SAFE — normal G1 jog, homing enforced) it shows the GREEN
- * CLOSED padlock (the `lock` ligature); when ON (ARMED — jog issues FORCE_MOVE, moving a stepper with
- * NO homing/limit checks, the deliberate proceed-at-peril unhomed escape; requires `enable_force_move`
- * in the printer config) it shows the RED OPEN padlock (the `lock_open_right` ligature). The LOCK
- * OPEN/CLOSED silhouette is the redundant non-color signal (D-12) so the armed/safe state reads without
- * relying on color. Tapping toggles the mode. (18.1-03: swapped ic_lock_*.xml drawables to ligatures.)
+ * The force-move toggle (D-04 carry-over + 15.2-06 M2/C4): latching lock with shape-coded safety layer.
+ * OFF (SAFE) = green closed padlock (`lock`); ON (ARMED) = red open padlock (`lock_open_right`).
+ * When armed: filled stop-red background (C4 law — visible catastrophic-mode signal).
  */
 @Composable
 private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    val color = if (enabled) t.stop else t.go // red unlocked (danger) / green locked (safe).
-    // 15.2-06 (M2 / C4): a control that ENABLES a catastrophic state (force-move armed) is FILLED with
-    // the stop color while active — not merely outlined — so the "you are now in a dangerous mode"
-    // signal is unmistakable. The fill complements the open-padlock shape signal (D-12).
+    val color = if (enabled) t.stop else t.go
     PadCell(
         outline = color,
         onClick = onToggle,
@@ -492,9 +803,8 @@ private fun ForceMoveCell(enabled: Boolean, onToggle: () -> Unit, modifier: Modi
 }
 
 /**
- * Shared jog-pad cell chrome: a sacred `aspectRatio(1f)` square, 2px token outline, ≥64dp floor.
- * [fill] is the optional cell background — transparent by default (the outline-led control language),
- * a soft token tint when a cell needs to signal an active/armed state with a fill (C4).
+ * Shared jog-pad cell chrome: a sacred `aspectRatio(1f)` square, 2dp token outline, ≥64dp floor.
+ * [fill] is the optional cell background (transparent by default; a soft token tint for armed states, C4).
  */
 @Composable
 private fun PadCell(
@@ -514,103 +824,6 @@ private fun PadCell(
         .border(BorderStroke(2.dp, outline), shape)
     if (!disabled) box = box.clickable(onClick = onClick)
     Box(box, contentAlignment = Alignment.Center) { content() }
-}
-
-/**
- * The Z row — ∧ (Z+ jog) · Z HOME button · ∨ (Z− jog), each filling the row height. The center is the
- * Z home button (home-state icon: `in_home_mode` homed / `wifi_home` needs-homing); the live Z VALUE
- * lives in the focus Z corner (2026-06-01 swap). Z jog is gated on Z being homed.
- */
-@Composable
-private fun ZRow(
-    zHomed: Boolean,
-    inFlight: Set<String>,
-    forceMove: Boolean,
-    onJogZ: (mm: Double) -> Unit,
-    onHomeZ: () -> Unit,
-    distance: Double,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Force-move mode lifts the homed gate (its purpose); otherwise Z jog needs Z homed.
-        val disabled = "jog_Z" in inFlight || (!forceMove && !zHomed)
-        JogTall("expand", { onJogZ(distance) }, disabled, forceMove, Modifier.weight(1f))
-        // Center: the Z HOME button, filling the tall row height (not the square PadCell). The outline
-        // wears the Z-plane directional color (t.directional.z) so the Z home reads as part of the Z
-        // group, matching the JogTall arrows; the icon color is the ONLY state carrier (go/heat).
-        val homeDisabled = "home_Z" in inFlight
-        var homeBox = Modifier.weight(1f).fillMaxSize().clip(shape)
-            .border(BorderStroke(2.dp, if (homeDisabled) t.hair else t.directional.z), shape)
-        if (!homeDisabled) homeBox = homeBox.clickable(onClick = onHomeZ)
-        Box(homeBox, contentAlignment = Alignment.Center) {
-            MaterialSymbol(
-                name = if (zHomed) "in_home_mode" else "wifi_home",
-                tint = if (zHomed) t.go else t.heat,
-                sizeSp = fsSp(40f, t.fs),
-            )
-        }
-        JogTall("compress", { onJogZ(-distance) }, disabled, forceMove, Modifier.weight(1f))
-    }
-}
-
-/**
- * A full-height Z jog button (Material Symbol; fills the Z-row height — a tall column per mockup). The
- * outline wears the Z-plane directional color ([ThemeTokens.directional]`.z`, 15-07 / D-13) — the Z
- * jog buttons identify the Z motion plane. The icon color signals state via [jogIconTint]
- * (gray/yellow/red), matching [JogCell].
- */
-@Composable
-private fun JogTall(
-    symbol: String,
-    onClick: () -> Unit,
-    disabled: Boolean,
-    forceMove: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    var box = modifier.fillMaxSize().clip(shape)
-        .border(BorderStroke(2.dp, t.directional.z), shape)
-    if (!disabled) box = box.clickable(onClick = onClick)
-    Box(box, contentAlignment = Alignment.Center) {
-        MaterialSymbol(
-            name = symbol,
-            tint = jogIconTint(t, disabled, forceMove),
-            sizeSp = fsSp(40f, t.fs),
-        )
-    }
-}
-
-/**
- * The fixed 6-up distance selector; the active step is accent-outlined, the rest neutral. Cells FILL
- * the row height (the field's two rows — Z controls + this — are equal-height weighted rows, 2026-06-01).
- */
-@Composable
-private fun DistanceSelector(selected: Double, onSelect: (Double) -> Unit, modifier: Modifier = Modifier) {
-    val t = LocalTokens.current
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (d in DISTANCES) {
-            val active = d == selected
-            val shape = RoundedCornerShape(t.rCtrl)
-            Box(
-                Modifier.weight(1f).fillMaxHeight()
-                    .clip(shape)
-                    .border(BorderStroke(2.dp, if (active) t.accentLine else t.outline), shape)
-                    .clickable { onSelect(d) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = fmtDist(d),
-                    color = if (active) t.accent2 else t.text2,
-                    fontFamily = GeistMono,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-            }
-        }
-    }
 }
 
 /** Tabular-friendly one-decimal mm formatting (rounded, not truncated). */
