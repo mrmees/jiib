@@ -61,6 +61,26 @@ fun AboutScreen(
 ) {
     val devEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
 
+    AboutContent(
+        devEnabled = devEnabled,
+        onDevToggle = { container.setDevCyclerEnabled(it) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * The STATELESS content seam (PREVIEW_AND_TOKENS preview-first LAW) — pure inputs, no
+ * AppContainer/Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.AboutPreviews]
+ * drives every theme + dev-enable state without a live session.
+ */
+@Composable
+fun AboutContent(
+    devEnabled: Boolean,
+    onDevToggle: (Boolean) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     ScreenScaffold(
         field = {
             Column(
@@ -97,7 +117,7 @@ fun AboutScreen(
                 // The hidden dev-widget enable toggle (D-08) — discoverable but out of the way.
                 DevEnableRow(
                     checked = devEnabled,
-                    onToggle = { container.setDevCyclerEnabled(it) },
+                    onToggle = onDevToggle,
                 )
 
                 // ── Back foot ────────────────────────────────────────────────────────────

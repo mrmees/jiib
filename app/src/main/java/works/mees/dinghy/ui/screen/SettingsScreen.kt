@@ -68,8 +68,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-
     // The active profile drives the per-profile toggle state. Null when no printer is configured —
     // the toggles fall back to the default so the screen still composes.
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
@@ -80,11 +78,9 @@ fun SettingsScreen(
     // composition scope ([[dinghy-compose-write-scope-cancellation]]).
     val babystepOn by container.babystepEnabled.collectAsStateWithLifecycle(true)
     val babystepLayers by container.babystepLayers.collectAsStateWithLifecycle(5)
-    // Re-seed the local buffer whenever the stored value changes; in-progress typing is preserved.
-    var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
 
     // Display / always-on (§R2, 26.5-05) — process-scoped, connection-INDEPENDENT.
-    // Durable writeScope intent, NEVER a composition scope (T-28-07-02).
+    // Durable writeScope intent, never a composition scope (T-28-07-02).
     val keepScreenOn by container.keepScreenOn.collectAsStateWithLifecycle(true)
 
     // Battery-optimization exemption state — re-checked on ON_RESUME.
@@ -104,7 +100,62 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // BoxWithConstraints for grid — needed by ListRow (dense uDp sentinel) and FootButtonBar.
+    SettingsContent(
+        webcamOn = webcamOn,
+        webcamEnabled = activeProfile != null,
+        onWebcamToggle = { container.setActiveWebcamEnabled(it) },
+        babystepOn = babystepOn,
+        onBabystepToggle = { container.setBabystepEnabled(it) },
+        babystepLayers = babystepLayers,
+        onBabystepLayers = { container.setBabystepLayers(it) },
+        keepScreenOn = keepScreenOn,
+        onKeepScreenOnToggle = { container.setKeepScreenOn(it) },
+        isExempt = isExempt,
+        onRequestExempt = {
+            try {
+                context.startActivity(
+                    android.content.Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:${context.packageName}"),
+                    ),
+                )
+            } catch (_: Exception) {
+                context.startActivity(
+                    android.content.Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                )
+            }
+        },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/**
+ * The STATELESS content seam (PREVIEW_AND_TOKENS preview-first LAW) — pure inputs, no
+ * AppContainer/Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.SettingsPreviews]
+ * drives every theme + toggle state without a live session.
+ */
+@Composable
+fun SettingsContent(
+    webcamOn: Boolean,
+    webcamEnabled: Boolean,
+    onWebcamToggle: (Boolean) -> Unit,
+    babystepOn: Boolean,
+    onBabystepToggle: (Boolean) -> Unit,
+    babystepLayers: Int,
+    onBabystepLayers: (Int) -> Unit,
+    keepScreenOn: Boolean,
+    onKeepScreenOnToggle: (Boolean) -> Unit,
+    isExempt: Boolean,
+    onRequestExempt: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    // Local field mirrors the persisted layer-count; re-seed when the stored value changes.
+    var layersField by remember(babystepLayers) { mutableStateOf(babystepLayers.toString()) }
+
+    // BoxWithConstraints for grid — needed by ListRow (dense uDp sentinel) and OutlinedControl.
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
@@ -122,8 +173,8 @@ fun SettingsScreen(
                     DenseToggleRow(
                         label = stringResource(R.string.settings_webcam),
                         checked = webcamOn,
-                        enabled = activeProfile != null,
-                        onToggle = { container.setActiveWebcamEnabled(it) },
+                        enabled = webcamEnabled,
+                        onToggle = onWebcamToggle,
                         uDp = grid.uDp,
                     )
 
@@ -133,7 +184,7 @@ fun SettingsScreen(
                         label = stringResource(R.string.settings_babystep),
                         checked = babystepOn,
                         enabled = true,
-                        onToggle = { container.setBabystepEnabled(it) },
+                        onToggle = onBabystepToggle,
                         uDp = grid.uDp,
                     )
 
@@ -160,7 +211,7 @@ fun SettingsScreen(
                                 val digits = raw.filter { it.isDigit() }
                                 layersField = digits
                                 // T-28-07-01: invalid input silently not persisted.
-                                digits.toIntOrNull()?.let { container.setBabystepLayers(it) }
+                                digits.toIntOrNull()?.let { onBabystepLayers(it) }
                             },
                             label = stringResource(R.string.settings_babystep_layers_hint),
                             keyboardType = KeyboardType.Number,
@@ -175,7 +226,7 @@ fun SettingsScreen(
                         label = stringResource(R.string.settings_keep_screen_on),
                         checked = keepScreenOn,
                         enabled = true,
-                        onToggle = { container.setKeepScreenOn(it) },
+                        onToggle = onKeepScreenOnToggle,
                         uDp = grid.uDp,
                     )
 
@@ -185,24 +236,7 @@ fun SettingsScreen(
                     // because this file imports designsystem.control.Intent under the same name.
                     ListRow(
                         selected = false,
-                        onClick = {
-                            if (!isExempt) {
-                                try {
-                                    context.startActivity(
-                                        android.content.Intent(
-                                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                                            Uri.parse("package:${context.packageName}"),
-                                        ),
-                                    )
-                                } catch (_: Exception) {
-                                    context.startActivity(
-                                        android.content.Intent(
-                                            Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS,
-                                        ),
-                                    )
-                                }
-                            }
-                        },
+                        onClick = { if (!isExempt) onRequestExempt() },
                         uDp = grid.uDp,
                         dense = true,
                     ) {
