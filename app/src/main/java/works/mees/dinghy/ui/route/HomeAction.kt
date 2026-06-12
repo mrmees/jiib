@@ -55,8 +55,8 @@ sealed interface HomeAction {
 // ---------------------------------------------------------------------------
 
 /**
- * Builds the v1 idle action list in owner-specified D-06 order:
- * `Spool → Files → Move → Extrude → Macros → Calibration → Outputs → Webcam`
+ * Builds the v1 idle action list in owner-specified D-05/D-06 order:
+ * `Spool → Files → Move → Extrude → Macros → Calibration → Temperature → Console → Fine-Tune → Outputs → Webcam`
  *
  * Capability-absent rows **drop out** (D-08 — hide, not grey):
  * - [spoolmanPresent] = false → Spool row absent
@@ -64,9 +64,10 @@ sealed interface HomeAction {
  * - [outputsPresent]  = false → Outputs row absent
  * - [webcamEnabled]   = false → Webcam row absent
  *
- * With all capabilities absent the list contains 4 rows: Files, Move, Extrude, Calibration
- * (the always-present set). Temperature and Console are intentionally OFF the idle list (D-07):
- * they are reachable while printing, not idle. Fine-Tune is likewise printing-only.
+ * With all capabilities absent the list contains 7 rows: Files, Move, Extrude, Calibration,
+ * Temperature, Console, Fine-Tune (the always-present set). Temperature, Console, and Fine-Tune
+ * are unconditionally present per D-05 (rehomed from drawer-only to idle list in Plan 28-03;
+ * the P24 D-07 "printing-only" posture for these three is revised).
  *
  * ## Icon assignment (FIX-5, resolved in 24-04)
  * Every row's [HomeAction.Destination.icon] references a [DinghyIcons] registry token confirmed by
@@ -85,7 +86,7 @@ fun buildIdleActions(
     outputsPresent: Boolean,
     webcamEnabled: Boolean,
 ): List<HomeAction> = buildList {
-    // D-06 order: Spool → Files → Move → Extrude → Macros → Calibration → Outputs → Webcam
+    // D-05/D-06 order: Spool → Files → Move → Extrude → Macros → Calibration → Temperature → Console → Fine-Tune → Outputs → Webcam
 
     if (spoolmanPresent) {
         add(HomeAction.Destination(
@@ -125,6 +126,26 @@ fun buildIdleActions(
         dest     = NavDest.CalibrationHub,
         labelRes = R.string.cd_launcher_calibration,
         icon     = DinghyIcons.LauncherCalibration,
+    ))
+
+    // D-05 (28-03): Temperature, Console, Fine-Tune rehomed from drawer-only to idle list.
+    // These are unconditionally present — no capability gate (always-available destinations).
+    add(HomeAction.Destination(
+        dest     = NavDest.Temperature,
+        labelRes = R.string.cd_launcher_temperature,
+        icon     = DinghyIcons.LauncherTemperature,
+    ))
+
+    add(HomeAction.Destination(
+        dest     = NavDest.Console,
+        labelRes = R.string.cd_launcher_console,
+        icon     = DinghyIcons.LauncherConsole,
+    ))
+
+    add(HomeAction.Destination(
+        dest     = NavDest.FineTune,
+        labelRes = R.string.cd_launcher_fine_tune,
+        icon     = DinghyIcons.LauncherFineTune,
     ))
 
     if (outputsPresent) {
