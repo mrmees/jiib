@@ -1,4 +1,5 @@
 # Roadmap: Dinghy Display
+
 **Last verified:** 2026-06-11
 **Status:** active
 
@@ -1263,6 +1264,7 @@ morning UAT checklist in OVERNIGHT-REPORT.md — the morning UAT run is the phas
 **Plans:** 7/7 plans complete
 
 Plans:
+
 - [x] 26.5-01-PLAN.md — R5a guardrail infra (wave 0): gradlew +x, CI, lint baseline under JDK-17 then enforced, debug StrictMode, OVERNIGHT-REPORT skeleton (LICENSE recommend-only)
 - [x] 26.5-02-PLAN.md — R9 memory/docs delint steps 1-3+5 (wave 1): correctness edits, todo re-triage, headers/single-sourcing, step-4 script artifact (NOT run), scoped hygiene CI
 - [x] 26.5-03-PLAN.md — R10 touch responsiveness steps 2-4 (wave 2): true disablement, dispatcher rejection feedback, swipe accumulation, indication immediacy, debug-flag instrumentation
@@ -1270,6 +1272,7 @@ Plans:
 - [x] 26.5-05-PLAN.md — R2 always-on code-only (wave 3): keep-screen-on toggle (default ON) + battery-exemption flow
 - [x] 26.5-06-PLAN.md — R4 build-time command map (wave 4): CommandMap.kt per Part 3, 6 site rewires, renamed-slot gate+emit tests
 - [x] 26.5-07-PLAN.md — R7 network posture (wave 4): useSecure wss/https plumbing + editor toggle + cert-failure UX + documented NSC posture; finalizes OVERNIGHT-REPORT.md
+
 **UI hint**: no
 
 ### Phase 27: Motion + Calibration

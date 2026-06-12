@@ -1,4 +1,5 @@
 # Requirements: Dinghy Display
+
 **Last verified:** 2026-06-11
 **Status:** active
 
@@ -263,11 +264,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PKG-03 | Phase 21 | Pending |
 
 **Coverage:**
+
 - Functional requirements mapped: 61 (55 prior + 6 promoted/added for the expanded roadmap: BEDM-01, BEDL-01, ZCAL-01, CAM-01, SPOOL-01 promoted from v2; PROMPT-01 new)
 - Phases 8 & 13 are quality/reference phases with no functional REQ-IDs
 - Finer per-phase req families: **CALIB-01..06 coined at Phase-9 planning (2026-06-02)** — CALIB-01 hub/gating, CALIB-02 screws-tilt (⊂ BEDL-01), CALIB-03 Z-tilt/QGL (⊂ BEDL-01), CALIB-04 bed-mesh (⊂ BEDM-01), CALIB-05 PROBE_CALIBRATE (⊂ ZCAL-01), CALIB-06 files-delete-scoping (folded D-15). The umbrella BEDM-01/BEDL-01/ZCAL-01 stay Pending until the Phase-9 on-device UAT closes. (CAM-* resolved at Phase 10.) **SPOOL-02..09 coined at Phase-11 discuss/plan (2026-06-04)** — SPOOL-02 active-spool Status card, SPOOL-03 picker+filters (`Dest.Spool`), SPOOL-04 set/clear/change active (Moonraker JSON-RPC), SPOOL-05 QR scan-to-assign (ZXing GMS-free, SC-2/SC-4), SPOOL-06 camera-permission + no-camera degrade (SC-3), SPOOL-07 print-start warn-only gate (D-01), SPOOL-08 external-change reconciliation + notify routing + pending-report staleness (D-10/D-11), SPOOL-09 measured-weight correction + nice-to-haves (D-04); all ⊂ SPOOL-01, which stays Pending until the Phase-11 on-device UAT closes. **PROMPT-01..04 coined at Phase-12 planning (2026-06-04)** — PROMPT-01 umbrella (conformant full-v1 renderer; ⊇ the 26-fixture conformance contract), PROMPT-02 dialog render + button gcode dispatch, PROMPT-03 prompt_end/footer/re-entrancy + never-wedge, PROMPT-04 on-device real-macro proof; all ⊂ PROMPT-01, which stays Pending until the Phase-12 on-device UAT closes. **SYS-01..05 coined at Phase-20 planning (2026-06-08)** — promotes the v2 umbrella SYS-01 into the active roadmap (host-health-only scope per D-13): SYS-01 host identity (`machine.system_info`), SYS-02 live load via the 1 Hz `notify_proc_stat_update` push, SYS-03 health-summary + shape-coded chip (throttle-authoritative on Pi / temp-fallback D-12 on non-Pi; throttle+uptime from a one-shot `machine.proc_stats` query), SYS-04 graceful degradation to `—`, SYS-05 cross-SBC on-device UAT (RPi 4 + RockPro64). Map to ROADMAP Phase-20 SC-1 (SYS-01/02/03), SC-2 (SYS-02 cadence), SC-3 (SYS-04), SC-4 (SYS-05).
 
 **Per-phase counts (21-phase single-milestone roadmap; reordered + renumbered 2026-06-05 — see note below):**
+
 - Phase 1 (Platform Gate): 2 — PKG-02, CONN-05
 - Phase 2 (Connection & State Foundation): 9 — CONN-02, CONN-03, CONN-04, CONN-06, STATE-01..05
 - Phase 3 (Design System & Theming Foundation): 7 — THEME-01, THEME-02, UI-01, UI-02, PRIM-01, PRIM-03, PRIM-04

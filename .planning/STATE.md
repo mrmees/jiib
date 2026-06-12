@@ -2,19 +2,20 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-11T07:58:57.531Z"
-last_activity: 2026-06-11
+status: planning
+stopped_at: Completed 26.5-04-PLAN.md (R1 install & display correctness)
+last_updated: "2026-06-12T02:04:44.391Z"
+last_activity: 2026-06-12
 progress:
-  total_phases: 36
+  total_phases: 35
   completed_phases: 31
   total_plans: 208
   completed_plans: 207
-  percent: 86
+  percent: 89
 ---
 
 **Last verified:** 2026-06-11
-**Status:** Ready to execute
+**Status:** Ready to plan
 
 # Project State
 
@@ -23,12 +24,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Direct, reliable printer control from an old Android tablet over Moonraker — install an APK, point it at the printer, and drive a print.
-**Current focus:** Phase 26.5 — Overnight Hardening Slate (audit R-packages; INSERTED 2026-06-11, overnight run; work order = docs/top-down-audit-roadmap.md). Phase 27 (motion + calibration, context already gathered) follows.
+**Current focus:** Phase 27 — motion + calibration (context already gathered). Phase 26.5 (Overnight Hardening Slate) COMPLETE 2026-06-11 — verification passed after the same-day UAT sittings (S25 remote + flox on-device + mid-print E3); GPLv3 LICENSE added; R9 archive executed.
 
 ## Current Position
 
-Phase: 26.5
-Plan: 7 of 07 complete
+Phase: 27
+Plan: Not started
 Status: Ready to execute
   → **Plan 26.5-01 (Wave 0: R5a guardrail infra) EXECUTED + COMPLETE 2026-06-11.** gradlew +x (index 100755); `.github/workflows/ci.yml` (ubuntu/temurin-17, test+assembleDebug on push master+gsd/**, first-party actions only); lint BASELINED under JDK-17 toolchain then ENFORCED (`abortOnError=true`, `checkReleaseBuilds=true`, shrink-only house rule; baseline absorbed 4 errors + 122 warnings); debug-only StrictMode detect-all (log penalty) in DinghyApp; OVERNIGHT-REPORT.md skeleton (LICENSE rec = GPLv3 in DECISIONS-NEEDED, NO file created; morning UAT checklist). Deviations: foojay-resolver-convention 0.8.0 added (plan's prescribed toolchain fallback) + `NullSafeMutableLiveData` detector disabled (Rule 3 — its lifecycle-lint detector throws IncompatibleClassChangeError even out-of-process; app has ZERO LiveData so inert; preserved FULL local enforcement instead of the plan's CI-only fallback). Extended gate green incl. lintVitalRelease. Task-4 CI-green check deferred to morning UAT. Commits: `3ec6b7e` (infra), `af75fcb` (lint). SUMMARY `26.5-01-SUMMARY.md`. **Phase 26.5: 1/7 plans complete.**
   → **Plan 24-05 (On-device UAT gate + UAT-driven e-stop styling fix) EXECUTED + COMPLETE 2026-06-10.** SC-1..SC-5 all PASS on flox / Nexus 7 2013 / Adreno 320 / LineageOS 18.1. Morph zero frozen frames (UI-thread 50th=6ms/90th=44ms/99th=85ms); Crossfade retained. E-stop appears on drill-downs while printing; tap opens full-screen Stop Confirm guard; absent when idle (FIX-1 confirmed on hardware). System foot opens App Drawer; print-monitoring unaffected; back-stack works (SC-4). Recovery Splash lands on WaterfallHome + sub-nav reset to hub (FIX-3 accepted, SC-5). UAT-surfaced styling defect fixed in-phase: `OutlinedControl` icon-only glyph `sizeSp = 50f / LocalDensity.current.fontScale` (font-scale-stable dp-equivalent) + `FloatingEStop` box `(uDp * 0.7f).coerceAtLeast(64.dp)` (64dp floor). Code fix commit: `e07263c`. Fixed APK reinstalled on flox (Success). SUMMARY `24-05-SUMMARY.md`.
@@ -72,7 +73,7 @@ Status: Ready to execute
   → Task 2 = BLOCKING checkpoint:human-verify (on-device live-E5 UAT) — returned to the orchestrator, NOT executed by the plan-runner. The orchestrator builds/signs/installs on flox + captures gfxinfo; the user navigates/turns screws/confirms. 09-07-SUMMARY.md is NOT written and the plan/phase are NOT marked complete until the user reports the 6-item UAT results.
   → Next action: `/gsd-discuss-phase 13` (the PROMOTED Optimization/Reliability phase) — discuss connection/data-model standardization + the SAVE_CONFIG re-handshake freeze (the headline fix) before planning. Then `/gsd-plan-phase 13`.
   → Plan 13-01 (Wave 0, capture-first + harden-the-mock) EXECUTED + COMPLETE 2026-06-03 (commits 4be675b+d3eda89 capture, 87d7a43 + c220371 tests). WIRE TRUTH (identical E5+E3 — freeze is APP-side, NOT printer-dependent, D-02): recovery = notify_klippy_disconnected→notify_klippy_ready on the SAME socket; NO shutdown, NO webhooks.state (Pitfall-5 ruled OUT); post-restart re-identify ERRORS 400 'Connection already identified' but server.info/objects.list/objects.query/objects.subscribe all succeed and 118 diffs resume — the subscribe-success branch flips the subscription live again. HARDENING: FakeWebSocket.inject() now DROPS notify_status_update while subscriptionActive==false (closes the inject() bypass) + cancel() fires onFailure once (self-heal reconnect observable); SessionTestHarness klippyDown window returns the real 503 for subscribe/query and arms subscriptionActive only on a SUCCESSFUL subscribe. TEST WAVE-0 COLOR: keystone resumed-diffs + min_extrude_temp refresh + ProbeZOffsetFreshnessTest + D-07b mid-print resync all GREEN (the happy-path re-handshake already works → the locks/gate pass); the 2 genuine RED fix-drivers are KlippyRecoveryStateTest (D-03 Syncing→Connected on a collector reset past the initial connect) + the self-heal escalation (klippyDown re-subscribe rejected → opens++ AND a 2nd full handshake on a fresh socket, via the cancel()/onFailure lever). ProbeZOffsetFreshnessTest GREEN is the executable gate 13-03's refreshProbeZOffset removal depends on. 1 deviation: removed the superseded calibration-re-subscribe sent-frame-count test (subsumed by the resumed-diff keystone). Next: 13-02 (the re-handshake fix — turn the 2 RED fix-drivers green).
-Last activity: 2026-06-11
+Last activity: 2026-06-12
 
 Progress (Phase 9): [██████████] 100% — 7/7 plans complete (09-01 fixtures+RED, 09-02 spine, 09-03 parsers, 09-04 hub+screws-tilt, 09-05 tilt+bed-mesh+heatmap, 09-06 probe-calibrate+D-15 delete-fix, 09-07 nav-wiring + on-device UAT sign-off). Phase CLOSED; one cross-cutting reliability defect deferred to the promoted next phase.
 
@@ -80,7 +81,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 
 **Velocity:**
 
-- Total plans completed: 164
+- Total plans completed: 171
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -113,6 +114,7 @@ Progress (Phase 9): [██████████] 100% — 7/7 plans complete
 | 24 | 5 | - | - |
 | 25 | 7 | - | - |
 | 26 | 7 | - | - |
+| 26.5 | 7 | - | - |
 
 **Recent Trend:**
 

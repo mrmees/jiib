@@ -228,3 +228,23 @@ Logcat filter for the R10 items: `adb logcat -s Dispatcher SwipeDetector`
       (stale-phrase grep + dead-link check). This also proves the fresh-clone `./gradlew` acceptance
       (the ubuntu runner IS a fresh clone exercising the +x gradlew). If red: triage the failing
       step (likely action-version or SDK-presence assumptions, RESEARCH A2/A3).
+
+## Final UAT close-out (2026-06-11, owner at flox + live E3 print)
+
+Mid-print sitting (bed_level_dot_PLA on the E3) — ALL PASS:
+- **Trailing-commit steppers (quick 260611-rmr + post-review fixes): owner-APPROVED on-device,
+  mid-print** — instant working value, one command per burst, no lockout; M220 effect observed
+  on the live print. Supersedes the 26.5-03 rejection-flash UX (which itself remains as the
+  rare-case fallback signal).
+- FloatingEStop present on drill-downs while printing.
+- **Phase-21 SC8 cross-printer camera-hold: PASS** (cam selected on E5+, switch to E3, switch
+  back — selection held; feeds live on LAN). Closes the 2026-06-08 deferral.
+- Keep-screen-awake during a live print (the dedicated-display case).
+
+**Residual items (re-homed, not blocking 26.5):**
+- v7a RELEASE-build regression pass → Phase 29 (release packaging owns the signed/release artifact).
+- Instrumented FineTuneNavTest on-device → the existing test-hardening todo (pre-existing P17
+  deferral; the SwipeUpAccumulator host tests cover the logic meanwhile).
+- R7 wss live connect → Phase 29 polish (owner deferral, recorded earlier).
+
+**Phase gate verdict: the morning UAT sitting is COMPLETE — phase 26.5 acceptance met.**
