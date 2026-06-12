@@ -198,6 +198,22 @@ object DinghyIcons {
     val RoutineZTilt = DinghyIcon(IconRef.Ligature("vertical_align_center"), alternate = "routine_z_tilt")
     val RoutineQgl = DinghyIcon(IconRef.Ligature("crop_square"), alternate = "routine_qgl")
 
+    // --- Phase-27 review fix WR-04 (registry conformance — NOT new icon choices): the rebuilt
+    // Move/ScrewsTilt/BedMesh screens still drew these 9 glyphs as raw MaterialSymbol/inline-ligature
+    // call sites, bypassing the subset source of truth and the verify_ligatures.py gate. Promoted
+    // VERBATIM — the EXISTING shipping glyphs are preserved unchanged (drift-guarding only, per the
+    // 27-01 "bless as-is" precedent and [[dinghy-never-pick-icons-ask]]); call sites now route
+    // through DinghyIconView.
+    val JogXPlus = DinghyIcon(IconRef.Ligature("arrow_forward"), alternate = "jog_x_plus")              // Move: X+ jog cell
+    val HomeStateHomed = DinghyIcon(IconRef.Ligature("in_home_mode"), alternate = "home_state_homed")   // Move: XY-home cell, homed
+    val HomeStateUnhomed = DinghyIcon(IconRef.Ligature("wifi_home"), alternate = "home_state_unhomed")  // Move: XY-home cell, needs homing
+    val ScrewPending = DinghyIcon(IconRef.Ligature("point_scan"), alternate = "screw_pending")          // ScrewsTilt: not yet probed
+    val ScrewBase = DinghyIcon(IconRef.Ligature("anchor"), alternate = "screw_base")                    // ScrewsTilt: base/reference screw
+    val ScrewInTolerance = DinghyIcon(IconRef.Ligature("commit"), alternate = "screw_in_tolerance")     // ScrewsTilt: within tolerance
+    val ScrewTurnCcw = DinghyIcon(IconRef.Ligature("rotate_left"), alternate = "screw_turn_ccw")        // ScrewsTilt: turn counter-clockwise
+    val ScrewTurnCw = DinghyIcon(IconRef.Ligature("rotate_right"), alternate = "screw_turn_cw")         // ScrewsTilt: turn clockwise
+    val MeshEmpty = DinghyIcon(IconRef.Ligature("grid_off"), alternate = "mesh_empty")                  // BedMesh: empty-state Focus
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -222,5 +238,8 @@ object DinghyIcons {
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
         Visibility, VisibilityOff, Warning,
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
+        JogXPlus, HomeStateHomed, HomeStateUnhomed,
+        ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
+        MeshEmpty,
     )
 }

@@ -52,8 +52,10 @@ import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.GeistMono
@@ -625,19 +627,19 @@ private fun JogPad(
             // Row 0: Y readout · Y+ · force-move toggle
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AxisCorner("Y", vm.y, vm.yHomed, { onHomeAxis("Y") }, "home_Y" in inFlight, Modifier.weight(1f))
-                JogCell("arrow_upward", { onJog("Y", distance, FEED_XY) }, jogDisabled(vm.yHomed, "jog_Y"), forceMove, Modifier.weight(1f))
+                JogCell(rawJogArrow("arrow_upward"), { onJog("Y", distance, FEED_XY) }, jogDisabled(vm.yHomed, "jog_Y"), forceMove, Modifier.weight(1f))
                 ForceMoveCell(enabled = forceMove, onToggle = onToggleForceMove, modifier = Modifier.weight(1f))
             }
-            // Row 1: X− · XY home · X+
+            // Row 1: X− · XY home · X+ (X+ = the registry-backed JogXPlus token, 27-review WR-04)
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                JogCell("arrow_back", { onJog("X", -distance, FEED_XY) }, jogDisabled(vm.xHomed, "jog_X"), forceMove, Modifier.weight(1f))
+                JogCell(rawJogArrow("arrow_back"), { onJog("X", -distance, FEED_XY) }, jogDisabled(vm.xHomed, "jog_X"), forceMove, Modifier.weight(1f))
                 HomeCell(homed = vm.xHomed && vm.yHomed, onHome = onHomeXY, disabled = "home_xy" in inFlight, modifier = Modifier.weight(1f))
-                JogCell("arrow_forward", { onJog("X", distance, FEED_XY) }, jogDisabled(vm.xHomed, "jog_X"), forceMove, Modifier.weight(1f))
+                JogCell(DinghyIcons.JogXPlus, { onJog("X", distance, FEED_XY) }, jogDisabled(vm.xHomed, "jog_X"), forceMove, Modifier.weight(1f))
             }
             // Row 2: Z readout · Y− · X readout (Pitfall 7: Z corner also reads vm.z — same source as ZColumn)
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AxisCorner("Z", vm.z, vm.zHomed, { onHomeAxis("Z") }, "home_Z" in inFlight, Modifier.weight(1f))
-                JogCell("arrow_downward", { onJog("Y", -distance, FEED_XY) }, jogDisabled(vm.yHomed, "jog_Y"), forceMove, Modifier.weight(1f))
+                JogCell(rawJogArrow("arrow_downward"), { onJog("Y", -distance, FEED_XY) }, jogDisabled(vm.yHomed, "jog_Y"), forceMove, Modifier.weight(1f))
                 AxisCorner("X", vm.x, vm.xHomed, { onHomeAxis("X") }, "home_X" in inFlight, Modifier.weight(1f))
             }
         }
@@ -657,13 +659,25 @@ private fun jogIconTint(t: ThemeTokens, disabled: Boolean, forceMove: Boolean): 
 }
 
 /**
- * A directional jog arrow (Material Symbol). The outline wears the XY-plane directional color
- * ([ThemeTokens.directional]`.xy`). The icon color signals state via [jogIconTint].
- * Disabled cells ignore taps.
+ * The three non-registry jog arrows (`arrow_upward` / `arrow_back` / `arrow_downward`) as inline
+ * [DinghyIcon]s — the sanctioned 18.1-03 ProbeIconButton pattern: rendered a11y-safe through
+ * [DinghyIconView] without promoting the sites into the [DinghyIcons] registry. All three names are
+ * covered by the verify_ligatures.py NEEDED set (and `arrow_back` is registry-backed anyway via
+ * [DinghyIcons.Back]). The X+ arrow (`arrow_forward`) IS registry-backed — [DinghyIcons.JogXPlus]
+ * (27-review WR-04) — and is passed as that token at its call site.
+ */
+private fun rawJogArrow(name: String) = DinghyIcon(IconRef.Ligature(name), alternate = name)
+
+/**
+ * A directional jog arrow (Material Symbols ligature rendered through [DinghyIconView] — 27-review
+ * WR-04). The outline wears the XY-plane directional color ([ThemeTokens.directional]`.xy`). The
+ * icon color signals state via [jogIconTint]. Disabled cells ignore taps. The null
+ * contentDescription marks the glyph decorative (DinghyIconView clears semantics — same TalkBack
+ * behavior as the previous explicit clearAndSetSemantics).
  */
 @Composable
 private fun JogCell(
-    symbol: String,
+    icon: DinghyIcon,
     onClick: () -> Unit,
     disabled: Boolean,
     forceMove: Boolean,
@@ -676,19 +690,19 @@ private fun JogCell(
         disabled = disabled,
         modifier = modifier,
     ) {
-        MaterialSymbol(
-            name = symbol,
-            modifier = Modifier.clearAndSetSemantics {},
+        DinghyIconView(
+            icon = icon,
             tint = jogIconTint(t, disabled, forceMove),
-            sizeSp = fsSp(44f, t.fs),
+            sizeDp = fsSp(44f, t.fs).dp,
         )
     }
 }
 
 /**
- * A home button cell (MOVE-02): a Material-Symbol home-state icon — `in_home_mode` when [homed],
- * `wifi_home` when it still needs homing (green/amber status-as-color). The outline wears the XY-plane
- * directional color so the XY home reads as part of the XY group.
+ * A home button cell (MOVE-02): the registry-backed home-state token — [DinghyIcons.HomeStateHomed]
+ * (`in_home_mode`) when [homed], [DinghyIcons.HomeStateUnhomed] (`wifi_home`) when it still needs
+ * homing (green/amber status-as-color; glyphs unchanged, promoted to tokens by 27-review WR-04).
+ * The outline wears the XY-plane directional color so the XY home reads as part of the XY group.
  */
 @Composable
 private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modifier: Modifier = Modifier) {
@@ -699,11 +713,10 @@ private fun HomeCell(homed: Boolean, onHome: () -> Unit, disabled: Boolean, modi
         disabled = disabled,
         modifier = modifier,
     ) {
-        MaterialSymbol(
-            name = if (homed) "in_home_mode" else "wifi_home",
-            modifier = Modifier.clearAndSetSemantics {},
+        DinghyIconView(
+            icon = if (homed) DinghyIcons.HomeStateHomed else DinghyIcons.HomeStateUnhomed,
             tint = if (homed) t.go else t.heat,
-            sizeSp = fsSp(48f, t.fs),
+            sizeDp = fsSp(48f, t.fs).dp,
         )
     }
 }

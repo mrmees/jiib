@@ -39,7 +39,6 @@ import works.mees.dinghy.calibration.ScrewsTiltVm
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FloatingEStop
@@ -47,6 +46,7 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -364,13 +364,15 @@ private fun BoxWithPoints(
             val fx = ((p.x!! - loX) / (hiX - loX)).toFloat().coerceIn(0f, 1f)
             val fy = (1f - ((p.y!! - loY) / (hiY - loY)).toFloat()).coerceIn(0f, 1f)
             val turn = p.turn
+            // 27-review WR-04: the bed-map state glyphs route through the DinghyIcons registry
+            // (promoted verbatim — same glyphs as before, now subset/gate-covered).
             val glyph = when {
-                turn == null -> "point_scan"
-                turn.isBase -> "anchor"
-                turn.isInTol -> "commit"
-                turn.sign == "CCW" -> "rotate_left"
-                turn.sign == "CW" -> "rotate_right"
-                else -> "point_scan"
+                turn == null -> DinghyIcons.ScrewPending
+                turn.isBase -> DinghyIcons.ScrewBase
+                turn.isInTol -> DinghyIcons.ScrewInTolerance
+                turn.sign == "CCW" -> DinghyIcons.ScrewTurnCcw
+                turn.sign == "CW" -> DinghyIcons.ScrewTurnCw
+                else -> DinghyIcons.ScrewPending
             }
             val tint = when {
                 turn == null -> t.text2
@@ -385,7 +387,7 @@ private fun BoxWithPoints(
                 contentAlignment = BiasAlignment(fx, fy),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    MaterialSymbol(name = glyph, tint = tint, sizeSp = fsSp(56f, t.fs))
+                    DinghyIconView(icon = glyph, tint = tint, sizeDp = fsSp(56f, t.fs).dp)
                     p.name?.let { name ->
                         Text(
                             text = shortScrewName(name),

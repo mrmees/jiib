@@ -121,6 +121,12 @@ NEEDED = {
     # RoutineProbeCalibrate=straighten, RoutineBedMesh=grid_on, RoutineScrewsTilt=architecture,
     # RoutineZTilt=vertical_align_center, RoutineQgl=crop_square.
     "straighten", "grid_on", "architecture", "vertical_align_center", "crop_square",
+    # Phase-27 review fix WR-04: the 9 glyphs the rebuilt Move/ScrewsTilt/BedMesh screens were
+    # drawing as raw, un-registered ligatures — promoted VERBATIM to DinghyIcons tokens
+    # (JogXPlus / HomeStateHomed / HomeStateUnhomed / Screw* / MeshEmpty). Shipping glyphs
+    # preserved unchanged; this is drift-guarding, not icon selection.
+    "arrow_forward", "in_home_mode", "wifi_home", "point_scan", "anchor", "commit",
+    "rotate_left", "rotate_right", "grid_off",
 }
 
 
