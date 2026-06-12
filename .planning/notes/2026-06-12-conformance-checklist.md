@@ -6,7 +6,7 @@ Every screen is scored per criterion: **PASS** / **FLAG** (fixable in place) / *
 
 | # | Criterion | Law |
 |---|---|---|
-| C-U1 | Unit grid: `rememberUnitGrid`/`uDp` drives vertical sizing; rows/controls `heightIn(min = uDp)`; integer-U heights | LAYOUT §The unit U; C6 All-1U |
+| C-U1 | Unit grid: `rememberUnitGrid`/`uDp` drives vertical sizing; rows/controls `heightIn(min = uDp)`; integer-U heights. **C-U1b (pilot finding): the grid MUST be derived at the SCREEN root (`BoxWithConstraints(fillMaxSize)` before `ScreenScaffold`), never inside a Focus/Field slot** — a slot-derived U is smaller than the law's screen-short-edge U and varies with rotation (the home-standby bug, fixed `dde62a1`) | LAYOUT §The unit U; C6 All-1U |
 | C-U2 | Controls cap at 1U; >1U exceptions explicitly named (ColorWheel only) | LAYOUT UAT-5 |
 | C-R1 | Two-region scaffold; `gutter = null` (live gutter content = migration item per R1) | LAYOUT §regions; R1 |
 | C-R2 | `FootButtonBar` inside field slot, last element; **Back FIRST** | LAYOUT §foot-of-list; R8 |
