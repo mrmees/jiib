@@ -311,13 +311,18 @@ U-relative idiom, e.g. `(uDp * 0.75f).coerceIn(minDp, maxDp)`, never a hardcoded
 "Prominent" means: Focus-area heroes, adjuster-panel headers, big command-tile glyphs — anything the
 eye goes to first.
 
-**EXPLICIT EXCEPTION — dense list-pane icons:** Icons inside a detailed/dense list row (e.g.
-`ListRow` leading glyphs in Fine-Tune param list, Temperature sensor list, Files list) are **not**
-the prominent case. They stay at their current list-scale size (~22dp). A future conformance sweep
-**must not** grow these under the misread that UAT-1 applies universally.
+**EXPLICIT EXCEPTION — dense list-pane icons (AMENDED by R16, 2026-06-12):** Icons inside a
+detailed/dense list row (`ListRow` leading glyphs in Fine-Tune param list, Temperature sensor
+list, Files list) are **not** the prominent case. They size at **`fsSp(22).dp`** — tracking the
+row label so icon and text scale together under S/M/L (amends the original "frozen ~22dp"; with
+the R11 20sp label default, a frozen icon reads undersized at fs=L). They must NOT be grown to
+the prominent 70-80%-of-U tier.
 
 Existing precedent: `FloatingEStop` sizes its glyph at `(uDp * 0.7f).coerceAtLeast(64.dp)` — the
 same U-relative idiom. Reuse it.
+
+**The full icon-size tier law (R15/R16) lives in `COMPONENTS.md §7c` — which sizing idiom
+(text-tracking `fsSp` vs U-tracking) governs which tier.**
 
 ### UAT-2 — Icon · name · value rows use start/end alignment
 

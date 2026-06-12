@@ -39,8 +39,10 @@ Sketch session wrapped: 2026-06-09 (sketches 001–003).
 - **Adjustment:** step-based (no scrubber on the floor), 3-zone Focus, inline `was X` baseline.
 - **Post-Phase-26 UAT formatting rules UAT-1..UAT-5** (owner, 2026-06-10 — apply to ALL new/rebuilt
   screens from Phase 26 onward):
-  - UAT-1: prominent icons ~70-80% of U (`uDp * 0.75f` etc.); dense list-pane leading icons stay
-    small (the explicit exception — do not grow them).
+  - UAT-1 (+R15/R16, 2026-06-12): prominent icons ~70-80% of U (`uDp * 0.75f` etc.); dense
+    list-pane leading icons stay small but now TRACK the label at `fsSp(22).dp` (R16). Full
+    icon-size tier law (hybrid idiom: text-companion icons = fsSp, cell-filling icons = U,
+    fixed-dp retired): `docs/ui_design/COMPONENTS.md §7c`.
   - UAT-2: icon · name · value rows — name start-aligned with the icon, value end-aligned;
     `Spacer(weight(1f))` carries the gap.
   - UAT-3: current-style scrubber track + thumb ≤ 1U (`heightIn(max = uDp)`).

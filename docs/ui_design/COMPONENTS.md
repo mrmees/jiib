@@ -363,6 +363,23 @@ NON-NEGOTIABLE 3: spacing comes from the named set, not from U-derivation or ad-
 | `gapM` | 12dp | inter-row rhythm (e.g. SortFilter tile = U − gapM) |
 | `padFloat` | 14dp | floating-overlay corner padding (FloatingEStop) |
 
+## 7c. Icon-size tiers (R15/R16, owner, 2026-06-12)
+
+**Hybrid idiom by tier:** icons that sit WITH TEXT track the text-size setting (`fsSp`); icons
+that FILL LAYOUT CELLS track the unit grid (U) — layout cells don't grow with the text setting,
+and a text-tracked icon in a fixed 1U cell overflows at fs=L (the 24-05 FloatingEStop UAT bug).
+**Fixed-dp icon sizes are RETIRED** except where a tier names one.
+
+| Tier | What | Idiom | Size |
+|---|---|---|---|
+| **Inline / text-companion** | icon beside a label; status glyphs (`StatusStop`/triangle) riding a value | text | `fsSp(labelBase + 2).dp` |
+| **Dense list leading** | `ListRow` leading glyphs in dense lists | text | `fsSp(22).dp` (R16 — amends UAT-1's frozen 22dp; tracks the row label) |
+| **Control** | foot-bar buttons, ≤1U labeled tiles | U | ~0.5U |
+| **Prominent / hero** | Focus anchors, icon-only tiles, adjuster headers | U | 0.7–0.8U (UAT-1); `coerceAtLeast(64.dp)` when the icon IS the touch target (FloatingEStop precedent) |
+
+Conformance: the normalization audit converts stragglers (stray fixed-dp and mis-tiered `fsSp`
+heroes) to the tier idiom above.
+
 ---
 
 ## 8. Class-equivalent (Views) exceptions

@@ -179,6 +179,16 @@ ratify) · **[V]** verify in code during audit.
   (they gate vocabulary/registry conformance); exhaustive @Preview matrices + golden screenshots
   move to Ship as release-hardening.
 
+## RULINGS — Round 4 (owner, 2026-06-12, icon sizing)
+
+- **R15 — Icon-size HYBRID idiom by tier** (law: COMPONENTS.md §7c): text-companion icons
+  (inline beside labels, status glyphs riding values) track TEXT via `fsSp`; cell-filling icons
+  (control ~0.5U, prominent/hero 0.7–0.8U per UAT-1) track U. Fixed-dp icon sizes RETIRED except
+  where a tier names one. Audit converts stragglers.
+- **R16 — Dense list leading icons now TRACK THE LABEL at `fsSp(22).dp`** (amends UAT-1's frozen
+  22dp — with the R11 20sp label default, a frozen icon reads undersized at fs=L). Still must
+  not be grown to the prominent tier.
+
 ## D. Verify during audit [V]
 - Tune-tile flexible behavior (Q5); Back intent/position on every rebuilt screen (Q6);
   which screens pass `gutter = null` vs real gutter content (Q1); image-backed info card grammar
