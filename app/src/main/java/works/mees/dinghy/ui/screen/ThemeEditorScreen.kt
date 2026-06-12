@@ -1,13 +1,17 @@
 package works.mees.dinghy.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,9 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -100,6 +109,12 @@ fun ThemeEditorScreen(
         hue = seedHexToHue(activeProfile?.seedHex)
     }
 
+    // Saturation (0..1) and value/brightness (0..1) for the S/V square (D-16).
+    // These are the SHARED s/v axes used by both the slot pickers AND the main S/V square.
+    // They are seeded from the stored ARGB when a slot picker opens (ARGB→HSV decode).
+    var sat by remember { mutableFloatStateOf(1f) }
+    var value by remember { mutableFloatStateOf(1f) }
+
     // ---- Appearance (dark/light + S/M/L + palette-mode) mirror state -----------------------------
     // (15.2-04 finding 3 — RELOCATED here from the old SettingsScreen "Appearance" section that the
     // 4-tile split deleted without rehoming. The Theme tile is APPEARANCE per its own docstring, so
@@ -151,13 +166,25 @@ fun ThemeEditorScreen(
         return
     }
 
-    // Per-slot override picker — a full-screen hue wheel that writes ONE pool slot on settle (D-09).
+    // Per-slot override picker — hue wheel + S/V square; writes ONE pool slot on settle (D-09).
     val slot = editingSlot
     if (slot != null) {
-        // WR-06: seed the wheel from the CURRENT slot color (override or base generated), not hue 0 (red).
-        // Re-opening a slot the user set to teal must show the handle at teal, not make them drag from scratch.
-        val currentSlotColor = if (t.pool.isNotEmpty()) t.pool[slot % t.pool.size] else t.accent
-        var slotHue by remember(slot) { mutableFloatStateOf(colorToHue(currentSlotColor)) }
+        // WR-06 + D-16: seed hue/sat/value from the STORED ARGB (override or base generated).
+        // Re-opening a slot the user set to teal at 80% saturation must show that exact color.
+        val storedSlotArgb = activeProfile?.poolOverrides?.get(slot.toString())
+        val seedSlotColor = when {
+            storedSlotArgb != null -> Color(storedSlotArgb.toInt())
+            t.pool.isNotEmpty() -> t.pool[slot % t.pool.size]
+            else -> t.accent
+        }
+        var slotHue by remember(slot) { mutableFloatStateOf(colorToHue(seedSlotColor)) }
+        // Seed sat/value from stored ARGB (D-16 — restore full color on re-open via colorToHSV).
+        LaunchedEffect(slot) {
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(seedSlotColor.toArgb(), hsv)
+            sat = hsv[1]
+            value = hsv[2]
+        }
         Column(
             modifier
                 .fillMaxSize()
@@ -172,9 +199,21 @@ fun ThemeEditorScreen(
                 hue = slotHue,
                 onHandleMove = { slotHue = it },
                 onSettle = { settled ->
-                    container.setActiveOverride(hasActive, slot, hueToArgbLong(settled))
+                    slotHue = settled
+                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(settled, sat, value))
                 },
                 modifier = Modifier.fillMaxWidth(),
+            )
+            SectionLabel("Saturation / Brightness")
+            SaturationValueSquare(
+                hue = slotHue,
+                sat = sat,
+                value = value,
+                onHandleMove = { s, v -> sat = s; value = v },
+                onSettle = { s, v ->
+                    sat = s; value = v
+                    container.setActiveOverride(hasActive, slot, hsvToArgbLong(slotHue, s, v))
+                },
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedControl(
@@ -198,7 +237,7 @@ fun ThemeEditorScreen(
         return
     }
 
-    // Per-status-slot override picker (D-03) — mirrors the pool picker, writes via the durable
+    // Per-status-slot override picker (D-03) — hue wheel + S/V square; writes via the durable
     // setActiveStatusOverride intent (writeScope), NEVER a rememberCoroutineScope (see the KDoc above).
     val statusSlot = editingStatusSlot
     if (statusSlot != null) {
@@ -207,8 +246,14 @@ fun ThemeEditorScreen(
         // The STORED override (the user's pick, if any) — read from the active profile's wire map. In the
         // idle/no-profile case the stored override is not surfaced (mirrors the pool grid's limitation).
         val storedArgb = activeProfile?.poolOverrides?.get(statusSlot.key)
-        var slotHue by remember(statusSlot) {
-            mutableFloatStateOf(colorToHue(storedArgb?.toComposeColor() ?: effective))
+        val seedStatusColor = storedArgb?.toComposeColor() ?: effective
+        var slotHue by remember(statusSlot) { mutableFloatStateOf(colorToHue(seedStatusColor)) }
+        // D-16: seed sat/value from stored ARGB so re-opening a status slot restores the full color.
+        LaunchedEffect(statusSlot) {
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(seedStatusColor.toArgb(), hsv)
+            sat = hsv[1]
+            value = hsv[2]
         }
         // Whether the live override actually changes what the app renders in the CURRENT mode (Colorful only).
         val overrideTakesEffect = t.mode == PaletteMode.Colorful
@@ -235,11 +280,23 @@ fun ThemeEditorScreen(
                 hue = slotHue,
                 onHandleMove = { slotHue = it },
                 onSettle = { settled ->
+                    slotHue = settled
                     // [[dinghy-compose-write-scope-cancellation]] — durable intent on writeScope, NOT a
                     // composition scope. No editability guard on status (D-03 — shape carries safety).
-                    container.setActiveStatusOverride(hasActive, statusSlot, hueToArgbLong(settled))
+                    container.setActiveStatusOverride(hasActive, statusSlot, hsvToArgbLong(settled, sat, value))
                 },
                 modifier = Modifier.fillMaxWidth(),
+            )
+            SectionLabel("Saturation / Brightness")
+            SaturationValueSquare(
+                hue = slotHue,
+                sat = sat,
+                value = value,
+                onHandleMove = { s, v -> sat = s; value = v },
+                onSettle = { s, v ->
+                    sat = s; value = v
+                    container.setActiveStatusOverride(hasActive, statusSlot, hsvToArgbLong(slotHue, s, v))
+                },
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedControl(
@@ -341,9 +398,9 @@ fun ThemeEditorScreen(
             }
         }
 
-        // ---- 1. SEED COLOR — the wheel (settle-regen, D-07) ----------------------------------------
+        // ---- 1. SEED COLOR — the wheel + S/V square (settle-regen, D-07 / D-16) --------------------
         SectionLabel("Seed color")
-        SubLabel("Pick a color or tap a preset")
+        SubLabel("Pick a hue on the ring, then adjust saturation and brightness below")
         ColorWheel(
             hue = hue,
             onHandleMove = { hue = it }, // cheap: handle-only repaint, NO regen (D-07).
@@ -353,6 +410,18 @@ fun ThemeEditorScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         )
+        // S/V square (D-16): adjusts the saturation/value of the seed picker — purely local preview
+        // for the seed hue. The seed path only persists hue (the generator cusp-normalizes L/C), so
+        // the S/V square here is a "see the hue in context" aid; slot pickers use it for full S/V storage.
+        SaturationValueSquare(
+            hue = hue,
+            sat = sat,
+            value = value,
+            onHandleMove = { s, v -> sat = s; value = v },
+            onSettle = { s, v -> sat = s; value = v }, // seed path: no additional persist (hue-only seed)
+        )
+
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
 
         // ---- 2. PRESETS — curated seed swatches (tap lands seed) ------------------------------------
         SectionLabel("Presets")
@@ -384,6 +453,8 @@ fun ThemeEditorScreen(
             DataSwatch(t.go, Modifier.weight(1f))
         }
 
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
+
         // ---- 4. POOL COLORS — per-slot override grid (D-09) ----------------------------------------
         SectionLabel("Pool colors")
         SubLabel("Tap a color to customize")
@@ -398,6 +469,8 @@ fun ThemeEditorScreen(
                 )
             }
         }
+
+        HorizontalDivider(color = t.hair, thickness = 1.dp)
 
         // ---- 4b. STATUS COLORS — per-slot status override (D-03) -----------------------------------
         SectionLabel("Status colors")
@@ -735,10 +808,98 @@ internal fun hueToHex(hue: Float): String {
     return "#%06X".format(java.util.Locale.US, argb and 0xFFFFFF)
 }
 
-/** Hue (0..360) → an opaque unsigned-32 ARGB Long (for a pool override). */
+/** Hue (0..360) → an opaque unsigned-32 ARGB Long (for a pool override, full sat/value). */
 internal fun hueToArgbLong(hue: Float): Long {
     val argb = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f).toArgb()
     return argb.toLong() and 0xFFFFFFFFL
+}
+
+/**
+ * HSV → an opaque unsigned-32 ARGB Long (D-16: full S/V persistence for pool and status slots).
+ * Used by the S/V square's onSettle to write the user's FULL chosen color, not just the hue.
+ */
+internal fun hsvToArgbLong(hue: Float, sat: Float, value: Float): Long {
+    val argb = Color.hsv(((hue % 360f) + 360f) % 360f, sat.coerceIn(0f, 1f), value.coerceIn(0f, 1f)).toArgb()
+    return argb.toLong() and 0xFFFFFFFFL
+}
+
+/**
+ * 2D saturation/value square picker (D-16).
+ *
+ * Canvas with two overlaid gradients: horizontal White→hue (saturation, left=0/right=1) and
+ * vertical Transparent→Black (value, top=1/bottom=0). A thin [t.outline] crosshair marks the
+ * current (sat, value) position.
+ *
+ * Gesture template mirrors [ColorWheel]: a single `awaitEachGesture` claims the down on the
+ * whole surface, calls [onHandleMove] on each pointer change (cheap — no regen), fires [onSettle]
+ * on pointer-UP (the durable write path). No looping animation (Adreno-320 motion LAW).
+ *
+ * @param hue   current hue 0..360 — sets the pure-hue color of the right edge.
+ * @param sat   current saturation 0..1 — crosshair X position.
+ * @param value current value/brightness 0..1 — crosshair Y position (inverted: 1 = top).
+ * @param onHandleMove cheap mid-drag callback (sat, value).
+ * @param onSettle     durable write callback on pointer-UP (sat, value).
+ */
+@Composable
+private fun SaturationValueSquare(
+    hue: Float,
+    sat: Float,
+    value: Float,
+    onHandleMove: (Float, Float) -> Unit,
+    onSettle: (Float, Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val pureHue = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f)
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .pointerInput(hue) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val w = size.width.toFloat()
+                    val h = size.height.toFloat()
+                    var s = (down.position.x / w).coerceIn(0f, 1f)
+                    var v = 1f - (down.position.y / h).coerceIn(0f, 1f)
+                    onHandleMove(s, v)
+                    down.consume()
+                    do {
+                        val event = awaitPointerEvent()
+                        event.changes.forEach { change ->
+                            if (change.pressed && change.positionChanged()) {
+                                s = (change.position.x / w).coerceIn(0f, 1f)
+                                v = 1f - (change.position.y / h).coerceIn(0f, 1f)
+                                onHandleMove(s, v)
+                                change.consume()
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
+                    onSettle(s, v)
+                }
+            },
+    ) {
+        // Saturation axis: White (left, sat=0) → pure hue (right, sat=1)
+        drawRect(Brush.horizontalGradient(listOf(Color.White, pureHue)))
+        // Value axis: Transparent (top, value=1) → Black (bottom, value=0)
+        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+        // Crosshair at the current (sat, value) position
+        val cx = sat * size.width
+        val cy = (1f - value) * size.height
+        val strokePx = 1.dp.toPx()
+        drawLine(
+            color = t.outline,
+            start = Offset(cx, 0f),
+            end = Offset(cx, size.height),
+            strokeWidth = strokePx,
+        )
+        drawLine(
+            color = t.outline,
+            start = Offset(0f, cy),
+            end = Offset(size.width, cy),
+            strokeWidth = strokePx,
+        )
+    }
 }
 
 /** Parse a "#RRGGBB"/"RRGGBB"(/+alpha) hex into an opaque ARGB Int; junk → opaque black (never throws). */
