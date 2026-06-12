@@ -24,8 +24,8 @@
     "ai_integration_phase": true,
     "tdd_mode": false,
     "human_verify_mode": "end-of-phase",
-    "auto_advance": false,
-    "_auto_chain_active": false,
+    "auto_advance": true,
+    "_auto_chain_active": true,
     "node_repair": true,
     "node_repair_budget": 2,
     "ui_phase": true,
@@ -38,7 +38,7 @@
     "subagent_timeout": 300000,
     "context_coverage_gate": true,
     "code_review": true,
-    "code_review_depth": "deep",
+    "code_review_depth": "standard",
     "code_review_command": null,
     "pattern_mapper": true,
     "plan_bounce": false,
@@ -91,6 +91,6 @@
   },
   "graphify": {
     "enabled": true,
-    "auto_update": false
+    "auto_update": true
   }
 }

@@ -1,8 +1,10 @@
 ---
 created: 2026-06-05T00:00:00Z
+completed: 2026-06-12
 title: Move — Z-button vertical-layout rework (C3)
 area: ui
-target_phase: 17
+target_phase: 27
+resolution: CLOSED — implemented in Phase 27 MoveScreen rebuild (plans 27-01/27-02); owner approved on-device (flox) 2026-06-12 via blanket UAT approval covering SC-1 vertical-Z column checks
 files:
   - app/src/main/java/works/mees/dinghy/ui/move/MoveScreen.kt
 ---
