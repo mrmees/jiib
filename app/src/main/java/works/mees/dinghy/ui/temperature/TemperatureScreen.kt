@@ -172,7 +172,11 @@ fun TemperatureScreen(
 
     // quick-rmr: trailing-commit batcher keyed by SENSOR NAME — heater stepper taps accumulate a
     // clamped working target locally; ONE setHeater dispatch per ~500ms quiet window.
-    val batcher = remember(dispatcher) {
+    // COMPOSITION-STABLE (post-review fix 3): `remember {}` with NO dispatcher key — re-keying on
+    // reconnect disposed the old batcher mid-burst (early flush, working targets lost to the empty
+    // replacement). Both lambdas read `dispatcher` through the local `by` STATE DELEGATE, so every
+    // invocation resolves the CURRENT dispatcher at fire time — no key needed for freshness.
+    val batcher = remember {
         TrailingCommitBatcher(
             canCommit = { name ->
                 // Fire-time read (never a composition snapshot): reschedule while this heater's
@@ -193,7 +197,8 @@ fun TemperatureScreen(
         )
     }
     // Commit-on-dispose: a nav-out mid-burst flushes the pending target (the dispatch rides
-    // CommandDispatcher's app-lifetime scope); also covers the remember(dispatcher) re-key.
+    // CommandDispatcher's app-lifetime scope). The batcher is composition-stable, so this fires
+    // exactly once — when the screen leaves composition.
     DisposableEffect(batcher) { onDispose { batcher.dispose() } }
     val workingTargets by batcher.working.collectAsStateWithLifecycle()
 
@@ -264,13 +269,16 @@ fun TemperatureScreen(
                 batcher.tap(sensorName, PrinterCommands.clampHeaterTarget(rawTarget).toDouble())
             },
             onHeaterOff = { sensorName ->
-                // Off is a single deliberate tap (design decision 3): cancel any pending working
-                // target for this heater, then dispatch target=0 immediately.
-                batcher.cancel(sensorName)
-                dispatcher?.dispatch(
-                    CommandRegistry.setHeater,
-                    SetHeaterArgs(sensorName, 0, heaterDispatchKey(sensorName)),
-                )
+                // Off must NEVER be droppable (post-review fix 1, HIGH): the old cancel()+bare
+                // immediate dispatch RACED the dispatcher's guards — if the scheduled nonzero
+                // commit had just fired, the same-key S0 was rejected by the in-flight guard (or,
+                // after a fast clear, by the 400ms debounce keyed on that accepted dispatch) with
+                // NO retry → heater stayed hot. Routing Off through tap(0.0) rides the batcher's
+                // guaranteed-delivery machinery instead: the display shows 0 instantly (the
+                // working target wins), the canCommit loop re-waits while the key is in flight,
+                // and the 500ms quiet window strictly exceeds the 400ms debounce — so the S0
+                // always lands, exactly once, after the key clears.
+                batcher.tap(sensorName, 0.0)
             },
             onApplyPreset = { preset ->
                 dispatcher?.dispatch(

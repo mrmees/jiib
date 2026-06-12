@@ -326,20 +326,68 @@ fun clampForTuner(tuner: FineTuneTuner, rawTarget: Double): Double = when (tuner
 }
 
 /**
- * COMMIT-time write path for a tuner value (quick-rmr trailing-commit batching): re-clamp →
- * [FineTuneHolder.markPending] with the clamped target → dispatch the clamped value.
+ * The WIRE decimal precision for [tuner]'s display value — which decimal grid the command builders
+ * format to and [FineTuneHolder.markPending] arms at. This table MIRRORS the holder's private
+ * `wirePrecisionFor` (the holder is frozen by the quick-rmr rails; duplicating the table here is
+ * the accepted cost). Drift guard: FineTuneScreenNudgeTest asserts [canonicalTunerValue] equals
+ * the armed pending target EXACTLY — a divergence between the two tables fails that test.
+ *
+ * Precisions trace [PrinterCommands] `fmt(..., N)` calls: SCV `fmt(...,1)`→1dp; PA `fmt(...,3)`→3dp;
+ * smooth `fmt(...,2)`→2dp; velocity/accel `fmt(...,0)`→0dp; retraction lengths `fmt(...,1)`→1dp;
+ * speeds/percents are ints→0dp. MIN_CRUISE is a 2dp RATIO on the wire == 0dp in display percent.
+ */
+private fun wireDecimalsForTuner(tuner: FineTuneTuner): Int = when (tuner) {
+    FineTuneTuner.SPEED -> 0
+    FineTuneTuner.MAX_VELOCITY -> 0
+    FineTuneTuner.MAX_ACCEL -> 0
+    FineTuneTuner.MIN_CRUISE -> 0 // display percent; wire ratio is 2dp == integer percent.
+    FineTuneTuner.SCV -> 1
+    FineTuneTuner.FLOW -> 0
+    FineTuneTuner.PRESSURE_ADVANCE -> 3
+    FineTuneTuner.SMOOTH_TIME -> 2
+    FineTuneTuner.RETRACT_LENGTH -> 1
+    FineTuneTuner.UNRETRACT_EXTRA_LENGTH -> 1
+    FineTuneTuner.RETRACT_SPEED -> 0
+    FineTuneTuner.UNRETRACT_SPEED -> 0
+    FineTuneTuner.PART_FAN -> 0
+}
+
+/** 10^n for n in 0..3 — the precisions [wireDecimalsForTuner] yields (avoids `Math.pow` churn). */
+private val WIRE_PRECISION_POW: DoubleArray = doubleArrayOf(1.0, 10.0, 100.0, 1000.0)
+
+/**
+ * Canonicalize a tuner value to its CLAMPED + WIRE-PRECISION-ROUNDED form (quick-rmr post-review
+ * WR-01/02 closure): [clampForTuner] through the PrinterCommands authority, then round half-up to
+ * [wireDecimalsForTuner] — the same grid [FineTuneHolder.markPending] arms and the command
+ * builders format. The SAME helper applies at batcher TAP time (the displayed working value) and
+ * at COMMIT time, so display == armed target == wire ALWAYS — an off-grid live baseline can never
+ * show a working value that differs from what actually wires.
+ */
+fun canonicalTunerValue(tuner: FineTuneTuner, rawTarget: Double): Double {
+    val clamped = clampForTuner(tuner, rawTarget)
+    val factor = WIRE_PRECISION_POW[wireDecimalsForTuner(tuner)]
+    return (clamped * factor).roundToInt() / factor
+}
+
+/**
+ * COMMIT-time write path for a tuner value (quick-rmr trailing-commit batching): canonicalize
+ * (re-clamp + wire-precision round) → [FineTuneHolder.markPending] → dispatch the same value.
  *
  * This is the ONLY call site that writes [FineTuneHolder.markPending] (source law) — the screen's
- * per-tap path only accumulates a clamped working value in
+ * per-tap path only accumulates a canonicalized working value in
  * [works.mees.dinghy.command.TrailingCommitBatcher]; markPending fires once per commit.
+ *
+ * NULL-DISPATCHER GUARD (post-review): a null [dispatcher] means NOTHING will reach the wire —
+ * arming markPending anyway would create a pending flip no echo can ever release (the offline
+ * 8s-backstop dim, the exact 17-07 wedge class). Return BEFORE any state write.
  *
  * @param param      the descriptor for the tuner being committed.
  * @param target     the absolute target value (the batcher's final working value, or a baseline).
- *                   Idempotently re-clamped here — the hard invariant "clamp BEFORE markPending"
- *                   holds even if a caller forgot (17-07 Check-6).
+ *                   Idempotently re-canonicalized here — the hard invariant "clamp BEFORE
+ *                   markPending" holds even if a caller forgot (17-07 Check-6).
  * @param vm         the live [FineTuneVm] (FW-retraction sibling values in the command).
  * @param holder     the [FineTuneHolder] whose [FineTuneHolder.markPending] receives the clamped target.
- * @param dispatcher the live [CommandDispatcher] (null = no dispatch, e.g. offline or in preview).
+ * @param dispatcher the live [CommandDispatcher] (null = NO-OP, e.g. offline or in preview).
  */
 fun commitTunerValue(
     param: FineTuneParam,
@@ -348,11 +396,14 @@ fun commitTunerValue(
     holder: FineTuneHolder,
     dispatcher: CommandDispatcher?,
 ) {
-    // D-22 invariant: markPending receives the CLAMPED value the wire will actually send.
-    val clamped = clampForTuner(param.tuner, target)
+    // Post-review fix 2: no dispatcher → no commit AT ALL (never markPending-without-command).
+    if (dispatcher == null) return
+    // D-22 + WR-01/02 invariant: markPending receives the CLAMPED, wire-grid value — identical to
+    // what the batcher displayed at tap time (display == wire).
+    val clamped = canonicalTunerValue(param.tuner, target)
     holder.markPending(param.tuner, clamped)
-    // The CLAMPED value is also the wire arg — the builders re-clamp identically (same result);
-    // commit-time has no meaningful "raw" anymore.
+    // The canonical value is also the wire arg — the builders re-clamp/format identically (same
+    // result); commit-time has no meaningful "raw" anymore.
     dispatchForTuner(param.tuner, clamped, clamped, vm, dispatcher)
 }
 

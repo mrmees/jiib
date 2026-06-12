@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.finetune
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -31,6 +32,23 @@ class FineTuneScreenNudgeTest {
 
     private fun caps(vararg objects: String): Capabilities = Capabilities(objects = objects.toSet())
 
+    /**
+     * Real [CommandDispatcher] with a no-op request lambda + virtual timeSource (the
+     * CommandDispatcherTest pattern). Post-review fix 2: [commitTunerValue] is now a hard no-op
+     * on a null dispatcher (no markPending-without-command), so every test asserting commit
+     * behavior must supply a live one.
+     */
+    private fun TestScope.newDispatcher(
+        requests: MutableList<String> = mutableListOf(),
+    ): CommandDispatcher = CommandDispatcher(
+        request = { method, _, _ ->
+            requests += method
+            kotlinx.serialization.json.JsonNull
+        },
+        scope = backgroundScope,
+        timeSource = { testScheduler.currentTime },
+    )
+
     // ─── MAX_VELOCITY cap test ────────────────────────────────────────────────────
 
     /**
@@ -58,7 +76,7 @@ class FineTuneScreenNudgeTest {
             target = 1090.0,
             vm = vm,
             holder = holder,
-            dispatcher = null,
+            dispatcher = newDispatcher(),
         )
         runCurrent()
 
@@ -103,7 +121,7 @@ class FineTuneScreenNudgeTest {
             target = PrinterCommands.VEL_MAX + 100.0,
             vm = vm,
             holder = holder,
-            dispatcher = null,
+            dispatcher = newDispatcher(),
         )
         runCurrent()
 
@@ -140,7 +158,7 @@ class FineTuneScreenNudgeTest {
             target = 20.5,
             vm = vm,
             holder = holder,
-            dispatcher = null,
+            dispatcher = newDispatcher(),
         )
         runCurrent()
 
@@ -180,7 +198,7 @@ class FineTuneScreenNudgeTest {
             target = PrinterCommands.SCV_MAX + 0.1,
             vm = vm,
             holder = holder,
-            dispatcher = null,
+            dispatcher = newDispatcher(),
         )
         runCurrent()
 
@@ -229,10 +247,10 @@ class FineTuneScreenNudgeTest {
             },
         )
 
-        // 5 rapid FLOW taps (clampForTuner per tap, batcher.tap per tap): 100 → 105, 100ms apart.
+        // 5 rapid FLOW taps (canonicalTunerValue per tap — the prod tap path): 100 → 105, 100ms apart.
         var working = holder.vm.value.flowPct!!.toDouble()
         repeat(5) { i ->
-            working = clampForTuner(FineTuneTuner.FLOW, working + 1.0)
+            working = canonicalTunerValue(FineTuneTuner.FLOW, working + 1.0)
             batcher.tap(FineTuneTuner.FLOW.name, working)
             runCurrent()
             assertEquals("zero wire requests during the burst (tap ${i + 1})", 0, requests.size)
@@ -261,9 +279,102 @@ class FineTuneScreenNudgeTest {
      * Committing an off-grid SCV value arms a pending target rounded to the 1dp wire precision —
      * proves the WR-01/02 rounding still guards the SINGLE commit (the holder's own off-grid
      * tests stay untouched as the deeper proof).
+     *
+     * Post-review fix 4: ALSO proves display == committed — the tap-time [canonicalTunerValue]
+     * (what the batcher stores and the screen displays) equals the armed pending target EXACTLY
+     * (delta 0.0). This is the drift guard between FineTuneParams' wire-precision table and
+     * FineTuneHolder's private one.
      */
     @Test
-    fun offGridCommit_armsWirePrecisionRoundedTarget() = runTest(UnconfinedTestDispatcher()) {
+    fun offGridCommit_armsWirePrecisionRoundedTarget_andDisplayEqualsCommitted() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = PrinterStateStore(backgroundScope)
+            val holder = FineTuneHolder(backgroundScope, store)
+            store.setCapabilities(caps("toolhead"))
+            store.seed(PrinterState(squareCornerVelocity = 5.0))
+            runCurrent()
+
+            val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.SCV }
+
+            // 4.07 is off the 1dp wire grid: the tap-time canonical (displayed) value is the
+            // half-up 1dp rounding (4.1) — the screen never shows an off-wire-grid working value.
+            val displayed = canonicalTunerValue(FineTuneTuner.SCV, 4.07)
+            assertEquals("tap-time canonical value lands on the 1dp wire grid", 4.1, displayed, 1e-9)
+
+            commitTunerValue(
+                param = param,
+                target = 4.07,
+                vm = holder.vm.value,
+                holder = holder,
+                dispatcher = newDispatcher(),
+            )
+            runCurrent()
+
+            val pending = holder.pendingStateFlip
+            assertNotNull("off-grid SCV commit arms a pending flip", pending)
+            assertEquals(
+                "armed target equals the 1dp wire-precision rounding of the off-grid commit",
+                4.1,
+                pending!!.target,
+                1e-9,
+            )
+            assertEquals(
+                "display == committed EXACTLY (tap-time canonical == armed target — table drift guard)",
+                displayed,
+                pending.target,
+                0.0,
+            )
+        }
+
+    /**
+     * Post-review fix 4 spec: [canonicalTunerValue] = clamp authority + half-up rounding to the
+     * tuner's WIRE precision. Covers each precision class — including RETRACT_LENGTH, whose
+     * DISPLAY decimals (2) differ from its WIRE precision (1dp), the divergence that motivated a
+     * dedicated table instead of reusing [FineTuneParam.decimals].
+     */
+    @Test
+    fun canonicalTunerValue_roundsToWirePrecision_perTuner() {
+        assertEquals("SCV → 1dp", 4.1, canonicalTunerValue(FineTuneTuner.SCV, 4.07), 1e-9)
+        assertEquals(
+            "PA → 3dp",
+            0.043,
+            canonicalTunerValue(FineTuneTuner.PRESSURE_ADVANCE, 0.0426),
+            1e-9,
+        )
+        assertEquals(
+            "smooth → 2dp",
+            0.04,
+            canonicalTunerValue(FineTuneTuner.SMOOTH_TIME, 0.0449),
+            1e-9,
+        )
+        assertEquals(
+            "retract length → WIRE 1dp (display decimals are 2 — wire grid wins)",
+            0.6,
+            canonicalTunerValue(FineTuneTuner.RETRACT_LENGTH, 0.55),
+            1e-9,
+        )
+        assertEquals(
+            "velocity → 0dp",
+            151.0,
+            canonicalTunerValue(FineTuneTuner.MAX_VELOCITY, 150.6),
+            1e-9,
+        )
+        // Clamp-first: an over-cap off-grid value canonicalizes to the CEILING, never above.
+        assertEquals(
+            "over-cap off-grid SCV canonicalizes to SCV_MAX",
+            PrinterCommands.SCV_MAX,
+            canonicalTunerValue(FineTuneTuner.SCV, 20.55),
+            1e-9,
+        )
+    }
+
+    /**
+     * Post-review fix 2: a null dispatcher makes [commitTunerValue] a hard NO-OP — it must return
+     * BEFORE markPending. The old order (markPending → dispatch early-return) armed a pending flip
+     * no echo could ever release, re-creating the offline 8s-backstop dim (the 17-07 wedge class).
+     */
+    @Test
+    fun nullDispatcher_commitIsNoOp_neverArmsPending() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
         val holder = FineTuneHolder(backgroundScope, store)
         store.setCapabilities(caps("toolhead"))
@@ -272,24 +383,21 @@ class FineTuneScreenNudgeTest {
 
         val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == FineTuneTuner.SCV }
 
-        // 4.07 is off the 1dp wire grid; the armed target must be the half-up 1dp rounding (4.1).
+        // A legitimate in-range change — would arm a flip with a live dispatcher.
         commitTunerValue(
             param = param,
-            target = 4.07,
+            target = 6.0,
             vm = holder.vm.value,
             holder = holder,
             dispatcher = null,
         )
         runCurrent()
 
-        val pending = holder.pendingStateFlip
-        assertNotNull("off-grid SCV commit arms a pending flip", pending)
-        assertEquals(
-            "armed target equals the 1dp wire-precision rounding of the off-grid commit",
-            4.1,
-            pending!!.target,
-            1e-9,
+        assertNull(
+            "null-dispatcher commit never arms markPending (no command will ever release it)",
+            holder.pendingStateFlip,
         )
+        assertFalse("no offline busy dim", holder.vm.value.groupBusy)
     }
 
     // ─── ALL_FINE_TUNE_PARAMS completeness assertion ─────────────────────────────

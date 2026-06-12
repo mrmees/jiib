@@ -73,11 +73,12 @@ import works.mees.dinghy.theme.fsSp
  * first param in the list is the fresh-entry fallback.
  *
  * ## Trailing-commit batching + clamp authority (quick-rmr / D-22 / 17-07 invariant)
- * Stepper taps accumulate a CLAMPED working value locally via [TrailingCommitBatcher.tap]
- * ([clampForTuner] per tap — the display can never show an un-clamped value); ONE wire command
- * dispatches per quiet window through [commitTunerValue] (re-clamp → [FineTuneHolder.markPending]
- * → dispatch). The screen NEVER calls markPending directly. Resets cancel the pending working
- * value and commit immediately; leaving the screen mid-burst COMMITS via dispose (flush).
+ * Stepper taps accumulate a CANONICALIZED working value locally via [TrailingCommitBatcher.tap]
+ * ([canonicalTunerValue] per tap = clamp + wire-precision round — the display can never show an
+ * un-clamped or off-wire-grid value); ONE wire command dispatches per quiet window through
+ * [commitTunerValue] (same canonicalization → [FineTuneHolder.markPending] → dispatch). The screen
+ * NEVER calls markPending directly. Resets cancel the pending working value and commit
+ * immediately; leaving the screen mid-burst COMMITS via dispose (flush).
  *
  * ## FloatingEStop
  * Wired to [container.printerState]; visible only when printing (PrintState.Printing or Paused).
@@ -112,7 +113,11 @@ fun FineTuneScreen(
     // wire dispatch per ~500ms quiet window via commitTunerValue. Keys = FineTuneTuner.name (the
     // four retraction tuners SHARE a dispatch key — keying by tuner keeps their working values
     // independent; canCommit translates tuner → dispatch key at fire time).
-    val batcher = remember(dispatcher) {
+    // COMPOSITION-STABLE (post-review fix 3): `remember {}` with NO dispatcher key — re-keying on
+    // reconnect disposed the old batcher mid-burst (early flush, working values lost to the empty
+    // replacement). Both lambdas read `dispatcher` through the local `by` STATE DELEGATE, so every
+    // invocation resolves the CURRENT dispatcher at fire time — no key needed for freshness.
+    val batcher = remember {
         TrailingCommitBatcher(
             canCommit = { tunerName ->
                 // Fire-time read of the in-flight set (never a composition snapshot): the commit
@@ -131,8 +136,8 @@ fun FineTuneScreen(
         )
     }
     // Commit-on-dispose (design decision 1): a same-frame nav mid-burst flushes the pending
-    // working value; the dispatch rides CommandDispatcher's app-lifetime scope. Also covers the
-    // remember(dispatcher) re-key on reconnect.
+    // working value; the dispatch rides CommandDispatcher's app-lifetime scope. The batcher is
+    // composition-stable, so this fires exactly once — when the screen leaves composition.
     DisposableEffect(batcher) { onDispose { batcher.dispose() } }
     val working by batcher.working.collectAsStateWithLifecycle()
 
@@ -183,12 +188,14 @@ fun FineTuneScreen(
             rejectTicks = rejectTicks,
             onBack = onBack,
             onNudge = { param, _, stepDelta ->
-                // TAP path (quick-rmr): clamp per-tap, accumulate locally — NO markPending, NO
-                // dispatch. Base = the pending working value, else the live vm value (an
-                // unreported value stays a no-op, existing behavior — never fabricate a base).
+                // TAP path (quick-rmr): canonicalize per-tap (clamp + wire-precision round, the
+                // SAME helper the commit path uses — post-review fix 4: display == wire even from
+                // an off-grid live baseline), accumulate locally — NO markPending, NO dispatch.
+                // Base = the pending working value, else the live vm value (an unreported value
+                // stays a no-op, existing behavior — never fabricate a base).
                 val base = working[param.tuner.name] ?: vm.valueForTuner(param.tuner)
                 if (base != null) {
-                    batcher.tap(param.tuner.name, clampForTuner(param.tuner, base + stepDelta))
+                    batcher.tap(param.tuner.name, canonicalTunerValue(param.tuner, base + stepDelta))
                 }
             },
             onNudgeToBaseline = { param, baseline ->
