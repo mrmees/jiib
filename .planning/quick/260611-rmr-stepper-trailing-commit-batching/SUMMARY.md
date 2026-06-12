@@ -118,3 +118,55 @@ lands ~500ms after the last tap, no lockout; taps during the commit window keep 
 - Superseded temperature todo: DELETED (intentional)
 - Commits 5a78e04, 23bd1ab, 43e5c38, 478bf0d, 72bf397, d670e6d: FOUND in log
 - Working tree clean at completion
+
+## Post-review fixes
+
+Codex post-review of 5a78e04..72bf397 returned 1 HIGH + 3 MEDIUM verdicts; all four were
+verified against the real code (all real) and fixed in commit **7a56297**. Full host suite
+1090/1090 + assembleDebug green; CommandDispatcher.kt + FineTuneHolder.kt stayed zero-diff.
+
+**1. [HIGH] Heater Off was droppable (TemperatureScreen.kt).** The old wiring
+(`batcher.cancel` + bare immediate `dispatch(target=0)`) raced the dispatcher's guards: if the
+scheduled nonzero commit had just fired, the same-key S0 was rejected by the in-flight guard —
+and verification found a SECOND drop window codex didn't list: after a fast reply clears the
+key, an immediate S0 within 400ms of the accepted nonzero dispatch is DEBOUNCE-rejected
+(`lastAccepted` keyed on the prior commit). Either way the heater stayed hot with no retry.
+Fix: Off routes through `batcher.tap(sensorName, 0.0)` — display shows 0 instantly (working
+target wins), the canCommit loop re-waits while in flight, and the 500ms quiet window strictly
+exceeds the 400ms debounce, so the S0 lands exactly once. New `TemperatureHeaterOffTest`
+(2 tests, real CommandDispatcher + virtual clock) proves both race windows: in-flight commit +
+Off → zero attempts while in flight, exactly one TARGET=0 after the key clears; Off inside the
+debounce window → still delivered. Tradeoff accepted: an idle-heater Off now lands ≤~500ms
+later instead of instantly, with instant visual feedback.
+
+**2. [MEDIUM] commitTunerValue armed markPending with no command on a null dispatcher
+(FineTuneParams.kt).** markPending fired before dispatchForTuner's null early-return — an
+offline flush armed a pending flip no echo could ever release (8s-backstop dim, the 17-07
+wedge class re-opened). Fix: hard early-return BEFORE any state write when `dispatcher == null`.
+The 5 commit-asserting tests in FineTuneScreenNudgeTest now build a real test CommandDispatcher
+(`newDispatcher()` helper, CommandDispatcherTest pattern); new
+`nullDispatcher_commitIsNoOp_neverArmsPending` regression locks the order.
+
+**3. [MEDIUM] remember(dispatcher) re-keyed the batcher on reconnect (both screens).** A
+dispatcher emission mid-burst disposed the old batcher (early flush — through a possibly-null
+dispatcher during a disconnect→reconnect transition, dropping the values entirely) and replaced
+it with an empty one (working values / settle retention lost, display snap-back). Fix:
+`remember {}` unkeyed — verified that EVERY lambda capture (`canCommit`, `onCommit`, both
+screens) reads `dispatcher` through the local `by` state delegate, so each invocation already
+resolves the CURRENT dispatcher at fire time; no `rememberUpdatedState` needed (no non-delegate
+snapshot captures exist). `DisposableEffect(batcher)` now fires exactly once, on screen exit.
+
+**4. [MEDIUM] Tap-time working values were clamped but not wire-precision-rounded
+(FineTuneScreen.kt).** The commit path rounds (holder's WR-01/02 `roundToWirePrecision`), the
+tap path didn't — an off-grid live baseline (e.g. SCV 4.07) displayed a working value that
+differed from what wired (4.1). Fix: new public `canonicalTunerValue(tuner, raw)` in
+FineTuneParams.kt = `clampForTuner` + half-up rounding to a `wireDecimalsForTuner` table, applied
+at BOTH `batcher.tap` time and inside `commitTunerValue` — display == armed target == wire,
+always. The table necessarily DUPLICATES the holder's private `wirePrecisionFor` (the holder is
+rail-frozen); drift guard = the extended off-grid test asserting tap-time canonical value ==
+armed pending target with delta 0.0, plus a per-precision-class spec test (covering
+RETRACT_LENGTH, whose display decimals (2) ≠ wire precision (1dp) — why `FineTuneParam.decimals`
+could not be reused).
+
+Test deltas: FineTuneScreenNudgeTest 9 → 11 tests; TemperatureHeaterOffTest +2 (new file);
+TrailingCommitBatcher itself needed NO changes — all four fixes were call-site/ordering bugs.
