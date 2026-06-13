@@ -35,12 +35,10 @@ import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
 import androidx.compose.ui.res.stringResource
 import works.mees.dinghy.R
-import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
@@ -297,76 +295,62 @@ private fun FineTuneContent(
         if (param.requiresFwRetraction) vm.hasFwRetraction else true
     }
 
-    // E-stop confirm guard state.
-    var showEstopGuard by remember { mutableStateOf(false) }
-
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
         ScreenScaffold(
             focus = {
-                // D-01: Focus = FocusFrame wrapping AdjusterPanel + FloatingEStop as Box sibling.
-                Box(
+                // D-01: Focus = FocusFrame wrapping AdjusterPanel; e-stop docks into header.
+                FocusFrame(
+                    title = stringResource(R.string.cd_launcher_fine_tune),
+                    icon = DinghyIcons.LauncherFineTune,
+                    uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .padding(8.dp),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
                 ) {
-                    FocusFrame(
-                        title = stringResource(R.string.cd_launcher_fine_tune),
-                        icon = DinghyIcons.LauncherFineTune,
+                    // quick-rmr: the pending WORKING value wins over the live vm value, so a
+                    // tap burst follows the thumb instantly (and survives the echo window).
+                    val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
+                    val baseline = vm.baselineForTuner(selectedTuner)
+                    AdjusterPanel(
+                        icon = selectedParam.icon,
+                        name = selectedParam.name,
+                        value = value,
+                        unit = selectedParam.unit,
+                        baseline = baseline,
+                        decimals = selectedParam.decimals,
+                        onDecrement = {
+                            onNudge(selectedParam, value, -activeStep)
+                        },
+                        onIncrement = {
+                            onNudge(selectedParam, value, +activeStep)
+                        },
+                        onReset = baseline?.let { base ->
+                            { onNudgeToBaseline(selectedParam, base) }
+                        },
+                        // quick-rmr: never lock out during a tap burst — busy only DIMS the
+                        // −/+ tiles (taps accumulate); Reset is disabled while busy.
+                        enabled = true,
+                        busy = busy,
+                        incrementPicker = {
+                            IncrementPicker(
+                                steps = selectedParam.steps,
+                                activeStep = activeStep,
+                                onSelect = { activeStep = it },
+                                uDp = grid.uDp,
+                            )
+                        },
                         uDp = grid.uDp,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        // quick-rmr: the pending WORKING value wins over the live vm value, so a
-                        // tap burst follows the thumb instantly (and survives the echo window).
-                        val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
-                        val baseline = vm.baselineForTuner(selectedTuner)
-                        AdjusterPanel(
-                            icon = selectedParam.icon,
-                            name = selectedParam.name,
-                            value = value,
-                            unit = selectedParam.unit,
-                            baseline = baseline,
-                            decimals = selectedParam.decimals,
-                            onDecrement = {
-                                onNudge(selectedParam, value, -activeStep)
-                            },
-                            onIncrement = {
-                                onNudge(selectedParam, value, +activeStep)
-                            },
-                            onReset = baseline?.let { base ->
-                                { onNudgeToBaseline(selectedParam, base) }
-                            },
-                            // quick-rmr: never lock out during a tap burst — busy only DIMS the
-                            // −/+ tiles (taps accumulate); Reset is disabled while busy.
-                            enabled = true,
-                            busy = busy,
-                            incrementPicker = {
-                                IncrementPicker(
-                                    steps = selectedParam.steps,
-                                    activeStep = activeStep,
-                                    onSelect = { activeStep = it },
-                                    uDp = grid.uDp,
-                                )
-                            },
-                            uDp = grid.uDp,
-                            // R10: flash on busy/debounce rejections of THIS param's dispatch key.
-                            rejectTick = rejectTicks[dispatchKeyForTuner(selectedTuner)] ?: 0L,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(12.dp),
-                        )
-                    }
-
-                    // FloatingEStop: Box sibling over the FocusFrame, printing-only (P24 D-04).
-                    FloatingEStop(
-                        visible = isPrinting,
-                        onClick = { showEstopGuard = true },
-                        uDp = grid.uDp,
+                        // R10: flash on busy/debounce rejections of THIS param's dispatch key.
+                        rejectTick = rejectTicks[dispatchKeyForTuner(selectedTuner)] ?: 0L,
                         modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(14.dp),
+                            .fillMaxSize()
+                            .padding(12.dp),
                     )
                 }
             },
@@ -431,22 +415,6 @@ private fun FineTuneContent(
                 }
             },
         )
-
-        // E-stop ConfirmGuard: full-screen overlay when the FloatingEStop is tapped.
-        if (showEstopGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.printstatus_estop_guard_title),
-                message = stringResource(R.string.printstatus_estop_guard_message),
-                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
-                cancelLabel = stringResource(R.string.common_cancel),
-                onConfirm = {
-                    onEmergencyStop()
-                    showEstopGuard = false
-                },
-                onCancel = { showEstopGuard = false },
-                destructive = true,
-            )
-        }
 
         // Non-fatal failure toast (dispatch failures from MotionScreen/ExtrusionScreen pattern).
         if (failureText != null) {
