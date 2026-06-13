@@ -194,6 +194,14 @@ FocusFrame now clips. The standby logo clip is fixed in Stage 2 (the logo lives 
 
 ## STAGE 3 — Progress-perimeter edge (printing screen)
 
+> **⛔ DEFERRED — future enhancement (owner, 2026-06-13).** Stages 1, 2, and the docs (law) are
+> done, committed, and flox-verified; the FocusFrame shell is fully in place. The `FocusEdge.Progress`
+> perimeter bar is a polish enhancement, NOT required for the law to hold. Until it's built,
+> `FocusEdge.Progress` renders borderless (the printing Focus simply has no edge bar yet — it is NOT
+> wired to any screen, so nothing regresses). Pick this up as its own focused session: it's the one
+> novel Canvas/`PathMeasure` piece and benefits from a clean start. The `FocusEdge.Progress(fraction)`
+> type + the `focusEdgeStroke`→null contract already exist as the seam to build against.
+
 ### Task 7: Perimeter progress draw in FocusFrame (FocusEdge.Progress)
 
 **Files:** Modify `FocusFrame.kt`.
