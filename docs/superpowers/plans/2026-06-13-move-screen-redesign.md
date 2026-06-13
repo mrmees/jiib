@@ -1269,7 +1269,7 @@ git commit -m "feat(move): Move Hub shell — Field list, Overview focus, mode r
 - Test: `app/src/test/java/works/mees/dinghy/ui/move/TravelStateTest.kt`
 - Modify: `MoveScreen.kt` (consume it for the `travel`/`pending` flags)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 package works.mees.dinghy.ui.move
@@ -1291,7 +1291,7 @@ class TravelStateTest {
 }
 ```
 
-- [ ] **Step 2: Run — expect FAIL. Step 3: Implement**
+- [x] **Step 2: Run — expect FAIL. Step 3: Implement**
 
 ```kotlin
 package works.mees.dinghy.ui.move
@@ -1303,13 +1303,13 @@ fun travelPending(curX: Double, curY: Double, tgtX: Double, tgtY: Double, epsilo
     abs(curX - tgtX) > epsilon || abs(curY - tgtY) > epsilon
 ```
 
-- [ ] **Step 4: Run — expect PASS.**
+- [x] **Step 4: Run — expect PASS.**
 
-- [ ] **Step 5: Wire into `MoveScreen.kt`:** when a move is committed, store the target; on each `vm` tick recompute `travel = target != null && travelPending(vm.x, vm.y, target.x, target.y)`; clear `target`/`travel` when it returns false. Pass `travel` to `BedMapView`.
+- [x] **Step 5: Wire into `MoveScreen.kt`:** when a move is committed, store the target; on each `vm` tick recompute `travel = target != null && travelPending(vm.x, vm.y, target.x, target.y)`; clear `target`/`travel` when it returns false. Pass `travel` to `BedMapView`.
 
-- [ ] **Step 6: Build, install, UAT:** the accent line shows during a Touch-Move/bookmark move and disappears when the head arrives.
+- [x] **Step 6: Build, install, UAT:** the accent line shows during a Touch-Move/bookmark move and disappears when the head arrives.
 
-- [ ] **Step 7: Commit** `feat(move): position-epsilon travel-line completion`.
+- [x] **Step 7: Commit** `feat(move): position-epsilon travel-line completion`.
 
 ### Task F2: Full host suite + release build
 
