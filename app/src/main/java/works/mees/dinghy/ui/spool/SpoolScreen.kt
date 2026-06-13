@@ -52,13 +52,11 @@ import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
 import works.mees.dinghy.designsystem.components.FilterRow
-import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -124,8 +122,6 @@ fun SpoolScreen(
     )
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
-    // E-stop ConfirmGuard gate (same pattern as PrintStatusScreen).
-    var showEstopGuard by remember { mutableStateOf(false) }
     val selected = state.selected
     val isSelectedLoaded = selected?.id != null && selected.id == state.activeStatus?.activeSpoolId
 
@@ -176,24 +172,8 @@ fun SpoolScreen(
             onUnload = {
                 if (state.activeStatus?.activeSpoolId != null) holder.clearActiveSpool(dispatcher)
             },
-            onEmergencyStop = { showEstopGuard = true },
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         )
-
-        // The E-stop ConfirmGuard (same gate pattern as PrintStatusScreen).
-        if (showEstopGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.spool_estop_guard_title),
-                message = stringResource(R.string.spool_estop_guard_message),
-                confirmLabel = stringResource(R.string.spool_estop_guard_confirm),
-                cancelLabel = stringResource(R.string.common_cancel),
-                onConfirm = {
-                    dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
-                    showEstopGuard = false
-                },
-                onCancel = { showEstopGuard = false },
-                destructive = true,
-            )
-        }
     }
 }
 
@@ -362,6 +342,9 @@ private fun SpoolContent(
                         uDp = grid.uDp,
                         edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
                     ) {
                         SpoolDetailContent(
                             spool = selected,
@@ -371,15 +354,6 @@ private fun SpoolContent(
                             t = t,
                         )
                     }
-                    // FloatingEStop: Box sibling over the FocusFrame, printing-only (Pitfall 7).
-                    FloatingEStop(
-                        visible = isPrinting,
-                        onClick = onEmergencyStop,
-                        uDp = grid.uDp,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(14.dp),
-                    )
                 }
                 // Sort and Filter control rows pinned below the detail card, at the foot of Focus.
                 SortRow(
