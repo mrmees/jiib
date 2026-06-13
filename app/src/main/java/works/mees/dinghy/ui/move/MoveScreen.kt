@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -501,17 +504,42 @@ internal fun MoveHubContent(
                                 }
                                 val activeStep = steps[stepIndex]
 
+                                // Selected axis — reset on mode entry; defaults to the first homed axis.
+                                var selectedAxis by remember(mode) {
+                                    mutableStateOf(
+                                        when {
+                                            vm.xHomed -> "X"
+                                            vm.yHomed -> "Y"
+                                            vm.zHomed -> "Z"
+                                            else -> "X"
+                                        },
+                                    )
+                                }
+                                val selectedHomed = when (selectedAxis) {
+                                    "X" -> vm.xHomed
+                                    "Y" -> vm.yHomed
+                                    else -> vm.zHomed
+                                }
+
                                 Column(
                                     Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    // XYZ coordinate readout — centered at the top.
-                                    Text(
+                                    // XYZ coordinate readout — shrinks to fit one line via TextAutoSize.
+                                    BasicText(
                                         text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(22f, t.fs).sp,
-                                        color = t.text,
-                                        textAlign = TextAlign.Center,
+                                        style = TextStyle(
+                                            fontFamily = GeistMono,
+                                            color = t.text,
+                                            textAlign = TextAlign.Center,
+                                        ),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        autoSize = TextAutoSize.StepBased(
+                                            minFontSize = fsSp(11f, t.fs).sp,
+                                            maxFontSize = fsSp(22f, t.fs).sp,
+                                            stepSize = 1.sp,
+                                        ),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(bottom = 8.dp),
@@ -542,86 +570,44 @@ internal fun MoveHubContent(
                                             intent = Intent.Accent,
                                         )
                                     }
-                                    // X axis row
+                                    // Row A — jog ±-pair: drives the SELECTED axis by ±activeStep.
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
+                                        Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text(
-                                            text = "X",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(20f, t.fs).sp,
-                                            color = if (vm.xHomed) t.text else t.text2,
-                                            modifier = Modifier.width(28.dp),
-                                        )
                                         OutlinedControl(
                                             label = "−",
-                                            onClick = { onJog("X", -activeStep) },
+                                            onClick = { onJog(selectedAxis, -activeStep) },
                                             modifier = Modifier.weight(1f),
                                             intent = Intent.Accent,
-                                            enabled = vm.xHomed,
+                                            enabled = selectedHomed,
                                         )
                                         OutlinedControl(
                                             label = "+",
-                                            onClick = { onJog("X", activeStep) },
+                                            onClick = { onJog(selectedAxis, activeStep) },
                                             modifier = Modifier.weight(1f),
                                             intent = Intent.Accent,
-                                            enabled = vm.xHomed,
+                                            enabled = selectedHomed,
                                         )
                                     }
-                                    // Y axis row
+                                    // Row B — axis selector: picks which axis the ±-pair drives.
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
+                                        Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text(
-                                            text = "Y",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(20f, t.fs).sp,
-                                            color = if (vm.yHomed) t.text else t.text2,
-                                            modifier = Modifier.width(28.dp),
-                                        )
-                                        OutlinedControl(
-                                            label = "−",
-                                            onClick = { onJog("Y", -activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = vm.yHomed,
-                                        )
-                                        OutlinedControl(
-                                            label = "+",
-                                            onClick = { onJog("Y", activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = vm.yHomed,
-                                        )
-                                    }
-                                    // Z axis row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        Text(
-                                            text = "Z",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(20f, t.fs).sp,
-                                            color = if (vm.zHomed) t.text else t.text2,
-                                            modifier = Modifier.width(28.dp),
-                                        )
-                                        OutlinedControl(
-                                            label = "−",
-                                            onClick = { onJog("Z", -activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = vm.zHomed,
-                                        )
-                                        OutlinedControl(
-                                            label = "+",
-                                            onClick = { onJog("Z", activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = vm.zHomed,
-                                        )
+                                        listOf(
+                                            "X" to vm.xHomed,
+                                            "Y" to vm.yHomed,
+                                            "Z" to vm.zHomed,
+                                        ).forEach { (axis, homed) ->
+                                            OutlinedControl(
+                                                label = axis,
+                                                onClick = { selectedAxis = axis },
+                                                modifier = Modifier.weight(1f),
+                                                intent = if (axis == selectedAxis) Intent.Accent else Intent.Neutral,
+                                                enabled = homed,
+                                            )
+                                        }
                                     }
                                 }
                             }
