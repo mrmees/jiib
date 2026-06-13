@@ -39,7 +39,6 @@ import works.mees.dinghy.command.MoveToArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -89,7 +88,7 @@ sealed interface MoveMode {
  *
  * @param container service-locator (live `printerState`, session dispatcher, saved locations).
  * @param holder    toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating + bounds/feed).
- * @param onBack    invoked by the Back foot button from the Overview mode.
+ * @param onBack    invoked by the Back foot button from Touch Move.
  */
 @Composable
 fun MoveScreen(
@@ -142,9 +141,9 @@ fun MoveScreen(
  * Field action-list + the mode-swapping Focus, holding only the screen-local selected [MoveMode].
  *
  * ## Sub-modes
- * All six sub-modes are fully implemented: [MoveMode.Overview] shows the read-only [BedMapView]
- * (or a homing hint); [MoveMode.TouchMove] adds tap-to-move gesture handling; [MoveMode.XY] and
- * [MoveMode.Z] use [Scrubber] controls; [MoveMode.Microstep] shows per-axis jog buttons;
+ * All six sub-modes are fully implemented: [MoveMode.TouchMove] shows the tap-to-move [BedMapView]
+ * (or a homing hint when bounds are unknown); [MoveMode.XY] and [MoveMode.Z] use [Scrubber]
+ * controls; [MoveMode.Microstep] shows a wrapping step selector and per-axis jog buttons;
  * [MoveMode.Bookmark] shows Move/Delete for a saved location; [MoveMode.SaveDialog] is the
  * save-name form.
  *
@@ -183,7 +182,7 @@ internal fun MoveHubContent(
     val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
 
     // Bed extent from toolhead.axis_minimum/axis_maximum X/Y (indices 0,1). Null until first
-    // snapshot (or if either bounds list is too short) — the Overview Focus shows a homing hint then.
+    // snapshot (or if either bounds list is too short) — TouchMove shows a homing hint then.
     val bed: BedExtent? = run {
         val mn = vm.axisMin
         val mx = vm.axisMax
@@ -365,17 +364,18 @@ internal fun MoveHubContent(
                                     mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
                                 }
                                 Column(modifier = Modifier.fillMaxSize()) {
-                                    // Z readout — always visible at the top.
+                                    // Z readout — centered at the top.
                                     Text(
                                         text = "Z  ${fmt1(workingZ.toDouble())} mm",
                                         fontFamily = GeistMono,
-                                        fontSize = fsSp(18f, t.fs).sp,
+                                        fontSize = fsSp(22f, t.fs).sp,
                                         color = t.text,
+                                        textAlign = TextAlign.Center,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(8.dp),
                                     )
-                                    // Two equal-weight labeled scrubber columns.
+                                    // Two equal-weight scrubber columns with numeric endpoint labels.
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -387,7 +387,7 @@ internal fun MoveHubContent(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                         ) {
                                             Text(
-                                                text = "Fine 0–50",
+                                                text = "50",
                                                 fontFamily = GeistMono,
                                                 fontSize = fsSp(15f, t.fs).sp,
                                                 color = t.text2,
@@ -413,6 +413,12 @@ internal fun MoveHubContent(
                                                     },
                                                 )
                                             }
+                                            Text(
+                                                text = "0",
+                                                fontFamily = GeistMono,
+                                                fontSize = fsSp(15f, t.fs).sp,
+                                                color = t.text2,
+                                            )
                                         }
                                         // Full: 0–Zmax at 1 mm resolution.
                                         Column(
@@ -420,7 +426,7 @@ internal fun MoveHubContent(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                         ) {
                                             Text(
-                                                text = "Full 0–${fmt1(zMax.toDouble())}",
+                                                text = fmt1(zMax.toDouble()),
                                                 fontFamily = GeistMono,
                                                 fontSize = fsSp(15f, t.fs).sp,
                                                 color = t.text2,
@@ -446,6 +452,12 @@ internal fun MoveHubContent(
                                                     },
                                                 )
                                             }
+                                            Text(
+                                                text = "0",
+                                                fontFamily = GeistMono,
+                                                fontSize = fsSp(15f, t.fs).sp,
+                                                color = t.text2,
+                                            )
                                         }
                                     }
                                 }
@@ -459,18 +471,52 @@ internal fun MoveHubContent(
                                 val steps: ImmutableList<Double> = remember {
                                     persistentListOf(0.01, 0.025, 0.1, 0.25, 1.0, 2.5, 10.0)
                                 }
-                                var activeStep by remember(mode) { mutableStateOf(0.1) }
+                                var stepIndex by remember(mode) {
+                                    mutableStateOf(steps.indexOf(0.1).coerceAtLeast(0))
+                                }
+                                val activeStep = steps[stepIndex]
 
                                 Column(
                                     Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    IncrementPicker(
-                                        steps = steps,
-                                        activeStep = activeStep,
-                                        onSelect = { activeStep = it },
-                                        uDp = grid.uDp,
+                                    // XYZ coordinate readout — centered at the top.
+                                    Text(
+                                        text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(22f, t.fs).sp,
+                                        color = t.text,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp),
                                     )
+                                    // Wrapping − / value / + increment selector (inline; does NOT touch IncrementPicker).
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        OutlinedControl(
+                                            label = "−",
+                                            onClick = { stepIndex = (stepIndex - 1 + steps.size) % steps.size },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                        )
+                                        Text(
+                                            text = fmtStep(activeStep),
+                                            fontFamily = GeistMono,
+                                            fontSize = fsSp(22f, t.fs).sp,
+                                            color = t.text,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        OutlinedControl(
+                                            label = "+",
+                                            onClick = { stepIndex = (stepIndex + 1) % steps.size },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                        )
+                                    }
                                     // X axis row
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -845,7 +891,11 @@ private fun MoveRow(
 private fun fmt1(v: Double?): String =
     if (v == null) "—" else String.format(java.util.Locale.US, "%.1f", v)
 
-/** A centered Focus-body hint/placeholder string (Overview homing hint + sub-mode stubs). */
+/** Formats a microstep increment value as a signed label (e.g. 0.1 → "±0.1", 10.0 → "±10"). */
+private fun fmtStep(v: Double): String =
+    "±" + v.toBigDecimal().stripTrailingZeros().toPlainString()
+
+/** A centered Focus-body hint/placeholder string (homing hint + sub-mode hints). */
 @Composable
 private fun FocusHint(text: String, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
