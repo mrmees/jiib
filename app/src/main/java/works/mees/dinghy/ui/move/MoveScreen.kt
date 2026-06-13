@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -306,50 +309,72 @@ internal fun MoveHubContent(
                                             .padding(bottom = 8.dp),
                                     )
                                     // BELOW: bed map + sliders (both bare — track only, no steppers).
-                                    Row(modifier = Modifier.weight(1f)) {
-                                        // LEFT: bed map (read-only) stacked above the bare X scrubber.
-                                        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                            BedMapView(
-                                                bed = bed,
-                                                current = currentPair,
-                                                target = workingX.toDouble() to workingY.toDouble(),
-                                                travel = false,
-                                                modifier = Modifier.fillMaxWidth().weight(1f),
-                                            )
-                                            Scrubber(
-                                                name = "X",
-                                                value = workingX,
-                                                range = xMinF..xMaxF,
-                                                step = 1f,
-                                                uDp = grid.uDp,
-                                                unit = "mm",
-                                                bare = true,
-                                                onValueChange = { workingX = it },
-                                                onSettle = { v ->
-                                                    workingX = v
-                                                    onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                                },
-                                            )
+                                    // Size the plate to EXACTLY bedAspect (so BedMapView fills it
+                                    // edge-to-edge, NO letterbox) within the area left after reserving
+                                    // the scrubber gutters, then match X/Y scrubbers to plate.width/height.
+                                    val bedAspect = (bed.width / bed.height).toFloat()
+                                    val control = minOf(grid.uDp, 74.dp) // scrubber track thickness
+                                    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                                        // Area available for the plate = full area minus the gutters
+                                        // (Y scrubber on the right, X scrubber below). Clamp to a small
+                                        // positive floor so a tiny screen can't yield a zero/negative size.
+                                        val availW = (maxWidth - control).coerceAtLeast(1.dp)
+                                        val availH = (maxHeight - control).coerceAtLeast(1.dp)
+                                        // Aspect-lock the plate into the available area (no stretch).
+                                        val plate = if (availW / availH > bedAspect) {
+                                            // height-bound
+                                            val h = availH
+                                            DpSize(h * bedAspect, h)
+                                        } else {
+                                            // width-bound
+                                            val w = availW
+                                            DpSize(w, w / bedAspect)
                                         }
-                                        // RIGHT: vertical Y scrubber in a fixed-width full-height slot.
-                                        Box(
-                                            modifier = Modifier.fillMaxHeight().width(96.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Scrubber(
-                                                name = "Y",
-                                                value = workingY,
-                                                range = yMinF..yMaxF,
-                                                step = 1f,
-                                                uDp = grid.uDp,
-                                                unit = "mm",
-                                                orientation = ScrubberOrientation.Vertical,
-                                                onValueChange = { workingY = it },
-                                                onSettle = { v ->
-                                                    workingY = v
-                                                    onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                                },
-                                            )
+                                        Column(horizontalAlignment = Alignment.Start) {
+                                            Row(verticalAlignment = Alignment.Top) {
+                                                // Plate fills this box exactly (aspect matches) -> no letterbox.
+                                                BedMapView(
+                                                    bed = bed,
+                                                    current = currentPair,
+                                                    target = workingX.toDouble() to workingY.toDouble(),
+                                                    travel = false,
+                                                    modifier = Modifier.size(plate),
+                                                )
+                                                // Y scrubber: same height as the plate, to its right.
+                                                Box(Modifier.width(control).height(plate.height)) {
+                                                    Scrubber(
+                                                        name = "Y",
+                                                        value = workingY,
+                                                        range = yMinF..yMaxF,
+                                                        step = 1f,
+                                                        uDp = grid.uDp,
+                                                        unit = "mm",
+                                                        orientation = ScrubberOrientation.Vertical,
+                                                        onValueChange = { workingY = it },
+                                                        onSettle = { v ->
+                                                            workingY = v
+                                                            onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                        },
+                                                    )
+                                                }
+                                            }
+                                            // X scrubber: same width as the plate, below it (left-aligned).
+                                            Box(Modifier.width(plate.width).height(control)) {
+                                                Scrubber(
+                                                    name = "X",
+                                                    value = workingX,
+                                                    range = xMinF..xMaxF,
+                                                    step = 1f,
+                                                    uDp = grid.uDp,
+                                                    unit = "mm",
+                                                    bare = true,
+                                                    onValueChange = { workingX = it },
+                                                    onSettle = { v ->
+                                                        workingX = v
+                                                        onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                    },
+                                                )
+                                            }
                                         }
                                     }
                                 }
