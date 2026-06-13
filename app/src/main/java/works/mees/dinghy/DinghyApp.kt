@@ -102,6 +102,16 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("display.preferences_pb") },
         )
+        // A NINTH, INDEPENDENT file: savedlocations.preferences_pb (Move hub, feat/move-hub-redesign).
+        // It carries no secrets (like macros/webcam/babystep/tracestyle/display), so it is kept on its
+        // own connection-independent lifecycle per the separate-file discipline — it backs the
+        // process-scoped named toolhead-position store (SavedLocationPrefs: ordered list of SavedLocation,
+        // identity = name). One instance per process (the single-writer invariant DataStore needs —
+        // RESEARCH Pitfall 3).
+        val savedLocationDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("savedlocations.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -112,6 +122,7 @@ class DinghyApp : Application() {
             babystepDataStore = babystepDataStore,
             traceStyleDataStore = traceStyleDataStore,
             displayDataStore = displayDataStore,
+            savedLocationDataStore = savedLocationDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

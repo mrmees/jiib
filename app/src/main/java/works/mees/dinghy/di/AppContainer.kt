@@ -40,6 +40,8 @@ import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
+import works.mees.dinghy.ui.move.SavedLocation
+import works.mees.dinghy.ui.move.SavedLocationPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
 import works.mees.dinghy.ui.settings.DisplayPrefs
 import works.mees.dinghy.ui.settings.TraceStylePrefs
@@ -115,6 +117,14 @@ class AppContainer(
      * ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer invariant) and injected here.
      */
     displayDataStore: DataStore<Preferences>,
+    /**
+     * The NINTH, INDEPENDENT file: savedlocations.preferences_pb (Move hub, feat/move-hub-redesign).
+     * Backs the process-scoped named toolhead-position store ([SavedLocationPrefs]: ordered list of
+     * [SavedLocation], identity = name). Carries no secrets, kept on its own connection-independent
+     * lifecycle per the separate-file discipline. Created ONCE in [works.mees.dinghy.DinghyApp]
+     * (the DataStore single-writer invariant) and injected here.
+     */
+    savedLocationDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -278,6 +288,41 @@ class AppContainer(
      */
     val macroRevealHidden: StateFlow<Boolean> =
         macroPrefs.revealHidden.stateIn(stateScope, SharingStarted.Eagerly, false)
+
+    /**
+     * Named toolhead-position persistence (Move hub, feat/move-hub-redesign) — the SEPARATE
+     * savedlocations.preferences_pb-backed store. Like [macroPrefs]/[webcamPrefs] it is
+     * PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): saved positions
+     * survive reconnects and printer swaps. The Move hub reads [savedLocations] and writes through
+     * the durable [saveLocation]/[deleteLocation] intent helpers.
+     */
+    val savedLocationPrefs: SavedLocationPrefs = SavedLocationPrefs(savedLocationDataStore)
+
+    /**
+     * Process-scoped [StateFlow] of the user's saved toolhead positions. Eagerly matches the
+     * pattern of [macroBookmarks] — hosted on the process-lifetime [stateScope] so it outlives any
+     * Composable and survives recovery Splashes intact. The Move hub Bookmark focus collects this.
+     */
+    val savedLocations: StateFlow<List<SavedLocation>> =
+        savedLocationPrefs.locations.stateIn(stateScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * Persist a new (or replace an existing same-name) saved toolhead location, durably.
+     * Routes through the process-lifetime [writeScope] ([[dinghy-compose-write-scope-cancellation]])
+     * — the Save dialog navigates away in the same frame as the write, and a slow Nexus-7 flash
+     * drops a composition-scoped write. NEVER `rememberCoroutineScope()`.
+     */
+    fun saveLocation(loc: SavedLocation) {
+        writeScope.launch { savedLocationPrefs.add(loc) }
+    }
+
+    /**
+     * Remove the saved location named [name] (idempotent), durably.
+     * Same write-scope discipline as [saveLocation] ([[dinghy-compose-write-scope-cancellation]]).
+     */
+    fun deleteLocation(name: String) {
+        writeScope.launch { savedLocationPrefs.remove(name) }
+    }
 
     /**
      * Per-printer preferred-cam persistence (CAM-01 / 10-06 D-10) — the SEPARATE webcam.preferences_pb
