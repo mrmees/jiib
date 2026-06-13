@@ -2921,6 +2921,30 @@
           "evidence": "machine/proc_stats probed 2026-06-08; throttled_state:null (RockPro64 omits throttle), cpu_temp:53.333, system_uptime, system_memory, system_cpu_usage present."
         }
       ]
+    },
+    {
+      "catalog_id": "KGC-G1_MOVE_TO",
+      "name": "G1 absolute move",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate_key": "object_present:toolhead",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "object toolhead listed in /printer/objects/list capture."
+        }
+      ]
     }
   ],
   "not_on_printers": [

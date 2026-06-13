@@ -20,6 +20,14 @@ data class SetHeaterArgs(val heater: String, val target: Int, val key: String? =
 data class ApplyPresetArgs(val nozzle: Int, val bed: Int, val key: String = "apply_preset")
 typealias PresetArgs = ApplyPresetArgs
 data class JogArgs(val axis: String, val mm: Double, val feedMmMin: Int)
+data class MoveToArgs(
+    val x: Double?,
+    val y: Double?,
+    val z: Double?,
+    val feedMmMin: Int,
+    val minBounds: List<Double>?,
+    val maxBounds: List<Double>?,
+)
 data class ForceMoveArgs(val axis: String, val mm: Double, val velocityMmS: Int)
 data class HomeAxisArgs(val axis: String)
 data class ExtrudeArgs(val mm: Double, val feedMmMin: Int)
@@ -428,6 +436,15 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("heater_bed"),
     )
 
+    val moveTo: CommandSpec<MoveToArgs> = gcode(
+        catalogId = "KGC-G1_MOVE_TO",
+        key = { "move_to" },
+        gcode = { args ->
+            PrinterCommands.moveTo(args.x, args.y, args.z, args.feedMmMin, args.minBounds, args.maxBounds)
+        },
+        availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+    )
+
     val jog: CommandSpec<JogArgs> = gcode(
         catalogId = "KGC-G1_JOG",
         key = { args -> "jog_${args.axis}" },
@@ -800,6 +817,7 @@ object CommandRegistry {
         restart,
         setHeater,
         applyPreset,
+        moveTo,
         jog,
         overrideJog,
         forceMove,

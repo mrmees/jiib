@@ -10617,6 +10617,47 @@
       "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
       "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
       "acceptance_semantics": "Registered runtime command: Dinghy sends this via CommandRegistry, gated by its availability predicate."
+    },
+    {
+      "id": "KGC-G1_MOVE_TO",
+      "catalog_id": "KGC-G1_MOVE_TO",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "G1 absolute move",
+      "category": "motion",
+      "purpose": "Dinghy bounded absolute move-to wrapper (Move Hub touch/scrubber moves).",
+      "params": [
+        "X",
+        "Y",
+        "Z",
+        "F"
+      ],
+      "key_params": [
+        "X",
+        "Y",
+        "Z",
+        "F"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "toolhead"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for current Dinghy runtime sends."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
     }
   ]
 }
