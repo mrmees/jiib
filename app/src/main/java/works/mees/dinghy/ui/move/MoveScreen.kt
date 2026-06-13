@@ -216,12 +216,16 @@ internal fun MoveHubContent(
                     when (mode) {
                         MoveMode.TouchMove -> {
                             Column(modifier = Modifier.fillMaxSize()) {
-                                // Instruction line.
+                                // X / Y coordinate readout — staged while gesturing, else current.
+                                // Shown at the TOP so the position is always visible above the bed map.
+                                val shownX = staged?.first ?: vm.x
+                                val shownY = staged?.second ?: vm.y
                                 Text(
-                                    text = "Tap to move, hold to refine",
-                                    color = t.text2,
+                                    text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
                                     fontFamily = GeistMono,
-                                    fontSize = fsSp(15f, t.fs).sp,
+                                    fontSize = fsSp(22f, t.fs).sp,
+                                    color = t.text,
+                                    textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(bottom = 8.dp),
@@ -255,14 +259,13 @@ internal fun MoveHubContent(
                                         FocusHint("Waiting for printer bounds…")
                                     }
                                 }
-                                // X / Y coordinate readout — staged while gesturing, else current.
-                                val shownX = staged?.first ?: vm.x
-                                val shownY = staged?.second ?: vm.y
+                                // Instruction line — below the bed map, centered.
                                 Text(
-                                    text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
+                                    text = "Tap to move, hold to refine",
+                                    color = t.text2,
                                     fontFamily = GeistMono,
-                                    fontSize = fsSp(18f, t.fs).sp,
-                                    color = t.text,
+                                    fontSize = fsSp(15f, t.fs).sp,
+                                    textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 8.dp),
@@ -291,49 +294,64 @@ internal fun MoveHubContent(
                                 val cy = vm.y
                                 val currentPair = if (cx != null && cy != null) cx to cy else null
 
-                                Row(modifier = Modifier.fillMaxSize()) {
-                                    // LEFT: bed map (read-only) stacked above the X scrubber.
-                                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                        BedMapView(
-                                            bed = bed,
-                                            current = currentPair,
-                                            target = workingX.toDouble() to workingY.toDouble(),
-                                            travel = false,
-                                            modifier = Modifier.fillMaxWidth().weight(1f),
-                                        )
-                                        Scrubber(
-                                            name = "X",
-                                            value = workingX,
-                                            range = xMinF..xMaxF,
-                                            step = 1f,
-                                            uDp = grid.uDp,
-                                            unit = "mm",
-                                            onValueChange = { workingX = it },
-                                            onSettle = { v ->
-                                                workingX = v
-                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                            },
-                                        )
-                                    }
-                                    // RIGHT: vertical Y scrubber in a fixed-width full-height slot.
-                                    Box(
-                                        modifier = Modifier.fillMaxHeight().width(96.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Scrubber(
-                                            name = "Y",
-                                            value = workingY,
-                                            range = yMinF..yMaxF,
-                                            step = 1f,
-                                            uDp = grid.uDp,
-                                            unit = "mm",
-                                            orientation = ScrubberOrientation.Vertical,
-                                            onValueChange = { workingY = it },
-                                            onSettle = { v ->
-                                                workingY = v
-                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                            },
-                                        )
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    // TOP: centered X/Y coordinate readout showing the working target.
+                                    Text(
+                                        text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(22f, t.fs).sp,
+                                        color = t.text,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp),
+                                    )
+                                    // BELOW: bed map + sliders (both bare — track only, no steppers).
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        // LEFT: bed map (read-only) stacked above the bare X scrubber.
+                                        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                            BedMapView(
+                                                bed = bed,
+                                                current = currentPair,
+                                                target = workingX.toDouble() to workingY.toDouble(),
+                                                travel = false,
+                                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                            )
+                                            Scrubber(
+                                                name = "X",
+                                                value = workingX,
+                                                range = xMinF..xMaxF,
+                                                step = 1f,
+                                                uDp = grid.uDp,
+                                                unit = "mm",
+                                                bare = true,
+                                                onValueChange = { workingX = it },
+                                                onSettle = { v ->
+                                                    workingX = v
+                                                    onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                },
+                                            )
+                                        }
+                                        // RIGHT: vertical Y scrubber in a fixed-width full-height slot.
+                                        Box(
+                                            modifier = Modifier.fillMaxHeight().width(96.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Scrubber(
+                                                name = "Y",
+                                                value = workingY,
+                                                range = yMinF..yMaxF,
+                                                step = 1f,
+                                                uDp = grid.uDp,
+                                                unit = "mm",
+                                                orientation = ScrubberOrientation.Vertical,
+                                                onValueChange = { workingY = it },
+                                                onSettle = { v ->
+                                                    workingY = v
+                                                    onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
