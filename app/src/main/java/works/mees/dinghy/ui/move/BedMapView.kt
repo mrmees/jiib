@@ -23,7 +23,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
  * [travel] is true, an accent line is drawn current→target (the in-flight move indicator).
  *
  * Colors are fully token-routed (THEME-01): bed fill = [works.mees.dinghy.theme.ThemeTokens.surface3],
- * border = [works.mees.dinghy.theme.ThemeTokens.outline], markers/line = [works.mees.dinghy.theme.ThemeTokens.accent].
+ * border = [works.mees.dinghy.theme.ThemeTokens.accent], markers/line = [works.mees.dinghy.theme.ThemeTokens.accent].
  * No raw [androidx.compose.ui.graphics.Color] literals.
  */
 @Composable
@@ -76,7 +76,7 @@ fun BedMapView(
             size = Size(rect.width, rect.height),
         )
         drawRect(
-            color = t.outline,
+            color = t.accent,
             topLeft = Offset(rect.left, rect.top),
             size = Size(rect.width, rect.height),
             style = Stroke(width = 2.dp.toPx()),

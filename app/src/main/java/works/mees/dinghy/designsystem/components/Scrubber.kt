@@ -116,6 +116,7 @@ fun Scrubber(
     onSettle: (Float) -> Unit,
     modifier: Modifier = Modifier,
     orientation: ScrubberOrientation = ScrubberOrientation.Horizontal,
+    bare: Boolean = false,
     unit: String = "",
     enabled: Boolean = true,
     onValueChange: (Float) -> Unit = {},
@@ -331,80 +332,87 @@ fun Scrubber(
     }
 
     if (orientation == ScrubberOrientation.Horizontal) {
-        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            // Header: name start · live value + dim unit end (sketch .row1).
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (name.isNotEmpty()) {
-                    Text(
-                        text = name,
-                        color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(20f, t.fs).sp,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Box(Modifier.weight(1f))
-                }
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = fmt(working),
-                        color = t.text,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(40f, t.fs).sp,
-                    )
-                    if (unit.isNotEmpty()) {
+        if (bare) {
+            // Bare mode: track only — no header, no ends row, no ± steppers. The caller owns all
+            // labelling. The gesture box is self-sizing (fillMaxWidth × rowHeight) so it just emits
+            // directly inside the caller's layout without any extra wrapping.
+            Box(modifier) { gestureBox() }
+        } else {
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // Header: name start · live value + dim unit end (sketch .row1).
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (name.isNotEmpty()) {
                         Text(
-                            text = unit,
-                            color = t.text3,
+                            text = name,
+                            color = t.text,
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = fsSp(20f, t.fs).sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Box(Modifier.weight(1f))
+                    }
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = fmt(working),
+                            color = t.text,
                             fontFamily = GeistMono,
                             fontWeight = FontWeight.Bold,
-                            fontSize = fsSp(22f, t.fs).sp,
+                            fontSize = fsSp(40f, t.fs).sp,
                         )
+                        if (unit.isNotEmpty()) {
+                            Text(
+                                text = unit,
+                                color = t.text3,
+                                fontFamily = GeistMono,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = fsSp(22f, t.fs).sp,
+                            )
+                        }
                     }
                 }
-            }
 
-            // Gesture row = the enlarged touch target (74dp, ≤1U). Track + fill + halo painted in the
-            // DRAW phase; thumb placed in the LAYOUT phase — the dragged element never recomposes.
-            gestureBox()
+                // Gesture row = the enlarged touch target (74dp, ≤1U). Track + fill + halo painted in the
+                // DRAW phase; thumb placed in the LAYOUT phase — the dragged element never recomposes.
+                gestureBox()
 
-            // Ends row: min/max under the track (sketch .ends; 15sp ramp floor).
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text = fmt(range.start) + unit,
-                    color = t.text3,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-                Text(
-                    text = fmt(range.endInclusive) + unit,
-                    color = t.text3,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = fsSp(15f, t.fs).sp,
-                )
-            }
+                // Ends row: min/max under the track (sketch .ends; 15sp ramp floor).
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = fmt(range.start) + unit,
+                        color = t.text3,
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = fsSp(15f, t.fs).sp,
+                    )
+                    Text(
+                        text = fmt(range.endInclusive) + unit,
+                        color = t.text3,
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = fsSp(15f, t.fs).sp,
+                    )
+                }
 
-            // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedControl(
-                    label = "−",
-                    onClick = { set(working - step); settle() },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                )
-                OutlinedControl(
-                    label = "+",
-                    onClick = { set(working + step); settle() },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                )
+                // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedControl(
+                        label = "−",
+                        onClick = { set(working - step); settle() },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                    )
+                    OutlinedControl(
+                        label = "+",
+                        onClick = { set(working + step); settle() },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                    )
+                }
             }
         }
     } else {
