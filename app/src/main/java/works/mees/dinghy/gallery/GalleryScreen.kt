@@ -29,6 +29,8 @@ import works.mees.dinghy.bench.SyntheticFeed
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.Scrubber
+import works.mees.dinghy.designsystem.components.ScrubberOrientation
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -317,6 +319,17 @@ fun GalleryScreen(
                 onClick = { showGuard = true },
                 modifier = Modifier.fillMaxWidth(),
                 intent = Intent.Danger,
+            )
+        }
+
+        // ---- VERTICAL SCRUBBER demo (B2) -------------------------------------------------------
+        SectionLabel("Vertical Scrubber")
+        Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+            var v by remember { mutableFloatStateOf(25f) }
+            Scrubber(
+                name = "Z", value = v, range = 0f..50f, step = 0.1f, uDp = 64.dp,
+                orientation = ScrubberOrientation.Vertical,
+                onSettle = { v = it }, onValueChange = { v = it },
             )
         }
 

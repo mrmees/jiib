@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,10 +44,14 @@ import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.fractionFromX
+import works.mees.dinghy.designsystem.fractionFromY
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+
+/** Axis orientation for the [Scrubber] component. */
+enum class ScrubberOrientation { Horizontal, Vertical }
 
 /**
  * THE canonical drag-adjust scrubber — the sketch-004 ringed-thumb style (R9, owner, 2026-06-12;
@@ -60,6 +66,11 @@ import works.mees.dinghy.theme.fsSp
  *    (74dp tall, capped at 1U — UAT-3).
  *  - Ends row: min/max labels under the track (GeistMono, 15sp floor).
  *  - ± stepper row below (keyboard-free discrete adjust; each tap settles — R5 accent).
+ *
+ * Vertical orientation ([ScrubberOrientation.Vertical]): renders ONLY the gesture track (no
+ * header/ends/stepper — the caller owns labelling). Fill is BOTTOM-anchored (fraction 0 = bottom,
+ * fraction 1 = top), matching the Y-inverted [fractionFromY] mapping. The gesture box fills the
+ * height the caller provides and is [TOUCH_TARGET] wide.
  *
  * ## Snapping
  * Every set — tap, drag frame, stepper — snaps to [step] then clamps to [range]
@@ -86,6 +97,8 @@ import works.mees.dinghy.theme.fsSp
  * @param range         the allowed closed range; drag + steps are clamped to it.
  * @param step          the snap increment (drag snaps to it; the ± steppers add/subtract it).
  * @param uDp           one unit U — caps the gesture row height (UAT-3: track + thumb ≤ 1U).
+ * @param orientation   [ScrubberOrientation.Horizontal] (default) or [ScrubberOrientation.Vertical].
+ *                      Vertical renders the gesture track only (no header/ends/stepper).
  * @param onSettle      dispatched ONCE per gesture-end / stepper tap with the settled value.
  * @param unit          optional unit suffix ("%", "°", "°C") shown dim after the value and on the
  *                      min/max end labels.
@@ -102,6 +115,7 @@ fun Scrubber(
     uDp: Dp,
     onSettle: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    orientation: ScrubberOrientation = ScrubberOrientation.Horizontal,
     unit: String = "",
     enabled: Boolean = true,
     onValueChange: (Float) -> Unit = {},
@@ -114,6 +128,7 @@ fun Scrubber(
     remember(value, range) { workingState.floatValue = value.coerceIn(range.start, range.endInclusive) }
     var working by workingState
     var trackWidthPx by remember { mutableFloatStateOf(0f) }
+    var trackHeightPx by remember { mutableFloatStateOf(0f) }
     // Pressed → accentSoft halo. Read ONLY in drawBehind (draw-phase invalidation, no recompose).
     var pressed by remember { mutableStateOf(false) }
     val currentEnabled by rememberUpdatedState(enabled)
@@ -144,6 +159,11 @@ fun Scrubber(
         set(range.start + fractionFromX(x, trackWidthPx) * span)
     }
 
+    fun setFromY(y: Float) {
+        if (trackHeightPx <= 0f) return
+        set(range.start + fractionFromY(y, trackHeightPx) * span)
+    }
+
     fun settle() {
         if (currentEnabled) currentOnSettle(working)
     }
@@ -159,60 +179,45 @@ fun Scrubber(
     val haloRadiusPx = with(density) { (THUMB_VISIBLE / 2 + HALO_RING).toPx() }
     val trackHalfPx = with(density) { (TRACK_HEIGHT / 2).toPx() }
 
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Header: name start · live value + dim unit end (sketch .row1).
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (name.isNotEmpty()) {
-                Text(
-                    text = name,
-                    color = t.text,
-                    fontFamily = Geist,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(20f, t.fs).sp,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Box(Modifier.weight(1f))
-            }
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = fmt(working),
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(40f, t.fs).sp,
-                )
-                if (unit.isNotEmpty()) {
-                    Text(
-                        text = unit,
-                        color = t.text3,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(22f, t.fs).sp,
-                    )
-                }
-            }
-        }
+    // The shared gesture box — orientation-dependent branches are inside.
+    // Horizontal: fillMaxWidth × rowHeight; fill LEFT-anchored; thumb CenterStart + x-offset.
+    // Vertical:   fillMaxHeight × rowHeight (used as width); fill BOTTOM-anchored; thumb BottomCenter + negative-y-offset.
+    val gestureBoxModifier = when (orientation) {
+        ScrubberOrientation.Horizontal -> Modifier
+            .fillMaxWidth()
+            .height(rowHeight)
+        ScrubberOrientation.Vertical -> Modifier
+            .fillMaxHeight()
+            .width(rowHeight)
+    }
 
-        // Gesture row = the enlarged touch target (74dp, ≤1U). Track + fill + halo painted in the
-        // DRAW phase; thumb placed in the LAYOUT phase — the dragged element never recomposes.
+    val gestureBox: @Composable () -> Unit = {
         Box(
-            Modifier
-                .fillMaxWidth()
-                .height(rowHeight)
-                .onSizeChanged { trackWidthPx = it.width.toFloat() }
+            gestureBoxModifier
+                .onSizeChanged {
+                    trackWidthPx = it.width.toFloat()
+                    trackHeightPx = it.height.toFloat()
+                }
                 // One coordinated detector (WR-01 / G-3): tap-set on DOWN, track moves, settle on UP.
-                .pointerInput(range, step) {
+                .pointerInput(range, step, orientation) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         pressed = true
-                        setFromX(down.position.x)
+                        if (orientation == ScrubberOrientation.Horizontal) {
+                            setFromX(down.position.x)
+                        } else {
+                            setFromY(down.position.y)
+                        }
                         down.consume()
                         do {
                             val event = awaitPointerEvent()
                             event.changes.forEach { change ->
                                 if (change.pressed) {
-                                    setFromX(change.position.x)
+                                    if (orientation == ScrubberOrientation.Horizontal) {
+                                        setFromX(change.position.x)
+                                    } else {
+                                        setFromY(change.position.y)
+                                    }
                                     change.consume()
                                 }
                             }
@@ -223,89 +228,190 @@ fun Scrubber(
                     }
                 }
                 .drawBehind {
-                    val w = size.width
-                    val cy = size.height / 2f
                     val fraction = ((working - range.start) / span).coerceIn(0f, 1f)
-                    val fillEnd = fraction * w
                     val pill = CornerRadius(trackHalfPx, trackHalfPx)
-                    // Remainder track (surface3) then the LEFT-anchored accent fill.
-                    drawRoundRect(
-                        color = t.surface3,
-                        topLeft = Offset(0f, cy - trackHalfPx),
-                        size = Size(w, trackHalfPx * 2),
-                        cornerRadius = pill,
-                    )
-                    if (fillEnd > 0f) {
+                    if (orientation == ScrubberOrientation.Horizontal) {
+                        val w = size.width
+                        val cy = size.height / 2f
+                        val fillEnd = fraction * w
+                        // Remainder track (surface3) then the LEFT-anchored accent fill.
                         drawRoundRect(
-                            color = t.accent,
+                            color = t.surface3,
                             topLeft = Offset(0f, cy - trackHalfPx),
-                            size = Size(fillEnd, trackHalfPx * 2),
+                            size = Size(w, trackHalfPx * 2),
                             cornerRadius = pill,
                         )
-                    }
-                    // Press halo BEHIND the thumb (sketch :active 10dp accentSoft ring).
-                    if (pressed) {
-                        drawCircle(
-                            color = t.accentSoft,
-                            radius = haloRadiusPx,
-                            center = Offset(fillEnd.coerceIn(thumbRadiusPx, maxOf(thumbRadiusPx, w - thumbRadiusPx)), cy),
+                        if (fillEnd > 0f) {
+                            drawRoundRect(
+                                color = t.accent,
+                                topLeft = Offset(0f, cy - trackHalfPx),
+                                size = Size(fillEnd, trackHalfPx * 2),
+                                cornerRadius = pill,
+                            )
+                        }
+                        // Press halo BEHIND the thumb (sketch :active 10dp accentSoft ring).
+                        if (pressed) {
+                            drawCircle(
+                                color = t.accentSoft,
+                                radius = haloRadiusPx,
+                                center = Offset(fillEnd.coerceIn(thumbRadiusPx, maxOf(thumbRadiusPx, w - thumbRadiusPx)), cy),
+                            )
+                        }
+                    } else {
+                        // Vertical: track runs full height; fill is BOTTOM-anchored.
+                        val h = size.height
+                        val cx = size.width / 2f
+                        val fillLen = fraction * h
+                        // Remainder track (surface3) — full height column.
+                        drawRoundRect(
+                            color = t.surface3,
+                            topLeft = Offset(cx - trackHalfPx, 0f),
+                            size = Size(trackHalfPx * 2, h),
+                            cornerRadius = pill,
                         )
+                        if (fillLen > 0f) {
+                            // Accent fill BOTTOM-anchored (fraction 0 = bottom, 1 = top).
+                            drawRoundRect(
+                                color = t.accent,
+                                topLeft = Offset(cx - trackHalfPx, h - fillLen),
+                                size = Size(trackHalfPx * 2, fillLen),
+                                cornerRadius = pill,
+                            )
+                        }
+                        // Press halo BEHIND the thumb.
+                        if (pressed) {
+                            val haloY = (h - fillLen).coerceIn(
+                                thumbRadiusPx,
+                                maxOf(thumbRadiusPx, h - thumbRadiusPx),
+                            )
+                            drawCircle(
+                                color = t.accentSoft,
+                                radius = haloRadiusPx,
+                                center = Offset(cx, haloY),
+                            )
+                        }
                     }
                 },
         ) {
-            // Ringed thumb — 34dp surface knob + 5dp accent ring. Positioned in the layout phase
-            // (offset lambda reads the drag state — no recomposition per move).
-            Box(
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .offset {
-                        val fraction = ((workingState.floatValue - range.start) / span).coerceIn(0f, 1f)
-                        val center = (fraction * trackWidthPx)
-                            .coerceIn(thumbRadiusPx, maxOf(thumbRadiusPx, trackWidthPx - thumbRadiusPx))
-                        IntOffset((center - thumbRadiusPx).roundToInt(), 0)
+            if (orientation == ScrubberOrientation.Horizontal) {
+                // Ringed thumb — 34dp surface knob + 5dp accent ring. Positioned in the layout phase
+                // (offset lambda reads the drag state — no recomposition per move).
+                Box(
+                    Modifier
+                        .align(Alignment.CenterStart)
+                        .offset {
+                            val fraction = ((workingState.floatValue - range.start) / span).coerceIn(0f, 1f)
+                            val center = (fraction * trackWidthPx)
+                                .coerceIn(thumbRadiusPx, maxOf(thumbRadiusPx, trackWidthPx - thumbRadiusPx))
+                            IntOffset((center - thumbRadiusPx).roundToInt(), 0)
+                        }
+                        .size(THUMB_VISIBLE)
+                        .shadow(3.dp, CircleShape)
+                        .background(t.surface, CircleShape)
+                        .border(BorderStroke(THUMB_RING, t.accent), CircleShape),
+                )
+            } else {
+                // Vertical thumb — BottomCenter anchor, negative-Y offset so fraction 1 = top.
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset {
+                            val fr = ((workingState.floatValue - range.start) / span).coerceIn(0f, 1f)
+                            val center = (fr * trackHeightPx)
+                                .coerceIn(thumbRadiusPx, maxOf(thumbRadiusPx, trackHeightPx - thumbRadiusPx))
+                            IntOffset(0, -(center - thumbRadiusPx).roundToInt())
+                        }
+                        .size(THUMB_VISIBLE)
+                        .shadow(3.dp, CircleShape)
+                        .background(t.surface, CircleShape)
+                        .border(BorderStroke(THUMB_RING, t.accent), CircleShape),
+                )
+            }
+        }
+    }
+
+    if (orientation == ScrubberOrientation.Horizontal) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Header: name start · live value + dim unit end (sketch .row1).
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (name.isNotEmpty()) {
+                    Text(
+                        text = name,
+                        color = t.text,
+                        fontFamily = Geist,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fsSp(20f, t.fs).sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Box(Modifier.weight(1f))
+                }
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = fmt(working),
+                        color = t.text,
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fsSp(40f, t.fs).sp,
+                    )
+                    if (unit.isNotEmpty()) {
+                        Text(
+                            text = unit,
+                            color = t.text3,
+                            fontFamily = GeistMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = fsSp(22f, t.fs).sp,
+                        )
                     }
-                    .size(THUMB_VISIBLE)
-                    .shadow(3.dp, CircleShape)
-                    .background(t.surface, CircleShape)
-                    .border(BorderStroke(THUMB_RING, t.accent), CircleShape),
-            )
-        }
+                }
+            }
 
-        // Ends row: min/max under the track (sketch .ends; 15sp ramp floor).
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = fmt(range.start) + unit,
-                color = t.text3,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp,
-            )
-            Text(
-                text = fmt(range.endInclusive) + unit,
-                color = t.text3,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp,
-            )
-        }
+            // Gesture row = the enlarged touch target (74dp, ≤1U). Track + fill + halo painted in the
+            // DRAW phase; thumb placed in the LAYOUT phase — the dragged element never recomposes.
+            gestureBox()
 
-        // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedControl(
-                label = "−",
-                onClick = { set(working - step); settle() },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-            )
-            OutlinedControl(
-                label = "+",
-                onClick = { set(working + step); settle() },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-            )
+            // Ends row: min/max under the track (sketch .ends; 15sp ramp floor).
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = fmt(range.start) + unit,
+                    color = t.text3,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+                Text(
+                    text = fmt(range.endInclusive) + unit,
+                    color = t.text3,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = fsSp(15f, t.fs).sp,
+                )
+            }
+
+            // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedControl(
+                    label = "−",
+                    onClick = { set(working - step); settle() },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                )
+                OutlinedControl(
+                    label = "+",
+                    onClick = { set(working + step); settle() },
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                )
+            }
+        }
+    } else {
+        // Vertical: only the gesture track — caller owns labels. Centered horizontally in
+        // whatever width the caller allots.
+        Box(modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+            gestureBox()
         }
     }
 }
