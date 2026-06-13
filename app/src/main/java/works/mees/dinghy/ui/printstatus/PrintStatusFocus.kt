@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlin.math.roundToInt
 import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.preview.PreviewPlaceholderBox
@@ -200,29 +201,31 @@ internal fun StandbyFocus(
     val bed = state.heaters["heater_bed"]
     val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
-    Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-        // App-icon base (faint backdrop): the jiib brand mark. ContentScale.Crop FILLS the focus region
-        // in BOTH orientations — Icon's hard Fit left big margins on the tall landscape half-focus
-        // (2026-06-06 UAT); Crop scales the art to cover and trims the decorative margins. Themed via
-        // accent2 tint, faint under the glance list.
-        Image(
-            painter = painterResource(R.drawable.jiib_icon),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            colorFilter = ColorFilter.tint(t.accent2),
-            alpha = 0.45f,
-            modifier = Modifier.fillMaxSize(),
-        )
-        // The centered glance list overlaid on the backdrop.
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            GlanceRow("nozzle-temp", stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
-            GlanceRow("heat-bed", stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
-            glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
-            if (spoolmanPresent && spoolRemaining != null) {
-                GlanceRow("spool", stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
+    FocusFrame(modifier = Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // App-icon base (faint backdrop): the jiib brand mark. ContentScale.Fit (Focus Frame law:
+            // content FITS the frame, never clips — fixes the flox half-focus crop). The leftover space
+            // is now the FocusFrame's surface fill, so Fit no longer reads as empty margins (the
+            // 2026-06-06 reason for Crop). Themed via accent2 tint, faint under the glance list.
+            Image(
+                painter = painterResource(R.drawable.jiib_icon),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(t.accent2),
+                alpha = 0.45f,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // The centered glance list overlaid on the backdrop.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                GlanceRow("nozzle-temp", stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
+                GlanceRow("heat-bed", stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
+                glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
+                if (spoolmanPresent && spoolRemaining != null) {
+                    GlanceRow("spool", stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
+                }
             }
         }
     }
