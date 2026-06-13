@@ -136,6 +136,13 @@ NEEDED = {
     # `palette` is ALREADY in NEEDED above (Spool detail Palette token) — de-dup applies, skip.
     # All 5 below verified resolvable in the v2.944 bundled ttf (28-01 Task-1 gate).
     "line_style", "android_wifi_3_bar_plus", "settings", "info", "power_settings_new",
+    # Move Hub redesign (feat/move-hub-redesign, 2026-06-13) — owner-assigned glyphs for the new
+    # Move screen. my_location=Touch Move + map marker, control_camera=XY Position, swap_vert=Z
+    # Position, bookmark=saved location rows, bookmark_add=Save Location footer, home_app_logo=Home
+    # All footer button, stack_off=Disable Motors footer button. All 7 verified resolvable in the
+    # v2.944 bundled ttf (set de-dups, so any already-present name is harmless).
+    "my_location", "control_camera", "swap_vert", "bookmark", "bookmark_add",
+    "home_app_logo", "stack_off",
 }
 
 
