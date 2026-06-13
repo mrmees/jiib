@@ -614,6 +614,7 @@ fun AppShell(
                 LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.CalibrationHub) }
                 CalibrationHubScreen(
                     holder = calibrationHubHolder,
+                    container = container,
                     onOpen = { routine -> navController.navigate(routine.toNavDest()) },
                     onBack = { navController.popBackStack() },
                 )

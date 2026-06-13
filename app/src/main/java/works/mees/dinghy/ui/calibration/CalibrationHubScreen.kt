@@ -22,12 +22,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.R
 import works.mees.dinghy.calibration.CalibrationHubHolder
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.RoutineEntry
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -58,11 +62,16 @@ import works.mees.dinghy.theme.fsSp
 @Composable
 fun CalibrationHubScreen(
     holder: CalibrationHubHolder,
+    container: AppContainer,
     onOpen: (CalibrationRoutine) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val routines by holder.routines.collectAsStateWithLifecycle()
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     var selected by remember { mutableStateOf<CalibrationRoutine?>(null) }
     // D-05: pre-select the first entry so Focus is never empty on initial render.
     LaunchedEffect(routines) {
@@ -72,6 +81,8 @@ fun CalibrationHubScreen(
     CalibrationHubContent(
         routines = routines,
         selected = selected,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSelect = { selected = it },
         onOpen = onOpen,
         onBack = onBack,
@@ -94,6 +105,8 @@ fun CalibrationHubScreen(
 fun CalibrationHubContent(
     routines: List<RoutineEntry>,
     selected: CalibrationRoutine?,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onSelect: (CalibrationRoutine) -> Unit,
     onOpen: (CalibrationRoutine) -> Unit,
     onBack: () -> Unit,
@@ -108,36 +121,26 @@ fun CalibrationHubContent(
                 focus = {
                     // Focus: FocusFrame with routine icon + title + description + Open button.
                     // UAT-4: FloatingEStop reserves the top-left corner; keep content clear of it.
-                    Box(
+                    FocusFrame(
+                        title = stringResource(R.string.cd_launcher_calibration),
+                        icon = DinghyIcons.LauncherCalibration,
+                        uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .padding(vertical = 8.dp),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
                     ) {
-                        FocusFrame(
-                            title = stringResource(R.string.cd_launcher_calibration),
-                            icon = DinghyIcons.LauncherCalibration,
-                            uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
-                        ) {
-                            if (selected != null) {
-                                HubRoutineFocus(
-                                    routine = selected,
-                                    onOpen = { onOpen(selected) },
-                                    grid = grid,
-                                    t = t,
-                                )
-                            }
+                        if (selected != null) {
+                            HubRoutineFocus(
+                                routine = selected,
+                                onOpen = { onOpen(selected) },
+                                grid = grid,
+                                t = t,
+                            )
                         }
-                        // UAT-4: FloatingEStop top-left corner reservation (printing-only overlay).
-                        // The hub is a pre-print/calibration screen so isPrinting is always false here;
-                        // the FloatingEStop correctly shows nothing. We still include it so the structural
-                        // contract is honoured if the app state ever allows this screen during printing.
-                        FloatingEStop(
-                            visible = false, // hub is a pop-to-root foot-gun — not shown during print
-                            onClick = {},
-                            uDp = grid.uDp,
-                            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
-                        )
                     }
                 },
                 field = {
