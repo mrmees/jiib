@@ -262,8 +262,9 @@ internal fun intentColor(intent: Intent, t: ThemeTokens) = when (intent) {
     Intent.Go -> t.go
 }
 
-/** Maps a [CalibrationRoutine] to its title string resource ID. */
-private fun routineTitleRes(routine: CalibrationRoutine): Int = when (routine) {
+/** Maps a [CalibrationRoutine] to its title string resource ID. `internal` so the calibration
+ *  sub-screens can reuse it for their FocusFrame header title (Focus-header law). */
+internal fun routineTitleRes(routine: CalibrationRoutine): Int = when (routine) {
     CalibrationRoutine.PROBE_CALIBRATE -> R.string.calibration_routine_probe_title
     CalibrationRoutine.BED_MESH -> R.string.calibration_routine_mesh_title
     CalibrationRoutine.SCREWS_TILT -> R.string.calibration_routine_screws_title
