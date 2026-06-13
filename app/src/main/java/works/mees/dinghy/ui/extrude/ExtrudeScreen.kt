@@ -57,6 +57,8 @@ import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
+import works.mees.dinghy.designsystem.icons.SpoolGlyph
+import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -148,6 +150,7 @@ fun ExtrudeScreen(
     holder: ExtrudeHolder,
     activeSpoolDetail: SpoolmanSpool?,
     onBack: () -> Unit,
+    onOpenSpool: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
@@ -211,6 +214,7 @@ fun ExtrudeScreen(
             dispatcher?.dispatch(CommandRegistry.setHeater, SetHeaterArgs(vm.activeHeater, clamped, key = "set_temp"))
         },
         onBack = onBack,
+        onOpenSpool = onOpenSpool,
         modifier = modifier,
     )
 }
@@ -224,6 +228,7 @@ fun ExtrudeScreen(
     vm: ExtrudeVm = ExtrudeVm(),
     activeSpoolDetail: SpoolmanSpool? = null,
     onBack: () -> Unit = {},
+    onOpenSpool: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ExtrudeContent(
@@ -238,6 +243,7 @@ fun ExtrudeScreen(
         onUnload = {},
         onSetExtruderTemp = {},
         onBack = onBack,
+        onOpenSpool = onOpenSpool,
         modifier = modifier,
     )
 }
@@ -257,6 +263,7 @@ private fun ExtrudeContent(
     onUnload: () -> Unit,
     onSetExtruderTemp: (Int) -> Unit,
     onBack: () -> Unit,
+    onOpenSpool: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var distance by remember { mutableStateOf(DEFAULT_DISTANCE) }
@@ -314,9 +321,6 @@ private fun ExtrudeContent(
             },
             field = {
                 val t = LocalTokens.current
-                // WR-11 (26-rev): resolve toast copy at composition so the onClick lambdas below
-                // (non-composable scope) can assign it to infoText.
-                val spoolmanComingSoon = stringResource(R.string.extrude_spoolman_coming_soon)
                 // R4: macro names flow from CommandMap so a fork's rename shows in the copy.
                 val noLoadMacro =
                     stringResource(R.string.extrude_no_load_macro, CommandMap.loadFilament.macro)
@@ -352,6 +356,12 @@ private fun ExtrudeContent(
                             }
                             // Nozzle-temp button (opens filament-preset Field-takeover, D-17) + Spool placeholder.
                             val tempColor = if (vm.canExtrude) t.go else t.stop
+                            // Reactive spool swatches (D-07/D-08): same derivation as the home launcher
+                            // tile — normalized Spoolman colors → empty list renders the honest empty spool.
+                            val spoolSwatches = remember(activeSpoolDetail) {
+                                activeSpoolDetail?.filament?.colorSwatches.orEmpty()
+                                    .mapNotNull(::parseNormalizedHex)
+                            }
                             Row(
                                 Modifier.fillMaxWidth().weight(1f),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -373,16 +383,16 @@ private fun ExtrudeContent(
                                     },
                                 )
                                 FieldButton(
-                                    text = stringResource(R.string.extrude_spool_placeholder),
-                                    onClick = { infoText = spoolmanComingSoon },
+                                    text = "",
+                                    onClick = onOpenSpool,
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     icon = {
-                                        // UAT-1: field button icon — match nozzle button prominence
-                                        // so the two-button row reads consistently. Bumped 34f → 40f.
-                                        MaterialSymbol(
-                                            name = "inventory_2",
-                                            tint = t.text2,
-                                            sizeSp = fsSp(40f, t.fs),
+                                        SpoolGlyph(
+                                            swatches = spoolSwatches,
+                                            bodyTint = t.text2,
+                                            keyline = t.hair,
+                                            sizeDp = fsSp(40f, t.fs).dp,
+                                            contentDescription = stringResource(R.string.cd_launcher_spool),
                                         )
                                     },
                                 )
@@ -707,18 +717,23 @@ private fun FieldButton(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        if (text.isBlank()) {
+            // Icon-only field button (e.g. the Spool button — the reactive spool glyph IS the label).
             icon()
-            Text(
-                text = text,
-                color = contentColor,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(textSizeSp, t.fs).sp,
-            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                icon()
+                Text(
+                    text = text,
+                    color = contentColor,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(textSizeSp, t.fs).sp,
+                )
+            }
         }
     }
 }

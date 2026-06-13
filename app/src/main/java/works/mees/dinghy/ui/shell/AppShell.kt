@@ -551,6 +551,7 @@ fun AppShell(
                     holder = extrudeHolder,
                     activeSpoolDetail = activeSpoolDetail,
                     onBack = { navController.popBackStack() },
+                    onOpenSpool = { navController.navigate(NavDest.Spool) },
                 )
             }
             composable<NavDest.Files> {
