@@ -33,6 +33,7 @@ import works.mees.dinghy.command.HomeAxisArgs
 import works.mees.dinghy.command.JogArgs
 import works.mees.dinghy.command.MoveToArgs
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -163,6 +164,9 @@ internal fun MoveHubContent(
     val t = LocalTokens.current
     var mode by remember { mutableStateOf<MoveMode>(MoveMode.Overview) }
 
+    // Delete-confirm overlay: non-null = name of the location pending deletion.
+    var deleteConfirm by remember { mutableStateOf<String?>(null) }
+
     // Staged target (finger-live preview) and in-flight travel flag.
     // Keyed on mode so entering a new sub-mode always starts clean.
     var staged by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
@@ -183,6 +187,22 @@ internal fun MoveHubContent(
     }
 
     val (headerTitle, headerIcon) = moveModeHeader(mode)
+
+    val pendingDelete = deleteConfirm
+    if (pendingDelete != null) {
+        ConfirmGuard(
+            title = "Delete \"$pendingDelete\"?",
+            message = "Remove this saved location.",
+            confirmLabel = "Delete",
+            destructive = true,
+            onConfirm = {
+                onDeleteLocation(pendingDelete)
+                deleteConfirm = null
+                mode = MoveMode.Overview
+            },
+            onCancel = { deleteConfirm = null },
+        )
+    } else {
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -538,7 +558,64 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E5–E6 replace these.
+                        is MoveMode.Bookmark -> {
+                            val bookmarkMode = mode as MoveMode.Bookmark
+                            val loc = savedLocations.firstOrNull { it.name == bookmarkMode.name }
+                            if (loc == null) {
+                                FocusHint("Bookmark not found")
+                            } else {
+                                Column(Modifier.fillMaxSize()) {
+                                    // Bed map: current toolhead + bookmark destination + travel line.
+                                    if (bed != null) {
+                                        val cx = vm.x
+                                        val cy = vm.y
+                                        BedMapView(
+                                            bed = bed,
+                                            current = if (cx != null && cy != null) cx to cy else null,
+                                            target = loc.x to loc.y,
+                                            travel = (vm.x != null && vm.y != null),
+                                            modifier = Modifier.fillMaxWidth().weight(1f),
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().weight(1f),
+                                        ) {
+                                            FocusHint("Waiting for printer bounds…")
+                                        }
+                                    }
+                                    // Destination coordinate readout.
+                                    Text(
+                                        text = "→ X ${fmt1(loc.x)}  Y ${fmt1(loc.y)}" +
+                                            if (loc.z != null) "  Z ${fmt1(loc.z)}" else "",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(16f, t.fs).sp,
+                                        color = t.text2,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                    )
+                                    // Move / Delete action row.
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        OutlinedControl(
+                                            label = "Move",
+                                            onClick = { onMoveTo(loc.x, loc.y, loc.z) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Go,
+                                        )
+                                        OutlinedControl(
+                                            label = "Delete",
+                                            onClick = { deleteConfirm = loc.name },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Danger,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E6 replaces SaveDialog.
                         else -> FocusHint("$headerTitle — coming soon")
                     }
                 }
@@ -626,6 +703,8 @@ internal fun MoveHubContent(
             },
         )
     }
+
+    } // end if/else deleteConfirm
 }
 
 /** Header title + icon per the current [MoveMode] (header law). */
