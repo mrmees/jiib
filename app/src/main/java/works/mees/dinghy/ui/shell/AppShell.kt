@@ -603,6 +603,9 @@ fun AppShell(
                     holder = consoleHolder,
                     onBack = { navController.popBackStack() },
                     backfillFailed = consoleBackfillFailed,
+                    isPrinting = printerState.printState == PrintState.Printing ||
+                        printerState.printState == PrintState.Paused,
+                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                 )
             }
             // D-07 (Phase 27): Calibration sub-nav converted to real NavHost routes.

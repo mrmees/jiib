@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -74,6 +75,8 @@ fun ConsoleScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     backfillFailed: Boolean = false,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     val rawLines by holder.state.collectAsStateWithLifecycle()
 
@@ -101,6 +104,8 @@ fun ConsoleScreen(
         onToggleTimelapse = { hideTimelapse = !hideTimelapse },
         onTogglePrompt = { hidePrompt = !hidePrompt },
         onBack = onBack,
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
         modifier = modifier,
     )
 }
@@ -172,6 +177,8 @@ private fun ConsoleContent(
     onToggleTimelapse: () -> Unit,
     onTogglePrompt: () -> Unit,
     onBack: () -> Unit,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -179,7 +186,26 @@ private fun ConsoleContent(
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
             ScreenScaffold(
-                focus = null,   // D-14: no Focus; full height goes to the scrollback
+                focus = {
+                    FocusFrame(
+                        title = stringResource(R.string.cd_launcher_console),
+                        icon = DinghyIcons.LauncherConsole,
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.console_focus_blurb),
+                            color = t.text2,
+                            fontFamily = Geist,
+                            fontSize = fsSp(17f, t.fs).sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
+                        )
+                    }
+                },
                 field = {
                     // Pinned-height BoxWithConstraints wrapper — load-bearing (the Files scroll lesson):
                     // pins the RecyclerView so it can't over-measure and composite over the FootButtonBar.
