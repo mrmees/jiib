@@ -914,6 +914,7 @@ fun AppShell(
         // exempt) relies on the shell float — at which point the shell float is effectively webcam-only.
         val estopDest = navBackStackEntry?.destination
         val screenOwnsEstop = estopDest != null && (
+            estopDest.isRoute<NavDest.WaterfallHome>() ||
             estopDest.isRoute<NavDest.FineTune>() ||
             estopDest.isRoute<NavDest.Temperature>() ||
             estopDest.isRoute<NavDest.Spool>() ||

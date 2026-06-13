@@ -66,6 +66,8 @@ import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 @Composable
 internal fun PrintStatusFocus(
     state: PrinterState,
+    uDp: Dp,
+    onEmergencyStop: (() -> Unit)?,
     metadata: PrintMetadata? = null,
     httpBase: String = "",
     paused: Boolean = false,
@@ -73,6 +75,15 @@ internal fun PrintStatusFocus(
     val t = LocalTokens.current
     val context = LocalContext.current
     val printing = state.printState == PrintState.Printing || state.printState == PrintState.Paused
+    FocusFrame(
+        title = state.printFilename.ifBlank { stringResource(R.string.printstatus_title) },
+        icon = DinghyIcons.PrintStatusStandby,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+        isPrinting = printing,
+        onEmergencyStop = onEmergencyStop,
+        onPanic = onEmergencyStop,
+    ) {
     BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
         // The ring is ~90% of the focus's SMALLER dimension (largest circle that fits, both orientations).
         val ringSize = minOf(maxWidth, maxHeight) * 0.9f
@@ -181,6 +192,7 @@ internal fun PrintStatusFocus(
             // ring off the top edge; filename-when-no-thumbnail lives in the ring center).
         }
     }
+    } // end FocusFrame content
 }
 
 /**

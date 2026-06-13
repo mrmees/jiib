@@ -305,6 +305,7 @@ fun PrintStatusScreen(
             failureText = failureText,
             pendingActionIsNull = pendingAction == null,
             hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onRunAction = ::runAction,
             onBabystepCompress = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(-babystepStep)) },
             onBabystepExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
@@ -413,6 +414,7 @@ fun PrintStatusScreen(
             failureText = null,
             pendingActionIsNull = true,
             hasBookmarkedMacros = hasBookmarkedMacros,
+            onEmergencyStop = null,
             onRunAction = {},
             onBabystepCompress = {},
             onBabystepExpand = {},
@@ -450,6 +452,7 @@ private fun PrintStatusContent(
     failureText: String?,
     pendingActionIsNull: Boolean,
     hasBookmarkedMacros: Boolean,
+    onEmergencyStop: (() -> Unit)?,
     onRunAction: (PrintStatusControlAction) -> Unit,
     onBabystepCompress: () -> Unit,
     onBabystepExpand: () -> Unit,
@@ -491,7 +494,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Printing -> ScreenScaffold(
-            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase) },
+            focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase) },
             field = {
                 PrintStatusActiveField(
                     state = state,
@@ -516,7 +519,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Paused -> ScreenScaffold(
-            focus = { PrintStatusFocus(state = state, metadata = metadata, httpBase = httpBase, paused = true) },
+            focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase, paused = true) },
             field = {
                 PrintStatusActiveField(
                     state = state,
