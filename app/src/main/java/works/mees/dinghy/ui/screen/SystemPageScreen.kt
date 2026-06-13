@@ -25,6 +25,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
 import androidx.compose.foundation.layout.heightIn
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -38,6 +41,8 @@ import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.brandTint
@@ -66,10 +71,16 @@ fun SystemPageScreen(
     modifier: Modifier = Modifier,
 ) {
     val activeName by container.activeName.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
 
     SystemPageContent(
         activePrinterName = activeName ?: "",
         versionName = BuildConfig.VERSION_NAME,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onNavigate = onNavigate,
         onBack = onBack,
         modifier = modifier,
@@ -103,6 +114,8 @@ fun SystemPageContent(
     onNavigate: (NavDest) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     val t = LocalTokens.current
 
@@ -119,12 +132,22 @@ fun SystemPageContent(
                 focusGrow = focusGrow,
                 fieldGrow = fieldGrow,
                 focus = {
-                    // STATIC brand strip — jiib lockup + version + active printer name.
-                    // No connection state. No live telemetry. (D-02 Focus content rule)
-                    SystemFocusContent(
-                        activePrinterName = activePrinterName,
-                        versionName = versionName,
-                    )
+                    // STATIC brand strip wrapped in FocusFrame (Focus-header law, 2026-06-13).
+                    // Brand identity content lives in the FocusFrame body; no live telemetry.
+                    FocusFrame(
+                        title = stringResource(R.string.home_foot_system),
+                        icon = DinghyIcons.FootSystem,
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        SystemFocusContent(
+                            activePrinterName = activePrinterName,
+                            versionName = versionName,
+                        )
+                    }
                 },
                 field = {
                     // Field: dense ListBlock of direct-tap nav rows in D-03 order.
