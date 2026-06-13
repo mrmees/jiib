@@ -41,6 +41,7 @@ import kotlinx.coroutines.delay
 import works.mees.dinghy.R
 import works.mees.dinghy.calibration.BedMeshHolder
 import works.mees.dinghy.calibration.BedMeshVm
+import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.command.BedMeshProfileArgs
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
@@ -49,7 +50,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowLabel
@@ -61,6 +62,8 @@ import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.render.BedMeshHeatmapView
 import works.mees.dinghy.ui.screen.TokenTextField
@@ -94,6 +97,9 @@ fun BedMeshScreen(
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     // Ephemeral UI state — rememberSaveable so both survive rotation (27-UI-SPEC orientation rule).
@@ -144,7 +150,9 @@ fun BedMeshScreen(
         showRemoveGuard = showRemoveGuard,
         showSaveConfigGuard = showSaveConfigGuard,
         toastError = toastError,
+        isPrinting = isPrinting,
         dispatcherPresent = dispatcher != null,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onCycleScaleMode = { holder.cycleScaleMode() },
         onSelectProfile = { name -> selectedProfile = name },
         onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
@@ -247,7 +255,9 @@ internal fun BedMeshContent(
     showRemoveGuard: Boolean,
     showSaveConfigGuard: Boolean,
     toastError: String?,
+    isPrinting: Boolean,
     dispatcherPresent: Boolean,
+    onEmergencyStop: () -> Unit,
     onCycleScaleMode: () -> Unit,
     onSelectProfile: (String) -> Unit,
     onShowSaveName: () -> Unit,
@@ -273,13 +283,23 @@ internal fun BedMeshContent(
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
-                    BedMeshFocusRegion(
-                        vm = vm,
-                        tokens = t,
-                        onCycleScaleMode = onCycleScaleMode,
+                    FocusFrame(
+                        title = stringResource(routineTitleRes(CalibrationRoutine.BED_MESH)),
+                        icon = routineIconToken(CalibrationRoutine.BED_MESH),
                         uDp = grid.uDp,
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
-                    )
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        BedMeshFocusRegion(
+                            vm = vm,
+                            tokens = t,
+                            onCycleScaleMode = onCycleScaleMode,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize().padding(8.dp),
+                        )
+                    }
                 },
                 field = {
                     when (fieldMode) {
@@ -489,16 +509,6 @@ internal fun BedMeshContent(
                         }
                     }
                 },
-            )
-
-            // FloatingEStop top-left corner reservation (UAT-4).
-            // Calibration = pop-to-root foot-gun: BedMesh is only reachable while idle,
-            // so the E-stop overlay is suppressed here (visible = false).
-            FloatingEStop(
-                visible = false,
-                onClick = {},
-                uDp = grid.uDp,
-                modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
             )
 
             // Toast overlay

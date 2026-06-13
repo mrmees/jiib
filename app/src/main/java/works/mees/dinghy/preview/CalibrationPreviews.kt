@@ -490,6 +490,7 @@ private fun bedMeshPreview(
     showRemoveGuard: Boolean = false,
     showSaveConfigGuard: Boolean = false,
     toastError: String? = null,
+    isPrinting: Boolean = false,
     dispatcherPresent: Boolean = true,
 ) {
     BedMeshContent(
@@ -499,7 +500,9 @@ private fun bedMeshPreview(
         showRemoveGuard = showRemoveGuard,
         showSaveConfigGuard = showSaveConfigGuard,
         toastError = toastError,
+        isPrinting = isPrinting,
         dispatcherPresent = dispatcherPresent,
+        onEmergencyStop = {},
         onCycleScaleMode = {},
         onSelectProfile = {},
         onShowSaveName = {},
