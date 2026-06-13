@@ -28,14 +28,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
+import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.TiltHolder
 import works.mees.dinghy.calibration.TiltState
 import works.mees.dinghy.calibration.TiltVm
 import works.mees.dinghy.calibration.ZAdjustment
 import works.mees.dinghy.calibration.tiltState
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -72,6 +75,9 @@ fun TiltScreen(
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     val runCommand = when (variant) {
@@ -93,6 +99,8 @@ fun TiltScreen(
         variant = variant,
         state = state,
         running = running,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onRun = {
             val d = dispatcher ?: return@TiltContent
             d.dispatch(runCommand, Unit)
@@ -120,6 +128,8 @@ fun TiltContent(
     variant: TiltVariant = TiltVariant.ZTilt,
     state: TiltState = TiltState.Idle,
     running: Boolean = false,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -138,13 +148,27 @@ fun TiltContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         Box(Modifier.fillMaxSize()) {
+            val routine = when (variant) {
+                TiltVariant.ZTilt -> CalibrationRoutine.Z_TILT
+                TiltVariant.Qgl   -> CalibrationRoutine.QUAD_GANTRY_LEVEL
+            }
             ScreenScaffold(
                 focus = {
-                    TiltFocus(
-                        title = title,
-                        state = state,
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
-                    )
+                    FocusFrame(
+                        title = stringResource(routineTitleRes(routine)),
+                        icon = routineIconToken(routine),
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        TiltFocus(
+                            title = title,
+                            state = state,
+                            modifier = Modifier.fillMaxSize().padding(8.dp),
+                        )
+                    }
                 },
                 field = {
                     TiltFieldBody(
@@ -210,14 +234,6 @@ fun TiltContent(
                         }
                     }
                 },
-            )
-            // FloatingEStop top-left corner reservation (UAT-4).
-            // Calibration = pop-to-root foot-gun: Tilt is only reachable while idle.
-            FloatingEStop(
-                visible = false,
-                onClick = {},
-                uDp = grid.uDp,
-                modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
             )
         }
     }
