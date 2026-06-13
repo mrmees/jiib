@@ -102,10 +102,20 @@ Printing:
 ### Title typography
 
 Centered, **Geist SemiBold ~20sp via `fsSp(20f, t.fs)`** (the list/title default; scales with S/M/L).
-`t.text` color. (Open to GeistMono if the owner prefers the tabular look — minor, confirm at build.)
+`t.text` color, single line. (Open to GeistMono if the owner prefers the tabular look — minor, confirm
+at build.)
+
+**Overflow = scroll, never shrink/truncate (owner, 2026-06-13):** the title is **centered when it fits**
+at the standard size; when it **can't fit** the standard layout/size it **scrolls horizontally**
+(`Modifier.basicMarquee()`) at that same size — NO font shrink, NO ellipsis, NO wrap. Drives the
+printing filename title (long names). **Motion-law exception:** the no-continuous-animation rule
+(`docs/ui_design/CLAUDE.md` / THEMING motion) is waived for this one case — it's a single-line,
+overflow-only, small-dirty-rect marquee (a named exception alongside the LED `ColorWheel`), not the
+full-surface looping the rule forbids. Codify the exception in COMPONENTS/LAYOUT/CLAUDE motion notes.
 
 **Title text source (D9):** the label of the nav entry that opens the screen ("use whatever button got
-them there") — same source as the icon, so header and affordance stay in lockstep.
+them there") — same source as the icon, so header and affordance stay in lockstep. (PrintStatus:
+idle = "Print Status" via existing `R.string.printstatus_title`; printing = the job filename.)
 
 ---
 
@@ -205,13 +215,21 @@ needed (glyph is already owner-assigned at the entry):
   Calibration sub-screens (BedMesh, ProbeCalibrate, ScrewsTilt, Tilt) ← Calibration Hub rows;
   About / SystemInformation / Printers ← their Settings/System parent rows.
 
-**Genuine orphans — MUST ASK owner** (reached by state/programmatically, no button with an icon):
+**Orphans — RESOLVED with owner (2026-06-13):**
 
-- [ ] **PrintStatus** — the conditional-waterfall print root, reached by print state, not a tap.
-- [ ] **Settings** / **SystemPage** — confirm their entry affordance; if no icon-bearing entry, ASK.
+- Settings / SystemPage / Printers / SystemInformation / About all auto-resolve after all — Settings
+  (`SystemRowSettings`), Printers (`SystemRowPrinters`), SystemInformation (`SysInfoTile`), About
+  (`SystemRowAbout`) from the `SystemPage` `SystemNavRow`s; SystemPage itself from the **System foot
+  button** (`FootSystem` + `home_foot_system` "System"). The 4 Calibration sub-screens resolve from the
+  hub's existing `iconForRoutine`/`titleForRoutine` helpers.
+- **PrintStatus** — the one true orphan. Owner decisions:
+  - **Header always present** (idle too — over the standby brand hero).
+  - **Idle icon = new glyph `mode_standby`** (owner-named; confirmed resolvable in the bundled v2.944
+    full font — register as a `DinghyIcon`, no re-subset; add to `verify_ligatures.py` NEEDED +
+    `DinghyIconsTest`). Swapped to the e-stop while printing.
+  - **Title: idle = "Print Status"; printing = the job filename.**
 
-Planning resolves each precisely; default is always "reuse the entry's glyph + label," ASK only for a
-confirmed orphan.
+**Full icon/title resolution table → see the implementation plan.** Net: zero remaining ASKs.
 
 ---
 
