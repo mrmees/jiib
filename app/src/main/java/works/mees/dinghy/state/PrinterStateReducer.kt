@@ -72,7 +72,7 @@ fun applyKlippyMethod(current: PrinterState, method: String): PrinterState {
 // base state differs). Every accessor below is null-safe: a missing object/field falls through to `current`.
 // ---------------------------------------------------------------------------------------------------------
 
-private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState {
+internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterState {
     var s = current
 
     status.objectOrNull("webhooks")?.let { wh ->
@@ -118,6 +118,8 @@ private fun applyStatus(current: PrinterState, status: JsonObject): PrinterState
         th.doubleOrNullAt("max_accel")?.let { s = s.copy(maxAccel = it) }
         th.doubleOrNullAt("minimum_cruise_ratio")?.let { s = s.copy(minimumCruiseRatio = it) }
         th.doubleOrNullAt("square_corner_velocity")?.let { s = s.copy(squareCornerVelocity = it) }
+        th.doubleListOrNull("axis_minimum")?.let { s = s.copy(axisMinimum = it.toImmutableList()) }
+        th.doubleListOrNull("axis_maximum")?.let { s = s.copy(axisMaximum = it.toImmutableList()) }
     }
 
     status.objectOrNull("gcode_move")?.let { gm ->

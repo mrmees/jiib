@@ -60,6 +60,12 @@ data class PrinterState(
     /** Toolhead position `[x, y, z, e]` (mm); null until first snapshot. */
     val toolheadPosition: ImmutableList<Double>? = null,
 
+    /** `toolhead.axis_minimum` `[x, y, z, e]` (mm) — lower motion bound; null until first snapshot. May be negative. */
+    val axisMinimum: ImmutableList<Double>? = null,
+
+    /** `toolhead.axis_maximum` `[x, y, z, e]` (mm) — upper motion bound; null until first snapshot. */
+    val axisMaximum: ImmutableList<Double>? = null,
+
     /**
      * `gcode_move.gcode_position` `[X, Y, Z, E]` (mm) — the offsets-stripped, USER-FACING coordinates
      * the Move panel displays/jogs against (MOVE-04 / RESEARCH Pitfall 1). NOT [toolheadPosition]
