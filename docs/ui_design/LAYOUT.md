@@ -8,7 +8,7 @@ Print Status is the foundational instance (`Print Status Hi-Fi.html`, classes in
 > the Gutter's jobs rehomed (see §"Where the gutter's jobs went" below). The Kotlin
 > `ScreenScaffold.kt` still carries an optional `gutter` slot for backward compatibility with
 > pre-redesign screens; the grammar no longer names it a first-class region. For the component
-> catalog (ListRow, DetailCard, FootButtonBar, etc.) see `COMPONENTS.md`.
+> catalog (ListRow, FocusFrame, FootButtonBar, etc.) see `COMPONENTS.md`.
 
 ---
 
@@ -150,7 +150,7 @@ A load-bearing visual rule that separates browsable content from interactive con
 |---|---|---|---|
 | **Content** (scrollable items) | Transparent | `outline` (1.5dp) | `ListRow` |
 | **Content — selected** | `accentSoft` | `accentLine` (2dp) | `ListRow` selected |
-| **Controls** (buttons, tiles, action bars) | `surface` shade | `outline` / intent-line if active | `FootButtonBar`, sort/filter tiles, `DetailCard` |
+| **Controls** (buttons, tiles, action bars) | `surface` shade | `outline` / intent-line if active | `FootButtonBar`, sort/filter tiles, `FocusFrame` |
 | **Danger controls** | `stopSoft` / transparent | `stop` | `FloatingEStop` |
 
 Selection and active states layer accent tint on top of the base convention — they do not
@@ -184,7 +184,7 @@ PrintStatus gutter→foot migration — the last consumer). Every screen places 
 ## Edge registration — the 8dp screen frame (R26, owner-prompted 2026-06-12)
 
 Every screen's content sits inside a **uniform gapS (8dp) frame**: the FIRST visible outline
-(list row border, DetailCard ring, control edge) lands 8dp from the screen top, the LAST lands
+(list row border, FocusFrame ring, control edge) lands 8dp from the screen top, the LAST lands
 8dp from the bottom, and columns keep the established 8dp horizontal inset. On a **two-region
 screen this is what makes the columns READ as one surface**: the top of the first Field list row
 aligns with the top of the Focus card's ring, and the bottom of the Focus-foot control tiles

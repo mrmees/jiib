@@ -16,7 +16,7 @@ print. The **Nexus 7 2013 (Adreno 320)** is the performance floor.
 1. **`CLAUDE.md`** — design philosophy + non-negotiables (icon law, carve-outs, fill-the-space).
 2. **`LAYOUT.md`** — the two-region **Focus / Field** grammar, the unit **U**, the
    NON-NEGOTIABLES (shared grid, sacred aspect ratios, ratio-only sizing), UAT-1..5.
-3. **`COMPONENTS.md`** — the component-class catalog (ListRow, DetailCard, FootButtonBar,
+3. **`COMPONENTS.md`** — the component-class catalog (ListRow, FocusFrame, FootButtonBar,
    FloatingEStop, scrubber, …), stroke/floor table, spacing tokens.
 4. **`THEMING.md`** — the seed-generated token system, button-intent colors, the type ramp,
    status shape vocabulary, palette modes, carve-outs.

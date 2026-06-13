@@ -12,7 +12,7 @@
   gutter slot was DELETED outright (2026-06-12, R1 PrintStatus gutter→foot migration — the last
   consumer); no screen renders a gutter region.
   See the rewritten `LAYOUT.md` for the full two-region law. See `COMPONENTS.md` for the
-  component-class catalog (ListRow, DetailCard, FillMeter, FootButtonBar, FloatingEStop,
+  component-class catalog (ListRow, FocusFrame, FillMeter, FootButtonBar, FloatingEStop,
   SortFilterControlRow and more).
 - **Layout non-negotiables (see LAYOUT.md ⚠ section):** (1) everything tabular on one shared
   grid — region divides align with foot-button-row edges; (2) aspect ratios are sacred — a
