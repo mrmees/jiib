@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +50,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -58,6 +60,9 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.IconRef
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -93,6 +98,9 @@ fun MoveScreen(
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
 
     var failureText by remember { mutableStateOf<String?>(null) }
 
@@ -123,6 +131,8 @@ fun MoveScreen(
         vm = vm,
         inFlight = inFlight,
         failureText = failureText,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onJog = { axis, mm, feed -> dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, feed)) },
         onForceJog = { axis, mm, feed -> dispatchCommand(CommandRegistry.forceMove, ForceMoveArgs(axis, mm, feed / 60)) },
         onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
@@ -145,6 +155,7 @@ fun MoveScreen(
 fun MoveScreen(
     vm: MoveVm = MoveVm(),
     inFlight: Set<String> = emptySet(),
+    isPrinting: Boolean = false,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -152,6 +163,8 @@ fun MoveScreen(
         vm = vm,
         inFlight = inFlight,
         failureText = null,
+        isPrinting = isPrinting,
+        onEmergencyStop = {},
         onJog = { _, _, _ -> },
         onForceJog = { _, _, _ -> },
         onHomeXY = {},
@@ -191,6 +204,8 @@ internal fun MoveContent(
     vm: MoveVm,
     inFlight: Set<String>,
     failureText: String?,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onJog: (axis: String, mm: Double, feed: Int) -> Unit,
     onForceJog: (axis: String, mm: Double, feed: Int) -> Unit,
     onHomeXY: () -> Unit,
@@ -214,7 +229,7 @@ internal fun MoveContent(
         val landscape = maxWidth > maxHeight
 
         if (landscape) {
-            // Landscape: JogPad fills left half; right half = Z col + distance col + FootButtonBar
+            // Landscape: JogPad fills left half; right half = FocusFrame header + Z col + distance col + FootButtonBar
             Row(Modifier.fillMaxSize()) {
                 JogPad(
                     vm = vm,
@@ -231,6 +246,17 @@ internal fun MoveContent(
                     Modifier.weight(1f).fillMaxHeight().padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    FocusFrame(
+                        title = stringResource(R.string.cd_launcher_move),
+                        icon = DinghyIcons.LauncherMove,
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxWidth(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        MoveFocusBlurb()
+                    }
                     Row(
                         Modifier.fillMaxWidth().weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -263,10 +289,22 @@ internal fun MoveContent(
                 }
             }
         } else {
-            // Portrait (D-03): JogPad capped at 60% HEIGHT; remaining height = Z col + distance col + footer
+            // Portrait (D-03): FocusFrame header + JogPad (capped at 60% HEIGHT); remaining = Z col + distance + footer
             val padSize: Dp = (maxHeight * 0.60f).coerceAtMost(maxWidth)
             Column(Modifier.fillMaxSize()) {
-                // Top: JogPad at padSize × padSize, centered horizontally
+                // Focus header — identiy + e-stop when printing
+                FocusFrame(
+                    title = stringResource(R.string.cd_launcher_move),
+                    icon = DinghyIcons.LauncherMove,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxWidth(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {
+                    MoveFocusBlurb()
+                }
+                // JogPad at padSize × padSize, centered horizontally
                 Box(
                     Modifier.fillMaxWidth().height(padSize),
                     contentAlignment = Alignment.Center,
@@ -330,6 +368,24 @@ internal fun MoveContent(
             )
         }
     }
+}
+
+/**
+ * Focus body blurb — shown inside the [FocusFrame] header region when no richer hero is present.
+ * Move's position readouts live in the JogPad corner cells (the hero control); the Focus body
+ * is a brief orientation blurb per the D8 spec.
+ */
+@Composable
+private fun MoveFocusBlurb() {
+    val t = LocalTokens.current
+    Text(
+        text = stringResource(R.string.move_focus_blurb),
+        color = t.text2,
+        fontFamily = Geist,
+        fontSize = fsSp(17f, t.fs).sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /** The three foot buttons shared between portrait and landscape: Home All | Disable | Back. */
