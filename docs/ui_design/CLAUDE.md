@@ -161,6 +161,13 @@
 - Motion: alive but cheap — progress fills, ring draws on; NO continuous breathing/looping
   animation (Adreno-320 budget). "Glow" as a real blur is not on the API floor; glow tokens render
   as static alpha treatments (R6 — a true cached glow is aspirational polish, not law).
+  **Sanctioned `basicMarquee` exceptions (overflow-only, never decorative):**
+  - **`FocusFrame` header title** (Focus-header law, 2026-06-13) — the centered title scrolls
+    horizontally via `Modifier.basicMarquee()` when it overflows. Single-line, overflow-only,
+    tiny dirty-rect (one row, one direction). Driven by the printing job-filename title.
+  - **LED `ColorWheel`** (UAT-5 note, `COMPONENTS.md`) — the >1U color ring that updates on drag;
+    not truly continuous but retained here for completeness.
+  Any new continuous animation must name a sanctioned exception here before ship.
 - North star of record: the as-built Spoolman screen + sketch sources
   (`.claude/skills/sketch-findings-dinghy-display/sources/`) + THEMING.md. The old hi-fi bundle
   (`reference/hifi.css`, `Print Status Hi-Fi.html`, `images/`) is HISTORICAL — superseded by the

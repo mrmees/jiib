@@ -71,7 +71,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | `FocusFrame` | Filled (Focus surface) | `t.surface` | `FocusEdge`: `t.outline` 1.5dp (Neutral, default) / data color 3dp (Data) / perimeter progress bar (Progress) | THE universal Focus container (every Focus except Webcam) | `designsystem/components/FocusFrame.kt` |
 | `FillMeter` | Filled fill layer | `t.surface3` (track) + data fill | — | Read-only fraction bar (weight remaining, progress) | `designsystem/components/FillMeter.kt` |
 | `FootButtonBar` | — (container only) | — | — | Row of `OutlinedControl` buttons pinned to foot of list | `designsystem/components/FootButtonBar.kt` |
-| `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Print-cancel / e-stop overlay, printing only | `designsystem/components/FloatingEStop.kt` |
+| `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Shell-fallback e-stop (Webcam + Theme only — all other screens dock in FocusFrame header) | `designsystem/components/FloatingEStop.kt` |
 | `SortFilterControlRow` | Filled (control) | type-tile: `t.bg2`; option tile: `t.surface`; active: `t.accentSoft` | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
 | Control tile (general) | Filled | `t.surface` | `t.outline` / intent-line if active | Interactive grid tile (launcher, shortcut, jog pad cell) | `OutlinedControl.kt` (existing) |
 | `ListBlock` | — (scroll wrapper) | — | — | Edge-faded `LazyColumn` container | `designsystem/layout/ListBlock.kt` |
@@ -111,10 +111,56 @@ frame; callers pass vertical/sizing only, mirroring `ListBlock`), **clips its co
 overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
 `FocusInset` (16dp).
 
+**Mandatory required params:** `title: String`, `icon: ImageVector`, `uDp: Dp`, plus the e-stop
+seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
+compiler-enforced — there is no title-less or icon-less `FocusFrame`.
+
+**Mandatory header (Focus-header law, 2026-06-13):**
+
+Every `FocusFrame` renders a **1U-tall header** as its topmost element, before content. The
+header is always present — idle and printing alike. It contains:
+
+- **Start-aligned icon** — sized at `(uDp * 0.7f).coerceAtLeast(64.dp)` (UAT-1 prominent tier;
+  same formula as the retired floating e-stop). At **idle** this is the screen's **inert identity
+  glyph** — decorative, not tappable.
+- **Centered title** — rendered with `Modifier.basicMarquee()`. The title is ALWAYS single-line;
+  it scrolls horizontally on overflow — **NO shrink, NO ellipsis, NO wrap.** This is a
+  **sanctioned exception to the no-continuous-animation motion law** (overflow-only, single-line,
+  tiny dirty-rect — see `CLAUDE.md §Motion`). Drives the printing job-filename title.
+
+**Idle → printing morph (e-stop dock):**
+
+While **printing**, the icon slot **morphs in place** into the emergency-stop button — red fill,
+`Intent.Danger`, `StatusStop` glyph. It is NOT a separate overlay and does NOT shift geometry;
+the same 0.7U slot changes role. Tap → a `ConfirmGuard` dialog that `FocusFrame` owns and hosts
+in a full-screen `Dialog` (covers the whole screen). Long-press (`onPanic`) → instant halt with
+no confirmation guard.
+
+`FocusFrame` owns the `ConfirmGuard` internally — call sites only wire `isPrinting`,
+`onEmergencyStop`, and `onPanic`; they do not manage the guard state.
+
+**D9 rule — icon + title inherit from the nav entry point:**
+
+The icon and title shown in the `FocusFrame` header are **the same glyph and label as whatever
+button navigated to this screen** (home row, parent list row, launcher tile). Call sites read
+those values from their nav entry and pass them through. The only exception is PrintStatus, which
+needed a bespoke glyph (`DinghyIcons.PrintStatusStandby` at idle) because it is reached from a
+morphing home tile that has no single fixed icon.
+
+**Shell-fallback destinations (NOT rendered in a FocusFrame header):**
+
+Two destinations are exempt from the mandatory header because they do not render a `FocusFrame`:
+- **Webcam** — full-bleed native media; the deliberate header exemption.
+- **Theme** — settings-class screen outside the migration scope.
+
+For these, `AppShell` retains the `FloatingEStop` as the **shell-level fallback** e-stop during
+printing. **Splash** has no print state and needs no e-stop mechanism. All other 21 destinations
+carry their own docked e-stop in the `FocusFrame` header.
+
 **The edge encodes meaning — accent is RESERVED (`FocusEdge`):**
 - **`FocusEdge.Neutral`** (default) — `t.outline` at list-row weight (1.5dp). The resting "this is the Focus" signal.
 - **`FocusEdge.Data(color)`** — the edge tinted by the item's literal data color at 3dp (heavier so the color reads). THEME-01 carve-out: pass the actual hex (e.g. Spoolman filament color); never `brandTint`-clamped. Printers also uses this for connection-state color.
-- **`FocusEdge.Progress(fraction)`** — the edge becomes a **perimeter progress bar** in the Scrubber's visual language (`t.surface3` track + `t.accent` fill + the 34dp ringed-thumb marker), for the actively-printing screen. Accent appears here and only here.
+- **`FocusEdge.Progress(fraction)`** — the edge becomes a **perimeter progress bar** in the Scrubber's visual language (`t.surface3` track + `t.accent` fill + the 34dp ringed-thumb marker), for the actively-printing screen. Accent appears here and only here. *(Deferred to a future session — not yet implemented.)*
 
 See `THEMING.md §"Carve-out"` for the THEME-01 precedent behind `FocusEdge.Data`.
 
@@ -163,16 +209,21 @@ Intent follows the four-class scheme (R5 — see `THEMING.md §"Button intent = 
 
 #### `FloatingEStop`
 
+**⚠ RETIRED as the general e-stop pattern (Focus-header law, 2026-06-13).** The e-stop now
+docks inside the `FocusFrame` mandatory header (see `FocusFrame` §above). `FloatingEStop`
+survives **only as the shell-level fallback** for the two destinations that do NOT render a
+`FocusFrame`: **Webcam** (full-bleed media) and **Theme** (settings-class, outside migration
+scope). `AppShell` renders it for those two cases only.
+
 A floating red emergency-stop button. Overlaid top-left of the Focus region, visible only when
 the printer is actively printing. Decoupled from layout flow — does NOT shift Focus geometry.
 
-Size = 1U × 1U (square). Position = `Modifier.align(Alignment.TopStart).padding(14.dp)` inside
-a `Box` that wraps Focus content as a sibling.
+Size = `(uDp * 0.7f).coerceAtLeast(64.dp)` (0.7U, the prominent-icon tier). Position =
+`Modifier.align(Alignment.TopStart).padding(14.dp)` inside a `Box` that wraps Focus content as
+a sibling.
 
-Important: place Focus main content (progress ring, detail card) with awareness that the very
-top-left corner is reserved for the e-stop. Do not overlap it with important readout data.
-
-Piloted on SpoolScreen (Phase 23), integrated app-wide (Phase 24) — a shipped, standing element.
+Piloted on SpoolScreen (Phase 23), integrated app-wide (Phase 24); now superseded by the docked
+header morph on all `FocusFrame` screens.
 
 #### `SortFilterControlRow` — LOCKED compound anatomy
 
@@ -231,7 +282,8 @@ dp-derived reasoning.** This section records the derived usage:
 - **`FootButtonBar`** = 1U (height = `uDp`)
 - **Stepper / group-control tile** = 1–2U (see Phase 26 for restyle)
 - **Focus region** = remaining units after Field rows are counted
-- **`FloatingEStop`** = 1U × 1U square
+- **`FocusFrame` header** = 1U tall; icon/e-stop slot = 0.7U (min 64dp)
+- **`FloatingEStop`** (shell fallback only) = 0.7U (min 64dp); was listed as 1U — the 0.7U formula matches the header slot and the UAT-1 prominent tier
 
 `uDp` is derived at screen level via `rememberUnitGrid(minOf(contentWidth, contentHeight))`
 and passed explicitly to each component. Promote to `CompositionLocal<UnitGrid>` if call-chain
@@ -335,8 +387,9 @@ LOCKED compound anatomy"). Key invariants:
 > **UAT-1 (prominent icons ~70-80% U):** `FloatingEStop`'s glyph at `uDp * 0.7f` is the precedent
 > for U-relative icon sizing on Focus-anchoring controls. See `LAYOUT.md UAT-1`.
 >
-> **UAT-4 (e-stop top-left reserve):** `FloatingEStop` occupies `Alignment.TopStart` of the Focus
-> Box — leave that corner clear of important content. See `LAYOUT.md UAT-4`.
+> **UAT-4 — RETIRED (Focus-header law, 2026-06-13).** The e-stop docks in the `FocusFrame`
+> mandatory header's start slot; there is no longer a floating overlay to reserve space for.
+> See `LAYOUT.md UAT-4`.
 
 ### Stepper
 
@@ -375,11 +428,12 @@ for these; where prose and this table disagree, this table wins.
 |---|---|
 | `ListRow` border — unselected / selected | 1.5 / 2 |
 | `FocusFrame` edge — Neutral / Data / inner padding (`FocusInset`) | 1.5 / 3 / 16 |
+| `FocusFrame` header height / icon+e-stop size | 1U / 0.7U (min 64) |
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |
 | Scrubber track / thumb visible / thumb ring / touch target | 6 / 34 / 5 / 74 |
 | `SortFilterControlRow` tile height / floor | U / 48 (owner All-1U ruling, 2026-06-12; was U−12) |
-| `FloatingEStop` size / corner padding | 0.7U (min 64) / 14 |
+| `FloatingEStop` size / corner padding (shell fallback only — see §FloatingEStop) | 0.7U (min 64) / 14 |
 | Touch floors (stated once, app-wide) | controls ≥ 64 · absolute minimum ≥ 48 |
 
 **Consolidation mandate (owner):** style should trend MINIMAL — the normalization audit proposes

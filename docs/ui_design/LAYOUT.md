@@ -28,6 +28,14 @@ its content (never clips). **The one exemption is Webcam** — full-bleed native
 There is no persistent status bar; printer/connection context lives *inside* a region, never as
 global chrome.
 
+**Every `FocusFrame` carries a mandatory 1U header** (Focus-header law, 2026-06-13): a
+start-aligned identity icon and a centered title, always rendered — idle and printing alike. While
+printing, the icon slot morphs in place into the docked emergency-stop button. This means every
+screen that uses `FocusFrame` (21 destinations) docks its own e-stop; the `FloatingEStop` overlay
+is retained at the `AppShell` level only as a fallback for **Webcam** and **Theme** (which have no
+`FocusFrame`), and **Splash** has no print state. See `COMPONENTS.md §FocusFrame` for the full
+header contract.
+
 ### Where the gutter's jobs went
 
 The old Gutter was a dedicated bottom action row. Its responsibilities have been rehomed:
@@ -36,7 +44,7 @@ The old Gutter was a dedicated bottom action row. Its responsibilities have been
 |---|---|
 | **Navigation** | The morphing waterfall root *is* the home; no hub needed. |
 | **Per-screen actions** | **`FootButtonBar`** — pinned to the foot of the screen's primary list, inside the Field slot. |
-| **Stop / e-stop** | **`FloatingEStop`** overlay — top-left corner of Focus, visible on every screen but **only when printing**. Decoupled from layout flow. |
+| **Stop / e-stop** | **`FocusFrame` mandatory header** — icon slot morphs to e-stop while printing, on every `FocusFrame` screen. `FloatingEStop` overlay retained only as `AppShell` fallback for Webcam + Theme (no `FocusFrame`). |
 | **Power / device settings** | **System page** (also reachable as an idle foot-button). |
 
 ---
@@ -204,22 +212,28 @@ aligns with the bottom of the Field's foot buttons — across the 50/50 divide.
 
 ---
 
-## Floating e-stop
+## Floating e-stop (shell fallback only — Focus-header law, 2026-06-13)
 
-A red emergency-stop button (`FloatingEStop`) is **overlaid top-left of the Focus region**,
-shown on every screen but **only when the printer is actively printing**. It is:
+**The general `FloatingEStop` overlay pattern is RETIRED.** The e-stop now docks in the
+`FocusFrame` mandatory header (see §"The two regions" above and `COMPONENTS.md §FocusFrame`).
 
-- **Decoupled from layout flow** — positioned via `Modifier.align(Alignment.TopStart)` inside
-  a `Box` that wraps the Focus content; it does not shift or compress Focus geometry.
-- **Printing-only** — `visible = isPrinting`. Hidden at idle, visible while printing or paused.
-- **Size = 1U × 1U** (square, 64dp touch-target minimum).
-- **Intent = Stop (red/danger)** — styled with `stopSoft` fill + `stop` border.
-- **Always accessible** — because it floats above the Focus, nothing important should sit at
-  the very top-left of the Focus region. Place main focus content (progress ring, detail card)
-  below this reserved corner.
+`FloatingEStop` survives **only at the `AppShell` level** as the shell fallback for the two
+destinations that do not render a `FocusFrame`:
 
-`FloatingEStop` was piloted on SpoolScreen (Phase 23) and integrated app-wide with the waterfall
-root (Phase 24); it is a shipped, standing element on every screen.
+- **Webcam** — full-bleed native media; the deliberate header exemption.
+- **Theme** — settings-class screen outside the migration scope.
+
+When the printer is printing and the user is on either of those two destinations, `AppShell`
+renders the floating red `FloatingEStop` overlay — top-left of the screen, decoupled from layout
+flow, printing-only. Its properties on those fallback screens:
+
+- **Decoupled from layout flow** — `Modifier.align(Alignment.TopStart)` inside a `Box`; does not shift geometry.
+- **Printing-only** — hidden at idle, visible while printing or paused.
+- **Size = 0.7U (min 64dp)** — the UAT-1 prominent-icon tier (matches the header icon slot).
+- **Intent = Stop (red/danger)** — `stopSoft` fill + `stop` border.
+
+**Splash** has no print state and needs no e-stop. All other 21 destinations carry their own
+docked e-stop via the `FocusFrame` header morph.
 
 ---
 
@@ -374,14 +388,17 @@ is **constrained to a single U of height**, track + thumb. Implement via
 entire Focus. (Legacy fill-bar scrubbers are deprecated and migrate per the normalization-audit
 verdicts; the 1U cap binds them too until they're gone.)
 
-### UAT-4 — Keep useful content out of the Focus top-left e-stop reserve
+### UAT-4 — ~~Keep useful content out of the Focus top-left e-stop reserve~~ RETIRED
 
-The **top-left corner of the Focus region** (or of the list field in single-view) is reserved for
-the `FloatingEStop` overlay. Because `FloatingEStop` is positioned via
-`Modifier.align(Alignment.TopStart)`, nothing important should occupy that corner — place the
-primary Focus content (progress ring, adjuster panel, detail card) clear of it. This extends and
-formalises the existing note in §"Floating e-stop" above: *"nothing important should sit at the
-very top-left of the Focus region."*
+**RETIRED — Focus-header law, 2026-06-13.** The `FloatingEStop` overlay no longer occupies the
+top-left of the Focus region on standard screens. The e-stop has been **docked into the
+`FocusFrame` mandatory header's start slot** (the icon morphs into a red e-stop button while
+printing). There is no floating element to reserve space for, so this rule no longer applies.
+
+`FloatingEStop` survives as the `AppShell`-level fallback **only for Webcam and Theme** (the two
+destinations that do not render a `FocusFrame`). Those screens still have the floating overlay at
+top-left, but they are the exceptions, not the rule. UAT-4 is not renumbered — the other UAT
+numbers (1/2/3/5) are unchanged.
 
 ### UAT-5 — Controls cap at 1U height unless deliberately chosen otherwise
 
