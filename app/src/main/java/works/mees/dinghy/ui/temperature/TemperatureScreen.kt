@@ -54,12 +54,10 @@ import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
@@ -401,9 +399,6 @@ private fun TemperatureContent(
     var activeStep by remember { mutableStateOf(TEMP_DEFAULT_STEP) }
     // D-12: Field-mode (SensorList | PresetPicker).
     var fieldMode by remember { mutableStateOf<TempFieldMode>(TempFieldMode.SensorList) }
-    // E-stop confirm guard.
-    var showEstopGuard by remember { mutableStateOf(false) }
-
     // D-14 / finding 5: dedicated Colorful-8 swatch pool, independent of the active palette mode.
     // DEFAULT_MAX_ITEMS=4 (ThemePrefs.kt:185) and Simple/HighContrast collapse the active pool,
     // so we NEVER source from t.pool.take(8). Force Colorful, maxItems=8.
@@ -457,6 +452,9 @@ private fun TemperatureContent(
                             icon = DinghyIcons.LauncherTemperature,
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
+                            isPrinting = isPrinting,
+                            onEmergencyStop = onEmergencyStop,
+                            onPanic = onEmergencyStop,
                         ) {
                             GraphViewHost(
                                 tokens = t,
@@ -477,6 +475,9 @@ private fun TemperatureContent(
                             icon = DinghyIcons.LauncherTemperature,
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
+                            isPrinting = isPrinting,
+                            onEmergencyStop = onEmergencyStop,
+                            onPanic = onEmergencyStop,
                         ) {
                             TemperatureAdjusterFocus(
                                 sensor = sensor,
@@ -516,15 +517,6 @@ private fun TemperatureContent(
                         }
                     }
 
-                    // FloatingEStop: Box sibling, printing-only (P24 D-04 / PATTERNS §4).
-                    FloatingEStop(
-                        visible = isPrinting,
-                        onClick = { showEstopGuard = true },
-                        uDp = grid.uDp,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(14.dp),
-                    )
                 }
 
                 // Error toast inside the Focus area.
@@ -660,21 +652,6 @@ private fun TemperatureContent(
             },
         )
 
-        // ConfirmGuard for the E-stop (Box sibling — SpoolScreen.kt pattern §4).
-        if (showEstopGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.printstatus_estop_guard_title),
-                message = stringResource(R.string.printstatus_estop_guard_message),
-                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
-                cancelLabel = stringResource(R.string.common_cancel),
-                onConfirm = {
-                    onEmergencyStop()
-                    showEstopGuard = false
-                },
-                onCancel = { showEstopGuard = false },
-                destructive = true,
-            )
-        }
     }
 }
 
