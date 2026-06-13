@@ -113,4 +113,19 @@ class DinghyIconsTest {
             drawableBacked,
         )
     }
+
+    /**
+     * (2026-06-13 cleanup) The five calibration-hub routine glyphs are pinned to the owner's
+     * icon-bucket assignments (img/material-icon-bucket.json notes). A drift here means a routine
+     * shows the wrong glyph in the hub list + Focus header.
+     */
+    @Test
+    fun routineGlyphs_matchOwnerBucketAssignments() {
+        fun lig(icon: DinghyIcon) = (icon.primary as IconRef.Ligature).name
+        assertEquals("detector", lig(DinghyIcons.RoutineProbeCalibrate))
+        assertEquals("blur_linear", lig(DinghyIcons.RoutineBedMesh))
+        assertEquals("rule_settings", lig(DinghyIcons.RoutineScrewsTilt))
+        assertEquals("linear_scale", lig(DinghyIcons.RoutineZTilt))
+        assertEquals("linked_services", lig(DinghyIcons.RoutineQgl))
+    }
 }

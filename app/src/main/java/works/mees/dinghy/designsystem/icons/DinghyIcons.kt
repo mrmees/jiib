@@ -215,17 +215,15 @@ object DinghyIcons {
     val VisibilityOff = DinghyIcon(IconRef.Ligature("visibility_off"), alternate = "macros_show_hidden_off") // hidden state (pre-existing glyph, preserved)
     val Warning = DinghyIcon(IconRef.Ligature("warning"), alternate = "warning")                          // SpoolWarningGuard row glyph (pre-existing, preserved)
 
-    // --- Phase-27 calibration hub routine glyphs (27-01, OWNER-LOCKED — owner confirmed 2026-06-12
-    // "Bless all 5 as-is." — the current raw ligatures promoted verbatim to registry tokens; all 5
-    // verified present in the bundled v2.944 Material Symbols ttf via verify_ligatures.py. The
-    // Move/TESTZ distance-stepper +/- cells REUSE BabystepExpand/BabystepCompress (owner decision:
-    // "Reuse expand/compress") — NO new stepper token added.
+    // --- Phase-27 calibration hub routine glyphs (27-01; ligatures RE-ASSIGNED 2026-06-13 to the
+    // owner's icon-bucket selections in img/material-icon-bucket.json — superseding the 27-01
+    // placeholders. The full Material Symbols Outlined font is bundled, so every ligature renders.)
     // Token names follow the Routine* convention from 27-PATTERNS.md §"Icon Registration Gate".
-    val RoutineProbeCalibrate = DinghyIcon(IconRef.Ligature("straighten"), alternate = "routine_probe_calibrate")
-    val RoutineBedMesh = DinghyIcon(IconRef.Ligature("grid_on"), alternate = "routine_bed_mesh")
-    val RoutineScrewsTilt = DinghyIcon(IconRef.Ligature("architecture"), alternate = "routine_screws_tilt")
-    val RoutineZTilt = DinghyIcon(IconRef.Ligature("vertical_align_center"), alternate = "routine_z_tilt")
-    val RoutineQgl = DinghyIcon(IconRef.Ligature("crop_square"), alternate = "routine_qgl")
+    val RoutineProbeCalibrate = DinghyIcon(IconRef.Ligature("detector"), alternate = "routine_probe_calibrate")
+    val RoutineBedMesh = DinghyIcon(IconRef.Ligature("blur_linear"), alternate = "routine_bed_mesh")
+    val RoutineScrewsTilt = DinghyIcon(IconRef.Ligature("rule_settings"), alternate = "routine_screws_tilt")
+    val RoutineZTilt = DinghyIcon(IconRef.Ligature("linear_scale"), alternate = "routine_z_tilt")
+    val RoutineQgl = DinghyIcon(IconRef.Ligature("linked_services"), alternate = "routine_qgl")
 
     // --- Phase-27 review fix WR-04 (registry conformance — NOT new icon choices): the rebuilt
     // Move/ScrewsTilt/BedMesh screens still drew these 9 glyphs as raw MaterialSymbol/inline-ligature
