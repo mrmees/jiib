@@ -659,7 +659,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
             onClick = onClear,
             modifier = Modifier.weight(1f),
             intent = Intent.Danger,
-            symbol = "close", // TODO(23-rev WR-02): close glyph awaiting owner icon assignment
+            icon = DinghyIcons.DeleteSweep, // owner-assigned glyph (2026-06-12; closes WR-02)
         )
         OutlinedControl(
             label = stringResource(R.string.spool_filter_done),

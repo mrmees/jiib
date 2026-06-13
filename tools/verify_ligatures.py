@@ -61,6 +61,8 @@ def resolvable_ligatures(path):
 
 # Every IconRef.Ligature(...) name currently in DinghyIcons + every D-08 conversion target.
 NEEDED = {
+    # Spool filter-picker Clear (owner-assigned, 2026-06-12 wide pass):
+    "delete_sweep",
     # current IconRef.Ligature entries
     "arrow_back", "check", "edit", "instant_mix", "height", "altitude", "layers", "scale",
     "storefront", "timer_arrow_down", "timer_arrow_up", "donut_large", "pause_circle",

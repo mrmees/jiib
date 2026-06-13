@@ -47,6 +47,9 @@ object DinghyIcons {
     /** Scan-confirm header glyph (wide-pass R14 registry routing — pre-existing in-use ligature). */
     val QrCodeScanner = DinghyIcon(IconRef.Ligature("qr_code_scanner"), alternate = "qr_code_scanner")
 
+    /** Spool filter-picker Clear glyph (owner-assigned 2026-06-12, closes 23-rev WR-02). */
+    val DeleteSweep = DinghyIcon(IconRef.Ligature("delete_sweep"), alternate = "delete_sweep")
+
     // --- Launcher / shortcut glyphs (Standby grid + Printing shortcut row — icon-never-twice) ---
     val LauncherFiles = DinghyIcon(IconRef.Ligature("print_connect"), alternate = "launcher_files")
     val LauncherTemperature = DinghyIcon(IconRef.Ligature("thermostat"), alternate = "launcher_temperature")
@@ -247,7 +250,7 @@ object DinghyIcons {
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
-        Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings, QrCodeScanner,
+        Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings, QrCodeScanner, DeleteSweep,
         MatchCase, CalendarClock, Experiment, Home, QrCode,
         Print, Delete, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
