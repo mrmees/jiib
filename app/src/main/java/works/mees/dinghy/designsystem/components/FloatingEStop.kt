@@ -22,7 +22,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
  * ```kotlin
  * // Correct — Box sibling (same pattern as ConfirmGuard in PrintStatusScreen):
  * Box(Modifier.fillMaxWidth().weight(1f)) {
- *     DetailCard(ringColor = spoolColor, modifier = Modifier.fillMaxSize()) { … }
+ *     FocusFrame(edge = FocusEdge.Data(spoolColor), modifier = Modifier.fillMaxSize()) { … }
  *     FloatingEStop(
  *         visible = isPrinting,
  *         onClick = onEmergencyStop,

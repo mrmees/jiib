@@ -148,7 +148,7 @@ object SampleFixtures {
 
     /**
      * The [SpoolPickerState] with the Field-takeover TYPE filter picker open (23-06 FieldMode exercise).
-     * The first spool is selected so the DetailCard shows a color ring + FillMeter, and the Field shows
+     * The first spool is selected so the FocusFrame shows a color ring + FillMeter, and the Field shows
      * the TYPE picker (material family options) in-place instead of the spool list.
      */
     val spoolWithFilterOpen: SpoolPickerState = SpoolPickerState(

@@ -130,7 +130,7 @@ private fun FilesNothingSelected() =
     PreviewBox(colorfulDark) { FilesScreen(state = filesNothingSelected) }
 
 /**
- * File selected with full preview metadata — the dense future-print DetailCard.
+ * File selected with full preview metadata — the dense future-print FocusFrame.
  */
 @Nexus7Previews
 @Composable
@@ -189,7 +189,7 @@ private fun FilesFsLargeOverflow() =
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Explicit landscape preview: Focus (DetailCard) | Field (list + FootButtonBar) side-by-side.
+ * Explicit landscape preview: Focus (FocusFrame) | Field (list + FootButtonBar) side-by-side.
  * Verifies the ScreenScaffold landscape path (50/50 split) renders the two-pane grammar correctly.
  */
 @Preview(

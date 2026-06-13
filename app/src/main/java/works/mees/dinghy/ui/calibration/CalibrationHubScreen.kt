@@ -26,7 +26,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.calibration.CalibrationHubHolder
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.RoutineEntry
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
@@ -84,7 +84,7 @@ fun CalibrationHubScreen(
  *
  * Field = [ListBlock] of [ListRow]s (supported-first, greyed-if-unsupported per D-06 — all 5 always
  * render, unsupported dimmed in [ThemeTokens.text3] but still selectable and openable).
- * Focus = [DetailCard] with the selected routine's icon (UAT-1: ~75% of U), title, author-written
+ * Focus = [FocusFrame] with the selected routine's icon (UAT-1: ~75% of U), title, author-written
  * description, and an accent Open button.
  *
  * D-05: the thin [CalibrationHubScreen] wrapper ensures [selected] is never null on first render
@@ -106,14 +106,14 @@ fun CalibrationHubContent(
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
-                    // Focus: DetailCard with routine icon + title + description + Open button.
+                    // Focus: FocusFrame with routine icon + title + description + Open button.
                     // UAT-4: FloatingEStop reserves the top-left corner; keep content clear of it.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
                     ) {
-                        DetailCard(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                        FocusFrame(modifier = Modifier.fillMaxSize().padding(vertical = 8.dp)) {
                             if (selected != null) {
                                 HubRoutineFocus(
                                     routine = selected,
@@ -179,7 +179,7 @@ fun CalibrationHubContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hub Focus content (the DetailCard interior)
+// Hub Focus content (the FocusFrame interior)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable

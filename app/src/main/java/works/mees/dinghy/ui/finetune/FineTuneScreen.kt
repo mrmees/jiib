@@ -39,7 +39,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.AdjusterPanel
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
@@ -67,7 +67,7 @@ import works.mees.dinghy.theme.fsSp
  * Collapses the four old screens (Hub + Extrusion + Motion + FwRetraction) into ONE flat list:
  *  - Field = scrollable [ListRow] list of all visible params, leading icon tinted to the group's
  *    pool hue (D-02), trailing current-value readout in GeistMono, `hasFwRetraction`-gated (D-08).
- *  - Focus = [DetailCard] wrapping an [AdjusterPanel] (D-05 stepper, D-21 inline baseline).
+ *  - Focus = [FocusFrame] wrapping an [AdjusterPanel] (D-05 stepper, D-21 inline baseline).
  *  - FootButtonBar in the field lambda (foot-of-list pattern).
  *
  * ## Session memory (D-04)
@@ -305,14 +305,14 @@ private fun FineTuneContent(
 
         ScreenScaffold(
             focus = {
-                // D-01: Focus = DetailCard wrapping AdjusterPanel + FloatingEStop as Box sibling.
+                // D-01: Focus = FocusFrame wrapping AdjusterPanel + FloatingEStop as Box sibling.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .padding(8.dp),
                 ) {
-                    DetailCard(modifier = Modifier.fillMaxSize()) {
+                    FocusFrame(modifier = Modifier.fillMaxSize()) {
                         // quick-rmr: the pending WORKING value wins over the live vm value, so a
                         // tap burst follows the thumb instantly (and survives the echo window).
                         val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
@@ -354,7 +354,7 @@ private fun FineTuneContent(
                         )
                     }
 
-                    // FloatingEStop: Box sibling over the DetailCard, printing-only (P24 D-04).
+                    // FloatingEStop: Box sibling over the FocusFrame, printing-only (P24 D-04).
                     FloatingEStop(
                         visible = isPrinting,
                         onClick = { showEstopGuard = true },

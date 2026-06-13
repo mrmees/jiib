@@ -58,7 +58,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.AdjusterPanel
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
@@ -466,7 +466,7 @@ private fun TemperatureContent(
                         // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
                         // selectedSensor is a non-null LIVE readout here (resolved from legend above).
                         val sensor = selectedSensor
-                        DetailCard(modifier = Modifier.fillMaxSize()) {
+                        FocusFrame(modifier = Modifier.fillMaxSize()) {
                             TemperatureAdjusterFocus(
                                 sensor = sensor,
                                 traceColor = traceColors[sensor.name],

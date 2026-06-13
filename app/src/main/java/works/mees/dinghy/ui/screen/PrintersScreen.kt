@@ -43,7 +43,8 @@ import works.mees.dinghy.R
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
@@ -172,12 +173,12 @@ fun PrintersContent(
         ScreenScaffold(
             focus = {
                 if (activeProfile != null) {
-                    DetailCard(
+                    FocusFrame(
                         modifier = Modifier
                             .fillMaxWidth()
                             // R26 frame: ring lands at 8dp top (matches the Field list's first row).
-                            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
-                        ringColor = ringColor,
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        edge = ringColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                     ) {
                         Text(
                             text = activeProfile.displayName(),
@@ -300,7 +301,7 @@ fun PrintersContent(
  * The **Printers** surface — rebuilt on the jiib kit (28-06) with the R4 Edit/Delete mode-toggle
  * foot bar (D-13) and the D-15 Focus/Field/Foot layout.
  *
- * - **Focus** = active printer [DetailCard] (name, host:port, connection-state ring, Klippy state).
+ * - **Focus** = active printer [FocusFrame] (name, host:port, connection-state ring, Klippy state).
  * - **Field** = dense profile-row [ListBlock]; active row accent-tinted; row tap dispatched by mode.
  * - **Foot** = [FootButtonBar] (1U): Add(Accent) / Edit(Neutral↔highlighted) / Delete(Neutral↔filled
  *   stop, C4) / Back(Neutral).
@@ -688,7 +689,7 @@ private fun PrinterConnectionEditor(
 private const val SCAN_WINDOW_MS = 6000L
 
 /**
- * The string resource for a connection state’s human label (used in the Focus DetailCard) —
+ * The string resource for a connection state’s human label (used in the Focus FocusFrame) —
  * WR-05: resolved via stringResource at the call site (the stringResource LAW).
  */
 private fun ConnectionState.labelRes(): Int = when (this) {

@@ -54,9 +54,9 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
 /**
- * The per-output-type inline Focus control surface (D-18/D-19), hosted inside a `DetailCard` in the
+ * The per-output-type inline Focus control surface (D-18/D-19), hosted inside a `FocusFrame` in the
  * Outputs screen's Focus region. Switches on [output.descriptor.family] and renders the correct
- * in-place control — no [works.mees.dinghy.designsystem.layout.ScreenScaffold] wrapping (the DetailCard
+ * in-place control — no [works.mees.dinghy.designsystem.layout.ScreenScaffold] wrapping (the FocusFrame
  * IS the surface). Dispatch logic migrated VERBATIM from the three deleted detail pages.
  *
  * ## Output type routing

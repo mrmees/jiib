@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -145,7 +145,7 @@ private fun OutputsContent(
                             .weight(1f)
                             .padding(8.dp),
                     ) {
-                        DetailCard(modifier = Modifier.fillMaxSize()) {
+                        FocusFrame(modifier = Modifier.fillMaxSize()) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
                             // pointer-input node + dispatch closures — without it, a live gesture handler kept

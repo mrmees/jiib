@@ -47,7 +47,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -361,16 +361,16 @@ private fun FilesContent(
 
         ScreenScaffold(
             focus = {
-                // Focus = image-backed DetailCard of the selected file showing FUTURE-PRINT fields.
+                // Focus = image-backed FocusFrame of the selected file showing FUTURE-PRINT fields.
                 // NOTE: no screen-local FloatingEStop here — since Phase 24 (FIX-1) AppShell overlays
                 // the app-level printing-only e-stop on EVERY destination (CR-01: the local copy was a
                 // dead duplicate whose confirm dispatched nothing).
-                DetailCard(
+                FocusFrame(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
-                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                        .padding(top = 8.dp, bottom = 4.dp),
                 ) {
                     FilesDetailContent(
                         state = state,
@@ -406,11 +406,11 @@ private fun FilesContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Focus: the image-backed future-print DetailCard content
+// Focus: the image-backed future-print FocusFrame content
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * The DetailCard content: FUTURE-PRINT fields only (est time, filament, layers, height, size,
+ * The FocusFrame content: FUTURE-PRINT fields only (est time, filament, layers, height, size,
  * modified). NEVER shows elapsed/finished/status (Files Focus = future-print grammar).
  *
  * The gcode thumbnail is the dimmed BACKGROUND (ContentScale.Fit, alpha 0.3f) with GeistMono

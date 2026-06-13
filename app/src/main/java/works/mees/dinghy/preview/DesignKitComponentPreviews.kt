@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.dinghy.R
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
 import works.mees.dinghy.designsystem.components.FilterRow
@@ -63,7 +64,7 @@ private val sampleBlueFilamentColor = Color(0xFF_00_7A_CC.toInt()) // blue filam
 
 /**
  * @Preview demo exercising all 6 Phase-23 component classes:
- * [ListRow], [DetailCard], [FillMeter], [FootButtonBar], [FloatingEStop], [SortRow] + [FilterRow].
+ * [ListRow], [FocusFrame], [FillMeter], [FootButtonBar], [FloatingEStop], [SortRow] + [FilterRow].
  *
  * Uses [BoxWithConstraints] → [rememberUnitGrid] to derive `grid.uDp` exactly as a real screen
  * would. All text via [stringResource]; all colors via [LocalTokens.current]; icons via [DinghyIcons].
@@ -139,10 +140,10 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // ── DetailCard with FillMeter inside ────────────────────────────────
-            // ringColor = sampleFilamentColor (data carve-out, not brandTint-clamped)
-            DetailCard(
-                ringColor = sampleFilamentColor,
+            // ── FocusFrame with FillMeter inside ────────────────────────────────
+            // edge = FocusEdge.Data(sampleFilamentColor) (data carve-out, not brandTint-clamped)
+            FocusFrame(
+                edge = FocusEdge.Data(sampleFilamentColor),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(

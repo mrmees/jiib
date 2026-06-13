@@ -113,7 +113,7 @@ private fun OutputsHighContrastLight() = PreviewBox(highContrastLight) { Outputs
 @Composable
 private fun OutputsFsLargeOverflow() = PreviewBox(fsLargeSeed) { OutputsNoSelection() }
 
-/** With-selection state — exercises the Focus region DetailCard path. */
+/** With-selection state — exercises the Focus region FocusFrame path. */
 @Nexus7Previews
 @Composable
 private fun OutputsSelectedColorfulDark() = PreviewBox(colorfulDark) { OutputsWithSelection() }

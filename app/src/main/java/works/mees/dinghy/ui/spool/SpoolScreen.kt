@@ -53,7 +53,8 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.components.DetailCard
+import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
 import works.mees.dinghy.designsystem.components.FilterRow
@@ -83,7 +84,7 @@ import works.mees.dinghy.theme.fsSp
 
 /**
  * The Spool screen (Dest.Spool host; 23-06 jiib redesign rebuild) — now built on the new component-class
- * kit: [DetailCard] + [FillMeter] in Focus, [ListBlock] of [ListRow]s + [FootButtonBar] in Field,
+ * kit: [FocusFrame] + [FillMeter] in Focus, [ListBlock] of [ListRow]s + [FootButtonBar] in Field,
  * [FloatingEStop] as Box sibling, [SortRow] + [FilterRow] at the Focus foot.
  *
  * The Field-takeover filter picker ([FieldMode.FilterPicker]) replaces the old full-screen overlay —
@@ -258,8 +259,8 @@ fun SpoolScreen(
 
 /**
  * The shared, container-free scaffold rebuilt on the new component kit (23-06):
- * - Focus = [DetailCard] (color-reactive ring, [FillMeter]) + [SortRow] + [FilterRow] at the foot.
- *   [FloatingEStop] is a Box sibling over the [DetailCard] (printing-only, TopStart).
+ * - Focus = [FocusFrame] (color-reactive ring, [FillMeter]) + [SortRow] + [FilterRow] at the foot.
+ *   [FloatingEStop] is a Box sibling over the [FocusFrame] (printing-only, TopStart).
  * - Field = when([SpoolPickerState.fieldMode]) { [FieldMode.Spools] → [ListBlock]+[FootButtonBar];
  *   [FieldMode.FilterPicker] → in-place option list + clear/done buttons }
  * - [FootButtonBar] lives in the field lambda (foot-of-list).
@@ -347,7 +348,7 @@ private fun SpoolContent(
 
         ScreenScaffold(
             focus = {
-                // Focus = DetailCard (color-reactive ring + FillMeter) with FloatingEStop as Box sibling.
+                // Focus = FocusFrame (color-reactive ring + FillMeter) with FloatingEStop as Box sibling.
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -355,8 +356,8 @@ private fun SpoolContent(
                         // R26 frame: ring lands at 8dp top; bottom 4 composes the 8dp gap with SortRow.
                         .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 ) {
-                    DetailCard(
-                        ringColor = spoolColor,
+                    FocusFrame(
+                        edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         SpoolDetailContent(
@@ -367,7 +368,7 @@ private fun SpoolContent(
                             t = t,
                         )
                     }
-                    // FloatingEStop: Box sibling over the DetailCard, printing-only (Pitfall 7).
+                    // FloatingEStop: Box sibling over the FocusFrame, printing-only (Pitfall 7).
                     FloatingEStop(
                         visible = isPrinting,
                         onClick = onEmergencyStop,
@@ -851,7 +852,7 @@ private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens
 }
 
 /**
- * The Detail card content for the selected spool (23-06 rebuild inside [DetailCard]).
+ * The Detail card content for the selected spool (23-06 rebuild inside [FocusFrame]).
  * The [SpoolGlyph] from Phase 18.3 stays the spool visual — do NOT reinvent it.
  * FillMeter shows the remaining fraction (remaining/original). No redundant Spoolman icon.
  */

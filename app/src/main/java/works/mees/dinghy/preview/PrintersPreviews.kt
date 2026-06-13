@@ -16,7 +16,7 @@ import works.mees.dinghy.ui.screen.PrintersContent
  * ## Interesting axes
  * - **Mode:** Normal (default interaction), EditArmed, DeleteArmed, and the Empty-list edge case.
  * - **Connection state:** Connected (ring = accent), Error (ring = stop), Disconnected (no ring).
- *   These drive the [DetailCard] ringColor path.
+ *   These drive the [FocusFrame] ringColor path.
  * - **Theme:** six [PreviewBox] seeds (three palette modes × dark/light).
  * - **fs = L overflow:** one [fsLargeSeed] panel to catch text/row clipping in dense mode.
  * - **RTL:** one [LocalLayoutDirection.Rtl] panel to prove `start`/`end`-relative Modifiers.
@@ -37,7 +37,7 @@ private val activeId   = SampleFixtures.printerActiveId
 
 /**
  * Normal mode — row tap switches active printer (the zero-armed default state).
- * Connection is [ConnectionState.Connected] so the [DetailCard] ring is accent-colored.
+ * Connection is [ConnectionState.Connected] so the [FocusFrame] ring is accent-colored.
  */
 @Nexus7Previews
 @Composable
@@ -80,7 +80,7 @@ private fun PrintersEditArmedMode() =
 /**
  * DeleteArmed — the Delete FAB is highlighted; row tap triggers the ConfirmGuard.
  * Connection is [ConnectionState.Error] so the ring is stop-colored (the worst-case
- * design-time ring path for the [DetailCard]).
+ * design-time ring path for the [FocusFrame]).
  */
 @Nexus7Previews
 @Composable
@@ -101,7 +101,7 @@ private fun PrintersDeleteArmedMode() =
 
 /**
  * Empty-list edge case — no printers configured; the empty-state headline + body are
- * the only content in the Field region, and the Focus [DetailCard] renders without a profile.
+ * the only content in the Field region, and the Focus [FocusFrame] renders without a profile.
  */
 @Nexus7Previews
 @Composable
