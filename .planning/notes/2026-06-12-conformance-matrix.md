@@ -148,6 +148,18 @@ live until the 004 migration); home-standby U hoisted to screen root (C-U1b).
   `ScrubberPage.kt` trimmed to the pure host-tested helpers (fractionFromX/settleDispatchCount).
   Outputs fan/servo/heater/PWM + LED brightness all render the 004 style — verified on flox
   (Chamber Light).
+- **R26 edge-registration (`7353831`, owner-prompted) DONE & flox-verified:** the uniform 8dp
+  screen frame — first visible outline at 8dp top, last at 8dp bottom, in BOTH columns of a
+  two-region screen. Audit found exactly two offending idioms (Focus wrappers at vertical=4 vs
+  Field `ListBlock`s flush at 0; Focus footer rows at 4 vs the bar's owned 8). 9 screens reframed
+  (Spool/Files/Printers/Temperature/FineTune/Outputs/BedMesh/ScrewsTilt/CalibrationHub +
+  SystemPage/SystemInfo `ListBlock` top frames); `OutlinedControl` min-height = 1U inside a
+  `FootButtonBar` (via `LocalUnitDp`) so foot buttons FILL the 1U row and reach the bottom frame
+  (was floating at the bare 64dp floor). PrintStatus (all 4 modes) was already the conformant
+  template. Law = LAYOUT.md §"Edge registration" / R26; scored as checklist C-E2. Flox proof
+  (Spool): card-ring top y=64 == first-row top y=64; filter-tile bottom y=1087 == foot-button
+  bottom y=1087. Note: filter tiles are uDp−12 tall so their TOPS still sit below the foot
+  buttons' tops — only the bottoms align (that's all R26/the owner asked for).
 
 **REMAINING (follow-ups):** About/Printers local-row consolidation;
 dynamic symbol-param icon sites (ActiveSpoolCard ×2, ScanSurface, ScanConfirmCard); oklch
