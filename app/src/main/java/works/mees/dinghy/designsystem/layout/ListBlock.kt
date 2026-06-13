@@ -36,6 +36,13 @@ import works.mees.dinghy.theme.compose.LocalTokens
 val ListFrameInset: Dp = 8.dp
 
 /**
+ * Inner content inset of a [works.mees.dinghy.designsystem.components.FocusFrame] — the gap from the
+ * frame's border to its content. Distinct from [ListFrameInset] (the outer region-edge frame). THE
+ * single source for Focus inner padding; edit here to reflow every Focus's content breathing room.
+ */
+val FocusInset: Dp = 16.dp
+
+/**
  * The edge-faded, scrollbar-less `LazyColumn` wrapper used by every list screen in the jiib redesign.
  *
  * ## Purpose
