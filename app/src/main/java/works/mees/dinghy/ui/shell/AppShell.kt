@@ -921,7 +921,12 @@ fun AppShell(
             estopDest.isRoute<NavDest.Files>() ||
             estopDest.isRoute<NavDest.Outputs>() ||
             estopDest.isRoute<NavDest.Devices>() ||
-            estopDest.isRoute<NavDest.CalibrationHub>()
+            estopDest.isRoute<NavDest.CalibrationHub>() ||
+            estopDest.isRoute<NavDest.CalibrationBedMesh>() ||
+            estopDest.isRoute<NavDest.CalibrationProbe>() ||
+            estopDest.isRoute<NavDest.CalibrationScrewsTilt>() ||
+            estopDest.isRoute<NavDest.CalibrationZTilt>() ||
+            estopDest.isRoute<NavDest.CalibrationQgl>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
