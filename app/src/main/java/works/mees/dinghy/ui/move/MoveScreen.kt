@@ -172,10 +172,10 @@ internal fun MoveHubContent(
     // Delete-confirm overlay: non-null = name of the location pending deletion.
     var deleteConfirm by remember { mutableStateOf<String?>(null) }
 
-    // Staged target (finger-live preview) and in-flight travel flag.
-    // Keyed on mode so entering a new sub-mode always starts clean.
+    // Staged target (finger-live preview) and committed target for travel-line tracking.
+    // Both keyed on mode so entering a new sub-mode always starts clean.
     var staged by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
-    var pending by remember(mode) { mutableStateOf(false) }
+    var committedTarget by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
 
@@ -259,18 +259,21 @@ internal fun MoveHubContent(
                                 if (bed != null) {
                                     val cx = vm.x
                                     val cy = vm.y
+                                    val ct = committedTarget
+                                    val travelling = ct != null && cx != null && cy != null &&
+                                        travelPending(cx, cy, ct.first, ct.second)
                                     BedMapView(
                                         bed = bed,
                                         current = if (cx != null && cy != null) cx to cy else null,
-                                        target = staged,
-                                        travel = pending,
+                                        target = staged ?: committedTarget,
+                                        travel = travelling,
                                         modifier = Modifier.fillMaxWidth().weight(1f),
                                         onTapBed = { x, y -> staged = x to y },
                                         onDragBed = { x, y -> staged = x to y },
                                         onDragEnd = {
                                             staged?.let { (x, y) ->
                                                 onMoveTo(x, y, null)
-                                                pending = true
+                                                committedTarget = x to y
                                             }
                                         },
                                     )
