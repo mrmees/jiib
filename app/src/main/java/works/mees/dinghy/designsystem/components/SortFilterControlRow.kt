@@ -193,7 +193,7 @@ fun <K> SortRow(
  * @param options  the filter options; each has an [isActive][FilterOption.isActive] flag.
  * @param onSelect called when the user taps an option tile (callers toggle the active state).
  * @param uDp      one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
- *                 tile height = `uDp - 12.dp` (one unit minus the inter-row gap).
+ *                 tile height = `uDp` (full 1U — owner All-1U ruling, 2026-06-12).
  * @param modifier caller-supplied modifier.
  */
 @Composable
