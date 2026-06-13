@@ -67,6 +67,7 @@ import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.state.FileBrowserRow
 import works.mees.dinghy.state.FileBrowserRowKind
 import works.mees.dinghy.state.FilePreviewMetadata
+import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.Geist
@@ -139,6 +140,7 @@ fun FilesScreen(
     spoolmanClient: SpoolmanClient? = null,
     onPickSpoolForFile: (filamentType: List<String>, filamentColors: List<String>) -> Unit = { _, _ -> },
     onScanSpool: () -> Unit = {},
+    onEmergencyStop: () -> Unit = {},
 ) {
     val holderState by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -215,11 +217,16 @@ fun FilesScreen(
         httpBase = httpBase,
     )
 
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
+
     Box(modifier.fillMaxSize()) {
         FilesContent(
             state = screenState,
             deleteEnabled = deleteEnabled,
             startEnabled = startEnabled,
+            isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop,
             onRowClick = { row ->
                 scope.launch { holder.selectFile(row) }
             },
@@ -320,6 +327,8 @@ fun FilesScreen(
             state = state,
             deleteEnabled = state.selectedFile != null,
             startEnabled = state.selectedFile != null,
+            isPrinting = false,
+            onEmergencyStop = {},
             onRowClick = {},
             onToggleSort = onToggleSort,
             onBack = onBack,
@@ -338,6 +347,8 @@ private fun FilesContent(
     state: FilesScreenState,
     deleteEnabled: Boolean,
     startEnabled: Boolean,
+    isPrinting: Boolean,
+    onEmergencyStop: () -> Unit,
     onRowClick: (FileBrowserRow) -> Unit,
     onToggleSort: () -> Unit,
     onBack: () -> Unit,
@@ -362,9 +373,7 @@ private fun FilesContent(
         ScreenScaffold(
             focus = {
                 // Focus = image-backed FocusFrame of the selected file showing FUTURE-PRINT fields.
-                // NOTE: no screen-local FloatingEStop here — since Phase 24 (FIX-1) AppShell overlays
-                // the app-level printing-only e-stop on EVERY destination (CR-01: the local copy was a
-                // dead duplicate whose confirm dispatched nothing).
+                // E-stop now docks into the FocusFrame header (header slot morphs when isPrinting).
                 FocusFrame(
                     title = stringResource(R.string.cd_launcher_files),
                     icon = DinghyIcons.LauncherFiles,
@@ -374,6 +383,9 @@ private fun FilesContent(
                         .weight(1f)
                         // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
                         .padding(top = 8.dp, bottom = 4.dp),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
                 ) {
                     FilesDetailContent(
                         state = state,

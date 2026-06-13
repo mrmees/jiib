@@ -574,6 +574,7 @@ fun AppShell(
                     },
                     // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
                     onScanSpool = { nav.scanActive = true },
+                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                 )
             }
             composable<NavDest.Macros> {
