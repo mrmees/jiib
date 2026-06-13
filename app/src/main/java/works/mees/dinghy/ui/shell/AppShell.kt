@@ -767,9 +767,9 @@ fun AppShell(
             composable<NavDest.System> {
                 // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
                 // D-03 direct-tap dense rows (Printers/Settings/Theme/SystemInfo/About) + inert Power stub.
-                // Intentionally absent from screenOwnsEstop and FOOT_GUN_DESTS: the shell-level FloatingEStop
-                // fires on this cluster while printing (D-06); the else -> null path in shouldPopToRoot covers
-                // System correctly (non-foot-gun destination — pop-to-root never fires from here).
+                // E-stop: System now docks it in its FocusFrame header (in screenOwnsEstop, Focus-header
+                // law 2026-06-13) — the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
+                // the else -> null path in shouldPopToRoot covers System (pop-to-root never fires from here).
                 SystemPageScreen(
                     container = container,
                     onNavigate = { navController.navigate(it) },
@@ -907,20 +907,19 @@ fun AppShell(
             )
         }
 
-        // FIX-1 (D-14): the printing-only FloatingEStop + Stop Confirm guard are now AppShell-level Box
-        // siblings AFTER the NavHost so they appear on EVERY destination while printing — not just
-        // WaterfallHome. The e-stop button is visible when print state is Printing or Paused. Tap raises
-        // the shared full-screen ConfirmGuard before issuing EMERGENCY_STOP (T-24-03-02 mitigation).
+        // FIX-1 (D-14): the printing-only FloatingEStop + Stop Confirm guard are AppShell-level Box
+        // siblings AFTER the NavHost so the e-stop is reachable from any destination while printing.
+        // It is visible when print state is Printing or Paused. Tap raises the shared full-screen
+        // ConfirmGuard before issuing EMERGENCY_STOP (T-24-03-02 mitigation).
         // UnitGrid for sizing: derive U from the minimum dimension (portrait- and landscape-safe).
-        // WR-05 (26-rev): redesigned screens that render their OWN FloatingEStop + ConfirmGuard as
-        // Focus Box siblings (FineTune, Temperature, Spool — per-screen placement is those screens'
-        // design intent and is asserted by their preview matrices) suppress the shell-level e-stop;
-        // otherwise two stacked e-stop buttons co-render in the same corner while printing, each
-        // opening its own guard. ONE owner per destination.
-        // Focus-header law (2026-06-13): screens now dock the e-stop in their FocusFrame header, so
-        // they "own" the e-stop and the shell-level float must be suppressed (else two stacked e-stops
-        // co-render while printing). This set grows per migration task until only Webcam (full-bleed,
-        // exempt) relies on the shell float — at which point the shell float is effectively webcam-only.
+        // Focus-header law (2026-06-13): the canonical e-stop is now the FocusFrame HEADER DOCK — every
+        // FocusFrame's start-icon slot morphs into the e-stop while printing. So nearly every destination
+        // "owns" its e-stop (see screenOwnsEstop below) and this shell-level float is the FALLBACK for the
+        // few non-FocusFrame destinations only: Webcam (full-bleed, the header exemption) and Theme
+        // (outside the header migration scope). On any owned destination the float is suppressed, else two
+        // stacked e-stops would co-render. ONE owner per destination.
+        // screenOwnsEstop = the header-owning destinations (every audited screen). Only Webcam + Theme
+        // fall through to the shell float above.
         val estopDest = navBackStackEntry?.destination
         val screenOwnsEstop = estopDest != null && (
             estopDest.isRoute<NavDest.WaterfallHome>() ||

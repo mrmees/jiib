@@ -14,23 +14,14 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 /**
  * A printing-only floating emergency-stop overlay button (~70% of one unit U).
  *
- * ## Overlay-sibling positioning rule (Pitfall 7)
- * [FloatingEStop] is a **Box sibling** of the Focus content — it must NOT be placed inside the
- * Focus Column. The caller wraps the Focus content in a `Box(Modifier.fillMaxSize())` and adds
- * [FloatingEStop] as a sibling with `Modifier.align(Alignment.TopStart).padding(14.dp)`.
- *
- * ```kotlin
- * // Correct — Box sibling (same pattern as ConfirmGuard in PrintStatusScreen):
- * Box(Modifier.fillMaxWidth().weight(1f)) {
- *     FocusFrame(edge = FocusEdge.Data(spoolColor), modifier = Modifier.fillMaxSize()) { … }
- *     FloatingEStop(
- *         visible = isPrinting,
- *         onClick = onEmergencyStop,
- *         uDp = grid.uDp,
- *         modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
- *     )
- * }
- * ```
+ * ## Role after the Focus-header law (2026-06-13) — FALLBACK, not the general pattern
+ * The canonical e-stop is now the **FocusFrame header dock**: every FocusFrame's start-icon slot
+ * morphs into the e-stop while printing (see [works.mees.dinghy.designsystem.components.FocusFrame]).
+ * This [FloatingEStop] survives ONLY as the **shell-level fallback** for the handful of destinations
+ * that do NOT render a FocusFrame header — currently **Webcam** (full-bleed media, the deliberate
+ * header exemption) and **Theme** (outside the header migration scope). It is rendered once, app-level,
+ * in [works.mees.dinghy.ui.shell.AppShell] and gated by `!screenOwnsEstop` (the set of header-owning
+ * destinations) — so it appears only where no header e-stop exists. It is NOT placed per-screen anymore.
  *
  * ## Glyph — registered e-stop icon
  * Renders [DinghyIcons.StatusStop] (`disabled_by_default` ligature) — the owner-assigned e-stop

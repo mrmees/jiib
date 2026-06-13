@@ -120,7 +120,7 @@ fun CalibrationHubContent(
             ScreenScaffold(
                 focus = {
                     // Focus: FocusFrame with routine icon + title + description + Open button.
-                    // UAT-4: FloatingEStop reserves the top-left corner; keep content clear of it.
+                    // The header start-icon slot docks the e-stop while printing (Focus-header law).
                     FocusFrame(
                         title = stringResource(R.string.cd_launcher_calibration),
                         icon = DinghyIcons.LauncherCalibration,
