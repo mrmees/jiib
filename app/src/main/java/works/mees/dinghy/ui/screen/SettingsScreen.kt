@@ -36,12 +36,18 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -74,6 +80,10 @@ fun SettingsScreen(
     // the toggles fall back to the default so the screen still composes.
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val webcamOn = activeProfile?.webcamEnabled ?: true
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
 
     // Babystep app setting (D-06) — process-scoped, connection-INDEPENDENT (not per-profile).
     // All persistence routes through durable container intent helpers (writeScope), never a
@@ -127,6 +137,8 @@ fun SettingsScreen(
                 )
             }
         },
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onBack = onBack,
         modifier = modifier,
     )
@@ -152,6 +164,8 @@ fun SettingsContent(
     onRequestExempt: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     val t = LocalTokens.current
     // Local field mirrors the persisted layer-count. WR-03 (the Phase-19 value-not-sticking family):
@@ -170,6 +184,17 @@ fun SettingsContent(
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
         ScreenScaffold(
+            focus = {
+                FocusFrame(
+                    title = stringResource(R.string.system_row_settings),
+                    icon = DinghyIcons.SystemRowSettings,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {}
+            },
             field = {
                 Column(
                     Modifier
