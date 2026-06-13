@@ -917,6 +917,9 @@ fun AppShell(
             visible = !screenOwnsEstop &&
                 (printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused),
             onClick = { showEstopGuard = true },
+            // R1 hold-parity: the retired gutter StopButton carried HOLD = fire IMMEDIATELY (the
+            // panic path, no guard — Matthew). The shell e-stop keeps that semantic app-wide.
+            onHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             uDp = estopGrid.uDp,
             modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
         )

@@ -2,16 +2,16 @@ package works.mees.dinghy.ui.printstatus
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.R
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 
 /**
- * The 16-06 host gate: the pure [uiModel] mode→layout/control derivation. Covers each mode's gutter
- * set, the curated Standby launcher order (incl. the spool/macros conditionals), the shortcut-vs-babystep
- * Field row pick, and the Terminal error-line flag.
+ * The 16-06 host gate: the pure [uiModel] mode→layout/control derivation. Covers each mode's foot
+ * set (R1 gutter→foot migration), the curated Standby launcher order (incl. the spool/macros
+ * conditionals), the shortcut-vs-babystep Field row pick, and the Terminal error-line flag.
  */
 class PrintStatusUiModelTest {
 
@@ -20,15 +20,11 @@ class PrintStatusUiModelTest {
     // ---- Standby ----------------------------------------------------------------------------------
 
     @Test
-    fun standby_gutterIsPreheatPlusInertPower_noEStop() {
+    fun standby_hasNoModelDerivedFoot() {
+        // R1: the Standby foot bar (Preheat · System) is hand-built in PrintStatusStandbyField —
+        // the model derives an EMPTY foot set for Standby.
         val m = standby()
-        assertEquals(listOf("Preheat", "Power"), m.gutter.map { it.label })
-        assertEquals(PrintStatusControlAction.Preheat, m.gutter[0].tapAction)
-        assertEquals(PrintStatusControlAction.Power, m.gutter[1].tapAction)
-        // Power is inert (D-04) — rendered but disabled.
-        assertFalse(m.gutter[1].enabled)
-        // No E-Stop in Standby.
-        assertNull(m.gutter.firstOrNull { it.tapAction == PrintStatusControlAction.EmergencyStop })
+        assertTrue(m.foot.isEmpty())
     }
 
     @Test
@@ -82,15 +78,18 @@ class PrintStatusUiModelTest {
     // ---- Printing ---------------------------------------------------------------------------------
 
     @Test
-    fun printing_gutterIsPauseCancelEStop_andShortcutRowByDefault() {
+    fun printing_footIsPauseCancel_andShortcutRowByDefault() {
         val m = uiModel(
             PrintStatusMode.Printing,
             PrinterState(printState = PrintState.Printing, printFilename = "cube.gcode"),
         )
-        // Tune (flexible shortcut, disabled stub) + Pause + Stop (E-Stop) — the 16-02 set.
-        assertEquals(listOf("Tune", "Pause", "Stop"), m.gutter.map { it.label })
-        assertEquals(PrintStatusControlAction.PausePrint, m.gutter[1].tapAction)
-        assertEquals(PrintStatusControlAction.EmergencyStop, m.gutter[2].tapAction)
+        // R1 foot set (sketch-001): Pause · Cancel. E-stop is the AppShell FloatingEStop, not a foot button.
+        assertEquals(
+            listOf(R.string.printstatus_foot_pause, R.string.printstatus_foot_cancel),
+            m.foot.map { it.labelRes },
+        )
+        assertEquals(PrintStatusControlAction.PausePrint, m.foot[0].tapAction)
+        assertEquals(PrintStatusControlAction.GracefulCancel, m.foot[1].tapAction)
         // No launcher mid-print; shortcut row is active (babystep window closed).
         assertTrue(m.launcherDests.isEmpty())
         assertEquals(PrintStatusFieldRow.Shortcut, m.activeRow)
@@ -109,14 +108,17 @@ class PrintStatusUiModelTest {
     // ---- Paused -----------------------------------------------------------------------------------
 
     @Test
-    fun paused_gutterIsResumeCancel_noEStop() {
+    fun paused_footIsResumeCancel() {
         val m = uiModel(
             PrintStatusMode.Paused,
             PrinterState(printState = PrintState.Paused, printFilename = "cube.gcode"),
         )
-        assertEquals(PrintStatusControlAction.ResumePrint, m.gutter[1].tapAction)
-        assertEquals("Cancel", m.gutter[2].label)
-        assertNull(m.gutter.firstOrNull { it.tapAction == PrintStatusControlAction.EmergencyStop })
+        assertEquals(
+            listOf(R.string.printstatus_foot_resume, R.string.printstatus_foot_cancel),
+            m.foot.map { it.labelRes },
+        )
+        assertEquals(PrintStatusControlAction.ResumePrint, m.foot[0].tapAction)
+        assertEquals(PrintStatusControlAction.GracefulCancel, m.foot[1].tapAction)
     }
 
     @Test
@@ -138,7 +140,10 @@ class PrintStatusUiModelTest {
             PrinterState(printState = PrintState.Error, printFilename = "failed.gcode"),
         )
         assertTrue(m.showErrorLines)
-        assertEquals(listOf("Dismiss", "Reprint"), m.gutter.map { it.label })
+        assertEquals(
+            listOf(R.string.printstatus_foot_dismiss, R.string.printstatus_foot_reprint),
+            m.foot.map { it.labelRes },
+        )
     }
 
     @Test

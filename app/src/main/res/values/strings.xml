@@ -85,6 +85,18 @@
     <string name="printstatus_estop_guard_message">Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.</string>
     <string name="printstatus_estop_guard_confirm">Emergency stop</string>
 
+    <!-- Print-Status foot-bar control labels (R1 gutter→foot migration; the "-ing" variants are the
+         pending-debounce labels while the matching command is in flight). -->
+    <string name="printstatus_foot_pause">Pause</string>
+    <string name="printstatus_foot_pausing">Pausing</string>
+    <string name="printstatus_foot_resume">Resume</string>
+    <string name="printstatus_foot_resuming">Resuming</string>
+    <string name="printstatus_foot_cancel">Cancel</string>
+    <string name="printstatus_foot_cancelling">Cancelling</string>
+    <string name="printstatus_foot_dismiss">Dismiss</string>
+    <string name="printstatus_foot_reprint">Reprint</string>
+    <string name="printstatus_foot_reprinting">Reprinting</string>
+
     <!-- Cancel-print confirmation guard. -->
     <string name="printstatus_cancel_guard_title">Cancel print?</string>
     <string name="printstatus_cancel_guard_message">This stops the current job. The printer will not finish this print.</string>

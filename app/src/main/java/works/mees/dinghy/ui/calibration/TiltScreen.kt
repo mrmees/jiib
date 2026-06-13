@@ -112,7 +112,7 @@ fun TiltScreen(
  * Layout:
  *  - Focus = bed-tilt icon + state headline (token-restyled, unchanged information).
  *  - Field = status body text + adjustment recommendations (result state). No scrollable list.
- *  - Foot = state-adaptive [FootButtonBar] (gutter = null, D-10).
+ *  - Foot = state-adaptive [FootButtonBar] (D-10).
  */
 @Composable
 fun TiltContent(
@@ -155,7 +155,7 @@ fun TiltContent(
                         errorText = vm.errorText,
                         modifier = Modifier.weight(1f).padding(8.dp),
                     )
-                    // State-adaptive FootButtonBar (gutter = null, D-10).
+                    // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(
                         uDp = grid.uDp,
                     ) {
@@ -210,7 +210,6 @@ fun TiltContent(
                         }
                     }
                 },
-                gutter = null,
             )
             // FloatingEStop top-left corner reservation (UAT-4).
             // Calibration = pop-to-root foot-gun: Tilt is only reachable while idle.

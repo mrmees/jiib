@@ -50,7 +50,7 @@ import works.mees.dinghy.theme.fsSp
  * (no fit-one-page requirement for SysInfo). Nothing on this page dispatches a command.
  *
  * ## Layout (28-07 dense restyle)
- * `ScreenScaffold(gutter = null)` with field-only layout. The `ListBlock` holds all info rows;
+ * `ScreenScaffold` with field-only layout. The `ListBlock` holds all info rows;
  * a `FootButtonBar` at the bottom of the field column holds the Back button. Health chip stays
  * as a dedicated labeled row. The SYS-01..SYS-05 content is unchanged — restyle only.
  *
@@ -257,7 +257,6 @@ fun SystemInformationContent(
                     )
                 }
             },
-            gutter = null,
         )
     }
 }

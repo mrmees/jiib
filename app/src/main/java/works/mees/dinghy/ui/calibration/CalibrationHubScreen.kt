@@ -173,7 +173,6 @@ fun CalibrationHubContent(
                         )
                     }
                 },
-                gutter = null, // LAW: rebuilt screens always null the gutter.
             )
         }
     }

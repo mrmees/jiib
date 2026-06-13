@@ -68,7 +68,7 @@ import works.mees.dinghy.theme.fsSp
  *  - Field = scrollable [ListRow] list of all visible params, leading icon tinted to the group's
  *    pool hue (D-02), trailing current-value readout in GeistMono, `hasFwRetraction`-gated (D-08).
  *  - Focus = [DetailCard] wrapping an [AdjusterPanel] (D-05 stepper, D-21 inline baseline).
- *  - `gutter = null` (redesigned screen — FootButtonBar in the field lambda).
+ *  - FootButtonBar in the field lambda (foot-of-list pattern).
  *
  * ## Session memory (D-04)
  * The last-adjusted [FineTuneTuner] is remembered for the session (composition lifetime); the
@@ -366,7 +366,7 @@ private fun FineTuneContent(
                 }
             },
             field = {
-                // Field: param list + FootButtonBar (gutter = null; FootButtonBar lives HERE).
+                // Field: param list + FootButtonBar (FootButtonBar lives HERE).
                 ListBlock(
                     modifier = Modifier
                         .weight(1f)
@@ -405,7 +405,7 @@ private fun FineTuneContent(
                     }
                 }
 
-                // FootButtonBar is INSIDE the field lambda (gutter = null — D-23 / shared pattern).
+                // FootButtonBar is INSIDE the field lambda (D-23 / shared pattern).
                 FootButtonBar(
                     uDp = grid.uDp,
                 ) {
@@ -425,8 +425,6 @@ private fun FineTuneContent(
                     )
                 }
             },
-            // MANDATORY: gutter = null on redesigned screens (shared pattern — D-23).
-            gutter = null,
         )
 
         // E-stop ConfirmGuard: full-screen overlay when the FloatingEStop is tapped.

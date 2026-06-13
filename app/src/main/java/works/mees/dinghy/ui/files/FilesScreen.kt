@@ -330,7 +330,7 @@ fun FilesScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared content scaffold (ScreenScaffold, gutter = null)
+// Shared content scaffold (ScreenScaffold, foot-of-list)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -399,7 +399,6 @@ private fun FilesContent(
                     t = t,
                 )
             },
-            gutter = null, // Redesigned screen — FootButtonBar lives in the field lambda (Pitfall 1).
         )
     }
 }
@@ -542,7 +541,7 @@ private fun FileStatRow(
 
 /**
  * The flat file-list Field (D-05 — only [FileBrowserRowKind.File] rows render; never Up/Directory).
- * [FootButtonBar] is the LAST element here (gutter = null pattern — Pitfall 1).
+ * [FootButtonBar] is the LAST element here (foot-of-list pattern — Pitfall 1).
  *
  * Foot buttons (D-07): Back (Neutral) · Print (Accent) · Delete (Danger).
  */

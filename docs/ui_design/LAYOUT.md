@@ -158,17 +158,16 @@ Any screen whose primary content is a scrollable list **pins its primary actions
 that list** inside a `FootButtonBar`. This replaces the old gutter for list-screens.
 
 - `FootButtonBar` is a `Row` of `OutlinedControl` buttons, height = 1U.
-- It lives **inside the Field slot lambda**, as the last element of the field column — NOT in
-  the `gutter` slot of `ScreenScaffold`.
+- It lives **inside the Field slot lambda**, as the last element of the field column.
 - With 3 buttons, each button is `weight(1f)` of the Field width.
 - **Back is always the FIRST (start-aligned) button** (R8, 2026-06-12), app-wide.
 - It is **optional per page** (R1) — a screen whose Field holds all its actions needs no foot bar,
   but then must still provide an explicit exit.
 - The Spoolman screen (3-button foot: Home · Scan · Load/Unload) is the canonical prototype.
 
-**Structural note:** `ScreenScaffold.gutter` still exists for backward compatibility with
-pre-redesign screens. Redesigned screens pass `gutter = null` and use `FootButtonBar` inside
-the field lambda.
+**Structural note:** the `ScreenScaffold.gutter` slot was DELETED (2026-06-12, with the R1
+PrintStatus gutter→foot migration — the last consumer). Every screen places its actions in a
+`FootButtonBar` inside the field lambda.
 
 ---
 
@@ -394,6 +393,5 @@ COMPONENTS.md cross-reference.
 </div>
 ```
 
-The Kotlin `ScreenScaffold.kt` exposes `gutter: @Composable (() -> Unit)? = null` for backward
-compatibility. Pass `gutter = null` on redesigned screens; the `FootButtonBar` lives inside the
-`field` lambda.
+The Kotlin `ScreenScaffold.kt` no longer exposes a gutter slot (deleted 2026-06-12 with the R1
+PrintStatus migration). The `FootButtonBar` lives inside the `field` lambda.

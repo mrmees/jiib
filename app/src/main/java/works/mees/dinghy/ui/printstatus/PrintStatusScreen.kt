@@ -47,21 +47,20 @@ import works.mees.dinghy.ui.route.buildIdleActions
  * Data is read STRICTLY from fields confirmed present in docs/moonraker-capabilities.md (real Ender 5 +
  * Ender 3) — no assumed fields. Layer info is nullable (slicer/state-dependent) → "—" fallback.
  *
- * ## Four-state surface (Phase 16) — routed off [classifyPrintStatus]
+ * ## Four-state surface (Phase 16, foot bars per R1 2026-06-12) — routed off [classifyPrintStatus]
  * The screen renders FROM the pure [uiModel] ([PrintStatusUiModel]) per the classified
  * [PrintStatusMode] (Standby / Printing / Paused / Terminal). Each mode renders its own
- * Focus / Field / Gutter by RECOMPOSING the harvested primitives (ProgressRing, StatGrid, StopButton,
- * PrintStatusControlTile, ConfirmGuard, PresetSelector):
+ * Focus / Field; mode actions live in a [PrintStatusFootBar] at the foot of the field (the
+ * ScreenScaffold gutter slot is retired). E-Stop on every mode = the AppShell-level FloatingEStop:
  *  - **Standby:** app-icon Focus + minimal glance overlay (Nozzle/Bed + [selectGlanceSensor] glance
- *    temp + active-spool remaining) · the adaptive launcher grid (Drawer = flexible/growing tile, every
- *    other tile dispatches a real [Dest] via [onNavigate]) · Preheat (spool-aware via [selectPreheatPath])
- *    + inert Power gutter — no E-Stop.
+ *    temp + active-spool remaining) · the idle action list · the hand-built Preheat (spool-aware via
+ *    [selectPreheatPath]) + System foot bar — no E-Stop.
  *  - **Printing:** the 03-print-status composition ([PrintStatusFocus]) · ONE framed [StatGrid] (incl.
  *    the Applied-Z-offset row) + the shortcut row OR the babystep 3-cell row (early-layer window) ·
- *    Pause / Cancel / E-Stop.
- *  - **Paused:** the Printing focus DIMMED + a pause overlay · same Field/toolset · Resume / Cancel.
- *  - **Terminal:** a clean hero ([TerminalFocus], no ring/dim) · the stats frame (live-only fields →
- *    "—") · Dismiss / Reprint; Terminal(Error) appends the AppShell-projected ≤3 [errorLines].
+ *    foot: Pause · Cancel.
+ *  - **Paused:** the Printing focus DIMMED + a pause overlay · same Field/toolset · foot: Resume · Cancel.
+ *  - **Terminal:** a clean hero ([TerminalFocus], no ring/dim) · the stats summary (live-only fields →
+ *    "—") · foot: Dismiss · Reprint; Terminal(Error) appends the AppShell-projected ≤3 [errorLines].
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
  * @param onNavigate launcher/forward-nav seam — every Standby launcher tile dispatches a real [NavDest];
@@ -77,11 +76,6 @@ fun PrintStatusScreen(
     errorLines: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
-    // Launcher/forward-nav seams (16-06): the Standby launcher tiles dispatch onNavigate(NavDest.*);
-    // the System foot button navigates to NavDest.System (D-04/28-05); the active-spool card Change/Open
-    // routes to the Spool screen. Local aliases keep the existing card-wiring below readable.
-    val onOpenFiles: () -> Unit = { onNavigate(NavDest.Files) }
-    val onOpenSpool: () -> Unit = { onNavigate(NavDest.Spool) }
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
@@ -151,11 +145,9 @@ fun PrintStatusScreen(
         }
     }
 
-    // FIX-1 (24-04): showEstopGuard + its ConfirmGuard block REMOVED — the FloatingEStop and its
-    // Stop Confirm guard are now owned by the AppShell overlay layer (24-03), where they appear on
-    // EVERY destination while printing (D-14). A duplicate guard here would double-render and only
-    // cover the root. The EmergencyStop action path (PrintStatusControlAction.EmergencyStop) was
-    // also removed from the gutter; the AppShell-level guard fires via the hoisted FloatingEStop.
+    // The FloatingEStop and its Stop Confirm guard are owned by the AppShell overlay layer (24-03),
+    // where they appear on EVERY destination while Printing/Paused (D-14). No e-stop path exists in
+    // this screen — the foot bars carry only the mode actions (R1 gutter→foot migration).
 
     // Idle action list (24-04, D-05/D-06/D-08): built once per capability-flag change.
     // All four capability flags are live StateFlows so the list is rebuilt whenever the printer
@@ -180,7 +172,7 @@ fun PrintStatusScreen(
     var babystepStep by remember { mutableStateOf(works.mees.dinghy.command.PrinterCommands.BABYSTEP_STEPS.first()) }
 
     // The classified four-state mode (the phase's central routing axis) + the pure UI model the screen
-    // renders FROM (launcher order, gutter set, active Field row, terminal-error flag).
+    // renders FROM (launcher order, foot set, active Field row, terminal-error flag).
     val mode = classifyPrintStatus(state)
     val babystepShown = babystepVisible(babystepEnabled, state.currentLayer, babystepLayers)
     val ui = uiModel(
@@ -233,7 +225,13 @@ fun PrintStatusScreen(
         val d = dispatcher ?: return@LaunchedEffect
         d.events.collect { event ->
             when (event) {
-                is DispatchEvent.Failure -> failureText = event.message
+                is DispatchEvent.Failure -> {
+                    failureText = event.message
+                    // Un-wedge the debounce (Codex W-03): a failed pause/resume/cancel/reprint never
+                    // flips printState, so the state-watching clear would leave the foot bar dimmed
+                    // forever. Key-matched — unrelated failures don't clear it.
+                    pendingAction = clearPendingOnDispatchFailure(pendingAction, event.key)
+                }
             }
         }
     }
@@ -250,13 +248,19 @@ fun PrintStatusScreen(
 
     fun runAction(action: PrintStatusControlAction) {
         when (action) {
-            PrintStatusControlAction.OpenFiles -> onOpenFiles()
             PrintStatusControlAction.RestartPrint -> {
                 // Terminal Reprint (D-05): direct print-start of Moonraker's current/last file path, NO
                 // ConfirmGuard, does NOT SDCARD_RESET_FILE first. Available when a usable path is exposed.
-                restartFilename?.let { dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(it)) }
+                // Pending debounce (Codex W-03): arms the "Reprinting" label + dims the foot bar so a
+                // double-tap can't dispatch printStart twice; cleared when the file goes active OR the
+                // dispatch fails (clearPendingOnDispatchFailure).
+                if (pendingAction == null) {
+                    restartFilename?.let {
+                        dispatcher?.dispatch(CommandRegistry.printStart, PrintStartArgs(it))
+                        pendingAction = PrintStatusPendingAction.Restart(it)
+                    }
+                }
             }
-            PrintStatusControlAction.Tune -> onNavigate(NavDest.FineTune) // TUNE-01 / D-21 — opens the Fine-Tune Hub.
             PrintStatusControlAction.PausePrint -> {
                 if (pendingAction == null) {
                     dispatcher?.dispatch(CommandRegistry.printPause, Unit)
@@ -272,18 +276,9 @@ fun PrintStatusScreen(
             PrintStatusControlAction.GracefulCancel -> {
                 if (pendingAction == null) showCancelGuard = true
             }
-            // FIX-1 (24-04): EmergencyStop is no longer dispatched from the in-screen gutter path.
-            // The AppShell-level FloatingEStop + ConfirmGuard (hoisted in 24-03) own the e-stop on
-            // EVERY screen while printing. This case is retained as a no-op to keep the when()
-            // exhaustive — callers in the printing gutter that still reference it are safe.
-            PrintStatusControlAction.EmergencyStop -> Unit
-            // Spool-aware Preheat (D-01) — selectPreheatPath owns the direct-vs-selector branch.
-            PrintStatusControlAction.Preheat -> runPreheat()
             // Terminal Dismiss (D-05): SDCARD_RESET_FILE; a failure surfaces via the dispatcher toast
-            // (the LaunchedEffect below). Neutral — clears, does not discard input.
+            // (the LaunchedEffect above). Clears, does not discard input.
             PrintStatusControlAction.Dismiss -> dispatcher?.dispatch(CommandRegistry.dismissPrint, Unit)
-            // Power is INERT in P16 (D-04) — rendered as the red Power tile, no-op.
-            PrintStatusControlAction.Power -> Unit
         }
     }
 
@@ -311,7 +306,6 @@ fun PrintStatusScreen(
             pendingActionIsNull = pendingAction == null,
             hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
             onRunAction = ::runAction,
-            onEmergencyStopHold = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onBabystepCompress = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(-babystepStep)) },
             onBabystepExpand = { dispatcher?.dispatch(CommandRegistry.babystepZ, works.mees.dinghy.command.BabystepArgs(babystepStep)) },
             onCycleBabystepStep = { babystepStep = nextBabystepStep(babystepStep) },
@@ -420,7 +414,6 @@ fun PrintStatusScreen(
             pendingActionIsNull = true,
             hasBookmarkedMacros = hasBookmarkedMacros,
             onRunAction = {},
-            onEmergencyStopHold = {},
             onBabystepCompress = {},
             onBabystepExpand = {},
             onCycleBabystepStep = {},
@@ -458,7 +451,6 @@ private fun PrintStatusContent(
     pendingActionIsNull: Boolean,
     hasBookmarkedMacros: Boolean,
     onRunAction: (PrintStatusControlAction) -> Unit,
-    onEmergencyStopHold: () -> Unit,
     onBabystepCompress: () -> Unit,
     onBabystepExpand: () -> Unit,
     onCycleBabystepStep: () -> Unit,
@@ -486,8 +478,6 @@ private fun PrintStatusContent(
                     activeSpoolCardState = activeSpoolCardState,
                 )
             },
-            // SC-3: the Standby root has no gutter — its actions live in the idle FootButtonBar.
-            // Pass gutter = null; ScreenScaffold omits the gutter slot when null.
             field = {
                 PrintStatusStandbyField(
                     idleActions = idleActions,
@@ -497,7 +487,6 @@ private fun PrintStatusContent(
                     uDp = grid.uDp,
                 )
             },
-            gutter = null,
         )
 
         is PrintStatusMode.Printing -> ScreenScaffold(
@@ -514,18 +503,13 @@ private fun PrintStatusContent(
                     failureText = failureText,
                     hasBookmarkedMacros = hasBookmarkedMacros,
                     ui = ui,
+                    pendingActionIsNull = pendingActionIsNull,
+                    onRunAction = onRunAction,
                     onBabystepCompress = onBabystepCompress,
                     onBabystepExpand = onBabystepExpand,
                     onCycleBabystepStep = onCycleBabystepStep,
                     onNavigate = onNavigate,
-                )
-            },
-            gutter = {
-                PrintStatusGutter(
-                    ui = ui,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    onEmergencyStopHold = onEmergencyStopHold,
+                    uDp = grid.uDp,
                 )
             },
         )
@@ -544,18 +528,13 @@ private fun PrintStatusContent(
                     failureText = failureText,
                     hasBookmarkedMacros = hasBookmarkedMacros,
                     ui = ui,
+                    pendingActionIsNull = pendingActionIsNull,
+                    onRunAction = onRunAction,
                     onBabystepCompress = onBabystepCompress,
                     onBabystepExpand = onBabystepExpand,
                     onCycleBabystepStep = onCycleBabystepStep,
                     onNavigate = onNavigate,
-                )
-            },
-            gutter = {
-                PrintStatusGutter(
-                    ui = ui,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    onEmergencyStopHold = onEmergencyStopHold,
+                    uDp = grid.uDp,
                 )
             },
         )
@@ -569,14 +548,9 @@ private fun PrintStatusContent(
                     ui = ui,
                     errorLines = errorLines,
                     failureText = failureText,
-                )
-            },
-            gutter = {
-                PrintStatusGutter(
-                    ui = ui,
                     pendingActionIsNull = pendingActionIsNull,
                     onRunAction = onRunAction,
-                    onEmergencyStopHold = onEmergencyStopHold,
+                    uDp = grid.uDp,
                 )
             },
         )

@@ -3,8 +3,10 @@ package works.mees.dinghy.designsystem.components
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -48,6 +50,9 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
  *                 the button is sized to `(uDp * 0.7f).coerceAtLeast(64.dp)` (~70% of U with a
  *                 64dp touch-target floor so the box never drops below the ≥64dp minimum and
  *                 stays a square on tablet-sized U values).
+ * @param onHold   optional long-press PANIC path — fires the e-stop IMMEDIATELY, no guard (the
+ *                 hold semantics the retired gutter StopButton carried: tap = guarded, hold ≈ ½s
+ *                 = instant halt — Matthew). Null = tap-only (pre-R1 behavior).
  * @param modifier caller-supplied modifier — typically `Modifier.align(Alignment.TopStart).padding(14.dp)`;
  *                 the component does NOT impose absolute offsets itself (Pitfall 7).
  */
@@ -57,16 +62,21 @@ fun FloatingEStop(
     onClick: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
+    onHold: (() -> Unit)? = null,
 ) {
     if (!visible) return
 
     OutlinedControl(
         label = "",
         onClick = onClick,
+        onLongClick = onHold,
         modifier = modifier.size((uDp * 0.7f).coerceAtLeast(64.dp)),
         intent = Intent.Danger,
         // Registered e-stop glyph — disabled_by_default (owner-assigned in DinghyIcons.StatusStop).
         // NOT emergency_stop (that raw string is never used — icon law; 23-05 plan §Task 2).
         icon = DinghyIcons.StatusStop,
+        // Icon-only control: without this TalkBack speaks the raw ligature name (WR-05). The
+        // spoken affordance the retired gutter StopButton carried (Codex W-01).
+        contentDescription = stringResource(R.string.cd_emergency_stop),
     )
 }

@@ -52,7 +52,7 @@ import works.mees.dinghy.theme.fsSp
  * size in portrait and landscape. No section-header words — grouping by outline/fill only.
  *
  * ## Layout (D-11/D-12)
- * Field-only `ScreenScaffold(gutter = null)`. Back is the last control inside the scrolling Column.
+ * Field-only `ScreenScaffold`. Back is the last control inside the scrolling Column.
  * All toggles use the `ListRow` anatomy with a trailing `Switch` token-tinted via
  * `t.accent` for the checked state. The numeric babystep field uses `TokenTextField`
  * with a numeric keyboard. All persistence routes through the process-lifetime `container.set*`
@@ -282,7 +282,6 @@ fun SettingsContent(
                     )
                 }
             },
-            gutter = null,
         )
     }
 }

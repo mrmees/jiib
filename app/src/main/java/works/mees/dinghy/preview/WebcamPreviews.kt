@@ -106,7 +106,7 @@ private val fakeProvider = Media3SurfaceProvider()
 
 /**
  * Single cam — no picker Field (multiCam = false, field slot = null). Focus fills the full stage;
- * the Back FootButtonBar sits in the full-width gutter strip below it (CR-02 full-focus rule).
+ * the Back FootButtonBar sits full-width below the feed (CR-02 full-focus rule).
  * FeedFocus renders a [PreviewPlaceholderBox].
  */
 @Nexus7Previews

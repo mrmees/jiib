@@ -17,15 +17,12 @@ import works.mees.dinghy.designsystem.layout.LocalUnitDp
 /**
  * A row of foot-of-list action controls (docs/ui_design/COMPONENTS.md §"Component catalog — FootButtonBar").
  *
- * ## STRUCTURAL RULE — placement inside `field`, NOT `gutter` (Pitfall 1)
+ * ## STRUCTURAL RULE — placement inside `field` (Pitfall 1)
  * [FootButtonBar] lives as the **last element inside the `field` lambda Column** of a
- * `ScreenScaffold`. Redesigned screens pass `gutter = null` to `ScreenScaffold` and place
- * their actions here instead. This avoids the portrait gap that appears when actions live in
- * the legacy gutter slot.
- *
- * **Anti-pattern to avoid:** do NOT pass [FootButtonBar] to `ScreenScaffold`'s `gutter` slot —
- * the gutter slot is preserved only for pre-redesign screens (backward compat). The new grammar
- * is: `gutter = null`, actions in `FootButtonBar` at the foot of `field`.
+ * `ScreenScaffold`. It is the successor of the retired Gutter region (the `ScreenScaffold`
+ * gutter slot was DELETED 2026-06-12 with the R1 PrintStatus migration) — screen actions
+ * always live here, on the field's own grid, avoiding the portrait gap the old full-width
+ * gutter strip created.
  *
  * ## Usage
  * ```kotlin
@@ -33,7 +30,7 @@ import works.mees.dinghy.designsystem.layout.LocalUnitDp
  *     focus = { … },
  *     field = {
  *         ListBlock(modifier = Modifier.weight(1f)) { … }
- *         FootButtonBar(uDp = grid.uDp, modifier = Modifier.padding(8.dp)) {
+ *         FootButtonBar(uDp = grid.uDp) {
  *             OutlinedControl(
  *                 label = "",
  *                 onClick = onLoad,
@@ -46,11 +43,10 @@ import works.mees.dinghy.designsystem.layout.LocalUnitDp
  *                 onClick = onUnload,
  *                 modifier = Modifier.weight(1f),
  *                 icon = DinghyIcons.ExpandCircleDown,
- *                 intent = Intent.Neutral,
+ *                 intent = Intent.Go,
  *             )
  *         }
  *     },
- *     gutter = null,   // redesigned screens null the gutter — actions are in FootButtonBar above
  * )
  * ```
  *

@@ -14,8 +14,8 @@ import works.mees.dinghy.state.PrinterState
  * host-testable description of the per-mode surface:
  *  - [launcherDests] — the ordered, curated Standby launcher destination list (empty for the non-Standby
  *    modes; the Standby grid renders FROM this in the fixed UI-SPEC order),
- *  - [gutter] — the active gutter control set (built by REUSING the 16-02 `PrintStatusControlModel`
- *    per-mode list-builders — this model does NOT re-derive the gutter sets),
+ *  - [foot] — the active foot-bar control set (built by REUSING the `PrintStatusControlModel`
+ *    per-mode list-builders — this model does NOT re-derive the foot sets; R1 gutter→foot migration),
  *  - [activeRow] — which Field row is active (shortcut vs babystep) for the Printing/Paused modes,
  *  - [showErrorLines] — whether the Terminal error-line area is shown (Terminal(Error) only).
  *
@@ -50,7 +50,8 @@ enum class PrintStatusFieldRow {
  *
  * @param mode the classified mode (the input — carried for the screen's `when`).
  * @param launcherDests the ordered Standby launcher list (empty for non-Standby modes).
- * @param gutter the active gutter control set (reused from the 16-02 per-mode list-builders).
+ * @param foot the active foot-bar control set (reused from the per-mode list-builders; empty for
+ *   Standby — its foot bar is hand-built in `PrintStatusStandbyField`).
  * @param activeRow which Field row is active (shortcut vs babystep) — [PrintStatusFieldRow.None] off
  *   the active modes.
  * @param showErrorLines whether the Terminal error-line area is shown (true only for Terminal(Error)).
@@ -59,20 +60,20 @@ data class PrintStatusUiModel(
     val mode: PrintStatusMode,
     /** ImmutableList so Compose's strong-skip treats the launcher grid as a stable param. */
     val launcherDests: ImmutableList<LauncherDest>,
-    val gutter: List<PrintStatusControl>,
+    val foot: List<PrintStatusControl>,
     val activeRow: PrintStatusFieldRow,
     val showErrorLines: Boolean,
 )
 
 /**
- * Build the pure [PrintStatusUiModel] for [mode]. Reuses the 16-02 per-mode gutter list-builders via
- * [derivePrintStatusControls] (so the gutter sets are owned in ONE place, never re-derived here).
+ * Build the pure [PrintStatusUiModel] for [mode]. Reuses the per-mode foot list-builders via
+ * [derivePrintStatusControls] (so the foot sets are owned in ONE place, never re-derived here).
  *
  * @param mode the classified mode.
- * @param state the printer state (passed straight to [derivePrintStatusControls] for the gutter set
+ * @param state the printer state (passed straight to [derivePrintStatusControls] for the foot set
  *   + restart-filename resolution — this model does not read it for anything else).
- * @param lastJob the one-shot last completed job (gutter restart-filename input only).
- * @param pendingAction the in-flight debounce action (gutter label input only).
+ * @param lastJob the one-shot last completed job (foot restart-filename input only).
+ * @param pendingAction the in-flight debounce action (foot label input only).
  * @param spoolmanPresent whether the printer exposes Spoolman — gates the Spool launcher tile.
  * @param hasBookmarkedMacros whether the user has bookmarked macros — gates the Macros launcher tile.
  * @param babystepVisible whether the early-layer babystep window is active — picks the Field row for
@@ -87,7 +88,7 @@ fun uiModel(
     hasBookmarkedMacros: Boolean = false,
     babystepVisible: Boolean = false,
 ): PrintStatusUiModel {
-    val gutter = derivePrintStatusControls(state = state, lastJob = lastJob, pendingAction = pendingAction).controls
+    val foot = derivePrintStatusControls(state = state, lastJob = lastJob, pendingAction = pendingAction).controls
     val launcherDests: ImmutableList<LauncherDest> = if (mode is PrintStatusMode.Standby) {
         standbyLauncherDests(spoolmanPresent = spoolmanPresent, hasBookmarkedMacros = hasBookmarkedMacros)
     } else {
@@ -103,7 +104,7 @@ fun uiModel(
     return PrintStatusUiModel(
         mode = mode,
         launcherDests = launcherDests,
-        gutter = gutter,
+        foot = foot,
         activeRow = activeRow,
         showErrorLines = showErrorLines,
     )

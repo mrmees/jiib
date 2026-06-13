@@ -12,7 +12,7 @@ import works.mees.dinghy.ui.extrude.ExtrudeVm
  *
  * ExtrudeScreen uses a SPECIALIZED command-centric layout (D-15 exemption — like Move's jog grid,
  * the function requires its shape). The conformance changes are:
- *  - FootButtonBar in the field (gutter = null)
+ *  - FootButtonBar in the field (foot-of-list pattern)
  *  - Numeric IME for Distance/Speed (BasicTextField, KeyboardType.Decimal)
  *  - FilamentPresets Field-takeover for the nozzle-temp button (D-17)
  *

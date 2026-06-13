@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,7 +46,7 @@ import works.mees.dinghy.theme.fsSp
 
 /**
  * The Webcam page (CAM-01) — the camera_feed-note design contract realized on [ScreenScaffold]
- * (Focus/Field/Gutter, LAYOUT.md is LAW). All color routes through [LocalTokens] role tokens (THEME-01);
+ * (Focus/Field, LAYOUT.md is LAW). All color routes through [LocalTokens] role tokens (THEME-01);
  * NO alphanumeric keyboard lives on this control surface (the connection/host config is Settings' job).
  *
  * ## Focus — the live feed ([WebcamViewHost])
@@ -65,12 +64,12 @@ import works.mees.dinghy.theme.fsSp
  * When shown, the cams list with the SELECTED one expanded to show its Moonraker info (name / service /
  * resolution). A single cam never needs the picker (full-focus).
  *
- * ## Back (neutral intent, D-10 back=outline)
+ * ## Back (accent, R5/R8)
  * When the cam-picker Field is shown, a [FootButtonBar] at the foot of the Field hosts the Back
- * [OutlinedControl] (`gutter = null`, the redesign grammar — D-15 / 25-06). When the Field is HIDDEN
- * (full-focus: single cam, or landscape feed on a landscape device) the field slot is `null` so the
- * feed takes the whole stage, and the same Back bar moves to the full-width GUTTER strip below the
- * stage (CR-02 — the pre-25-06 full-focus behavior; an always-non-null field squeezed the feed to
+ * [OutlinedControl] (the redesign grammar — D-15 / 25-06). When the Field is HIDDEN
+ * (full-focus: single cam, or landscape feed on a landscape device) the screen drops the scaffold
+ * for a plain feed-over-foot-bar Column so the feed takes the whole stage and the same Back bar
+ * stays reachable full-width below it (CR-02 — an always-non-null field squeezed the feed to
  * ~50% of the screen).
  *
  * ## Page-visible lifecycle (D-13)
@@ -87,7 +86,7 @@ import works.mees.dinghy.theme.fsSp
  *
  * @param holder the Bitmap-bound orchestration holder (selected cam + frame + mode + cam list).
  * @param surfaceProvider the H.264 SurfaceView bridge shared with the composite feed (Phase 21).
- * @param onBack invoked by the neutral Back gutter tile (D-10).
+ * @param onBack invoked by the accent Back foot button (R5/R8).
  */
 @Composable
 fun WebcamScreen(
@@ -163,55 +162,58 @@ private fun WebcamContent(
             else -> true                               // portrait device → stack the list below (LAYOUT.md)
         }
 
-        // CR-02: the field slot MUST be null when the picker is hidden — ScreenScaffold weights
-        // focus/field 50/50 whenever BOTH slots are non-null, so an always-non-null field squeezed
-        // the feed to half the screen in every full-focus case (single cam in any orientation,
-        // landscape feed on a landscape device — the camera_feed rule + the KDoc above).
-        val fieldSlot: (@Composable ColumnScope.() -> Unit)? = if (showField) {
-            {
-                CamPicker(
-                    cams = vm.cams,
-                    selected = vm.selected,
-                    onSelect = onSelectCam,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                )
-                // D-15 / 25-06: with a picker Field, Back lives in its FootButtonBar; gutter = null.
-                WebcamBackBar(uDp = grid.uDp, onBack = onBack, modifier = Modifier.padding(8.dp))
+        if (showField) {
+            // CR-02: the field slot exists ONLY when the picker is shown — ScreenScaffold weights
+            // focus/field 50/50 whenever BOTH slots are non-null, so an always-non-null field squeezed
+            // the feed to half the screen in every full-focus case (single cam in any orientation,
+            // landscape feed on a landscape device — the camera_feed rule + the KDoc above).
+            ScreenScaffold(
+                focus = {
+                    FeedFocus(
+                        vm = vm,
+                        tokens = t,
+                        surfaceProvider = surfaceProvider,
+                        onCycle = null,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                    )
+                },
+                field = {
+                    CamPicker(
+                        cams = vm.cams,
+                        selected = vm.selected,
+                        onSelect = onSelectCam,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                    )
+                    // D-15 / 25-06: with a picker Field, Back lives in its FootButtonBar.
+                    WebcamBackBar(uDp = grid.uDp, onBack = onBack)
+                },
+            )
+        } else {
+            // Full-focus (no picker): the feed takes the whole stage over a full-width foot Back
+            // bar (the retired gutter strip's successor — R1) so Back stays reachable.
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxWidth().weight(1f)) {
+                    FeedFocus(
+                        vm = vm,
+                        tokens = t,
+                        surfaceProvider = surfaceProvider,
+                        // Full-focus + multiple cams → tap the feed to cycle (camera_feed note).
+                        onCycle = if (vm.multiCam) onCycleCam else null,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                    )
+                }
+                WebcamBackBar(uDp = grid.uDp, onBack = onBack)
             }
-        } else {
-            null
         }
-        // Full-focus (no picker): the feed takes the whole stage; Back moves to the full-width
-        // gutter strip below it (the pre-25-06 placement) so it stays reachable.
-        val gutterSlot: (@Composable () -> Unit)? = if (showField) {
-            null
-        } else {
-            { WebcamBackBar(uDp = grid.uDp, onBack = onBack, modifier = Modifier.padding(8.dp)) }
-        }
-
-        ScreenScaffold(
-            focus = {
-                FeedFocus(
-                    vm = vm,
-                    tokens = t,
-                    surfaceProvider = surfaceProvider,
-                    // Full-focus (no Field) + multiple cams → tap the feed to cycle (camera_feed note).
-                    onCycle = if (!showField && vm.multiCam) onCycleCam else null,
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
-            },
-            field = fieldSlot,
-            gutter = gutterSlot,
-        )
     }
 }
 
 /**
- * The shared Back [FootButtonBar] (neutral intent, D-10). Hosted at the foot of the cam-picker Field
- * when the picker is shown, or in the full-width gutter strip in full-focus mode (CR-02).
+ * The shared Back [FootButtonBar] (accent, R5/R8). Hosted at the foot of the cam-picker Field
+ * when the picker is shown, or as the full-width foot strip in full-focus mode (CR-02).
  */
 @Composable
 private fun WebcamBackBar(

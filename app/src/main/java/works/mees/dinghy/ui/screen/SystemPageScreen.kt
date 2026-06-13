@@ -166,7 +166,6 @@ fun SystemPageContent(
                         )
                     }
                 },
-                gutter = null,  // LAW: rebuilt screens always null the gutter.
             )
         }
     }

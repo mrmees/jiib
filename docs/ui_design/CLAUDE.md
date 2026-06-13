@@ -8,9 +8,9 @@
   Either region may be omitted. No persistent status bar — context lives inside a region.
   **The Gutter is NO LONGER a first-class region** for new screens: its jobs are rehomed to a
   foot-of-list `FootButtonBar` (per-screen actions), a floating `FloatingEStop` overlay (Stop,
-  printing-only), and the System page (power / device settings). Pre-redesign screens still use
-  the Kotlin `ScreenScaffold.gutter` slot for backward compatibility — that slot is preserved
-  in the code but the grammar no longer names it a first-class layout region.
+  printing-only), and the System page (power / device settings). The Kotlin `ScreenScaffold`
+  gutter slot was DELETED outright (2026-06-12, R1 PrintStatus gutter→foot migration — the last
+  consumer); no screen renders a gutter region.
   See the rewritten `LAYOUT.md` for the full two-region law. See `COMPONENTS.md` for the
   component-class catalog (ListRow, DetailCard, FillMeter, FootButtonBar, FloatingEStop,
   SortFilterControlRow and more).

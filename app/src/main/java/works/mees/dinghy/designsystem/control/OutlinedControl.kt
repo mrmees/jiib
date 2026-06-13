@@ -87,7 +87,7 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  * @param label   the control's text (Geist, `--fs`-scaled).
  * @param onClick invoked on tap.
  * @param intent  the semantic color role (default [Intent.Neutral]).
- * @param symbol  optional leading Material-Symbol ligature (design spec: gutter buttons keep icon+label).
+ * @param symbol  optional leading Material-Symbol ligature (design spec: foot-bar buttons keep icon+label).
  * @param onLongClick optional long-press action (e.g. Load-spool's long-press → unload); when set the
  *   control uses `combinedClickable` so a tap fires [onClick] and a hold fires [onLongClick].
  * @param contentDescription optional TalkBack label for the [symbol] glyph (WR-05). The MaterialSymbol

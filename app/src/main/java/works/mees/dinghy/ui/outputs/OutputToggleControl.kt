@@ -2,6 +2,7 @@ package works.mees.dinghy.ui.outputs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,9 +19,11 @@ import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -43,7 +46,7 @@ import works.mees.dinghy.theme.fsSp
  * @param failureText a dispatch failure message to surface, or null.
  * @param onOn        dispatch SET_PIN VALUE=1 (immediate).
  * @param onOff       dispatch SET_PIN VALUE=0 (immediate — the page's Off action).
- * @param onBack      the neutral Back exit.
+ * @param onBack      the Back exit (accent, FIRST in the foot bar — R5/R8).
  */
 @Composable
 fun OutputToggleControl(
@@ -59,7 +62,8 @@ fun OutputToggleControl(
 ) {
     val t = LocalTokens.current
 
-    Box(modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         ScreenScaffold(
             field = {
                 Column(
@@ -115,16 +119,15 @@ fun OutputToggleControl(
                         }
                     }
                     failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-                }
-            },
-            gutter = {
-                Row(Modifier.fillMaxWidth().padding(8.dp)) {
-                    OutlinedControl(
-                        label = stringResource(R.string.common_back),
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth(),
-                        intent = Intent.Neutral,
-                    )
+                    // Foot-of-list Back (R1 gutter retirement): FIRST + accent per R5/R8.
+                    FootButtonBar(uDp = grid.uDp) {
+                        OutlinedControl(
+                            label = stringResource(R.string.common_back),
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent,
+                        )
+                    }
                 }
             },
         )

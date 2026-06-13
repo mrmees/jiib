@@ -79,7 +79,7 @@ import works.mees.dinghy.theme.fsSp
  *
  * The full-screen [SaveNameDialog] / [LoadSelectorDialog] overlays and the `MeshDialog` enum are
  * DELETED (D-11). Profile management is a Field [ListBlock] list + a [MeshFieldMode.SaveName]
- * Field-takeover (D-11..D-13). Actions live in [FootButtonBar] (D-14), `gutter = null` (LAW).
+ * Field-takeover (D-11..D-13). Actions live in [FootButtonBar] (D-14) (foot-of-list LAW).
  *
  * @param container the service-locator (provides the session dispatcher).
  * @param holder    the headless [BedMeshHolder] (heatmap model + scale mode + profiles + error).
@@ -236,7 +236,7 @@ internal fun defaultProfileName(): String =
  * Preview: [BedMeshHeatmapHost] itself has the [LocalInspectionMode] → placeholder branch.
  *
  * Field = `when(fieldMode)` { ProfileList → list + state-adaptive foot; SaveName → takeover }.
- * gutter = null (LAW).
+ * Actions live in the field FootButtonBar (foot-of-list LAW).
  */
 @Composable
 internal fun BedMeshContent(
@@ -487,7 +487,6 @@ internal fun BedMeshContent(
                         }
                     }
                 },
-                gutter = null,
             )
 
             // FloatingEStop top-left corner reservation (UAT-4).

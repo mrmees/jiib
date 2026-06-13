@@ -287,7 +287,6 @@ fun PrintersContent(
                     )
                 }
             },
-            gutter = null,
         )
     }
 }

@@ -84,7 +84,7 @@ import works.mees.dinghy.theme.fsSp
 /**
  * The Spool screen (Dest.Spool host; 23-06 jiib redesign rebuild) — now built on the new component-class
  * kit: [DetailCard] + [FillMeter] in Focus, [ListBlock] of [ListRow]s + [FootButtonBar] in Field,
- * [FloatingEStop] as Box sibling, [SortRow] + [FilterRow] at the Focus foot, `gutter = null`.
+ * [FloatingEStop] as Box sibling, [SortRow] + [FilterRow] at the Focus foot.
  *
  * The Field-takeover filter picker ([FieldMode.FilterPicker]) replaces the old full-screen overlay —
  * tapping a filter tile swaps the Field in-place (no separate screen push).
@@ -262,7 +262,7 @@ fun SpoolScreen(
  *   [FloatingEStop] is a Box sibling over the [DetailCard] (printing-only, TopStart).
  * - Field = when([SpoolPickerState.fieldMode]) { [FieldMode.Spools] → [ListBlock]+[FootButtonBar];
  *   [FieldMode.FilterPicker] → in-place option list + clear/done buttons }
- * - gutter = null (redesigned; [FootButtonBar] lives in the field lambda).
+ * - [FootButtonBar] lives in the field lambda (foot-of-list).
  */
 @Composable
 private fun SpoolContent(
@@ -434,7 +434,6 @@ private fun SpoolContent(
                     }
                 }
             },
-            gutter = null, // Redesigned screen — FootButtonBar is in the field lambda (Pitfall 1).
         )
 
         // DEBUG-ONLY uDp badge in the bottom-start corner (release-stripped via BuildConfig.DEBUG).

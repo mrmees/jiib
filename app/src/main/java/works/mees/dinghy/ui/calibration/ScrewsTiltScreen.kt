@@ -134,7 +134,7 @@ fun ScrewsTiltScreen(
  * Layout:
  *  - Focus = the to-scale bed spatial visualization ([ScrewsTiltFocus]) — spatial carve-out, unchanged shape.
  *  - Field = [ListBlock] of [ListRow]s (screw name primary, turn instruction trailing in Geist Mono).
- *  - Foot = state-adaptive [FootButtonBar] (gutter = null).
+ *  - Foot = state-adaptive [FootButtonBar] (foot-of-list pattern).
  *
  * D-10: this is a PURE RESTYLE — the spatial visualization in Focus is NOT converted to a list.
  */
@@ -169,7 +169,7 @@ fun ScrewsTiltContent(
                     errorText?.let {
                         SeverityToast(Severity.Error, it, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
                     }
-                    // State-adaptive FootButtonBar (gutter = null, D-10).
+                    // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(
                         uDp = grid.uDp,
                     ) {
@@ -223,7 +223,6 @@ fun ScrewsTiltContent(
                         }
                     }
                 },
-                gutter = null,
             )
             // FloatingEStop top-left corner reservation (UAT-4).
             // Calibration = pop-to-root foot-gun: ScrewsTilt is only reachable while idle,

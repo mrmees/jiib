@@ -49,7 +49,7 @@ import works.mees.dinghy.theme.fsSp
  * and the dev-enable toggle (persistence unchanged — writeScope via `container.setDevCyclerEnabled`).
  *
  * ## Layout (D-11)
- * Field-only `ScreenScaffold(gutter = null)`. Back foot is the last control inside the scrolling
+ * Field-only `ScreenScaffold`. Back foot is the last control inside the scrolling
  * Column — always visible at the foot of the one-page layout. All persistence routes through the
  * container writeScope intent helpers — never a composition scope (T-28-07-02). The dev-enable
  * toggle keeps its existing writeScope route.
@@ -141,7 +141,6 @@ fun AboutContent(
                 }
             },
             modifier = modifier,
-            gutter = null,
         )
     }
 }

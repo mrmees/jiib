@@ -46,7 +46,7 @@ import works.mees.dinghy.theme.fsSp
  *  - **Saved connection failing / unreachable** (D-13): Retry + Edit connection (no firmware/restart —
  *    Klippy is not reachable).
  *
- * Per docs/ui_design/LAYOUT.md the splash **omits the gutter** (`gutter = null`): its Field buttons
+ * Per docs/ui_design/LAYOUT.md the splash **omits the gutter**: its Field buttons
  * ARE the navigation, and there is deliberately no drawer affordance (the hard override).
  *
  * Reason text (review #8): prefer the REAL [PrinterState.klippyStateMessage] (the Moonraker/Klippy

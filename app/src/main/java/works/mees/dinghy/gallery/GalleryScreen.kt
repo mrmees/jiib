@@ -260,8 +260,8 @@ fun GalleryScreen(
         SeverityToast(Severity.Warning, "Warning — proceed at peril", Modifier.fillMaxWidth())
         SeverityToast(Severity.Error, "Error — connection lost", Modifier.fillMaxWidth())
 
-        // ---- SCREEN SCAFFOLD (Focus/Field/Gutter) — orientation-responsive in place -------------
-        SectionLabel("ScreenScaffold — Focus / Field / Gutter (rotate device for orientation)")
+        // ---- SCREEN SCAFFOLD (Focus/Field) — orientation-responsive in place --------------------
+        SectionLabel("ScreenScaffold — Focus / Field + foot bar (rotate device for orientation)")
         Box(Modifier.fillMaxWidth().height(280.dp)) {
             ScreenScaffold(
                 focus = {
@@ -283,16 +283,16 @@ fun GalleryScreen(
                             fontSize = fsSp(16f, tokens.fs).sp,
                         )
                         OutlinedControl("Field action", {}, Modifier.fillMaxWidth(), Intent.Accent)
-                    }
-                },
-                gutter = {
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedControl("Back", {}, Modifier.weight(1f), Intent.Danger)
-                        OutlinedControl("Set", {}, Modifier.weight(1f), Intent.Neutral)
-                        OutlinedControl("Go", {}, Modifier.weight(1f), Intent.Go)
+                        Box(Modifier.weight(1f))
+                        // Foot-of-list action bar — the retired gutter slot's successor.
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            OutlinedControl("Back", {}, Modifier.weight(1f), Intent.Accent)
+                            OutlinedControl("Set", {}, Modifier.weight(1f), Intent.Warn)
+                            OutlinedControl("Go", {}, Modifier.weight(1f), Intent.Go)
+                        }
                     }
                 },
             )

@@ -18,10 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -65,10 +67,9 @@ import works.mees.dinghy.ui.spool.ActiveSpoolCardState
  * row calls [onNavigate] with the row's [NavDest]; the System foot button navigates to [NavDest.System]
  * (D-04/28-05 — formerly opened the App Drawer, now routes to the System page directly).
  *
- * The foot bar contains exactly two [Intent.Neutral] [OutlinedControl]s — Preheat and System —
- * placed below the list per the foot-of-list pattern (the gutter is gone from this screen;
- * ScreenScaffold is called with `gutter = null` from the printing/terminal modes ONLY when
- * needed; the Standby root has no gutter slot per D-03/SC-3).
+ * The foot bar contains two [OutlinedControl]s — Preheat (warn) and System (accent) — placed
+ * below the list per the foot-of-list pattern. The gutter region is retired app-wide (R1,
+ * 2026-06-12): every Print-Status mode now carries its actions in a foot bar.
  *
  * Extracted as a named top-level composable so the Standby ScreenScaffold `field` slot lambda
  * body contains ONLY a call to this function — creating an independently-restartable recomposition
@@ -147,7 +148,8 @@ internal fun PrintStatusStandbyField(
 
 /**
  * The active-print Field — ONE framed StatGrid + the shortcut OR babystep row + optional Spoolman
- * line + the failure toast. Shared by Printing AND Paused (Paused reuses the same toolset).
+ * line + the failure toast + the mode foot bar (Pause·Cancel / Resume·Cancel — R1 gutter→foot
+ * migration). Shared by Printing AND Paused (Paused reuses the same toolset).
  *
  * Extracted as a named top-level composable so the Printing/Paused ScreenScaffold `field` slot
  * lambda body contains ONLY a call to this function — creating an independently-restartable
@@ -165,10 +167,13 @@ internal fun PrintStatusActiveField(
     failureText: String?,
     hasBookmarkedMacros: Boolean,
     ui: PrintStatusUiModel,
+    pendingActionIsNull: Boolean,
+    onRunAction: (PrintStatusControlAction) -> Unit,
     onBabystepCompress: () -> Unit,
     onBabystepExpand: () -> Unit,
     onCycleBabystepStep: () -> Unit,
     onNavigate: (NavDest) -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -208,11 +213,19 @@ internal fun PrintStatusActiveField(
             )
         }
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+        // Mode foot bar (foot-of-list pattern) — Printing: Pause·Cancel; Paused: Resume·Cancel.
+        PrintStatusFootBar(
+            controls = ui.foot,
+            pendingActionIsNull = pendingActionIsNull,
+            onRunAction = onRunAction,
+            uDp = uDp,
+        )
     }
 }
 
 /**
- * The Terminal Field — a finished-print summary column with optional error lines.
+ * The Terminal Field — a finished-print summary column with optional error lines + the Terminal
+ * foot bar (Dismiss·Reprint — R1 gutter→foot migration).
  *
  * Extracted as a named top-level composable so the Terminal ScreenScaffold `field` slot lambda
  * body contains ONLY a call to this function (D-01/D-02 P0 fix).
@@ -224,27 +237,96 @@ internal fun PrintStatusTerminalField(
     ui: PrintStatusUiModel,
     errorLines: List<String>,
     failureText: String?,
+    pendingActionIsNull: Boolean,
+    onRunAction: (PrintStatusControlAction) -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    // Roomier padding than the cockpit grid — the Terminal summary breathes, and the
-    // right-aligned values don't hug the screen edge (2026-06-06 UAT).
     Column(
-        modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier.fillMaxSize().padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
         // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
+        // Roomier inner padding than the cockpit grid — the summary breathes, and the
+        // right-aligned values don't hug the screen edge (2026-06-06 UAT); the foot bar
+        // below keeps the shared bar inset.
         TerminalStatsList(
             state = state,
             metadata = metadata,
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 8.dp),
         )
         // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
         if (ui.showErrorLines && errorLines.isNotEmpty()) {
             TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
         }
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+        // Terminal foot bar: Dismiss (accent) · Reprint (go, disabled when no restart filename).
+        PrintStatusFootBar(
+            controls = ui.foot,
+            pendingActionIsNull = pendingActionIsNull,
+            onRunAction = onRunAction,
+            uDp = uDp,
+        )
     }
+}
+
+/**
+ * The shared Print-Status foot bar (R1 gutter→foot migration) — renders the model-derived
+ * [PrintStatusControl] set as filled [OutlinedControl]s in a [FootButtonBar] at the foot of the
+ * field, replacing the retired ScreenScaffold gutter slot. E-Stop is NOT here — the AppShell-level
+ * FloatingEStop owns it on every destination while Printing/Paused (24-03/D-14).
+ *
+ * While an action is pending (debounce), ALL controls dim + disable (WR-07 alpha 0.38 +
+ * semantics-disabled, with R10 true disablement); the pending control shows its "-ing" label.
+ */
+@Composable
+internal fun PrintStatusFootBar(
+    controls: List<PrintStatusControl>,
+    pendingActionIsNull: Boolean,
+    onRunAction: (PrintStatusControlAction) -> Unit,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val cancelCd = stringResource(R.string.cd_cancel_print)
+    FootButtonBar(uDp = uDp, modifier = modifier) {
+        controls.forEach { control ->
+            val enabled = control.enabled && pendingActionIsNull
+            // The short visible "Cancel" speaks the explicit "Cancel print" (the spoken contract
+            // the retired hold-to-cancel accessibility action carried — Codex W-04).
+            val spokenCd = if (control.tapAction == PrintStatusControlAction.GracefulCancel) {
+                Modifier.semantics { contentDescription = cancelCd }
+            } else {
+                Modifier
+            }
+            OutlinedControl(
+                label = stringResource(control.labelRes),
+                onClick = { control.tapAction?.let(onRunAction) },
+                modifier = Modifier
+                    .weight(1f)
+                    .then(spokenCd)
+                    .then(if (enabled) Modifier else Modifier.alpha(0.38f).semantics { disabled() }),
+                intent = footIntent(control.tapAction),
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+/**
+ * Foot-control intent mapping (R5/R19 + the conformance-matrix repaints): Pause = caution (amber —
+ * hazardous-but-in-process), Resume/Reprint = go (the expected action), Cancel = stop (could
+ * destroy the job), Dismiss = accent (plain clear/nav). A null action (disabled Reprint) keeps its
+ * action class color; the dim treatment carries the disabled state.
+ */
+internal fun footIntent(action: PrintStatusControlAction?): Intent = when (action) {
+    PrintStatusControlAction.PausePrint -> Intent.Warn
+    PrintStatusControlAction.ResumePrint,
+    PrintStatusControlAction.RestartPrint,
+    null,
+    -> Intent.Go
+    PrintStatusControlAction.GracefulCancel -> Intent.Danger
+    PrintStatusControlAction.Dismiss -> Intent.Accent
 }
 
 /**

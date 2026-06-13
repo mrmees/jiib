@@ -254,7 +254,6 @@ private fun MacrosContent(
                     )
                 }
             },
-            gutter = null,
         )
 
         // Screen-level failure toast (WR-02) — survives the ParamEntry → Launcher mode flip.

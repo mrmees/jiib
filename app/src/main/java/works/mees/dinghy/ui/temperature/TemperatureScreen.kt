@@ -132,7 +132,7 @@ private data class VisibleTraces(
  *    [PrinterCommands.clampHeaterTarget] (17-07 invariant / D-22).
  *  - Per-heater Off button ([Intent.Warn], target=0 — P19 GAP-A precedent).
  *
- * `gutter = null`; [FootButtonBar] inside the field lambda (redesigned-screen law).
+ * [FootButtonBar] inside the field lambda (redesigned-screen law).
  * [FloatingEStop] + [ConfirmGuard] as Box siblings (printing-list-valid destination).
  *
  * This LIVE overload resolves flows from [AppContainer] + [TemperatureHolder] and delegates
@@ -647,7 +647,6 @@ private fun TemperatureContent(
                     }
                 }
             },
-            gutter = null, // MANDATORY: redesigned screens null the gutter (FootButtonBar in field)
         )
 
         // ConfirmGuard for the E-stop (Box sibling — SpoolScreen.kt pattern §4).

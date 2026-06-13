@@ -39,7 +39,7 @@ import works.mees.dinghy.theme.fsSp
 
 /**
  * The read-only Console screen (CONS-02 / D-01..D-05). A **Field-only** `ScreenScaffold`:
- * `focus = null` (D-14) so the freed height goes to the scrollback; `gutter = null` (D-15) because
+ * `focus = null` (D-14) so the freed height goes to the scrollback; no gutter (D-15) because
  * all actions live in the `FootButtonBar` at the foot of the Field.
  *
  * ## Toolkit: Views (spike verdict — D-02)
@@ -151,7 +151,7 @@ fun ConsoleScreen(
 /**
  * The shared rendering body. Both overloads delegate here.
  *
- * Layout: `BoxWithConstraints` → `rememberUnitGrid` → `ScreenScaffold(focus = null, gutter = null)`.
+ * Layout: `BoxWithConstraints` → `rememberUnitGrid` → `ScreenScaffold(focus = null)`.
  * Field = `ConsoleListView` (filling weight(1f)) + `FootButtonBar` (3 filter toggles + Back).
  *
  * **ConsoleListView class-equivalent exception (D-02 / 25-SPIKE.md):** the RecyclerView Views
@@ -198,7 +198,7 @@ private fun ConsoleContent(
                                 BackfillFailedNotice(Modifier.fillMaxWidth())
                         }
                     }
-                    // D-15: filter toggles + Back live in the FootButtonBar inside the field (gutter = null).
+                    // D-15: filter toggles + Back live in the FootButtonBar inside the field.
                     FootButtonBar(
                         uDp = grid.uDp,
                     ) {
@@ -248,7 +248,6 @@ private fun ConsoleContent(
                         )
                     }
                 },
-                gutter = null,   // D-15: redesigned screen — all actions in FootButtonBar above
             )
         }
     }

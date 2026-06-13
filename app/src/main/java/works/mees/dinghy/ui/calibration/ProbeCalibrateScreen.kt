@@ -371,7 +371,6 @@ fun ProbeCalibrateContent(
                         }
                     }
                 },
-                gutter = null, // LAW: rebuilt screens always null the gutter.
             )
 
             // T-27-04-02: amber SAVE_CONFIG restart gate (proceed-at-peril) — persists the captured offset.

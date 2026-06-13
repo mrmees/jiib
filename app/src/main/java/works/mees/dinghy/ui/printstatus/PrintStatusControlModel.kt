@@ -1,5 +1,7 @@
 package works.mees.dinghy.ui.printstatus
 
+import androidx.annotation.StringRes
+import works.mees.dinghy.R
 import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -9,32 +11,31 @@ data class PrintStatusControlModel(
     val restartFilename: String?,
 )
 
+/**
+ * One Print-Status foot-bar control (R1 gutter→foot migration, 2026-06-12). Labels are string
+ * RESOURCE ids (R14 — no raw label strings in the model); the screen resolves them via
+ * `stringResource`. The old `holdAction`/`accessibilityAction` hold-to-cancel channel is retired —
+ * Cancel is an explicit foot button in both active modes (sketch-001 law: Pause · Cancel).
+ */
 data class PrintStatusControl(
-    val label: String,
+    @StringRes val labelRes: Int,
     val enabled: Boolean,
     val tapAction: PrintStatusControlAction?,
-    val holdAction: PrintStatusControlAction? = null,
-    val accessibilityAction: PrintStatusControlAction? = null,
 )
 
+/**
+ * The foot-bar action vocabulary. E-Stop is NOT here — the AppShell-level [FloatingEStop] owns the
+ * emergency stop on every destination while Printing/Paused (24-03/D-14). Standby's Preheat/System
+ * actions are owned directly by `PrintStatusStandbyField` (no model-derived foot in Standby).
+ */
 enum class PrintStatusControlAction {
-    OpenFiles,
     RestartPrint,
-    Tune,
     PausePrint,
     ResumePrint,
     GracefulCancel,
-    EmergencyStop,
 
-    // Phase-16 extended actions (per-state gutter sets — UI-SPEC "Per-state button intents").
-    /** Standby spool-aware Preheat (accent). The decision routes through `selectPreheatPath` (16-02). */
-    Preheat,
-
-    /** Terminal clear/back (neutral) — dispatches `SDCARD_RESET_FILE` (16-03) in the Wave-3 screen. */
+    /** Terminal clear/back — dispatches `SDCARD_RESET_FILE` (16-03). */
     Dismiss,
-
-    /** Standby inert Power tile (red stop-intent chrome, NONFUNCTIONAL in P16, D-04). */
-    Power,
 }
 
 sealed interface PrintStatusPendingAction {
@@ -44,6 +45,17 @@ sealed interface PrintStatusPendingAction {
     data class Restart(val filename: String) : PrintStatusPendingAction
 }
 
+/**
+ * Derive the per-mode foot-bar control set (sketch-001 state→foot law):
+ *  - **Printing:** Pause · Cancel
+ *  - **Paused:**   Resume · Cancel
+ *  - **Terminal:** Dismiss · Reprint (Reprint disabled when no restart filename resolves)
+ *  - **Standby:**  EMPTY — the Standby foot bar (Preheat · System) is hand-built in
+ *    `PrintStatusStandbyField`, not model-derived.
+ *
+ * A non-null [pendingAction] swaps the matching control's label to its "-ing" debounce variant;
+ * the renderer dims ALL foot controls while any action is pending.
+ */
 fun derivePrintStatusControls(
     state: PrinterState,
     lastJob: LastJob? = null,
@@ -51,20 +63,29 @@ fun derivePrintStatusControls(
 ): PrintStatusControlModel {
     val restartFilename = state.restartFilename(lastJob)
     val controls = when (state.printState) {
-        PrintState.Printing -> activeControls(
-            label = when (pendingAction) {
-                PrintStatusPendingAction.Pause -> "Pausing"
-                PrintStatusPendingAction.Cancel -> "Cancelling"
-                else -> "Pause"
-            },
-            tapAction = PrintStatusControlAction.PausePrint,
+        PrintState.Printing -> listOf(
+            PrintStatusControl(
+                labelRes = if (pendingAction == PrintStatusPendingAction.Pause) {
+                    R.string.printstatus_foot_pausing
+                } else {
+                    R.string.printstatus_foot_pause
+                },
+                enabled = true,
+                tapAction = PrintStatusControlAction.PausePrint,
+            ),
+            cancelControl(pendingAction),
         )
-        PrintState.Paused -> pausedControls(
-            label = when (pendingAction) {
-                PrintStatusPendingAction.Resume -> "Resuming"
-                PrintStatusPendingAction.Cancel -> "Cancelling"
-                else -> "Resume"
-            },
+        PrintState.Paused -> listOf(
+            PrintStatusControl(
+                labelRes = if (pendingAction == PrintStatusPendingAction.Resume) {
+                    R.string.printstatus_foot_resuming
+                } else {
+                    R.string.printstatus_foot_resume
+                },
+                enabled = true,
+                tapAction = PrintStatusControlAction.ResumePrint,
+            ),
+            cancelControl(pendingAction),
         )
         PrintState.Complete,
         PrintState.Error,
@@ -74,9 +95,9 @@ fun derivePrintStatusControls(
             pendingRestart = pendingAction as? PrintStatusPendingAction.Restart,
         )
         // Standby is ALWAYS Standby (Phase-16 behavior change): a leftover restartFilename does NOT
-        // masquerade as a terminal state. Restart-from-idle moves to the Standby launcher Files tile
-        // (16-06), not the gutter — so we no longer branch to terminalControls here.
-        PrintState.Standby -> standbyControls()
+        // masquerade as a terminal state. The Standby foot (Preheat · System) is hand-built in
+        // PrintStatusStandbyField — no model-derived controls here.
+        PrintState.Standby -> emptyList()
     }
     return PrintStatusControlModel(controls = controls, restartFilename = restartFilename)
 }
@@ -106,50 +127,40 @@ fun clearPrintStatusPendingAction(
     }
 }
 
-private fun activeControls(
-    label: String,
-    tapAction: PrintStatusControlAction,
-): List<PrintStatusControl> = listOf(
-    PrintStatusControl(
-        label = "Tune",
-        enabled = false,
-        tapAction = null,
-    ),
-    PrintStatusControl(
-        label = label,
-        enabled = true,
-        tapAction = tapAction,
-        holdAction = PrintStatusControlAction.GracefulCancel,
-        accessibilityAction = PrintStatusControlAction.GracefulCancel,
-    ),
-    stopControl(),
-)
+/**
+ * Clear a pending debounce action whose DISPATCH FAILED (R1 follow-up, Codex W-03). A failed
+ * pause/resume/cancel/reprint never flips `printState`, so [clearPrintStatusPendingAction] (which
+ * watches state) would leave the matching [pendingAction] stuck — dimming the whole foot bar until
+ * the screen restarts (the 17-07 wedge class). Matches on the dispatcher's failure [failedKey]
+ * (CommandRegistry: `pause_print` / `resume_print` / `cancel_print` / `start_print_<filename>`)
+ * so an UNRELATED command failure (babystep, preheat) never prematurely clears the debounce.
+ */
+fun clearPendingOnDispatchFailure(
+    pendingAction: PrintStatusPendingAction?,
+    failedKey: String,
+): PrintStatusPendingAction? = when (pendingAction) {
+    null -> null
+    PrintStatusPendingAction.Pause -> if (failedKey == "pause_print") null else pendingAction
+    PrintStatusPendingAction.Resume -> if (failedKey == "resume_print") null else pendingAction
+    PrintStatusPendingAction.Cancel -> if (failedKey == "cancel_print") null else pendingAction
+    is PrintStatusPendingAction.Restart ->
+        if (failedKey == "start_print_${pendingAction.filename}") null else pendingAction
+}
 
-// Paused gutter (UI-SPEC): Resume (go) + Cancel (ConfirmGuard, red). NO E-Stop — the user is
-// already intentionally intervening; Cancel ends the job. (Distinct from the Printing gutter, which
-// keeps the E-Stop.)
-private fun pausedControls(label: String): List<PrintStatusControl> = listOf(
+/** The shared explicit Cancel control (Printing + Paused). Tap opens the GracefulCancel ConfirmGuard. */
+private fun cancelControl(pendingAction: PrintStatusPendingAction?): PrintStatusControl =
     PrintStatusControl(
-        label = "Tune",
-        enabled = false,
-        tapAction = null,
-    ),
-    PrintStatusControl(
-        label = label,
-        enabled = true,
-        tapAction = PrintStatusControlAction.ResumePrint,
-        holdAction = PrintStatusControlAction.GracefulCancel,
-        accessibilityAction = PrintStatusControlAction.GracefulCancel,
-    ),
-    PrintStatusControl(
-        label = "Cancel",
+        labelRes = if (pendingAction == PrintStatusPendingAction.Cancel) {
+            R.string.printstatus_foot_cancelling
+        } else {
+            R.string.printstatus_foot_cancel
+        },
         enabled = true,
         tapAction = PrintStatusControlAction.GracefulCancel,
-    ),
-)
+    )
 
-// Terminal gutter (UI-SPEC): Dismiss (neutral — clears via SDCARD_RESET_FILE, does not discard
-// pending input) + Reprint (accent — natural primary, no guard). Reprint is disabled when no
+// Terminal foot (sketch-001): Dismiss (accent — clears via SDCARD_RESET_FILE, does not discard
+// pending input) + Reprint (go — the expected action, no guard, D-05). Reprint is disabled when no
 // restart filename is resolvable.
 private fun terminalControls(
     restartFilename: String?,
@@ -158,40 +169,21 @@ private fun terminalControls(
     val restartEnabled = restartFilename != null
     return listOf(
         PrintStatusControl(
-            label = "Dismiss",
+            labelRes = R.string.printstatus_foot_dismiss,
             enabled = true,
             tapAction = PrintStatusControlAction.Dismiss,
         ),
         PrintStatusControl(
-            label = if (pendingRestart != null && pendingRestart.filename == restartFilename) "Reprinting" else "Reprint",
+            labelRes = if (pendingRestart != null && pendingRestart.filename == restartFilename) {
+                R.string.printstatus_foot_reprinting
+            } else {
+                R.string.printstatus_foot_reprint
+            },
             enabled = restartEnabled,
             tapAction = if (restartEnabled) PrintStatusControlAction.RestartPrint else null,
         ),
     )
 }
-
-// Standby gutter (UI-SPEC "Per-state button intents"): Preheat (accent) + Power (inert, red
-// stop-intent chrome, D-04). NO E-Stop in Standby — there is no active job to halt. The Power tile
-// is rendered but nonfunctional in P16 (the Wave-3 screen wires its inert no-op).
-private fun standbyControls(): List<PrintStatusControl> = listOf(
-    PrintStatusControl(
-        label = "Preheat",
-        enabled = true,
-        tapAction = PrintStatusControlAction.Preheat,
-    ),
-    PrintStatusControl(
-        label = "Power",
-        enabled = false,
-        tapAction = PrintStatusControlAction.Power,
-    ),
-)
-
-private fun stopControl(): PrintStatusControl =
-    PrintStatusControl(
-        label = "Stop",
-        enabled = true,
-        tapAction = PrintStatusControlAction.EmergencyStop,
-    )
 
 private fun PrinterState.restartFilename(lastJob: LastJob?): String? {
     return when (printState) {
