@@ -8,7 +8,7 @@ import works.mees.dinghy.ui.move.OldMoveScreen
 /**
  * @Preview matrix for the rebuilt Move screen (27-03 / D-15 preview-first convention).
  *
- * MoveScreen uses a SPECIALIZED command-centric layout (D-15 exemption — the sacred-square 3×3
+ * OldMoveScreen uses a SPECIALIZED command-centric layout (D-15 exemption — the sacred-square 3×3
  * jog pad requires its spatial shape; portrait caps the pad at 60% HEIGHT via BoxWithConstraints).
  *
  * The STATELESS overload `MoveScreen(vm, inFlight, onBack)` drives ALL previews — no live

@@ -63,10 +63,10 @@ import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.screen.TokenTextField
 
 /**
- * The current Move-Hub sub-mode (Task D3). The Field action-list selects a mode; the Focus swaps
- * content (and its header title/icon) accordingly. The six sub-mode BODIES are placeholders in this
- * task — tasks E1–E6 fill them. [Bookmark] carries the tapped saved-location name; [SaveDialog] is
- * the save-name flow.
+ * The current Move-Hub sub-mode. The Field action-list selects a mode; the Focus swaps content
+ * (and its header title/icon) accordingly. Each Field row selects a Focus sub-mode: Touch Move
+ * (tap-to-move bed map), XY/Z scrubbers, Microstep jogger, per-bookmark Move/Delete, Save dialog.
+ * [Bookmark] carries the tapped saved-location name; [SaveDialog] is the save-name flow.
  */
 sealed interface MoveMode {
     data object Overview : MoveMode
@@ -141,10 +141,12 @@ fun MoveScreen(
  * The stateless Move Hub surface — no live Moonraker, no AppContainer, no dispatcher. Renders the
  * Field action-list + the mode-swapping Focus, holding only the screen-local selected [MoveMode].
  *
- * ## Sub-mode bodies are PLACEHOLDERS (Task D3)
- * Only [MoveMode.Overview] renders a real Focus body (the read-only [BedMapView], or a homing hint
- * when bounds are unknown). Every other mode renders "<name> — coming soon" — tasks E1–E6 replace
- * these with the real interactions. Do NOT build sub-mode behavior here.
+ * ## Sub-modes
+ * All six sub-modes are fully implemented: [MoveMode.Overview] shows the read-only [BedMapView]
+ * (or a homing hint); [MoveMode.TouchMove] adds tap-to-move gesture handling; [MoveMode.XY] and
+ * [MoveMode.Z] use [Scrubber] controls; [MoveMode.Microstep] shows per-axis jog buttons;
+ * [MoveMode.Bookmark] shows Move/Delete for a saved location; [MoveMode.SaveDialog] is the
+ * save-name form.
  *
  * ## Header law
  * The [FocusFrame] header title + icon track the CURRENT mode; the docked e-stop morphs in while
@@ -192,22 +194,6 @@ internal fun MoveHubContent(
     }
 
     val (headerTitle, headerIcon) = moveModeHeader(mode)
-
-    val pendingDelete = deleteConfirm
-    if (pendingDelete != null) {
-        ConfirmGuard(
-            title = "Delete \"$pendingDelete\"?",
-            message = "Remove this saved location.",
-            confirmLabel = "Delete",
-            destructive = true,
-            onConfirm = {
-                onDeleteLocation(pendingDelete)
-                deleteConfirm = null
-                mode = MoveMode.Overview
-            },
-            onCancel = { deleteConfirm = null },
-        )
-    } else {
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -785,9 +771,24 @@ internal fun MoveHubContent(
                 }
             },
         )
-    }
 
-    } // end if/else deleteConfirm
+        // Delete-confirm overlays ON TOP of the scaffold (keeps the docked e-stop composed underneath).
+        val pendingDelete = deleteConfirm
+        if (pendingDelete != null) {
+            ConfirmGuard(
+                title = "Delete \"$pendingDelete\"?",
+                message = "Remove this saved location.",
+                confirmLabel = "Delete",
+                destructive = true,
+                onConfirm = {
+                    onDeleteLocation(pendingDelete)
+                    deleteConfirm = null
+                    mode = MoveMode.Overview
+                },
+                onCancel = { deleteConfirm = null },
+            )
+        }
+    }
 }
 
 /** Header title + icon per the current [MoveMode] (header law). */
