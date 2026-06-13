@@ -1,9 +1,9 @@
 package works.mees.dinghy.ui.calibration
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,10 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,11 +36,9 @@ import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
-import works.mees.dinghy.designsystem.layout.UnitGrid
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
@@ -119,11 +115,17 @@ fun CalibrationHubContent(
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
-                    // Focus: FocusFrame with routine icon + title + description + Open button.
-                    // The header start-icon slot docks the e-stop while printing (Focus-header law).
+                    // Hub title/icon law (2026-06-13): the Focus header tracks the SELECTED routine,
+                    // not a static "Calibration" label. Falls back to the launcher identity only on
+                    // the (defensive) null-selection frame before D-05 pre-select resolves.
+                    val headerTitle = stringResource(
+                        selected?.let { routineTitleRes(it) } ?: R.string.cd_launcher_calibration,
+                    )
+                    val headerIcon = selected?.let { routineIconToken(it) }
+                        ?: DinghyIcons.LauncherCalibration
                     FocusFrame(
-                        title = stringResource(R.string.cd_launcher_calibration),
-                        icon = DinghyIcons.LauncherCalibration,
+                        title = headerTitle,
+                        icon = headerIcon,
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -137,7 +139,6 @@ fun CalibrationHubContent(
                             HubRoutineFocus(
                                 routine = selected,
                                 onOpen = { onOpen(selected) },
-                                grid = grid,
                                 t = t,
                             )
                         }
@@ -194,34 +195,20 @@ fun CalibrationHubContent(
 private fun HubRoutineFocus(
     routine: CalibrationRoutine,
     onOpen: () -> Unit,
-    grid: UnitGrid,
     t: ThemeTokens,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // UAT-1: prominent icon ~70-80% of U (75% = midpoint of range).
-        DinghyIconView(
-            icon = routineIconToken(routine),
-            contentDescription = null, // title below provides the label
-            tint = t.accent2,
-            sizeDp = grid.uDp * 0.75f,
-        )
-        Text(
-            text = stringResource(routineTitleRes(routine)),
-            color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp,
-        )
+    // fillMaxSize claims the FocusFrame's weight(1f) content area so the Spacer can bottom-dock the
+    // Open button at a constant position across routines/orientations/screen sizes. The icon + title
+    // that used to live here are gone — they're the FocusFrame header now (2026-06-13 cleanup).
+    Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = stringResource(routineDescRes(routine)),
             color = t.text2,
             fontFamily = Geist,
             fontSize = fsSp(15f, t.fs).sp,
+            modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.weight(1f))
         OutlinedControl(
             label = stringResource(R.string.calibration_open_routine),
             onClick = onOpen,
