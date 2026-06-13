@@ -1,5 +1,8 @@
 package works.mees.dinghy.ui.move
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Checkbox
@@ -27,7 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -333,50 +341,60 @@ internal fun MoveHubContent(
                                             val w = availW
                                             DpSize(w, w / bedAspect)
                                         }
-                                        Column(horizontalAlignment = Alignment.Start) {
-                                            Row(verticalAlignment = Alignment.Top) {
-                                                // Plate fills this box exactly (aspect matches) -> no letterbox.
-                                                BedMapView(
-                                                    bed = bed,
-                                                    current = currentPair,
-                                                    target = workingX.toDouble() to workingY.toDouble(),
-                                                    travel = false,
-                                                    modifier = Modifier.size(plate),
-                                                )
-                                                // Y scrubber: same height as the plate, to its right.
-                                                Box(Modifier.width(control).height(plate.height)) {
+                                        // Center the whole bed+scrubber assembly horizontally,
+                                        // top-anchored. The Column wraps its content width
+                                        // (plate.width + control — the Row is the widest child),
+                                        // so TopCenter centers it while the start-aligned X scrubber
+                                        // stays directly under the plate's LEFT edge.
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.TopCenter,
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.Start) {
+                                                Row(verticalAlignment = Alignment.Top) {
+                                                    // Plate fills this box exactly (aspect matches) -> no letterbox.
+                                                    BedMapView(
+                                                        bed = bed,
+                                                        current = currentPair,
+                                                        target = workingX.toDouble() to workingY.toDouble(),
+                                                        travel = false,
+                                                        modifier = Modifier.size(plate),
+                                                    )
+                                                    // Y scrubber: same height as the plate, to its right.
+                                                    Box(Modifier.width(control).height(plate.height)) {
+                                                        Scrubber(
+                                                            name = "Y",
+                                                            value = workingY,
+                                                            range = yMinF..yMaxF,
+                                                            step = 1f,
+                                                            uDp = grid.uDp,
+                                                            unit = "mm",
+                                                            orientation = ScrubberOrientation.Vertical,
+                                                            onValueChange = { workingY = it },
+                                                            onSettle = { v ->
+                                                                workingY = v
+                                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                            },
+                                                        )
+                                                    }
+                                                }
+                                                // X scrubber: same width as the plate, below it (left-aligned).
+                                                Box(Modifier.width(plate.width).height(control)) {
                                                     Scrubber(
-                                                        name = "Y",
-                                                        value = workingY,
-                                                        range = yMinF..yMaxF,
+                                                        name = "X",
+                                                        value = workingX,
+                                                        range = xMinF..xMaxF,
                                                         step = 1f,
                                                         uDp = grid.uDp,
                                                         unit = "mm",
-                                                        orientation = ScrubberOrientation.Vertical,
-                                                        onValueChange = { workingY = it },
+                                                        bare = true,
+                                                        onValueChange = { workingX = it },
                                                         onSettle = { v ->
-                                                            workingY = v
+                                                            workingX = v
                                                             onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
                                                         },
                                                     )
                                                 }
-                                            }
-                                            // X scrubber: same width as the plate, below it (left-aligned).
-                                            Box(Modifier.width(plate.width).height(control)) {
-                                                Scrubber(
-                                                    name = "X",
-                                                    value = workingX,
-                                                    range = xMinF..xMaxF,
-                                                    step = 1f,
-                                                    uDp = grid.uDp,
-                                                    unit = "mm",
-                                                    bare = true,
-                                                    onValueChange = { workingX = it },
-                                                    onSettle = { v ->
-                                                        workingX = v
-                                                        onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                                    },
-                                                )
                                             }
                                         }
                                     }
@@ -600,12 +618,13 @@ internal fun MoveHubContent(
                                             "Y" to vm.yHomed,
                                             "Z" to vm.zHomed,
                                         ).forEach { (axis, homed) ->
-                                            OutlinedControl(
-                                                label = axis,
-                                                onClick = { selectedAxis = axis },
+                                            AxisSelectChip(
+                                                axis = axis,
+                                                selected = axis == selectedAxis,
+                                                homed = homed,
+                                                uDp = grid.uDp,
                                                 modifier = Modifier.weight(1f),
-                                                intent = if (axis == selectedAxis) Intent.Accent else Intent.Neutral,
-                                                enabled = homed,
+                                                onClick = { selectedAxis = axis },
                                             )
                                         }
                                     }
@@ -619,6 +638,21 @@ internal fun MoveHubContent(
                                 FocusHint("Bookmark not found")
                             } else {
                                 Column(Modifier.fillMaxSize()) {
+                                    // TOP: centered destination coordinate readout — matches the
+                                    // other focus modes' top readout (GeistMono ~22sp, centered).
+                                    Text(
+                                        text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
+                                            if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(22f, t.fs).sp,
+                                        color = t.text,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp),
+                                    )
                                     // Bed map: current toolhead + bookmark destination + travel line.
                                     if (bed != null) {
                                         val cx = vm.x
@@ -637,17 +671,6 @@ internal fun MoveHubContent(
                                             FocusHint("Waiting for printer bounds…")
                                         }
                                     }
-                                    // Destination coordinate readout.
-                                    Text(
-                                        text = "→ X ${fmt1(loc.x)}  Y ${fmt1(loc.y)}" +
-                                            if (loc.z != null) "  Z ${fmt1(loc.z)}" else "",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(16f, t.fs).sp,
-                                        color = t.text2,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
-                                    )
                                     // Move / Delete action row.
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -895,6 +918,45 @@ private fun MoveRow(
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = tint) },
     ) {
         ListRowLabel(label)
+    }
+}
+
+/**
+ * A small selectable axis chip for the Microstep axis selector (Row B). The SELECTED axis reads as
+ * a *selection state* — a focus FILL mirroring the [ListRow] convention (`accentSoft` background +
+ * 2dp `accentLine` border) rather than an action button. Unselected axes are outlined/transparent
+ * (`outline`, 1.5dp). Unhomed axes are dimmed (`text2`) and not selectable ([homed] gates the tap).
+ */
+@Composable
+private fun AxisSelectChip(
+    axis: String,
+    selected: Boolean,
+    homed: Boolean,
+    uDp: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val bg = if (selected) t.accentSoft else Color.Transparent
+    val borderColor = if (selected) t.accentLine else t.outline
+    val borderWidth = if (selected) 2.dp else 1.5.dp
+    Box(
+        modifier = modifier
+            .heightIn(min = uDp)
+            .clip(shape)
+            .background(bg)
+            .border(BorderStroke(borderWidth, borderColor), shape)
+            .clickable(enabled = homed, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = axis,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(20f, t.fs).sp,
+            color = if (homed) t.text else t.text2,
+        )
     }
 }
 
