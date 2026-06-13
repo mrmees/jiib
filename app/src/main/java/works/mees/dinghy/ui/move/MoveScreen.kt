@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -320,81 +321,76 @@ internal fun MoveHubContent(
                                             .padding(bottom = 8.dp),
                                     )
                                     // BELOW: bed map + sliders (both bare — track only, no steppers).
-                                    // Size the plate to EXACTLY bedAspect (so BedMapView fills it
-                                    // edge-to-edge, NO letterbox) within the area left after reserving
-                                    // the scrubber gutters, then match X/Y scrubbers to plate.width/height.
+                                    // The BED SQUARE itself is horizontally CENTERED in the focus; the
+                                    // Y scrubber lives in the right padding (it no longer hugs the plate),
+                                    // but keeps the plate's height so its thumb tracks the marker vertically.
                                     val bedAspect = (bed.width / bed.height).toFloat()
                                     val control = minOf(grid.uDp, 74.dp) // scrubber track thickness
                                     BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                                        // Area available for the plate = full area minus the gutters
-                                        // (Y scrubber on the right, X scrubber below). Clamp to a small
-                                        // positive floor so a tiny screen can't yield a zero/negative size.
-                                        val availW = (maxWidth - control).coerceAtLeast(1.dp)
+                                        // Reserve 2*control of width (symmetric padding so the Y scrubber
+                                        // fits in the right padding without overlapping the centered plate)
+                                        // and control of height (for the X scrubber below).
+                                        val availW = (maxWidth - control * 2).coerceAtLeast(1.dp)
                                         val availH = (maxHeight - control).coerceAtLeast(1.dp)
-                                        // Aspect-lock the plate into the available area (no stretch).
                                         val plate = if (availW / availH > bedAspect) {
-                                            // height-bound
                                             val h = availH
                                             DpSize(h * bedAspect, h)
                                         } else {
-                                            // width-bound
                                             val w = availW
                                             DpSize(w, w / bedAspect)
                                         }
-                                        // Center the whole bed+scrubber assembly horizontally,
-                                        // top-anchored. The Column wraps its content width
-                                        // (plate.width + control — the Row is the widest child),
-                                        // so TopCenter centers it while the start-aligned X scrubber
-                                        // stays directly under the plate's LEFT edge.
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.TopCenter,
+                                        Column(
+                                            Modifier.fillMaxSize(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
                                         ) {
-                                            Column(horizontalAlignment = Alignment.Start) {
-                                                Row(verticalAlignment = Alignment.Top) {
-                                                    // Plate fills this box exactly (aspect matches) -> no letterbox.
-                                                    BedMapView(
-                                                        bed = bed,
-                                                        current = currentPair,
-                                                        target = workingX.toDouble() to workingY.toDouble(),
-                                                        travel = false,
-                                                        modifier = Modifier.size(plate),
-                                                    )
-                                                    // Y scrubber: same height as the plate, to its right.
-                                                    Box(Modifier.width(control).height(plate.height)) {
-                                                        Scrubber(
-                                                            name = "Y",
-                                                            value = workingY,
-                                                            range = yMinF..yMaxF,
-                                                            step = 1f,
-                                                            uDp = grid.uDp,
-                                                            unit = "mm",
-                                                            orientation = ScrubberOrientation.Vertical,
-                                                            onValueChange = { workingY = it },
-                                                            onSettle = { v ->
-                                                                workingY = v
-                                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
-                                                            },
-                                                        )
-                                                    }
-                                                }
-                                                // X scrubber: same width as the plate, below it (left-aligned).
-                                                Box(Modifier.width(plate.width).height(control)) {
+                                            Box(Modifier.fillMaxWidth().height(plate.height)) {
+                                                // Bed square CENTERED in the full width.
+                                                BedMapView(
+                                                    bed = bed,
+                                                    current = currentPair,
+                                                    target = workingX.toDouble() to workingY.toDouble(),
+                                                    travel = false,
+                                                    modifier = Modifier.size(plate).align(Alignment.Center),
+                                                )
+                                                // Y scrubber: same height as the plate, parked at the right
+                                                // edge (in the right padding — no longer hugs the plate).
+                                                Box(
+                                                    Modifier.width(control).height(plate.height)
+                                                        .align(Alignment.CenterEnd),
+                                                ) {
                                                     Scrubber(
-                                                        name = "X",
-                                                        value = workingX,
-                                                        range = xMinF..xMaxF,
+                                                        name = "Y",
+                                                        value = workingY,
+                                                        range = yMinF..yMaxF,
                                                         step = 1f,
                                                         uDp = grid.uDp,
                                                         unit = "mm",
-                                                        bare = true,
-                                                        onValueChange = { workingX = it },
+                                                        orientation = ScrubberOrientation.Vertical,
+                                                        onValueChange = { workingY = it },
                                                         onSettle = { v ->
-                                                            workingX = v
+                                                            workingY = v
                                                             onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
                                                         },
                                                     )
                                                 }
+                                            }
+                                            // X scrubber: same width as the plate, centered under it
+                                            // (the Column's CenterHorizontally keeps it aligned with the plate).
+                                            Box(Modifier.width(plate.width).height(control)) {
+                                                Scrubber(
+                                                    name = "X",
+                                                    value = workingX,
+                                                    range = xMinF..xMaxF,
+                                                    step = 1f,
+                                                    uDp = grid.uDp,
+                                                    unit = "mm",
+                                                    bare = true,
+                                                    onValueChange = { workingX = it },
+                                                    onSettle = { v ->
+                                                        workingX = v
+                                                        onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                                    },
+                                                )
                                             }
                                         }
                                     }
@@ -409,103 +405,57 @@ internal fun MoveHubContent(
                                 var workingZ by remember(mode) {
                                     mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
                                 }
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    // Z readout — centered at the top.
-                                    Text(
-                                        text = "Z  ${fmt1(workingZ.toDouble())} mm",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(22f, t.fs).sp,
-                                        color = t.text,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp),
+                                // Two equal-weight scrubber columns with numeric endpoint labels,
+                                // and the Z value vertically centered BETWEEN them (no top reading).
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f),
+                                ) {
+                                    // Fine: 0–50 mm at 0.1 mm resolution.
+                                    ZScrubberColumn(
+                                        name = "Fine",
+                                        topLabel = "50",
+                                        value = workingZ,
+                                        range = 0f..50f,
+                                        step = 0.1f,
+                                        uDp = grid.uDp,
+                                        modifier = Modifier.weight(1f),
+                                        onValueChange = { workingZ = it },
+                                        onSettle = { v ->
+                                            workingZ = v
+                                            onMoveTo(null, null, workingZ.toDouble())
+                                        },
                                     )
-                                    // Two equal-weight scrubber columns with numeric endpoint labels.
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .weight(1f),
+                                    // Middle: the Z value, vertically centered between the two sliders.
+                                    Box(
+                                        Modifier.fillMaxHeight().padding(horizontal = 4.dp),
+                                        contentAlignment = Alignment.Center,
                                     ) {
-                                        // Fine: 0–50 mm at 0.1 mm resolution.
-                                        Column(
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                        ) {
-                                            Text(
-                                                text = "50",
-                                                fontFamily = GeistMono,
-                                                fontSize = fsSp(15f, t.fs).sp,
-                                                color = t.text2,
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxHeight()
-                                                    .weight(1f),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Scrubber(
-                                                    name = "Fine",
-                                                    value = workingZ,
-                                                    range = 0f..50f,
-                                                    step = 0.1f,
-                                                    uDp = grid.uDp,
-                                                    unit = "mm",
-                                                    orientation = ScrubberOrientation.Vertical,
-                                                    onValueChange = { workingZ = it },
-                                                    onSettle = { v ->
-                                                        workingZ = v
-                                                        onMoveTo(null, null, workingZ.toDouble())
-                                                    },
-                                                )
-                                            }
-                                            Text(
-                                                text = "0",
-                                                fontFamily = GeistMono,
-                                                fontSize = fsSp(15f, t.fs).sp,
-                                                color = t.text2,
-                                            )
-                                        }
-                                        // Full: 0–Zmax at 1 mm resolution.
-                                        Column(
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                        ) {
-                                            Text(
-                                                text = fmt1(zMax.toDouble()),
-                                                fontFamily = GeistMono,
-                                                fontSize = fsSp(15f, t.fs).sp,
-                                                color = t.text2,
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxHeight()
-                                                    .weight(1f),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Scrubber(
-                                                    name = "Full",
-                                                    value = workingZ,
-                                                    range = 0f..zMax,
-                                                    step = 1f,
-                                                    uDp = grid.uDp,
-                                                    unit = "mm",
-                                                    orientation = ScrubberOrientation.Vertical,
-                                                    onValueChange = { workingZ = it },
-                                                    onSettle = { v ->
-                                                        workingZ = v
-                                                        onMoveTo(null, null, workingZ.toDouble())
-                                                    },
-                                                )
-                                            }
-                                            Text(
-                                                text = "0",
-                                                fontFamily = GeistMono,
-                                                fontSize = fsSp(15f, t.fs).sp,
-                                                color = t.text2,
-                                            )
-                                        }
+                                        Text(
+                                            text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
+                                            fontFamily = GeistMono,
+                                            fontSize = fsSp(20f, t.fs).sp,
+                                            color = t.text,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
                                     }
+                                    // Full: 0–Zmax at 1 mm resolution.
+                                    ZScrubberColumn(
+                                        name = "Full",
+                                        topLabel = fmt1(zMax.toDouble()),
+                                        value = workingZ,
+                                        range = 0f..zMax,
+                                        step = 1f,
+                                        uDp = grid.uDp,
+                                        modifier = Modifier.weight(1f),
+                                        onValueChange = { workingZ = it },
+                                        onSettle = { v ->
+                                            workingZ = v
+                                            onMoveTo(null, null, workingZ.toDouble())
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -671,6 +621,8 @@ internal fun MoveHubContent(
                                             FocusHint("Waiting for printer bounds…")
                                         }
                                     }
+                                    // Breathing room so the bed map doesn't crowd the action row.
+                                    Spacer(Modifier.height(12.dp))
                                     // Move / Delete action row.
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -899,6 +851,59 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, DinghyIcon> = when (mod
     MoveMode.Microstep -> "Microstep" to DinghyIcons.FineTune
     is MoveMode.Bookmark -> mode.name to DinghyIcons.SavedLocation
     MoveMode.SaveDialog -> "Save Location" to DinghyIcons.SaveLocation
+}
+
+/**
+ * One vertical Z scrubber column for the Z sub-mode: a top endpoint label, a vertical [Scrubber]
+ * filling the remaining height, and a "0" bottom endpoint label. Factored out so the Fine (0–50)
+ * and Full (0–Zmax) columns share one body. Both are `weight(1f)`-equal via [modifier].
+ */
+@Composable
+private fun ZScrubberColumn(
+    name: String,
+    topLabel: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    step: Float,
+    uDp: androidx.compose.ui.unit.Dp,
+    onValueChange: (Float) -> Unit,
+    onSettle: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = topLabel,
+            fontFamily = GeistMono,
+            fontSize = fsSp(15f, t.fs).sp,
+            color = t.text2,
+        )
+        Box(
+            modifier = Modifier.fillMaxHeight().weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Scrubber(
+                name = name,
+                value = value,
+                range = range,
+                step = step,
+                uDp = uDp,
+                unit = "mm",
+                orientation = ScrubberOrientation.Vertical,
+                onValueChange = onValueChange,
+                onSettle = onSettle,
+            )
+        }
+        Text(
+            text = "0",
+            fontFamily = GeistMono,
+            fontSize = fsSp(15f, t.fs).sp,
+            color = t.text2,
+        )
+    }
 }
 
 /** A single Field action row — canonical [ListRow] with a leading icon and a label. */
