@@ -129,7 +129,7 @@ A `Row` of `OutlinedControl` buttons, height = 1U, full-width of the Field colum
 generalized replacement for the old gutter on list-primary screens.
 
 **Structural placement:** Inside the `field` slot lambda of `ScreenScaffold`, as the LAST
-column element — NOT in the `gutter` slot. Pass `gutter = null` on redesigned screens.
+column element. (The `ScreenScaffold` gutter slot was deleted 2026-06-12 — R1 migration.)
 
 Button distribution: each `OutlinedControl` uses `Modifier.weight(1f)` for equal width. Weighted
 buttons (one wider primary action) are allowed if they stay on the grid (integer-ish fractions).
@@ -336,10 +336,12 @@ The canonical drag-adjust control, owner-referenced Android-SeekBar style ported
   per move — it detaches the node / stales the drag closure and the gesture dies.
 - Source sketch: `.claude/skills/sketch-findings-dinghy-display/sources/004-scrubber-style/`.
 
-**Deprecations (R9):** the legacy fill-bar style (`ScrubberControl` / `LedBrightnessControl`
-visuals) is deprecated — surfaces migrate per the 2026-06 normalization-audit verdicts (UAT-3's
-1U cap binds both styles in the interim). `ScrubberPage.kt` is dead code (debug gallery only)
-and is deleted in the sweep.
+**Status (R9 — migration COMPLETE 2026-06-12):** the canonical implementation is
+`designsystem/components/Scrubber.kt`. The legacy fill-bar composables (`ScrubberPage`, then
+`ScrubberControl`/`ScrubberActions` and `LedBrightnessControl`) are DELETED; every Outputs
+surface (fan / servo / heater / PWM / LED brightness) renders the 004 style. The pure gesture
+helpers (`fractionFromX`, `settleDispatchCount`) remain host-tested in
+`designsystem/ScrubberPage.kt`.
 
 ## 7b. Stroke, floor & spacing tables (R12/R13, owner-approved as-built, 2026-06-12)
 

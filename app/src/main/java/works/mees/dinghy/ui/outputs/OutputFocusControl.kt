@@ -1,21 +1,13 @@
 package works.mees.dinghy.ui.outputs
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,19 +15,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import works.mees.dinghy.designsystem.fractionFromX
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -52,10 +39,9 @@ import works.mees.dinghy.command.SetOutputPinArgs
 import works.mees.dinghy.command.SetServoArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ColorWheel
-import works.mees.dinghy.designsystem.ScrubberActions
-import works.mees.dinghy.designsystem.ScrubberControl
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.hsvToRgb
@@ -74,18 +60,18 @@ import works.mees.dinghy.theme.fsSp
  * IS the surface). Dispatch logic migrated VERBATIM from the three deleted detail pages.
  *
  * ## Output type routing
- *  - **fan_generic / pwm_tool** — `ScrubberControl` (0..100 %) via [ScrubberActions.OnSettle]; dispatch
+ *  - **fan_generic / pwm_tool** — the 004 [Scrubber] (0..100 %), settle-on-gesture-end; dispatch
  *    routes through `PrinterCommands.outputPctToWire` + `OutputsHolder.markPending` (P17 clamp authority).
- *  - **servo** — `ScrubberControl` (0..servoAngleMax°) via OnSettle; `clampServoAngle` before `markPending`.
- *  - **heater_generic** — `ScrubberControl` (0..MAX_TEMP_C °C) via OnSettle; `clampHeaterTarget`.
+ *  - **servo** — the 004 [Scrubber] (0..servoAngleMax°), settle-on-gesture-end; `clampServoAngle` before `markPending`.
+ *  - **heater_generic** — the 004 [Scrubber] (0..MAX_TEMP_C °C), settle-on-gesture-end; `clampHeaterTarget`.
  *  - **output_pin (digital)** — On/Off toggle via [OutputToggleControl] dispatch logic.
- *  - **output_pin (PWM)** — `ScrubberControl` 0..100% via OnSettle.
- *  - **led/neopixel/dotstar/pca9533/pca9632** — brightness `ScrubberControl` + P19 GAP-B capability-gated
+ *  - **output_pin (PWM)** — the 004 [Scrubber] 0..100%, settle-on-gesture-end.
+ *  - **led/neopixel/dotstar/pca9533/pca9632** — brightness 004 [Scrubber] + P19 GAP-B capability-gated
  *    hue `ColorWheel` + Off. Channel gating (hide-not-grey) preserved verbatim from OutputLedDetail.
  *
  * ## Build-once scrubber rule (SC-3 / P19)
- * `ScrubberControl` is hosted WITHOUT a `key(output.currentPct)` wrapper — the P19 build-once rule.
- * `ScrubberControl`'s internal `working` state is seeded via `remember(value, range)` and updates in
+ * `Scrubber` is hosted WITHOUT a `key(output.currentPct)` wrapper — the P19 build-once rule.
+ * `Scrubber`'s internal `working` state is seeded via `remember(value, range)` and updates in
  * place on drag; wrapping in `key(…)` would force a rebuild mid-drag (the fa97efb fill-from-middle /
  * value-not-sticking regression).
  *
@@ -420,13 +406,13 @@ private fun OutputFocusControlInner(
 
 /**
  * Shared scrubber surface for fan / servo / heater / PWM outputs, hosted inline in the Focus.
- * Uses [ScrubberControl] (the embeddable gesture+state core — NO ScreenScaffold, NO background).
+ * Uses the 004 ringed-thumb [Scrubber] (R9 — NO ScreenScaffold, NO background).
  * The Off/Back row is rendered directly below the control (not in a separate gutter).
  *
  * ## Build-once rule (P19 SC-3)
- * [ScrubberControl] is placed WITHOUT a `key(value)` wrapper so its internal `working` state
+ * [Scrubber] is placed WITHOUT a `key(value)` wrapper so its internal `working` state
  * survives across live value updates and recomposes. The `remember(value, range)` inside
- * [ScrubberControl] seeds the state once on entry and when the range changes — NEVER on every frame.
+ * [Scrubber] seeds the state once on entry and when the range changes — NEVER on every frame.
  */
 @Composable
 private fun FocusScrubberSurface(
@@ -443,34 +429,25 @@ private fun FocusScrubberSurface(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = prettyName,
-            color = t.text2,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(17f, t.fs).sp,
-            modifier = Modifier.padding(bottom = 2.dp),
-        )
-        // CRITICAL build-once rule (P19 SC-3): ScrubberControl is NOT wrapped in key(value).
+        // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
         // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
-        ScrubberControl(
-            label = prettyName,
+        // 004 ringed-thumb style (R9): the header row carries the name + live value, so the old
+        // standalone prettyName Text is gone.
+        Scrubber(
+            name = prettyName,
             value = value.coerceIn(range.start, range.endInclusive),
             range = range,
             step = step,
             unit = unit,
             uDp = uDp,
-            // OnSettle: dispatch ONCE on gesture-end / stepper tap; enabled guard inside lambda.
-            actions = ScrubberActions.OnSettle(
-                onSettle = { v -> if (!busy) onSettle(v) },
-                onBack = onBack,
-            ),
+            // Settle: dispatch ONCE on gesture-end / stepper tap; busy guard inside the lambda
+            // (the drag stays live while a dispatch is in flight — pre-004 semantics).
+            onSettle = { v -> if (!busy) onSettle(v) },
             modifier = Modifier.fillMaxWidth(),
         )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        // Foot row: Off (Danger/red) + Back (Neutral). Mirrors the ScrubberPage OnSettle gutter.
+        // Foot row: Back (accent, FIRST — R5/R8) + Off (stop-red).
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -493,7 +470,7 @@ private fun FocusScrubberSurface(
 }
 
 /**
- * Inline LED Focus surface (D-19) — brightness [ScrubberControl] + P19 GAP-B capability-gated hue
+ * Inline LED Focus surface (D-19) — brightness 004 [Scrubber] + P19 GAP-B capability-gated hue
  * [ColorWheel] + Off/Back row. All hosted without a [works.mees.dinghy.designsystem.layout.ScreenScaffold].
  *
  * ## Channel gating (P19 GAP-B — hide-not-grey)
@@ -557,11 +534,17 @@ private fun FocusLedSurface(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        // Brightness fill-bar (inline, mirrors LedBrightnessControl from OutputLedDetail).
-        // CRITICAL: build-once — NOT wrapped in key(brightness); LedBrightnessControl uses
-        // remember(value) internally so it survives live value updates without re-creation.
-        LedBrightnessControl(
+        // Brightness scrubber — 004 ringed-thumb (R9). CRITICAL: build-once — NOT wrapped in
+        // key(brightness); Scrubber re-seeds its working state in place via remember(value, range)
+        // so it survives live value updates without re-creation. Name-less (the LED's prettyName
+        // header is above the wheel); the % unit rides the value.
+        Scrubber(
+            name = "",
             value = brightness,
+            range = 0f..100f,
+            step = 1f,
+            unit = "%",
+            uDp = uDp,
             enabled = !busy,
             onValueChange = { brightness = it },
             onSettle = { settled ->
@@ -570,7 +553,6 @@ private fun FocusLedSurface(
                     if (ledHasRgb) onColorSettle(hue, settled) else onWhiteSettle(settled)
                 }
             },
-            uDp = uDp,
             modifier = Modifier.fillMaxWidth(),
         )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
@@ -596,129 +578,3 @@ private fun FocusLedSurface(
     }
 }
 
-/**
- * LED brightness fill-bar + ± stepper — migrated from the deleted OutputLedDetail.kt. Renders a
- * horizontal accent-filled bar (LEFT-anchored fill, no center-expand) and a ± stepper row below.
- * Dispatch-once-per-settle (gesture-end / stepper tap). Internal `working` state seeded via
- * `remember(value)` — NOT wrapped in `key(value)` (P19 build-once rule).
- *
- * @param value         seed brightness (0..100 %).
- * @param onValueChange notified on drag/stepper; does NOT dispatch — caller holds dispatch.
- * @param onSettle      called once on gesture-end / stepper tap with the settled value.
- * @param enabled       false while a dispatch is in-flight (busy lock).
- */
-@Composable
-private fun LedBrightnessControl(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    onSettle: (Float) -> Unit,
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val t = LocalTokens.current
-    val range = 0f..100f
-    val step = 1f
-    var barWidthPx by remember { mutableFloatStateOf(0f) }
-    // Internal working value — seeded from [value]; re-seeds on a live state flip.
-    // Reads `working` at gesture-settle so the dragged-to value is dispatched, not the stale seed.
-    //
-    // CR-04 (26-rev): same stale-closure hardening as ScrubberControl — ONE stable working state
-    // object (re-seeded IN PLACE when [value] changes, P19 build-once) plus rememberUpdatedState
-    // routing, so the long-lived awaitEachGesture handler never writes a dead state object after a
-    // re-seed and never dispatches through the lambdas captured when the handler started.
-    val workingState = remember { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
-    remember(value) { workingState.floatValue = value.coerceIn(range.start, range.endInclusive) }
-    var working by workingState
-    val currentOnValueChange by rememberUpdatedState(onValueChange)
-    val currentOnSettle by rememberUpdatedState(onSettle)
-
-    fun set(next: Float) {
-        if (!enabled) return
-        val clamped = next.coerceIn(range.start, range.endInclusive)
-        working = clamped
-        currentOnValueChange(clamped)
-    }
-
-    fun setFromX(x: Float) {
-        if (barWidthPx <= 0f) return
-        set(range.start + fractionFromX(x, barWidthPx) * (range.endInclusive - range.start))
-    }
-
-    fun settle() {
-        if (enabled) currentOnSettle(working)
-    }
-
-    val fraction = ((working - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
-    val display = working.roundToInt().toString()
-
-    Column(modifier) {
-        // Horizontal fill-bar scrubber — LEFT-anchored fill (no center-expand regression).
-        // UAT-3/UAT-5: track height capped at ≤1U via heightIn(max = uDp).
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = uDp)
-                .clip(RoundedCornerShape(t.rCard))
-                .background(t.surface2)
-                .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard))
-                .onSizeChanged { barWidthPx = it.width.toFloat() }
-                .pointerInput(enabled) {
-                    if (!enabled) return@pointerInput
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        setFromX(down.position.x)
-                        down.consume()
-                        do {
-                            val event = awaitPointerEvent()
-                            event.changes.forEach { change ->
-                                if (change.pressed) {
-                                    setFromX(change.position.x)
-                                    change.consume()
-                                }
-                            }
-                        } while (event.changes.any { it.pressed })
-                        // Gesture END — settle once; never per move frame (P19 rule).
-                        settle()
-                    }
-                },
-            // NO contentAlignment: fill MUST anchor to start edge and grow rightward.
-        ) {
-            // Accent fill, LEFT-anchored (TopStart default).
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction)
-                    .background(t.accentSoft),
-            )
-            // Centered value overlay.
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "$display%",
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(40f, t.fs).sp,
-                )
-            }
-        }
-        // ± stepper row — each tap is a discrete adjust + settle.
-        Row(
-            Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedControl(
-                label = "−",
-                onClick = { set(working - step); settle() },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-            )
-            OutlinedControl(
-                label = "+",
-                onClick = { set(working + step); settle() },
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-            )
-        }
-    }
-}

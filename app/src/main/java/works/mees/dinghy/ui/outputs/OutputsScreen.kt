@@ -54,7 +54,7 @@ import works.mees.dinghy.theme.fsSp
  * - LIVE overload: consumes [holder] + [container], collects [OutputsHolder.rows], holds [selectedKey].
  * - STATELESS overload: pure params for @Preview matrix — no Moonraker, no holder.
  *
- * `gutter = null` — FootButtonBar lives in the field lambda (MANDATORY per 26-PATTERNS redesign rule).
+ * FootButtonBar lives in the field lambda (MANDATORY per 26-PATTERNS redesign rule).
  * Static styling only — no looping animation (Adreno-320 budget).
  *
  * @param holder    the headless [OutputsHolder] (rows + dispatch wiring).
@@ -151,7 +151,7 @@ private fun OutputsContent(
                             // pointer-input node + dispatch closures — without it, a live gesture handler kept
                             // the previous output's captured dispatch and could send the wire command to the
                             // WRONG device. This is NOT the forbidden key(value) per-frame rebuild (P19 SC-3 /
-                            // fa97efb): objectKey cannot change mid-drag, and ScrubberControl's internal
+                            // fa97efb): objectKey cannot change mid-drag, and the 004 Scrubber's internal
                             // working state is still seeded via remember(value, range), never per recompose.
                             key(selectedRow.descriptor.objectKey) {
                                 OutputFocusControl(
@@ -231,7 +231,6 @@ private fun OutputsContent(
                     )
                 }
             },
-            gutter = null,
         )
     }
 }

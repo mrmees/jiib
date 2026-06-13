@@ -123,13 +123,38 @@ Load/Unload, Open, Save, Calibrate, Home-gates, Run, Start, Retry/Setup); Prehea
 live until the 004 migration); home-standby U hoisted to screen root (C-U1b).
 
 **OMITTED (owner R25):** Move + Extrude — full rework later.
-**REMAINING (structural slate / follow-ups):** PrintStatus gutter-mode migration (+ its 15
-control-label strings — they live in PrintStatusControlModel, needs @StringRes restructure);
-LedBrightnessControl + ScrubberControl → 004 ringed-thumb; About/Printers local-row consolidation;
+
+**STRUCTURAL SLATE session 2026-06-12 (post-wide-pass) — DONE:**
+- **PrintStatus gutter-mode migration (R1) COMPLETE:** Printing (Pause·Cancel) / Paused
+  (Resume·Cancel) / Terminal (Dismiss·Reprint) now render `PrintStatusFootBar` (FootButtonBar) at
+  the foot of the field; intents Pause→warn, Resume/Reprint→go, Cancel→stop, Dismiss→accent.
+  Control model restructured to @StringRes (`labelRes`; 9 new `printstatus_foot_*` strings);
+  hold-to-cancel + the dead Tune/Stop/Preheat/Power controls retired (Cancel is explicit;
+  enum shrunk to 5 actions); Standby derives an EMPTY foot (its bar stays hand-built).
+  **`ScreenScaffold.gutter` slot DELETED** (+~20 `gutter = null` call sites swept, WebcamScreen
+  full-focus restructured to feed-over-foot-bar Column, OutputToggleControl migrated off its live
+  gutter to Back-FIRST-accent foot bar, GalleryScreen demo updated, law docs
+  LAYOUT/COMPONENTS/CLAUDE corrected); `PrintStatusGutter.kt` deleted. Codex review findings
+  fixed: FloatingEStop hold=IMMEDIATE e-stop parity restored at the AppShell level (panic path) +
+  cd_emergency_stop spoken label; foot Cancel speaks "Cancel print"; Reprint now arms a
+  Restart pending debounce (no double printStart) + NEW `clearPendingOnDispatchFailure`
+  un-wedges any pending action whose dispatch FAILS (key-matched; host-tested) — also fixes the
+  pre-existing pause/resume/cancel wedge-on-failure. Host suite + androidTest compile GREEN;
+  flox smoke OK (Standby UAT'd; Printing/Paused/Terminal foot bars need a live print — owner).
+- **004 scrubber migration (R9) COMPLETE:** new canonical `designsystem/components/Scrubber.kt`
+  (ringed thumb per §7b: track 6 / thumb 34 / ring 5 / touch 74, snap-to-step, press halo,
+  min/max ends row, ± steppers, build-once + CR-04 hardening, draw/layout-phase-only drag
+  updates). `ScrubberControl`+`ScrubberActions` and `LedBrightnessControl` DELETED;
+  `ScrubberPage.kt` trimmed to the pure host-tested helpers (fractionFromX/settleDispatchCount).
+  Outputs fan/servo/heater/PWM + LED brightness all render the 004 style — verified on flox
+  (Chamber Light).
+
+**REMAINING (follow-ups):** About/Printers local-row consolidation;
 dynamic symbol-param icon sites (ActiveSpoolCard ×2, ScanSurface, ScanConfirmCard); oklch
 caution-reads-red verification/clamp (R10 — needs a focused session, color.js parity risk); Spool
 "close" symbol TODO (NEEDS OWNER GLYPH CHOICE — icon law); Focus standardization pass (owner);
-@Preview/golden backfill → Ship (R14).
+@Preview/golden backfill → Ship (R14); per-screen FloatingEStop call sites (FineTune/Temperature/
+Spool/calibration) still tap-only — extend the hold-panic parity there if owner wants it app-wide.
 
 ## 5. Suggested execution order (post-verdicts)
 
