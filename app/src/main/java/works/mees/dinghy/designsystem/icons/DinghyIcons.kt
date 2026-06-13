@@ -50,6 +50,29 @@ object DinghyIcons {
     /** Spool filter-picker Clear glyph (owner-assigned 2026-06-12, closes 23-rev WR-02). */
     val DeleteSweep = DinghyIcon(IconRef.Ligature("delete_sweep"), alternate = "delete_sweep")
 
+    // --- Active-spool card + scan surface (structural-slate registry routing, 2026-06-12 —
+    //     pre-existing in-use ligatures flipped from raw MaterialSymbol params; NO new glyph picks) ---
+    /** Active-spool card "Change" action (swap to another spool). */
+    val SpoolChange = DinghyIcon(IconRef.Ligature("swap_horiz"), alternate = "spool_change")
+    /** Active-spool card "Clear" action (post_spool_id {} — unload the active record). */
+    val SpoolClear = DinghyIcon(IconRef.Ligature("remove_circle"), alternate = "spool_clear")
+    /** Spool storage-location stat row (active-spool card + scan-confirm). */
+    val SpoolLocation = DinghyIcon(IconRef.Ligature("location_on"), alternate = "spool_location")
+    /** Amber badge: queued usage not yet synced — remaining may be stale. */
+    val SpoolUsageStale = DinghyIcon(IconRef.Ligature("sync_problem"), alternate = "spool_usage_stale")
+    /** Amber badge: the active spool changed externally (another client). */
+    val SpoolChangedExternally = DinghyIcon(IconRef.Ligature("autorenew"), alternate = "spool_changed_externally")
+    /** Scan degrade panel — camera permission denied. */
+    val ScanNoPermission = DinghyIcon(IconRef.Ligature("no_photography"), alternate = "scan_no_permission")
+    /** Scan degrade panel — no camera on this device. */
+    val ScanNoCamera = DinghyIcon(IconRef.Ligature("videocam_off"), alternate = "scan_no_camera")
+    /** Scan degrade panel — camera busy / unavailable. */
+    val ScanCameraBusy = DinghyIcon(IconRef.Ligature("error"), alternate = "scan_camera_busy")
+    /** Scan surface camera-flip toggle (front/back). */
+    val ScanCameraFlip = DinghyIcon(IconRef.Ligature("cameraswitch"), alternate = "scan_camera_flip")
+    /** Scan degrade escape — "Use picker instead" (manual list picker). */
+    val ScanUsePicker = DinghyIcon(IconRef.Ligature("list"), alternate = "scan_use_picker")
+
     // --- Launcher / shortcut glyphs (Standby grid + Printing shortcut row — icon-never-twice) ---
     val LauncherFiles = DinghyIcon(IconRef.Ligature("print_connect"), alternate = "launcher_files")
     val LauncherTemperature = DinghyIcon(IconRef.Ligature("thermostat"), alternate = "launcher_temperature")
@@ -251,6 +274,8 @@ object DinghyIcons {
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
         Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings, QrCodeScanner, DeleteSweep,
+        SpoolChange, SpoolClear, SpoolLocation, SpoolUsageStale, SpoolChangedExternally,
+        ScanNoPermission, ScanNoCamera, ScanCameraBusy, ScanCameraFlip, ScanUsePicker,
         MatchCase, CalendarClock, Experiment, Home, QrCode,
         Print, Delete, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,

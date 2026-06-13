@@ -25,7 +25,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
@@ -184,14 +183,14 @@ fun ActiveSpoolCard(
                     onClick = onScan,
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    symbol = "qr_code_scanner",
+                    icon = DinghyIcons.QrCodeScanner,
                 )
                 OutlinedControl(
                     label = "Change",
                     onClick = onChange,
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    symbol = "swap_horiz",
+                    icon = DinghyIcons.SpoolChange,
                 )
                 // Clear only makes sense when something is loaded (D-13 → post_spool_id {}).
                 if (hasActiveSpool) {
@@ -200,7 +199,7 @@ fun ActiveSpoolCard(
                         onClick = onClear,
                         modifier = Modifier.weight(1f),
                         intent = Intent.Danger,
-                        symbol = "remove_circle",
+                        icon = DinghyIcons.SpoolClear,
                     )
                 }
             }
@@ -231,7 +230,7 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
     }
     // Vendor.
     filament?.vendor?.name?.let { vendor ->
-        SpoolStatRow("storefront", "Vendor", vendor, t)
+        SpoolStatRow(DinghyIcons.Storefront, "Vendor", vendor, t)
     }
     // Remaining — the GeistMono tabular hero (26sp).
     Row(
@@ -250,18 +249,18 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
         )
     }
     // Location context (inventory only, never the active-spool truth).
-    spool.location?.let { SpoolStatRow("location_on", "Location", it, t) }
+    spool.location?.let { SpoolStatRow(DinghyIcons.SpoolLocation, "Location", it, t) }
     // D-09 archived badge.
     if (spool.archived) {
-        StateBadge("archive", "Archived spool — verify before loading", t.heat, t)
+        StateBadge(DinghyIcons.Archive, "Archived spool — verify before loading", t.heat, t)
     }
     // D-11 stale / pending usage.
     if (state.stale) {
-        StateBadge("sync_problem", "Usage queued — remaining may be stale", t.heat, t)
+        StateBadge(DinghyIcons.SpoolUsageStale, "Usage queued — remaining may be stale", t.heat, t)
     }
     // D-10 reconciled to a new id externally.
     if (state.changedExternally) {
-        StateBadge("autorenew", "Active spool changed externally", t.heat, t)
+        StateBadge(DinghyIcons.SpoolChangedExternally, "Active spool changed externally", t.heat, t)
     }
 }
 
@@ -290,12 +289,12 @@ private fun ColorSwatch(swatches: List<String>, t: ThemeTokens) {
 
 /** One icon-led metadata row (15–17sp floor; never smaller — D-16). */
 @Composable
-private fun SpoolStatRow(symbol: String, label: String, value: String, t: ThemeTokens) {
+private fun SpoolStatRow(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, label: String, value: String, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(18f, t.fs))
+        DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp)
         Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
         Text(
             value,
@@ -311,12 +310,12 @@ private fun SpoolStatRow(symbol: String, label: String, value: String, t: ThemeT
 
 /** An amber proceed-at-peril state badge (archived / stale / changed-externally). */
 @Composable
-private fun StateBadge(symbol: String, text: String, color: Color, t: ThemeTokens) {
+private fun StateBadge(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, text: String, color: Color, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = color, sizeSp = fsSp(18f, t.fs))
+        DinghyIconView(icon, tint = color, sizeDp = fsSp(18f, t.fs).dp)
         Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
     }
 }

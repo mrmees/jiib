@@ -266,6 +266,15 @@ class SpoolHolder(
             // Keep the selection only if it survived the new result set (else clear it so the Focus follows
             // the visible list). A failed/empty read shows the empty list + an error notice, never a crash.
             val keptSelection = current.selected?.let { sel -> parsed.rows.firstOrNull { it.id == sel.id } }
+                // Entry preselect (owner, 2026-06-12): on the FIRST populated result (the list was
+                // empty until now and nothing is selected), default the selection to the
+                // currently-LOADED spool so the screen opens showing it. Later refreshes (filter/
+                // sort changes, user-cleared selection) never re-apply — spools is non-empty then.
+                ?: if (current.spools.isEmpty()) {
+                    current.activeStatus?.activeSpoolId?.let { id -> parsed.rows.firstOrNull { it.id == id } }
+                } else {
+                    null
+                }
             current.copy(
                 spools = parsed.rows,
                 selected = keptSelection,

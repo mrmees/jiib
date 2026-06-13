@@ -312,4 +312,67 @@ class SpoolHolderVendorTest {
         val sunluCount = h.state.value.vendors.count { it.equals("Sunlu", true) }
         assertEquals("Sunlu / sunlu (two spools) must collapse to one option", 1, sunluCount)
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Entry preselect (owner, 2026-06-12): when a spool is LOADED, the screen
+    // opens with it selected — applied on the FIRST populated refresh only.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun loadedSpoolHolder(activeId: Int?) = SpoolHolder(
+        scope = kotlinx.coroutines.test.TestScope(UnconfinedTestDispatcher()),
+        client = spoolDerivedClient,
+        activeSpool = MutableStateFlow(
+            SpoolmanStatus(spoolmanConnected = true, activeSpoolId = activeId),
+        ),
+    )
+
+    @Test
+    fun `entry preselect — the loaded spool is selected after the first load`() = runTest(UnconfinedTestDispatcher()) {
+        val h = loadedSpoolHolder(activeId = 2)
+        h.load()
+
+        assertEquals("the loaded spool (id 2) must come up preselected", 2, h.state.value.selected?.id)
+    }
+
+    @Test
+    fun `entry preselect — no active spool means no selection`() = runTest(UnconfinedTestDispatcher()) {
+        val h = loadedSpoolHolder(activeId = null)
+        h.load()
+
+        assertEquals(null, h.state.value.selected)
+    }
+
+    @Test
+    fun `entry preselect — an active id missing from the result set selects nothing`() = runTest(UnconfinedTestDispatcher()) {
+        val h = loadedSpoolHolder(activeId = 999)
+        h.load()
+
+        assertEquals(null, h.state.value.selected)
+    }
+
+    @Test
+    fun `entry preselect — a user-cleared selection is NOT re-applied by a later refresh`() = runTest(UnconfinedTestDispatcher()) {
+        val h = loadedSpoolHolder(activeId = 2)
+        h.load()
+        assertEquals(2, h.state.value.selected?.id)
+
+        h.clearSelection()
+        h.refresh() // e.g. a filter/sort change after the user backed out of the detail
+
+        assertEquals("a later refresh must not fight the user's cleared selection", null, h.state.value.selected)
+    }
+
+    @Test
+    fun `entry preselect — an explicit user selection survives refresh unchanged`() = runTest(UnconfinedTestDispatcher()) {
+        val h = loadedSpoolHolder(activeId = 2)
+        h.load()
+
+        // User picks a DIFFERENT spool than the loaded one…
+        val other = h.state.value.spools.first { it.id == 1 }
+        h.selectSpool(other)
+        h.refresh()
+
+        // …and the refresh keeps THEIR choice, not the loaded spool.
+        assertEquals(1, h.state.value.selected?.id)
+    }
 }

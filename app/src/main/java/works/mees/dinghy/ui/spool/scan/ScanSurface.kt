@@ -33,7 +33,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import works.mees.dinghy.R
-import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.preview.PreviewPlaceholderBox
@@ -121,7 +122,7 @@ fun ScanSurface(
                 )
 
                 ScanState.PermissionDenied -> DegradePanel(
-                    symbol = "no_photography",
+                    icon = DinghyIcons.ScanNoPermission,
                     title = "Camera permission denied",
                     body = "Grant camera access to scan a QR, or use the manual picker instead.",
                     onUsePicker = onUsePicker,
@@ -129,7 +130,7 @@ fun ScanSurface(
                 )
 
                 ScanState.NoCamera -> DegradePanel(
-                    symbol = "videocam_off",
+                    icon = DinghyIcons.ScanNoCamera,
                     title = "No camera available",
                     body = "This device has no usable camera. Use the manual picker instead.",
                     onUsePicker = onUsePicker,
@@ -137,7 +138,7 @@ fun ScanSurface(
                 )
 
                 ScanState.Busy -> DegradePanel(
-                    symbol = "error",
+                    icon = DinghyIcons.ScanCameraBusy,
                     title = "Camera unavailable",
                     body = "The camera couldn't be opened (in use by another app). Try again, or use the picker.",
                     onUsePicker = onUsePicker,
@@ -173,7 +174,7 @@ fun ScanSurface(
                 onClick = onBack,
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                symbol = "arrow_back",
+                icon = DinghyIcons.Back,
             )
             if (livePreview) {
                 OutlinedControl(
@@ -181,7 +182,7 @@ fun ScanSurface(
                     onClick = { useBackCamera = !useBackCamera },
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    symbol = "cameraswitch",
+                    icon = DinghyIcons.ScanCameraFlip,
                 )
             }
         }
@@ -307,7 +308,7 @@ private fun ScanHint(text: String, t: ThemeTokens, modifier: Modifier = Modifier
  */
 @Composable
 private fun DegradePanel(
-    symbol: String,
+    icon: works.mees.dinghy.designsystem.icons.DinghyIcon,
     title: String,
     body: String,
     onUsePicker: () -> Unit,
@@ -319,7 +320,7 @@ private fun DegradePanel(
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        MaterialSymbol(symbol, tint = t.text3, sizeSp = fsSp(64f, t.fs))
+        DinghyIconView(icon, tint = t.text3, sizeDp = fsSp(64f, t.fs).dp)
         Text(
             text = title,
             color = t.text,
@@ -340,7 +341,7 @@ private fun DegradePanel(
             onClick = onUsePicker,
             modifier = Modifier.fillMaxWidth(),
             intent = Intent.Accent,
-            symbol = "list",
+            icon = DinghyIcons.ScanUsePicker,
         )
     }
 }

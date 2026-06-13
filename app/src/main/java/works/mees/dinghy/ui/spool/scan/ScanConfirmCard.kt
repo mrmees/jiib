@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
@@ -143,14 +142,14 @@ fun ScanConfirmCard(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
                 intent = Intent.Danger, // back = red (THEME-04).
-                symbol = "arrow_back",
+                icon = DinghyIcons.Back,
             )
             OutlinedControl(
                 label = "Set active",
                 onClick = { onConfirm(spoolId) }, // confirm-first: the SOLE set-active trigger (D-12).
                 modifier = Modifier.weight(1f),
                 intent = Intent.Go, // green accept/commit.
-                symbol = "check_circle",
+                icon = DinghyIcons.CheckCircle,
             )
         }
     }
@@ -177,7 +176,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        filament?.vendor?.name?.let { ConfirmRow("storefront", "Vendor", it, t) }
+        filament?.vendor?.name?.let { ConfirmRow(DinghyIcons.Storefront, "Vendor", it, t) }
         // Remaining — the GeistMono tabular hero (26sp, D-16).
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -194,7 +193,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
             )
             Text("remaining", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(17f, t.fs).sp)
         }
-        spool.location?.let { ConfirmRow("location_on", "Location", it, t) }
+        spool.location?.let { ConfirmRow(DinghyIcons.SpoolLocation, "Location", it, t) }
         if (spool.archived) {
             // D-09: an archived spool is scannable but flagged before confirm.
             Row(
@@ -238,12 +237,12 @@ private fun ConfirmSwatch(swatches: List<String>, t: ThemeTokens) {
 
 /** One icon-led detail stat (label/value 17sp — never below the 15sp floor). */
 @Composable
-private fun ConfirmRow(symbol: String, label: String, value: String, t: ThemeTokens) {
+private fun ConfirmRow(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, label: String, value: String, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol(symbol, tint = t.text2, sizeSp = fsSp(20f, t.fs))
+        DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp)
         Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
         Text(
             value,
