@@ -60,6 +60,9 @@ class MoveHolder(
         val yHomed = 'y' in homed
         val zHomed = 'z' in homed
 
+        // Travel feedrate: maxVelocity is mm/s; convert to mm/min for G1 F parameter.
+        val travelFeed = state.maxVelocity?.let { (it * 60).toInt() }?.coerceAtLeast(1) ?: 6000
+
         return MoveVm(
             x = x,
             y = y,
@@ -68,13 +71,18 @@ class MoveHolder(
             yHomed = yHomed,
             zHomed = zHomed,
             allHomed = xHomed && yHomed && zHomed,
+            axisMin = state.axisMinimum,
+            axisMax = state.axisMaximum,
+            travelFeedMmMin = travelFeed,
         )
     }
 }
 
 /**
- * The Move panel view-model: live gcode X/Y/Z (null when unreported — never fabricated) and per-axis
- * homed gating ([allHomed] = all three present in `homed_axes`).
+ * The Move panel view-model: live gcode X/Y/Z (null when unreported — never fabricated), per-axis
+ * homed gating ([allHomed] = all three present in `homed_axes`), axis motion bounds from
+ * `toolhead.axis_minimum`/`axis_maximum` (null until first snapshot), and the travel feedrate
+ * derived from `toolhead.max_velocity` (mm/s → mm/min; default 6000 mm/min when unreported).
  */
 data class MoveVm(
     val x: Double? = null,
@@ -84,4 +92,10 @@ data class MoveVm(
     val yHomed: Boolean = false,
     val zHomed: Boolean = false,
     val allHomed: Boolean = false,
+    /** `toolhead.axis_minimum` [x, y, z, e] (mm); null until first snapshot. Plain List — not hot-path. */
+    val axisMin: List<Double>? = null,
+    /** `toolhead.axis_maximum` [x, y, z, e] (mm); null until first snapshot. Plain List — not hot-path. */
+    val axisMax: List<Double>? = null,
+    /** Travel feedrate in mm/min (G1 F parameter). Derived from `toolhead.max_velocity × 60`. Default 6000. */
+    val travelFeedMmMin: Int = 6000,
 )
