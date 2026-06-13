@@ -183,42 +183,49 @@ internal fun PrintStatusActiveField(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.fillMaxSize().padding(8.dp),
+        // Outer Column frames the VERTICAL only — the content and the self-framed foot bar each own
+        // the horizontal frame (ListFrameInset) so their outer edges align (owner rule, 2026-06-12).
+        modifier.fillMaxSize().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        StatGrid(
-            state = state,
-            metadata = metadata,
-            babystepWindow = babystepShown,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
-        // Optional Spoolman print line (informational; accent when available < required, D-1c).
-        if (spoolmanPresent) {
-            SpoolmanPrintLine(
-                cardState = activeSpoolCardState,
+        Column(
+            Modifier.weight(1f).padding(horizontal = ListFrameInset),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatGrid(
+                state = state,
                 metadata = metadata,
-                modifier = Modifier.fillMaxWidth(),
+                babystepWindow = babystepShown,
+                modifier = Modifier.fillMaxWidth().weight(1f),
             )
+            // Optional Spoolman print line (informational; accent when available < required, D-1c).
+            if (spoolmanPresent) {
+                SpoolmanPrintLine(
+                    cardState = activeSpoolCardState,
+                    metadata = metadata,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            // The shortcut row, OR the babystep 3-cell row inside the early-layer window.
+            if (ui.activeRow == PrintStatusFieldRow.Babystep) {
+                BabystepRow(
+                    step = babystepStep,
+                    onCompress = onBabystepCompress,
+                    onExpand = onBabystepExpand,
+                    onCycleStep = onCycleBabystepStep,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                ShortcutRow(
+                    spoolmanPresent = spoolmanPresent,
+                    spoolSwatches = spoolSwatches,
+                    hasBookmarkedMacros = hasBookmarkedMacros,
+                    onNavigate = onNavigate,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         }
-        // The shortcut row, OR the babystep 3-cell row inside the early-layer window.
-        if (ui.activeRow == PrintStatusFieldRow.Babystep) {
-            BabystepRow(
-                step = babystepStep,
-                onCompress = onBabystepCompress,
-                onExpand = onBabystepExpand,
-                onCycleStep = onCycleBabystepStep,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            ShortcutRow(
-                spoolmanPresent = spoolmanPresent,
-                spoolSwatches = spoolSwatches,
-                hasBookmarkedMacros = hasBookmarkedMacros,
-                onNavigate = onNavigate,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         // Mode foot bar (foot-of-list pattern) — Printing: Pause·Cancel; Paused: Resume·Cancel.
         PrintStatusFootBar(
             controls = ui.foot,
@@ -249,24 +256,31 @@ internal fun PrintStatusTerminalField(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.fillMaxSize().padding(8.dp),
+        // Outer Column frames the VERTICAL only; content + self-framed foot bar each own the
+        // horizontal frame (ListFrameInset) so their outer edges align (owner rule, 2026-06-12).
+        modifier.fillMaxSize().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
-        // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
-        // Roomier inner padding than the cockpit grid — the summary breathes, and the
-        // right-aligned values don't hug the screen edge (2026-06-06 UAT); the foot bar
-        // below keeps the shared bar inset.
-        TerminalStatsList(
-            state = state,
-            metadata = metadata,
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 8.dp),
-        )
-        // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
-        if (ui.showErrorLines && errorLines.isNotEmpty()) {
-            TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
+        Column(
+            Modifier.weight(1f).padding(horizontal = ListFrameInset),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the
+            // file, how long it ran, filament used, and how far it got (2026-06-06 UAT).
+            // Roomier INNER padding than the cockpit grid — the summary breathes and the
+            // right-aligned values don't hug the edge (2026-06-06 UAT). The list frame still
+            // aligns with the foot bar; only the text inside is inset further.
+            TerminalStatsList(
+                state = state,
+                metadata = metadata,
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+            // Terminal(Error) ONLY: the AppShell-projected ≤3 error lines (hidden if empty).
+            if (ui.showErrorLines && errorLines.isNotEmpty()) {
+                TerminalErrorLines(lines = errorLines, modifier = Modifier.fillMaxWidth())
+            }
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         // Terminal foot bar: Dismiss (accent) · Reprint (go, disabled when no restart filename).
         PrintStatusFootBar(
             controls = ui.foot,
