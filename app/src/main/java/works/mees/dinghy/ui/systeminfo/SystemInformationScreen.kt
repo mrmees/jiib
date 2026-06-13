@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -67,6 +68,8 @@ fun SystemInformationScreen(
     holder: SystemInfoHolder?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     // Null holder (idle) → the degraded all-"—" state via empty fallback flows.
     val identity by (holder?.identity ?: nullStateFlow()).collectAsStateWithLifecycle()
@@ -77,6 +80,8 @@ fun SystemInformationScreen(
         identity = identity,
         procStats = procStats,
         live = live,
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
         onBack = onBack,
         modifier = modifier,
     )
@@ -98,6 +103,8 @@ fun SystemInformationContent(
     live: ProcStatLive?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     val t = LocalTokens.current
     // Open Q1 host-label fallback: model when present, else the distro name (RockPro64 case).
@@ -110,6 +117,17 @@ fun SystemInformationContent(
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
         ScreenScaffold(
+            focus = {
+                FocusFrame(
+                    title = stringResource(R.string.system_row_sysinfo),
+                    icon = DinghyIcons.SysInfoTile,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {}
+            },
             field = {
                 ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                     // ── SYS-01: Health chip ──────────────────────────────────────────────────
