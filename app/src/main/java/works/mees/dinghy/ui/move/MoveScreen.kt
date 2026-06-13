@@ -2,6 +2,7 @@ package works.mees.dinghy.ui.move
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,7 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
@@ -151,6 +153,11 @@ internal fun MoveHubContent(
     val t = LocalTokens.current
     var mode by remember { mutableStateOf<MoveMode>(MoveMode.Overview) }
 
+    // Staged target (finger-live preview) and in-flight travel flag.
+    // Keyed on mode so entering a new sub-mode always starts clean.
+    var staged by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
+    var pending by remember(mode) { mutableStateOf(false) }
+
     val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
 
     // Bed extent from toolhead.axis_minimum/axis_maximum X/Y (indices 0,1). Null until first
@@ -201,7 +208,59 @@ internal fun MoveHubContent(
                                 FocusHint("Home the printer to begin")
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E1–E6 replace these.
+                        MoveMode.TouchMove -> {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Instruction line.
+                                Text(
+                                    text = "Tap to move, hold to refine",
+                                    color = t.text2,
+                                    fontFamily = GeistMono,
+                                    fontSize = fsSp(15f, t.fs).sp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp),
+                                )
+                                // Bed map or waiting-for-bounds hint.
+                                if (bed != null) {
+                                    val cx = vm.x
+                                    val cy = vm.y
+                                    BedMapView(
+                                        bed = bed,
+                                        current = if (cx != null && cy != null) cx to cy else null,
+                                        target = staged,
+                                        travel = pending,
+                                        modifier = Modifier.fillMaxWidth().weight(1f),
+                                        onTapBed = { x, y -> staged = x to y },
+                                        onDragBed = { x, y -> staged = x to y },
+                                        onDragEnd = {
+                                            staged?.let { (x, y) ->
+                                                onMoveTo(x, y, null)
+                                                pending = true
+                                            }
+                                        },
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f),
+                                    ) {
+                                        FocusHint("Waiting for printer bounds…")
+                                    }
+                                }
+                                // X / Y coordinate readout — staged while gesturing, else current.
+                                val shownX = staged?.first ?: vm.x
+                                val shownY = staged?.second ?: vm.y
+                                Text(
+                                    text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
+                                    fontFamily = GeistMono,
+                                    fontSize = fsSp(18f, t.fs).sp,
+                                    color = t.text,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                )
+                            }
+                        }
+                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E2–E6 replace these.
                         else -> FocusHint("$headerTitle — coming soon")
                     }
                 }
@@ -321,6 +380,10 @@ private fun MoveRow(
         ListRowLabel(label)
     }
 }
+
+/** One-decimal mm formatting for the TouchMove X/Y readout. Null values render as "—". */
+private fun fmt1(v: Double?): String =
+    if (v == null) "—" else String.format(java.util.Locale.US, "%.1f", v)
 
 /** A centered Focus-body hint/placeholder string (Overview homing hint + sub-mode stubs). */
 @Composable

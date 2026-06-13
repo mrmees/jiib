@@ -46,6 +46,7 @@ fun BedMapView(
             .pointerInput(bed) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    if (rect.width <= 0f || rect.height <= 0f) return@awaitEachGesture   // not laid out yet
                     val (bx, by) = screenToBed(bed, rect, down.position.x, down.position.y)
                     onTapBed?.invoke(bx, by)
                     onDragBed?.invoke(bx, by)
