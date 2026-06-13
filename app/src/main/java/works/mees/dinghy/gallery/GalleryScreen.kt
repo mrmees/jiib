@@ -27,8 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.bench.SyntheticFeed
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.ScrubberActions
-import works.mees.dinghy.designsystem.ScrubberPage
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.control.Intent
@@ -297,21 +295,6 @@ fun GalleryScreen(
                         OutlinedControl("Go", {}, Modifier.weight(1f), Intent.Go)
                     }
                 },
-            )
-        }
-
-        // ---- SCRUBBER PAGE (PRIM-01) — keyboard-free numeric entry ------------------------------
-        SectionLabel("ScrubberPage — keyboard-free setpoint")
-        var nozzle by remember { mutableFloatStateOf(200f) }
-        Box(Modifier.fillMaxWidth().height(320.dp)) {
-            ScrubberPage(
-                label = "Nozzle",
-                value = nozzle,
-                range = 0f..300f,
-                step = 5f,
-                unit = "°C",
-                onValueChange = { nozzle = it },
-                actions = ScrubberActions.ApplyCancel(onCancel = {}, onApply = { nozzle = it }),
             )
         }
 
