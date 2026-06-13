@@ -45,6 +45,12 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
 /**
+ * Fraction of the header icon slot the INERT identity glyph is rendered at (the e-stop button keeps the
+ * full slot as its tap target). < 1.0 so edge-heavy Material Symbols clear the 1U bar / card corner.
+ */
+private const val IDENTITY_ICON_RATIO = 0.82f
+
+/**
  * The Focus edge — the bounded-surface border whose COLOR/FORM encodes meaning (Focus Frame law §2,
  * `.planning/notes/2026-06-12-focus-frame-law-design.md`). The edge is the constant "this is the
  * Focus" signal; what it looks like tells you why. Accent is RESERVED for [Progress].
@@ -119,6 +125,8 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
+ * @param contentInset     inner inset around the content area below the header; defaults to [FocusInset]
+ *                         (16dp). Screens whose content reads better tighter can pass a smaller value.
  * @param content          column content rendered inside the framed, clipped, padded surface.
  */
 @Composable
@@ -131,6 +139,7 @@ fun FocusFrame(
     isPrinting: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
+    contentInset: Dp = FocusInset,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
@@ -154,12 +163,12 @@ fun FocusFrame(
             onEmergencyStop = onEmergencyStop,
             onPanic = onPanic,
         )
-        // Content fills the space below the header; FocusInset is the inner content inset.
+        // Content fills the space below the header; contentInset (FocusInset by default) insets it.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(FocusInset),
+                .padding(contentInset),
             content = content,
         )
     }
@@ -219,11 +228,17 @@ private fun FocusHeader(
                     contentDescription = stringResource(R.string.cd_emergency_stop),
                 )
             } else {
-                DinghyIconView(
-                    icon = icon,
-                    tint = t.text2,
-                    sizeDp = slot,
-                )
+                // Identity glyph renders a touch smaller than the e-stop slot and is centered within
+                // it, so edge-heavy Material Symbols (e.g. linear_scale / blur_linear / linked_services)
+                // don't clip against the 1U header bar or the card's rounded corner. The slot itself
+                // (and thus the e-stop tap target, below) is unchanged — only the inert glyph shrinks.
+                Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
+                    DinghyIconView(
+                        icon = icon,
+                        tint = t.text2,
+                        sizeDp = slot * IDENTITY_ICON_RATIO,
+                    )
+                }
             }
         }
     }

@@ -3,12 +3,12 @@ package works.mees.dinghy.ui.calibration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +38,7 @@ import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -134,6 +136,7 @@ fun CalibrationHubContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
+                        contentInset = FocusInset / 2, // tighter than the 16dp default (owner UAT 2026-06-13)
                     ) {
                         if (selected != null) {
                             HubRoutineFocus(
@@ -197,18 +200,26 @@ private fun HubRoutineFocus(
     onOpen: () -> Unit,
     t: ThemeTokens,
 ) {
-    // fillMaxSize claims the FocusFrame's weight(1f) content area so the Spacer can bottom-dock the
-    // Open button at a constant position across routines/orientations/screen sizes. The icon + title
-    // that used to live here are gone — they're the FocusFrame header now (2026-06-13 cleanup).
+    // fillMaxSize claims the FocusFrame's weight(1f) content area; the weighted description fills the
+    // space above the bottom-docked Open button (constant position across routines/orientations/screen
+    // sizes). The icon + title that used to live here are gone — they're the FocusFrame header now.
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
+        // Description owns the space between header and the Open button (weight(1f)). TextAutoSize caps
+        // it at the 20sp title/list standard and SHRINKS to fit on tight screens — it never grows past
+        // 20sp, so big screens just leave breathing room below it.
+        BasicText(
             text = stringResource(routineDescRes(routine)),
-            color = t.text2,
-            fontFamily = Geist,
-            fontSize = fsSp(15f, t.fs).sp,
-            modifier = Modifier.fillMaxWidth(),
+            style = TextStyle(
+                fontFamily = Geist,
+                color = t.text2,
+            ),
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = fsSp(13f, t.fs).sp,
+                maxFontSize = fsSp(20f, t.fs).sp,
+                stepSize = 1.sp,
+            ),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         )
-        Spacer(Modifier.weight(1f))
         OutlinedControl(
             label = stringResource(R.string.calibration_open_routine),
             onClick = onOpen,
