@@ -53,8 +53,12 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.ConnectionState
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -150,6 +154,8 @@ fun PrintersContent(
     activeId: String?,
     connectionState: ConnectionState,
     printerMode: PrinterMode,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onRowClick: (works.mees.dinghy.config.Profile) -> Unit,
     onAdd: () -> Unit,
     onArmEdit: () -> Unit,
@@ -183,6 +189,9 @@ fun PrintersContent(
                             // R26 frame: ring lands at 8dp top (matches the Field list's first row).
                             .padding(top = 8.dp, bottom = 4.dp),
                         edge = ringColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
                     ) {
                         Text(
                             text = activeProfile.displayName(),
@@ -332,6 +341,10 @@ fun PrintersScreen(
     val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeId by container.profileStore.activeId.collectAsStateWithLifecycle(null)
     val connectionState by container.connectionState.collectAsStateWithLifecycle(ConnectionState.Disconnected)
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
 
     // Mode-toggle state machine (28-06 D-13) — pure PrinterMode driven by foot bar buttons + BackHandler.
     var printerMode by remember { mutableStateOf(PrinterMode.Normal) }
@@ -391,6 +404,8 @@ fun PrintersScreen(
         activeId = activeId,
         connectionState = connectionState,
         printerMode = printerMode,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onRowClick = { profile ->
             when (rowTapEffect(printerMode)) {
                 RowTapEffect.SwitchActive -> {
