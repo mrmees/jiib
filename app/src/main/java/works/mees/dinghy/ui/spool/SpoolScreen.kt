@@ -879,21 +879,11 @@ private fun SpoolDetailContent(
     val headerSp = fsSp(26f, t.fs)
     val bodySp = fsSp(18f, t.fs)
     val iconSp = fsSp(20f, t.fs)
-    val detailSwatches: List<Color> =
-        filament?.colorSwatches?.mapNotNull(::parseNormalizedHex).orEmpty()
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Spool glyph (Phase 18.3 — img/spool.svg, reactive to filament color).
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            SpoolGlyph(
-                swatches = detailSwatches,
-                bodyTint = t.text2,
-                keyline = t.hair,
-                sizeDp = fsSp(64f, t.fs).dp,
-                contentDescription = stringResource(R.string.cd_spool_color),
-            )
-        }
-        // Header: color swatch + material name (no Spoolman icon — removed per redesign).
+        // (The large top spool glyph was removed 2026-06-12 — redundant with the FillMeter's
+        // fullness readout + the header color swatch. The FillMeter IS the spool's visual now.)
+        // Header: color swatch + material name.
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,

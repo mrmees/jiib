@@ -355,7 +355,7 @@ for these; where prose and this table disagree, this table wins.
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |
 | Scrubber track / thumb visible / thumb ring / touch target | 6 / 34 / 5 / 74 |
-| `SortFilterControlRow` tile height / floor | U−12 / 48 |
+| `SortFilterControlRow` tile height / floor | U / 48 (owner All-1U ruling, 2026-06-12; was U−12) |
 | `FloatingEStop` size / corner padding | 0.7U (min 64) / 14 |
 | Touch floors (stated once, app-wide) | controls ≥ 64 · absolute minimum ≥ 48 |
 

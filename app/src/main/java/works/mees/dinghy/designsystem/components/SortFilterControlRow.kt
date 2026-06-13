@@ -95,7 +95,7 @@ data class FilterOption<K>(
  * @param activeKey the currently-selected sort key (may be null for no selection).
  * @param onSelect  called when the user taps an option tile.
  * @param uDp       one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
- *                  tile height = `uDp - 12.dp` (one unit minus the inter-row gap).
+ *                  tile height = `uDp` (full 1U — owner All-1U ruling, 2026-06-12).
  * @param modifier  caller-supplied modifier (e.g. `Modifier.padding(horizontal = 8.dp)`).
  */
 @Composable
@@ -107,7 +107,10 @@ fun <K> SortRow(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val tileHeight = maxOf(uDp - 12.dp, 48.dp)  // fallback floor 48dp per plan §Task 2
+    // Full 1U tiles (owner ruling 2026-06-12): toggle tiles are touch-target "buttons" and obey
+    // the All-1U rule like every other control — the old U−12 tile broke 1U conformance and read
+    // shorter than the foot bar. Floor 48dp keeps sub-floor hardware tappable.
+    val tileHeight = maxOf(uDp, 48.dp)
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -201,7 +204,10 @@ fun <K> FilterRow(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val tileHeight = maxOf(uDp - 12.dp, 48.dp)  // fallback floor 48dp per plan §Task 2
+    // Full 1U tiles (owner ruling 2026-06-12): toggle tiles are touch-target "buttons" and obey
+    // the All-1U rule like every other control — the old U−12 tile broke 1U conformance and read
+    // shorter than the foot bar. Floor 48dp keeps sub-floor hardware tappable.
+    val tileHeight = maxOf(uDp, 48.dp)
 
     Row(
         modifier = modifier.fillMaxWidth(),
