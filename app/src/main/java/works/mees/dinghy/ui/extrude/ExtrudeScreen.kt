@@ -57,6 +57,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -64,6 +65,8 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -151,6 +154,9 @@ fun ExtrudeScreen(
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     var failureText by remember { mutableStateOf<String?>(null) }
 
     // WR-02 (26-rev): collect dispatcher failure events so a failed extrude/retract/heater dispatch
@@ -175,6 +181,8 @@ fun ExtrudeScreen(
         activeSpoolDetail = activeSpoolDetail,
         inFlight = inFlight,
         failureText = failureText,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onExtrude = { dist, speed ->
             val key = CommandRegistry.extrude.dispatchKey(ExtrudeArgs(dist, speed * 60))
             if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(dist, speed * 60))
@@ -239,6 +247,8 @@ private fun ExtrudeContent(
     activeSpoolDetail: SpoolmanSpool?,
     inFlight: Set<String>,
     failureText: String?,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
     onExtrude: (distance: Double, speed: Int) -> Unit,
     onRetract: (distance: Double, speed: Int) -> Unit,
     onSelectTool: (Int) -> Unit,
@@ -272,24 +282,34 @@ private fun ExtrudeContent(
 
         ScreenScaffold(
             focus = {
-                FocusGrid(
-                    canExtrude = vm.canExtrude,
-                    inFlight = inFlight,
-                    distance = distance,
-                    speed = speed,
-                    onDistanceChange = { newDist ->
-                        // Always clamp before storing (T-26-06-01: IME input is an untrusted surface).
-                        val ceiling = vm.maxExtrudeDistance?.toDouble()?.coerceAtMost(PrinterCommands.MAX_EXTRUDE_MM)
-                            ?: PrinterCommands.MAX_EXTRUDE_MM
-                        distance = newDist.coerceIn(MIN_DISTANCE, ceiling)
-                    },
-                    onSpeedChange = { newSpeed ->
-                        speed = newSpeed.coerceIn(MIN_SPEED_MM_S, MAX_SPEED_MM_S.toInt())
-                    },
-                    onExtrude = { onExtrude(distance, speed) },
-                    onRetract = { onRetract(distance, speed) },
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
+                FocusFrame(
+                    title = stringResource(R.string.cd_launcher_extrude),
+                    icon = DinghyIcons.LauncherExtrude,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {
+                    FocusGrid(
+                        canExtrude = vm.canExtrude,
+                        inFlight = inFlight,
+                        distance = distance,
+                        speed = speed,
+                        onDistanceChange = { newDist ->
+                            // Always clamp before storing (T-26-06-01: IME input is an untrusted surface).
+                            val ceiling = vm.maxExtrudeDistance?.toDouble()?.coerceAtMost(PrinterCommands.MAX_EXTRUDE_MM)
+                                ?: PrinterCommands.MAX_EXTRUDE_MM
+                            distance = newDist.coerceIn(MIN_DISTANCE, ceiling)
+                        },
+                        onSpeedChange = { newSpeed ->
+                            speed = newSpeed.coerceIn(MIN_SPEED_MM_S, MAX_SPEED_MM_S.toInt())
+                        },
+                        onExtrude = { onExtrude(distance, speed) },
+                        onRetract = { onRetract(distance, speed) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             },
             field = {
                 val t = LocalTokens.current
