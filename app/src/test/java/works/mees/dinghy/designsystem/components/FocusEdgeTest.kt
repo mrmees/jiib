@@ -27,4 +27,12 @@ class FocusEdgeTest {
         // Progress draws a perimeter bar in FocusFrame, so the uniform-stroke helper returns null.
         assertNull(focusEdgeStroke(FocusEdge.Progress(0.5f), outline = Color.Gray))
     }
+
+    @Test
+    fun header_shows_estop_only_when_printing_and_handler_present() {
+        assertEquals(true, headerShowsEStop(isPrinting = true, onEmergencyStop = {}))
+        assertEquals(false, headerShowsEStop(isPrinting = false, onEmergencyStop = {}))
+        assertEquals(false, headerShowsEStop(isPrinting = true, onEmergencyStop = null))
+        assertEquals(false, headerShowsEStop(isPrinting = false, onEmergencyStop = null))
+    }
 }

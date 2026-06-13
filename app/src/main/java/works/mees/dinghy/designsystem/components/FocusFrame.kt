@@ -57,6 +57,14 @@ fun focusEdgeStroke(edge: FocusEdge, outline: Color): EdgeStroke? = when (edge) 
 }
 
 /**
+ * Pure (host-testable) rule for the Focus header icon slot: the slot renders the e-stop button
+ * (vs the inert identity glyph) ONLY while a print is active AND a halt handler is wired. Splash /
+ * previews pass `onEmergencyStop = null` and so never show an e-stop.
+ */
+fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boolean =
+    isPrinting && onEmergencyStop != null
+
+/**
  * The universal Focus container (Focus Frame law). Renamed from `DetailCard` — the spoolman/calibrate
  * bounded-card look, now the shell EVERY Focus uses except Webcam.
  *
