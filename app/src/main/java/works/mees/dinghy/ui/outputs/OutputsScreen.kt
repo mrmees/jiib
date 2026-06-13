@@ -20,6 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -69,6 +73,10 @@ fun OutputsScreen(
     modifier: Modifier = Modifier,
 ) {
     val rows by holder.rows.collectAsStateWithLifecycle()
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     var selectedKey by remember { mutableStateOf<String?>(null) }
     Box(modifier.fillMaxSize()) {
         OutputsContent(
@@ -77,6 +85,8 @@ fun OutputsScreen(
             onSelect = { selectedKey = it },
             holder = holder,
             container = container,
+            isPrinting = isPrinting,
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onBack = onBack,
         )
     }
@@ -108,6 +118,8 @@ fun OutputsScreen(
         onSelect = onSelect,
         holder = null,
         container = null,
+        isPrinting = false,
+        onEmergencyStop = {},
         onBack = onBack,
         modifier = modifier,
     )
@@ -126,6 +138,8 @@ private fun OutputsContent(
     onSelect: (String?) -> Unit,
     holder: OutputsHolder?,
     container: AppContainer?,
+    isPrinting: Boolean,
+    onEmergencyStop: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -150,6 +164,9 @@ private fun OutputsContent(
                             icon = DinghyIcons.OutputSection,
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
+                            isPrinting = isPrinting,
+                            onEmergencyStop = onEmergencyStop,
+                            onPanic = onEmergencyStop,
                         ) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
