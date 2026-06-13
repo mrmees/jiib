@@ -243,6 +243,10 @@ object DinghyIcons {
     val ScrewTurnCw = DinghyIcon(IconRef.Ligature("rotate_right"), alternate = "screw_turn_cw")         // ScrewsTilt: turn clockwise
     val MeshEmpty = DinghyIcon(IconRef.Ligature("grid_off"), alternate = "mesh_empty")                  // BedMesh: empty-state Focus
 
+    // PrintStatus standby-home identity (header law, 2026-06-13). Owner-named "mode_standby".
+    // Swapped to the e-stop while printing. Confirmed resolvable in the bundled v2.944 ttf.
+    val PrintStatusStandby = DinghyIcon(IconRef.Ligature("mode_standby"), alternate = "print_status_standby")
+
     // --- Phase-28 System/Settings cluster glyphs (28-01, OWNER-LOCKED D-21).
     // All ligatures verified resolvable in the bundled v2.944 Material Symbols ttf.
     // `settings` / `info` / `power_settings_new` are new-to-NEEDED (not yet in verify_ligatures.py).
@@ -286,5 +290,6 @@ object DinghyIcons {
         MeshEmpty,
         LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,
         SystemRowAbout, SystemRowPower,
+        PrintStatusStandby,
     )
 }

@@ -129,6 +129,8 @@ NEEDED = {
     # preserved unchanged; this is drift-guarding, not icon selection.
     "arrow_forward", "in_home_mode", "wifi_home", "point_scan", "anchor", "commit",
     "rotate_left", "rotate_right", "grid_off",
+    # Focus-header law (2026-06-13): PrintStatus standby identity (swapped to e-stop while printing).
+    "mode_standby",
     # Phase-28 plan 01 (System/Settings cluster icon-registry foundation, D-21 OWNER-LOCKED).
     # Six new tokens for the System page rows and the WaterfallHome idle-list Fine-Tune row.
     # `palette` is ALREADY in NEEDED above (Spool detail Palette token) — de-dup applies, skip.
