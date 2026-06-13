@@ -36,13 +36,16 @@ here are gone — they're the FocusFrame header now") to every *single-item* Foc
 
 - **Fine-Tune** → selected param's name + icon (e.g. "Print Speed" + speed glyph).
 - **Outputs** → selected output's name + icon.
-- **Temperature → EXCEPTION: keeps the generic "Temperature" title + launcher icon.** The
-  Temperature Focus is the **aggregate display of the list items** (the multi-trace graph). It
-  stays generic in *both* the graph-overview state and the heater-adjust sub-state, because the
-  Focus is conceptually an aggregate, not a single selected item.
+- **Temperature** → generic **"Temperature" + launcher icon ONLY in the graph-overview state**
+  (no sensor selected — the multi-trace graph is the aggregate display of the list items).
+  Selecting a heater swaps the header to that **sensor's name + icon** for the heater-adjust
+  state (owner ruling 2026-06-13). Temperature has two `FocusFrame` call sites; the overview one
+  stays generic, the adjuster one becomes sensor-specific.
 
-**Rule (to codify):** a selection-driven (single-item) Focus sets its header from the selected
-item; an aggregate/overview Focus keeps the collection/screen identity.
+**Rule (to codify):** the Focus header reflects the **most specific thing currently loaded** —
+the selected item's identity when a single item is in the Focus, the collection/screen identity
+when the Focus shows an aggregate/overview (no single item). One uniform rule; Temperature's
+generic overview is just the aggregate case of it.
 
 **Consequence:** `AdjusterPanel`'s **Zone 1** (icon + name + reset) is **deleted** — its identity
 is now redundant with the header. The panel collapses to two zones:
@@ -137,8 +140,10 @@ Make the above law, not tribal knowledge:
 - `DinghyIcons` — register the `refresh` token (`Revert`).
 - `FineTuneScreen`, `OutputsScreen` — pass selected item to `FocusFrame` title/icon; wire revert
   to the header action; adopt shared inset / drop redundant padding.
-- `TemperatureScreen` — keep generic header; icon steppers / 1U via `TemperatureAdjusterFocus`;
-  adopt shared inset.
+- `TemperatureScreen` — overview `FocusFrame` stays generic; adjuster `FocusFrame` swaps to the
+  selected sensor's name + icon; icon steppers / 1U via `TemperatureAdjusterFocus` (which composes
+  `AdjusterPanel`); adopt shared inset. No revert glyph (heaters have no default baseline; Off
+  button unchanged).
 - `docs/ui_design/{COMPONENTS,LAYOUT,THEMING}.md` — codify the rules.
 
 ## Out of scope
