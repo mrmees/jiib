@@ -47,6 +47,8 @@ import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.move.BedExtent
+import works.mees.dinghy.ui.move.BedMapView
 
 /**
  * The in-APK component gallery (D-07) — the primary ON-DEVICE preview/sign-off surface. It renders
@@ -330,6 +332,21 @@ fun GalleryScreen(
                 name = "Z", value = v, range = 0f..50f, step = 0.1f, uDp = 64.dp,
                 orientation = ScrubberOrientation.Vertical,
                 onSettle = { v = it }, onValueChange = { v = it },
+            )
+        }
+
+        // ---- BED MAP (C2) ----------------------------------------------------------------------
+        SectionLabel("Bed Map")
+        Box(Modifier.fillMaxWidth().height(260.dp)) {
+            var tgt by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+            BedMapView(
+                bed = BedExtent(-5.0, 355.0, 0.0, 355.0),
+                current = 175.0 to 175.0,
+                target = tgt,
+                travel = tgt != null,
+                onTapBed = { x, y -> tgt = x to y },
+                onDragBed = { x, y -> tgt = x to y },
+                onDragEnd = {},
             )
         }
 
