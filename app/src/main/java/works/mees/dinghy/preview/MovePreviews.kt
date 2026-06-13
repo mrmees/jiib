@@ -2,8 +2,8 @@ package works.mees.dinghy.preview
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.move.MoveVm
+import works.mees.dinghy.ui.move.OldMoveScreen
 
 /**
  * @Preview matrix for the rebuilt Move screen (27-03 / D-15 preview-first convention).
@@ -69,22 +69,22 @@ private val movePartialHomed = MoveVm(
 @Preview(name = "Move portrait (Nexus7 — 60% cap)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
 private fun MovePortraitMatrix() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = moveHomed) }
 
 @Preview(name = "Move landscape (Nexus7 — full height pad)", device = NEXUS7, showBackground = true)
 @Composable
 private fun MoveLandscapeMatrix() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = moveHomed) }
 
 @Preview(name = "Move portrait unhomed (Nexus7)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
 private fun MovePortraitUnhomed() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = moveUnhomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = moveUnhomed) }
 
 @Preview(name = "Move portrait partial homed (Nexus7)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
 private fun MovePortraitPartialHomed() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = movePartialHomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = movePartialHomed) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 6-theme matrix on the homed portrait state
@@ -93,32 +93,32 @@ private fun MovePortraitPartialHomed() =
 @Nexus7Previews
 @Composable
 private fun MoveThemeColorfulDark() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = moveHomed) }
 
 @Nexus7Previews
 @Composable
 private fun MoveThemeColorfulLight() =
-    PreviewBox(colorfulLight) { MoveScreen(vm = moveHomed) }
+    PreviewBox(colorfulLight) { OldMoveScreen(vm = moveHomed) }
 
 @Nexus7Previews
 @Composable
 private fun MoveThemeSimpleDark() =
-    PreviewBox(simpleDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(simpleDark) { OldMoveScreen(vm = moveHomed) }
 
 @Nexus7Previews
 @Composable
 private fun MoveThemeSimpleLight() =
-    PreviewBox(simpleLight) { MoveScreen(vm = moveHomed) }
+    PreviewBox(simpleLight) { OldMoveScreen(vm = moveHomed) }
 
 @Nexus7Previews
 @Composable
 private fun MoveThemeHighContrastDark() =
-    PreviewBox(highContrastDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(highContrastDark) { OldMoveScreen(vm = moveHomed) }
 
 @Nexus7Previews
 @Composable
 private fun MoveThemeHighContrastLight() =
-    PreviewBox(highContrastLight) { MoveScreen(vm = moveHomed) }
+    PreviewBox(highContrastLight) { OldMoveScreen(vm = moveHomed) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // fs = L overflow check — verifies Z column readout / distance display center-cell
@@ -129,12 +129,12 @@ private fun MoveThemeHighContrastLight() =
 @Preview(name = "Move fs=L portrait overflow check", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
 private fun MoveFsLargeOverflowPortrait() =
-    PreviewBox(fsLargeSeed) { MoveScreen(vm = moveHomed) }
+    PreviewBox(fsLargeSeed) { OldMoveScreen(vm = moveHomed) }
 
 @Preview(name = "Move fs=L landscape overflow check", device = NEXUS7, showBackground = true)
 @Composable
 private fun MoveFsLargeOverflowLandscape() =
-    PreviewBox(fsLargeSeed) { MoveScreen(vm = moveHomed) }
+    PreviewBox(fsLargeSeed) { OldMoveScreen(vm = moveHomed) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pseudolocale en-XA — i18n completeness sweep (SC-3c)
@@ -144,4 +144,4 @@ private fun MoveFsLargeOverflowLandscape() =
 @Preview(name = "Move pseudolocale en-XA", device = NEXUS7_PORTRAIT, locale = "en-XA", showBackground = true)
 @Composable
 private fun MovePseudolocaleSpotCheck() =
-    PreviewBox(colorfulDark) { MoveScreen(vm = moveHomed) }
+    PreviewBox(colorfulDark) { OldMoveScreen(vm = moveHomed) }

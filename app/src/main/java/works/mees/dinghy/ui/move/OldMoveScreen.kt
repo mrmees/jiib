@@ -76,10 +76,10 @@ private const val FEED_Z = 600
 private val DISTANCES = listOf(0.1, 1.0, 10.0, 25.0, 50.0, 100.0)
 
 /**
- * The Move panel — thin VM-reading wrapper that forwards to the stateless [MoveContent].
+ * The Move panel — thin VM-reading wrapper that forwards to the stateless [OldMoveContent].
  *
  * This public entry-point reads the live holder/dispatcher state and wires callbacks to the
- * stateless [MoveContent] composable (WARNING-5: `@Preview` targets [MoveContent] directly,
+ * stateless [OldMoveContent] composable (WARNING-5: `@Preview` targets [OldMoveContent] directly,
  * not this VM-bound wrapper — no AppContainer or VM is instantiated in previews).
  *
  * @param container service-locator (provides live `printerState` + session dispatcher).
@@ -87,7 +87,7 @@ private val DISTANCES = listOf(0.1, 1.0, 10.0, 25.0, 50.0, 100.0)
  * @param onBack    invoked by the Back foot button.
  */
 @Composable
-fun MoveScreen(
+fun OldMoveScreen(
     container: AppContainer,
     holder: MoveHolder,
     onBack: () -> Unit,
@@ -127,7 +127,7 @@ fun MoveScreen(
         dispatcher?.dispatch(command, args)
     }
 
-    MoveContent(
+    OldMoveContent(
         vm = vm,
         inFlight = inFlight,
         failureText = failureText,
@@ -145,21 +145,21 @@ fun MoveScreen(
 }
 
 /**
- * Stateless preview seam for [MoveScreen] (WARNING-5 / ExtrudeScreen.kt:209 pattern).
+ * Stateless preview seam for [OldMoveScreen] (WARNING-5 / ExtrudeScreen.kt:209 pattern).
  *
  * All callbacks default to no-ops; all data is injected. Used by `MovePreviews.kt`.
  * This overload has no VM/AppContainer dependency so `@Preview` can render it without
  * a live Moonraker connection.
  */
 @Composable
-fun MoveScreen(
+fun OldMoveScreen(
     vm: MoveVm = MoveVm(),
     inFlight: Set<String> = emptySet(),
     isPrinting: Boolean = false,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    MoveContent(
+    OldMoveContent(
         vm = vm,
         inFlight = inFlight,
         failureText = null,
@@ -179,7 +179,7 @@ fun MoveScreen(
 /**
  * Stateless layout composable for the Move panel. Accepts all VM data and callbacks as plain
  * parameters — no live Moonraker, no AppContainer, no ViewModel. Targeted directly by
- * [MovePreviews.kt] (WARNING-5 seam).
+ * `MovePreviews.kt` (WARNING-5 seam).
  *
  * ## Layout
  *
@@ -200,7 +200,7 @@ fun MoveScreen(
  * red force-move toggle. Only the chrome tokens are updated.
  */
 @Composable
-internal fun MoveContent(
+internal fun OldMoveContent(
     vm: MoveVm,
     inFlight: Set<String>,
     failureText: String?,
