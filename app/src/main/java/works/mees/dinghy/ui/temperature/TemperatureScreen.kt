@@ -531,7 +531,7 @@ private fun TemperatureContent(
                 // D-12 Field-takeover: SensorList (default) or PresetPicker.
                 when (fieldMode) {
                     TempFieldMode.SensorList -> {
-                        ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                        ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                             items(legend, key = { it.name }) { sensor ->
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
@@ -606,7 +606,7 @@ private fun TemperatureContent(
 
                     TempFieldMode.PresetPicker -> {
                         // D-12: Field-takeover preset picker (the old full-screen scrim is retired).
-                        ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                        ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                             items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
                                 ListRow(
                                     selected = false,

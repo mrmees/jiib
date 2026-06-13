@@ -369,7 +369,8 @@ private fun FilesContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 ) {
                     FilesDetailContent(
                         state = state,
@@ -382,7 +383,8 @@ private fun FilesContent(
                     activeKey = Unit,
                     onSelect = { onToggleSort() },
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    // R26 frame: bottom 8 aligns with the Field FootButtonBar.
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
@@ -580,7 +582,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             )
         }
     } else {
-        ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+        ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
             items(state.fileRows, key = { it.stableId }) { row ->
                 FilesListRow(
                     row = row,

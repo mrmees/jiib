@@ -370,7 +370,7 @@ private fun FineTuneContent(
                 ListBlock(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 8.dp),
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp), // R26 frame
                 ) {
                     // D-02: group identity = pool-color tint on leading icon; no text group labels.
                     items(visibleParams, key = { it.tuner.name }) { param ->

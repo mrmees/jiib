@@ -171,6 +171,29 @@ PrintStatus gutter→foot migration — the last consumer). Every screen places 
 
 ---
 
+## Edge registration — the 8dp screen frame (R26, owner-prompted 2026-06-12)
+
+Every screen's content sits inside a **uniform gapS (8dp) frame**: the FIRST visible outline
+(list row border, DetailCard ring, control edge) lands 8dp from the screen top, the LAST lands
+8dp from the bottom, and columns keep the established 8dp horizontal inset. On a **two-region
+screen this is what makes the columns READ as one surface**: the top of the first Field list row
+aligns with the top of the Focus card's ring, and the bottom of the Focus-foot control tiles
+aligns with the bottom of the Field's foot buttons — across the 50/50 divide.
+
+- `FootButtonBar` satisfies the bottom edge **by construction** (it owns vertical gapS padding —
+  R21). Never add caller padding to it.
+- `ListBlock` adds NO outer padding — the list CONTAINER must carry the frame
+  (`Modifier.padding(top = 8.dp)` or a parent column's vertical padding). The edge fades are
+  overlays, not spacing.
+- Inter-element gaps inside a column stay gapS (8dp), however the per-element paddings compose
+  (the common v4+v4 idiom is fine BETWEEN elements — but the frame edges must still total 8).
+- Origin: the Spool screen shipped with a 4dp card frame over a 0dp list frame (tops off by
+  4dp) and a 4dp filter-row edge against the bar's 8dp (bottoms off by 4dp) — the misalignment
+  Matthew called out. The pilot-approved home list (8dp column padding) is the reference.
+- Conformance: checklist criterion **C-E2**.
+
+---
+
 ## Floating e-stop
 
 A red emergency-stop button (`FloatingEStop`) is **overlaid top-left of the Focus region**,

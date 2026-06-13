@@ -22,6 +22,7 @@ Every screen is scored per criterion: **PASS** / **FLAG** (fixable in place) / *
 | C-K1 | Token routing: no raw `Color(` outside sanctioned carve-outs (PromptMarkup runs, spool spiral, DetailCard.ringColor, FillMeter.fillColor) | THEMING carve-outs |
 | C-B1 | No deprecated fill-bar scrubber (migration item; UAT-3 1U cap binds interim) | COMPONENTS §7; R9 |
 | C-A1 | UAT-2 row anatomy: icon → name start-aligned → `Spacer(weight(1f))` → value end-aligned | LAYOUT UAT-2 |
+| C-E2 | Edge registration: uniform 8dp screen frame — first/last visible outlines land at 8dp top/bottom in BOTH columns (two-region tops + bottoms align across the divide; FootButtonBar satisfies the bottom by construction, no caller padding) | LAYOUT §Edge registration; R26 |
 | C-A2 | UAT-4: Focus top-left clear for FloatingEStop | LAYOUT UAT-4 |
 | C-X1 | Strings: user-facing literals via `stringResource` (count raw); icon call-sites via registry (R14 scope) | PREVIEW §5/§6 |
 | FOCUS | (inventory, not scored) describe the Focus treatment → candidate archetype | sweep design note |

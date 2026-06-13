@@ -111,7 +111,7 @@ fun SystemInformationContent(
 
         ScreenScaffold(
             field = {
-                ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                     // ── SYS-01: Health chip ──────────────────────────────────────────────────
                     item(key = "health") {
                         val (icon, tint, labelRes) = healthChipVisual(health, t)

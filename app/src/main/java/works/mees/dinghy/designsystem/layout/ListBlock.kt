@@ -53,7 +53,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
  * own the items. Example:
  *
  * ```kotlin
- * ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+ * ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp))   // R26 frame {
  *     items(state.spools, key = { it.id }) { spool ->
  *         ListRow(selected = spool.id == selected?.id, onClick = { onRowClick(spool) }, uDp = grid.uDp) {
  *             SpoolRowContent(spool, t)

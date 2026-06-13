@@ -138,9 +138,15 @@ fun OutlinedControl(
         )
         else -> Modifier.clickable(onClick = onClick)
     }
+    // R26 edge frame: inside a U-aware container (FootButtonBar — the only LocalUnitDp provider)
+    // the control's height floor is ONE UNIT, not just the 64dp touch floor — the law's
+    // "FootButtonBar height = 1U" means the BUTTONS are 1U tall. Without this they wrap at 64dp
+    // and float centered inside the 1U row, so their bottom edge misses the 8dp screen frame
+    // (the Spool-screen misalignment, 2026-06-12). Null local = legacy 64dp floor unchanged.
+    val minHeight = (LocalUnitDp.current ?: 64.dp).coerceAtLeast(64.dp)
     Box(
         modifier = modifier
-            .heightIn(min = 64.dp) // ≥64dp touch floor (UI-02) — a sanctioned fixed value.
+            .heightIn(min = minHeight) // ≥64dp touch floor (UI-02); 1U inside FootButtonBar (R26).
             .clip(shape)
             .background(t.surface) // Controls = filled (COMPONENTS.md §2 fill convention).
             .border(BorderStroke(2.dp, intent.outlineColor(t)), shape)

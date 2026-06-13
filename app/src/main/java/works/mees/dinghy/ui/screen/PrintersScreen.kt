@@ -175,7 +175,8 @@ fun PrintersContent(
                     DetailCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            // R26 frame: ring lands at 8dp top (matches the Field list's first row).
+                            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                         ringColor = ringColor,
                     ) {
                         Text(
@@ -228,7 +229,7 @@ fun PrintersContent(
                         }
                     }
                 } else {
-                    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                    ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                         items(profiles, key = { it.id }) { profile ->
                             ListRow(
                                 selected = profile.id == activeId,

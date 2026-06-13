@@ -186,7 +186,7 @@ private fun OutputsContent(
                 ListBlock(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 8.dp),
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp), // R26 frame
                 ) {
                     items(rows, key = { it.descriptor.objectKey }) { row ->
                         ListRow(

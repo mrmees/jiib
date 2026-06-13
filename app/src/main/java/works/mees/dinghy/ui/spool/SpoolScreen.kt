@@ -352,7 +352,8 @@ private fun SpoolContent(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        // R26 frame: ring lands at 8dp top; bottom 4 composes the 8dp gap with SortRow.
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 ) {
                     DetailCard(
                         ringColor = spoolColor,
@@ -388,7 +389,8 @@ private fun SpoolContent(
                     options = filterOptions,
                     onSelect = onOpenFilter,
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    // R26 frame: bottom 8 aligns the tile bottoms with the Field FootButtonBar.
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
@@ -493,7 +495,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
             )
         }
     } else {
-        DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+        DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
             items(state.spools, key = { it.id }) { spool ->
                 ListRow(
                     selected = spool.id == state.selected?.id,
@@ -564,7 +566,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 ) {
     when (category) {
         SpoolFilterCategory.TYPE -> {
-            DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                 items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
                     val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
                     ListRow(
@@ -594,7 +596,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                 Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
             ) {
                 ColorSwatchGrid(
                     selectedHex = state.filters.colorSwatchHex,
@@ -623,7 +625,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     )
                 }
             } else {
-                DesignListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
                     items(state.vendors, key = { it }) { vendor ->
                         val selected = state.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
                         ListRow(
