@@ -47,6 +47,9 @@ object PrinterCommands {
     /** Force-move velocity ceiling (mm/s) — kept conservative; force moves skip all limit checks. */
     const val MAX_FORCE_VEL_MM_S = 50
 
+    /** Decimal places used by [moveTo] axis formatting — passed to [fmt] which strips trailing zeros. */
+    const val MOVE_DECIMALS = 3
+
     /**
      * Manual-probe TESTZ nudge magnitude cap (mm). The Z-calibrate jog (D-01) offers step presets up to
      * 10 mm (a detachable/klicky flow lifts the head ~20 mm to remove the probe before the paper test, so
@@ -277,6 +280,42 @@ object PrinterCommands {
         val d = clampMagnitude(mm, MAX_JOG_MM)
         val f = feedMmMin.coerceIn(MIN_FEED_MM_MIN, MAX_JOG_FEED_MM_MIN)
         return "SAVE_GCODE_STATE NAME=dd_jog\nG91\nG1 $a$d F$f\nRESTORE_GCODE_STATE NAME=dd_jog"
+    }
+
+    /**
+     * Absolute toolhead move to the given coordinates. Null axes are omitted. Each provided axis is
+     * clamped to its [minBounds]/[maxBounds] (pass the live toolhead.axis_minimum/axis_maximum); a
+     * null bounds list means "no clamp for that axis". Mode-safe: saves/restores gcode state and
+     * forces G90 so it never corrupts the caller's relative/absolute mode. Feed clamped to the jog
+     * feed window. Doubles are formatted through [fmt] (the single Locale.US chokepoint).
+     */
+    fun moveTo(
+        x: Double?,
+        y: Double?,
+        z: Double?,
+        feedMmMin: Int,
+        minBounds: List<Double>? = null,
+        maxBounds: List<Double>? = null,
+    ): String {
+        fun clampAxis(v: Double?, i: Int): Double? {
+            if (v == null) return null
+            val lo = minBounds?.getOrNull(i)
+            val hi = maxBounds?.getOrNull(i)
+            var r = v
+            if (lo != null) r = maxOf(r, lo)
+            if (hi != null) r = minOf(r, hi)
+            return r
+        }
+        val cx = clampAxis(x, 0)
+        val cy = clampAxis(y, 1)
+        val cz = clampAxis(z, 2)
+        val f = feedMmMin.coerceIn(MIN_FEED_MM_MIN, MAX_JOG_FEED_MM_MIN)
+        val axes = buildString {
+            if (cx != null) append(" X").append(fmt(cx, MOVE_DECIMALS))
+            if (cy != null) append(" Y").append(fmt(cy, MOVE_DECIMALS))
+            if (cz != null) append(" Z").append(fmt(cz, MOVE_DECIMALS))
+        }
+        return "SAVE_GCODE_STATE NAME=dd_moveto\nG90\nG1$axes F$f\nRESTORE_GCODE_STATE NAME=dd_moveto"
     }
 
     /**
