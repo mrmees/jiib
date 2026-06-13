@@ -16,10 +16,15 @@ Print Status is the foundational instance (`Print Status Hi-Fi.html`, classes in
 
 | Region | What it is | Example (Spoolman, rebuilt) |
 |---|---|---|
-| **Focus** | one primary item; its **visual content is square** and centered in the region | spool detail card |
+| **Focus** | one primary item in a **`FocusFrame`** shell (bounded surface, neutral edge by default); its **visual content is square** and centered, scaled to fit | spool detail card |
 | **Field** | a divisible info/control surface — scrollable list + foot-pinned action bar | spool list + FootButtonBar |
 
 **Either Focus or Field may be omitted** — whichever is present takes the freed width/height.
+
+**The Focus is ALWAYS a `FocusFrame`** (Focus Frame law, COMPONENTS.md §"FocusFrame") — a bounded
+`t.surface` card with a neutral `t.outline` edge by default (the edge encodes meaning: data color
+for a spool, a progress perimeter while printing). It self-owns its horizontal frame and fits/scales
+its content (never clips). **The one exemption is Webcam** — full-bleed native media, no frame.
 There is no persistent status bar; printer/connection context lives *inside* a region, never as
 global chrome.
 
@@ -53,6 +58,11 @@ screen, *not* the raw canvas.
 - One region omitted → it takes 100% width; alignment still holds.
 - **Portrait:** Focus / Field stack, each **full content-area width** (already edge-aligned).
   Vertical rhythm ≈ 40 / 60 and is tunable (`--focus-grow` / `--field-grow`), not fixed.
+- **General screens keep a consistent Focus/Field balance across orientations** (the 50/50 land ·
+  40/60 port defaults above). **A page that exists SOLELY to reach a list may deviate freely** —
+  shrink or drop the Focus so the list dominates: a wider list adds no value, and a real information
+  display beats "just a list of items." A Focus may also carry **its own foot of buttons underneath**
+  (a Focus-foot) when a screen needs it — distinct from the Field's `FootButtonBar`.
 - Weighted buttons (e.g. a wider primary action) are allowed but must still be **integer-ish
   units of the same grid** so edges keep landing on grid lines.
 

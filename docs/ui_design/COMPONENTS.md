@@ -14,10 +14,10 @@ component styles**. Each class is a spec for fill, background token, border toke
 padding, and interactive state — the **same token philosophy as the existing color system**,
 extended from color to component archetype.
 
-The point is **shared vocabulary**: when a screen description says "that's a `DetailCard`", the
+The point is **shared vocabulary**: when a screen description says "that's a `FocusFrame`", the
 developer applies the class and the styling debate is closed. The classes are expressed as:
 
-- **Wrapper composables** — `ListRow { }`, `DetailCard { }`, `FootButtonBar { }` — that accept
+- **Wrapper composables** — `ListRow { }`, `FocusFrame { }`, `FootButtonBar { }` — that accept
   content lambdas and own the background/border/shape.
 - **Named modifiers** — `Modifier.cardSurface(t)` — for call sites that need card appearance on
   a custom container.
@@ -68,7 +68,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | Class | Fill type | Background | Border | Primary content | Implementation |
 |---|---|---|---|---|---|
 | `ListRow` | Transparent (content) | `Color.Transparent` / `t.accentSoft` if selected | `t.outline` (1.5dp) / `t.accentLine` (2dp) if selected | Scrollable item row | `designsystem/components/ListRow.kt` |
-| `DetailCard` | Filled (control surface) | `t.surface` | `ringColor` (data) / `t.accentLine` / `t.hair` fallback chain | Selected item detail pane | `designsystem/components/DetailCard.kt` |
+| `FocusFrame` | Filled (Focus surface) | `t.surface` | `FocusEdge`: `t.outline` 1.5dp (Neutral, default) / data color 3dp (Data) / perimeter progress bar (Progress) | THE universal Focus container (every Focus except Webcam) | `designsystem/components/FocusFrame.kt` |
 | `FillMeter` | Filled fill layer | `t.surface3` (track) + data fill | — | Read-only fraction bar (weight remaining, progress) | `designsystem/components/FillMeter.kt` |
 | `FootButtonBar` | — (container only) | — | — | Row of `OutlinedControl` buttons pinned to foot of list | `designsystem/components/FootButtonBar.kt` |
 | `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Print-cancel / e-stop overlay, printing only | `designsystem/components/FloatingEStop.kt` |
@@ -100,16 +100,23 @@ or weight. The row's primary label renders via **`ListRowLabel(text)`** (Geist S
 default, `t.text`) — the ONE place that owns the list-label look; trailing VALUE readouts stay
 Geist Mono at the call site (values, not labels).
 
-#### `DetailCard`
+#### `FocusFrame`
 
-The selected-item detail pane. Filled background (`t.surface`), corner radius `t.rCard` (22dp),
-color-reactive border. Contains arbitrary content.
+**THE universal Focus container** (Focus Frame law, `.planning/notes/2026-06-12-focus-frame-law-design.md`).
+Every screen's Focus region is a `FocusFrame` — **except Webcam**, which stays full-bleed native
+media (the one exemption). Renamed from the old `DetailCard`. Filled background (`t.surface` — visually
+distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). It **self-owns its
+horizontal region frame** (`ListFrameInset`, 8dp — so the Focus aligns with the Field's horizontal
+frame; callers pass vertical/sizing only, mirroring `ListBlock`), **clips its content to bounds** (no
+overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
+`FocusInset` (16dp).
 
-**THEME-01 data carve-out:** `DetailCard.ringColor` is the **item's actual data color** (e.g.
-Spoolman filament hex), not a theme role. It bypasses the token system and is never clamped by
-`brandTint`'s WCAG floor — the ring should reflect the true filament color, not a UI-adjusted
-approximation. When `ringColor` is null, falls back to `t.accentLine`, then `t.hair`. See
-`THEMING.md §"Carve-out"` for the established THEME-01 precedent.
+**The edge encodes meaning — accent is RESERVED (`FocusEdge`):**
+- **`FocusEdge.Neutral`** (default) — `t.outline` at list-row weight (1.5dp). The resting "this is the Focus" signal.
+- **`FocusEdge.Data(color)`** — the edge tinted by the item's literal data color at 3dp (heavier so the color reads). THEME-01 carve-out: pass the actual hex (e.g. Spoolman filament color); never `brandTint`-clamped. Printers also uses this for connection-state color.
+- **`FocusEdge.Progress(fraction)`** — the edge becomes a **perimeter progress bar** in the Scrubber's visual language (`t.surface3` track + `t.accent` fill + the 34dp ringed-thumb marker), for the actively-printing screen. Accent appears here and only here.
+
+See `THEMING.md §"Carve-out"` for the THEME-01 precedent behind `FocusEdge.Data`.
 
 #### `FillMeter`
 
@@ -117,7 +124,7 @@ A horizontal "how much remains" bar — thin track, filled to a fraction. Shows 
 Geist Mono text. Height ≈ 6dp track with rounded caps. Read-only (no gesture).
 
 **THEME-01 data carve-out:** `FillMeter.fillColor` is the **item's data color** (same carve-out
-as `DetailCard.ringColor`). Pass the actual filament color; it is never clamped by `brandTint`.
+as `FocusFrame.ringColor`). Pass the actual filament color; it is never clamped by `brandTint`.
 The track background is `t.surface3` (a neutral sunken well).
 
 Parameters: `fraction: Float` (clamped internally to 0..1), `fillColor: Color`,
@@ -300,7 +307,7 @@ canonical `FootButtonBar` usage.
 All icons on all screens come from `DinghyIcons.kt` or are requested via the owner. **Never
 auto-pick a Material Symbol or create a custom drawable independently.** See
 `docs/ui_design/CLAUDE.md §"Icons: never the same glyph twice…"` and the never-auto-pick law
-that follows it. This applies to SortFilterControlRow type-tiles, DetailCard glyphs, and every
+that follows it. This applies to SortFilterControlRow type-tiles, FocusFrame glyphs, and every
 other use.
 
 ---
@@ -367,7 +374,7 @@ for these; where prose and this table disagree, this table wins.
 | Element | Value (dp) |
 |---|---|
 | `ListRow` border — unselected / selected | 1.5 / 2 |
-| `DetailCard` ring / inner hair border / inner padding | 3 / 1 / 16 |
+| `FocusFrame` edge — Neutral / Data / inner padding (`FocusInset`) | 1.5 / 3 / 16 |
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |
 | Scrubber track / thumb visible / thumb ring / touch target | 6 / 34 / 5 / 74 |
