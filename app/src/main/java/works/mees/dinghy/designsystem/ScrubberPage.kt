@@ -26,6 +26,12 @@ internal fun fractionFromX(x: Float, barWidthPx: Float): Float {
     return (x / barWidthPx).coerceIn(0f, 1f)
 }
 
+/** Vertical-scrubber fraction: 0f at the bottom (y == height), 1f at the top (y == 0). Clamped. */
+internal fun fractionFromY(y: Float, trackHeightPx: Float): Float {
+    if (trackHeightPx <= 0f) return 0f
+    return (1f - (y / trackHeightPx)).coerceIn(0f, 1f)
+}
+
 /**
  * The pure settle-decision at the heart of the settle dispatch contract (HIGH-3 / T-19-06-02).
  * Given a sequence of pointer phases for ONE gesture — any number of `move` frames bracketed by a
