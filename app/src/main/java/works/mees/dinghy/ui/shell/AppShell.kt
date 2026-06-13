@@ -908,11 +908,19 @@ fun AppShell(
         // design intent and is asserted by their preview matrices) suppress the shell-level e-stop;
         // otherwise two stacked e-stop buttons co-render in the same corner while printing, each
         // opening its own guard. ONE owner per destination.
+        // Focus-header law (2026-06-13): screens now dock the e-stop in their FocusFrame header, so
+        // they "own" the e-stop and the shell-level float must be suppressed (else two stacked e-stops
+        // co-render while printing). This set grows per migration task until only Webcam (full-bleed,
+        // exempt) relies on the shell float — at which point the shell float is effectively webcam-only.
         val estopDest = navBackStackEntry?.destination
         val screenOwnsEstop = estopDest != null && (
             estopDest.isRoute<NavDest.FineTune>() ||
             estopDest.isRoute<NavDest.Temperature>() ||
-            estopDest.isRoute<NavDest.Spool>()
+            estopDest.isRoute<NavDest.Spool>() ||
+            estopDest.isRoute<NavDest.Files>() ||
+            estopDest.isRoute<NavDest.Outputs>() ||
+            estopDest.isRoute<NavDest.Devices>() ||
+            estopDest.isRoute<NavDest.CalibrationHub>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
