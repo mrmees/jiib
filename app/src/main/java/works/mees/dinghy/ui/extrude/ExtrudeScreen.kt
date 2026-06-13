@@ -397,7 +397,7 @@ private fun ExtrudeContent(
                                 label = "",
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral,
+                                intent = Intent.Accent, // R5: Back/nav = accent
                                 icon = DinghyIcons.Back,
                             )
                             OutlinedControl(
@@ -407,7 +407,7 @@ private fun ExtrudeContent(
                                     else infoText = noLoadMacro
                                 },
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // physical command — drives filament in
+                                intent = Intent.Warn, // amber — heats + drives filament in (caution)
                                 icon = DinghyIcons.ExpandCircleUp,
                             )
                             OutlinedControl(
