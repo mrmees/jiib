@@ -452,7 +452,12 @@ private fun TemperatureContent(
                 ) {
                     if (selectedSensor == null) {
                         // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
-                        FocusFrame(modifier = Modifier.fillMaxSize()) {
+                        FocusFrame(
+                            title = stringResource(R.string.cd_launcher_temperature),
+                            icon = DinghyIcons.LauncherTemperature,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
                             GraphViewHost(
                                 tokens = t,
                                 series = visible.series,
@@ -467,7 +472,12 @@ private fun TemperatureContent(
                         // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
                         // selectedSensor is a non-null LIVE readout here (resolved from legend above).
                         val sensor = selectedSensor
-                        FocusFrame(modifier = Modifier.fillMaxSize()) {
+                        FocusFrame(
+                            title = stringResource(R.string.cd_launcher_temperature),
+                            icon = DinghyIcons.LauncherTemperature,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
                             TemperatureAdjusterFocus(
                                 sensor = sensor,
                                 traceColor = traceColors[sensor.name],

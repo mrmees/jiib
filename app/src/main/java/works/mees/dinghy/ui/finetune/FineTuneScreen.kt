@@ -312,7 +312,12 @@ private fun FineTuneContent(
                         .weight(1f)
                         .padding(8.dp),
                 ) {
-                    FocusFrame(modifier = Modifier.fillMaxSize()) {
+                    FocusFrame(
+                        title = stringResource(R.string.cd_launcher_fine_tune),
+                        icon = DinghyIcons.LauncherFineTune,
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
                         // quick-rmr: the pending WORKING value wins over the live vm value, so a
                         // tap burst follows the thumb instantly (and survives the echo window).
                         val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)

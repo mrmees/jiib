@@ -46,6 +46,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -174,6 +175,9 @@ fun PrintersContent(
             focus = {
                 if (activeProfile != null) {
                     FocusFrame(
+                        title = stringResource(R.string.system_row_printers),
+                        icon = DinghyIcons.SystemRowPrinters,
+                        uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
                             // R26 frame: ring lands at 8dp top (matches the Field list's first row).

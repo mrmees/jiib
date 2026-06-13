@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -195,13 +196,19 @@ internal fun StandbyFocus(
     state: PrinterState,
     spoolmanPresent: Boolean,
     activeSpoolCardState: ActiveSpoolCardState,
+    uDp: Dp,
 ) {
     val t = LocalTokens.current
     val nozzle = primaryHeater(state)
     val bed = state.heaters["heater_bed"]
     val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
-    FocusFrame(modifier = Modifier.fillMaxSize()) {
+    FocusFrame(
+        title = stringResource(R.string.printstatus_title),
+        icon = DinghyIcons.PrintStatusStandby,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+    ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             // App-icon base (faint backdrop): the jiib brand mark. ContentScale.Fit (Focus Frame law:
             // content FITS the frame, never clips — fixes the flox half-focus crop). The leftover space
@@ -253,12 +260,17 @@ internal fun glanceLabel(name: String): String =
  * Extracted as a named top-level composable for restartability (D-01/D-02 P0 fix).
  */
 @Composable
-internal fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBase: String) {
+internal fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBase: String, uDp: Dp) {
     val t = LocalTokens.current
     val context = LocalContext.current
     val thumbRel = metadata?.largestThumbRelPath
     val filename = state.printFilename
-    FocusFrame(modifier = Modifier.fillMaxSize()) {
+    FocusFrame(
+        title = filename.ifBlank { stringResource(R.string.printstatus_title) },
+        icon = DinghyIcons.PrintStatusStandby,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+    ) {
         BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             val size = minOf(maxWidth, maxHeight) * 0.9f
             Box(Modifier.size(size), contentAlignment = Alignment.Center) {

@@ -113,7 +113,12 @@ fun CalibrationHubContent(
                             .fillMaxWidth()
                             .weight(1f),
                     ) {
-                        FocusFrame(modifier = Modifier.fillMaxSize().padding(vertical = 8.dp)) {
+                        FocusFrame(
+                            title = stringResource(R.string.cd_launcher_calibration),
+                            icon = DinghyIcons.LauncherCalibration,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
+                        ) {
                             if (selected != null) {
                                 HubRoutineFocus(
                                     routine = selected,

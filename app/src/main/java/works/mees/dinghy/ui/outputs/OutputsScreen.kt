@@ -145,7 +145,12 @@ private fun OutputsContent(
                             .weight(1f)
                             .padding(8.dp),
                     ) {
-                        FocusFrame(modifier = Modifier.fillMaxSize()) {
+                        FocusFrame(
+                            title = stringResource(R.string.outputs_title),
+                            icon = DinghyIcons.OutputSection,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
                             // pointer-input node + dispatch closures — without it, a live gesture handler kept

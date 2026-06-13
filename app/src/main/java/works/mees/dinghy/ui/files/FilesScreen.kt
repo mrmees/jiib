@@ -366,6 +366,9 @@ private fun FilesContent(
                 // the app-level printing-only e-stop on EVERY destination (CR-01: the local copy was a
                 // dead duplicate whose confirm dispatched nothing).
                 FocusFrame(
+                    title = stringResource(R.string.cd_launcher_files),
+                    icon = DinghyIcons.LauncherFiles,
+                    uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)

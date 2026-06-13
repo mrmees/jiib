@@ -2,20 +2,47 @@ package works.mees.dinghy.designsystem.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.control.Intent
+import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListFrameInset
+import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.fsSp
 
 /**
  * The Focus edge — the bounded-surface border whose COLOR/FORM encodes meaning (Focus Frame law §2,
@@ -65,31 +92,45 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
     isPrinting && onEmergencyStop != null
 
 /**
- * The universal Focus container (Focus Frame law). Renamed from `DetailCard` — the spoolman/calibrate
- * bounded-card look, now the shell EVERY Focus uses except Webcam.
+ * The universal Focus container (Focus Frame law). Every Focus except Webcam uses this shell.
  *
  * ## Structure
  *  - Outer frame: self-owns the **horizontal** region-edge inset ([ListFrameInset], 8dp) so the
  *    Focus aligns with the Field's horizontal frame. Callers pass vertical (top/bottom) + sizing
- *    (`fillMaxSize`/`weight`) — never start/end/horizontal (mirrors [works.mees.dinghy.designsystem.layout.ListBlock]).
+ *    (`fillMaxSize`/`weight`) — never start/end/horizontal.
+ *  - Header: mandatory [FocusHeader] — 1U bar with a start-icon slot and a centered/marquee title.
+ *    When [isPrinting] and [onEmergencyStop] are both set, the icon slot morphs into the e-stop
+ *    button (no overlay, no double e-stop); otherwise it shows the inert identity glyph [icon].
  *  - Fill: [ThemeTokens.surface] — visually distinct from the translucent list/Field area.
  *  - Edge: [FocusEdge] — [FocusEdge.Neutral] by default ([ThemeTokens.outline]); [FocusEdge.Data]
- *    tints it with item data; [FocusEdge.Progress] (Stage 3) draws a perimeter bar.
+ *    tints it with item data; [FocusEdge.Progress] draws a perimeter bar (deferred).
  *  - Content clip: content is clipped to the rounded bounds — it never overflows the frame.
- *  - Inner inset: [FocusInset] (16dp).
+ *  - Inner inset: [FocusInset] (16dp) on the content area below the header.
  *
  * ## THEME-01 data carve-out — [FocusEdge.Data]
  * Carries the item's actual physical color hex (e.g. Spoolman colorSwatches). It is item DATA, not a
  * chrome token, and must NOT be brandTint-clamped. All other colors are role tokens.
  *
- * @param modifier caller-supplied modifier (sizing + vertical padding).
- * @param edge     the Focus edge mode; defaults to [FocusEdge.Neutral].
- * @param content  column content rendered inside the framed, clipped, padded surface.
+ * @param title            the screen/section name shown in the header.
+ * @param icon             the identity glyph shown in the header's start slot when not printing.
+ * @param uDp              the unit grid value (1U) for the header height and icon sizing.
+ * @param modifier         caller-supplied modifier (sizing + vertical padding).
+ * @param edge             the Focus edge mode; defaults to [FocusEdge.Neutral].
+ * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
+ * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
+ * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
+ * @param content          column content rendered inside the framed, clipped, padded surface.
  */
 @Composable
 fun FocusFrame(
+    title: String,
+    icon: DinghyIcon,
+    uDp: Dp,
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
+    onPanic: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
@@ -97,19 +138,114 @@ fun FocusFrame(
     val stroke = focusEdgeStroke(edge, outline = t.outline)
     Column(
         modifier = modifier
-            .padding(horizontal = ListFrameInset) // outer region-edge frame (horizontal; matches the Field)
-            .clip(shape) // clip content to bounds — no overflow past the frame
+            .padding(horizontal = ListFrameInset) // outer region-edge frame (matches the Field)
+            .clip(shape)
             .then(
-                if (stroke != null) {
-                    Modifier.border(BorderStroke(stroke.widthDp.dp, stroke.color), shape)
-                } else {
-                    Modifier // FocusEdge.Progress draws its own perimeter bar (Stage 3)
-                },
+                if (stroke != null) Modifier.border(BorderStroke(stroke.widthDp.dp, stroke.color), shape)
+                else Modifier, // FocusEdge.Progress draws its own perimeter bar (deferred)
             )
-            .background(t.surface)
-            .padding(FocusInset), // inner content inset
-        content = content,
-    )
+            .background(t.surface),
+    ) {
+        FocusHeader(
+            title = title,
+            icon = icon,
+            uDp = uDp,
+            isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop,
+            onPanic = onPanic,
+        )
+        // Content fills the space below the header; FocusInset is the inner content inset.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(FocusInset),
+            content = content,
+        )
+    }
+}
+
+/**
+ * The mandatory Focus header (Focus-header law, 2026-06-13): a 1U bar with a `start` icon slot and a
+ * centered title. The icon slot is the screen's inert identity glyph normally; while a print is active
+ * ([headerShowsEStop]) it morphs in place into the emergency-stop button (no overlay, no new element).
+ * Title is centered across the full width; if it can't fit at the standard size it scrolls
+ * ([basicMarquee]) — a named motion-law exception (single-line, overflow-only).
+ */
+@Composable
+private fun FocusHeader(
+    title: String,
+    icon: DinghyIcon,
+    uDp: Dp,
+    isPrinting: Boolean,
+    onEmergencyStop: (() -> Unit)?,
+    onPanic: (() -> Unit)?,
+) {
+    val t = LocalTokens.current
+    var showGuard by remember { mutableStateOf(false) }
+    val slot = (uDp * 0.7f).coerceAtLeast(64.dp) // e-stop / icon size — matches the retired float
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(uDp)
+            .padding(horizontal = FocusInset),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Centered title (full-width track; the start icon overlaps its left end, app-bar style).
+        Text(
+            text = title,
+            color = t.text,
+            fontFamily = Geist,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = fsSp(20f, t.fs).sp,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = slot) // keep the centered text clear of the start icon
+                .basicMarquee(), // overflow-only scroll (motion-law exception)
+        )
+        // Start icon slot: e-stop while printing, else the inert identity glyph.
+        Box(modifier = Modifier.align(Alignment.CenterStart)) {
+            if (headerShowsEStop(isPrinting, onEmergencyStop)) {
+                OutlinedControl(
+                    label = "",
+                    onClick = { showGuard = true },
+                    onLongClick = onPanic, // long-press = instant halt, no guard (float's onHold)
+                    modifier = Modifier.size(slot),
+                    intent = Intent.Danger,
+                    icon = DinghyIcons.StatusStop,
+                    contentDescription = stringResource(R.string.cd_emergency_stop),
+                )
+            } else {
+                DinghyIconView(
+                    icon = icon,
+                    tint = t.text2,
+                    sizeDp = slot,
+                )
+            }
+        }
+    }
+
+    // Internal e-stop ConfirmGuard, hoisted into a Dialog so the scrim escapes the Focus region and
+    // covers the whole screen (ConfirmGuard is a fillMaxSize scrim). Replaces every screen's own
+    // showEstopGuard + screen-level ConfirmGuard for the e-stop.
+    if (showGuard) {
+        Dialog(
+            onDismissRequest = { showGuard = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            ConfirmGuard(
+                title = stringResource(R.string.printstatus_estop_guard_title),
+                message = stringResource(R.string.printstatus_estop_guard_message),
+                confirmLabel = stringResource(R.string.printstatus_estop_guard_confirm),
+                cancelLabel = stringResource(R.string.common_cancel),
+                onConfirm = { onEmergencyStop?.invoke(); showGuard = false },
+                onCancel = { showGuard = false },
+                destructive = true,
+            )
+        }
+    }
 }
 
 /**

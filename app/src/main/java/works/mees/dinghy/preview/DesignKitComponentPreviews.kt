@@ -143,6 +143,9 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
             // ── FocusFrame with FillMeter inside ────────────────────────────────
             // edge = FocusEdge.Data(sampleFilamentColor) (data carve-out, not brandTint-clamped)
             FocusFrame(
+                title = "Preview",
+                icon = DinghyIcons.LauncherFiles,
+                uDp = 96.dp,
                 edge = FocusEdge.Data(sampleFilamentColor),
                 modifier = Modifier.fillMaxWidth(),
             ) {

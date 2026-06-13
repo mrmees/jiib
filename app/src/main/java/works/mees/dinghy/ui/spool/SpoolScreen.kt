@@ -357,6 +357,9 @@ private fun SpoolContent(
                         .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 ) {
                     FocusFrame(
+                        title = stringResource(R.string.cd_launcher_spool),
+                        icon = DinghyIcons.LauncherSpool,
+                        uDp = grid.uDp,
                         edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         modifier = Modifier.fillMaxSize(),
                     ) {

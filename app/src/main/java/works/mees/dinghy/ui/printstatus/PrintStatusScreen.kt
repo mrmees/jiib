@@ -476,6 +476,7 @@ private fun PrintStatusContent(
                     state = state,
                     spoolmanPresent = spoolmanPresent,
                     activeSpoolCardState = activeSpoolCardState,
+                    uDp = grid.uDp,
                 )
             },
             field = {
@@ -540,7 +541,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Terminal -> ScreenScaffold(
-            focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase) },
+            focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase, uDp = grid.uDp) },
             field = {
                 PrintStatusTerminalField(
                     state = state,
