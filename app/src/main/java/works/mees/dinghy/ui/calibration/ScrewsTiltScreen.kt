@@ -41,17 +41,20 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -76,6 +79,9 @@ fun ScrewsTiltScreen(
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -113,6 +119,8 @@ fun ScrewsTiltScreen(
         vm = vm,
         running = running,
         errorText = errorText,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onRun = {
             if (!running) {
                 dispatcher?.dispatch(CommandRegistry.screwsTiltCalculate, Unit)
@@ -143,6 +151,8 @@ fun ScrewsTiltContent(
     vm: ScrewsTiltVm,
     running: Boolean = false,
     errorText: String? = null,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -153,7 +163,17 @@ fun ScrewsTiltContent(
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
-                    ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
+                    FocusFrame(
+                        title = stringResource(routineTitleRes(CalibrationRoutine.SCREWS_TILT)),
+                        icon = routineIconToken(CalibrationRoutine.SCREWS_TILT),
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
+                    }
                 },
                 field = {
                     // ListBlock suppresses swipe-up drawer automatically (scrollable Field — Pitfall 1).
@@ -223,15 +243,6 @@ fun ScrewsTiltContent(
                         }
                     }
                 },
-            )
-            // FloatingEStop top-left corner reservation (UAT-4).
-            // Calibration = pop-to-root foot-gun: ScrewsTilt is only reachable while idle,
-            // so the E-stop overlay is suppressed here (visible = false).
-            FloatingEStop(
-                visible = false,
-                onClick = {},
-                uDp = grid.uDp,
-                modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
             )
         }
     }
