@@ -247,6 +247,15 @@ object DinghyIcons {
     // Swapped to the e-stop while printing. Confirmed resolvable in the bundled v2.944 ttf.
     val PrintStatusStandby = DinghyIcon(IconRef.Ligature("mode_standby"), alternate = "print_status_standby")
 
+    // --- Move Hub redesign glyphs (Task D3, OWNER-APPROVED — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]). The five Field-list mode rows; homing rows reuse
+    // HomeStateUnhomed and Microstep reuses FineTune. All five ligatures are unique.
+    val MoveTouch = DinghyIcon(IconRef.Ligature("my_location"), alternate = "move_touch")
+    val MoveXY = DinghyIcon(IconRef.Ligature("control_camera"), alternate = "move_xy")
+    val MoveZ = DinghyIcon(IconRef.Ligature("swap_vert"), alternate = "move_z")
+    val SavedLocation = DinghyIcon(IconRef.Ligature("bookmark"), alternate = "saved_location")
+    val SaveLocation = DinghyIcon(IconRef.Ligature("bookmark_add"), alternate = "save_location")
+
     // --- Phase-28 System/Settings cluster glyphs (28-01, OWNER-LOCKED D-21).
     // All ligatures verified resolvable in the bundled v2.944 Material Symbols ttf.
     // `settings` / `info` / `power_settings_new` are new-to-NEEDED (not yet in verify_ligatures.py).
@@ -291,5 +300,6 @@ object DinghyIcons {
         LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,
         SystemRowAbout, SystemRowPower,
         PrintStatusStandby,
+        MoveTouch, MoveXY, MoveZ, SavedLocation, SaveLocation,
     )
 }

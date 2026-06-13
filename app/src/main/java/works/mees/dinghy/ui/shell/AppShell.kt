@@ -79,7 +79,7 @@ import works.mees.dinghy.ui.calibration.ScrewsTiltScreen
 import works.mees.dinghy.ui.calibration.TiltScreen
 import works.mees.dinghy.ui.calibration.TiltVariant
 import works.mees.dinghy.ui.move.MoveHolder
-import works.mees.dinghy.ui.move.OldMoveScreen
+import works.mees.dinghy.ui.move.MoveScreen
 import works.mees.dinghy.ui.printstatus.PrintStatusScreen
 import works.mees.dinghy.ui.route.NavDest
 import works.mees.dinghy.ui.route.FOOT_GUN_DESTS
@@ -539,7 +539,7 @@ fun AppShell(
                 )
             }
             composable<NavDest.Move> {
-                OldMoveScreen(
+                MoveScreen(
                     container = container,
                     holder = moveHolder,
                     onBack = { navController.popBackStack() },
