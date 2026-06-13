@@ -596,6 +596,9 @@ fun AppShell(
                     onToggleBookmark = container::toggleMacroBookmark,
                     onSetRevealHidden = container::setMacroRevealHidden,
                     onBack = { navController.popBackStack() },
+                    isPrinting = printerState.printState == PrintState.Printing ||
+                        printerState.printState == PrintState.Paused,
+                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                 )
             }
             composable<NavDest.Console> {

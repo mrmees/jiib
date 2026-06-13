@@ -404,6 +404,7 @@
     <string name="webcam_aspect_format">aspect %s</string>
 
     <!-- Macros screen labels (25-05) — Launcher, ParamEntry, ManageMode -->
+    <string name="macros_focus_blurb">Bookmarked printer macros.</string>
     <string name="macros_empty_title">No macros pinned</string>
     <string name="macros_empty_body">Pick the macros you use most in Manage, and they\'ll launch from here.</string>
     <string name="macros_unavailable">This printer reports no gcode macros. Add gcode_macro entries in your config to use this screen.</string>

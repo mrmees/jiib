@@ -37,6 +37,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +52,7 @@ import works.mees.dinghy.command.MacroParamRejected
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowLabel
@@ -130,6 +132,8 @@ fun BookmarkedMacrosScreen(
     onSetRevealHidden: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     val state by holder.state.collectAsStateWithLifecycle()
     var fieldMode by remember { mutableStateOf<MacroFieldMode>(MacroFieldMode.Launcher) }
@@ -143,6 +147,8 @@ fun BookmarkedMacrosScreen(
         onToggleBookmark = onToggleBookmark,
         onSetRevealHidden = onSetRevealHidden,
         onBack = onBack,
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
         modifier = modifier,
     )
 }
@@ -195,6 +201,8 @@ private fun MacrosContent(
     onToggleBookmark: (String) -> Unit,
     onSetRevealHidden: (Boolean) -> Unit,
     onBack: () -> Unit,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -227,7 +235,27 @@ private fun MacrosContent(
         }
 
         ScreenScaffold(
-            focus = null,
+            focus = {
+                FocusFrame(
+                    title = stringResource(R.string.cd_launcher_macros),
+                    icon = DinghyIcons.LauncherMacros,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {
+                    val t = LocalTokens.current
+                    Text(
+                        text = stringResource(R.string.macros_focus_blurb),
+                        color = t.text2,
+                        fontFamily = Geist,
+                        fontSize = fsSp(17f, t.fs).sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
+                    )
+                }
+            },
             field = {
                 when (val mode = fieldMode) {
                     is MacroFieldMode.Launcher -> MacroLauncherField(
