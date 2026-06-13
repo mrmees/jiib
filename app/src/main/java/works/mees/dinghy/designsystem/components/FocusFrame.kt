@@ -62,7 +62,7 @@ sealed interface FocusEdge {
     /**
      * Print-progress: the edge becomes a perimeter progress bar (the Scrubber's visual language
      * unwrapped around the frame). Drawn specially in [FocusFrame] — NOT a uniform border.
-     * Wired in Stage 3 of the implementation plan; until then it renders borderless.
+     * Deferred; renders borderless until implemented.
      */
     data class Progress(val fraction: Float) : FocusEdge
 }
@@ -183,7 +183,8 @@ private fun FocusHeader(
 ) {
     val t = LocalTokens.current
     var showGuard by remember { mutableStateOf(false) }
-    val slot = (uDp * 0.7f).coerceAtLeast(64.dp) // e-stop / icon size — matches the retired float
+    // e-stop / icon size — matches the retired float; uDp is rotation-stable so memoize.
+    val slot = remember(uDp) { (uDp * 0.7f).coerceAtLeast(64.dp) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
