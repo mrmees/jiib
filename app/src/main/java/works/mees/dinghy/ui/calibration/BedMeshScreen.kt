@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -276,6 +277,7 @@ internal fun BedMeshContent(
                         vm = vm,
                         tokens = t,
                         onCycleScaleMode = onCycleScaleMode,
+                        uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize().padding(8.dp),
                     )
                 },
@@ -557,6 +559,7 @@ private fun BedMeshFocusRegion(
     vm: BedMeshVm,
     tokens: ThemeTokens,
     onCycleScaleMode: () -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -608,9 +611,9 @@ private fun BedMeshFocusRegion(
                 )
             }
 
-            // Scale-mode toggle overlay inset top-left (white/setting intent, ≥64dp, cycles D-09).
+            // Scale-mode toggle overlay inset top-left (white/setting intent, 1U, cycles D-09).
             Box(Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                ScaleToggle(label = vm.scaleMode.displayLabel(), onClick = onCycleScaleMode)
+                ScaleToggle(label = vm.scaleMode.displayLabel(), onClick = onCycleScaleMode, uDp = uDp)
             }
         }
     }
@@ -618,12 +621,12 @@ private fun BedMeshFocusRegion(
 
 /** Scale-mode toggle: `expand` glyph + current mode (Mono for numeric), white/setting intent. */
 @Composable
-private fun ScaleToggle(label: String, onClick: () -> Unit) {
+private fun ScaleToggle(label: String, onClick: () -> Unit, uDp: Dp) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     Row(
         Modifier
-            .heightIn(min = 64.dp)
+            .heightIn(min = uDp) // 1U (owner All-1U; was a pinned 64dp touch-floor)
             .clip(shape)
             .border(BorderStroke(2.dp, t.outline), shape)
             .background(t.surface2)

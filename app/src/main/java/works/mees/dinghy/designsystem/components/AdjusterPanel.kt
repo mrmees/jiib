@@ -180,7 +180,7 @@ fun AdjusterPanel(
                     onClick = reset,
                     enabled = resetEnabled,
                     modifier = Modifier
-                        .heightIn(min = 40.dp)
+                        .heightIn(min = uDp) // 1U like every control (owner All-1U; was sub-floor 40dp)
                         .then(resetDisabledModifier),
                     // D-21: caution/amber — NOT color-mix (red-bleed bug); use heat directly
                     intent = Intent.Warn,
