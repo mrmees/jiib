@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.move
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
@@ -31,6 +34,7 @@ import works.mees.dinghy.command.JogArgs
 import works.mees.dinghy.command.MoveToArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -430,7 +434,111 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E4–E6 replace these.
+                        MoveMode.Microstep -> {
+                            val anyHomed = vm.xHomed || vm.yHomed || vm.zHomed
+                            if (!anyHomed) {
+                                FocusHint("Home an axis to micro-step")
+                            } else {
+                                val steps: ImmutableList<Double> = remember {
+                                    persistentListOf(0.01, 0.025, 0.1, 0.25, 1.0, 2.5, 10.0)
+                                }
+                                var activeStep by remember(mode) { mutableStateOf(0.1) }
+
+                                Column(
+                                    Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    IncrementPicker(
+                                        steps = steps,
+                                        activeStep = activeStep,
+                                        onSelect = { activeStep = it },
+                                        uDp = grid.uDp,
+                                    )
+                                    // X axis row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "X",
+                                            fontFamily = GeistMono,
+                                            fontSize = fsSp(20f, t.fs).sp,
+                                            color = if (vm.xHomed) t.text else t.text2,
+                                            modifier = Modifier.width(28.dp),
+                                        )
+                                        OutlinedControl(
+                                            label = "−",
+                                            onClick = { onJog("X", -activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.xHomed,
+                                        )
+                                        OutlinedControl(
+                                            label = "+",
+                                            onClick = { onJog("X", activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.xHomed,
+                                        )
+                                    }
+                                    // Y axis row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "Y",
+                                            fontFamily = GeistMono,
+                                            fontSize = fsSp(20f, t.fs).sp,
+                                            color = if (vm.yHomed) t.text else t.text2,
+                                            modifier = Modifier.width(28.dp),
+                                        )
+                                        OutlinedControl(
+                                            label = "−",
+                                            onClick = { onJog("Y", -activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.yHomed,
+                                        )
+                                        OutlinedControl(
+                                            label = "+",
+                                            onClick = { onJog("Y", activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.yHomed,
+                                        )
+                                    }
+                                    // Z axis row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "Z",
+                                            fontFamily = GeistMono,
+                                            fontSize = fsSp(20f, t.fs).sp,
+                                            color = if (vm.zHomed) t.text else t.text2,
+                                            modifier = Modifier.width(28.dp),
+                                        )
+                                        OutlinedControl(
+                                            label = "−",
+                                            onClick = { onJog("Z", -activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.zHomed,
+                                        )
+                                        OutlinedControl(
+                                            label = "+",
+                                            onClick = { onJog("Z", activeStep) },
+                                            modifier = Modifier.weight(1f),
+                                            intent = Intent.Accent,
+                                            enabled = vm.zHomed,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E5–E6 replace these.
                         else -> FocusHint("$headerTitle — coming soon")
                     }
                 }
