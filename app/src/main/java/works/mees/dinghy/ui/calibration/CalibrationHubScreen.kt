@@ -214,8 +214,8 @@ private fun HubRoutineFocus(
                 color = t.text2,
             ),
             autoSize = TextAutoSize.StepBased(
-                minFontSize = fsSp(13f, t.fs).sp,
-                maxFontSize = fsSp(20f, t.fs).sp,
+                minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
+                maxFontSize = fsSp(20f, t.fs).sp, // caps at the list/title standard — never grows past it
                 stepSize = 1.sp,
             ),
             modifier = Modifier.fillMaxWidth().weight(1f),

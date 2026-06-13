@@ -109,7 +109,10 @@ distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). 
 horizontal region frame** (`ListFrameInset`, 8dp — so the Focus aligns with the Field's horizontal
 frame; callers pass vertical/sizing only, mirroring `ListBlock`), **clips its content to bounds** (no
 overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
-`FocusInset` (16dp).
+content inset (the `contentInset` param, **default `FocusInset` = 16dp**). A screen whose Focus
+content reads better tighter may pass a smaller value — the Calibration Hub passes `FocusInset / 2`
+(8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
+screen uses the 16dp default.
 
 **Mandatory required params:** `title: String`, `icon: ImageVector`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
@@ -120,9 +123,13 @@ compiler-enforced — there is no title-less or icon-less `FocusFrame`.
 Every `FocusFrame` renders a **1U-tall header** as its topmost element, before content. The
 header is always present — idle and printing alike. It contains:
 
-- **Start-aligned icon** — sized at `(uDp * 0.7f).coerceAtLeast(64.dp)` (UAT-1 prominent tier;
-  same formula as the retired floating e-stop). At **idle** this is the screen's **inert identity
-  glyph** — decorative, not tappable.
+- **Start-aligned icon slot** — sized at `(uDp * 0.7f).coerceAtLeast(64.dp)` (UAT-1 prominent
+  tier; same formula as the retired floating e-stop). This slot is the **e-stop tap target** while
+  printing (below). At **idle** the slot holds the screen's **inert identity glyph** — decorative,
+  not tappable — rendered at **`IDENTITY_ICON_RATIO` (0.82×) of the slot, centered** (2026-06-13
+  owner UAT). The inert glyph is shrunk because edge-heavy Material Symbols (e.g. `linear_scale`,
+  `blur_linear`, `linked_services`) drawn at the full slot clip against the 1U bar / the card's
+  rounded corner. The **e-stop button keeps the full slot** — only the decorative glyph shrinks.
 - **Centered title** — rendered with `Modifier.basicMarquee()`. The title is ALWAYS single-line;
   it scrolls horizontally on overflow — **NO shrink, NO ellipsis, NO wrap.** This is a
   **sanctioned exception to the no-continuous-animation motion law** (overflow-only, single-line,
@@ -143,9 +150,16 @@ no confirmation guard.
 
 The icon and title shown in the `FocusFrame` header are **the same glyph and label as whatever
 button navigated to this screen** (home row, parent list row, launcher tile). Call sites read
-those values from their nav entry and pass them through. The only exception is PrintStatus, which
-needed a bespoke glyph (`DinghyIcons.PrintStatusStandby` at idle) because it is reached from a
-morphing home tile that has no single fixed icon.
+those values from their nav entry and pass them through.
+
+Exceptions:
+- **PrintStatus** needs a bespoke glyph (`DinghyIcons.PrintStatusStandby` at idle) because it is
+  reached from a morphing home tile that has no single fixed icon.
+- **Hub / list-detail Focus pages** drive the header from the **currently SELECTED item**, not a
+  fixed nav-entry glyph — the header is part of the selection feedback (selecting a different list
+  row re-titles + re-icons the Focus). The Calibration Hub is the precedent: its header shows the
+  selected routine's title + `routineIconToken`, falling back to the launcher identity only on the
+  defensive null-selection frame. A hub's header law is selection-driven by design (2026-06-13).
 
 **Shell-fallback destinations (NOT rendered in a FocusFrame header):**
 
@@ -282,7 +296,7 @@ dp-derived reasoning.** This section records the derived usage:
 - **`FootButtonBar`** = 1U (height = `uDp`)
 - **Stepper / group-control tile** = 1–2U (see Phase 26 for restyle)
 - **Focus region** = remaining units after Field rows are counted
-- **`FocusFrame` header** = 1U tall; icon/e-stop slot = 0.7U (min 64dp)
+- **`FocusFrame` header** = 1U tall; icon/e-stop slot = 0.7U (min 64dp); the idle identity glyph renders at 0.82× the slot (e-stop keeps the full slot)
 - **`FloatingEStop`** (shell fallback only) = 0.7U (min 64dp); was listed as 1U — the 0.7U formula matches the header slot and the UAT-1 prominent tier
 
 `uDp` is derived at screen level via `rememberUnitGrid(minOf(contentWidth, contentHeight))`
@@ -427,8 +441,8 @@ for these; where prose and this table disagree, this table wins.
 | Element | Value (dp) |
 |---|---|
 | `ListRow` border — unselected / selected | 1.5 / 2 |
-| `FocusFrame` edge — Neutral / Data / inner padding (`FocusInset`) | 1.5 / 3 / 16 |
-| `FocusFrame` header height / icon+e-stop size | 1U / 0.7U (min 64) |
+| `FocusFrame` edge — Neutral / Data / inner padding (`contentInset`, default `FocusInset`; Calibration Hub uses 8) | 1.5 / 3 / 16 |
+| `FocusFrame` header height / icon+e-stop slot / idle identity glyph | 1U / 0.7U (min 64) / 0.82× slot |
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |
 | Scrubber track / thumb visible / thumb ring / touch target | 6 / 34 / 5 / 74 |

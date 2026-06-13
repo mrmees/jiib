@@ -399,3 +399,12 @@ All sizes are `fsSp(baseSp, fs)` — base × the S/M/L multiplier; never a bare 
 
 Secondary text and measurement-unit suffixes may sit below the 20sp default per-case (≥15).
 Bases of 11/13/14sp found in code are NON-CONFORMANT — normalization-audit flags.
+
+**Shrink-to-fit text (sanctioned pattern).** Text that must fit a bounded region without ever
+growing past a cap uses `BasicText` + `TextAutoSize.StepBased(minFontSize, maxFontSize, stepSize)`:
+it renders at `maxFontSize` when there's room and steps DOWN to fit, never up. Set `maxFontSize`
+to the appropriate ramp tier (the value it should read at when space allows) and `minFontSize` to
+the **15sp metadata floor** — the shrink stops at the floor, it does not go below. Precedents: the
+Move screen's XYZ coordinate readout; the Calibration Hub routine description (max 20sp = the
+list/title standard, min 15sp). (Note: the Move readout's pre-existing 11sp floor predates this
+rule and is a normalization-audit flag, not the pattern to copy.)
