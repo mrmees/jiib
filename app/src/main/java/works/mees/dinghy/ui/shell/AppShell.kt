@@ -728,6 +728,9 @@ fun AppShell(
                 // the drawer is suppressed on-screen (swipe-suppress set above).
                 SystemInformationScreen(
                     holder = systemInfoHolder,
+                    isPrinting = printerState.printState == PrintState.Printing ||
+                        printerState.printState == PrintState.Paused,
+                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -935,7 +938,11 @@ fun AppShell(
             estopDest.isRoute<NavDest.CalibrationProbe>() ||
             estopDest.isRoute<NavDest.CalibrationScrewsTilt>() ||
             estopDest.isRoute<NavDest.CalibrationZTilt>() ||
-            estopDest.isRoute<NavDest.CalibrationQgl>()
+            estopDest.isRoute<NavDest.CalibrationQgl>() ||
+            estopDest.isRoute<NavDest.About>() ||
+            estopDest.isRoute<NavDest.Settings>() ||
+            estopDest.isRoute<NavDest.System>() ||
+            estopDest.isRoute<NavDest.SystemInfo>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
