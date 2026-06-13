@@ -57,14 +57,13 @@ import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
-import works.mees.dinghy.designsystem.icons.SpoolGlyph
-import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
@@ -75,6 +74,7 @@ import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.spool.parseNormalizedHex
 
 /** Default highlighted length (mm) — must be a member of [DISTANCE_PRESETS]. */
 private const val DEFAULT_DISTANCE = 5.0
@@ -128,12 +128,14 @@ sealed class ExtrudeFieldMode {
  *    the live [ExtrudeVm.maxExtrudeDistance] (`max_extrude_only_distance`) is DISABLED.
  *  - A 4-up feedrate preset row (1/2/5/10 mm/s); selecting fills the Speed readout.
  *  - A two-button row: a nozzle-temp button (live current temp; tap opens the filament-preset
- *    Field-takeover [ExtrudeFieldMode.FilamentPresets]) and a Spoolman placeholder.
+ *    Field-takeover [ExtrudeFieldMode.FilamentPresets]) and a Spool button (reactive [SpoolGlyph],
+ *    no label; navigates to the Spoolman screen via `onOpenSpool`).
  *  - A T0/T1… tool row is inserted ONLY when [ExtrudeVm.showToolSelector] (EXTR-03 / D-09).
  *
  * ## FootButtonBar — Load / Unload / Back (EXTR-02 / D-10)
  * Load and Unload are ALWAYS shown. Present-macro tap dispatches `loadFilament()` / `unloadFilament()`;
- * ABSENT shows an informational [SeverityToast] (never a failed dispatch). Back ([Intent.Neutral]) returns.
+ * ABSENT shows an informational [SeverityToast] (never a failed dispatch). Load/Unload are [Intent.Warn]
+ * (caution — they heat + drive filament); Back ([Intent.Accent]) returns (R5: nav = accent).
  *
  * Every action dispatches a registry gcode entry via the per-session
  * [works.mees.dinghy.command.CommandDispatcher]. A control whose dispatch key is in-flight is disabled
@@ -354,7 +356,7 @@ private fun ExtrudeContent(
                                     modifier = Modifier.fillMaxWidth().weight(1f),
                                 )
                             }
-                            // Nozzle-temp button (opens filament-preset Field-takeover, D-17) + Spool placeholder.
+                            // Nozzle-temp button (opens filament-preset Field-takeover, D-17) + Spool button (→ Spoolman).
                             val tempColor = if (vm.canExtrude) t.go else t.stop
                             // Reactive spool swatches (D-07/D-08): same derivation as the home launcher
                             // tile — normalized Spoolman colors → empty list renders the honest empty spool.
