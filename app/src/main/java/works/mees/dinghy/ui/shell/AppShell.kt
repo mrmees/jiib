@@ -927,6 +927,9 @@ fun AppShell(
             estopDest.isRoute<NavDest.Files>() ||
             estopDest.isRoute<NavDest.Outputs>() ||
             estopDest.isRoute<NavDest.Devices>() ||
+            estopDest.isRoute<NavDest.Console>() ||
+            estopDest.isRoute<NavDest.Extrude>() ||
+            estopDest.isRoute<NavDest.Macros>() ||
             estopDest.isRoute<NavDest.CalibrationHub>() ||
             estopDest.isRoute<NavDest.CalibrationBedMesh>() ||
             estopDest.isRoute<NavDest.CalibrationProbe>() ||
