@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 import works.mees.dinghy.R
+import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.ProbeCalibrateHolder
 import works.mees.dinghy.calibration.ProbeCalibrateVm
 import works.mees.dinghy.calibration.ProbePageState
@@ -49,7 +50,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -60,6 +61,8 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -96,6 +99,9 @@ fun ProbeCalibrateScreen(
     modifier: Modifier = Modifier,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     // Pitfall 3: fresh-instance reset on entry — clears sawActive/captured from any prior session.
@@ -133,6 +139,8 @@ fun ProbeCalibrateScreen(
         starting = starting,
         saveGuard = saveGuard,
         toastError = toastError,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         enabled = vm.state == ProbePageState.Active && dispatcher != null && "testz" !in inFlight,
         onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
         onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
@@ -181,6 +189,8 @@ fun ProbeCalibrateContent(
     starting: Boolean,
     saveGuard: Boolean,
     toastError: String?,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     enabled: Boolean,
     onTestZUp: () -> Unit,
     onTestZDown: () -> Unit,
@@ -206,19 +216,16 @@ fun ProbeCalibrateContent(
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                    FocusFrame(
+                        title = stringResource(routineTitleRes(CalibrationRoutine.PROBE_CALIBRATE)),
+                        icon = routineIconToken(CalibrationRoutine.PROBE_CALIBRATE),
+                        uDp = grid.uDp,
+                        modifier = Modifier.fillMaxSize(),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
                     ) {
                         ProbeFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
-                        // UAT-4: FloatingEStop top-left corner reservation.
-                        FloatingEStop(
-                            visible = false, // calibration screen is a pop-to-root foot-gun
-                            onClick = {},
-                            uDp = grid.uDp,
-                            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
-                        )
                     }
                 },
                 field = {
