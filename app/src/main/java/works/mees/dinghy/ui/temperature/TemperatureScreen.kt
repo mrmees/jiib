@@ -448,20 +448,21 @@ private fun TemperatureContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(8.dp),
+                        .weight(1f),
                 ) {
                     if (selectedSensor == null) {
-                        // DEFAULT: graph fills Focus — multi-trace with visibility-filtered model.
-                        GraphViewHost(
-                            tokens = t,
-                            series = visible.series,
-                            setpoints = visible.setpoints,
-                            traceColors = visible.colors,
-                            yRange = graphRange,
-                            showAxisLabels = true,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
+                        FocusFrame(modifier = Modifier.fillMaxSize()) {
+                            GraphViewHost(
+                                tokens = t,
+                                series = visible.series,
+                                setpoints = visible.setpoints,
+                                traceColors = visible.colors,
+                                yRange = graphRange,
+                                showAxisLabels = true,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     } else {
                         // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
                         // selectedSensor is a non-null LIVE readout here (resolved from legend above).

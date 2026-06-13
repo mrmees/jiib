@@ -258,47 +258,49 @@ internal fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBa
     val context = LocalContext.current
     val thumbRel = metadata?.largestThumbRelPath
     val filename = state.printFilename
-    BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-        val size = minOf(maxWidth, maxHeight) * 0.9f
-        Box(Modifier.size(size), contentAlignment = Alignment.Center) {
-            if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
-                // D-05/D-02 preview branch: Coil doesn't load under @Preview → labeled placeholder.
-                if (LocalInspectionMode.current) {
-                    PreviewPlaceholderBox(
-                        label = "Thumbnail",
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
-                    )
-                } else {
-                    val thumbUrl = thumbnailUrl(httpBase, filename, thumbRel)
-                    val imageRequest = remember(thumbUrl, context) {
-                        ImageRequest.Builder(context)
-                            .data(thumbUrl)
-                            .build()
+    FocusFrame(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            val size = minOf(maxWidth, maxHeight) * 0.9f
+            Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+                if (thumbRel != null && httpBase.isNotBlank() && filename.isNotBlank()) {
+                    // D-05/D-02 preview branch: Coil doesn't load under @Preview → labeled placeholder.
+                    if (LocalInspectionMode.current) {
+                        PreviewPlaceholderBox(
+                            label = "Thumbnail",
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                        )
+                    } else {
+                        val thumbUrl = thumbnailUrl(httpBase, filename, thumbRel)
+                        val imageRequest = remember(thumbUrl, context) {
+                            ImageRequest.Builder(context)
+                                .data(thumbUrl)
+                                .build()
+                        }
+                        AsyncImage(
+                            model = imageRequest,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                        )
                     }
-                    AsyncImage(
-                        model = imageRequest,
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(t.rCard)),
+                        tint = t.accent2,
+                        modifier = Modifier.fillMaxSize(0.7f).alpha(0.6f),
                     )
                 }
-            } else {
-                Icon(
-                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = null,
-                    tint = t.accent2,
-                    modifier = Modifier.fillMaxSize(0.7f).alpha(0.6f),
+                // The result label centered at the ring-bottom analog — the terminal outcome.
+                Text(
+                    stringResource(statusLabelRes(state.printState)),
+                    color = t.text,
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(22f, t.fs).sp,
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
-            // The result label centered at the ring-bottom analog — the terminal outcome.
-            Text(
-                stringResource(statusLabelRes(state.printState)),
-                color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(22f, t.fs).sp,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
         }
     }
 }
