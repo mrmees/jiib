@@ -3,13 +3,17 @@ package works.mees.dinghy.ui.move
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +35,8 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
+import works.mees.dinghy.designsystem.components.Scrubber
+import works.mees.dinghy.designsystem.components.ScrubberOrientation
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -260,7 +266,76 @@ internal fun MoveHubContent(
                                 )
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E2–E6 replace these.
+                        MoveMode.XY -> {
+                            if (bed == null) {
+                                FocusHint("Waiting for printer bounds…")
+                            } else {
+                                val xMinF = bed.xMin.toFloat()
+                                val xMaxF = bed.xMax.toFloat()
+                                val yMinF = bed.yMin.toFloat()
+                                val yMaxF = bed.yMax.toFloat()
+                                var workingX by remember(mode) {
+                                    mutableFloatStateOf(
+                                        (vm.x?.toFloat() ?: ((xMinF + xMaxF) / 2f)).coerceIn(xMinF, xMaxF),
+                                    )
+                                }
+                                var workingY by remember(mode) {
+                                    mutableFloatStateOf(
+                                        (vm.y?.toFloat() ?: ((yMinF + yMaxF) / 2f)).coerceIn(yMinF, yMaxF),
+                                    )
+                                }
+                                val cx = vm.x
+                                val cy = vm.y
+                                val currentPair = if (cx != null && cy != null) cx to cy else null
+
+                                Row(modifier = Modifier.fillMaxSize()) {
+                                    // LEFT: bed map (read-only) stacked above the X scrubber.
+                                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                        BedMapView(
+                                            bed = bed,
+                                            current = currentPair,
+                                            target = workingX.toDouble() to workingY.toDouble(),
+                                            travel = false,
+                                            modifier = Modifier.fillMaxWidth().weight(1f),
+                                        )
+                                        Scrubber(
+                                            name = "X",
+                                            value = workingX,
+                                            range = xMinF..xMaxF,
+                                            step = 1f,
+                                            uDp = grid.uDp,
+                                            unit = "mm",
+                                            onValueChange = { workingX = it },
+                                            onSettle = { v ->
+                                                workingX = v
+                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                            },
+                                        )
+                                    }
+                                    // RIGHT: vertical Y scrubber in a fixed-width full-height slot.
+                                    Box(
+                                        modifier = Modifier.fillMaxHeight().width(96.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Scrubber(
+                                            name = "Y",
+                                            value = workingY,
+                                            range = yMinF..yMaxF,
+                                            step = 1f,
+                                            uDp = grid.uDp,
+                                            unit = "mm",
+                                            orientation = ScrubberOrientation.Vertical,
+                                            onValueChange = { workingY = it },
+                                            onSettle = { v ->
+                                                workingY = v
+                                                onMoveTo(workingX.toDouble(), workingY.toDouble(), null)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E3–E6 replace these.
                         else -> FocusHint("$headerTitle — coming soon")
                     }
                 }
