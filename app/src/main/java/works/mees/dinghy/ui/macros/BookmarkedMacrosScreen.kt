@@ -292,7 +292,7 @@ private fun ColumnScope.MacroLauncherField(
         }
         else -> {
             // D-10: ListBlock of ListRows — never a LazyVerticalGrid or MacroTile
-            ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 4.dp)) {
+            ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
                 items(state.bookmarkedMacros, key = { it.name }) { macro ->
                     ListRow(
                         selected = false,    // tap-to-execute, not select
@@ -438,7 +438,7 @@ private fun ColumnScope.MacroParamEntryField(
     )
 
     // Param list (or loading/empty notice)
-    ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 4.dp)) {
+    ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
         if (params.isEmpty()) {
             item(key = "empty_state") {
                 Text(
@@ -654,7 +654,7 @@ private fun ColumnScope.MacroManageField(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp),
         )
-        ListBlock(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 4.dp)) {
+        ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
             items(state.visibleMacros, key = { it.name }) { macro ->
                 val isBookmarked = macro.isBookmarked
                 ListRow(

@@ -229,7 +229,7 @@ fun PrintersContent(
                         }
                     }
                 } else {
-                    ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+                    ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                         items(profiles, key = { it.id }) { profile ->
                             ListRow(
                                 selected = profile.id == activeId,

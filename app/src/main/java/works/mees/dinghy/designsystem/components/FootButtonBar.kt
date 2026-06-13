@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
 
 /**
@@ -74,9 +75,9 @@ fun FootButtonBar(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                // Container padding owned here (gapS 8dp both axes — owner ruling, 2026-06-12;
-                // was per-call-site `horizontal = 8.dp, vertical = 4.dp`).
-                .padding(horizontal = 8.dp, vertical = 8.dp)
+                // Horizontal frame = the SHARED ListFrameInset so the bar's outer edges align with a
+                // stacked ListBlock's (owner rule, 2026-06-12). Vertical breathing room owned here.
+                .padding(horizontal = ListFrameInset, vertical = 8.dp)
                 .heightIn(min = uDp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,

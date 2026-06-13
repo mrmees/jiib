@@ -495,7 +495,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
             )
         }
     } else {
-        DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+        DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
             items(state.spools, key = { it.id }) { spool ->
                 ListRow(
                     selected = spool.id == state.selected?.id,
@@ -566,7 +566,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 ) {
     when (category) {
         SpoolFilterCategory.TYPE -> {
-            DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+            DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                 items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
                     val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
                     ListRow(
@@ -625,7 +625,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     )
                 }
             } else {
-                DesignListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+                DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                     items(state.vendors, key = { it }) { vendor ->
                         val selected = state.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
                         ListRow(

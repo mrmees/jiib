@@ -46,6 +46,7 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
@@ -90,7 +91,10 @@ internal fun PrintStatusStandbyField(
     // — both LAYOUT.md §"The unit U" violations. One screen = one U, derived at the root.
     Box(modifier.fillMaxSize()) {
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
+            // Horizontal frame is owned by the children (ListBlock + FootButtonBar share ListFrameInset),
+            // so the list and the Preheat/System bar align on their outer edges (owner rule, 2026-06-12).
+            // The Column frames the vertical only — adding horizontal here would double-inset the foot bar.
+            Modifier.fillMaxSize().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
@@ -121,7 +125,9 @@ internal fun PrintStatusStandbyField(
                 }
             }
 
-            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            failureText?.let { msg ->
+                SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = ListFrameInset))
+            }
 
             // Idle foot bar: Preheat (warn — heats) + System (accent nav) per R5.
             // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).

@@ -13,10 +13,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.dinghy.theme.compose.LocalTokens
+
+/**
+ * The horizontal screen-frame inset — THE single source for the "list ↔ button-bar edge alignment"
+ * rule (owner ruling, 2026-06-12).
+ *
+ * Rule: a button bar ([works.mees.dinghy.designsystem.components.FootButtonBar]) stacked vertically
+ * with a list-format field area ([ListBlock]) — above OR below it — must have its outer left/right
+ * edges aligned with the list's outer edges. Both components read THIS constant for their horizontal
+ * frame, so they always agree. Change the frame in one place and the list and its button bar move
+ * together; no per-screen padding to chase.
+ *
+ * Scope: this is the list/button content frame ONLY. Reading-column screens (About/Settings/Splash)
+ * and custom-grid focus regions intentionally use other insets and do NOT read this.
+ */
+val ListFrameInset: Dp = 8.dp
 
 /**
  * The edge-faded, scrollbar-less `LazyColumn` wrapper used by every list screen in the jiib redesign.
@@ -53,7 +70,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
  * own the items. Example:
  *
  * ```kotlin
- * ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp))   // R26 frame {
+ * ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {   // horizontal frame owned by ListBlock
  *     items(state.spools, key = { it.id }) { spool ->
  *         ListRow(selected = spool.id == selected?.id, onClick = { onRowClick(spool) }, uDp = grid.uDp) {
  *             SpoolRowContent(spool, t)
@@ -90,7 +107,9 @@ fun ListBlock(
     // Fade height in dp — 32dp is visible enough without eating too much content area.
     val fadeHeight = 32.dp
 
-    Box(modifier) {
+    // The horizontal frame is OWNED here (ListFrameInset) so the list's outer edges always match a
+    // stacked FootButtonBar's — callers pass only vertical/weight, never start/end (owner rule).
+    Box(modifier.padding(horizontal = ListFrameInset)) {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),

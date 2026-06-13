@@ -582,7 +582,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             )
         }
     } else {
-        ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+        ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
             items(state.fileRows, key = { it.stableId }) { row ->
                 FilesListRow(
                     row = row,

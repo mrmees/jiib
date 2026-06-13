@@ -128,7 +128,7 @@ fun SystemPageContent(
                 },
                 field = {
                     // Field: dense ListBlock of direct-tap nav rows in D-03 order.
-                    ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+                    ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                         // Rows 1-5: direct-tap (onClick navigates immediately; no selection state).
                         items(systemNavRows()) { row ->
                             ListRow(

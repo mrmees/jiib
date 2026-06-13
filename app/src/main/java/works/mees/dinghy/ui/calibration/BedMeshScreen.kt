@@ -316,7 +316,7 @@ internal fun BedMeshContent(
                                     }
                                 }
                             } else {
-                                ListBlock(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+                                ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                                     items(vm.profileNames, key = { it }) { name ->
                                         val isActive = name == vm.model.profileName && !vm.isEmpty
                                         ListRow(

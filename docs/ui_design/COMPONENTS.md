@@ -137,6 +137,18 @@ buttons (one wider primary action) are allowed if they stay on the grid (integer
 **Back is always the FIRST (start-aligned) button** (R8, 2026-06-12), app-wide. The bar is
 **optional per page** (R1) — it is the old gutter's successor, not a required element.
 
+**⚠ Edge-alignment rule (owner ruling, 2026-06-12).** A `FootButtonBar` stacked vertically with a
+list-format field area (`ListBlock`) — above OR below it — MUST have its outer left/right edges
+aligned with the list's outer edges. This is enforced structurally, not per screen: the horizontal
+frame is a single shared constant, **`ListFrameInset` (8dp, in `designsystem/layout/ListBlock.kt`)**,
+applied internally by BOTH `ListBlock` and `FootButtonBar`. Consequences for call sites:
+- **Never** pass `start`/`end`/`horizontal` padding to a `ListBlock` or `FootButtonBar` — the
+  component owns it. Callers pass only `weight`/vertical (`top`/`vertical`).
+- **Never** wrap a stacked list+bar in a Column that adds `horizontal` padding — that double-insets
+  the bar (the bug this rule fixed: the home Standby foot bar sat 8dp inside the list). Frame the
+  Column vertically only; let the children own the horizontal frame.
+- To change the frame width app-wide, edit `ListFrameInset` in ONE place.
+
 Intent follows the four-class scheme (R5 — see `THEMING.md §"Button intent = color"`):
 - Load / Unload spool = `Intent.Go` (the expected action of the current selection state)
 - Back / Home (navigation) = `Intent.Accent` (neutral nav)
@@ -195,6 +207,10 @@ exists in that direction, no visible scrollbar). Edge fades use `Box` gradient o
 by `lazyListState.firstVisibleItemIndex > 0` (top) and `lazyListState.canScrollForward` (bottom).
 
 No additional scrollbar indicator — Compose `LazyColumn` has none by default; this is intentional.
+
+`ListBlock` owns its **horizontal frame** (`ListFrameInset`, 8dp) internally so its outer edges match
+a stacked `FootButtonBar`'s — see the FootButtonBar §"Edge-alignment rule". Callers pass only
+`weight` + vertical padding (`top`/`vertical`), never `start`/`end`/`horizontal`.
 
 ---
 
