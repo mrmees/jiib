@@ -335,7 +335,102 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E3–E6 replace these.
+                        MoveMode.Z -> {
+                            val zMax = vm.axisMax?.getOrNull(2)?.toFloat()
+                            if (zMax == null) {
+                                FocusHint("Waiting for printer bounds…")
+                            } else {
+                                var workingZ by remember(mode) {
+                                    mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
+                                }
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    // Z readout — always visible at the top.
+                                    Text(
+                                        text = "Z  ${fmt1(workingZ.toDouble())} mm",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(18f, t.fs).sp,
+                                        color = t.text,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp),
+                                    )
+                                    // Two equal-weight labeled scrubber columns.
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f),
+                                    ) {
+                                        // Fine: 0–50 mm at 0.1 mm resolution.
+                                        Column(
+                                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                        ) {
+                                            Text(
+                                                text = "Fine 0–50",
+                                                fontFamily = GeistMono,
+                                                fontSize = fsSp(15f, t.fs).sp,
+                                                color = t.text2,
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxHeight()
+                                                    .weight(1f),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Scrubber(
+                                                    name = "Fine",
+                                                    value = workingZ,
+                                                    range = 0f..50f,
+                                                    step = 0.1f,
+                                                    uDp = grid.uDp,
+                                                    unit = "mm",
+                                                    orientation = ScrubberOrientation.Vertical,
+                                                    onValueChange = { workingZ = it },
+                                                    onSettle = { v ->
+                                                        workingZ = v
+                                                        onMoveTo(null, null, workingZ.toDouble())
+                                                    },
+                                                )
+                                            }
+                                        }
+                                        // Full: 0–Zmax at 1 mm resolution.
+                                        Column(
+                                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                        ) {
+                                            Text(
+                                                text = "Full 0–${fmt1(zMax.toDouble())}",
+                                                fontFamily = GeistMono,
+                                                fontSize = fsSp(15f, t.fs).sp,
+                                                color = t.text2,
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxHeight()
+                                                    .weight(1f),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Scrubber(
+                                                    name = "Full",
+                                                    value = workingZ,
+                                                    range = 0f..zMax,
+                                                    step = 1f,
+                                                    uDp = grid.uDp,
+                                                    unit = "mm",
+                                                    orientation = ScrubberOrientation.Vertical,
+                                                    onValueChange = { workingZ = it },
+                                                    onSettle = { v ->
+                                                        workingZ = v
+                                                        onMoveTo(null, null, workingZ.toDouble())
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E4–E6 replace these.
                         else -> FocusHint("$headerTitle — coming soon")
                     }
                 }
