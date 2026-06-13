@@ -31,11 +31,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.brandTint
@@ -64,10 +70,16 @@ fun AboutScreen(
     modifier: Modifier = Modifier,
 ) {
     val devEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
 
     AboutContent(
         devEnabled = devEnabled,
         onDevToggle = { container.setDevCyclerEnabled(it) },
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onBack = onBack,
         modifier = modifier,
     )
@@ -84,11 +96,24 @@ fun AboutContent(
     onDevToggle: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isPrinting: Boolean = false,
+    onEmergencyStop: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
         ScreenScaffold(
+            focus = {
+                FocusFrame(
+                    title = stringResource(R.string.system_row_about),
+                    icon = DinghyIcons.SystemRowAbout,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {}
+            },
             field = {
                 Column(
                     Modifier
