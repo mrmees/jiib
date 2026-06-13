@@ -53,6 +53,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -299,18 +300,9 @@ private fun ColumnScope.MacroLauncherField(
                         onClick = { onTap(macro) },
                         uDp = uDp,
                     ) {
-                        Text(
-                            text = macro.name,
-                            color = t.text,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, t.fs).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 4.dp),
-                        )
+                        // Canonical list label (R22) — same normalize-font ruling as BedMesh
+                        // profile names; the macro name is the row's LABEL, not a value readout.
+                        ListRowLabel(macro.name)
                     }
                 }
             }

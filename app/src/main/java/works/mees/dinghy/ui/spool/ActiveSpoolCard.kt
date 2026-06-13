@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanSpool
@@ -141,7 +143,7 @@ fun ActiveSpoolCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MaterialSymbol("inventory_2", tint = t.text2, sizeSp = fsSp(24f, t.fs))
+            DinghyIconView(icon = DinghyIcons.Inventory, tint = t.text2, sizeDp = fsSp(24f, t.fs).dp, contentDescription = null)
             Text(
                 text = cardTitle(state),
                 color = t.text,
@@ -236,7 +238,7 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MaterialSymbol("scale", tint = t.text2, sizeSp = fsSp(20f, t.fs))
+        DinghyIconView(icon = DinghyIcons.Scale, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
         Text("Remaining", color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
         Text(
             text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",

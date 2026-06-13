@@ -49,7 +49,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ColorWheel
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
@@ -336,7 +338,7 @@ private fun PoolSizeSegment(
             color = ink,
             fontFamily = Geist,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            fontSize = fsSp(20f, t.fs).sp, // R11 list/button default
         )
     }
 }
@@ -383,7 +385,7 @@ private fun SeedSwatch(
 
 /**
  * A preview swatch — renders its actual generated color (carve-out). Display-only, no touch target.
- * An optional [glyphName] overlays a status safety shape (disabled_by_default / warning) so the preview
+ * An optional [icon] overlays a status safety shape (StatusStop / Warning — registry-routed, R20) so the preview
  * shows the status color WITH its shape (D-01/D-02); the glyph is tinted to the background for contrast.
  *
  * 18.1-03 (D-05/D-06): the overlay swapped from a `@DrawableRes glyph` to a Material Symbols ligature
@@ -394,7 +396,7 @@ private fun SeedSwatch(
 private fun DataSwatch(
     fill: Color,
     modifier: Modifier = Modifier,
-    glyphName: String? = null,
+    icon: DinghyIcon? = null,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
@@ -406,14 +408,13 @@ private fun DataSwatch(
             .border(BorderStroke(2.dp, t.outline), shape),
         contentAlignment = Alignment.Center,
     ) {
-        if (glyphName != null) {
-            MaterialSymbol(
-                name = glyphName,
-                // Decorative swatch shape: suppress the raw ligature name from TalkBack (the swatch's
-                // meaning is conveyed by its color/label, matching DinghyIconView's null-cd behavior).
-                modifier = Modifier.clearAndSetSemantics {},
+        if (icon != null) {
+            // R20: registry-routed (StatusStop / Warning); null cd = decorative.
+            DinghyIconView(
+                icon = icon,
                 tint = t.bg,
-                sizeSp = fsSp(20f, t.fs),
+                sizeDp = fsSp(20f, t.fs).dp,
+                contentDescription = null,
             )
         }
     }
@@ -488,19 +489,18 @@ private fun StatusSlotSwatch(
         // The safety SHAPE overlay (D-01/D-02) — explicit size (NOT the 96dp vector intrinsic). Tinted to
         // the contrasting background so the glyph reads on top of its own status color. 18.1-03 (D-05/D-06):
         // swapped from drawables to Material Symbols ligatures by name (decorative — bare MaterialSymbol).
-        val glyphName = when (slot) {
-            StatusSlot.Stop -> "disabled_by_default"
-            StatusSlot.Caution -> "warning"
+        val slotIcon = when (slot) {
+            StatusSlot.Stop -> DinghyIcons.StatusStop
+            StatusSlot.Caution -> DinghyIcons.Warning
             StatusSlot.Go -> null // go is shapeless (D-02).
         }
-        if (glyphName != null) {
-            MaterialSymbol(
-                name = glyphName,
-                // Decorative safety-shape overlay (D-01/D-02): suppress the raw ligature name from
-                // TalkBack (status is conveyed by color + shape, matching DinghyIconView's null-cd behavior).
-                modifier = Modifier.clearAndSetSemantics {},
+        if (slotIcon != null) {
+            // R20: registry-routed safety-shape overlay; null cd = decorative (color+shape speak).
+            DinghyIconView(
+                icon = slotIcon,
                 tint = t.bg,
-                sizeSp = fsSp(28f, t.fs),
+                sizeDp = fsSp(28f, t.fs).dp,
+                contentDescription = null,
             )
         }
         if (overridden) {
@@ -796,7 +796,7 @@ internal fun ThemeEditorContent(
                 .fillMaxSize()
                 .background(t.bg)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(12.dp), // gapM (R13)
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             ScreenTitle(stringResource(R.string.theme_pool_color_title, editingSlot + 1))
@@ -816,7 +816,7 @@ internal fun ThemeEditorContent(
                 onSettle = onSlotSvSettle,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Danger) // R5: destructive clear
                 OutlinedControl(label = stringResource(R.string.common_done), onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
             }
             Box(Modifier.height(24.dp))
@@ -833,7 +833,7 @@ internal fun ThemeEditorContent(
                 .fillMaxSize()
                 .background(t.bg)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(12.dp), // gapM (R13)
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             ScreenTitle(stringResource(R.string.theme_status_color_title, stringResource(editingStatusSlot.labelRes())))
@@ -864,7 +864,7 @@ internal fun ThemeEditorContent(
                 onSettle = onSlotSvSettle,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.theme_clear), onClick = onSlotClear, modifier = Modifier.weight(1f), intent = Intent.Danger) // R5: destructive clear
                 OutlinedControl(label = stringResource(R.string.common_done), onClick = onSlotDone, modifier = Modifier.weight(1f), intent = Intent.Go)
             }
             Box(Modifier.height(24.dp))
@@ -877,7 +877,7 @@ internal fun ThemeEditorContent(
             .fillMaxSize()
             .background(t.bg)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(12.dp), // gapM (R13)
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         ScreenTitle(stringResource(R.string.theme_editor_title))
@@ -934,8 +934,8 @@ internal fun ThemeEditorContent(
             DataSwatch(t.accent, Modifier.weight(1f))
             for (c in t.pool.take(4)) DataSwatch(c, Modifier.weight(1f))
             // Status swatches preview the status color WITH its safety shape (D-01/D-02).
-            DataSwatch(t.stop, Modifier.weight(1f), glyphName = "disabled_by_default")
-            DataSwatch(t.heat, Modifier.weight(1f), glyphName = "warning")
+            DataSwatch(t.stop, Modifier.weight(1f), icon = DinghyIcons.StatusStop)
+            DataSwatch(t.heat, Modifier.weight(1f), icon = DinghyIcons.Warning)
             DataSwatch(t.go, Modifier.weight(1f))
         }
         HorizontalDivider(color = t.hair, thickness = 1.dp)

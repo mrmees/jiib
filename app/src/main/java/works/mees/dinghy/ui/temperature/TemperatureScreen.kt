@@ -63,6 +63,8 @@ import works.mees.dinghy.designsystem.components.FloatingEStop
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -544,11 +546,11 @@ private fun TemperatureContent(
                                     },
                                     uDp = grid.uDp,
                                     leadingContent = {
-                                        // UAT-1 exception: dense list-pane icon stays small
-                                        DinghyIconView(
+                                        // R23: canonical 0.6U list-row icon.
+                                        ListRowIcon(
                                             icon = iconForSensor(sensor.name),
+                                            uDp = grid.uDp,
                                             tint = rowTint,
-                                            sizeDp = 22.dp,
                                         )
                                     },
                                     trailingContent = {
@@ -571,12 +573,8 @@ private fun TemperatureContent(
                                         }
                                     },
                                 ) {
-                                    Text(
-                                        text = sensor.label,
-                                        fontFamily = Geist,
-                                        fontSize = fsSp(18f, t.fs).sp,
-                                        color = t.text,
-                                    )
+                                    // Canonical list label (R22/R11).
+                                    ListRowLabel(sensor.label)
                                 }
                             }
                         }
@@ -588,14 +586,14 @@ private fun TemperatureContent(
                                 label = "",
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral,
+                                intent = Intent.Accent, // R5: Back = accent
                                 icon = DinghyIcons.Back,
                             )
                             OutlinedControl(
                                 label = stringResource(R.string.temp_presets),
                                 onClick = { fieldMode = TempFieldMode.PresetPicker },
                                 modifier = Modifier.weight(1f),
-                                intent = if (heating) Intent.Neutral else Intent.Accent,
+                                intent = Intent.Accent, // R5: Field-takeover nav — no safety conditional
                             )
                             OutlinedControl(
                                 label = stringResource(R.string.temp_cooldown),
@@ -629,7 +627,7 @@ private fun TemperatureContent(
                                     Text(
                                         text = preset.name,
                                         fontFamily = Geist,
-                                        fontSize = fsSp(18f, t.fs).sp,
+                                        fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
                                         color = t.text,
                                     )
                                 }
@@ -642,7 +640,7 @@ private fun TemperatureContent(
                                 label = "",
                                 onClick = { fieldMode = TempFieldMode.SensorList },
                                 modifier = Modifier.weight(1f),
-                                intent = Intent.Neutral,
+                                intent = Intent.Accent, // R5: Back = accent
                                 icon = DinghyIcons.Back,
                             )
                         }
@@ -720,7 +718,7 @@ private fun TemperatureAdjusterFocus(
                 label = stringResource(R.string.common_done),
                 onClick = onDone,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
+                intent = Intent.Accent, // R5: return-to-graph nav = accent
             )
         }
 
@@ -879,7 +877,7 @@ internal fun PresetSelector(
                 label = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Neutral,
+                intent = Intent.Accent, // R5: dismiss-without-loss = plain nav
             )
         }
     }

@@ -25,6 +25,7 @@ import works.mees.dinghy.designsystem.components.DetailCard
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -213,16 +214,8 @@ private fun OutputsContent(
                                 }
                             } else null,
                         ) {
-                            Text(
-                                text = row.descriptor.prettyName,
-                                color = t.text,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(18f, t.fs).sp,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(vertical = 4.dp),
-                            )
+                            // Canonical list label (R22/R11); ListRow owns the weighting now.
+                            ListRowLabel(row.descriptor.prettyName)
                         }
                     }
                 }
@@ -233,7 +226,7 @@ private fun OutputsContent(
                         label = "",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
-                        intent = Intent.Neutral,
+                        intent = Intent.Accent, // R5: Back = accent
                         icon = DinghyIcons.Back,
                     )
                 }

@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.MaterialSymbol
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanClient
@@ -94,7 +96,7 @@ fun ScanConfirmCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MaterialSymbol("qr_code_scanner", tint = t.accent2, sizeSp = fsSp(20f, t.fs))
+            DinghyIconView(icon = DinghyIcons.QrCodeScanner, tint = t.accent2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
             Text(
                 text = "Scanned spool #$spoolId",
                 color = t.text2,
@@ -181,7 +183,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MaterialSymbol("scale", tint = t.text2, sizeSp = fsSp(22f, t.fs))
+            DinghyIconView(icon = DinghyIcons.Scale, tint = t.text2, sizeDp = fsSp(22f, t.fs).dp, contentDescription = null)
             Text(
                 text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
                 color = if (spool.remainingWeight == null) t.text3 else t.text,
@@ -199,7 +201,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MaterialSymbol("archive", tint = t.heat, sizeSp = fsSp(20f, t.fs))
+                DinghyIconView(icon = DinghyIcons.Archive, tint = t.heat, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
                 Text(
                     text = "Archived — verify before loading",
                     color = t.heat,

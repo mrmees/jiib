@@ -63,7 +63,7 @@ fun TokenTextField(
             Text(
                 text = label,
                 fontFamily = Geist,
-                fontSize = fsSp(13f, t.fs).sp,
+                fontSize = fsSp(15f, t.fs).sp, // R11 floor
             )
         },
         singleLine = true,

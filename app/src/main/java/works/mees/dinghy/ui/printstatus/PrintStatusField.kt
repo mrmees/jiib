@@ -122,7 +122,7 @@ internal fun PrintStatusStandbyField(
 
             failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
 
-            // Idle foot bar: Preheat + System — both Intent.Neutral (D-09/D-10).
+            // Idle foot bar: Preheat (warn — heats) + System (accent nav) per R5.
             // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
             // NOT red, NOT Power.
             FootButtonBar(uDp = uDp) {
@@ -131,14 +131,14 @@ internal fun PrintStatusStandbyField(
                     onClick = onPreheat,
                     modifier = Modifier.weight(1f),
                     icon = DinghyIcons.FootPreheat,
-                    intent = Intent.Neutral,
+                    intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
                 )
                 OutlinedControl(
                     label = stringResource(R.string.home_foot_system),
                     onClick = { onNavigate(NavDest.System) },
                     modifier = Modifier.weight(1f),
                     icon = DinghyIcons.FootSystem,
-                    intent = Intent.Neutral,
+                    intent = Intent.Accent, // R5: plain navigation = accent
                 )
             }
         }

@@ -475,17 +475,18 @@ private fun FocusScrubberSurface(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Back FIRST (accent — R5/R8); Off stays stop-red.
+            OutlinedControl(
+                label = stringResource(R.string.common_back),
+                onClick = onBack,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Accent,
+            )
             OutlinedControl(
                 label = stringResource(R.string.output_off),
                 onClick = { if (!busy) onOff() },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Danger,
-            )
-            OutlinedControl(
-                label = stringResource(R.string.common_back),
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
             )
         }
     }
@@ -578,17 +579,18 @@ private fun FocusLedSurface(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Back FIRST (accent — R5/R8); Off stays stop-red.
+            OutlinedControl(
+                label = stringResource(R.string.common_back),
+                onClick = onBack,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Accent,
+            )
             OutlinedControl(
                 label = stringResource(R.string.output_off),
                 onClick = { if (!busy) onOff() },
                 modifier = Modifier.weight(1f),
                 intent = Intent.Danger,
-            )
-            OutlinedControl(
-                label = stringResource(R.string.common_back),
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
             )
         }
     }
@@ -709,13 +711,13 @@ private fun LedBrightnessControl(
                 label = "−",
                 onClick = { set(working - step); settle() },
                 modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
+                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
             )
             OutlinedControl(
                 label = "+",
                 onClick = { set(working + step); settle() },
                 modifier = Modifier.weight(1f),
-                intent = Intent.Neutral,
+                intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
             )
         }
     }
