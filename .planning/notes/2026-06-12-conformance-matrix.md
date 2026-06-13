@@ -111,6 +111,26 @@
 
 Nine distinct treatments across 24 screens — the standardization pass has real material.
 
+## EXECUTION STATUS (2026-06-12, commits `d6cf108`..`82beb1d`)
+
+**DONE (pilot + wide pass):** ListRow-owned anatomy + ListRowLabel (20sp SemiBold) + ListRowIcon
+(0.6U, R23) + OutlinedControl glyphs 0.6U via LocalUnitDp (R24) + FootButtonBar-owned gapS padding
+(R21). Back = FIRST + accent on every audited screen; expected→go repaints (Print, Execute,
+Load/Unload, Open, Save, Calibrate, Home-gates, Run, Start, Retry/Setup); Preheat→warn; type ramp
+(labels→20sp, sub-15 fixed incl. TokenTextField); Splash 13 strings extracted; ThemeEditor Clear→stop
++ swatch glyphs registry-routed (R20) + pads→gapM; spool-card literal icons registry-routed
+(+QrCodeScanner token); dead ScrubberPage composable + gallery demo deleted (ScrubberControl stays
+live until the 004 migration); home-standby U hoisted to screen root (C-U1b).
+
+**OMITTED (owner R25):** Move + Extrude — full rework later.
+**REMAINING (structural slate / follow-ups):** PrintStatus gutter-mode migration (+ its 15
+control-label strings — they live in PrintStatusControlModel, needs @StringRes restructure);
+LedBrightnessControl + ScrubberControl → 004 ringed-thumb; About/Printers local-row consolidation;
+dynamic symbol-param icon sites (ActiveSpoolCard ×2, ScanSurface, ScanConfirmCard); oklch
+caution-reads-red verification/clamp (R10 — needs a focused session, color.js parity risk); Spool
+"close" symbol TODO (NEEDS OWNER GLYPH CHOICE — icon law); Focus standardization pass (owner);
+@Preview/golden backfill → Ship (R14).
+
 ## 5. Suggested execution order (post-verdicts)
 
 1. Sweep-wide mechanical roll-ups (#1 Back, #3 type ramp, #8 spacing) — touch every screen once.
