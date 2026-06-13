@@ -39,6 +39,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -652,6 +653,7 @@ private fun NumericSettingReadout(
             BasicTextField(
                 value = text,
                 onValueChange = onTextChange,
+                modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Done,
@@ -662,6 +664,7 @@ private fun NumericSettingReadout(
                     fontWeight = FontWeight.Bold,
                     fontSize = fsSp(48f, t.fs).sp,
                     color = t.text,
+                    textAlign = TextAlign.Center,
                 ),
                 singleLine = true,
             )
