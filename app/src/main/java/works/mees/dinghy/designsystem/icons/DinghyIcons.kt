@@ -255,6 +255,8 @@ object DinghyIcons {
     val MoveZ = DinghyIcon(IconRef.Ligature("swap_vert"), alternate = "move_z")
     val SavedLocation = DinghyIcon(IconRef.Ligature("bookmark"), alternate = "saved_location")
     val SaveLocation = DinghyIcon(IconRef.Ligature("bookmark_add"), alternate = "save_location")
+    val MoveHomeAll = DinghyIcon(IconRef.Ligature("home_app_logo"), alternate = "move_home_all")
+    val MoveDisableMotors = DinghyIcon(IconRef.Ligature("stack_off"), alternate = "move_disable_motors")
 
     // --- Phase-28 System/Settings cluster glyphs (28-01, OWNER-LOCKED D-21).
     // All ligatures verified resolvable in the bundled v2.944 Material Symbols ttf.
@@ -301,5 +303,6 @@ object DinghyIcons {
         SystemRowAbout, SystemRowPower,
         PrintStatusStandby,
         MoveTouch, MoveXY, MoveZ, SavedLocation, SaveLocation,
+        MoveHomeAll, MoveDisableMotors,
     )
 }

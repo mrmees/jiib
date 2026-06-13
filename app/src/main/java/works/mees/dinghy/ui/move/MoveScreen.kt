@@ -69,7 +69,6 @@ import works.mees.dinghy.ui.screen.TokenTextField
  * [Bookmark] carries the tapped saved-location name; [SaveDialog] is the save-name flow.
  */
 sealed interface MoveMode {
-    data object Overview : MoveMode
     data object TouchMove : MoveMode
     data object XY : MoveMode
     data object Z : MoveMode
@@ -127,6 +126,7 @@ fun MoveScreen(
         },
         onJog = { axis, mm -> dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, vm.travelFeedMmMin)) },
         onHomeAll = { dispatchCommand(CommandRegistry.homeAll, Unit) },
+        onDisableSteppers = { dispatchCommand(CommandRegistry.disableSteppers, Unit) },
         onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
         onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
@@ -160,6 +160,7 @@ internal fun MoveHubContent(
     onMoveTo: (Double?, Double?, Double?) -> Unit,
     onJog: (String, Double) -> Unit,
     onHomeAll: () -> Unit,
+    onDisableSteppers: () -> Unit,
     onHomeXY: () -> Unit,
     onHomeAxis: (String) -> Unit,
     onEmergencyStop: () -> Unit,
@@ -169,7 +170,7 @@ internal fun MoveHubContent(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    var mode by remember { mutableStateOf<MoveMode>(MoveMode.Overview) }
+    var mode by remember { mutableStateOf<MoveMode>(MoveMode.TouchMove) }
 
     // Delete-confirm overlay: non-null = name of the location pending deletion.
     var deleteConfirm by remember { mutableStateOf<String?>(null) }
@@ -213,22 +214,6 @@ internal fun MoveHubContent(
                     onPanic = onEmergencyStop,
                 ) {
                     when (mode) {
-                        MoveMode.Overview -> {
-                            if (bed != null) {
-                                // Read-only overhead bed map (no gesture callbacks — E1+ add taps).
-                                val cx = vm.x
-                                val cy = vm.y
-                                BedMapView(
-                                    bed = bed,
-                                    current = if (cx != null && cy != null) cx to cy else null,
-                                    target = null,
-                                    travel = false,
-                                    modifier = Modifier.fillMaxSize().padding(12.dp),
-                                )
-                            } else {
-                                FocusHint("Home the printer to begin")
-                            }
-                        }
                         MoveMode.TouchMove -> {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 // Instruction line.
@@ -657,7 +642,7 @@ internal fun MoveHubContent(
                                 ) {
                                     OutlinedControl(
                                         label = "Cancel",
-                                        onClick = { mode = MoveMode.Overview },
+                                        onClick = { mode = MoveMode.TouchMove },
                                         modifier = Modifier.weight(1f),
                                         intent = Intent.Accent,
                                     )
@@ -675,7 +660,7 @@ internal fun MoveHubContent(
                                                         z = if (includeZ) vm.z else null,
                                                     ),
                                                 )
-                                                mode = MoveMode.Overview
+                                                mode = MoveMode.TouchMove
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
@@ -685,7 +670,7 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // All six MoveMode cases are now handled above — no else needed.
+                        // All six MoveMode cases (TouchMove/XY/Z/Microstep/Bookmark/SaveDialog) handled — no else needed.
                     }
                 }
             },
@@ -695,12 +680,7 @@ internal fun MoveHubContent(
                         .weight(1f)
                         .padding(top = 8.dp),
                 ) {
-                    // Homing rows (never "selected") — gated by availability.
-                    if (avail.homeAll) {
-                        item("home_all") {
-                            MoveRow("Home All", DinghyIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeAll() }
-                        }
-                    }
+                    // Homing rows (never "selected") — gated by availability. Home All moved to the foot bar.
                     if (avail.homeXY) {
                         item("home_xy") {
                             MoveRow("Home XY", DinghyIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeXY() }
@@ -750,23 +730,45 @@ internal fun MoveHubContent(
                             t.accent,
                         ) { mode = MoveMode.Bookmark(loc.name) }
                     }
-                    if (avail.saveLocation) {
-                        item("save_location") {
-                            MoveRow("Save Location", DinghyIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent) {
-                                mode = MoveMode.SaveDialog
-                            }
-                        }
-                    }
                 }
 
                 FootButtonBar(uDp = grid.uDp) {
-                    // Back: sub-mode → Overview; Overview → onBack (accent, FIRST — R5/R8).
+                    // Back: sub-mode → Touch Move; Touch Move → onBack (accent, FIRST — R5/R8).
                     OutlinedControl(
                         label = "",
-                        onClick = { if (mode == MoveMode.Overview) onBack() else mode = MoveMode.Overview },
+                        onClick = { if (mode == MoveMode.TouchMove) onBack() else mode = MoveMode.TouchMove },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent,
                         icon = DinghyIcons.Back,
+                        contentDescription = "Back",
+                    )
+                    // Disable Motors (danger) — drops stepper hold.
+                    OutlinedControl(
+                        label = "",
+                        onClick = { onDisableSteppers() },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Danger,
+                        icon = DinghyIcons.MoveDisableMotors,
+                        contentDescription = "Disable motors",
+                    )
+                    // Home All (go) — the expected homing action.
+                    OutlinedControl(
+                        label = "",
+                        onClick = { onHomeAll() },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Go,
+                        icon = DinghyIcons.MoveHomeAll,
+                        contentDescription = "Home all",
+                    )
+                    // Save Location (accent) — only when all XYZ known.
+                    OutlinedControl(
+                        label = "",
+                        onClick = { mode = MoveMode.SaveDialog },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent,
+                        icon = DinghyIcons.SaveLocation,
+                        enabled = avail.saveLocation,
+                        contentDescription = "Save location",
                     )
                 }
             },
@@ -783,7 +785,7 @@ internal fun MoveHubContent(
                 onConfirm = {
                     onDeleteLocation(pendingDelete)
                     deleteConfirm = null
-                    mode = MoveMode.Overview
+                    mode = MoveMode.TouchMove
                 },
                 onCancel = { deleteConfirm = null },
             )
@@ -793,7 +795,6 @@ internal fun MoveHubContent(
 
 /** Header title + icon per the current [MoveMode] (header law). */
 private fun moveModeHeader(mode: MoveMode): Pair<String, DinghyIcon> = when (mode) {
-    MoveMode.Overview -> "Move" to DinghyIcons.LauncherMove
     MoveMode.TouchMove -> "Touch Move" to DinghyIcons.MoveTouch
     MoveMode.XY -> "XY Position" to DinghyIcons.MoveXY
     MoveMode.Z -> "Z Position" to DinghyIcons.MoveZ
