@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +60,7 @@ import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.screen.TokenTextField
 
 /**
  * The current Move-Hub sub-mode (Task D3). The Field action-list selects a mode; the Focus swaps
@@ -615,8 +620,83 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // Sub-mode bodies are PLACEHOLDERS (Task D3) — E6 replaces SaveDialog.
-                        else -> FocusHint("$headerTitle — coming soon")
+                        MoveMode.SaveDialog -> {
+                            // E6: Save Location form — the sanctioned save-name keyboard exception.
+                            // State resets every time we enter this mode (keyed on mode).
+                            var name by remember(mode) { mutableStateOf("") }
+                            var includeZ by remember(mode) { mutableStateOf(true) }
+
+                            Column(
+                                Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                // Name field: alphanumeric keyboard — sanctioned save-name exception.
+                                TokenTextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    label = "Name",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardType = KeyboardType.Text,
+                                )
+                                // Include-Z checkbox row: tapping the row (label or box) toggles state.
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { includeZ = !includeZ },
+                                ) {
+                                    Checkbox(
+                                        checked = includeZ,
+                                        onCheckedChange = { includeZ = it },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = t.accent,
+                                            uncheckedColor = t.outline,
+                                            checkmarkColor = t.surface,
+                                        ),
+                                    )
+                                    Text(
+                                        text = "Include Z height (Z = ${fmt1(vm.z)})",
+                                        fontFamily = GeistMono,
+                                        fontSize = fsSp(16f, t.fs).sp,
+                                        color = t.text,
+                                    )
+                                }
+                                // Save / Cancel button row.
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    OutlinedControl(
+                                        label = "Cancel",
+                                        onClick = { mode = MoveMode.Overview },
+                                        modifier = Modifier.weight(1f),
+                                        intent = Intent.Accent,
+                                    )
+                                    OutlinedControl(
+                                        label = "Save",
+                                        onClick = {
+                                            val sx = vm.x
+                                            val sy = vm.y
+                                            if (sx != null && sy != null && name.isNotBlank()) {
+                                                onSaveLocation(
+                                                    SavedLocation(
+                                                        name = name.trim(),
+                                                        x = sx,
+                                                        y = sy,
+                                                        z = if (includeZ) vm.z else null,
+                                                    ),
+                                                )
+                                                mode = MoveMode.Overview
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        intent = Intent.Go,
+                                        enabled = name.isNotBlank() && vm.x != null && vm.y != null,
+                                    )
+                                }
+                            }
+                        }
+                        // All six MoveMode cases are now handled above — no else needed.
                     }
                 }
             },
