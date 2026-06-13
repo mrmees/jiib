@@ -169,6 +169,9 @@ object DinghyIcons {
     val Decrease = DinghyIcon(IconRef.Ligature("remove"), alternate = "decrease")
     val Increase = DinghyIcon(IconRef.Ligature("add"), alternate = "increase")
     val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
+    // Revert-to-default header action (setting-adjustment compliance, 2026-06-13; owner-chosen
+    // `refresh` ligature, img/material-icon-bucket.json). Bare end-aligned glyph in the Focus header.
+    val Revert = DinghyIcon(IconRef.Ligature("refresh"), alternate = "revert")
 
     // --- Phase-23 redesign glyphs (23-03, OWNER-LOCKED — never invent/substitute, icon law).
     // Assignments from owner's 2026-06-09 Spoolman sketch session; all ligatures verified present
@@ -282,7 +285,7 @@ object DinghyIcons {
         FootPreheat, FootSystem,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
-        PressureAdvance, SmoothTime, Decrease, Increase, InputCircle,
+        PressureAdvance, SmoothTime, Decrease, Increase, InputCircle, Revert,
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
