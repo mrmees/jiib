@@ -676,8 +676,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     val grams = weightText.toDoubleOrNull()
     val valid = grams != null && grams > 0.0
 
-    // Info header: spool name + tare + current total (migrated from the retired MeasuredWeightPage.SpoolWeightHeader).
-    val filament = spool.filament
+    // Info card: tare + current believed total (the spool's identity lives in the Focus header above).
     val tare = spool.effectiveSpoolWeight
     val believedTotal = if (tare != null && spool.remainingWeight != null) tare + spool.remainingWeight else null
     val headerShape = RoundedCornerShape(t.rCard)
@@ -732,12 +731,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Done,
                 ),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (valid) {
-                        keyboardController?.hide()
-                        onApply(grams!!)
-                    }
-                }),
+                // IME Done only dismisses the keyboard — it does NOT apply. The value stays in the
+                // cell so the user can review the tare/total math, then taps the Set button to apply.
+                keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
                 modifier = Modifier.fillMaxWidth(),
             )
             if (weightText.isEmpty()) {
@@ -750,7 +746,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 )
             }
         }
-        // Info card: spool name + tare weight + current believed total.
+        // Info card: tare weight + current believed total (spool identity is in the Focus header).
         Column(
             Modifier
                 .fillMaxWidth()
@@ -760,14 +756,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = spoolDisplayTitle(spool),
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(26f, t.fs).sp,
-                maxLines = 1,
-            )
             SpoolMeasureWeightStat(stringResource(R.string.spool_measure_tare_label), tare, t)
             SpoolMeasureWeightStat(stringResource(R.string.spool_measure_total_label), believedTotal, t)
             Text(
