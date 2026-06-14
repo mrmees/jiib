@@ -102,8 +102,39 @@ class TraceStylePrefs(
         }
     }
 
+    /**
+     * User-selected `temperature_sensor` objects to display in the temperature monitor. Selection
+     * is opt-in: an absent key means NOT selected; deselecting removes the key (sparse store).
+     * Only entries with [Boolean] value `true` are included in the emitted set. Fail-safe: a read
+     * error yields an empty set → nothing selected.
+     */
+    val selectedSensors: Flow<Set<String>> =
+        dataStore.data
+            .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+            .map { prefs ->
+                buildSet {
+                    prefs.asMap().forEach { (key, value) ->
+                        if (key.name.startsWith(PREFIX_SELECTED) && value is Boolean && value) {
+                            add(key.name.removePrefix(PREFIX_SELECTED))
+                        }
+                    }
+                }
+            }
+
+    /**
+     * Persist the selection state for a sensor. [selected]=true adds the sensor; false removes
+     * its key entirely (sparse: absent == not selected). Read-modify-write inside ONE [DataStore.edit].
+     */
+    suspend fun setSensorSelected(sensorName: String, selected: Boolean) {
+        dataStore.edit { prefs ->
+            val key = booleanPreferencesKey(PREFIX_SELECTED + sensorName)
+            if (selected) prefs[key] = true else prefs.remove(key)
+        }
+    }
+
     companion object {
         private const val PREFIX_COLOR = "trace_color_"
         private const val PREFIX_VISIBLE = "trace_visible_"
+        private const val PREFIX_SELECTED = "trace_selected_"
     }
 }
