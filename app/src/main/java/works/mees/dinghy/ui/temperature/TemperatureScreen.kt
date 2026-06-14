@@ -75,7 +75,6 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.spool.SpoolmanSpool
-import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.Palette
@@ -152,6 +151,7 @@ private data class VisibleTraces(
 fun TemperatureScreen(
     container: AppContainer,
     holder: TemperatureHolder,
+    activeSpoolDetail: SpoolmanSpool? = null,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -251,26 +251,12 @@ fun TemperatureScreen(
         }
     }
 
-    // Loaded-spool preheat preset: resolve the active Spoolman spool's filament temps (mirrors the
-    // FilesScreen/PrintStatus active-spool fetch) so the PresetPicker can offer "heat to this spool".
-    val activeSpoolStatus by container.activeSpool.collectAsStateWithLifecycle(initialValue = null)
-    val spoolmanPresent by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
-    val spoolmanClient = container.currentSpoolmanClient
-    val activeSpoolId = activeSpoolStatus?.activeSpoolId
-    var spoolDetail by remember { mutableStateOf<SpoolmanSpool?>(null) }
-    LaunchedEffect(activeSpoolId, spoolmanPresent, spoolmanClient) {
-        val id = activeSpoolId
-        spoolDetail = if (!spoolmanPresent || id == null || spoolmanClient == null) {
-            null
-        } else {
-            val envelope = runCatching { spoolmanClient.getSpool(id) }.getOrNull()
-            parseSpoolmanSpools(envelope).rows.firstOrNull { it.id == id }
-        }
-    }
-    // Build the preset only when the loaded filament reports a nozzle temp (the load-bearing field);
-    // bed falls back to 0 (heat nozzle, bed off) when the spool omits it.
-    val spoolPreset: PrinterCommands.Preset? = remember(spoolDetail) {
-        val f = spoolDetail?.filament
+    // Loaded-spool preheat preset, built from the active Spoolman spool detail resolved UPSTREAM by
+    // AppShell's SpoolHolder — the SAME source the Extrude preset list uses (the in-screen
+    // currentSpoolmanClient fetch hit the no-op client and never resolved). Shown only when a spool is
+    // loaded and its filament reports a nozzle temp; bed falls back to 0 when the spool omits it.
+    val spoolPreset: PrinterCommands.Preset? = remember(activeSpoolDetail) {
+        val f = activeSpoolDetail?.filament
         val nozzle = f?.settingsExtruderTemp
         if (f != null && nozzle != null) {
             PrinterCommands.Preset(

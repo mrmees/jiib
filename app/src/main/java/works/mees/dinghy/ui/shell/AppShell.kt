@@ -535,6 +535,7 @@ fun AppShell(
                 TemperatureScreen(
                     container = container,
                     holder = temperatureHolder,
+                    activeSpoolDetail = activeSpoolDetail,
                     onBack = { navController.popBackStack() },
                 )
             }
