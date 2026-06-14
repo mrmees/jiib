@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -822,30 +823,33 @@ private fun SensorAppearanceFocus(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Center the two rows in the leftover space; rows wrap to the (width-driven) dot height.
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         ) {
             swatchRows.forEach { rowColors ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     rowColors.forEach { poolColor ->
                         val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .aspectRatio(1f, matchHeightConstraintsFirst = true)
-                                .clip(CircleShape)
-                                .background(poolColor) // data color — THEME-01 carve-out
-                                .border(
-                                    BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
-                                    CircleShape,
-                                )
-                                .clickable { onColorSelect(poolColor) },
-                        )
+                        // Each dot is a centered, WIDTH-DRIVEN square (¼ of the row) capped at ~1.4U so
+                        // it stays large but never balloons to the row height (the old overlap/overflow bug).
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .sizeIn(maxWidth = uDp * 1.4f, maxHeight = uDp * 1.4f)
+                                    .clip(CircleShape)
+                                    .background(poolColor) // data color — THEME-01 carve-out
+                                    .border(
+                                        BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
+                                        CircleShape,
+                                    )
+                                    .clickable { onColorSelect(poolColor) },
+                            )
+                        }
                     }
                 }
             }
@@ -921,13 +925,15 @@ private fun HeaterControlFocus(
             uDp = uDp,
             modifier = Modifier.fillMaxWidth(),
         )
+        // BARE track only (no header/value/ends/± steppers — the AdjusterPanel above already owns the
+        // value + fine steppers). A non-bare Scrubber duplicated those and overflowed the Focus.
         Scrubber(
             name = "",
             value = seed.toFloat(),
             range = scrubRange,
             step = 1f,
             uDp = uDp,
-            unit = "°C",
+            bare = true,
             onValueChange = { scrubLive = it },
             onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
             modifier = Modifier.fillMaxWidth(),
