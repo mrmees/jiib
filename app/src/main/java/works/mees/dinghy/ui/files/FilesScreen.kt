@@ -500,11 +500,13 @@ private fun FilesDetailContent(
             )
         }
 
-        // FOREGROUND — future-print stats, vertically centered, left-aligned.
+        // FOREGROUND — future-print stats, top-aligned, left-aligned. Top-anchored (not centered)
+        // so the stats sit directly under the header; with the filename removed, centering left a
+        // large gap below the title bar.
         // Filename is now shown in the FocusFrame header title; no need to repeat it here.
         Column(
             Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.TopStart)
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
