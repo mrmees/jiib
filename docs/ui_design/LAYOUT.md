@@ -170,6 +170,29 @@ Leading type-icons identify a group; text labels for grouping are non-conformant
 
 ---
 
+## Focus with a docked action region
+
+A Focus whose content is a single adjustable value (adjuster/detail Focuses — Fine-Tune
+parameters, Temperature sensors, Output controls) follows this two-part layout:
+
+1. **Weighted body** — the value display zone takes all available slack via `weight(1f)` (or
+   `Modifier.weight(1f)` on the containing column), centering the live value + baseline readout
+   vertically in the remaining space.
+2. **Bottom-docked controls** — the control group (± stepper row, IncrementPicker, or equivalent)
+   is pinned to the BOTTOM of the Focus content area (`Arrangement.Bottom` or a trailing
+   `Spacer` before the control group). It does NOT float in the center alongside the value.
+
+**Shared `contentInset = FocusInset / 2` (8dp):** adjuster Focuses use the halved inset (matching
+the Calibration Hub, 2026-06-13 owner UAT) so the bottom-docked control group sits 8dp from the
+frame edge — enough breathing room without wasting the value zone's vertical budget.
+
+This is the **canonical pattern for any Focus that pairs a primary display with a docked action
+region** — the Calibration Hub (docked Open button) established it; the adjuster Focuses adopt
+it. Do NOT split the value and its controls into separate `FocusFrame` regions or push the
+controls into the Field.
+
+---
+
 ## Foot-of-list pattern
 
 Any screen whose primary content is a scrollable list **pins its primary actions to the foot of
@@ -402,12 +425,20 @@ numbers (1/2/3/5) are unchanged.
 
 ### UAT-5 — Controls cap at 1U height unless deliberately chosen otherwise
 
-Most controls obey the 1U height limit. An oversized control must be an **explicit, named decision**
-— not an accident of `weight(1f)` expanding unchecked. In the Outputs Focus, the LED `ColorWheel`
-is the **sole sanctioned >1U exception**; every other Outputs control (fan/servo/heater/pin
-scrubbers, LED brightness bar) respects the 1U cap. When adding a control that deliberately exceeds
-1U in any future phase, document the name and reason in the relevant LAYOUT.md section or
-COMPONENTS.md cross-reference.
+All in-Focus controls obey the 1U height limit (`height(uDp)`). An oversized control must be an
+**explicit, named decision** — not an accident of `weight(1f)` expanding unchecked.
+
+**Enforced sites (compliance pass, 2026-06-13):**
+- **AdjusterPanel ± stepper row** — height = `uDp`
+- **Scrubber ± row** — height = `uDp`
+- **IncrementPicker** — was floor-only (could grow); now capped at `heightIn(max = uDp)`
+
+**Sole sanctioned >1U exception:** the LED `ColorWheel` (the large color-ring control in the
+Outputs Focus). Its visual function requires a taller tap surface; every other Outputs control
+(fan/servo/heater/pin scrubbers, LED brightness bar) respects the 1U cap.
+
+When adding a control that deliberately exceeds 1U in any future phase, document the name and
+reason here and in the relevant `COMPONENTS.md` cross-reference.
 
 ---
 

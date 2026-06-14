@@ -146,13 +146,25 @@ no confirmation guard.
 `FocusFrame` owns the `ConfirmGuard` internally — call sites only wire `isPrinting`,
 `onEmergencyStop`, and `onPanic`; they do not manage the guard state.
 
-**D9 rule — icon + title inherit from the nav entry point:**
+**D9 rule — header carries the most specific thing currently loaded:**
 
-The icon and title shown in the `FocusFrame` header are **the same glyph and label as whatever
-button navigated to this screen** (home row, parent list row, launcher tile). Call sites read
-those values from their nav entry and pass them through.
+The icon and title shown in the `FocusFrame` header are **the most specific thing the Focus is
+currently showing**:
 
-Exceptions:
+- **Single-item Focus** (one selected subject): header = the selected item's identity — its title
+  and its own icon. On Fine-Tune, the header is the selected parameter; on Outputs, the selected
+  output; on Temperature (when adjusting one sensor), the selected sensor. This keeps the header in
+  sync with selection — a different row → different title+icon in the header. Do NOT duplicate the
+  icon + name inside the Focus content body when the header already carries them.
+- **Aggregate / overview Focus** (multi-trace, collection view): header = the collection/screen
+  identity. The Temperature multi-trace graph is the canonical aggregate case — the header reads
+  "Temperature" with the Temperature screen icon, even though individual traces each have their own
+  sensor identity, because no single item is selected.
+- **Nav-entry identity fallback**: when neither of the above applies (a fixed single-subject screen
+  reached via a specific nav entry), the header is the glyph and label of the button the user
+  tapped to arrive — the same as the old D9 "nav entry" rule.
+
+**Exceptions to the nav-entry fallback:**
 - **PrintStatus** needs a bespoke glyph (`DinghyIcons.PrintStatusStandby` at idle) because it is
   reached from a morphing home tile that has no single fixed icon.
 - **Hub / list-detail Focus pages** drive the header from the **currently SELECTED item**, not a
@@ -160,6 +172,26 @@ Exceptions:
   row re-titles + re-icons the Focus). The Calibration Hub is the precedent: its header shows the
   selected routine's title + `routineIconToken`, falling back to the launcher identity only on the
   defensive null-selection frame. A hub's header law is selection-driven by design (2026-06-13).
+
+**Trailing-action slot (optional, end-aligned):**
+
+`FocusFrame` exposes an optional trailing-action slot at the end of the 1U header, mirroring the
+start identity icon slot in position. Parameters: `trailingActionIcon: ImageVector?`,
+`onTrailingAction: (() -> Unit)?`, `trailingActionContentDescription: String?`. When populated:
+
+- **Bare glyph — no outline, no fill.** The slot renders a plain, tappable glyph with **no
+  `OutlinedControl` wrapper** — it is not a button tile.
+- **Neutral `text2` tint.** Not intent-colored. The header accent stripe is already the
+  identity/e-stop — a second intent color in the same bar competes with it.
+- **Size = `slot * IDENTITY_ICON_RATIO`** (~0.82× of the 0.7U identity slot), matching the inert
+  identity glyph size. The trailing glyph is a peer, not a hero.
+- **SAFE actions only.** The trailing slot is reserved for actions that cannot lose unrecoverable
+  state — reverting to a default is the canonical case. Caution or destructive actions belong in the
+  foot bar under the four-class intent scheme, not in the header.
+
+**First consumer:** revert-to-default (`DinghyIcons.Revert` / `refresh` glyph), shown only when
+the current value deviates from the item's default/baseline. It spends no intent color because
+resetting to a known-good default is always safe.
 
 **Shell-fallback destinations (NOT rendered in a FocusFrame header):**
 
@@ -395,8 +427,10 @@ LOCKED compound anatomy"). Key invariants:
 > **UAT-3 (scrubber ≤ 1U):** track + thumb constrained to a single U of height via
 > `Modifier.heightIn(max = uDp)`. See `LAYOUT.md UAT-3`.
 >
-> **UAT-5 (controls ≤ 1U):** All Output controls respect the 1U height cap. The LED `ColorWheel`
-> is the **sole sanctioned >1U exception**. See `LAYOUT.md UAT-5`.
+> **UAT-5 (controls ≤ 1U):** All in-Focus controls cap at 1U (`height(uDp)`). Enforced sites:
+> **AdjusterPanel ± stepper row**, **Scrubber ± row**, **IncrementPicker** (was floor-only before
+> the 2026-06-13 compliance pass — now capped). The LED `ColorWheel` is the **sole sanctioned
+> >1U exception**. See `LAYOUT.md UAT-5`.
 >
 > **UAT-1 (prominent icons ~70-80% U):** `FloatingEStop`'s glyph at `uDp * 0.7f` is the precedent
 > for U-relative icon sizing on Focus-anchoring controls. See `LAYOUT.md UAT-1`.
@@ -405,12 +439,33 @@ LOCKED compound anatomy"). Key invariants:
 > mandatory header's start slot; there is no longer a floating overlay to reserve space for.
 > See `LAYOUT.md UAT-4`.
 
-### Stepper
+### Stepper and AdjusterPanel
 
-A step-based adjuster (preferred over drag on the perf floor); 3-zone Focus layout; inline
-`was X` baseline readout. See
+A step-based adjuster (preferred over drag on the perf floor). See
 `.claude/skills/sketch-findings-dinghy-display/references/adjustment-controls.md` for the locked
 design. Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs) on it.
+
+**AdjusterPanel — two-zone layout (compliance pass, 2026-06-13):**
+
+`AdjusterPanel` is a **two-zone** component: **(1) value zone** (absorbs available slack,
+centered — live value + `was X` baseline readout); **(2) bottom-docked controls** (± stepper
+row and IncrementPicker, pinned to the bottom of the panel). There is no Zone-1 identity
+(icon + name + reset) inside the panel — **identity lives in the `FocusFrame` header** (D9
+single-item rule, above). Do NOT re-render the selected item's icon or name inside AdjusterPanel.
+
+**Content inset:** adjuster Focuses use `contentInset = FocusInset / 2` (8dp) — the same as the
+Calibration Hub — to give the bottom-docked control group sufficient breathing room without
+wasting vertical space on the value zone. This is the canonical **"Focus with a docked action
+region"** pattern; see `LAYOUT.md §"Focus with a docked action region"`.
+
+**± = `DinghyIcons.Decrease` / `DinghyIcons.Increase` (compliance pass, 2026-06-13):**
+
+The decrement and increment actions in AdjusterPanel and Scrubber ± rows use the
+**`DinghyIcons.Decrease` / `DinghyIcons.Increase` icon tokens**, rendered through `OutlinedControl`'s
+icon path — NOT the literal `"−"` / `"+"` text glyphs. This **supersedes the WR-11 exemption**
+("locale-independent literal math glyph is acceptable for ±"); that exemption was a
+compatibility workaround and is now retired. Any `"−"` or `"+"` text in an adjuster ± button is
+a conformance flag, not an intentional variant.
 
 ### Scrubber — THE style is the sketch-004 ringed thumb (R9, owner, 2026-06-12)
 
@@ -441,7 +496,7 @@ for these; where prose and this table disagree, this table wins.
 | Element | Value (dp) |
 |---|---|
 | `ListRow` border — unselected / selected | 1.5 / 2 |
-| `FocusFrame` edge — Neutral / Data / inner padding (`contentInset`, default `FocusInset`; Calibration Hub uses 8) | 1.5 / 3 / 16 |
+| `FocusFrame` edge — Neutral / Data / inner padding (`contentInset`, default `FocusInset`; Calibration Hub + adjuster Focuses use 8) | 1.5 / 3 / 16 |
 | `FocusFrame` header height / icon+e-stop slot / idle identity glyph | 1U / 0.7U (min 64) / 0.82× slot |
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |

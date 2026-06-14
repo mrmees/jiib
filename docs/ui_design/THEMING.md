@@ -134,6 +134,23 @@ INACTIVE half of a toggle/choice pattern** (unselected step tiles, filter option
 — "not chosen" rightly spends no color. These are defaults, overridable per case, but keep them
 consistent — color *is* the affordance signal.
 
+### Bare header action — NO intent color; SAFE actions only (2026-06-13)
+
+The optional trailing-action slot in the `FocusFrame` header (see `COMPONENTS.md §FocusFrame`)
+is a **bare glyph — it spends no intent color.** It renders at `text2` tint with no
+`OutlinedControl` wrapper, no fill, no border.
+
+**Rationale:** the header's accent stripe is already reserved for the identity icon and the
+printing e-stop morph. A second intent color in the same 1U bar competes with that signal
+and contradicts the four-class scheme's "color = safety of the action" logic.
+
+**SAFE actions only** belong here. The test: "Can this action lose unrecoverable state?" — if
+yes, it is caution or destructive and belongs in the foot bar under the four-class intent
+scheme, not in the header slot. Reverting to a default qualifies as safe (a known-good
+baseline can always be re-adjusted; no data is permanently destroyed). Any action that meets
+the caution or destructive bar must use an `Intent.Caution` or `Intent.Stop` foot-bar button,
+not the bare header slot.
+
 ### Back = ACCENT, FIRST position (R5/R8 — supersedes D-10's neutral-Back)
 
 **Back wears the accent** (plain navigation = neutral item) and occupies the **FIRST
