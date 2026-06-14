@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
+import works.mees.dinghy.theme.compose.LocalTokens
 
 /**
  * A row of increment-step selector tiles — the shared sketch-003 increment picker.
@@ -23,8 +26,14 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
  * The row is exactly [uDp] tall — the unit-grid U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid].
  * Never hardcode a Dp height (use [uDp] instead).
  *
- * ## Intent law (D-20)
- * Active increment = [Intent.Accent]; inactive = [Intent.Neutral]. This is the sketch-003 spec.
+ * ## Intent law (D-20) + selection fill (2026-06-13 UAT)
+ * Active increment = [Intent.Accent] outline + [works.mees.dinghy.theme.ThemeTokens.accentSoft]
+ * FILL (the app-wide selected-state convention, matching [ListRow]); inactive = [Intent.Neutral]
+ * outline + the default surface fill. The fill is what makes the active step unmistakable.
+ *
+ * ## 1U fill (R26 mechanism)
+ * Provides [LocalUnitDp] so each tile's [OutlinedControl] floors at 1U and FILLS the `height(uDp)`
+ * row, instead of sitting at the bare 64dp floor top-aligned in a taller row.
  *
  * ## Stability
  * [steps] is typed [ImmutableList] so Compose can skip recomposition when the list hasn't changed
@@ -45,19 +54,26 @@ fun IncrementPicker(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(uDp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        steps.forEach { step ->
-            OutlinedControl(
-                label = formatStep(step),
-                onClick = { onSelect(step) },
-                modifier = Modifier.weight(1f),
-                intent = if (step == activeStep) Intent.Accent else Intent.Neutral,
-            )
+    val t = LocalTokens.current
+    CompositionLocalProvider(LocalUnitDp provides uDp) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(uDp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            steps.forEach { step ->
+                val selected = step == activeStep
+                OutlinedControl(
+                    label = formatStep(step),
+                    onClick = { onSelect(step) },
+                    modifier = Modifier.weight(1f),
+                    intent = if (selected) Intent.Accent else Intent.Neutral,
+                    // Selected tile = accentSoft fill (the ListRow selected convention); unselected
+                    // keeps the default surface fill.
+                    fill = if (selected) t.accentSoft else null,
+                )
+            }
         }
     }
 }

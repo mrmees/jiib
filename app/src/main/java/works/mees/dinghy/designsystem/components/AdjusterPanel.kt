@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -44,9 +46,9 @@ import kotlin.math.roundToInt
  * header — this panel is purely value + controls:
  *
  * **Zone 1 — Value (centered, absorbs slack):** Big [GeistMono] value text at 48sp (scaled by [fsSp]),
- * followed inline (same baseline [Row]) by the "was {baseline}{unit}" span in [works.mees.dinghy.theme.ThemeTokens.text3]
- * when [shouldShowBaseline] is true. **Never stacked** — a second line under the value overflows
- * the 5U phone-landscape focus budget (adjustment-controls.md anti-pattern).
+ * with the "was {baseline}{unit}" line [works.mees.dinghy.theme.ThemeTokens.text3] **stacked directly
+ * below it** when [shouldShowBaseline] is true (owner UAT 2026-06-13 — some units, e.g. mm/s², make the
+ * old inline form too long to share the value's line; the weight(1f) value zone absorbs the slack).
  *
  * **Zone 2 — Controls (bottom-docked):** A decrement/increment [OutlinedControl] stepper Row
  * (icon tokens [works.mees.dinghy.designsystem.icons.DinghyIcons.Decrease] / [works.mees.dinghy.designsystem.icons.DinghyIcons.Increase],
@@ -136,23 +138,42 @@ fun AdjusterPanel(
                 .weight(1f),
             contentAlignment = Alignment.Center,
         ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = if (value == null) DASH else fmtValue(value, decimals) + unit,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(48f, t.fs).sp,
-                    // R10: flashes toward t.heat on a rejection tick, settles back to t.text.
-                    color = valueColor,
-                )
-                // Inline "was X" — SAME Row as the value (NEVER a stacked second row below).
-                // adjustment-controls.md anti-pattern: a second line overflows 5U phone-landscape Focus.
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Hero value + unit. The unit is rendered smaller + lighter than the number and with
+                // NO separating space (owner UAT 2026-06-13) — a compact "120mm/s²" form that keeps
+                // the value on one line without a shrink-to-fit rule. Numeric part carries the R10
+                // rejection flash (valueColor); the unit stays the calmer text2.
+                // alignByBaseline (NOT verticalAlignment=Bottom): align the text BASELINES so the
+                // smaller unit sits on the same line as the value instead of dropping to a subscript
+                // (box-bottom alignment looked like a subscript — owner UAT 2026-06-13).
+                Row {
+                    Text(
+                        text = if (value == null) DASH else fmtValue(value, decimals),
+                        fontFamily = GeistMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fsSp(48f, t.fs).sp,
+                        color = valueColor,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    if (value != null && unit.isNotBlank()) {
+                        Text(
+                            text = unit.trim(),
+                            fontFamily = GeistMono,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = fsSp(28f, t.fs).sp,
+                            color = t.text2,
+                            modifier = Modifier.alignByBaseline(),
+                        )
+                    }
+                }
+                // "was X" STACKED directly below the value (owner UAT 2026-06-13): some units make
+                // the inline form too long to share the line. The weight(1f) value zone absorbs the
+                // extra line within the Focus budget. Unit space stripped to match the hero value.
                 if (shouldShowBaseline(value, baseline, decimals)) {
                     Text(
-                        // Leading two spaces = the inline gap from the hero value (same Row, by design).
-                        text = "  " + stringResource(
+                        text = stringResource(
                             R.string.adjuster_was,
-                            fmtValue(baseline!!, decimals) + unit,
+                            fmtValue(baseline!!, decimals) + unit.trim(),
                         ),
                         color = t.text3,
                         fontFamily = GeistMono,
@@ -167,34 +188,39 @@ fun AdjusterPanel(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(uDp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedControl(
-                    label = "",
-                    onClick = onDecrement,
-                    enabled = controlsEnabled,
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(disabledModifier)
-                        .then(busyDimModifier),
-                    intent = Intent.Accent,
-                    icon = DinghyIcons.Decrease,
-                    contentDescription = stringResource(R.string.cd_decrement),
-                )
-                OutlinedControl(
-                    label = "",
-                    onClick = onIncrement,
-                    enabled = controlsEnabled,
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(disabledModifier)
-                        .then(busyDimModifier),
-                    intent = Intent.Accent,
-                    icon = DinghyIcons.Increase,
-                    contentDescription = stringResource(R.string.cd_increment),
-                )
+            // LocalUnitDp so the stepper tiles floor at 1U and FILL the height(uDp) row (R26
+            // mechanism) instead of sitting at the bare 64dp floor, top-aligned (the "spread out,
+            // smaller than 1U" UAT defect, 2026-06-13). Also drives 0.6U glyph sizing for the ± icons.
+            CompositionLocalProvider(LocalUnitDp provides uDp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(uDp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedControl(
+                        label = "",
+                        onClick = onDecrement,
+                        enabled = controlsEnabled,
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(disabledModifier)
+                            .then(busyDimModifier),
+                        intent = Intent.Accent,
+                        icon = DinghyIcons.Decrease,
+                        contentDescription = stringResource(R.string.cd_decrement),
+                    )
+                    OutlinedControl(
+                        label = "",
+                        onClick = onIncrement,
+                        enabled = controlsEnabled,
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(disabledModifier)
+                            .then(busyDimModifier),
+                        intent = Intent.Accent,
+                        icon = DinghyIcons.Increase,
+                        contentDescription = stringResource(R.string.cd_increment),
+                    )
+                }
             }
             incrementPicker()
         }

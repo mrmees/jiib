@@ -111,6 +111,7 @@ fun OutlinedControl(
     onLongClick: (() -> Unit)? = null,
     contentDescription: String? = null,
     enabled: Boolean = true,
+    fill: Color? = null,
 ) {
     val t = LocalTokens.current
     // WR-05: a non-null contentDescription becomes the glyph's spoken label instead of the raw
@@ -148,7 +149,10 @@ fun OutlinedControl(
         modifier = modifier
             .heightIn(min = minHeight) // ≥64dp touch floor (UI-02); 1U inside FootButtonBar (R26).
             .clip(shape)
-            .background(t.surface) // Controls = filled (COMPONENTS.md §2 fill convention).
+            // Controls = filled (COMPONENTS.md §2). [fill] overrides the default surface fill for
+            // a selected/toggled state (e.g. IncrementPicker's active tile = accentSoft, matching
+            // the ListRow selected convention); null keeps the standard surface fill.
+            .background(fill ?: t.surface)
             .border(BorderStroke(2.dp, intent.outlineColor(t)), shape)
             .then(clickMod),
         contentAlignment = Alignment.Center,
@@ -239,6 +243,7 @@ fun OutlinedControl(
     onLongClick: (() -> Unit)? = null,
     contentDescription: String? = null,
     enabled: Boolean = true,
+    fill: Color? = null,
 ) {
     OutlinedControl(
         label = label,
@@ -249,5 +254,6 @@ fun OutlinedControl(
         onLongClick = onLongClick,
         contentDescription = contentDescription,
         enabled = enabled,
+        fill = fill,
     )
 }

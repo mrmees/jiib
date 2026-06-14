@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.fractionFromX
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.fractionFromY
 import works.mees.dinghy.theme.Geist
@@ -399,26 +401,31 @@ fun Scrubber(
                 }
 
                 // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
-                Row(
-                    Modifier.fillMaxWidth().height(uDp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedControl(
-                        label = "",
-                        onClick = { set(working - step); settle() },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                        icon = DinghyIcons.Decrease,
-                        contentDescription = stringResource(R.string.cd_decrement),
-                    )
-                    OutlinedControl(
-                        label = "",
-                        onClick = { set(working + step); settle() },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                        icon = DinghyIcons.Increase,
-                        contentDescription = stringResource(R.string.cd_increment),
-                    )
+                // LocalUnitDp so the tiles floor at 1U and FILL the height(uDp) row (R26 mechanism)
+                // rather than sitting at the bare 64dp floor, top-aligned (the "spread out, smaller
+                // than 1U" UAT defect, 2026-06-13); also drives 0.6U glyph sizing for the ± icons.
+                CompositionLocalProvider(LocalUnitDp provides uDp) {
+                    Row(
+                        Modifier.fillMaxWidth().height(uDp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedControl(
+                            label = "",
+                            onClick = { set(working - step); settle() },
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                            icon = DinghyIcons.Decrease,
+                            contentDescription = stringResource(R.string.cd_decrement),
+                        )
+                        OutlinedControl(
+                            label = "",
+                            onClick = { set(working + step); settle() },
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                            icon = DinghyIcons.Increase,
+                            contentDescription = stringResource(R.string.cd_increment),
+                        )
+                    }
                 }
             }
         }
