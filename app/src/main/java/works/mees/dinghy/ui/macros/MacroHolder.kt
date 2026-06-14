@@ -33,17 +33,21 @@ data class MacroScreensState(
 
 /**
  * Toolkit-agnostic StateFlow holder (mirrors [works.mees.dinghy.ui.files.FileBrowserHolder]) for the
- * macro screens (MACRO-01/03). It `combine`s three reactive sources into one [MacroScreensState]:
+ * macro screens (MACRO-01/03). It combines the three public constructor StateFlows (capabilities,
+ * bookmarks, revealHidden) with two locally-owned maps (bodies + descriptions) into one
+ * [MacroScreensState]:
  *
  *  1. `Capabilities.macros` — the NAME of each `gcode_macro NAME`, re-derived on every reconnect.
  *  2. `bookmarks` — the user's pinned set (from [MacroPrefs] in production; a stub flow in tests).
  *  3. `revealHidden` — the MACRO-03 underscore-reveal toggle (from [MacroPrefs] / a stub flow).
- *
- * Plus a fourth, locally-owned source: the parsed-param bodies map. The PRODUCTION
- * [works.mees.dinghy.state.PrinterStateStore.macroBodies] stream is fed in by the 08-07 wiring via
- * [setMacroBodies]; tests seed a single body with [setMacroBody]. Each macro's `params` come from
- * running [MacroParamParser.parseMacroParams] over its body (empty list until a body arrives — a
- * macro with no detected params is still launchable, the popup just shows no fields).
+ *  4. `_macroBodies` — locally-owned parsed-param bodies map. The PRODUCTION
+ *     [works.mees.dinghy.state.PrinterStateStore.macroBodies] stream is fed in by the 08-07 wiring
+ *     via [setMacroBodies]; tests seed a single body with [setMacroBody]. Each macro's `params`
+ *     come from running [MacroParamParser.parseMacroParams] over its body (empty list until a body
+ *     arrives — a macro with no detected params is still launchable, the popup just shows no fields).
+ *  5. `_macroDescriptions` — locally-owned per-macro descriptions map. Fed from
+ *     [works.mees.dinghy.state.PrinterStateStore.macroDescriptions] by the shell wiring on every
+ *     handshake; consumed via the case-insensitive [descriptionFor] lookup (parallel to the bodies map).
  *
  * Capability gate: an empty `Capabilities.macros` sets `unavailable` and yields empty lists — the
  * screens degrade to the no-macros copy rather than render dead tiles.
@@ -67,7 +71,7 @@ class MacroHolder(
     private val _state = MutableStateFlow(MacroScreensState())
     val state: StateFlow<MacroScreensState> = _state.asStateFlow()
 
-    // The combine collector below is NON-TERMINATING by design (it folds four StateFlows that never
+    // The combine collector below is NON-TERMINATING by design (it folds five StateFlows that never
     // complete). Run it in a child scope whose SupervisorJob is NOT a child of [scope]'s Job, so
     // [scope] is never blocked waiting for it to finish under structured concurrency — it inherits
     // [scope]'s dispatcher (so a test's StandardTestDispatcher still drives it deterministically) but
