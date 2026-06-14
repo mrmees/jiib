@@ -89,7 +89,8 @@ import works.mees.dinghy.ui.spool.evaluatePrintStartGate
  * @param fileRows        the FLAT list of File rows (D-05 — Dir/Up rows are NEVER in this list).
  * @param selectedFile    the currently-selected file row (null = nothing selected).
  * @param selectedPreview metadata for the selected file (loaded asynchronously in the live overload).
- * @param sortAscending   current age/date sort direction (true = oldest first, false = newest first).
+ * @param sortField      the active sort dimension (Date or Size).
+ * @param sortAscending  direction of the active field (true = ascending).
  * @param loading         whether the file list is loading.
  * @param error           error message to surface, or null when clean.
  * @param httpBase        the Moonraker base URL for thumbnail resolution (blank in previews).
@@ -98,6 +99,7 @@ data class FilesScreenState(
     val fileRows: List<FileBrowserRow> = emptyList(),
     val selectedFile: FileBrowserRow? = null,
     val selectedPreview: FilePreviewMetadata? = null,
+    val sortField: FileSortField = FileSortField.Date,
     val sortAscending: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null,
@@ -145,7 +147,8 @@ fun FilesScreen(
     val holderState by holder.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var guard by remember { mutableStateOf<FileGuard?>(null) }
-    var sortAscending by remember { mutableStateOf(false) }
+    var sortField by remember { mutableStateOf(FileSortField.Date) }
+    var sortAscending by remember { mutableStateOf(FileSortField.Date.defaultAscending) }
 
     // ---- D-01 warn-only print-start gate (SPOOL-07) ------------------------------------------------
     val activeSpoolId = activeSpoolStatus?.activeSpoolId
@@ -196,12 +199,8 @@ fun FilesScreen(
 
     // D-05: flat file list — only File rows; never Up or Directory.
     val fileRows = holderState.directory.rows.filter { it.kind == FileBrowserRowKind.File }
-    // D-06: single age/date sort — sort by modifiedEpochSeconds (null at NEGATIVE_INFINITY).
-    val sortedRows = if (sortAscending) {
-        fileRows.sortedBy { it.modifiedEpochSeconds ?: Double.NEGATIVE_INFINITY }
-    } else {
-        fileRows.sortedByDescending { it.modifiedEpochSeconds ?: Double.NEGATIVE_INFINITY }
-    }
+    // D-06: one active sort field at a time (date | size); direction toggles on re-tap.
+    val sortedRows = sortFileRows(fileRows, sortField, sortAscending)
 
     LaunchedEffect(holder) {
         holder.loadRoot()
@@ -211,6 +210,7 @@ fun FilesScreen(
         fileRows = sortedRows,
         selectedFile = selected,
         selectedPreview = selectedPreview,
+        sortField = sortField,
         sortAscending = sortAscending,
         loading = holderState.loading,
         error = holderState.error,
@@ -230,7 +230,14 @@ fun FilesScreen(
             onRowClick = { row ->
                 scope.launch { holder.selectFile(row) }
             },
-            onToggleSort = { sortAscending = !sortAscending },
+            onSelectSort = { field ->
+                if (field == sortField) {
+                    sortAscending = !sortAscending
+                } else {
+                    sortField = field
+                    sortAscending = field.defaultAscending
+                }
+            },
             onBack = onBack,
             onStartPrint = { guard = FileGuard.Start },
             onDelete = { guard = FileGuard.Delete },
@@ -320,7 +327,7 @@ fun FilesScreen(
     onBack: () -> Unit = {},
     onPrint: () -> Unit = {},
     onDelete: () -> Unit = {},
-    onToggleSort: () -> Unit = {},
+    onSelectSort: (FileSortField) -> Unit = {},
 ) {
     Box(modifier.fillMaxSize()) {
         FilesContent(
@@ -330,7 +337,7 @@ fun FilesScreen(
             isPrinting = false,
             onEmergencyStop = {},
             onRowClick = {},
-            onToggleSort = onToggleSort,
+            onSelectSort = onSelectSort,
             onBack = onBack,
             onStartPrint = onPrint,
             onDelete = onDelete,
@@ -350,7 +357,7 @@ private fun FilesContent(
     isPrinting: Boolean,
     onEmergencyStop: () -> Unit,
     onRowClick: (FileBrowserRow) -> Unit,
-    onToggleSort: () -> Unit,
+    onSelectSort: (FileSortField) -> Unit,
     onBack: () -> Unit,
     onStartPrint: () -> Unit,
     onDelete: () -> Unit,
@@ -360,13 +367,20 @@ private fun FilesContent(
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         val t = LocalTokens.current
 
-        // D-06 sort option (single CalendarClock option; direction toggle on re-tap).
+        // D-06 sort: date (CalendarClock) + size (LineWeight). One active at a time; the active
+        // tile shows its direction arrow (SortRow renders the arrow only on the active key).
         val sortOptions = persistentListOf(
             SortOption(
-                key = Unit,
+                key = FileSortField.Date,
                 icon = DinghyIcons.CalendarClock,
                 contentDescriptionRes = R.string.cd_files_sort_date,
-                directionUp = state.sortAscending,
+                directionUp = if (state.sortField == FileSortField.Date) state.sortAscending else null,
+            ),
+            SortOption(
+                key = FileSortField.Size,
+                icon = DinghyIcons.LineWeight,
+                contentDescriptionRes = R.string.cd_files_sort_size,
+                directionUp = if (state.sortField == FileSortField.Size) state.sortAscending else null,
             ),
         )
 
@@ -392,11 +406,11 @@ private fun FilesContent(
                         t = t,
                     )
                 }
-                // D-06: single age/date sort row (no filter; no name/size sort).
+                // D-06: date + size sort row (one active at a time; re-tap flips direction).
                 SortRow(
                     options = sortOptions,
-                    activeKey = Unit,
-                    onSelect = { onToggleSort() },
+                    activeKey = state.sortField,
+                    onSelect = { onSelectSort(it) },
                     uDp = grid.uDp,
                     // R26 frame: bottom 8 aligns with the Field FootButtonBar.
                     modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
