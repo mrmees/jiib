@@ -44,8 +44,10 @@ import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
+import works.mees.dinghy.designsystem.components.shouldShowBaseline
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -302,8 +304,8 @@ private fun FineTuneContent(
             focus = {
                 // D-01: Focus = FocusFrame wrapping AdjusterPanel; e-stop docks into header.
                 FocusFrame(
-                    title = stringResource(R.string.cd_launcher_fine_tune),
-                    icon = DinghyIcons.LauncherFineTune,
+                    title = selectedParam.name,
+                    icon = selectedParam.icon,
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -312,6 +314,16 @@ private fun FineTuneContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                    trailingActionIcon = run {
+                        val v = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
+                        val base = vm.baselineForTuner(selectedTuner)
+                        if (shouldShowBaseline(v, base, selectedParam.decimals)) DinghyIcons.Revert else null
+                    },
+                    onTrailingAction = vm.baselineForTuner(selectedTuner)?.let { base ->
+                        { onNudgeToBaseline(selectedParam, base) }
+                    },
+                    trailingActionContentDescription = stringResource(R.string.adjuster_reset),
                 ) {
                     // quick-rmr: the pending WORKING value wins over the live vm value, so a
                     // tap burst follows the thumb instantly (and survives the echo window).
