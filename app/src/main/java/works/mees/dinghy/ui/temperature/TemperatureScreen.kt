@@ -9,17 +9,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -41,7 +42,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,10 +57,8 @@ import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
-import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -71,6 +69,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
@@ -88,9 +87,8 @@ import works.mees.dinghy.state.HeaterLimits
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 
-/** The heater target step (°C) — matching the old TEMP_STEP for fine enough control. */
-private val TEMP_STEPS = persistentListOf(1.0, 5.0, 10.0)
-private const val TEMP_DEFAULT_STEP = 5.0
+/** The heater target step (°C): coarse set via the scrubber, fine-tune via ±1 (owner 2026-06-14). */
+private const val TEMP_FINE_STEP = 1
 
 /** Field mode for the Temperature panel — SensorList (default) or PresetPicker (D-12). */
 private sealed class TempFieldMode {
@@ -428,8 +426,6 @@ private fun TemperatureContent(
     // (e.g. on reconnect), the lookup returns null and the Focus falls back to the graph automatically.
     var selectedName by remember { mutableStateOf<String?>(null) }
     val selectedSensor: SensorReadout? = selectedName?.let { n -> legend.firstOrNull { it.name == n } }
-    // Session step memory for the heater adjuster.
-    var activeStep by remember { mutableStateOf(TEMP_DEFAULT_STEP) }
     // D-12: Field-mode (SensorList | PresetPicker).
     var fieldMode by remember { mutableStateOf<TempFieldMode>(TempFieldMode.SensorList) }
     // Top-level screen mode: Monitoring (read list) | Adjust (adjustable heaters, footers differ).
@@ -558,12 +554,9 @@ private fun TemperatureContent(
                                 HeaterControlFocus(
                                     sensor = sensor,
                                     currentTarget = workingTargets[sensor.name] ?: sensor.target,
-                                    activeStep = activeStep,
                                     scrubRange = heaterScrubberRange(heaterLimits[sensor.name]),
                                     busy = heaterDispatchKey(sensor.name) in inFlight,
-                                    rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
                                     onNudge = { raw -> onNudgeHeater(sensor.name, raw) },
-                                    onStepSelect = { activeStep = it },
                                     onOff = { onHeaterOff(sensor.name) },
                                     onDone = { selectedName = null },
                                     uDp = grid.uDp,
@@ -603,8 +596,6 @@ private fun TemperatureContent(
                                     selected = isSelected,
                                     onClick = {
                                         selectedName = if (isSelected) null else sensor.name
-                                        // Reset step to default on new selection.
-                                        if (!isSelected) activeStep = TEMP_DEFAULT_STEP
                                     },
                                     uDp = grid.uDp,
                                     leadingContent = {
@@ -881,12 +872,15 @@ private fun SensorAppearanceFocus(
  * (D-10 morph). Pure heater target control — NO color/visibility (appearance is Monitoring-only,
  * Task 10's [SensorAppearanceFocus]).
  *
- * Two index-aligned committers, both routed through the SAME trailing-commit batcher via [onNudge]
- * (absolute target, batcher-clamped):
- *  - [AdjusterPanel] ± stepper with [TEMP_STEPS] increment picker.
- *  - [Scrubber] (0..max_temp from config) — [Scrubber.onValueChange] updates a LOCAL preview only
- *    (`scrubLive`, no dispatch); [Scrubber.onSettle] clears the preview and commits the absolute
- *    target once on pointer-up. No double-dispatch, no per-frame dispatch.
+ * Layout top→bottom (owner 2026-06-14): value display → scrubber → ±1 buttons → Off/Done.
+ *  - **Value:** big GeistMono readout (hero style, matching [AdjusterPanel]) showing the live scrubber
+ *    position while dragging (`scrubLive`) else the committed working target. Absorbs the slack between
+ *    the header and the scrubber.
+ *  - **Scrubber (coarse):** bare 0..max_temp track — [Scrubber.onValueChange] updates the LOCAL preview
+ *    only (no dispatch); [Scrubber.onSettle] commits the absolute target once on pointer-up.
+ *  - **±1 (fine):** two [OutlinedControl] steppers, each nudging the target by ±[TEMP_FINE_STEP] (no
+ *    1/5/10 picker — coarse is the scrubber's job).
+ * Both committers route through the SAME trailing-commit batcher via [onNudge] (absolute, batcher-clamped).
  *
  * @param currentTarget the pending working-or-live target (null = heater off → seed from live temp).
  * @param scrubRange    0..max_temp from [heaterScrubberRange] (config limits or global clamp).
@@ -895,40 +889,43 @@ private fun SensorAppearanceFocus(
 private fun HeaterControlFocus(
     sensor: SensorReadout,
     currentTarget: Double?,
-    activeStep: Double,
     scrubRange: ClosedFloatingPointRange<Float>,
     busy: Boolean,
-    rejectTick: Long,
     onNudge: (Int) -> Unit,        // absolute new target (clamped by the batcher)
-    onStepSelect: (Double) -> Unit,
     onOff: () -> Unit,
     onDone: () -> Unit,
     uDp: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
 ) {
+    val t = LocalTokens.current
     val seed: Double = currentTarget ?: sensor.current.let { if (it > 0.0) it else 0.0 }
     var scrubLive by remember(sensor.name) { mutableStateOf<Float?>(null) }
-    val shown: Double = scrubLive?.toDouble() ?: seed
+    val shown: Int = (scrubLive?.toDouble() ?: seed).roundToInt()
+    val dim = if (busy) Modifier.alpha(0.38f) else Modifier
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AdjusterPanel(
-            value = shown,
-            unit = "°C",
-            baseline = null,
-            decimals = 0,
-            onDecrement = { onNudge((shown - activeStep).roundToInt()) },
-            onIncrement = { onNudge((shown + activeStep).roundToInt()) },
-            enabled = true,
-            busy = busy,
-            rejectTick = rejectTick,
-            incrementPicker = { IncrementPicker(steps = TEMP_STEPS, activeStep = activeStep, onSelect = onStepSelect, uDp = uDp) },
-            uDp = uDp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(unbounded = true),
-        )
-        // BARE track only (no header/value/ends/± steppers — the AdjusterPanel above already owns the
-        // value + fine steppers). A non-bare Scrubber duplicated those and overflowed the Focus.
+        // ── Value display (live scrubber position while dragging, else the working target) ──
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            Row {
+                Text(
+                    text = shown.toString(),
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(48f, t.fs).sp,
+                    color = t.text,
+                    modifier = Modifier.alignByBaseline(),
+                )
+                Text(
+                    text = "°C",
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = fsSp(28f, t.fs).sp,
+                    color = t.text2,
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
+        }
+        // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
         Scrubber(
             name = "",
             value = seed.toFloat(),
@@ -940,7 +937,31 @@ private fun HeaterControlFocus(
             onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.weight(1f))
+        // ── ±1 fine adjust (no 1/5/10 picker — the scrubber is the coarse control) ──
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(
+                    label = "",
+                    onClick = { scrubLive = null; onNudge(shown - TEMP_FINE_STEP) },
+                    modifier = Modifier.weight(1f).then(dim),
+                    intent = Intent.Accent,
+                    icon = DinghyIcons.Decrease,
+                    contentDescription = stringResource(R.string.cd_decrement),
+                )
+                OutlinedControl(
+                    label = "",
+                    onClick = { scrubLive = null; onNudge(shown + TEMP_FINE_STEP) },
+                    modifier = Modifier.weight(1f).then(dim),
+                    intent = Intent.Accent,
+                    icon = DinghyIcons.Increase,
+                    contentDescription = stringResource(R.string.cd_increment),
+                )
+            }
+        }
+        // ── Off / Done ──
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
             OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
