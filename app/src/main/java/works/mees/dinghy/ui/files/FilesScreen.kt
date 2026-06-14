@@ -48,6 +48,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FocusFramePlacement
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -397,6 +398,7 @@ private fun FilesContent(
                         .weight(1f)
                         // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
                         .padding(top = 8.dp, bottom = 4.dp),
+                    placement = FocusFramePlacement.Composed,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,

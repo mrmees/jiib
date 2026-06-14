@@ -51,6 +51,7 @@ import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FocusFramePlacement
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -251,6 +252,7 @@ internal fun OldMoveContent(
                         icon = DinghyIcons.LauncherMove,
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxWidth(),
+                        placement = FocusFramePlacement.Composed,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
@@ -298,6 +300,7 @@ internal fun OldMoveContent(
                     icon = DinghyIcons.LauncherMove,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxWidth(),
+                    placement = FocusFramePlacement.Composed,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
