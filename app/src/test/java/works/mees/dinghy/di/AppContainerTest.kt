@@ -70,6 +70,7 @@ class AppContainerTest {
             minExtrudeTemp = store.minExtrudeTemp,
             maxExtrudeDistance = store.maxExtrudeDistance,
             temperatureBackfill = store.temperatureBackfill,
+            heaterLimits = store.heaterLimits,
             httpBase = "http://test:7125",
             metadata = MutableStateFlow(null),
             lastJob = MutableStateFlow(null),
