@@ -36,6 +36,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import androidx.compose.foundation.layout.BoxWithConstraints
+import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -160,13 +161,14 @@ private fun OutputsContent(
                             .padding(8.dp),
                     ) {
                         FocusFrame(
-                            title = stringResource(R.string.outputs_title),
-                            icon = DinghyIcons.OutputSection,
+                            title = selectedRow.descriptor.prettyName,
+                            icon = glyphFor(selectedRow.descriptor.family),
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             onPanic = onEmergencyStop,
+                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
                         ) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
