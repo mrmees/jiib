@@ -32,16 +32,18 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 
 /**
- * The read-only Console screen (CONS-02 / D-01..D-05). A **Field-only** `ScreenScaffold`:
- * `focus = null` (D-14) so the freed height goes to the scrollback; no gutter (D-15) because
- * all actions live in the `FootButtonBar` at the foot of the Field.
+ * The read-only Console screen (CONS-02 / D-01..D-05). A SINGLE Focus pane: one [FocusFrame]
+ * (outline + mandatory 1U header carrying the e-stop morph) whose content IS the console feed
+ * ([ConsoleListView], edge-to-edge via `contentInset = 0`), with a [FootButtonBar] (Back + the three
+ * noise-filter toggles) beneath it. Built as a plain `Column`, NOT a two-region `ScreenScaffold`:
+ * the console is a single-pane special-use screen, so it renders the same stacked layout in portrait
+ * and landscape (the old `ScreenScaffold(focus, field)` split it side-by-side in landscape).
  *
  * ## Toolkit: Views (spike verdict — D-02)
  * The 25-01 spike returned a ~8× p90 regression (73.35 ms vs 9.26 ms baseline) for a Compose
@@ -156,8 +158,8 @@ fun ConsoleScreen(
 /**
  * The shared rendering body. Both overloads delegate here.
  *
- * Layout: `BoxWithConstraints` → `rememberUnitGrid` → `ScreenScaffold(focus = null)`.
- * Field = `ConsoleListView` (filling weight(1f)) + `FootButtonBar` (3 filter toggles + Back).
+ * Layout: `Box` → `BoxWithConstraints` → `rememberUnitGrid` → `Column` → `FocusFrame` (weight(1f))
+ * + `FootButtonBar` (3 filter toggles + Back). `ConsoleListView` fills the frame edge-to-edge.
  *
  * **ConsoleListView class-equivalent exception (D-02 / 25-SPIKE.md):** the RecyclerView Views
  * scrollback is retained (not replaced with a Compose `ListBlock`/`ListRow`) because the 25-01 spike
@@ -185,30 +187,23 @@ private fun ConsoleContent(
     Box(modifier.fillMaxSize().background(t.bg)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-            ScreenScaffold(
-                focus = {
-                    FocusFrame(
-                        title = stringResource(R.string.cd_launcher_console),
-                        icon = DinghyIcons.LauncherConsole,
-                        uDp = grid.uDp,
-                        modifier = Modifier.fillMaxSize(),
-                        isPrinting = isPrinting,
-                        onEmergencyStop = onEmergencyStop,
-                        onPanic = onEmergencyStop,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.console_focus_blurb),
-                            color = t.text2,
-                            fontFamily = Geist,
-                            fontSize = fsSp(17f, t.fs).sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
-                        )
-                    }
-                },
-                field = {
+            // One Focus pane (outline + 1U header carrying the e-stop morph) holding the feed,
+            // with the FootButtonBar beneath it. NOT a two-region ScreenScaffold — the console is a
+            // single-pane special-use screen; a plain Column is the honest structure and renders the
+            // same in portrait and landscape (no side-by-side split).
+            Column(Modifier.fillMaxSize()) {
+                FocusFrame(
+                    title = stringResource(R.string.cd_launcher_console),
+                    icon = DinghyIcons.LauncherConsole,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                    contentInset = 0.dp, // feed fills the frame edge-to-edge (rows carry their own padding)
+                ) {
                     // Pinned-height BoxWithConstraints wrapper — load-bearing (the Files scroll lesson):
-                    // pins the RecyclerView so it can't over-measure and composite over the FootButtonBar.
+                    // pins the RecyclerView so it can't over-measure and composite past the frame.
                     BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                         // .height(maxHeight) is load-bearing — see FileListView / ConsoleListView patterns.
                         ConsoleListView(
@@ -224,57 +219,57 @@ private fun ConsoleContent(
                                 BackfillFailedNotice(Modifier.fillMaxWidth())
                         }
                     }
-                    // D-15: filter toggles + Back live in the FootButtonBar inside the field.
-                    FootButtonBar(
-                        uDp = grid.uDp,
-                    ) {
-                        // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                        // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
-                        // semantics — active-filter state is otherwise outline-color-only.
-                        // Hide-temperatures toggle
-                        OutlinedControl(
-                            label = "",
-                            onClick = onToggleTemps,
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { selected = hideTemps },
-                            intent = if (hideTemps) Intent.Accent else Intent.Neutral,
-                            icon = DinghyIcons.HideTemps,
-                            contentDescription = stringResource(R.string.cd_console_hide_temps),
-                        )
-                        // Hide-timelapse toggle
-                        OutlinedControl(
-                            label = "",
-                            onClick = onToggleTimelapse,
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { selected = hideTimelapse },
-                            intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
-                            icon = DinghyIcons.HideTimelapse,
-                            contentDescription = stringResource(R.string.cd_console_hide_timelapse),
-                        )
-                        // Hide-prompts toggle
-                        OutlinedControl(
-                            label = "",
-                            onClick = onTogglePrompt,
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { selected = hidePrompt },
-                            intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
-                            icon = DinghyIcons.HidePrompts,
-                            contentDescription = stringResource(R.string.cd_console_hide_prompts),
-                        )
-                    }
-                },
-            )
+                }
+                // D-15: filter toggles + Back live in the FootButtonBar beneath the Focus pane.
+                FootButtonBar(
+                    uDp = grid.uDp,
+                ) {
+                    // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
+                    OutlinedControl(
+                        label = "",
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Accent,
+                        icon = DinghyIcons.Back,
+                        contentDescription = stringResource(R.string.common_back),
+                    )
+                    // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
+                    // semantics — active-filter state is otherwise outline-color-only.
+                    // Hide-temperatures toggle
+                    OutlinedControl(
+                        label = "",
+                        onClick = onToggleTemps,
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { selected = hideTemps },
+                        intent = if (hideTemps) Intent.Accent else Intent.Neutral,
+                        icon = DinghyIcons.HideTemps,
+                        contentDescription = stringResource(R.string.cd_console_hide_temps),
+                    )
+                    // Hide-timelapse toggle
+                    OutlinedControl(
+                        label = "",
+                        onClick = onToggleTimelapse,
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { selected = hideTimelapse },
+                        intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
+                        icon = DinghyIcons.HideTimelapse,
+                        contentDescription = stringResource(R.string.cd_console_hide_timelapse),
+                    )
+                    // Hide-prompts toggle
+                    OutlinedControl(
+                        label = "",
+                        onClick = onTogglePrompt,
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { selected = hidePrompt },
+                        intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
+                        icon = DinghyIcons.HidePrompts,
+                        contentDescription = stringResource(R.string.cd_console_hide_prompts),
+                    )
+                }
+            }
         }
     }
 }
