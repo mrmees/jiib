@@ -3,7 +3,7 @@ package works.mees.dinghy.designsystem.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -19,9 +19,9 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
  * The [activeStep] tile uses [Intent.Accent] to signal the current selection; all others
  * use [Intent.Neutral]. Tapping a tile calls [onSelect] with that step value.
  *
- * ## Touch floor
- * The row's minimum height is [uDp] — the unit-grid U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid].
- * Never hardcode a Dp touch floor (use [uDp] instead).
+ * ## Height cap (UAT-5)
+ * The row is exactly [uDp] tall — the unit-grid U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid].
+ * Never hardcode a Dp height (use [uDp] instead).
  *
  * ## Intent law (D-20)
  * Active increment = [Intent.Accent]; inactive = [Intent.Neutral]. This is the sketch-003 spec.
@@ -34,7 +34,7 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
  * @param activeStep the currently-selected step; must be a member of [steps].
  * @param onSelect   called when the user taps a tile, with the new step value.
  * @param uDp        one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
- *                   used as the row's [heightIn] minimum.
+ *                   used as the row's exact [height] (UAT-5: 1U cap).
  * @param modifier   caller-supplied modifier.
  */
 @Composable
@@ -48,7 +48,7 @@ fun IncrementPicker(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = uDp),
+            .height(uDp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         steps.forEach { step ->
