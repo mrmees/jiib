@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -140,6 +141,9 @@ fun FocusFrame(
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
     contentInset: Dp = FocusInset,
+    trailingActionIcon: DinghyIcon? = null,
+    onTrailingAction: (() -> Unit)? = null,
+    trailingActionContentDescription: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
@@ -162,6 +166,9 @@ fun FocusFrame(
             isPrinting = isPrinting,
             onEmergencyStop = onEmergencyStop,
             onPanic = onPanic,
+            trailingActionIcon = trailingActionIcon,
+            onTrailingAction = onTrailingAction,
+            trailingActionContentDescription = trailingActionContentDescription,
         )
         // Content fills the space below the header; contentInset (FocusInset by default) insets it.
         Column(
@@ -189,6 +196,9 @@ private fun FocusHeader(
     isPrinting: Boolean,
     onEmergencyStop: (() -> Unit)?,
     onPanic: (() -> Unit)?,
+    trailingActionIcon: DinghyIcon? = null,
+    onTrailingAction: (() -> Unit)? = null,
+    trailingActionContentDescription: String? = null,
 ) {
     val t = LocalTokens.current
     var showGuard by remember { mutableStateOf(false) }
@@ -239,6 +249,27 @@ private fun FocusHeader(
                         sizeDp = slot * IDENTITY_ICON_RATIO,
                     )
                 }
+            }
+        }
+        // End slot: optional BARE tappable action glyph (setting-adjustment compliance, 2026-06-13).
+        // Mirrors the start identity icon — neutral text2 tint, same IDENTITY_ICON_RATIO size, NO
+        // outline/fill. Reserved for SAFE actions only (e.g. revert-to-default); anything caution/
+        // destructive stays a content button under the four-class intent law (THEMING.md).
+        if (trailingActionIcon != null && onTrailingAction != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(slot)
+                    .clip(RoundedCornerShape(t.rCtrl))
+                    .clickable(onClick = onTrailingAction),
+                contentAlignment = Alignment.Center,
+            ) {
+                DinghyIconView(
+                    icon = trailingActionIcon,
+                    tint = t.text2,
+                    sizeDp = slot * IDENTITY_ICON_RATIO,
+                    contentDescription = trailingActionContentDescription,
+                )
             }
         }
     }
