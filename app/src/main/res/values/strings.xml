@@ -662,4 +662,5 @@
     <string name="splash_reason_connected">Connected</string>
     <string name="cd_decrement">Decrease</string>
     <string name="cd_increment">Increase</string>
+    <string name="cd_revert">Revert to default</string>
 </resources>

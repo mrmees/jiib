@@ -323,7 +323,7 @@ private fun FineTuneContent(
                     onTrailingAction = vm.baselineForTuner(selectedTuner)?.let { base ->
                         { onNudgeToBaseline(selectedParam, base) }
                     },
-                    trailingActionContentDescription = stringResource(R.string.adjuster_reset),
+                    trailingActionContentDescription = stringResource(R.string.cd_revert),
                 ) {
                     // quick-rmr: the pending WORKING value wins over the live vm value, so a
                     // tap burst follows the thumb instantly (and survives the echo window).
