@@ -12,32 +12,42 @@ import works.mees.dinghy.ui.temperature.TemperatureScreen
 // Fixture data — pure values, no Moonraker
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Three-sensor legend: nozzle (adjustable), heated bed (adjustable), chamber (read-only). */
+/**
+ * Four-sensor legend: two adjustable heaters (extruder + bed) and two read-only sensors
+ * (chamber + MCU). Exercises the [SensorReadout.isAdjustable] path and the sensor-toggle rows.
+ */
 private val fakeLegend: List<SensorReadout> = listOf(
     SensorReadout(
         name = "extruder",
-        label = "Nozzle",
-        current = 214.6,
-        target = 215.0,
+        label = "NOZZLE",
+        current = 210.4,
+        target = 200.0,
         isAdjustable = true,
     ),
     SensorReadout(
         name = "heater_bed",
-        label = "Bed",
-        current = 59.1,
+        label = "BED",
+        current = 60.1,
         target = 60.0,
         isAdjustable = true,
     ),
     SensorReadout(
         name = "temperature_sensor chamber",
-        label = "Chamber",
-        current = 36.2,
+        label = "CHAMBER",
+        current = 34.8,
+        target = null,
+        isAdjustable = false,
+    ),
+    SensorReadout(
+        name = "temperature_sensor mcu",
+        label = "MCU",
+        current = 47.0,
         target = null,
         isAdjustable = false,
     ),
 )
 
-/** Fake ring-buffer snapshots per sensor: heat-up curves at different ranges. */
+/** Fake ring-buffer snapshots per sensor (index-aligned with [fakeLegend]). */
 private val fakeNozzleSeries: FloatArray = SampleFixtures.tempSeries
 private val fakeBedSeries: FloatArray = FloatArray(60) { i ->
     when {
@@ -46,20 +56,33 @@ private val fakeBedSeries: FloatArray = FloatArray(60) { i ->
     }
 }
 private val fakeChamberSeries: FloatArray = FloatArray(60) { 35f + (((it % 4) - 1.5f) * 0.5f) }
+private val fakeMcuSeries: FloatArray = FloatArray(60) { 46f + (((it % 3) - 1f) * 0.6f) }
 
-private val fakeSeries: List<FloatArray> = listOf(fakeNozzleSeries, fakeBedSeries, fakeChamberSeries)
-private val fakeSetpoints: List<Float?> = listOf(215f, 60f, null)
+private val fakeSeries: List<FloatArray> = listOf(fakeNozzleSeries, fakeBedSeries, fakeChamberSeries, fakeMcuSeries)
+private val fakeSetpoints: List<Float?> = listOf(200f, 60f, null, null)
+
+/** Read-only sensors exposed in the sensor-toggle panel. */
+private val fakeAvailableSensors: List<String> = listOf(
+    "temperature_sensor chamber",
+    "temperature_sensor mcu",
+)
+
+/** Both read-only sensors selected (visible in the monitoring legend). */
+private val fakeSelectedSensors: Set<String> = setOf(
+    "temperature_sensor chamber",
+    "temperature_sensor mcu",
+)
 private val fakeGraphRange: ClosedFloatingPointRange<Float> = 0f..250f
 
-/** D-14 chosen-color fixture: nozzle=orange, bed=cyan, chamber=default (absent). */
+/** D-14 chosen-color fixture: nozzle=orange, bed=cyan; chamber+MCU use default (absent). */
 private val fakeTraceColors: Map<String, Color> = mapOf(
     "extruder" to Color(0xFFFF8C00.toInt()),         // amber-orange
     "heater_bed" to Color(0xFF00BCD4.toInt()),        // cyan
 )
 
-/** Hidden-trace fixture: chamber trace hidden. */
+/** Hidden-trace fixture: MCU trace hidden; chamber still visible. */
 private val fakeTraceVisibilityWithHidden: Map<String, Boolean> = mapOf(
-    "temperature_sensor chamber" to false,
+    "temperature_sensor mcu" to false,
 )
 
 /** Default — all traces visible. */
@@ -82,8 +105,9 @@ private val fakeColorfulSwatches: List<Color> = listOf(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Graph-default state (no sensor selected) — the typical resting view. Three active traces, chosen
- * colors applied to nozzle (orange) and bed (cyan), chamber trace hidden.
+ * Graph-default state (no sensor selected) — the typical resting view. Four active traces (two
+ * heaters + two read-only sensors), chosen colors applied to nozzle (orange) and bed (cyan), MCU
+ * trace hidden. [availableSensors]/[selectedSensors] supplied to exercise the sensor-toggle rows.
  */
 @Composable
 private fun TemperatureGraphDefault() {
@@ -98,18 +122,19 @@ private fun TemperatureGraphDefault() {
         failureText = null,
         seedHex = ThemePrefs.DEFAULT_SEED,
         dark = true,
+        availableSensors = fakeAvailableSensors,
+        selectedSensors = fakeSelectedSensors,
     )
 }
 
 /**
- * Sensor-selected state — nozzle row tapped → adjuster Focus (D-10 morph). Shows show/hide toggle +
- * 8-swatch color-picker row + [AdjusterPanel] with a target of 215 °C and a per-heater Off button.
- * Uses [TemperatureScreen]'s stateless overload + the preview fake-swatch list.
+ * Sensor-selected state — stateless overload with [isPrinting] = true so the FloatingEStop renders.
+ * All four traces visible; both read-only sensors in [selectedSensors].
  *
  * Note: the adjuster morph is internal [TemperatureContent] state so the stateless overload always
  * starts with no sensor selected. To render the morph state in a preview the component must be
  * extended to accept an initial-selection param; for now this preview drives the graph-default path
- * with a selected-trace-color and note to on-device-verify the morph interaction.
+ * with selected trace colors and a note to on-device-verify the morph interaction.
  */
 @Composable
 private fun TemperatureAdjusterSelected() {
@@ -124,12 +149,14 @@ private fun TemperatureAdjusterSelected() {
         failureText = null,
         seedHex = ThemePrefs.DEFAULT_SEED,
         dark = true,
+        availableSensors = fakeAvailableSensors,
+        selectedSensors = fakeSelectedSensors,
     )
 }
 
 /**
- * Printing + failure toast — all three traces visible, default colors, E-stop button shown,
- * a failure message toast rendered.
+ * Printing + failure toast — all four traces visible, default colors, E-stop button shown,
+ * a failure message toast rendered. Read-only sensors still present in the legend.
  */
 @Composable
 private fun TemperaturePrintingWithError() {
@@ -144,6 +171,8 @@ private fun TemperaturePrintingWithError() {
         failureText = "Heater timeout — check wiring",
         seedHex = ThemePrefs.DEFAULT_SEED,
         dark = true,
+        availableSensors = fakeAvailableSensors,
+        selectedSensors = fakeSelectedSensors,
     )
 }
 
