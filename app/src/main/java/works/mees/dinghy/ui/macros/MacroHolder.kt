@@ -61,6 +61,9 @@ class MacroHolder(
     /** Per-macro gcode bodies keyed by name (case-insensitive lookups go through [bodyFor]). */
     private val _macroBodies = MutableStateFlow<Map<String, String>>(emptyMap())
 
+    /** Per-macro descriptions keyed by name (case-insensitive lookups go through [descriptionFor]). */
+    private val _macroDescriptions = MutableStateFlow<Map<String, String>>(emptyMap())
+
     private val _state = MutableStateFlow(MacroScreensState())
     val state: StateFlow<MacroScreensState> = _state.asStateFlow()
 
@@ -87,8 +90,9 @@ class MacroHolder(
                 bookmarks,
                 revealHidden,
                 _macroBodies,
-            ) { caps, marks, reveal, bodies ->
-                buildState(caps.macros, marks, reveal, bodies)
+                _macroDescriptions,
+            ) { caps, marks, reveal, bodies, descriptions ->
+                buildState(caps.macros, marks, reveal, bodies, descriptions)
             }.collect { _state.value = it }
         }
     }
@@ -110,21 +114,33 @@ class MacroHolder(
         _macroBodies.value = bodies
     }
 
+    /**
+     * Replace the whole descriptions map (the production seam — fed from
+     * [works.mees.dinghy.state.PrinterStateStore.macroDescriptions] by the shell wiring on every handshake).
+     */
+    fun setMacroDescriptions(descriptions: Map<String, String>) {
+        _macroDescriptions.value = descriptions
+    }
+
     private fun buildState(
         macroNames: List<String>,
         bookmarks: Set<String>,
         reveal: Boolean,
         bodies: Map<String, String>,
+        descriptions: Map<String, String>,
     ): MacroScreensState {
         if (macroNames.isEmpty()) {
             return MacroScreensState(revealHidden = reveal, unavailable = true)
         }
         val all = macroNames.map { name ->
+            val body = bodyFor(bodies, name)
             MacroVm(
                 name = name,
                 isBookmarked = bookmarks.any { it.equals(name, ignoreCase = true) },
                 isHidden = name.startsWith("_"),
-                params = bodyFor(bodies, name)?.let { MacroParamParser.parseMacroParams(it) } ?: emptyList(),
+                params = body?.let { MacroParamParser.parseMacroParams(it) } ?: emptyList(),
+                description = descriptionFor(descriptions, name),
+                usesRawParams = body?.let { MacroParamParser.usesRawParams(it) } ?: false,
             )
         }
         val visible = all.filter { reveal || !it.isHidden }
@@ -141,6 +157,10 @@ class MacroHolder(
     /** Case-insensitive body lookup (Moonraker lowercases macro names — see [Capabilities]). */
     private fun bodyFor(bodies: Map<String, String>, name: String): String? =
         bodies[name] ?: bodies.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+
+    /** Case-insensitive description lookup (Moonraker lowercases macro names). */
+    private fun descriptionFor(descriptions: Map<String, String>, name: String): String? =
+        descriptions[name] ?: descriptions.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
 
     /**
      * Whether this macro's parameters can be considered AUTHORITATIVE yet (WR-03). The Execution popup

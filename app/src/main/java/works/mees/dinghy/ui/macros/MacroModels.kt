@@ -52,4 +52,8 @@ data class MacroVm(
     val isBookmarked: Boolean,
     val isHidden: Boolean,
     val params: List<MacroParam>,
+    /** Klipper `description:` docstring (from configfile), shown under the macro name in the Focus. */
+    val description: String? = null,
+    /** True when the body slurps `rawparams` — the Focus offers a single raw-args field instead of fields. */
+    val usesRawParams: Boolean = false,
 )

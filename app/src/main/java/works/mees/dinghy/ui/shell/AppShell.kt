@@ -457,6 +457,9 @@ fun AppShell(
     LaunchedEffect(macroHolder, store) {
         store.macroBodies.collect { macroHolder.setMacroBodies(it) }
     }
+    LaunchedEffect(macroHolder, store) {
+        store.macroDescriptions.collect { macroHolder.setMacroDescriptions(it) }
+    }
     // The current session dispatcher (the macro Execution popup routes through it); null while idle.
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
 
