@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -923,7 +923,9 @@ private fun HeaterControlFocus(
             rejectTick = rejectTick,
             incrementPicker = { IncrementPicker(steps = TEMP_STEPS, activeStep = activeStep, onSelect = onStepSelect, uDp = uDp) },
             uDp = uDp,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(unbounded = true),
         )
         // BARE track only (no header/value/ends/± steppers — the AdjusterPanel above already owns the
         // value + fine steppers). A non-bare Scrubber duplicated those and overflowed the Focus.

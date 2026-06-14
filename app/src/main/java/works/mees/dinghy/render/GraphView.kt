@@ -64,17 +64,37 @@ import works.mees.dinghy.theme.views.ThemeableView
  */
 class GraphView(context: Context) : View(context), ThemeableView {
 
-    /** Pre-allocated stroke paths, one per possible trace — rewound each draw, never reallocated. */
-    private val linePaths: Array<Path> = Array(MAX_TRACES) { Path() }
+    /** Build one styled stroke paint (extracted so [ensureTraceCapacity] reuses it when the pool grows). */
+    private fun newLinePaint(): Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2.5f * resources.displayMetrics.density // dp() density idiom (ViewsBenchScene)
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+    }
 
-    /** Pre-allocated stroke paints, one per possible trace; colors pushed from tokens in [applyTokens]. */
-    private val linePaints: Array<Paint> = Array(MAX_TRACES) {
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 2.5f * resources.displayMetrics.density // dp() density idiom (ViewsBenchScene)
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-        }
+    /**
+     * Per-trace stroke paths, rewound each draw, never reallocated PER DRAW. Pre-sized to [MAX_TRACES]
+     * (the common nozzle/bed/chamber case) and GROWN by [ensureTraceCapacity] only when a sample carries
+     * more traces (a user added monitored sensors) — growth is a rare add-time event, never per frame, so
+     * the allocation-free draw contract (Pitfall 4) holds.
+     */
+    private var linePaths: Array<Path> = Array(MAX_TRACES) { Path() }
+
+    /** Per-trace stroke paints (parallel to [linePaths]); colors pushed from tokens in [applyTokens]. */
+    private var linePaints: Array<Paint> = Array(MAX_TRACES) { newLinePaint() }
+
+    /**
+     * Grow the per-trace path/paint pools to at least [n] slots. No-op when already large enough, so it
+     * allocates ONLY when the monitored-trace count rises past the current capacity (Pitfall 4: never
+     * per draw). Newly-added paints are colored immediately from the current tokens + overrides.
+     */
+    private fun ensureTraceCapacity(n: Int) {
+        if (n <= linePaints.size) return
+        val oldPaints = linePaints
+        val oldPaths = linePaths
+        linePaints = Array(n) { i -> if (i < oldPaints.size) oldPaints[i] else newLinePaint() }
+        linePaths = Array(n) { i -> if (i < oldPaths.size) oldPaths[i] else Path() }
+        reapplyOverrides() // color the freshly-allocated paints from the current tokens + overrides
     }
 
     /** The single reusable filled-area path (translucent fill under the PRIMARY trace only). */
@@ -224,7 +244,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
      */
     private fun reapplyOverrides() {
         val t = lastTokens ?: return // no tokens yet — will be re-called when tokens first arrive
-        for (i in 0 until MAX_TRACES) {
+        for (i in linePaints.indices) {
             val override = lastOverrides.getOrNull(i)
             linePaints[i].color = override ?: t.seriesColor(i).toArgb()
         }
@@ -258,7 +278,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
         if (t == lastTokens) return
         lastTokens = t
         // Set token-derived defaults first, then re-layer any active overrides on top (D-14).
-        for (i in 0 until MAX_TRACES) {
+        for (i in linePaints.indices) {
             linePaints[i].color = t.seriesColor(i).toArgb()
         }
         fillPaint.color = t.seriesColor(0).toArgb()
@@ -283,14 +303,15 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * Hand the View N new ring-buffer snapshots (one per trace, index 0 = primary). Runs [sanitize]
      * ONCE on EACH series (cap to pixel width + drop NaN/Infinity) so `onDraw` is allocation-free and
      * bounded, then repaints. Called only on a new throttled (~2-4 Hz) sample — D-13, NOT per frame.
-     * Series beyond [MAX_TRACES] are ignored (only [MAX_TRACES] pre-allocated paths exist).
+     * The path/paint pools GROW to the series count via [ensureTraceCapacity] (no fixed cap — the
+     * monitored set is unbounded; the user manages graph load via per-sensor visibility).
      */
     fun setData(series: List<FloatArray>) {
         // width may be 0 before layout; fall back so an early sample is still capped to *something*.
         val cap = if (width > 0) width else DEFAULT_PIXEL_CAP
-        val bounded = ArrayList<FloatArray>(minOf(series.size, MAX_TRACES))
+        ensureTraceCapacity(series.size) // grow the pools if this sample carries more traces than before
+        val bounded = ArrayList<FloatArray>(series.size)
         for (i in series.indices) {
-            if (i >= MAX_TRACES) break
             bounded.add(sanitize(series[i], cap))
         }
         this.series = bounded
@@ -353,7 +374,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
         val order = drawOrder
         for (oi in order.indices) {
             val t = order[oi]
-            if (t >= MAX_TRACES) continue
+            if (t >= all.size || t >= linePaints.size) continue // defensive (pools grow with the set)
             val pts = all[t]
             val n = pts.size
             if (n == 0) continue // empty trace → draw nothing for it (input-edge contract)
@@ -396,7 +417,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
 
         // Per-trace dashed current-setpoint line (D-04) — drawn over the traces in each trace's color.
         for (t in setpoints.indices) {
-            if (t >= MAX_TRACES) break
+            if (t >= linePaints.size) break // setpoints are index-aligned with the (grown) trace pools
             val target = setpoints[t] ?: continue
             if (!target.isFinite()) continue
             val y = yOf(target)
@@ -418,7 +439,11 @@ class GraphView(context: Context) : View(context), ThemeableView {
     }
 
     companion object {
-        /** Maximum simultaneously-drawn traces (nozzle / bed / chamber per README §9). */
+        /**
+         * INITIAL per-trace pool size (the common nozzle/bed/chamber case) — NOT a hard cap. The pools
+         * grow past this via [ensureTraceCapacity] when the user adds monitored sensors; the monitored
+         * set is unbounded and graph load is managed per-sensor via visibility (no fixed trace limit).
+         */
         const val MAX_TRACES = 3
 
         /** Default fixed Y-range floor (°C). */
