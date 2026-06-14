@@ -5,10 +5,14 @@ import androidx.compose.ui.graphics.toArgb
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import works.mees.dinghy.render.RingBuffer
 import works.mees.dinghy.state.Capabilities
@@ -58,10 +62,14 @@ import works.mees.dinghy.ui.settings.TraceStylePrefs
  *   the holder itself ONLY reads prefs here (seeding) and updates in-memory state — callers
  *   are responsible for routing writes to the `writeScope`.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TemperatureHolder(
     scope: CoroutineScope,
     private val store: PrinterStateStore,
     traceStylePrefs: TraceStylePrefs? = null,
+    // The active printer profile id (per-printer trace-config scoping). When provided alongside
+    // [traceStylePrefs], trace colors/visibility/selection seed from that profile and re-seed on switch.
+    activeProfileId: Flow<String?>? = null,
 ) {
     /**
      * The monitored object names (= drawn traces), in display order: all heaters first (alphabetical),
@@ -165,22 +173,24 @@ class TemperatureHolder(
         // We collect the prefs Flows into the holder's in-memory maps so the UI always reads from
         // the StateFlows (no direct DataStore access from the screen). The seed runs once on first
         // emission; subsequent prefs updates (e.g. from another source) also reflect automatically.
-        if (traceStylePrefs != null) {
+        // SCOPED to the active printer profile (per-printer trace config — pre-merge review fix
+        // 2026-06-14). flatMapLatest on the active profile id re-seeds when the user switches printers;
+        // a null profile clears to defaults. Without a profile id (tests/in-memory) there is no seeding.
+        if (traceStylePrefs != null && activeProfileId != null) {
             scope.launch {
-                traceStylePrefs.traceColors.collect { persisted ->
-                    // Convert ARGB Int map → Compose Color map
-                    _traceColors.value = persisted.mapValues { (_, argb) -> Color(argb) }
-                }
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(emptyMap()) else traceStylePrefs.traceColors(pid)
+                }.collect { persisted -> _traceColors.value = persisted.mapValues { (_, argb) -> Color(argb) } }
             }
             scope.launch {
-                traceStylePrefs.traceVisibility.collect { persisted ->
-                    _traceVisibility.value = persisted
-                }
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(emptyMap<String, Boolean>()) else traceStylePrefs.traceVisibility(pid)
+                }.collect { _traceVisibility.value = it }
             }
-            // Seed the user-selected temperature_sensor set from DataStore (Task 4). Subsequent edits
-            // route through AppContainer.setSensorSelected (writeScope) and re-emit here too.
             scope.launch {
-                traceStylePrefs.selectedSensors.collect { _selectedSensors.value = it }
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(emptySet<String>()) else traceStylePrefs.selectedSensors(pid)
+                }.collect { _selectedSensors.value = it }
             }
         }
         // Backfill collector: seed each CURRENT ring oldest→newest the instant the one-shot read lands
@@ -211,7 +221,17 @@ class TemperatureHolder(
                     heaterSet =
                         (if (caps.heaters.isNotEmpty()) caps.heaters else state.heaters.keys.toList()).toSet()
                     rings = resolved.map { RingBuffer() }
-                    seeded = false // allow the backfill to re-seed the new ring set
+                    // Seed the new rings IMMEDIATELY from the one-shot backfill the store already holds —
+                    // don't wait for a re-emit, or a mid-session sensor add starts with empty graph
+                    // history (pre-merge review fix 2026-06-14). If backfill hasn't landed yet, leave
+                    // `seeded=false` so the backfill collector seeds when it arrives.
+                    val backfill = store.temperatureBackfill.value
+                    if (backfill.isNotEmpty()) {
+                        drawn.forEachIndexed { i, name -> backfill[name]?.forEach { rings[i].push(it) } }
+                        seeded = true
+                    } else {
+                        seeded = false
+                    }
                 }
                 // Set legend + setpoints BEFORE publishSeries so the dynamic yRange (computed in
                 // publishSeries) sees this tick's active setpoints, not the previous tick's.
@@ -238,7 +258,12 @@ class TemperatureHolder(
     private fun resolveMonitored(state: PrinterState, caps: Capabilities, selected: Set<String>): List<String> {
         val heaterNames =
             (if (caps.heaters.isNotEmpty()) caps.heaters else state.heaters.keys.toList()).sorted()
-        val sensorNames = selected.sorted()
+        // Filter selected sensors to objects that actually exist on THIS printer (pre-merge review fix):
+        // a stale selection (sensor removed from config, or a cross-printer carryover) must not render as
+        // a ghost 0° row. Only filter once caps are known — an empty caps.objects (pre-handshake) keeps
+        // the selection intact so rows don't flicker out before capabilities land.
+        val sensorNames =
+            (if (caps.objects.isNotEmpty()) selected.filter { it in caps.objects } else selected).sorted()
         return heaterNames + sensorNames
     }
 
@@ -358,6 +383,10 @@ internal fun computeGraphYRange(
  * `min_temp` is informational only — the floor stays 0 so the scrubber can reach off.
  */
 fun heaterScrubberRange(limits: works.mees.dinghy.state.HeaterLimits?): ClosedFloatingPointRange<Float> {
-    val max = (limits?.maxTemp ?: works.mees.dinghy.command.PrinterCommands.MAX_TEMP_C.toDouble()).toFloat()
+    val global = works.mees.dinghy.command.PrinterCommands.MAX_TEMP_C.toDouble()
+    // Guard against a garbled configfile max_temp (NaN / ≤0): an inverted/empty range would make the
+    // Scrubber's `value.coerceIn(start, end)` THROW (pre-merge review fix). Fall back to the global clamp.
+    val raw = limits?.maxTemp
+    val max = (if (raw != null && raw.isFinite() && raw > 0.0) raw else global).toFloat()
     return 0f..max
 }

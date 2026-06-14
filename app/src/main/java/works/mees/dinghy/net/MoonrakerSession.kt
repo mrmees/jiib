@@ -534,6 +534,9 @@ class MoonrakerSession(
         // switch or a failed read NEVER leaves stale hardware controls visible during the transition window.
         // The success path below re-emits the freshly-parsed list; the .onFailure re-clears.
         store.setOutputDescriptors(emptyList())
+        // Pre-clear heater limits too (pre-merge review fix): a failed/partial configfile read on a
+        // re-handshake must NOT leave the previous printer's max_temp scrubber bounds in place.
+        store.setHeaterLimits(emptyMap())
         runCatching {
             // configfile (ONE one-shot query, NOT live subscribe; Pitfall 3 — no duplicate configfile
             // query): TWO consumers off the SAME result.status.configfile.settings —
@@ -609,10 +612,11 @@ class MoonrakerSession(
             // NOT the fixed 350 clamp). Same one-shot configfile result — no extra query (Pitfall 3).
             store.setHeaterLimits(if (settings != null) parseHeaterLimits(settings) else emptyMap())
         }.onFailure {
-            // configfile read FAILED entirely → clear output descriptors so a printer switch / failed read
-            // never leaves stale hardware controls visible (clear-on-failure, T-19-04-04). Best-effort like
-            // the rest of this block — the handshake already reached subscribe above.
+            // configfile read FAILED entirely → clear output descriptors AND heater limits so a printer
+            // switch / failed read never leaves stale hardware controls or scrubber bounds visible
+            // (clear-on-failure, T-19-04-04). Best-effort — the handshake already reached subscribe above.
             store.setOutputDescriptors(emptyList())
+            store.setHeaterLimits(emptyMap())
         }
     }
 

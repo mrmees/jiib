@@ -126,4 +126,35 @@ class TemperatureMonitoredSetTest {
         )
         assertEquals("only the heater remains", listOf("extruder"), holder.legend.value.map { it.name })
     }
+
+    @Test
+    fun selectedSensorAbsentFromThisPrinterIsFiltered() = runTest(UnconfinedTestDispatcher()) {
+        // Pre-merge review fix: a selection that doesn't exist on THIS printer (stale, or a cross-printer
+        // carryover) must NOT render as a ghost 0° row. caps.objects lists what the printer actually has.
+        val store = PrinterStateStore(backgroundScope)
+        val holder = TemperatureHolder(backgroundScope, store)
+        store.setCapabilities(
+            Capabilities(
+                hasBed = false,
+                heaters = listOf("extruder"),
+                objects = setOf("extruder", "temperature_sensor chamber"), // NO mcu on this printer
+            ),
+        )
+        store.seed(
+            PrinterState(
+                heaters = heaters("extruder" to HeaterState(temperature = 200.0, target = 210.0)),
+                temperatureSensors = persistentMapOf("temperature_sensor chamber" to 30.0),
+            ),
+        )
+        runCurrent()
+        holder.setSensorSelected("temperature_sensor chamber", true) // present
+        holder.setSensorSelected("temperature_sensor mcu", true)     // absent here
+        runCurrent()
+
+        assertEquals(
+            "only the sensor present on this printer joins the set",
+            listOf("extruder", "temperature_sensor chamber"),
+            holder.legend.value.map { it.name },
+        )
+    }
 }

@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
@@ -399,6 +401,16 @@ class AppContainer(
      */
     val traceStylePrefs: TraceStylePrefs = TraceStylePrefs(traceStyleDataStore)
 
+    init {
+        // One-time migration of legacy UNSCOPED trace prefs into the first active profile's scope
+        // (per-printer trace config — pre-merge review fix 2026-06-14). Runs once on the first non-null
+        // profile id; idempotent via the prefs sentinel. Process-lifetime writeScope (never composition).
+        writeScope.launch {
+            val firstProfileId = activeProfileId.filterNotNull().first()
+            traceStylePrefs.migrateUnscopedTo(firstProfileId)
+        }
+    }
+
     /**
      * Persist a trace color (D-14), durably. Routes through the process-lifetime [writeScope]
      * ([[dinghy-compose-write-scope-cancellation]]) — never `rememberCoroutineScope()`. The
@@ -406,20 +418,23 @@ class AppContainer(
      * injection surface — the UI only passes pool members, never arbitrary user text).
      */
     fun setTraceColor(sensorName: String, argb: Int) {
-        writeScope.launch { traceStylePrefs.setTraceColor(sensorName, argb) }
+        val pid = activeProfileId.value ?: return // no active profile → nowhere to scope the write
+        writeScope.launch { traceStylePrefs.setTraceColor(pid, sensorName, argb) }
     }
 
     /**
-     * Persist a trace visibility toggle (D-14), durably.
+     * Persist a trace visibility toggle (D-14), durably, SCOPED to the active printer profile.
      * Same write-scope discipline as [setTraceColor] ([[dinghy-compose-write-scope-cancellation]]).
      */
     fun setTraceVisibility(sensorName: String, visible: Boolean) {
-        writeScope.launch { traceStylePrefs.setTraceVisibility(sensorName, visible) }
+        val pid = activeProfileId.value ?: return
+        writeScope.launch { traceStylePrefs.setTraceVisibility(pid, sensorName, visible) }
     }
 
-    /** Persist a Temperature sensor's monitored-set membership (opt-in). Routes through writeScope. */
+    /** Persist a Temperature sensor's monitored-set membership (opt-in), scoped to the active profile. */
     fun setSensorSelected(sensorName: String, selected: Boolean) {
-        writeScope.launch { traceStylePrefs.setSensorSelected(sensorName, selected) }
+        val pid = activeProfileId.value ?: return
+        writeScope.launch { traceStylePrefs.setSensorSelected(pid, sensorName, selected) }
     }
 
     /**
