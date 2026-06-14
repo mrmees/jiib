@@ -330,8 +330,6 @@ private fun FineTuneContent(
                     val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
                     val baseline = vm.baselineForTuner(selectedTuner)
                     AdjusterPanel(
-                        icon = selectedParam.icon,
-                        name = selectedParam.name,
                         value = value,
                         unit = selectedParam.unit,
                         baseline = baseline,
@@ -341,9 +339,6 @@ private fun FineTuneContent(
                         },
                         onIncrement = {
                             onNudge(selectedParam, value, +activeStep)
-                        },
-                        onReset = baseline?.let { base ->
-                            { onNudgeToBaseline(selectedParam, base) }
                         },
                         // quick-rmr: never lock out during a tap burst — busy only DIMS the
                         // −/+ tiles (taps accumulate); Reset is disabled while busy.
@@ -360,9 +355,7 @@ private fun FineTuneContent(
                         uDp = grid.uDp,
                         // R10: flash on busy/debounce rejections of THIS param's dispatch key.
                         rejectTick = rejectTicks[dispatchKeyForTuner(selectedTuner)] ?: 0L,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             },

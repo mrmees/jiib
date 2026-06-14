@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.IncrementPicker
-import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,15 +34,12 @@ private fun AdjusterPanelDemo(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         AdjusterPanel(
-            icon = DinghyIcons.Speed,
-            name = "Print Speed",
             value = 105.0,
             unit = "%",
             baseline = 100.0,    // differs → "was 100%" span is visible in this preview
             decimals = 0,
             onDecrement = {},
             onIncrement = {},
-            onReset = {},        // Reset button appears (non-null)
             enabled = true,
             incrementPicker = {
                 IncrementPicker(
@@ -69,15 +65,12 @@ private fun AdjusterPanelDashDemo(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         AdjusterPanel(
-            icon = DinghyIcons.PressureAdvance,
-            name = "Pressure Advance",
             value = null,        // null → DASH, steppers disabled
             unit = " s",
-            baseline = null,     // null baseline → no Reset button
+            baseline = null,
             decimals = 3,
             onDecrement = {},
             onIncrement = {},
-            onReset = null,      // no Reset (no baseline)
             enabled = false,     // busy-lock
             incrementPicker = {
                 IncrementPicker(

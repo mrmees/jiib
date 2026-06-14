@@ -6,11 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -29,9 +26,7 @@ import androidx.compose.material3.Text
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -41,51 +36,42 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
- * The 3-zone adjuster Focus surface — the shared sketch-003 adjustment archetype.
+ * The 2-zone adjuster Focus surface — the shared sketch-003 adjustment archetype.
  *
  * Every numeric-adjustment screen (Fine-Tune, Temperature, Outputs) composes this as its
- * Focus content. The three zones are distributed via `Arrangement.SpaceBetween`:
+ * Focus content. The two zones are distributed via `Arrangement.SpaceBetween`. The param's
+ * identity (icon + name) and the revert affordance now live in the enclosing [FocusFrame]
+ * header — this panel is purely value + controls:
  *
- * **Zone 1 — Header (top):** [DinghyIconView] tinted [works.mees.dinghy.theme.ThemeTokens.accent2]
- * + bold [name] in Geist SemiBold + trailing spacer + optional Reset button ([Intent.Warn] / amber)
- * when [onReset] is non-null.
- *
- * **Zone 2 — Value (centered, absorbs slack):** Big [GeistMono] value text at 48sp (scaled by [fsSp]),
+ * **Zone 1 — Value (centered, absorbs slack):** Big [GeistMono] value text at 48sp (scaled by [fsSp]),
  * followed inline (same baseline [Row]) by the "was {baseline}{unit}" span in [works.mees.dinghy.theme.ThemeTokens.text3]
  * when [shouldShowBaseline] is true. **Never stacked** — a second line under the value overflows
  * the 5U phone-landscape focus budget (adjustment-controls.md anti-pattern).
  *
- * **Zone 3 — Controls (bottom):** A "−"/"+"`[OutlinedControl]` stepper Row (`[Intent.Accent]`,
- * `enabled = [enabled] && [value] != null`) above the caller-provided `[incrementPicker]` slot.
- *
- * ## Reset button (D-21)
- * Shown only when [onReset] is non-null. Uses [Intent.Warn] (amber / `t.heat`) per the
- * adjustment archetype — "proceed at peril" for a reset. **NEVER** `color-mix(in oklch, heat, outline)`
- * — that produces a red bleed (adjustment-controls.md § "What to Avoid").
+ * **Zone 2 — Controls (bottom-docked):** A decrement/increment [OutlinedControl] stepper Row
+ * (icon tokens [works.mees.dinghy.designsystem.icons.DinghyIcons.Decrease] / [works.mees.dinghy.designsystem.icons.DinghyIcons.Increase],
+ * [Intent.Accent], capped at 1U via `height(uDp)`, `enabled = [enabled] && [value] != null`)
+ * above the caller-provided `[incrementPicker]` slot.
  *
  * ## Enabled state vs busy dim (quick-rmr)
  * TRUE disablement: when [enabled] is false or [value] is null (unreported / DASH) the stepper
  * tiles get no clickable, no ripple, and `semantics { disabled() }` (R10 law) — unchanged.
  *
- * BUSY dim: [busy] DIMS the "−"/"+" tiles (alpha 0.38) but keeps them CLICKABLE with semantics
- * enabled — taps landing during an in-flight trailing commit must accumulate into the next
- * working value, never be swallowed. Only Reset is truly disabled while busy (a deliberate
- * single action shouldn't stack on an in-flight commit).
+ * BUSY dim: [busy] DIMS the decrement/increment tiles (alpha 0.38) but keeps them CLICKABLE with
+ * semantics enabled — taps landing during an in-flight trailing commit must accumulate into the
+ * next working value, never be swallowed.
  *
- * @param icon           the param's [DinghyIcon] registry token; tinted [works.mees.dinghy.theme.ThemeTokens.accent2] in the header.
- * @param name           the human-readable param name (e.g. "Print Speed").
  * @param value          the live numeric value; null renders [DASH] and disables the stepper.
  * @param unit           the unit suffix appended to the displayed value (e.g. "%", "mm/s").
- * @param baseline       the value captured on entry (for the "was X" span); null hides Reset.
+ * @param baseline       the value captured on entry (for the inline "was X" span).
  * @param decimals       decimal precision used both for display ([fmtValue]) and for the
  *                       [shouldShowBaseline] rounding comparison.
- * @param onDecrement    called on "−" tap; caller must pre-clamp + [works.mees.dinghy.ui.finetune.FineTuneHolder.markPending]
+ * @param onDecrement    called on decrement tap; caller must pre-clamp + [works.mees.dinghy.ui.finetune.FineTuneHolder.markPending]
  *                       (D-22 clamp authority invariant — this component has no knowledge of limits).
- * @param onIncrement    called on "+" tap; same clamp requirement.
- * @param onReset        called on Reset tap; null when no baseline is available (hides the button).
+ * @param onIncrement    called on increment tap; same clamp requirement.
  * @param enabled        TRUE-disablement gate; when false both stepper tiles are inert (no clickable).
- * @param busy           in-flight commit dim (quick-rmr): the −/+ tiles dim to alpha 0.38 but STAY
- *                       tappable (taps accumulate during the commit); Reset is disabled while busy.
+ * @param busy           in-flight commit dim (quick-rmr): the stepper tiles dim to alpha 0.38 but STAY
+ *                       tappable (taps accumulate during the commit).
  *                       Default false keeps previews and legacy call sites unchanged.
  * @param incrementPicker caller-provided [IncrementPicker] slot (the step-set selector row).
  * @param rejectTick     R10 (26.5-03) rejection-feedback tick: the caller increments this when the
@@ -95,21 +81,17 @@ import kotlin.math.roundToInt
  *                       "heard you, still settling" — never a looping animation (Adreno-320 motion
  *                       law). Default 0 keeps previews and legacy call sites flash-free.
  * @param uDp            the unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
- *                       used to size the Zone-1 header icon to ~50% U (prominent but still fits a
- *                       ≈1U tall header row — UAT-1).
+ *                       used to cap the stepper Row at 1U.
  * @param modifier       caller-supplied modifier.
  */
 @Composable
 fun AdjusterPanel(
-    icon: DinghyIcon,
-    name: String,
     value: Double?,
     unit: String,
     baseline: Double?,
     decimals: Int,
     onDecrement: () -> Unit,
     onIncrement: () -> Unit,
-    onReset: (() -> Unit)?,
     enabled: Boolean,
     incrementPicker: @Composable () -> Unit,
     uDp: Dp = 64.dp,
@@ -130,10 +112,6 @@ fun AdjusterPanel(
     // so taps during the in-flight commit accumulate into the next working value.
     val busyDimModifier =
         if (controlsEnabled && busy) Modifier.alpha(0.38f) else Modifier
-    // Reset IS truly disabled while busy (a deliberate single action shouldn't stack on a commit).
-    val resetEnabled = controlsEnabled && !busy
-    val resetDisabledModifier =
-        if (!resetEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
 
     // R10 (26.5-03): one-shot rejection flash — the hero value briefly tints to the warn token
     // (heat) and settles back to text over REJECT_FLASH_MS. lerp between two LocalTokens roles
@@ -151,44 +129,7 @@ fun AdjusterPanel(
         modifier = modifier,
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Zone 1 — Header: icon + name + spacer + optional Reset
-        // UAT-1: prominent header icon sized to ~50% U (big and vibrant, still fits a ≈1U row).
-        // Clamped to [28.dp, 56.dp] so it never goes tiny on a small phone or absurdly large on a
-        // tablet. The FloatingEStop uDp*0.7f precedent is the canonical U-relative sizing idiom.
-        val headerIconSize = (uDp * 0.5f).coerceIn(28.dp, 56.dp)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DinghyIconView(
-                icon = icon,
-                tint = t.accent2,
-                sizeDp = headerIconSize,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = name,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
-                color = t.text,
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            onReset?.let { reset ->
-                OutlinedControl(
-                    label = stringResource(R.string.adjuster_reset),
-                    onClick = reset,
-                    enabled = resetEnabled,
-                    modifier = Modifier
-                        .heightIn(min = uDp) // 1U like every control (owner All-1U; was sub-floor 40dp)
-                        .then(resetDisabledModifier),
-                    // D-21: caution/amber — NOT color-mix (red-bleed bug); use heat directly
-                    intent = Intent.Warn,
-                )
-            }
-        }
-
-        // Zone 2 — Value + inline "was X" baseline (centered, absorbs slack)
+        // Zone 1 — Value + inline "was X" baseline (centered, absorbs slack)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -221,19 +162,17 @@ fun AdjusterPanel(
             }
         }
 
-        // Zone 3 — Stepper + IncrementPicker (bottom)
+        // Zone 2 — Stepper + IncrementPicker (bottom-docked)
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // WR-11 exemption (documented): "−"/"+" are locale-independent math glyphs on the
-                // stepper tiles — not translatable copy — so they stay literal by decision.
                 OutlinedControl(
-                    label = "−",
+                    label = "",
                     onClick = onDecrement,
                     enabled = controlsEnabled,
                     modifier = Modifier
@@ -241,9 +180,11 @@ fun AdjusterPanel(
                         .then(disabledModifier)
                         .then(busyDimModifier),
                     intent = Intent.Accent,
+                    icon = DinghyIcons.Decrease,
+                    contentDescription = stringResource(R.string.cd_decrement),
                 )
                 OutlinedControl(
-                    label = "+",
+                    label = "",
                     onClick = onIncrement,
                     enabled = controlsEnabled,
                     modifier = Modifier
@@ -251,6 +192,8 @@ fun AdjusterPanel(
                         .then(disabledModifier)
                         .then(busyDimModifier),
                     intent = Intent.Accent,
+                    icon = DinghyIcons.Increase,
+                    contentDescription = stringResource(R.string.cd_increment),
                 )
             }
             incrementPicker()

@@ -750,8 +750,6 @@ private fun TemperatureAdjusterFocus(
             Spacer(modifier = Modifier.weight(1f))
 
             AdjusterPanel(
-                icon = iconForSensor(sensor.name),
-                name = sensor.label,
                 value = currentValue,
                 unit = "°C",
                 baseline = null, // Temperature target has no persistent "entry baseline" — no Reset
@@ -764,7 +762,6 @@ private fun TemperatureAdjusterFocus(
                     val base = currentValue ?: 0.0
                     onIncrement(base)
                 },
-                onReset = null, // No baseline / Reset for temperature (target can be 0 via Off)
                 enabled = true,
                 busy = busy,
                 incrementPicker = {
