@@ -96,7 +96,7 @@ class MacroParamParserTest {
     fun bracketSyntaxParam_isDiscovered() {
         // Codex doc: params["NAME"] / params['NAME'] bracket access is a real Klipper idiom the
         // verbatim Mainsail dot-regex misses. The new bracket pass must discover it.
-        val body = """{% set p = params["PROFILE"] %}\nBED_MESH_PROFILE LOAD={p}"""
+        val body = """{% set p = params["PROFILE"] %} BED_MESH_PROFILE LOAD={p}"""
         val params = MacroParamParser.parseMacroParams(body)
         assertTrue("bracket param PROFILE must be discovered", params.any { it.name == "PROFILE" })
     }
@@ -148,5 +148,20 @@ class MacroParamParserTest {
     @Test
     fun usesRawParams_falseForOrdinaryBody() {
         assertFalse(MacroParamParser.usesRawParams(body("gcode_macro start_print")))
+    }
+
+    @Test
+    fun dualFormParam_dotDefaultWins_regardlessOfSourceOrder() {
+        // A param referenced via BOTH bracket (no default, appearing FIRST) and dot (with a default).
+        // The dot pass runs as a complete loop before the bracket pass, so the dot form's default and
+        // optional status must win — the earlier bracket usage must NOT mark it required or drop the default.
+        val body = """
+            M104 S{params["BED_TEMP"]}
+            {% set t = params.BED_TEMP|default(60)|float %}
+        """.trimIndent()
+        val params = MacroParamParser.parseMacroParams(body)
+        val bed = params.first { it.name == "BED_TEMP" }
+        assertEquals("60", bed.default)
+        assertFalse("dot-form default makes it optional even though bracket usage came first", bed.required)
     }
 }
