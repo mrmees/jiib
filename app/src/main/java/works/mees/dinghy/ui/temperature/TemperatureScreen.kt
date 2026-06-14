@@ -684,12 +684,24 @@ private fun TemperatureContent(
                                 )
                             }
                         } else {
+                            // Adjust footer — two rows (owner 2026-06-14): Presets spans the top row;
+                            // Back · Cooldown · Monitor on the bottom. Back exits the screen so the user
+                            // can leave without first switching back to Monitoring mode.
                             FootButtonBar(uDp = grid.uDp) {
                                 OutlinedControl(
                                     label = stringResource(R.string.temp_presets),
                                     onClick = { fieldMode = TempFieldMode.PresetPicker },
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
+                                )
+                            }
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
                                 )
                                 OutlinedControl(
                                     label = stringResource(R.string.temp_cooldown),
