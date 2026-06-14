@@ -8,6 +8,7 @@ import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
+import works.mees.dinghy.state.HeaterLimits
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
 import works.mees.dinghy.state.Webcam
@@ -63,6 +64,8 @@ data class SpineHandle(
     val maxExtrudeDistance: StateFlow<Float?>,
     /** Per-sensor temperature_store backfill (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>>,
+    /** Per-heater static configfile min/max temp (one-shot), for the Temperature adjust scrubber range. */
+    val heaterLimits: StateFlow<Map<String, HeaterLimits>>,
     /**
      * `machine.system_info` static host identity (SYS-01, Phase 20) — forwarded straight off the store
      * like [temperatureBackfill]. Seeded ONCE per handshake (NOT the throttled hot path); a StateFlow

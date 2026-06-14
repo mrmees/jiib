@@ -74,7 +74,10 @@ class DinghyIconsTest {
         //   - "palette": Palette (Spool detail-pane color swatch) + SystemRowTheme (System page Theme row)
         //     — Spool and System page never co-render; the D-21 owner-locked theme-row glyph assignment
         //     reuses the palette ligature for a different semantic token on a different screen (28-01).
-        val allowedSharedLigatures = setOf("output_circle", "palette")
+        //   - "settings": SystemRowSettings (System page settings row) + TempSettings (Temperature
+        //     sensor-display picker) — System page and Temperature screen never co-render; owner-chosen
+        //     glyph for both (Task 8, temperature-monitor-adjust branch).
+        val allowedSharedLigatures = setOf("output_circle", "palette", "settings")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->

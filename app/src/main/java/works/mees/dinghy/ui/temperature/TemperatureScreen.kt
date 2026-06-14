@@ -9,16 +9,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -40,7 +42,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,11 +57,10 @@ import works.mees.dinghy.command.TrailingCommitBatcher
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
-import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
@@ -69,10 +69,12 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
+import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.Palette
@@ -81,18 +83,22 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
+import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.HeaterLimits
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 
-/** The heater target step (°C) — matching the old TEMP_STEP for fine enough control. */
-private val TEMP_STEPS = persistentListOf(1.0, 5.0, 10.0)
-private const val TEMP_DEFAULT_STEP = 5.0
+/** The heater target step (°C): coarse set via the scrubber, fine-tune via ±1 (owner 2026-06-14). */
+private const val TEMP_FINE_STEP = 1
 
 /** Field mode for the Temperature panel — SensorList (default) or PresetPicker (D-12). */
 private sealed class TempFieldMode {
     data object SensorList : TempFieldMode()
     data object PresetPicker : TempFieldMode()
 }
+
+/** Top-level screen mode — Monitoring (read-only list) or Adjust (adjustable heaters only). */
+private enum class TempMode { Monitoring, Adjust }
 
 /**
  * ONE aligned visible-trace model: series, setpoints, names, and colors filtered together by
@@ -145,6 +151,7 @@ private data class VisibleTraces(
 fun TemperatureScreen(
     container: AppContainer,
     holder: TemperatureHolder,
+    activeSpoolDetail: SpoolmanSpool? = null,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -162,6 +169,12 @@ fun TemperatureScreen(
     val themeTuple by container.activeThemeTuple.collectAsStateWithLifecycle(
         initialValue = ThemePrefs.TUPLE_DEFAULT,
     )
+    val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val heaterLimits by holder.heaterLimits.collectAsStateWithLifecycle()
+    val selectedSensors by holder.selectedSensors.collectAsStateWithLifecycle()
+    val availableSensors = remember(caps) {
+        caps.objects.filter { it.startsWith("temperature_sensor ") }.sorted()
+    }
     var failureText by remember { mutableStateOf<String?>(null) }
 
     // quick-rmr: lifecycle-aware in-flight collection — DISPLAY ONLY (the heater AdjusterPanel
@@ -238,6 +251,24 @@ fun TemperatureScreen(
         }
     }
 
+    // Loaded-spool preheat preset, built from the active Spoolman spool detail resolved UPSTREAM by
+    // AppShell's SpoolHolder — the SAME source the Extrude preset list uses (the in-screen
+    // currentSpoolmanClient fetch hit the no-op client and never resolved). Shown only when a spool is
+    // loaded and its filament reports a nozzle temp; bed falls back to 0 when the spool omits it.
+    val spoolPreset: PrinterCommands.Preset? = remember(activeSpoolDetail) {
+        val f = activeSpoolDetail?.filament
+        val nozzle = f?.settingsExtruderTemp
+        if (f != null && nozzle != null) {
+            PrinterCommands.Preset(
+                name = f.name ?: f.material ?: "LOADED SPOOL",
+                nozzle = nozzle,
+                bed = f.settingsBedTemp ?: 0,
+            )
+        } else {
+            null
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         TemperatureContent(
             series = series,
@@ -253,6 +284,10 @@ fun TemperatureScreen(
             inFlight = inFlight,
             seedHex = themeTuple.seedHex,
             dark = themeTuple.dark,
+            availableSensors = availableSensors,
+            selectedSensors = selectedSensors,
+            heaterLimits = heaterLimits,
+            spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
                 holder.setTraceColor(sensorName, color)
@@ -261,6 +296,10 @@ fun TemperatureScreen(
             onSetTraceVisibility = { sensorName, visible ->
                 holder.setTraceVisibility(sensorName, visible)
                 container.setTraceVisibility(sensorName, visible)
+            },
+            onToggleSensor = { name, sel ->
+                holder.setSensorSelected(name, sel)
+                container.setSensorSelected(name, sel)
             },
             onNudgeHeater = { sensorName, rawTarget ->
                 // quick-rmr TAP handler: clamp per-tap (the display can never exceed bounds) and
@@ -323,9 +362,14 @@ fun TemperatureScreen(
     failureText: String? = null,
     seedHex: String = ThemePrefs.DEFAULT_SEED,
     dark: Boolean = true,
+    availableSensors: List<String> = emptyList(),
+    selectedSensors: Set<String> = emptySet(),
+    heaterLimits: Map<String, HeaterLimits> = emptyMap(),
+    spoolPreset: PrinterCommands.Preset? = null,
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
+    onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     onNudgeHeater: (String, Int) -> Unit = { _, _ -> },
     onHeaterOff: (String) -> Unit = {},
     onApplyPreset: (PrinterCommands.Preset) -> Unit = {},
@@ -344,9 +388,14 @@ fun TemperatureScreen(
             failureText = failureText,
             seedHex = seedHex,
             dark = dark,
+            availableSensors = availableSensors,
+            selectedSensors = selectedSensors,
+            heaterLimits = heaterLimits,
+            spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
+            onToggleSensor = onToggleSensor,
             onNudgeHeater = onNudgeHeater,
             onHeaterOff = onHeaterOff,
             onApplyPreset = onApplyPreset,
@@ -371,6 +420,13 @@ private fun TemperatureContent(
     failureText: String?,
     seedHex: String,
     dark: Boolean,
+    availableSensors: List<String> = emptyList(),
+    selectedSensors: Set<String> = emptySet(),
+    heaterLimits: Map<String, HeaterLimits> = emptyMap(),
+    // Loaded-spool preheat preset (nozzle/bed from the active Spoolman filament) — null when no spool
+    // is loaded or it carries no temp settings. Prepended to the PresetPicker list when present.
+    spoolPreset: PrinterCommands.Preset? = null,
+    onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
     // live target for display; the stateless/preview seam defaults to empty.
@@ -396,10 +452,12 @@ private fun TemperatureContent(
     // (e.g. on reconnect), the lookup returns null and the Focus falls back to the graph automatically.
     var selectedName by remember { mutableStateOf<String?>(null) }
     val selectedSensor: SensorReadout? = selectedName?.let { n -> legend.firstOrNull { it.name == n } }
-    // Session step memory for the heater adjuster.
-    var activeStep by remember { mutableStateOf(TEMP_DEFAULT_STEP) }
     // D-12: Field-mode (SensorList | PresetPicker).
     var fieldMode by remember { mutableStateOf<TempFieldMode>(TempFieldMode.SensorList) }
+    // Top-level screen mode: Monitoring (read list) | Adjust (adjustable heaters, footers differ).
+    var mode by remember { mutableStateOf(TempMode.Monitoring) }
+    // Settings panel open flag — wired to Task 10/11; declared here so the footer button compiles.
+    var settingsOpen by remember { mutableStateOf(false) }
     // D-14 / finding 5: dedicated Colorful-8 swatch pool, independent of the active palette mode.
     // DEFAULT_MAX_ITEMS=4 (ThemePrefs.kt:185) and Simple/HighContrast collapse the active pool,
     // so we NEVER source from t.pool.take(8). Force Colorful, maxItems=8.
@@ -446,78 +504,91 @@ private fun TemperatureContent(
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    if (selectedSensor == null) {
-                        // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
-                        FocusFrame(
-                            title = stringResource(R.string.cd_launcher_temperature),
-                            icon = DinghyIcons.LauncherTemperature,
-                            uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize(),
+                    when {
+                        settingsOpen -> SensorPickerFocus(
+                            available = availableSensors,
+                            selected = selectedSensors,
+                            onToggle = onToggleSensor,
+                            onDone = { settingsOpen = false; selectedName = null },
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
-                            onPanic = onEmergencyStop,
-                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
-                        ) {
-                            GraphViewHost(
-                                tokens = t,
-                                series = visible.series,
-                                setpoints = visible.setpoints,
-                                traceColors = visible.colors,
-                                yRange = graphRange,
-                                showAxisLabels = true,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    } else {
-                        // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
-                        // selectedSensor is a non-null LIVE readout here (resolved from legend above).
-                        val sensor = selectedSensor
-                        FocusFrame(
-                            title = sensor.label,
-                            icon = iconForSensor(sensor.name),
                             uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize(),
-                            isPrinting = isPrinting,
-                            onEmergencyStop = onEmergencyStop,
-                            onPanic = onEmergencyStop,
-                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
-                        ) {
-                            TemperatureAdjusterFocus(
-                                sensor = sensor,
-                                traceColor = traceColors[sensor.name],
-                                traceVisible = traceVisibility[sensor.name] ?: true,
-                                colorfulSwatches = colorfulSwatches,
-                                activeStep = activeStep,
-                                // quick-rmr: the pending working target wins over the live target
-                                // (the CR-02 live-temp seed inside TemperatureAdjusterFocus then
-                                // composes naturally on top — working wins when present).
-                                currentTarget = workingTargets[sensor.name] ?: sensor.target,
-                                onColorSelect = { color -> onSetTraceColor(sensor.name, color) },
-                                onVisibilityToggle = {
-                                    onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
-                                },
-                                onDecrement = { current ->
-                                    val rawTarget = (current - activeStep).roundToInt()
-                                    onNudgeHeater(sensor.name, rawTarget)
-                                },
-                                onIncrement = { current ->
-                                    val rawTarget = (current + activeStep).roundToInt()
-                                    onNudgeHeater(sensor.name, rawTarget)
-                                },
-                                onOff = { onHeaterOff(sensor.name) },
-                                onDone = { selectedName = null },
-                                onStepSelect = { activeStep = it },
-                                // quick-rmr: dim-but-tappable while THIS heater's commit is in
-                                // flight (taps keep accumulating — never a lockout).
-                                busy = heaterDispatchKey(sensor.name) in inFlight,
-                                // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
-                                rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
+                        )
+                        selectedSensor == null -> {
+                            // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
+                            FocusFrame(
+                                title = stringResource(R.string.cd_launcher_temperature),
+                                icon = DinghyIcons.LauncherTemperature,
                                 uDp = grid.uDp,
-                                // No inner padding — the FocusFrame contentInset (FocusInset/2) owns
-                                // the spacing, matching Fine-Tune (the redundant 12dp made the
-                                // Temperature controls sit too far from the focus edge, UAT 2026-06-13).
                                 modifier = Modifier.fillMaxSize(),
-                            )
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                            ) {
+                                GraphViewHost(
+                                    tokens = t,
+                                    series = visible.series,
+                                    setpoints = visible.setpoints,
+                                    traceColors = visible.colors,
+                                    yRange = graphRange,
+                                    showAxisLabels = true,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                        mode == TempMode.Monitoring -> {
+                            // MONITORING APPEARANCE POPUP: sensor selected in Monitoring mode —
+                            // color grid + visibility toggle only (no heater controls).
+                            val sensor = selectedSensor
+                            FocusFrame(
+                                title = sensor.label,
+                                icon = iconForSensor(sensor.name),
+                                uDp = grid.uDp,
+                                modifier = Modifier.fillMaxSize(),
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2,
+                            ) {
+                                SensorAppearanceFocus(
+                                    traceColor = traceColors[sensor.name],
+                                    traceVisible = traceVisibility[sensor.name] ?: true,
+                                    colorfulSwatches = colorfulSwatches,
+                                    onColorSelect = { onSetTraceColor(sensor.name, it) },
+                                    onVisibilityToggle = {
+                                        onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
+                                    },
+                                    onDone = { selectedName = null },
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                        else -> { // mode == Adjust, a heater row selected
+                            val sensor = selectedSensor
+                            FocusFrame(
+                                title = sensor.label,
+                                icon = iconForSensor(sensor.name),
+                                uDp = grid.uDp,
+                                modifier = Modifier.fillMaxSize(),
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                            ) {
+                                HeaterControlFocus(
+                                    sensor = sensor,
+                                    currentTarget = workingTargets[sensor.name] ?: sensor.target,
+                                    scrubRange = heaterScrubberRange(heaterLimits[sensor.name]),
+                                    busy = heaterDispatchKey(sensor.name) in inFlight,
+                                    onNudge = { raw -> onNudgeHeater(sensor.name, raw) },
+                                    onOff = { onHeaterOff(sensor.name) },
+                                    onDone = { selectedName = null },
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
 
@@ -538,8 +609,11 @@ private fun TemperatureContent(
                 // D-12 Field-takeover: SensorList (default) or PresetPicker.
                 when (fieldMode) {
                     TempFieldMode.SensorList -> {
+                        // In Adjust mode only show adjustable sensors; in Monitoring show all.
+                        // idx is computed against the FULL legend so trace-color indexing is stable.
+                        val rows = if (mode == TempMode.Adjust) legend.filter { it.isAdjustable } else legend
                         ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                            items(legend, key = { it.name }) { sensor ->
+                            items(rows, key = { it.name }) { sensor ->
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
                                 val rowTint = traceColors[sensor.name] ?: t.seriesColor(idx)
@@ -548,8 +622,6 @@ private fun TemperatureContent(
                                     selected = isSelected,
                                     onClick = {
                                         selectedName = if (isSelected) null else sensor.name
-                                        // Reset step to default on new selection.
-                                        if (!isSelected) activeStep = TEMP_DEFAULT_STEP
                                     },
                                     uDp = grid.uDp,
                                     leadingContent = {
@@ -585,58 +657,85 @@ private fun TemperatureContent(
                                 }
                             }
                         }
-                        val heating = legend.any { it.target != null }
-                        FootButtonBar(
-                            uDp = grid.uDp,
-                        ) {
-                            OutlinedControl(
-                                label = "",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Back = accent
-                                icon = DinghyIcons.Back,
-                            )
-                            OutlinedControl(
-                                label = stringResource(R.string.temp_presets),
-                                onClick = { fieldMode = TempFieldMode.PresetPicker },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Field-takeover nav — no safety conditional
-                            )
-                            OutlinedControl(
-                                label = stringResource(R.string.temp_cooldown),
-                                onClick = onCooldown,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Warn,
-                            )
+                        // Mode-specific footers: Monitoring = Back · Settings · Adjust-enter;
+                        // Adjust = Presets · Cooldown · Monitor-return (no Back).
+                        if (mode == TempMode.Monitoring) {
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { settingsOpen = true; selectedName = null },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.TempSettings,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.OutputHeater,
+                                )
+                            }
+                        } else {
+                            // Adjust footer — two rows (owner 2026-06-14): Presets spans the top row;
+                            // Back · Cooldown · Monitor on the bottom. Back exits the screen so the user
+                            // can leave without first switching back to Monitoring mode.
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = stringResource(R.string.temp_presets),
+                                    onClick = { fieldMode = TempFieldMode.PresetPicker },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                )
+                            }
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                )
+                                OutlinedControl(
+                                    label = stringResource(R.string.temp_cooldown),
+                                    onClick = onCooldown,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Warn,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { mode = TempMode.Monitoring; selectedName = null },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.MonitorMode,
+                                )
+                            }
                         }
                     }
 
                     TempFieldMode.PresetPicker -> {
                         // D-12: Field-takeover preset picker (the old full-screen scrim is retired).
                         ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                            items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
-                                ListRow(
-                                    selected = false,
-                                    onClick = {
-                                        onApplyPreset(preset)
+                            // Loaded-spool preset FIRST when available (heat to the active filament's temps).
+                            spoolPreset?.let { sp ->
+                                item(key = "__spool_preset__") {
+                                    PresetListRow(sp, grid.uDp) {
+                                        onApplyPreset(sp)
                                         fieldMode = TempFieldMode.SensorList
-                                    },
-                                    uDp = grid.uDp,
-                                    trailingContent = {
-                                        Text(
-                                            text = "${preset.nozzle}° / ${preset.bed}°",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(17f, t.fs).sp,
-                                            color = t.text2,
-                                        )
-                                    },
-                                ) {
-                                    Text(
-                                        text = preset.name,
-                                        fontFamily = Geist,
-                                        fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
-                                        color = t.text,
-                                    )
+                                    }
+                                }
+                            }
+                            items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
+                                PresetListRow(preset, grid.uDp) {
+                                    onApplyPreset(preset)
+                                    fieldMode = TempFieldMode.SensorList
                                 }
                             }
                         }
@@ -660,43 +759,125 @@ private fun TemperatureContent(
 }
 
 /**
- * The adjuster surface that appears in the Focus when a sensor is selected (D-10 morph).
- *
- * For EVERY selected sensor: show/hide trace toggle + 8-swatch Colorful-pool color row (D-14).
- * For ADJUSTABLE heaters: [AdjusterPanel] with target temp stepper + per-heater Off (D-13).
+ * Settings Focus morph: lists all `temperature_sensor *` capability objects so the user can
+ * toggle which ones are actively monitored. Heaters (extruder*, heater_bed, etc.) are NOT listed —
+ * they are always monitored; only passive temperature_sensor objects appear here.
  */
 @Composable
-private fun TemperatureAdjusterFocus(
-    sensor: SensorReadout,
+private fun SensorPickerFocus(
+    available: List<String>,
+    selected: Set<String>,
+    onToggle: (String, Boolean) -> Unit,
+    onDone: () -> Unit,
+    isPrinting: Boolean,
+    onEmergencyStop: () -> Unit,
+    uDp: androidx.compose.ui.unit.Dp,
+) {
+    val t = LocalTokens.current
+    FocusFrame(
+        title = stringResource(R.string.temp_settings_title),
+        icon = DinghyIcons.TempSettings,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
+        onPanic = onEmergencyStop,
+        contentInset = FocusInset / 2,
+    ) {
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ListBlock(modifier = Modifier.weight(1f)) {
+                items(available, key = { it }) { name ->
+                    val isOn = name in selected
+                    ListRow(
+                        selected = isOn,
+                        onClick = { onToggle(name, !isOn) },
+                        uDp = uDp,
+                        leadingContent = {
+                            ListRowIcon(icon = iconForSensor(name), uDp = uDp, tint = t.text2)
+                        },
+                        trailingContent = {
+                            DinghyIconView(
+                                icon = if (isOn) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                                tint = if (isOn) t.accent else t.text2,
+                            )
+                        },
+                    ) { ListRowLabel(sensorPickerLabel(name)) }
+                }
+            }
+            OutlinedControl(
+                label = stringResource(R.string.common_done),
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Accent,
+            )
+        }
+    }
+}
+
+private fun sensorPickerLabel(objectName: String): String =
+    objectName.removePrefix("temperature_sensor ").uppercase()
+
+/**
+ * Monitoring-mode appearance popup (Task-10): 4×2 color grid + visibility toggle + Done.
+ *
+ * Shown in the Focus when a sensor is tapped in Monitoring mode. No temperature controls —
+ * purely graph appearance: pick a trace color from the Colorful-8 pool and show/hide the trace.
+ */
+@Composable
+private fun SensorAppearanceFocus(
     traceColor: Color?,
     traceVisible: Boolean,
     colorfulSwatches: List<Color>,
-    activeStep: Double,
-    currentTarget: Double?,
     onColorSelect: (Color) -> Unit,
     onVisibilityToggle: () -> Unit,
-    onDecrement: (Double) -> Unit,
-    onIncrement: (Double) -> Unit,
-    onOff: () -> Unit,
     onDone: () -> Unit,
-    onStepSelect: (Double) -> Unit,
     uDp: androidx.compose.ui.unit.Dp,
-    rejectTick: Long = 0L,
-    busy: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // ── Graph controls: show/hide toggle + 8-swatch color row ────────────────────────
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 4×2 color grid fills the space between the FocusFrame header and the bottom buttons.
+        val swatchRows = colorfulSwatches.chunked(4) // two rows of four
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            // Center the two rows in the leftover space; rows wrap to the (width-driven) dot height.
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        ) {
+            swatchRows.forEach { rowColors ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowColors.forEach { poolColor ->
+                        val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
+                        // Each dot is a centered, WIDTH-DRIVEN square (¼ of the row) capped at ~1.4U so
+                        // it stays large but never balloons to the row height (the old overlap/overflow bug).
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .sizeIn(maxWidth = uDp * 1.4f, maxHeight = uDp * 1.4f)
+                                    .clip(CircleShape)
+                                    .background(poolColor) // data color — THEME-01 carve-out
+                                    .border(
+                                        BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
+                                        CircleShape,
+                                    )
+                                    .clickable { onColorSelect(poolColor) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        // Bottom buttons: Visibility · Done.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Show/hide trace toggle (D-14 — Visibility / VisibilityOff from registry).
             OutlinedControl(
                 label = "",
                 onClick = onVisibilityToggle,
@@ -704,88 +885,153 @@ private fun TemperatureAdjusterFocus(
                 intent = if (traceVisible) Intent.Accent else Intent.Neutral,
                 icon = if (traceVisible) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
             )
-            // D-14: Done button to return to the graph view.
             OutlinedControl(
                 label = stringResource(R.string.common_done),
                 onClick = onDone,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: return-to-graph nav = accent
+                intent = Intent.Accent,
             )
         }
+    }
+}
 
-        // 8-swatch Colorful-pool color row (D-14 / THEME-01 data carve-out).
-        // ALWAYS exactly 8 swatches from the dedicated Colorful pool (finding 5 — NOT t.pool.take(8)).
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            colorfulSwatches.forEach { poolColor ->
-                val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .clip(CircleShape)
-                        .background(poolColor) // data color — THEME-01 carve-out
-                        .border(
-                            BorderStroke(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = t.accentLine,
-                            ),
-                            CircleShape,
-                        )
-                        .clickable { onColorSelect(poolColor) },
+/**
+ * The heater-control surface shown in the Focus when an adjustable sensor is selected in Adjust mode
+ * (D-10 morph). Pure heater target control — NO color/visibility (appearance is Monitoring-only,
+ * Task 10's [SensorAppearanceFocus]).
+ *
+ * Layout top→bottom (owner 2026-06-14): value display → scrubber → ±1 buttons → Off/Done.
+ *  - **Value:** big GeistMono readout (hero style, matching [AdjusterPanel]) showing the live scrubber
+ *    position while dragging (`scrubLive`) else the committed working target. Absorbs the slack between
+ *    the header and the scrubber.
+ *  - **Scrubber (coarse):** bare 0..max_temp track — [Scrubber.onValueChange] updates the LOCAL preview
+ *    only (no dispatch); [Scrubber.onSettle] commits the absolute target once on pointer-up.
+ *  - **±1 (fine):** two [OutlinedControl] steppers, each nudging the target by ±[TEMP_FINE_STEP] (no
+ *    1/5/10 picker — coarse is the scrubber's job).
+ * Both committers route through the SAME trailing-commit batcher via [onNudge] (absolute, batcher-clamped).
+ *
+ * @param currentTarget the pending working-or-live SETPOINT (null = heater off → shows 0, never live temp).
+ * @param scrubRange    0..max_temp from [heaterScrubberRange] (config limits or global clamp).
+ */
+@Composable
+private fun HeaterControlFocus(
+    sensor: SensorReadout,
+    currentTarget: Double?,
+    scrubRange: ClosedFloatingPointRange<Float>,
+    busy: Boolean,
+    onNudge: (Int) -> Unit,        // absolute new target (clamped by the batcher)
+    onOff: () -> Unit,
+    onDone: () -> Unit,
+    uDp: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    // SETPOINT ONLY (owner 2026-06-14): the display/scrubber show the target, never the live temp.
+    // An off heater (no target) reads 0 — adjusting up sets a setpoint from 0.
+    val seed: Double = currentTarget ?: 0.0
+    var scrubLive by remember(sensor.name) { mutableStateOf<Float?>(null) }
+    val shown: Int = (scrubLive?.toDouble() ?: seed).roundToInt()
+    val dim = if (busy) Modifier.alpha(0.38f) else Modifier
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // ── Value display (live scrubber position while dragging, else the working target) ──
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            Row {
+                Text(
+                    text = shown.toString(),
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fsSp(48f, t.fs).sp,
+                    color = t.text,
+                    modifier = Modifier.alignByBaseline(),
+                )
+                Text(
+                    text = "°C",
+                    fontFamily = GeistMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = fsSp(28f, t.fs).sp,
+                    color = t.text2,
+                    modifier = Modifier.alignByBaseline(),
                 )
             }
         }
-
-        // ── Heater controls (D-13 / D-22): only for adjustable sensors ──────────────────
-        if (sensor.isAdjustable) {
-            // CR-02 (26-rev): when the heater is OFF (target == null), seed the adjuster from the
-            // live temperature so the stepper can heat an idle heater — AdjusterPanel renders DASH
-            // and disables both tiles on a null value, which would otherwise make the primary
-            // heater-setpoint control inert until a Preset was applied. clampHeaterTarget keeps the
-            // nudged result legal.
-            val currentValue: Double? = currentTarget ?: sensor.current.let { if (it > 0.0) it else null }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            AdjusterPanel(
-                value = currentValue,
-                unit = "°C",
-                baseline = null, // Temperature target has no persistent "entry baseline" — no Reset
-                decimals = 0,
-                onDecrement = {
-                    val base = currentValue ?: 0.0
-                    onDecrement(base)
-                },
-                onIncrement = {
-                    val base = currentValue ?: 0.0
-                    onIncrement(base)
-                },
-                enabled = true,
-                busy = busy,
-                incrementPicker = {
-                    IncrementPicker(
-                        steps = TEMP_STEPS,
-                        activeStep = activeStep,
-                        onSelect = onStepSelect,
-                        uDp = uDp,
-                    )
-                },
-                uDp = uDp,
-                rejectTick = rejectTick,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // D-13: Per-heater Off (P19 GAP-A precedent — Intent.Warn, target=0).
-            OutlinedControl(
-                label = stringResource(R.string.output_off),
-                onClick = onOff,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Warn,
-            )
+        // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
+        Scrubber(
+            name = "",
+            value = seed.toFloat(),
+            range = scrubRange,
+            step = 1f,
+            uDp = uDp,
+            bare = true,
+            onValueChange = { scrubLive = it },
+            onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // ── ±1 fine adjust (no 1/5/10 picker — the scrubber is the coarse control) ──
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(
+                    label = "",
+                    onClick = { scrubLive = null; onNudge(shown - TEMP_FINE_STEP) },
+                    modifier = Modifier.weight(1f).then(dim),
+                    intent = Intent.Accent,
+                    icon = DinghyIcons.Decrease,
+                    contentDescription = stringResource(R.string.cd_decrement),
+                )
+                OutlinedControl(
+                    label = "",
+                    onClick = { scrubLive = null; onNudge(shown + TEMP_FINE_STEP) },
+                    modifier = Modifier.weight(1f).then(dim),
+                    intent = Intent.Accent,
+                    icon = DinghyIcons.Increase,
+                    contentDescription = stringResource(R.string.cd_increment),
+                )
+            }
         }
+        // ── Off / Done — 1U row (LocalUnitDp + height(uDp)) so they match the ± buttons; without this
+        // they sized to text height and rendered shorter than the steppers on flox (owner 2026-06-14). ──
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
+            }
+        }
+    }
+}
+
+/** One preset row in the PresetPicker field-takeover (shared by the loaded-spool + material rows). */
+@Composable
+private fun PresetListRow(
+    preset: PrinterCommands.Preset,
+    uDp: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    val t = LocalTokens.current
+    ListRow(
+        selected = false,
+        onClick = onClick,
+        uDp = uDp,
+        trailingContent = {
+            Text(
+                text = "${preset.nozzle}° / ${preset.bed}°",
+                fontFamily = GeistMono,
+                fontSize = fsSp(17f, t.fs).sp,
+                color = t.text2,
+            )
+        },
+    ) {
+        Text(
+            text = preset.name,
+            fontFamily = Geist,
+            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+            color = t.text,
+        )
     }
 }
 

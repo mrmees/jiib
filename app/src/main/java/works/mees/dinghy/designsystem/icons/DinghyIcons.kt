@@ -277,6 +277,17 @@ object DinghyIcons {
     val LauncherFineTune = DinghyIcon(IconRef.Ligature("line_style"), alternate = "launcher_fine_tune")
     val SystemRowPrinters = DinghyIcon(IconRef.Ligature("android_wifi_3_bar_plus"), alternate = "system_row_printers")
     val SystemRowSettings = DinghyIcon(IconRef.Ligature("settings"), alternate = "system_row_settings")
+
+    // --- Temperature screen glyphs (Task 8, OWNER-CHOSEN — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]).
+    // `format_list_bulleted` = return to Monitoring mode (sensor-list view); owner-selected.
+    // `settings` = Temperature Settings (sensor-display picker); owner-selected. Reuses the system
+    // settings glyph — Temperature and System pages never co-render, so the shared ligature is
+    // allow-listed in DinghyIconsTest (WR-02 precedent, same as palette/output_circle).
+    /** Temperature: return to Monitoring mode (owner-chosen; monitoring == the sensor list view). */
+    val MonitorMode = DinghyIcon(IconRef.Ligature("format_list_bulleted"), alternate = "temp_monitor_mode")
+    /** Temperature: Settings (sensor-display picker). Reuses the system settings glyph. */
+    val TempSettings = DinghyIcon(IconRef.Ligature("settings"), alternate = "temp_settings")
     val SystemRowTheme = DinghyIcon(IconRef.Ligature("palette"), alternate = "system_row_theme")
     val SystemRowAbout = DinghyIcon(IconRef.Ligature("info"), alternate = "system_row_about")
     val SystemRowPower = DinghyIcon(IconRef.Ligature("power_settings_new"), alternate = "system_row_power")
@@ -315,5 +326,6 @@ object DinghyIcons {
         PrintStatusStandby,
         MoveTouch, MoveXY, MoveZ, SavedLocation, SaveLocation,
         MoveHomeAll, MoveDisableMotors,
+        MonitorMode, TempSettings,
     )
 }

@@ -87,6 +87,10 @@ class PrinterStateStore(
     /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
 
+    private val _heaterLimits = MutableStateFlow<Map<String, HeaterLimits>>(emptyMap())
+    /** Per-heater static `configfile` min/max temp (one-shot at handshake, NOT the throttled hot path). */
+    val heaterLimits: StateFlow<Map<String, HeaterLimits>> = _heaterLimits.asStateFlow()
+
     private val _systemInfo = MutableStateFlow<SystemInfo?>(null)
     /**
      * `machine.system_info` static host identity (SYS-01, Phase 20) — one-shot per handshake, NOT the
@@ -307,6 +311,11 @@ class PrinterStateStore(
     /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */
     fun setTemperatureBackfill(backfill: Map<String, FloatArray>) {
         _temperatureBackfill.value = backfill
+    }
+
+    /** One-shot at handshake: per-heater configfile min/max temp. Mirrors [setTemperatureBackfill]. */
+    fun setHeaterLimits(limits: Map<String, HeaterLimits>) {
+        _heaterLimits.value = limits
     }
 
     /** One-shot at (re)handshake: `machine.system_info` host identity (SYS-01). NOT the throttled hot path. */

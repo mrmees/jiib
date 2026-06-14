@@ -43,6 +43,7 @@ import works.mees.dinghy.state.Screw
 import works.mees.dinghy.state.ScrewConfig
 import works.mees.dinghy.state.deriveCapabilities
 import works.mees.dinghy.state.deriveSubscribeSet
+import works.mees.dinghy.state.parseHeaterLimits
 import works.mees.dinghy.state.parseTemperatureStore
 import works.mees.dinghy.state.reduceSnapshot
 import works.mees.dinghy.ui.console.parseGcodeStore
@@ -491,10 +492,12 @@ class MoonrakerSession(
         //    default and the panels degrade gracefully (T-05-03-D). Results land on capability-like
         //    StateFlows holders OBSERVE (deterministic on-connect fullness, NOT the throttled hot path).
         runCatching {
-            // temperature_store: backfill ONLY the heater sensors the graph draws (capability heaters),
-            // by exact object name — ignore pure `temperature_sensor X` entries (RESEARCH §1 alignment).
+            // temperature_store: backfill heater sensors the graph draws (capability heaters) PLUS any
+            // temperature_sensor objects so added-sensor history is available for the monitor screen.
             val storeResult = rpc.request(CommandRegistry.temperatureStore, Unit)
-            val backfill = parseTemperatureStore(storeResult.jsonObject, capabilities.heaters.toSet())
+            val wanted = capabilities.heaters.toSet() +
+                capabilities.objects.filter { it.startsWith("temperature_sensor ") }.toSet()
+            val backfill = parseTemperatureStore(storeResult.jsonObject, wanted)
             store.setTemperatureBackfill(backfill)
         }
         runCatching {
@@ -531,6 +534,9 @@ class MoonrakerSession(
         // switch or a failed read NEVER leaves stale hardware controls visible during the transition window.
         // The success path below re-emits the freshly-parsed list; the .onFailure re-clears.
         store.setOutputDescriptors(emptyList())
+        // Pre-clear heater limits too (pre-merge review fix): a failed/partial configfile read on a
+        // re-handshake must NOT leave the previous printer's max_temp scrubber bounds in place.
+        store.setHeaterLimits(emptyMap())
         runCatching {
             // configfile (ONE one-shot query, NOT live subscribe; Pitfall 3 — no duplicate configfile
             // query): TWO consumers off the SAME result.status.configfile.settings —
@@ -601,11 +607,16 @@ class MoonrakerSession(
                     emptyList()
                 },
             )
+
+            // Per-heater min/max temp for the Temperature adjust scrubber range (real Moonraker limits,
+            // NOT the fixed 350 clamp). Same one-shot configfile result — no extra query (Pitfall 3).
+            store.setHeaterLimits(if (settings != null) parseHeaterLimits(settings) else emptyMap())
         }.onFailure {
-            // configfile read FAILED entirely → clear output descriptors so a printer switch / failed read
-            // never leaves stale hardware controls visible (clear-on-failure, T-19-04-04). Best-effort like
-            // the rest of this block — the handshake already reached subscribe above.
+            // configfile read FAILED entirely → clear output descriptors AND heater limits so a printer
+            // switch / failed read never leaves stale hardware controls or scrubber bounds visible
+            // (clear-on-failure, T-19-04-04). Best-effort — the handshake already reached subscribe above.
             store.setOutputDescriptors(emptyList())
+            store.setHeaterLimits(emptyMap())
         }
     }
 

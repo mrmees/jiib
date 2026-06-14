@@ -219,6 +219,7 @@ class MoonrakerService : Service() {
             minExtrudeTemp = store.minExtrudeTemp,
             maxExtrudeDistance = store.maxExtrudeDistance,
             temperatureBackfill = store.temperatureBackfill,
+            heaterLimits = store.heaterLimits,
             // One-shot-per-handshake host telemetry (Phase 20 System Information) — forwarded off the
             // store like the other one-shots; the SystemInfoHolder (built below) consumes them.
             systemInfo = store.systemInfo,

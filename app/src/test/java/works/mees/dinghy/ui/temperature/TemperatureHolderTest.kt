@@ -127,10 +127,11 @@ class TemperatureHolderTest {
     }
 
     @Test
-    fun chamberIsThirdTraceAndExtraSensorsTruncated() = runTest(UnconfinedTestDispatcher()) {
+    fun allHeatersMonitoredAlphabeticallyNoCap() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
         val holder = TemperatureHolder(backgroundScope, store)
-        // A rich printer: nozzle + bed + TWO generic heaters. Only the FIRST generic is drawn (3-trace cap).
+        // A rich printer: nozzle + bed + TWO generic heaters. The 3-trace cap is RETIRED (Task 6) —
+        // ALL heaters are monitored, ordered alphabetically by object name.
         store.setCapabilities(
             Capabilities(
                 hasBed = true,
@@ -151,12 +152,15 @@ class TemperatureHolderTest {
         runCurrent()
 
         val legend = holder.legend.value
-        assertEquals("3-trace cap: nozzle/bed/chamber only", 3, legend.size)
-        assertEquals("heater_generic chamber", legend[2].name)
-        assertEquals("CHAMBER", legend[2].label)
-        assertTrue("exhaust truncated", legend.none { it.name == "heater_generic exhaust" })
-        assertEquals(3, holder.series.value.size)
-        assertEquals(3, holder.setpoints.value.size)
+        assertEquals(
+            "all four heaters monitored, alphabetical, uncapped",
+            listOf("extruder", "heater_bed", "heater_generic chamber", "heater_generic exhaust"),
+            legend.map { it.name },
+        )
+        assertEquals("CHAMBER", legend.first { it.name == "heater_generic chamber" }.label)
+        assertEquals("EXHAUST", legend.first { it.name == "heater_generic exhaust" }.label)
+        assertEquals(4, holder.series.value.size)
+        assertEquals(4, holder.setpoints.value.size)
     }
 
     @Test

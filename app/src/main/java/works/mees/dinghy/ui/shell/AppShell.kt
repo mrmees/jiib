@@ -189,7 +189,12 @@ fun AppShell(
     // The three Phase-5 control panels — each holder built off the SAME live per-session store and
     // re-keyed when the spine rebuilds (reconnect), mirroring the Print Status holder above.
     val temperatureHolder = remember(store) {
-        TemperatureHolder(scope = scope, store = store, traceStylePrefs = container.traceStylePrefs)
+        TemperatureHolder(
+            scope = scope,
+            store = store,
+            traceStylePrefs = container.traceStylePrefs,
+            activeProfileId = container.activeProfileId,
+        )
     }
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
     val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
@@ -535,6 +540,7 @@ fun AppShell(
                 TemperatureScreen(
                     container = container,
                     holder = temperatureHolder,
+                    activeSpoolDetail = activeSpoolDetail,
                     onBack = { navController.popBackStack() },
                 )
             }
