@@ -67,6 +67,7 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -455,6 +456,7 @@ private fun TemperatureContent(
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             onPanic = onEmergencyStop,
+                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
                         ) {
                             GraphViewHost(
                                 tokens = t,
@@ -471,13 +473,14 @@ private fun TemperatureContent(
                         // selectedSensor is a non-null LIVE readout here (resolved from legend above).
                         val sensor = selectedSensor
                         FocusFrame(
-                            title = stringResource(R.string.cd_launcher_temperature),
-                            icon = DinghyIcons.LauncherTemperature,
+                            title = sensor.label,
+                            icon = iconForSensor(sensor.name),
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             onPanic = onEmergencyStop,
+                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
                         ) {
                             TemperatureAdjusterFocus(
                                 sensor = sensor,
