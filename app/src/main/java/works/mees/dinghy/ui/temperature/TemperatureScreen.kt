@@ -81,6 +81,7 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
+import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 
@@ -165,6 +166,11 @@ fun TemperatureScreen(
     val themeTuple by container.activeThemeTuple.collectAsStateWithLifecycle(
         initialValue = ThemePrefs.TUPLE_DEFAULT,
     )
+    val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val selectedSensors by holder.selectedSensors.collectAsStateWithLifecycle()
+    val availableSensors = remember(caps) {
+        caps.objects.filter { it.startsWith("temperature_sensor ") }.sorted()
+    }
     var failureText by remember { mutableStateOf<String?>(null) }
 
     // quick-rmr: lifecycle-aware in-flight collection — DISPLAY ONLY (the heater AdjusterPanel
@@ -256,6 +262,8 @@ fun TemperatureScreen(
             inFlight = inFlight,
             seedHex = themeTuple.seedHex,
             dark = themeTuple.dark,
+            availableSensors = availableSensors,
+            selectedSensors = selectedSensors,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
                 holder.setTraceColor(sensorName, color)
@@ -264,6 +272,10 @@ fun TemperatureScreen(
             onSetTraceVisibility = { sensorName, visible ->
                 holder.setTraceVisibility(sensorName, visible)
                 container.setTraceVisibility(sensorName, visible)
+            },
+            onToggleSensor = { name, sel ->
+                holder.setSensorSelected(name, sel)
+                container.setSensorSelected(name, sel)
             },
             onNudgeHeater = { sensorName, rawTarget ->
                 // quick-rmr TAP handler: clamp per-tap (the display can never exceed bounds) and
@@ -326,9 +338,12 @@ fun TemperatureScreen(
     failureText: String? = null,
     seedHex: String = ThemePrefs.DEFAULT_SEED,
     dark: Boolean = true,
+    availableSensors: List<String> = emptyList(),
+    selectedSensors: Set<String> = emptySet(),
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
+    onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     onNudgeHeater: (String, Int) -> Unit = { _, _ -> },
     onHeaterOff: (String) -> Unit = {},
     onApplyPreset: (PrinterCommands.Preset) -> Unit = {},
@@ -347,9 +362,12 @@ fun TemperatureScreen(
             failureText = failureText,
             seedHex = seedHex,
             dark = dark,
+            availableSensors = availableSensors,
+            selectedSensors = selectedSensors,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
+            onToggleSensor = onToggleSensor,
             onNudgeHeater = onNudgeHeater,
             onHeaterOff = onHeaterOff,
             onApplyPreset = onApplyPreset,
@@ -374,6 +392,9 @@ private fun TemperatureContent(
     failureText: String?,
     seedHex: String,
     dark: Boolean,
+    availableSensors: List<String> = emptyList(),
+    selectedSensors: Set<String> = emptySet(),
+    onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
     // live target for display; the stateless/preview seam defaults to empty.
@@ -454,9 +475,15 @@ private fun TemperatureContent(
                         .weight(1f),
                 ) {
                     when {
-                        // settingsOpen -> sensor picker (Task 11 fills this in; for NOW fall
-                        // through to the graph because selectedName was cleared when settingsOpen
-                        // was set, so selectedSensor is null and the graph branch fires naturally).
+                        settingsOpen -> SensorPickerFocus(
+                            available = availableSensors,
+                            selected = selectedSensors,
+                            onToggle = onToggleSensor,
+                            onDone = { settingsOpen = false },
+                            isPrinting = isPrinting,
+                            onEmergencyStop = onEmergencyStop,
+                            uDp = grid.uDp,
+                        )
                         selectedSensor == null -> {
                             // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
                             FocusFrame(
@@ -727,6 +754,65 @@ private fun TemperatureContent(
 
     }
 }
+
+/**
+ * Settings Focus morph: lists all `temperature_sensor *` capability objects so the user can
+ * toggle which ones are actively monitored. Heaters (extruder*, heater_bed, etc.) are NOT listed —
+ * they are always monitored; only passive temperature_sensor objects appear here.
+ */
+@Composable
+private fun SensorPickerFocus(
+    available: List<String>,
+    selected: Set<String>,
+    onToggle: (String, Boolean) -> Unit,
+    onDone: () -> Unit,
+    isPrinting: Boolean,
+    onEmergencyStop: () -> Unit,
+    uDp: androidx.compose.ui.unit.Dp,
+) {
+    val t = LocalTokens.current
+    FocusFrame(
+        title = stringResource(R.string.temp_settings_title),
+        icon = DinghyIcons.TempSettings,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
+        onPanic = onEmergencyStop,
+        contentInset = FocusInset / 2,
+    ) {
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ListBlock(modifier = Modifier.weight(1f)) {
+                items(available, key = { it }) { name ->
+                    val isOn = name in selected
+                    ListRow(
+                        selected = isOn,
+                        onClick = { onToggle(name, !isOn) },
+                        uDp = uDp,
+                        leadingContent = {
+                            ListRowIcon(icon = iconForSensor(name), uDp = uDp, tint = t.text2)
+                        },
+                        trailingContent = {
+                            DinghyIconView(
+                                icon = if (isOn) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                                tint = if (isOn) t.accent else t.text2,
+                            )
+                        },
+                    ) { ListRowLabel(sensorPickerLabel(name)) }
+                }
+            }
+            OutlinedControl(
+                label = stringResource(R.string.common_done),
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Accent,
+            )
+        }
+    }
+}
+
+private fun sensorPickerLabel(objectName: String): String =
+    objectName.removePrefix("temperature_sensor ").uppercase()
 
 /**
  * Monitoring-mode appearance popup (Task-10): 4×2 color grid + visibility toggle + Done.
