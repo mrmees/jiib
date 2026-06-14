@@ -175,17 +175,11 @@
     <string name="spool_badge_loaded">Loaded on this printer</string>
     <string name="spool_badge_archived">Archived — verify before loading</string>
 
-    <!-- Line-3 weight readout (remaining/original or remaining-only) — DATA values, app frame only. -->
-    <string name="spool_weight_pair">%1$d/%2$d g</string>
-    <string name="spool_weight_single">%1$d g</string>
     <!-- Line-5 recommended temperature (°C). -->
     <string name="spool_temp">%1$d°C</string>
 
     <!-- spool contentDescription (cd_*) — TalkBack labels, never rendered as visible text. -->
     <string name="cd_spool_empty">No spool selected</string>
-    <string name="cd_spool_vendor">Vendor</string>
-    <string name="cd_spool_color">Color</string>
-    <string name="cd_spool_weight">Remaining weight — tap to correct the measured weight</string>
     <string name="cd_spool_weight_edit">Edit measured weight</string>
     <string name="cd_spool_registered">Registered date</string>
     <string name="cd_spool_nozzle_temp">Recommended nozzle temperature</string>
