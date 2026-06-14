@@ -226,8 +226,8 @@
     <!-- D-08 measured-weight Field-takeover (26-07): numeric IME entry for gross spool weight correction. -->
     <string name="spool_measure_prompt">Weighed Total (spool+filament)</string>
     <string name="spool_measure_placeholder">0 g</string>
-    <string name="spool_measure_tare_label">Spool weight (empty)</string>
-    <string name="spool_measure_total_label">Current total (spool + filament)</string>
+    <string name="spool_measure_tare_label">Spool Weight</string>
+    <string name="spool_measure_total_label">Expected Total</string>
     <string name="spool_measure_hint">Spoolman subtracts the spool weight from your weighed total to get filament remaining.</string>
     <string name="spool_measure_back">Back</string>
     <string name="spool_measure_set">Set</string>
