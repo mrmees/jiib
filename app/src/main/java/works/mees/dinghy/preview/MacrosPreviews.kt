@@ -202,7 +202,7 @@ private fun MacrosPseudolocaleSpotCheck() {
  */
 @Preview(name = "Selected macro landscape", device = NEXUS7, showBackground = true)
 @Composable
-private fun MacrosParamEntryLandscape() {
+private fun MacrosSelectedMacroLandscape() {
     PreviewBox(colorfulDark) {
         BookmarkedMacrosScreen(
             state = macrosLauncherState,

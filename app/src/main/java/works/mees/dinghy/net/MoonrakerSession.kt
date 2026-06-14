@@ -546,9 +546,8 @@ class MoonrakerSession(
             //       LOWERCASED macro name (Moonraker lowercases settings keys). `.gcode` is normally a
             //       single newline-joined string; if a printer returns an array, join with \n here.
             val cfgResult = rpc.request(CommandRegistry.objectsQuery, ObjectSubsetArgs(setOf("configfile")))
-            val settings = parseStatus(cfgResult)
-                ?.objectOrNull("configfile")
-                ?.objectOrNull("settings")
+            val configfile = parseStatus(cfgResult)?.objectOrNull("configfile")
+            val settings = configfile?.objectOrNull("settings")
 
             val extruderCfg = settings?.objectOrNull("extruder")
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
@@ -587,7 +586,7 @@ class MoonrakerSession(
             // LOWERCASED macro name (Moonraker lowercases settings keys). One pure pass over settings
             // (extractMacroConfigs) feeds BOTH the param-parser bodies and the Focus description text.
             // The raw `config` map is passed as the description fallback (spec priority: settings → config).
-            val configRaw = parseStatus(cfgResult)?.objectOrNull("configfile")?.objectOrNull("config")
+            val configRaw = configfile?.objectOrNull("config")
             val macroConfigs = if (settings != null) extractMacroConfigs(settings, configRaw) else emptyMap()
             store.setMacroBodies(macroConfigs.mapValues { it.value.gcode })
             store.setMacroDescriptions(

@@ -593,13 +593,13 @@ fun AppShell(
                 // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
                 LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
 
-                // Merged Macros screen (25-05 / D-09): ONE screen with MacroFieldMode (Launcher /
-                // ParamEntry / ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
-                // MacroExecutionPopup. MacroPrefs writes route through AppContainer.writeScope intent
-                // methods (WR-08 — [[dinghy-compose-write-scope-cancellation]]: a composition-scoped
-                // launch is cancelled by same-frame decomposition, silently dropping the write);
-                // session dispatcher passed for ParamEntry execute path; null-safe (Execute disabled
-                // while idle, WR-03).
+                // Merged Macros screen (25-05 / D-09): ONE screen with two field modes (Launcher /
+                // ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
+                // MacroExecutionPopup. The selected macro fills the Focus and Execute is a foot button.
+                // MacroPrefs writes route through AppContainer.writeScope intent methods (WR-08 —
+                // [[dinghy-compose-write-scope-cancellation]]: a composition-scoped launch is cancelled
+                // by same-frame decomposition, silently dropping the write); session dispatcher passed
+                // for the Execute/dispatch path; null-safe (Execute disabled while idle, WR-03).
                 BookmarkedMacrosScreen(
                     holder = macroHolder,
                     dispatcher = dispatcher,

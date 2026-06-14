@@ -2,7 +2,7 @@ package works.mees.dinghy.command
 
 /**
  * Thrown when a string macro-param value contains a forbidden character. The whole macro invocation is
- * rejected (never escaped/stripped/truncated); the 08-06 popup surfaces this as a SeverityToast.
+ * rejected (never escaped/stripped/truncated); the Macros screen surfaces this as a SeverityToast.
  *
  * @param paramName the offending parameter's key.
  * @param reason    a short, non-sensitive explanation (no echo of the offending value).
