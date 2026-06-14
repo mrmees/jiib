@@ -385,8 +385,9 @@ private fun FineTuneContent(
                                 // Trailing: current-value readout in GeistMono (D-23 fsSp floor).
                                 val displayValue = vm.valueForTuner(param.tuner)
                                 Text(
+                                    // No-space value/unit to match the Focus hero value (UAT 2026-06-13).
                                     text = if (displayValue == null) DASH
-                                           else fmtValue(displayValue, param.decimals) + param.unit,
+                                           else fmtValue(displayValue, param.decimals) + param.unit.trim(),
                                     fontFamily = GeistMono,
                                     fontSize = fsSp(17f, t.fs).sp,
                                     color = t.text2,
