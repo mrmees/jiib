@@ -453,78 +453,112 @@ private fun TemperatureContent(
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    if (selectedSensor == null) {
-                        // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
-                        FocusFrame(
-                            title = stringResource(R.string.cd_launcher_temperature),
-                            icon = DinghyIcons.LauncherTemperature,
-                            uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize(),
-                            isPrinting = isPrinting,
-                            onEmergencyStop = onEmergencyStop,
-                            onPanic = onEmergencyStop,
-                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
-                        ) {
-                            GraphViewHost(
-                                tokens = t,
-                                series = visible.series,
-                                setpoints = visible.setpoints,
-                                traceColors = visible.colors,
-                                yRange = graphRange,
-                                showAxisLabels = true,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    } else {
-                        // ADJUSTER: sensor selected — graph controls + optional heater adjuster.
-                        // selectedSensor is a non-null LIVE readout here (resolved from legend above).
-                        val sensor = selectedSensor
-                        FocusFrame(
-                            title = sensor.label,
-                            icon = iconForSensor(sensor.name),
-                            uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize(),
-                            isPrinting = isPrinting,
-                            onEmergencyStop = onEmergencyStop,
-                            onPanic = onEmergencyStop,
-                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
-                        ) {
-                            TemperatureAdjusterFocus(
-                                sensor = sensor,
-                                traceColor = traceColors[sensor.name],
-                                traceVisible = traceVisibility[sensor.name] ?: true,
-                                colorfulSwatches = colorfulSwatches,
-                                activeStep = activeStep,
-                                // quick-rmr: the pending working target wins over the live target
-                                // (the CR-02 live-temp seed inside TemperatureAdjusterFocus then
-                                // composes naturally on top — working wins when present).
-                                currentTarget = workingTargets[sensor.name] ?: sensor.target,
-                                onColorSelect = { color -> onSetTraceColor(sensor.name, color) },
-                                onVisibilityToggle = {
-                                    onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
-                                },
-                                onDecrement = { current ->
-                                    val rawTarget = (current - activeStep).roundToInt()
-                                    onNudgeHeater(sensor.name, rawTarget)
-                                },
-                                onIncrement = { current ->
-                                    val rawTarget = (current + activeStep).roundToInt()
-                                    onNudgeHeater(sensor.name, rawTarget)
-                                },
-                                onOff = { onHeaterOff(sensor.name) },
-                                onDone = { selectedName = null },
-                                onStepSelect = { activeStep = it },
-                                // quick-rmr: dim-but-tappable while THIS heater's commit is in
-                                // flight (taps keep accumulating — never a lockout).
-                                busy = heaterDispatchKey(sensor.name) in inFlight,
-                                // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
-                                rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
+                    when {
+                        // settingsOpen -> sensor picker (Task 11 fills this in; for NOW fall
+                        // through to the graph because selectedName was cleared when settingsOpen
+                        // was set, so selectedSensor is null and the graph branch fires naturally).
+                        selectedSensor == null -> {
+                            // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
+                            FocusFrame(
+                                title = stringResource(R.string.cd_launcher_temperature),
+                                icon = DinghyIcons.LauncherTemperature,
                                 uDp = grid.uDp,
-                                // No inner padding — the FocusFrame contentInset (FocusInset/2) owns
-                                // the spacing, matching Fine-Tune (the redundant 12dp made the
-                                // Temperature controls sit too far from the focus edge, UAT 2026-06-13).
                                 modifier = Modifier.fillMaxSize(),
-                            )
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                            ) {
+                                GraphViewHost(
+                                    tokens = t,
+                                    series = visible.series,
+                                    setpoints = visible.setpoints,
+                                    traceColors = visible.colors,
+                                    yRange = graphRange,
+                                    showAxisLabels = true,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                        mode == TempMode.Monitoring -> {
+                            // MONITORING APPEARANCE POPUP: sensor selected in Monitoring mode —
+                            // color grid + visibility toggle only (no heater controls).
+                            val sensor = selectedSensor
+                            FocusFrame(
+                                title = sensor.label,
+                                icon = iconForSensor(sensor.name),
+                                uDp = grid.uDp,
+                                modifier = Modifier.fillMaxSize(),
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2,
+                            ) {
+                                SensorAppearanceFocus(
+                                    traceColor = traceColors[sensor.name],
+                                    traceVisible = traceVisibility[sensor.name] ?: true,
+                                    colorfulSwatches = colorfulSwatches,
+                                    onColorSelect = { onSetTraceColor(sensor.name, it) },
+                                    onVisibilityToggle = {
+                                        onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
+                                    },
+                                    onDone = { selectedName = null },
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                        else -> {
+                            // ADJUSTER: mode == Adjust, sensor selected — graph controls + heater stepper.
+                            // Task 12 replaces this with HeaterControlFocus; keep verbatim for now.
+                            val sensor = selectedSensor
+                            FocusFrame(
+                                title = sensor.label,
+                                icon = iconForSensor(sensor.name),
+                                uDp = grid.uDp,
+                                modifier = Modifier.fillMaxSize(),
+                                isPrinting = isPrinting,
+                                onEmergencyStop = onEmergencyStop,
+                                onPanic = onEmergencyStop,
+                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                            ) {
+                                TemperatureAdjusterFocus(
+                                    sensor = sensor,
+                                    traceColor = traceColors[sensor.name],
+                                    traceVisible = traceVisibility[sensor.name] ?: true,
+                                    colorfulSwatches = colorfulSwatches,
+                                    activeStep = activeStep,
+                                    // quick-rmr: the pending working target wins over the live target
+                                    // (the CR-02 live-temp seed inside TemperatureAdjusterFocus then
+                                    // composes naturally on top — working wins when present).
+                                    currentTarget = workingTargets[sensor.name] ?: sensor.target,
+                                    onColorSelect = { color -> onSetTraceColor(sensor.name, color) },
+                                    onVisibilityToggle = {
+                                        onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
+                                    },
+                                    onDecrement = { current ->
+                                        val rawTarget = (current - activeStep).roundToInt()
+                                        onNudgeHeater(sensor.name, rawTarget)
+                                    },
+                                    onIncrement = { current ->
+                                        val rawTarget = (current + activeStep).roundToInt()
+                                        onNudgeHeater(sensor.name, rawTarget)
+                                    },
+                                    onOff = { onHeaterOff(sensor.name) },
+                                    onDone = { selectedName = null },
+                                    onStepSelect = { activeStep = it },
+                                    // quick-rmr: dim-but-tappable while THIS heater's commit is in
+                                    // flight (taps keep accumulating — never a lockout).
+                                    busy = heaterDispatchKey(sensor.name) in inFlight,
+                                    // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
+                                    rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
+                                    uDp = grid.uDp,
+                                    // No inner padding — the FocusFrame contentInset (FocusInset/2) owns
+                                    // the spacing, matching Fine-Tune (the redundant 12dp made the
+                                    // Temperature controls sit too far from the focus edge, UAT 2026-06-13).
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
 
@@ -691,6 +725,81 @@ private fun TemperatureContent(
             },
         )
 
+    }
+}
+
+/**
+ * Monitoring-mode appearance popup (Task-10): 4×2 color grid + visibility toggle + Done.
+ *
+ * Shown in the Focus when a sensor is tapped in Monitoring mode. No temperature controls —
+ * purely graph appearance: pick a trace color from the Colorful-8 pool and show/hide the trace.
+ */
+@Composable
+private fun SensorAppearanceFocus(
+    traceColor: Color?,
+    traceVisible: Boolean,
+    colorfulSwatches: List<Color>,
+    onColorSelect: (Color) -> Unit,
+    onVisibilityToggle: () -> Unit,
+    onDone: () -> Unit,
+    uDp: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 4×2 color grid fills the space between the FocusFrame header and the bottom buttons.
+        val swatchRows = colorfulSwatches.chunked(4) // two rows of four
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            swatchRows.forEach { rowColors ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowColors.forEach { poolColor ->
+                        val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                                .clip(CircleShape)
+                                .background(poolColor) // data color — THEME-01 carve-out
+                                .border(
+                                    BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
+                                    CircleShape,
+                                )
+                                .clickable { onColorSelect(poolColor) },
+                        )
+                    }
+                }
+            }
+        }
+        // Bottom buttons: Visibility · Done.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedControl(
+                label = "",
+                onClick = onVisibilityToggle,
+                modifier = Modifier.weight(1f),
+                intent = if (traceVisible) Intent.Accent else Intent.Neutral,
+                icon = if (traceVisible) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+            )
+            OutlinedControl(
+                label = stringResource(R.string.common_done),
+                onClick = onDone,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Accent,
+            )
+        }
     }
 }
 
