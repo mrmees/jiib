@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -280,8 +282,8 @@ private fun SpoolContent(
 
         val t = LocalTokens.current
         val spoolColor = selected?.filament?.colorSwatches?.firstNotNullOfOrNull { parseNormalizedHex(it) }
-        // Focus header title = the selected spool's identity (mirrors the list row); generic when none.
-        val focusTitle = selected?.let { spoolDisplayTitle(it) }
+        // Focus header title = vendor · material · name (MFG · Chemistry · Color); generic when none.
+        val focusTitle = selected?.let { spoolFocusTitle(it) }
             ?: stringResource(R.string.cd_launcher_spool)
 
         // Sort options — SortOption with registered DinghyIcons tokens.
@@ -841,9 +843,22 @@ private fun spoolDisplayTitle(spool: SpoolmanSpool): String =
         .ifBlank { stringResource(R.string.spool_unnamed, spool.id) }
 
 /**
+ * The Focus-header identity for a selected spool: `vendor · material · name`
+ * (MFG · Chemistry · Color), e.g. `Prusament · PLA · Galaxy Black`. Missing parts are skipped;
+ * degrades to `Spool <id>`. Distinct from [spoolDisplayTitle] (the list-row / measure-card
+ * `material · name`) because the list rows carry vendor in their meta line instead.
+ */
+@Composable
+private fun spoolFocusTitle(spool: SpoolmanSpool): String =
+    listOfNotNull(spool.filament?.vendor?.name, spool.filament?.material, spool.filament?.name)
+        .joinToString(" · ")
+        .ifBlank { stringResource(R.string.spool_unnamed, spool.id) }
+
+/**
  * The Detail card content for the selected spool (inside [FocusFrame]). The spool's identity lives in
- * the Focus header (title = material · name, icon = spool-colored ev_shadow); the empty state shows a
- * neutral ev_shadow ([DinghyIcons.SpoolFilament]). The FillMeter is the in-card color/fullness visual.
+ * the Focus header (title = vendor · material · name, icon = spool-colored ev_shadow); the empty state
+ * shows a neutral ev_shadow ([DinghyIcons.SpoolFilament]). The card body is the tappable FillMeter
+ * (also the measure-weight entry) plus the recommended temps and registration date.
  */
 @Composable
 private fun SpoolDetailContent(
@@ -882,40 +897,28 @@ private fun SpoolDetailContent(
             0f
         }
         val fillLabel = buildFillLabel(spool)
+        // The fill bar is the spool's weight visual (label shows remaining/original g · %) AND the
+        // tap target to correct the measured weight (the old standalone weight row was removed).
+        val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
         FillMeter(
             fraction = fillFraction,
             fillColor = spoolColor ?: t.accent,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(t.rCtrl))
+                .clickable(onClick = onMeasure)
+                .semantics { contentDescription = editWeightCd },
             label = fillLabel,
         )
-        // Vendor + color name.
+        // Nozzle + bed recommended temps.
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(DinghyIcons.Storefront, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_vendor))
-            DetailValue(filament?.vendor?.name, bodySp, Modifier.weight(1f), t)
-            DinghyIconView(DinghyIcons.Palette, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_color))
-            DetailValue(filament?.name, bodySp, Modifier.weight(1f), t)
-        }
-        // Weight row (tappable to correct measured weight via D-04).
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(t.rCtrl)).clickable(onClick = onMeasure)
-                .padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DinghyIconView(DinghyIcons.Scale, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight))
-            Text(
-                text = spoolWeightText(spool),
-                color = if (spool.remainingWeight == null) t.text3 else t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = bodySp.sp,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            DinghyIconView(DinghyIcons.Edit, tint = t.text3, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_weight_edit))
+            DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
+            Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+            DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
+            Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
         }
         // Registration date.
         Row(
@@ -931,16 +934,6 @@ private fun SpoolDetailContent(
                 fontSize = bodySp.sp,
                 maxLines = 1,
             )
-        }
-        // Nozzle + bed recommended temps.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
-            Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
-            DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
-            Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
         }
         if (isActive) {
             DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), bodySp, iconSp, t.go)
@@ -1063,33 +1056,6 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
 // ─────────────────────────────────────────────────────────────────────────────
 // Detail card sub-components (reused from original SpoolScreen)
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** A label-less detail value (body size; "—" when absent). */
-@Composable
-private fun DetailValue(value: String?, fontSizeSp: Float, modifier: Modifier, t: ThemeTokens) {
-    Text(
-        text = value?.ifBlank { null } ?: stringResource(R.string.spool_value_unset),
-        color = if (value.isNullOrBlank()) t.text3 else t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Medium,
-        fontSize = fontSizeSp.sp,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier,
-    )
-}
-
-/** Line-3 weight text: "remaining/original g" (e.g. `579/1000 g`); degrades to remaining-only or "—". */
-@Composable
-private fun spoolWeightText(spool: SpoolmanSpool): String {
-    val remaining = spool.remainingWeight ?: return stringResource(R.string.spool_value_unset)
-    val original = spool.originalWeight
-    return if (original != null) {
-        stringResource(R.string.spool_weight_pair, remaining.roundToInt(), original.roundToInt())
-    } else {
-        stringResource(R.string.spool_weight_single, remaining.roundToInt())
-    }
-}
 
 /** Line-5 temperature text: `210°C`, or "—" when unset. */
 @Composable
