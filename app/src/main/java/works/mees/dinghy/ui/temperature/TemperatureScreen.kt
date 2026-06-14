@@ -61,6 +61,7 @@ import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
@@ -82,6 +83,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.HeaterLimits
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 
@@ -167,6 +169,7 @@ fun TemperatureScreen(
         initialValue = ThemePrefs.TUPLE_DEFAULT,
     )
     val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val heaterLimits by holder.heaterLimits.collectAsStateWithLifecycle()
     val selectedSensors by holder.selectedSensors.collectAsStateWithLifecycle()
     val availableSensors = remember(caps) {
         caps.objects.filter { it.startsWith("temperature_sensor ") }.sorted()
@@ -264,6 +267,7 @@ fun TemperatureScreen(
             dark = themeTuple.dark,
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
+            heaterLimits = heaterLimits,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
                 holder.setTraceColor(sensorName, color)
@@ -340,6 +344,7 @@ fun TemperatureScreen(
     dark: Boolean = true,
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
+    heaterLimits: Map<String, HeaterLimits> = emptyMap(),
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
@@ -364,6 +369,7 @@ fun TemperatureScreen(
             dark = dark,
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
+            heaterLimits = heaterLimits,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
@@ -394,6 +400,7 @@ private fun TemperatureContent(
     dark: Boolean,
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
+    heaterLimits: Map<String, HeaterLimits> = emptyMap(),
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
@@ -535,9 +542,7 @@ private fun TemperatureContent(
                                 )
                             }
                         }
-                        else -> {
-                            // ADJUSTER: mode == Adjust, sensor selected — graph controls + heater stepper.
-                            // Task 12 replaces this with HeaterControlFocus; keep verbatim for now.
+                        else -> { // mode == Adjust, a heater row selected
                             val sensor = selectedSensor
                             FocusFrame(
                                 title = sensor.label,
@@ -549,40 +554,18 @@ private fun TemperatureContent(
                                 onPanic = onEmergencyStop,
                                 contentInset = FocusInset / 2, // shared calibration-focus rhythm
                             ) {
-                                TemperatureAdjusterFocus(
+                                HeaterControlFocus(
                                     sensor = sensor,
-                                    traceColor = traceColors[sensor.name],
-                                    traceVisible = traceVisibility[sensor.name] ?: true,
-                                    colorfulSwatches = colorfulSwatches,
-                                    activeStep = activeStep,
-                                    // quick-rmr: the pending working target wins over the live target
-                                    // (the CR-02 live-temp seed inside TemperatureAdjusterFocus then
-                                    // composes naturally on top — working wins when present).
                                     currentTarget = workingTargets[sensor.name] ?: sensor.target,
-                                    onColorSelect = { color -> onSetTraceColor(sensor.name, color) },
-                                    onVisibilityToggle = {
-                                        onSetTraceVisibility(sensor.name, !(traceVisibility[sensor.name] ?: true))
-                                    },
-                                    onDecrement = { current ->
-                                        val rawTarget = (current - activeStep).roundToInt()
-                                        onNudgeHeater(sensor.name, rawTarget)
-                                    },
-                                    onIncrement = { current ->
-                                        val rawTarget = (current + activeStep).roundToInt()
-                                        onNudgeHeater(sensor.name, rawTarget)
-                                    },
+                                    activeStep = activeStep,
+                                    scrubRange = heaterScrubberRange(heaterLimits[sensor.name]),
+                                    busy = heaterDispatchKey(sensor.name) in inFlight,
+                                    rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
+                                    onNudge = { raw -> onNudgeHeater(sensor.name, raw) },
+                                    onStepSelect = { activeStep = it },
                                     onOff = { onHeaterOff(sensor.name) },
                                     onDone = { selectedName = null },
-                                    onStepSelect = { activeStep = it },
-                                    // quick-rmr: dim-but-tappable while THIS heater's commit is in
-                                    // flight (taps keep accumulating — never a lockout).
-                                    busy = heaterDispatchKey(sensor.name) in inFlight,
-                                    // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
-                                    rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
                                     uDp = grid.uDp,
-                                    // No inner padding — the FocusFrame contentInset (FocusInset/2) owns
-                                    // the spacing, matching Fine-Tune (the redundant 12dp made the
-                                    // Temperature controls sit too far from the focus edge, UAT 2026-06-13).
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -890,131 +873,69 @@ private fun SensorAppearanceFocus(
 }
 
 /**
- * The adjuster surface that appears in the Focus when a sensor is selected (D-10 morph).
+ * The heater-control surface shown in the Focus when an adjustable sensor is selected in Adjust mode
+ * (D-10 morph). Pure heater target control — NO color/visibility (appearance is Monitoring-only,
+ * Task 10's [SensorAppearanceFocus]).
  *
- * For EVERY selected sensor: show/hide trace toggle + 8-swatch Colorful-pool color row (D-14).
- * For ADJUSTABLE heaters: [AdjusterPanel] with target temp stepper + per-heater Off (D-13).
+ * Two index-aligned committers, both routed through the SAME trailing-commit batcher via [onNudge]
+ * (absolute target, batcher-clamped):
+ *  - [AdjusterPanel] ± stepper with [TEMP_STEPS] increment picker.
+ *  - [Scrubber] (0..max_temp from config) — [Scrubber.onValueChange] updates a LOCAL preview only
+ *    (`scrubLive`, no dispatch); [Scrubber.onSettle] clears the preview and commits the absolute
+ *    target once on pointer-up. No double-dispatch, no per-frame dispatch.
+ *
+ * @param currentTarget the pending working-or-live target (null = heater off → seed from live temp).
+ * @param scrubRange    0..max_temp from [heaterScrubberRange] (config limits or global clamp).
  */
 @Composable
-private fun TemperatureAdjusterFocus(
+private fun HeaterControlFocus(
     sensor: SensorReadout,
-    traceColor: Color?,
-    traceVisible: Boolean,
-    colorfulSwatches: List<Color>,
-    activeStep: Double,
     currentTarget: Double?,
-    onColorSelect: (Color) -> Unit,
-    onVisibilityToggle: () -> Unit,
-    onDecrement: (Double) -> Unit,
-    onIncrement: (Double) -> Unit,
+    activeStep: Double,
+    scrubRange: ClosedFloatingPointRange<Float>,
+    busy: Boolean,
+    rejectTick: Long,
+    onNudge: (Int) -> Unit,        // absolute new target (clamped by the batcher)
+    onStepSelect: (Double) -> Unit,
     onOff: () -> Unit,
     onDone: () -> Unit,
-    onStepSelect: (Double) -> Unit,
     uDp: androidx.compose.ui.unit.Dp,
-    rejectTick: Long = 0L,
-    busy: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // ── Graph controls: show/hide toggle + 8-swatch color row ────────────────────────
-        Row(
+    val seed: Double = currentTarget ?: sensor.current.let { if (it > 0.0) it else 0.0 }
+    var scrubLive by remember(sensor.name) { mutableStateOf<Float?>(null) }
+    val shown: Double = scrubLive?.toDouble() ?: seed
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AdjusterPanel(
+            value = shown,
+            unit = "°C",
+            baseline = null,
+            decimals = 0,
+            onDecrement = { onNudge((shown - activeStep).roundToInt()) },
+            onIncrement = { onNudge((shown + activeStep).roundToInt()) },
+            enabled = true,
+            busy = busy,
+            rejectTick = rejectTick,
+            incrementPicker = { IncrementPicker(steps = TEMP_STEPS, activeStep = activeStep, onSelect = onStepSelect, uDp = uDp) },
+            uDp = uDp,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Show/hide trace toggle (D-14 — Visibility / VisibilityOff from registry).
-            OutlinedControl(
-                label = "",
-                onClick = onVisibilityToggle,
-                modifier = Modifier.weight(1f),
-                intent = if (traceVisible) Intent.Accent else Intent.Neutral,
-                icon = if (traceVisible) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
-            )
-            // D-14: Done button to return to the graph view.
-            OutlinedControl(
-                label = stringResource(R.string.common_done),
-                onClick = onDone,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent, // R5: return-to-graph nav = accent
-            )
-        }
-
-        // 8-swatch Colorful-pool color row (D-14 / THEME-01 data carve-out).
-        // ALWAYS exactly 8 swatches from the dedicated Colorful pool (finding 5 — NOT t.pool.take(8)).
-        Row(
+        )
+        Scrubber(
+            name = "",
+            value = seed.toFloat(),
+            range = scrubRange,
+            step = 1f,
+            uDp = uDp,
+            unit = "°C",
+            onValueChange = { scrubLive = it },
+            onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            colorfulSwatches.forEach { poolColor ->
-                val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .clip(CircleShape)
-                        .background(poolColor) // data color — THEME-01 carve-out
-                        .border(
-                            BorderStroke(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = t.accentLine,
-                            ),
-                            CircleShape,
-                        )
-                        .clickable { onColorSelect(poolColor) },
-                )
-            }
-        }
-
-        // ── Heater controls (D-13 / D-22): only for adjustable sensors ──────────────────
-        if (sensor.isAdjustable) {
-            // CR-02 (26-rev): when the heater is OFF (target == null), seed the adjuster from the
-            // live temperature so the stepper can heat an idle heater — AdjusterPanel renders DASH
-            // and disables both tiles on a null value, which would otherwise make the primary
-            // heater-setpoint control inert until a Preset was applied. clampHeaterTarget keeps the
-            // nudged result legal.
-            val currentValue: Double? = currentTarget ?: sensor.current.let { if (it > 0.0) it else null }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            AdjusterPanel(
-                value = currentValue,
-                unit = "°C",
-                baseline = null, // Temperature target has no persistent "entry baseline" — no Reset
-                decimals = 0,
-                onDecrement = {
-                    val base = currentValue ?: 0.0
-                    onDecrement(base)
-                },
-                onIncrement = {
-                    val base = currentValue ?: 0.0
-                    onIncrement(base)
-                },
-                enabled = true,
-                busy = busy,
-                incrementPicker = {
-                    IncrementPicker(
-                        steps = TEMP_STEPS,
-                        activeStep = activeStep,
-                        onSelect = onStepSelect,
-                        uDp = uDp,
-                    )
-                },
-                uDp = uDp,
-                rejectTick = rejectTick,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // D-13: Per-heater Off (P19 GAP-A precedent — Intent.Warn, target=0).
-            OutlinedControl(
-                label = stringResource(R.string.output_off),
-                onClick = onOff,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Warn,
-            )
+        )
+        Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
+            OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
         }
     }
 }
