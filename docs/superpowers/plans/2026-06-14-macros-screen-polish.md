@@ -100,7 +100,7 @@ Append these tests to `MacroParamParserTest.kt` (before the closing `}`):
     fun bracketSyntaxParam_isDiscovered() {
         // Codex doc: params["NAME"] / params['NAME'] bracket access is a real Klipper idiom the
         // verbatim Mainsail dot-regex misses. The new bracket pass must discover it.
-        val body = """{% set p = params["PROFILE"]|default('default') %}\nBED_MESH_PROFILE LOAD={p}"""
+        val body = """{% set p = params["PROFILE"] %}\nBED_MESH_PROFILE LOAD={p}"""
         val params = MacroParamParser.parseMacroParams(body)
         assertTrue("bracket param PROFILE must be discovered", params.any { it.name == "PROFILE" })
     }
@@ -109,6 +109,22 @@ Append these tests to `MacroParamParserTest.kt` (before the closing `}`):
     fun bracketSyntaxSingleQuote_isDiscovered() {
         val params = MacroParamParser.parseMacroParams("M104 S{params['EXTRUDER']}")
         assertTrue(params.any { it.name == "EXTRUDER" })
+    }
+
+    @Test
+    fun bracketSyntaxWithDefault_isOptionalAndCapturesDefault() {
+        // BLOCK-1 fix: a bracket param WITH a |default(...) must be optional and pre-fill the default,
+        // exactly like the dot-access path — not silently forced required.
+        val params = MacroParamParser.parseMacroParams("""BED_MESH_PROFILE LOAD={params["PROFILE"]|default('default')}""")
+        val p = params.first { it.name == "PROFILE" }
+        assertFalse("bracket param with a default is optional", p.required)
+        assertEquals("default", p.default)
+    }
+
+    @Test
+    fun bracketSyntaxWithoutDefault_isRequired() {
+        val params = MacroParamParser.parseMacroParams("""BED_MESH_PROFILE LOAD={params["PROFILE"]}""")
+        assertTrue(params.first { it.name == "PROFILE" }.required)
     }
 
     @Test
@@ -145,6 +161,12 @@ Add the missing import at the top of the test file (next to the other `org.junit
 import org.junit.Assert.assertFalse
 ```
 
+Also strengthen the EXISTING `inParamsGuardForm_addsNullTypeNullDefault` test (BLOCK-2 regression guard): a membership-guarded param must NOT be marked required even though the dot-access pass sees `{params.NOZZLE}` first. Add this line to the end of that test body:
+
+```kotlin
+        assertFalse("a 'X' in params guarded param is optional, not required", nozzle.required)
+```
+
 - [ ] **Step 3: Run the tests to verify they fail**
 
 ```bash
@@ -158,12 +180,13 @@ In `MacroParamParser.kt`, add two new regexes after `PARAM_IN_REGEX` (do NOT tou
 
 ```kotlin
     /**
-     * Bracket-access param idiom `params["NAME"]` / `params['NAME']` (Codex extraction doc). Captures the
-     * name only — bracket access rarely carries an inline `|default`/type the same way dot-access does, so
-     * a bracket param degrades to type=null/default=null (→ string keyboard, the safe default). Additive:
-     * the verbatim Mainsail dot-regex is left untouched.
+     * Bracket-access param idiom `params["NAME"]` / `params['NAME']` (Codex extraction doc), with an
+     * OPTIONAL trailing `|default(<expr>)` captured the same way the dot-regex does (group 2). Additive:
+     * the verbatim Mainsail dot-regex is left untouched. A bracket param with a default is optional and
+     * pre-fills it; without one it is required (BLOCK-1 fix).
+     *  group 1 = param name · group 2 = default expr (optional, surrounding quotes stripped)
      */
-    val PARAM_BRACKET_REGEX = Regex("""params\s*\[\s*['"]([A-Za-z_0-9]+)['"]\s*]""")
+    val PARAM_BRACKET_REGEX = Regex("""params\s*\[\s*['"]([A-Za-z_0-9]+)['"]\s*](?:\s*\|\s*default\('?"?(.*?)"?'?\))?""")
 
     /** A macro that reads the full unparsed arg string. When present, param inference is unreliable. */
     private val RAWPARAMS_REGEX = Regex("""\brawparams\b""")
@@ -174,21 +197,27 @@ Add the `usesRawParams` function and fold `required` into `parseMacroParams`. Re
 ```kotlin
     fun parseMacroParams(gcodeBody: String): List<MacroParam> {
         val out = linkedMapOf<String, MacroParam>() // first-seen order, dedup by name
+        // BLOCK-2 fix: collect membership-guarded names FIRST. `{% if 'X' in params %}` means the macro
+        // checks presence before use → X is optional even though a later `{params.X}` (dot-access, runs
+        // before the guard pass under putIfAbsent) would otherwise mark it required.
+        val optionalByGuard = PARAM_IN_REGEX.findAll(gcodeBody).map { it.groupValues[1] }.toSet()
         for (m in PARAM_REGEX.findAll(gcodeBody)) {
             val name = m.groupValues[1]
             // type = leading filter (group 2) else trailing filter (group 4) else null
             val type = m.groupValues[2].ifEmpty { m.groupValues[4] }.ifEmpty { null }
             val default = m.groupValues[3].ifEmpty { null }
-            // required heuristic (Codex doc): a param referenced WITHOUT |default(...) is required.
-            out.putIfAbsent(name, MacroParam(name, type, default, required = default == null))
-        }
-        for (m in PARAM_IN_REGEX.findAll(gcodeBody)) {
-            // membership-guarded params are optional-by-nature (the macro checks before use).
-            out.putIfAbsent(m.groupValues[1], MacroParam(m.groupValues[1], null, null, required = false))
+            // required heuristic (Codex doc): a param referenced WITHOUT |default(...) is required,
+            // unless a membership guard proves it optional.
+            out.putIfAbsent(name, MacroParam(name, type, default, required = default == null && name !in optionalByGuard))
         }
         for (m in PARAM_BRACKET_REGEX.findAll(gcodeBody)) {
-            // bracket access carries no inline default → treat as required (no default detected).
-            out.putIfAbsent(m.groupValues[1], MacroParam(m.groupValues[1], null, null, required = true))
+            val name = m.groupValues[1]
+            val default = m.groupValues[2].ifEmpty { null }
+            out.putIfAbsent(name, MacroParam(name, null, default, required = default == null && name !in optionalByGuard))
+        }
+        // Any guarded param NOT already discovered by dot/bracket access is added as optional.
+        for (name in optionalByGuard) {
+            out.putIfAbsent(name, MacroParam(name, null, null, required = false))
         }
         return out.values.toList()
     }
@@ -295,6 +324,24 @@ class MacroConfigExtractionTest {
         val s = settings("""{ "gcode_macro broken": { "description": "no body" } }""")
         assertTrue(extractMacroConfigs(s).isEmpty())
     }
+
+    @Test
+    fun descriptionFallsBackToConfigWhenSettingsLacksIt() {
+        // Spec description priority: settings[section].description THEN config[section].description.
+        // configfile.config preserves the RAW (non-lowercased) section name, so the fallback match is
+        // case-insensitive against the lowercased settings key.
+        val s = settings("""{ "gcode_macro print_start": { "gcode": "G28" } }""")
+        val config = settings("""{ "gcode_macro PRINT_START": { "description": "Starts the print", "gcode": "G28" } }""")
+        val configs = extractMacroConfigs(s, config)
+        assertEquals("Starts the print", configs["print_start"]?.description)
+    }
+
+    @Test
+    fun settingsDescriptionWins_overConfig() {
+        val s = settings("""{ "gcode_macro m": { "description": "from settings", "gcode": "G28" } }""")
+        val config = settings("""{ "gcode_macro M": { "description": "from config", "gcode": "G28" } }""")
+        assertEquals("from settings", extractMacroConfigs(s, config)["m"]?.description)
+    }
 }
 ```
 
@@ -328,19 +375,23 @@ data class MacroConfigEntry(
 )
 
 /**
- * PURE: `configfile.settings` JsonObject → lowercased-macro-name → [MacroConfigEntry]. Total — a missing
- * or garbage field is skipped, never thrown (the house "a bad field is skipped, never fatal" rule). A
- * `gcode_macro` section with no usable `gcode` body is skipped entirely (matches the prior inline
- * behaviour, so the existing macroBodies map / HandshakeTest are unaffected). Moonraker lowercases
- * settings keys, so the section name is already lowercase; the returned key is that lowercased name.
+ * PURE: `configfile.settings` (+ optional raw `configfile.config`) JsonObject → lowercased-macro-name →
+ * [MacroConfigEntry]. Total — a missing or garbage field is skipped, never thrown (the house "a bad
+ * field is skipped, never fatal" rule). A `gcode_macro` section with no usable `gcode` body is skipped
+ * entirely (matches the prior inline behaviour, so the existing macroBodies map / HandshakeTest are
+ * unaffected). Moonraker lowercases settings keys, so the section name is already lowercase; the
+ * returned key is that lowercased name.
+ *
+ * Description priority (spec): `settings[section].description` → `config[section].description` → null.
+ * `config` preserves the RAW (un-lowercased) section name, so the fallback match is case-insensitive.
  */
-internal fun extractMacroConfigs(settings: JsonObject): Map<String, MacroConfigEntry> =
+internal fun extractMacroConfigs(settings: JsonObject, config: JsonObject? = null): Map<String, MacroConfigEntry> =
     settings.entries.mapNotNull { (key, value) ->
         if (!key.startsWith("gcode_macro ")) return@mapNotNull null
         val obj = value as? JsonObject ?: return@mapNotNull null
         val gcode = obj.gcodeBody() ?: return@mapNotNull null
         val name = key.removePrefix("gcode_macro ").lowercase()
-        val description = (obj["description"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+        val description = obj.descriptionOrNull() ?: config?.let { configDescriptionFor(it, name) }
         name to MacroConfigEntry(gcode = gcode, description = description)
     }.toMap()
 
@@ -352,6 +403,19 @@ private fun JsonObject.gcodeBody(): String? = runCatching {
         else -> null
     }
 }.getOrNull()
+
+/** Non-blank `description` field of a macro section, or null. */
+private fun JsonObject.descriptionOrNull(): String? =
+    (this["description"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+
+/** Description for [lowerName] from the raw `config` map, matching the `gcode_macro <name>` section case-insensitively. */
+private fun configDescriptionFor(config: JsonObject, lowerName: String): String? {
+    val section = config.entries.firstOrNull {
+        it.key.startsWith("gcode_macro ") &&
+            it.key.removePrefix("gcode_macro ").equals(lowerName, ignoreCase = true)
+    }?.value as? JsonObject
+    return section?.descriptionOrNull()
+}
 ```
 
 - [ ] **Step 4: Run the extraction test to verify it passes**
@@ -428,7 +492,9 @@ with:
             // (b) every `gcode_macro <name>` section's `.gcode` body + `description`, keyed by the
             // LOWERCASED macro name (Moonraker lowercases settings keys). One pure pass over settings
             // (extractMacroConfigs) feeds BOTH the param-parser bodies and the Focus description text.
-            val macroConfigs = if (settings != null) extractMacroConfigs(settings) else emptyMap()
+            // The raw `config` map is passed as the description fallback (spec priority: settings → config).
+            val configRaw = parseStatus(cfgResult)?.objectOrNull("configfile")?.objectOrNull("config")
+            val macroConfigs = if (settings != null) extractMacroConfigs(settings, configRaw) else emptyMap()
             store.setMacroBodies(macroConfigs.mapValues { it.value.gcode })
             store.setMacroDescriptions(
                 macroConfigs.entries.mapNotNull { (name, cfg) -> cfg.description?.let { name to it } }.toMap(),
@@ -1742,5 +1808,13 @@ Not a code step — owner-driven. Per the test-devices memory, push the matching
 - **Spec coverage:** description capture (Task 2) ✓; bracket-syntax/rawparams/required parser upgrades (Task 1) ✓; data-model additions (Tasks 1+3) ✓; Focus/Field grammar fix + empty-state Focus + Execute foot button + omit-empty-params (Task 5) ✓; raw-args field + sanitizer (Tasks 4+5) ✓; security sanitizer retained & extended (Task 4) ✓; tests for parser/extraction/holder/invocation (Tasks 1–4) ✓; non-goals (live vars/deps/subscribe) excluded ✓.
 - **Deliberate spec deviations (flagged for Codex/owner):** (1) numeric-IME selection kept to explicit `int`/`double` only (NOT "default parses as a number") to avoid locking a user out of a field — owner guidance was "system keyboard, don't overthink." (2) `required` is captured + shown as a `*` marker but never gates Execute (matches "don't hard-gate"). (3) raw-args mode also covers macros with zero inferred params (every macro stays runnable), so the old `macros_no_params` notice is retired. (4) raw-args sanitizer rejects `"` (consistent REJECT posture) — quoted args unsupported in raw mode by design.
 - **Placeholder scan:** none — every step has concrete code/commands.
-- **Type consistency:** `MacroParam(name, type, default, required)`; `MacroVm(..., description, usesRawParams)`; `MacroConfigEntry(gcode, description)`; `extractMacroConfigs`; `usesRawParams`; `buildRaw`; `setMacroDescriptions`; `selectedName`/`onSelect` — names match across tasks.
+- **Type consistency:** `MacroParam(name, type, default, required)`; `MacroVm(..., description, usesRawParams)`; `MacroConfigEntry(gcode, description)`; `extractMacroConfigs(settings, config?)`; `usesRawParams`; `buildRaw`; `setMacroDescriptions`; `selectedName`/`onSelect` — names match across tasks.
+
+## Codex review pass (pre-execution)
+
+Reviewed by Codex (gpt-5.5) on 2026-06-14; verdict FIX-THEN-EXECUTE. All findings applied to this plan:
+- **BLOCK-1 (fixed):** the bracket-param regex now captures an optional `|default(...)` (group 2); a bracket param with a default is optional and pre-fills it, without one it is required. New tests `bracketSyntaxWithDefault_isOptionalAndCapturesDefault` / `bracketSyntaxWithoutDefault_isRequired`.
+- **BLOCK-2 (fixed):** membership-guarded names are collected FIRST into `optionalByGuard`; the dot/bracket passes consult it so `{% if 'X' in params %}` correctly keeps `X` optional even though the dot-access pass runs first under `putIfAbsent`. Existing guard test strengthened with `assertFalse(nozzle.required)`.
+- **WARN (fixed):** `extractMacroConfigs` now takes an optional raw `config` map and falls back to `config[section].description` (case-insensitive) when `settings` lacks a description — honouring the spec's description priority. New tests `descriptionFallsBackToConfigWhenSettingsLacksIt` / `settingsDescriptionWins_overConfig`.
+- Codex NIT confirmations (no action): ColumnScope slots valid; all DS component/token signatures match; `gcodeBodyOrNull()` deletion safe; `execute()` is dispatch-only (no write-scope trap); HandshakeTest unaffected; raw-args security gate sound.
 ```
