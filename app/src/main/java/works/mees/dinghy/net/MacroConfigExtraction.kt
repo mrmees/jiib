@@ -52,8 +52,8 @@ private fun JsonObject.descriptionOrNull(): String? =
 /** Description for [lowerName] from the raw `config` map, matching the `gcode_macro <name>` section case-insensitively. */
 private fun configDescriptionFor(config: JsonObject, lowerName: String): String? {
     val section = config.entries.firstOrNull {
-        it.key.startsWith("gcode_macro ") &&
-            it.key.removePrefix("gcode_macro ").equals(lowerName, ignoreCase = true)
+        it.key.startsWith("gcode_macro ", ignoreCase = true) &&
+            it.key.substring("gcode_macro ".length).equals(lowerName, ignoreCase = true)
     }?.value as? JsonObject
     return section?.descriptionOrNull()
 }

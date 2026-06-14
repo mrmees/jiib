@@ -103,7 +103,7 @@ object MacroInvocation {
     private fun rejectNonNumeric(paramName: String, value: String) {
         val plainNumber = value.isNotEmpty() &&
             value.none { it.isWhitespace() } &&
-            value.toDoubleOrNull() != null
+            value.toDoubleOrNull()?.isFinite() == true
         if (!plainNumber) {
             throw MacroParamRejected(
                 paramName,

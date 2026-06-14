@@ -184,4 +184,18 @@ class MacroInvocationTest {
             MacroInvocation.buildRaw("ECHO", """MSG="hi"""")
         }
     }
+
+    @Test
+    fun buildTyped_nanNumericValue_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped("LOAD_FILAMENT", listOf(Triple("TEMP", "NaN", true)))
+        }
+    }
+
+    @Test
+    fun buildTyped_infinityNumericValue_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped("LOAD_FILAMENT", listOf(Triple("TEMP", "Infinity", true)))
+        }
+    }
 }
