@@ -33,17 +33,21 @@ data class MacroScreensState(
 
 /**
  * Toolkit-agnostic StateFlow holder (mirrors [works.mees.dinghy.ui.files.FileBrowserHolder]) for the
- * macro screens (MACRO-01/03). It `combine`s three reactive sources into one [MacroScreensState]:
+ * macro screens (MACRO-01/03). It combines the three public constructor StateFlows (capabilities,
+ * bookmarks, revealHidden) with two locally-owned maps (bodies + descriptions) into one
+ * [MacroScreensState]:
  *
  *  1. `Capabilities.macros` — the NAME of each `gcode_macro NAME`, re-derived on every reconnect.
  *  2. `bookmarks` — the user's pinned set (from [MacroPrefs] in production; a stub flow in tests).
  *  3. `revealHidden` — the MACRO-03 underscore-reveal toggle (from [MacroPrefs] / a stub flow).
- *
- * Plus a fourth, locally-owned source: the parsed-param bodies map. The PRODUCTION
- * [works.mees.dinghy.state.PrinterStateStore.macroBodies] stream is fed in by the 08-07 wiring via
- * [setMacroBodies]; tests seed a single body with [setMacroBody]. Each macro's `params` come from
- * running [MacroParamParser.parseMacroParams] over its body (empty list until a body arrives — a
- * macro with no detected params is still launchable, the popup just shows no fields).
+ *  4. `_macroBodies` — locally-owned parsed-param bodies map. The PRODUCTION
+ *     [works.mees.dinghy.state.PrinterStateStore.macroBodies] stream is fed in by the 08-07 wiring
+ *     via [setMacroBodies]; tests seed a single body with [setMacroBody]. Each macro's `params`
+ *     come from running [MacroParamParser.parseMacroParams] over its body (empty list until a body
+ *     arrives — a macro with no detected params is still launchable, the popup just shows no fields).
+ *  5. `_macroDescriptions` — locally-owned per-macro descriptions map. Fed from
+ *     [works.mees.dinghy.state.PrinterStateStore.macroDescriptions] by the shell wiring on every
+ *     handshake; consumed via the case-insensitive [descriptionFor] lookup (parallel to the bodies map).
  *
  * Capability gate: an empty `Capabilities.macros` sets `unavailable` and yields empty lists — the
  * screens degrade to the no-macros copy rather than render dead tiles.
@@ -61,10 +65,13 @@ class MacroHolder(
     /** Per-macro gcode bodies keyed by name (case-insensitive lookups go through [bodyFor]). */
     private val _macroBodies = MutableStateFlow<Map<String, String>>(emptyMap())
 
+    /** Per-macro descriptions keyed by name (case-insensitive lookups go through [descriptionFor]). */
+    private val _macroDescriptions = MutableStateFlow<Map<String, String>>(emptyMap())
+
     private val _state = MutableStateFlow(MacroScreensState())
     val state: StateFlow<MacroScreensState> = _state.asStateFlow()
 
-    // The combine collector below is NON-TERMINATING by design (it folds four StateFlows that never
+    // The combine collector below is NON-TERMINATING by design (it folds five StateFlows that never
     // complete). Run it in a child scope whose SupervisorJob is NOT a child of [scope]'s Job, so
     // [scope] is never blocked waiting for it to finish under structured concurrency — it inherits
     // [scope]'s dispatcher (so a test's StandardTestDispatcher still drives it deterministically) but
@@ -87,8 +94,9 @@ class MacroHolder(
                 bookmarks,
                 revealHidden,
                 _macroBodies,
-            ) { caps, marks, reveal, bodies ->
-                buildState(caps.macros, marks, reveal, bodies)
+                _macroDescriptions,
+            ) { caps, marks, reveal, bodies, descriptions ->
+                buildState(caps.macros, marks, reveal, bodies, descriptions)
             }.collect { _state.value = it }
         }
     }
@@ -110,21 +118,33 @@ class MacroHolder(
         _macroBodies.value = bodies
     }
 
+    /**
+     * Replace the whole descriptions map (the production seam — fed from
+     * [works.mees.dinghy.state.PrinterStateStore.macroDescriptions] by the shell wiring on every handshake).
+     */
+    fun setMacroDescriptions(descriptions: Map<String, String>) {
+        _macroDescriptions.value = descriptions
+    }
+
     private fun buildState(
         macroNames: List<String>,
         bookmarks: Set<String>,
         reveal: Boolean,
         bodies: Map<String, String>,
+        descriptions: Map<String, String>,
     ): MacroScreensState {
         if (macroNames.isEmpty()) {
             return MacroScreensState(revealHidden = reveal, unavailable = true)
         }
         val all = macroNames.map { name ->
+            val body = bodyFor(bodies, name)
             MacroVm(
                 name = name,
                 isBookmarked = bookmarks.any { it.equals(name, ignoreCase = true) },
                 isHidden = name.startsWith("_"),
-                params = bodyFor(bodies, name)?.let { MacroParamParser.parseMacroParams(it) } ?: emptyList(),
+                params = body?.let { MacroParamParser.parseMacroParams(it) } ?: emptyList(),
+                description = descriptionFor(descriptions, name),
+                usesRawParams = body?.let { MacroParamParser.usesRawParams(it) } ?: false,
             )
         }
         val visible = all.filter { reveal || !it.isHidden }
@@ -141,6 +161,10 @@ class MacroHolder(
     /** Case-insensitive body lookup (Moonraker lowercases macro names — see [Capabilities]). */
     private fun bodyFor(bodies: Map<String, String>, name: String): String? =
         bodies[name] ?: bodies.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+
+    /** Case-insensitive description lookup (Moonraker lowercases macro names). */
+    private fun descriptionFor(descriptions: Map<String, String>, name: String): String? =
+        descriptions[name] ?: descriptions.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
 
     /**
      * Whether this macro's parameters can be considered AUTHORITATIVE yet (WR-03). The Execution popup

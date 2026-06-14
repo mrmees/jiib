@@ -5,6 +5,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import works.mees.dinghy.net.MoonrakerJson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,5 +89,79 @@ class MacroParamParserTest {
         val nozzle = params.first { it.name == "NOZZLE" }
         assertNull(nozzle.type)
         assertNull(nozzle.default)
+        assertFalse("a 'X' in params guarded param is optional, not required", nozzle.required)
+    }
+
+    @Test
+    fun bracketSyntaxParam_isDiscovered() {
+        // Codex doc: params["NAME"] / params['NAME'] bracket access is a real Klipper idiom the
+        // verbatim Mainsail dot-regex misses. The new bracket pass must discover it.
+        val body = """{% set p = params["PROFILE"] %} BED_MESH_PROFILE LOAD={p}"""
+        val params = MacroParamParser.parseMacroParams(body)
+        assertTrue("bracket param PROFILE must be discovered", params.any { it.name == "PROFILE" })
+    }
+
+    @Test
+    fun bracketSyntaxSingleQuote_isDiscovered() {
+        val params = MacroParamParser.parseMacroParams("M104 S{params['EXTRUDER']}")
+        assertTrue(params.any { it.name == "EXTRUDER" })
+    }
+
+    @Test
+    fun bracketSyntaxWithDefault_isOptionalAndCapturesDefault() {
+        // BLOCK-1 fix: a bracket param WITH a |default(...) must be optional and pre-fill the default,
+        // exactly like the dot-access path — not silently forced required.
+        val params = MacroParamParser.parseMacroParams("""BED_MESH_PROFILE LOAD={params["PROFILE"]|default('default')}""")
+        val p = params.first { it.name == "PROFILE" }
+        assertFalse("bracket param with a default is optional", p.required)
+        assertEquals("default", p.default)
+    }
+
+    @Test
+    fun bracketSyntaxWithoutDefault_isRequired() {
+        val params = MacroParamParser.parseMacroParams("""BED_MESH_PROFILE LOAD={params["PROFILE"]}""")
+        assertTrue(params.first { it.name == "PROFILE" }.required)
+    }
+
+    @Test
+    fun requiredInference_paramWithoutDefaultIsRequired() {
+        // params.LAYER with no |default(...) → required = true (set_pause_at_layer's LAYER HAS a
+        // default so it is optional; a bare params.X is required).
+        val params = MacroParamParser.parseMacroParams("SET_PRINT_STATS_INFO CURRENT_LAYER={params.LAYER}")
+        assertTrue(params.first { it.name == "LAYER" }.required)
+    }
+
+    @Test
+    fun requiredInference_paramWithDefaultIsOptional() {
+        val params = MacroParamParser.parseMacroParams(body("gcode_macro start_print"))
+        assertFalse(
+            "BED_TEMP has |default(60) so it is optional",
+            params.first { it.name == "BED_TEMP" }.required,
+        )
+    }
+
+    @Test
+    fun usesRawParams_trueWhenBodyReferencesRawparams() {
+        assertTrue(MacroParamParser.usesRawParams("""RESPOND MSG="args: {rawparams}""""))
+    }
+
+    @Test
+    fun usesRawParams_falseForOrdinaryBody() {
+        assertFalse(MacroParamParser.usesRawParams(body("gcode_macro start_print")))
+    }
+
+    @Test
+    fun dualFormParam_dotDefaultWins_regardlessOfSourceOrder() {
+        // A param referenced via BOTH bracket (no default, appearing FIRST) and dot (with a default).
+        // The dot pass runs as a complete loop before the bracket pass, so the dot form's default and
+        // optional status must win — the earlier bracket usage must NOT mark it required or drop the default.
+        val body = """
+            M104 S{params["BED_TEMP"]}
+            {% set t = params.BED_TEMP|default(60)|float %}
+        """.trimIndent()
+        val params = MacroParamParser.parseMacroParams(body)
+        val bed = params.first { it.name == "BED_TEMP" }
+        assertEquals("60", bed.default)
+        assertFalse("dot-form default makes it optional even though bracket usage came first", bed.required)
     }
 }

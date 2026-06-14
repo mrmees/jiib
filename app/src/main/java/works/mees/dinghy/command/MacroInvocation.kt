@@ -2,7 +2,7 @@ package works.mees.dinghy.command
 
 /**
  * Thrown when a string macro-param value contains a forbidden character. The whole macro invocation is
- * rejected (never escaped/stripped/truncated); the 08-06 popup surfaces this as a SeverityToast.
+ * rejected (never escaped/stripped/truncated); the Macros screen surfaces this as a SeverityToast.
  *
  * @param paramName the offending parameter's key.
  * @param reason    a short, non-sensitive explanation (no echo of the offending value).
@@ -66,6 +66,20 @@ object MacroInvocation {
     fun buildTyped(macroName: String, params: List<Triple<String, String, Boolean>>): String =
         buildLine(macroName, params)
 
+    /**
+     * Assemble a macro invocation from a single freeform RAW argument string (the "CLI made easier"
+     * fallback for `rawparams` macros and macros whose params can't be inferred). The whole [rawArgs]
+     * tail is validated by [rejectForbidden] (same REJECT-not-escape policy as string params: `\n \r \t
+     * ; "` and control chars are refused) then appended verbatim after the uppercased macro name. Spaces
+     * and `=` are permitted — they are the raw arg grammar. A blank [rawArgs] yields the bare macro name.
+     */
+    fun buildRaw(macroName: String, rawArgs: String): String {
+        val trimmed = rawArgs.trim()
+        if (trimmed.isEmpty()) return macroName.uppercase()
+        rejectForbidden("(raw args)", trimmed)
+        return "${macroName.uppercase()} $trimmed"
+    }
+
     private fun buildLine(macroName: String, params: List<Triple<String, String, Boolean>>): String {
         val sb = StringBuilder(macroName.uppercase())
         for ((key, value, isNumeric) in params) {
@@ -89,7 +103,7 @@ object MacroInvocation {
     private fun rejectNonNumeric(paramName: String, value: String) {
         val plainNumber = value.isNotEmpty() &&
             value.none { it.isWhitespace() } &&
-            value.toDoubleOrNull() != null
+            value.toDoubleOrNull()?.isFinite() == true
         if (!plainNumber) {
             throw MacroParamRejected(
                 paramName,

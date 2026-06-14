@@ -396,13 +396,11 @@
     <string name="webcam_service_unknown">unknown service</string>
     <string name="webcam_aspect_format">aspect %s</string>
 
-    <!-- Macros screen labels (25-05) — Launcher, ParamEntry, ManageMode -->
-    <string name="macros_focus_blurb">Bookmarked printer macros.</string>
+    <!-- Macros screen labels — Launcher, selected-macro Focus, Manage -->
     <string name="macros_empty_title">No macros pinned</string>
     <string name="macros_empty_body">Pick the macros you use most in Manage, and they\'ll launch from here.</string>
     <string name="macros_unavailable">This printer reports no gcode macros. Add gcode_macro entries in your config to use this screen.</string>
     <string name="macros_loading_params">Loading parameters…</string>
-    <string name="macros_no_params">No parameters. Execute runs this macro as-is.</string>
     <string name="macros_running">Running %s… waiting for the printer.</string>
     <string name="macros_rejected" formatted="false">%s was rejected: %s</string>
     <string name="macros_helper_hint">Underscore-prefixed helper macros are hidden. Show hidden to reveal them.</string>
@@ -410,6 +408,9 @@
     <string name="macros_foot_manage">Manage</string>
     <string name="macros_foot_execute">Execute</string>
     <string name="macros_foot_show_hidden">Show hidden</string>
+    <string name="macros_focus_select_prompt">Select a macro to run.</string>
+    <string name="macros_raw_args_label">Arguments</string>
+    <string name="macros_raw_args_hint">Passed to the macro verbatim.</string>
 
     <!-- ========================== extrude (26-06) ============================ -->
     <!-- Selector section labels (Field region) -->

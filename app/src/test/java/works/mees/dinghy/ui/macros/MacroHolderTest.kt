@@ -81,4 +81,25 @@ class MacroHolderTest {
         assertTrue(holder.state.value.unavailable)
         assertFalse(holder.state.value.macros.isNotEmpty())
     }
+
+    @Test
+    fun descriptionPlumbsThroughToVm() = runTest {
+        val prefs = FakeMacroPrefsSource(emptySet(), revealHidden = false)
+        val holder = MacroHolder(this, caps("START_PRINT"), prefs.bookmarks, prefs.revealHidden)
+        holder.setMacroDescriptions(mapOf("start_print" to "Starts the print"))
+        advanceUntilIdle()
+        assertEquals(
+            "Starts the print",
+            holder.state.value.macros.first { it.name == "START_PRINT" }.description,
+        )
+    }
+
+    @Test
+    fun usesRawParams_surfacesFromBody() = runTest {
+        val prefs = FakeMacroPrefsSource(emptySet(), revealHidden = false)
+        val holder = MacroHolder(this, caps("ECHO"), prefs.bookmarks, prefs.revealHidden)
+        holder.setMacroBody("ECHO", """RESPOND MSG="{rawparams}"""")
+        advanceUntilIdle()
+        assertTrue(holder.state.value.macros.first { it.name == "ECHO" }.usesRawParams)
+    }
 }

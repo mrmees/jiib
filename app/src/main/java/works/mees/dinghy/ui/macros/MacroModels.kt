@@ -21,6 +21,13 @@ data class MacroParam(
     val name: String,
     val type: String?,
     val default: String?,
+    /**
+     * Heuristic (Codex extraction doc §"required"): true when the param is referenced WITHOUT a
+     * `|default(...)` — i.e. the macro author expects the caller to supply it. Optional (has a default)
+     * → false. Defaulted to `false` so preview/test constructions that omit it still compile. This is a
+     * DISPLAY hint only (a `*` marker in the param field); Execute is never hard-gated on it.
+     */
+    val required: Boolean = false,
 ) {
     /**
      * Whether this param routes to the numeric IME field (D-07/D-12). Only an EXPLICITLY-declared
@@ -45,4 +52,8 @@ data class MacroVm(
     val isBookmarked: Boolean,
     val isHidden: Boolean,
     val params: List<MacroParam>,
+    /** Klipper `description:` docstring (from configfile), shown under the macro name in the Focus. */
+    val description: String? = null,
+    /** True when the body slurps `rawparams` — the Focus offers a single raw-args field instead of fields. */
+    val usesRawParams: Boolean = false,
 )

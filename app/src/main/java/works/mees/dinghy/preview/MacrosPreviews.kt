@@ -22,13 +22,13 @@ import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
  *  - Pseudolocale spot-check — surfaces any unhardcoded literal strings not yet routed through stringResource.
  *
  * ## No live Moonraker (SC-1)
- * Every preview drives the STATELESS `BookmarkedMacrosScreen(state, fieldMode)` overload from pure
- * [macrosLauncherState] / [macrosParamEntryState] / [macrosManageState] fixtures — no [MacroHolder],
- * no [CommandDispatcher], no socket.
+ * Every preview drives the STATELESS `BookmarkedMacrosScreen(state, fieldMode, selectedName)` overload
+ * from pure [macrosLauncherState] / [macrosManageState] fixtures (plus a [selectedName] of
+ * [paramEntryMacro] to fill the Focus) — no [MacroHolder], no [CommandDispatcher], no socket.
  *
  * ## FieldMode coverage (D-09/D-10/D-12)
- *  - [MacroFieldMode.Launcher]   — bookmarked ListRow list (D-10)
- *  - [MacroFieldMode.ParamEntry] — per-param Field-takeover with numeric + string params (D-12)
+ *  - [MacroFieldMode.Launcher]   — bookmarked ListRow list (D-10); a selected macro fills the Focus
+ *    with its description + numeric/string param fields (D-12).
  *  - [MacroFieldMode.ManageMode] — system manage-visibility list (D-09)
  *
  * ## Preview font scale note
@@ -40,14 +40,26 @@ import works.mees.dinghy.ui.macros.BookmarkedMacrosScreen
 // Fixtures — pure immutable fake state, no Moonraker
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The macro shown in the Focus when selected — LOAD_FILAMENT with a numeric + a string param and a
+ * description, exercising the new `MacroVm.description` field plus numeric/string param fields (D-12).
+ */
+private val paramEntryMacro: MacroVm = MacroVm(
+    name = "LOAD_FILAMENT",
+    isBookmarked = true,
+    isHidden = false,
+    params = listOf(
+        MacroParam("TEMP", "int", "210", required = false),
+        MacroParam("MATERIAL", null, "PLA", required = false),
+    ),
+    description = "Heat the nozzle and load filament.",
+)
+
 /** Ten representative bookmarked macros for the Launcher list (D-10). */
 private val bookmarkedMacros: List<MacroVm> = listOf(
     MacroVm("START_PRINT", isBookmarked = true, isHidden = false, params = emptyList()),
     MacroVm("END_PRINT", isBookmarked = true, isHidden = false, params = emptyList()),
-    MacroVm("LOAD_FILAMENT", isBookmarked = true, isHidden = false, params = listOf(
-        MacroParam("MATERIAL", type = "string", default = "PLA"),
-        MacroParam("TEMP", type = "double", default = "210"),
-    )),
+    paramEntryMacro,
     MacroVm("UNLOAD_FILAMENT", isBookmarked = true, isHidden = false, params = emptyList()),
     MacroVm("BED_MESH_CALIBRATE", isBookmarked = true, isHidden = false, params = emptyList()),
     MacroVm("PROBE_CALIBRATE", isBookmarked = true, isHidden = false, params = emptyList()),
@@ -77,12 +89,6 @@ private val macrosLauncherState: MacroScreensState = MacroScreensState(
     unavailable = false,
 )
 
-/** The macro used in ParamEntry fixture — LOAD_FILAMENT with a numeric + a string param (D-12). */
-private val paramEntryMacro: MacroVm = bookmarkedMacros.first { it.name == "LOAD_FILAMENT" }
-
-/** ParamEntry state: fields pre-populated with defaults, body known. */
-private val macrosParamEntryState: MacroScreensState = macrosLauncherState
-
 /** ManageMode state: all macros visible, none hidden (revealHidden = false). */
 private val macrosManageState: MacroScreensState = macrosLauncherState
 
@@ -93,12 +99,13 @@ private val macrosManageState: MacroScreensState = macrosLauncherState
 private data class MacrosPreviewParams(
     val state: MacroScreensState,
     val fieldMode: MacroFieldMode,
+    val selectedName: String? = null,
 )
 
 private class MacrosFieldModeProvider : PreviewParameterProvider<MacrosPreviewParams> {
     override val values: Sequence<MacrosPreviewParams> = sequenceOf(
         MacrosPreviewParams(macrosLauncherState, MacroFieldMode.Launcher),
-        MacrosPreviewParams(macrosParamEntryState, MacroFieldMode.ParamEntry(paramEntryMacro)),
+        MacrosPreviewParams(macrosLauncherState, MacroFieldMode.Launcher, selectedName = paramEntryMacro.name),
         MacrosPreviewParams(macrosManageState, MacroFieldMode.ManageMode),
     )
 }
@@ -117,7 +124,11 @@ private fun MacrosFieldModeMatrix(
     @PreviewParameter(MacrosFieldModeProvider::class) params: MacrosPreviewParams,
 ) {
     PreviewBox(colorfulDark) {
-        BookmarkedMacrosScreen(state = params.state, fieldMode = params.fieldMode)
+        BookmarkedMacrosScreen(
+            state = params.state,
+            fieldMode = params.fieldMode,
+            selectedName = params.selectedName,
+        )
     }
 }
 
@@ -181,21 +192,22 @@ private fun MacrosPseudolocaleSpotCheck() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ParamEntry landscape spot-check (D-12 coverage at ≥1 landscape)
+// Selected-macro Focus landscape spot-check (D-12 coverage at ≥1 landscape)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Landscape ParamEntry (D-12/D-07) — the param-entry field-takeover must be usable in landscape too
- * (numeric IME + string TextField both must not overflow the single-column field region). Landscape
+ * Landscape selected-macro Focus (D-12/D-07) — the selected macro's param fields must be usable in
+ * landscape too (numeric IME + string TextField both must not overflow the Focus region). Landscape
  * is also covered by [MacrosFieldModeMatrix] but an explicit named preview confirms the intent.
  */
-@Preview(name = "ParamEntry landscape", device = NEXUS7, showBackground = true)
+@Preview(name = "Selected macro landscape", device = NEXUS7, showBackground = true)
 @Composable
-private fun MacrosParamEntryLandscape() {
+private fun MacrosSelectedMacroLandscape() {
     PreviewBox(colorfulDark) {
         BookmarkedMacrosScreen(
-            state = macrosParamEntryState,
-            fieldMode = MacroFieldMode.ParamEntry(paramEntryMacro),
+            state = macrosLauncherState,
+            fieldMode = MacroFieldMode.Launcher,
+            selectedName = paramEntryMacro.name,
         )
     }
 }

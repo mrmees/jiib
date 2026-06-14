@@ -149,4 +149,53 @@ class MacroInvocationTest {
         )
         assertEquals("""LOAD_FILAMENT MATERIAL="PLA" TEMP=210""", line)
     }
+
+    // ---- buildRaw coverage (raw-args fallback for rawparams / unparseable macros) ----------------
+
+    @Test
+    fun buildRaw_appendsCleanArgsVerbatim() {
+        // Space-separated CLI-style args are passed through after the (uppercased) macro name.
+        assertEquals("M600 X50 Y20", MacroInvocation.buildRaw("M600", "X50 Y20"))
+    }
+
+    @Test
+    fun buildRaw_blankArgs_yieldsBareMacroName() {
+        assertEquals("HOME_ALL", MacroInvocation.buildRaw("HOME_ALL", ""))
+        assertEquals("HOME_ALL", MacroInvocation.buildRaw("HOME_ALL", "   "))
+    }
+
+    @Test
+    fun buildRaw_newlineInArgs_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildRaw("ECHO", "ok\n; M112")
+        }
+    }
+
+    @Test
+    fun buildRaw_semicolonInArgs_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildRaw("ECHO", "a ; M112")
+        }
+    }
+
+    @Test
+    fun buildRaw_doubleQuoteInArgs_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildRaw("ECHO", """MSG="hi"""")
+        }
+    }
+
+    @Test
+    fun buildTyped_nanNumericValue_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped("LOAD_FILAMENT", listOf(Triple("TEMP", "NaN", true)))
+        }
+    }
+
+    @Test
+    fun buildTyped_infinityNumericValue_rejected() {
+        assertThrows(MacroParamRejected::class.java) {
+            MacroInvocation.buildTyped("LOAD_FILAMENT", listOf(Triple("TEMP", "Infinity", true)))
+        }
+    }
 }

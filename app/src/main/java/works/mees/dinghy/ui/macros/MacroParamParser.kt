@@ -40,22 +40,49 @@ object MacroParamParser {
     )
 
     /**
+     * Bracket-access param idiom `params["NAME"]` / `params['NAME']` (Codex extraction doc), with an
+     * OPTIONAL trailing `|default(<expr>)` captured the same way the dot-regex does (group 2). Additive:
+     * the verbatim Mainsail dot-regex is left untouched. A bracket param with a default is optional and
+     * pre-fills it; without one it is required (BLOCK-1 fix).
+     *  group 1 = param name · group 2 = default expr (optional, surrounding quotes stripped)
+     */
+    val PARAM_BRACKET_REGEX = Regex("""params\s*\[\s*['"]([A-Za-z_0-9]+)['"]\s*](?:\s*\|\s*default\('?"?(.*?)"?'?\))?""")
+
+    /** A macro that reads the full unparsed arg string. When present, param inference is unreliable. */
+    private val RAWPARAMS_REGEX = Regex("""\brawparams\b""")
+
+    /**
      * Scan a macro `.gcode` body for declared parameters. Total function: garbage input yields
      * whatever could be detected (possibly empty), never an exception. First-seen order is preserved
      * and a name is recorded only ONCE (dedup) via [LinkedHashMap.putIfAbsent].
      */
     fun parseMacroParams(gcodeBody: String): List<MacroParam> {
         val out = linkedMapOf<String, MacroParam>() // first-seen order, dedup by name
+        // BLOCK-2 fix: collect membership-guarded names FIRST. `{% if 'X' in params %}` means the macro
+        // checks presence before use → X is optional even though a later `{params.X}` (dot-access, runs
+        // before the guard pass under putIfAbsent) would otherwise mark it required.
+        val optionalByGuard = PARAM_IN_REGEX.findAll(gcodeBody).map { it.groupValues[1] }.toSet()
         for (m in PARAM_REGEX.findAll(gcodeBody)) {
             val name = m.groupValues[1]
             // type = leading filter (group 2) else trailing filter (group 4) else null
             val type = m.groupValues[2].ifEmpty { m.groupValues[4] }.ifEmpty { null }
             val default = m.groupValues[3].ifEmpty { null }
-            out.putIfAbsent(name, MacroParam(name, type, default))
+            // required heuristic (Codex doc): a param referenced WITHOUT |default(...) is required,
+            // unless a membership guard proves it optional.
+            out.putIfAbsent(name, MacroParam(name, type, default, required = default == null && name !in optionalByGuard))
         }
-        for (m in PARAM_IN_REGEX.findAll(gcodeBody)) {
-            out.putIfAbsent(m.groupValues[1], MacroParam(m.groupValues[1], null, null))
+        for (m in PARAM_BRACKET_REGEX.findAll(gcodeBody)) {
+            val name = m.groupValues[1]
+            val default = m.groupValues[2].ifEmpty { null }
+            out.putIfAbsent(name, MacroParam(name, null, default, required = default == null && name !in optionalByGuard))
+        }
+        // Any guarded param NOT already discovered by dot/bracket access is added as optional.
+        for (name in optionalByGuard) {
+            out.putIfAbsent(name, MacroParam(name, null, null, required = false))
         }
         return out.values.toList()
     }
+
+    /** Whether the macro body slurps the raw arg string (Codex doc): inference is unreliable → raw-args UI. */
+    fun usesRawParams(gcodeBody: String): Boolean = RAWPARAMS_REGEX.containsMatchIn(gcodeBody)
 }

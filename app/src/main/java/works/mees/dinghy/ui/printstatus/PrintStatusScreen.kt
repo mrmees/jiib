@@ -88,8 +88,8 @@ fun PrintStatusScreen(
     // is within the configured first-N-layer window. Process-scoped (survives reconnects).
     val babystepEnabled by container.babystepEnabled.collectAsStateWithLifecycle(initialValue = true)
     val babystepLayers by container.babystepLayers.collectAsStateWithLifecycle(initialValue = 5)
-    // Bookmarked-macros gate (16-06): the Macros launcher tile appears on Standby ONLY if the user has
-    // bookmarked at least one macro (UI-SPEC launcher order). Process-scoped pref.
+    // Bookmarked-macros set: the Standby Macros launcher tile is now ALWAYS shown (no gate), but this
+    // still feeds the Printing/Paused mid-print ShortcutRow combination matrix. Process-scoped pref.
     val bookmarkedMacros by container.macroPrefs.bookmarks.collectAsStateWithLifecycle(initialValue = emptySet())
     // Idle-list D-08 capability gates (24-04): Outputs and Webcam rows are hidden when absent.
     // outputsPresent = the printer exposes ≥1 controllable output (AppContainer.outputsPresent spine-scoped).
@@ -153,11 +153,10 @@ fun PrintStatusScreen(
     // All four capability flags are live StateFlows so the list is rebuilt whenever the printer
     // connects/disconnects, Spoolman changes, or the user toggles webcam in Settings.
     val idleActions: List<HomeAction> = remember(
-        spoolmanPresent, bookmarkedMacros, outputsPresent, webcamEnabled,
+        spoolmanPresent, outputsPresent, webcamEnabled,
     ) {
         buildIdleActions(
             spoolmanPresent = spoolmanPresent,
-            bookmarksExist  = bookmarkedMacros.isNotEmpty(),
             outputsPresent  = outputsPresent,
             webcamEnabled   = webcamEnabled,
         )
@@ -181,7 +180,6 @@ fun PrintStatusScreen(
         lastJob = lastJob,
         pendingAction = pendingAction,
         spoolmanPresent = spoolmanPresent,
-        hasBookmarkedMacros = bookmarkedMacros.isNotEmpty(),
         babystepVisible = babystepShown,
     )
     // The restart filename (Terminal Reprint / restart-guard) still resolves through the 16-02 builder.
@@ -378,7 +376,6 @@ fun PrintStatusScreen(
     hasBookmarkedMacros: Boolean = false,
     idleActions: List<HomeAction> = buildIdleActions(
         spoolmanPresent = spoolmanPresent,
-        bookmarksExist  = hasBookmarkedMacros,
         outputsPresent  = false,
         webcamEnabled   = false,
     ),
@@ -394,7 +391,6 @@ fun PrintStatusScreen(
         lastJob = null,
         pendingAction = null,
         spoolmanPresent = spoolmanPresent,
-        hasBookmarkedMacros = hasBookmarkedMacros,
         babystepVisible = babystepShown,
     )
     Box(modifier.fillMaxSize()) {

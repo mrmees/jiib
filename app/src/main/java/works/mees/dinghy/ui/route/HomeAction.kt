@@ -54,11 +54,13 @@ sealed interface HomeAction {
  *
  * Capability-absent rows **drop out** (D-08 — hide, not grey):
  * - [spoolmanPresent] = false → Spool row absent
- * - [bookmarksExist]  = false → Macros row absent (macros only shown when bookmarks exist)
  * - [outputsPresent]  = false → Outputs row absent
  * - [webcamEnabled]   = false → Webcam row absent
  *
- * With all capabilities absent the list contains 7 rows: Files, Move, Extrude, Calibration,
+ * Macros is ALWAYS present (no bookmark gate): it is the only entry point to the Macros screen, so
+ * the row must show even with zero bookmarked macros (the Macros screen handles the no-macros case).
+ *
+ * With all capabilities absent the list contains 8 rows: Files, Move, Extrude, Macros, Calibration,
  * Temperature, Console, Fine-Tune (the always-present set). Temperature, Console, and Fine-Tune
  * are unconditionally present per D-05 (rehomed from drawer-only to idle list in Plan 28-03;
  * the P24 D-07 "printing-only" posture for these three is revised).
@@ -69,14 +71,12 @@ sealed interface HomeAction {
  * registered and owner-confirmed in Plan 24-02.
  *
  * @param spoolmanPresent true if a Spoolman instance is configured and reachable
- * @param bookmarksExist  true if the user has at least one bookmarked macro
  * @param outputsPresent  true if the printer exposes controllable outputs
  * @param webcamEnabled   true if at least one webcam is configured and not toggled off
  * @return ordered [List<HomeAction>] for the Standby Field
  */
 fun buildIdleActions(
     spoolmanPresent: Boolean,
-    bookmarksExist: Boolean,
     outputsPresent: Boolean,
     webcamEnabled: Boolean,
 ): List<HomeAction> = buildList {
@@ -108,13 +108,12 @@ fun buildIdleActions(
         icon     = DinghyIcons.LauncherExtrude,
     ))
 
-    if (bookmarksExist) {
-        add(HomeAction.Destination(
-            dest     = NavDest.Macros,
-            labelRes = R.string.cd_launcher_macros,
-            icon     = DinghyIcons.LauncherMacros,
-        ))
-    }
+    // Macros is ALWAYS present — the only way to reach the Macros screen (no bookmark gate).
+    add(HomeAction.Destination(
+        dest     = NavDest.Macros,
+        labelRes = R.string.cd_launcher_macros,
+        icon     = DinghyIcons.LauncherMacros,
+    ))
 
     add(HomeAction.Destination(
         dest     = NavDest.CalibrationHub,

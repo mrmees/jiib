@@ -8,8 +8,9 @@ import org.junit.Test
 /**
  * D-06 order + D-08 hide-rule coverage for [buildIdleActions].
  *
- * Tests the eight capability cases (all present, all absent, each individual gate) and the
- * exact v1 D-06 destination order when all capabilities are present.
+ * Tests the capability cases (all present, all absent, each individual gate) and the exact v1 D-06
+ * destination order when all capabilities are present. Note: Macros is UNCONDITIONAL (no gate) — it
+ * is the only entry point to the Macros screen, so it appears in every case.
  *
  * Pure JVM (no Compose, no Android runtime, no I/O) — mirrors [TopRouteTest] test style.
  */
@@ -34,7 +35,6 @@ class HomeActionTest {
     fun spoolmanAbsent_hidesSpool() {
         val actions = buildIdleActions(
             spoolmanPresent = false,
-            bookmarksExist  = true,
             outputsPresent  = true,
             webcamEnabled   = true,
         )
@@ -46,7 +46,6 @@ class HomeActionTest {
     fun spoolmanPresent_showsSpool() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = false,
             outputsPresent  = false,
             webcamEnabled   = false,
         )
@@ -55,26 +54,26 @@ class HomeActionTest {
     }
 
     @Test
-    fun bookmarksEmpty_hidesMacros() {
+    fun macrosAlwaysShown_evenWithoutBookmarks() {
+        // The Macros row is unconditional — it is the ONLY entry point to the Macros screen, so it
+        // must show even with zero bookmarked macros (the bookmark gate was removed).
         val actions = buildIdleActions(
-            spoolmanPresent = true,
-            bookmarksExist  = false,
-            outputsPresent  = true,
-            webcamEnabled   = true,
+            spoolmanPresent = false,
+            outputsPresent  = false,
+            webcamEnabled   = false,
         )
-        assertFalse("Macros must be absent when bookmarks=false",
+        assertTrue("Macros must be present even with no bookmarks",
             NavDest.Macros in actions.destSet())
     }
 
     @Test
-    fun bookmarksNonEmpty_showsMacros() {
+    fun macrosShown_withAllCapabilitiesPresent() {
         val actions = buildIdleActions(
-            spoolmanPresent = false,
-            bookmarksExist  = true,
-            outputsPresent  = false,
-            webcamEnabled   = false,
+            spoolmanPresent = true,
+            outputsPresent  = true,
+            webcamEnabled   = true,
         )
-        assertTrue("Macros must be present when bookmarks=true",
+        assertTrue("Macros must be present",
             NavDest.Macros in actions.destSet())
     }
 
@@ -82,7 +81,6 @@ class HomeActionTest {
     fun outputsAbsent_hidesOutputs() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = true,
             outputsPresent  = false,
             webcamEnabled   = true,
         )
@@ -94,7 +92,6 @@ class HomeActionTest {
     fun outputsPresent_showsOutputs() {
         val actions = buildIdleActions(
             spoolmanPresent = false,
-            bookmarksExist  = false,
             outputsPresent  = true,
             webcamEnabled   = false,
         )
@@ -106,7 +103,6 @@ class HomeActionTest {
     fun webcamDisabled_hidesWebcam() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = true,
             outputsPresent  = true,
             webcamEnabled   = false,
         )
@@ -118,7 +114,6 @@ class HomeActionTest {
     fun webcamEnabled_showsWebcam() {
         val actions = buildIdleActions(
             spoolmanPresent = false,
-            bookmarksExist  = false,
             outputsPresent  = false,
             webcamEnabled   = true,
         )
@@ -134,7 +129,6 @@ class HomeActionTest {
     fun allCapabilitiesPresent_fullIdleList() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = true,
             outputsPresent  = true,
             webcamEnabled   = true,
         )
@@ -159,23 +153,23 @@ class HomeActionTest {
     fun allCapabilitiesAbsent_minimalIdleList() {
         val actions = buildIdleActions(
             spoolmanPresent = false,
-            bookmarksExist  = false,
             outputsPresent  = false,
             webcamEnabled   = false,
         )
         val dests = actions.destinations()
-        // Always-present: Files, Move, Extrude, Calibration + Temperature, Console, Fine-Tune (D-05 / D-08 — 7 rows)
-        assertEquals("Minimal list must have 7 destination rows", 7, dests.size)
+        // Always-present: Files, Move, Extrude, Macros, Calibration + Temperature, Console, Fine-Tune
+        // (D-05 / D-08 — 8 rows; Macros is now unconditional, no bookmark gate).
+        assertEquals("Minimal list must have 8 destination rows", 8, dests.size)
         assertTrue(NavDest.Files          in dests)
         assertTrue(NavDest.Move           in dests)
         assertTrue(NavDest.Extrude        in dests)
+        assertTrue(NavDest.Macros         in dests)
         assertTrue(NavDest.CalibrationHub in dests)
         assertTrue(NavDest.Temperature    in dests)
         assertTrue(NavDest.Console        in dests)
         assertTrue(NavDest.FineTune       in dests)
         // None of the capability-gated rows:
         assertFalse(NavDest.Spool   in dests)
-        assertFalse(NavDest.Macros  in dests)
         assertFalse(NavDest.Outputs in dests)
         assertFalse(NavDest.Webcam  in dests)
     }
@@ -195,7 +189,6 @@ class HomeActionTest {
     fun v1OrderIsPreserved() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = true,
             outputsPresent  = true,
             webcamEnabled   = true,
         )
@@ -229,7 +222,6 @@ class HomeActionTest {
     fun allDestinations_haveNonNullIcon() {
         val actions = buildIdleActions(
             spoolmanPresent = true,
-            bookmarksExist  = true,
             outputsPresent  = true,
             webcamEnabled   = true,
         )

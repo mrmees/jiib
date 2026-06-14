@@ -10,8 +10,8 @@ import works.mees.dinghy.state.PrinterState
 
 /**
  * The 16-06 host gate: the pure [uiModel] mode→layout/control derivation. Covers each mode's foot
- * set (R1 gutter→foot migration), the curated Standby launcher order (incl. the spool/macros
- * conditionals), the shortcut-vs-babystep Field row pick, and the Terminal error-line flag.
+ * set (R1 gutter→foot migration), the curated Standby launcher order (incl. the spool conditional;
+ * Macros is unconditional), the shortcut-vs-babystep Field row pick, and the Terminal error-line flag.
  */
 class PrintStatusUiModelTest {
 
@@ -29,7 +29,7 @@ class PrintStatusUiModelTest {
 
     @Test
     fun standby_launcherIsTheFixedCuratedOrder_consoleAlwaysLast() {
-        val m = standby() // no spool, no bookmarked macros
+        val m = standby() // no spool; Macros is unconditional (always present)
         assertEquals(
             listOf(
                 LauncherDest.Files,
@@ -37,21 +37,21 @@ class PrintStatusUiModelTest {
                 LauncherDest.Move,
                 LauncherDest.Extrude,
                 LauncherDest.Calibration,
+                LauncherDest.Macros,
                 LauncherDest.Console,
             ),
             m.launcherDests,
         )
-        // Console is the last tile in the base case (no spool, no macros).
+        // Console is the last tile in the base case (no spool).
         assertEquals(LauncherDest.Console, m.launcherDests.last())
     }
 
     @Test
-    fun standby_launcherIncludesSpoolWhenPresentAndMacrosWhenBookmarked_inFixedPositions() {
+    fun standby_launcherIncludesSpoolWhenPresent_andMacrosAlways_inFixedPositions() {
         val m = uiModel(
             PrintStatusMode.Standby,
             PrinterState(printState = PrintState.Standby),
             spoolmanPresent = true,
-            hasBookmarkedMacros = true,
         )
         assertEquals(
             listOf(

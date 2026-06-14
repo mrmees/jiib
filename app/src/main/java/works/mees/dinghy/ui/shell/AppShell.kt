@@ -457,6 +457,9 @@ fun AppShell(
     LaunchedEffect(macroHolder, store) {
         store.macroBodies.collect { macroHolder.setMacroBodies(it) }
     }
+    LaunchedEffect(macroHolder, store) {
+        store.macroDescriptions.collect { macroHolder.setMacroDescriptions(it) }
+    }
     // The current session dispatcher (the macro Execution popup routes through it); null while idle.
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
 
@@ -590,13 +593,13 @@ fun AppShell(
                 // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
                 LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
 
-                // Merged Macros screen (25-05 / D-09): ONE screen with MacroFieldMode (Launcher /
-                // ParamEntry / ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
-                // MacroExecutionPopup. MacroPrefs writes route through AppContainer.writeScope intent
-                // methods (WR-08 — [[dinghy-compose-write-scope-cancellation]]: a composition-scoped
-                // launch is cancelled by same-frame decomposition, silently dropping the write);
-                // session dispatcher passed for ParamEntry execute path; null-safe (Execute disabled
-                // while idle, WR-03).
+                // Merged Macros screen (25-05 / D-09): ONE screen with two field modes (Launcher /
+                // ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
+                // MacroExecutionPopup. The selected macro fills the Focus and Execute is a foot button.
+                // MacroPrefs writes route through AppContainer.writeScope intent methods (WR-08 —
+                // [[dinghy-compose-write-scope-cancellation]]: a composition-scoped launch is cancelled
+                // by same-frame decomposition, silently dropping the write); session dispatcher passed
+                // for the Execute/dispatch path; null-safe (Execute disabled while idle, WR-03).
                 BookmarkedMacrosScreen(
                     holder = macroHolder,
                     dispatcher = dispatcher,
@@ -817,9 +820,10 @@ fun AppShell(
 
         // ---- Overlays: Box siblings AFTER NavHost (render above every destination) -----------------
 
-        // MacroExecutionPopup REMOVED (25-05): param entry is now an in-screen Field-takeover inside
-        // BookmarkedMacrosScreen (MacroFieldMode.ParamEntry). The PROMPT-protocol overlay (D-13) below
-        // remains — it is independent of the macro execution path and untouched here.
+        // MacroExecutionPopup REMOVED (25-05): there is no longer a param-entry popup. The selected
+        // macro's params are entered in the Focus inside BookmarkedMacrosScreen, and Execute is a foot
+        // button. The PROMPT-protocol overlay (D-13) below remains — it is independent of the macro
+        // execution path and untouched here.
 
         // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen.
         if (nav.scanActive) {
