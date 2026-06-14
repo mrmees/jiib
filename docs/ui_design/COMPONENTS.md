@@ -114,7 +114,7 @@ content reads better tighter may pass a smaller value — the Calibration Hub pa
 (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
 screen uses the 16dp default.
 
-**Mandatory required params:** `title: String`, `icon: ImageVector`, `uDp: Dp`, plus the e-stop
+**Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
 compiler-enforced — there is no title-less or icon-less `FocusFrame`.
 
@@ -176,7 +176,7 @@ currently showing**:
 **Trailing-action slot (optional, end-aligned):**
 
 `FocusFrame` exposes an optional trailing-action slot at the end of the 1U header, mirroring the
-start identity icon slot in position. Parameters: `trailingActionIcon: ImageVector?`,
+start identity icon slot in position. Parameters: `trailingActionIcon: DinghyIcon?`,
 `onTrailingAction: (() -> Unit)?`, `trailingActionContentDescription: String?`. When populated:
 
 - **Bare glyph — no outline, no fill.** The slot renders a plain, tappable glyph with **no
