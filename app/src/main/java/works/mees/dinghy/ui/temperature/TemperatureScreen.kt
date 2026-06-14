@@ -74,6 +74,8 @@ import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
+import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.Palette
@@ -249,6 +251,38 @@ fun TemperatureScreen(
         }
     }
 
+    // Loaded-spool preheat preset: resolve the active Spoolman spool's filament temps (mirrors the
+    // FilesScreen/PrintStatus active-spool fetch) so the PresetPicker can offer "heat to this spool".
+    val activeSpoolStatus by container.activeSpool.collectAsStateWithLifecycle(initialValue = null)
+    val spoolmanPresent by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
+    val spoolmanClient = container.currentSpoolmanClient
+    val activeSpoolId = activeSpoolStatus?.activeSpoolId
+    var spoolDetail by remember { mutableStateOf<SpoolmanSpool?>(null) }
+    LaunchedEffect(activeSpoolId, spoolmanPresent, spoolmanClient) {
+        val id = activeSpoolId
+        spoolDetail = if (!spoolmanPresent || id == null || spoolmanClient == null) {
+            null
+        } else {
+            val envelope = runCatching { spoolmanClient.getSpool(id) }.getOrNull()
+            parseSpoolmanSpools(envelope).rows.firstOrNull { it.id == id }
+        }
+    }
+    // Build the preset only when the loaded filament reports a nozzle temp (the load-bearing field);
+    // bed falls back to 0 (heat nozzle, bed off) when the spool omits it.
+    val spoolPreset: PrinterCommands.Preset? = remember(spoolDetail) {
+        val f = spoolDetail?.filament
+        val nozzle = f?.settingsExtruderTemp
+        if (f != null && nozzle != null) {
+            PrinterCommands.Preset(
+                name = f.name ?: f.material ?: "LOADED SPOOL",
+                nozzle = nozzle,
+                bed = f.settingsBedTemp ?: 0,
+            )
+        } else {
+            null
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         TemperatureContent(
             series = series,
@@ -267,6 +301,7 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
+            spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
                 holder.setTraceColor(sensorName, color)
@@ -344,6 +379,7 @@ fun TemperatureScreen(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
+    spoolPreset: PrinterCommands.Preset? = null,
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
@@ -369,6 +405,7 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
+            spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
@@ -400,6 +437,9 @@ private fun TemperatureContent(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
+    // Loaded-spool preheat preset (nozzle/bed from the active Spoolman filament) — null when no spool
+    // is loaded or it carries no temp settings. Prepended to the PresetPicker list when present.
+    spoolPreset: PrinterCommands.Preset? = null,
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
@@ -685,29 +725,19 @@ private fun TemperatureContent(
                     TempFieldMode.PresetPicker -> {
                         // D-12: Field-takeover preset picker (the old full-screen scrim is retired).
                         ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                            items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
-                                ListRow(
-                                    selected = false,
-                                    onClick = {
-                                        onApplyPreset(preset)
+                            // Loaded-spool preset FIRST when available (heat to the active filament's temps).
+                            spoolPreset?.let { sp ->
+                                item(key = "__spool_preset__") {
+                                    PresetListRow(sp, grid.uDp) {
+                                        onApplyPreset(sp)
                                         fieldMode = TempFieldMode.SensorList
-                                    },
-                                    uDp = grid.uDp,
-                                    trailingContent = {
-                                        Text(
-                                            text = "${preset.nozzle}° / ${preset.bed}°",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(17f, t.fs).sp,
-                                            color = t.text2,
-                                        )
-                                    },
-                                ) {
-                                    Text(
-                                        text = preset.name,
-                                        fontFamily = Geist,
-                                        fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
-                                        color = t.text,
-                                    )
+                                    }
+                                }
+                            }
+                            items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
+                                PresetListRow(preset, grid.uDp) {
+                                    onApplyPreset(preset)
+                                    fieldMode = TempFieldMode.SensorList
                                 }
                             }
                         }
@@ -882,7 +912,7 @@ private fun SensorAppearanceFocus(
  *    1/5/10 picker — coarse is the scrubber's job).
  * Both committers route through the SAME trailing-commit batcher via [onNudge] (absolute, batcher-clamped).
  *
- * @param currentTarget the pending working-or-live target (null = heater off → seed from live temp).
+ * @param currentTarget the pending working-or-live SETPOINT (null = heater off → shows 0, never live temp).
  * @param scrubRange    0..max_temp from [heaterScrubberRange] (config limits or global clamp).
  */
 @Composable
@@ -898,7 +928,9 @@ private fun HeaterControlFocus(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val seed: Double = currentTarget ?: sensor.current.let { if (it > 0.0) it else 0.0 }
+    // SETPOINT ONLY (owner 2026-06-14): the display/scrubber show the target, never the live temp.
+    // An off heater (no target) reads 0 — adjusting up sets a setpoint from 0.
+    val seed: Double = currentTarget ?: 0.0
     var scrubLive by remember(sensor.name) { mutableStateOf<Float?>(null) }
     val shown: Int = (scrubLive?.toDouble() ?: seed).roundToInt()
     val dim = if (busy) Modifier.alpha(0.38f) else Modifier
@@ -961,11 +993,47 @@ private fun HeaterControlFocus(
                 )
             }
         }
-        // ── Off / Done ──
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
-            OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
+        // ── Off / Done — 1U row (LocalUnitDp + height(uDp)) so they match the ± buttons; without this
+        // they sized to text height and rendered shorter than the steppers on flox (owner 2026-06-14). ──
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
+                OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
+            }
         }
+    }
+}
+
+/** One preset row in the PresetPicker field-takeover (shared by the loaded-spool + material rows). */
+@Composable
+private fun PresetListRow(
+    preset: PrinterCommands.Preset,
+    uDp: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    val t = LocalTokens.current
+    ListRow(
+        selected = false,
+        onClick = onClick,
+        uDp = uDp,
+        trailingContent = {
+            Text(
+                text = "${preset.nozzle}° / ${preset.bed}°",
+                fontFamily = GeistMono,
+                fontSize = fsSp(17f, t.fs).sp,
+                color = t.text2,
+            )
+        },
+    ) {
+        Text(
+            text = preset.name,
+            fontFamily = Geist,
+            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+            color = t.text,
+        )
     }
 }
 
