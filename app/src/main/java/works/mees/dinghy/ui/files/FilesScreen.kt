@@ -892,3 +892,34 @@ private fun formatDuration(seconds: Double): String {
     val minutes = totalMinutes % 60
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort helpers (pure — host-testable, no Compose/Android deps)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The two sort dimensions on the Files screen. One is active at a time (SpoolScreen precedent).
+ * [defaultAscending] is the direction applied when the field is freshly selected; re-tapping the
+ * active field flips it. Date defaults newest-first; Size defaults largest-first (owner, 2026-06-13).
+ */
+enum class FileSortField(val defaultAscending: Boolean) {
+    Date(defaultAscending = false),
+    Size(defaultAscending = false),
+}
+
+/**
+ * Pure, host-testable sort over the flat file list. Null sort keys sink to the bottom regardless
+ * of direction (NEGATIVE_INFINITY / MIN_VALUE), matching the prior date-sort behavior.
+ */
+internal fun sortFileRows(
+    rows: List<FileBrowserRow>,
+    field: FileSortField,
+    ascending: Boolean,
+): List<FileBrowserRow> = when (field) {
+    FileSortField.Date ->
+        if (ascending) rows.sortedBy { it.modifiedEpochSeconds ?: Double.NEGATIVE_INFINITY }
+        else rows.sortedByDescending { it.modifiedEpochSeconds ?: Double.NEGATIVE_INFINITY }
+    FileSortField.Size ->
+        if (ascending) rows.sortedBy { it.sizeBytes ?: Long.MIN_VALUE }
+        else rows.sortedByDescending { it.sizeBytes ?: Long.MIN_VALUE }
+}
