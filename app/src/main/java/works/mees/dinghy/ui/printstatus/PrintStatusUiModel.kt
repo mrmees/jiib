@@ -75,7 +75,6 @@ data class PrintStatusUiModel(
  * @param lastJob the one-shot last completed job (foot restart-filename input only).
  * @param pendingAction the in-flight debounce action (foot label input only).
  * @param spoolmanPresent whether the printer exposes Spoolman — gates the Spool launcher tile.
- * @param hasBookmarkedMacros whether the user has bookmarked macros — gates the Macros launcher tile.
  * @param babystepVisible whether the early-layer babystep window is active — picks the Field row for
  *   the Printing/Paused modes (shortcut when false, babystep when true).
  */
@@ -85,12 +84,11 @@ fun uiModel(
     lastJob: works.mees.dinghy.state.LastJob? = null,
     pendingAction: PrintStatusPendingAction? = null,
     spoolmanPresent: Boolean = false,
-    hasBookmarkedMacros: Boolean = false,
     babystepVisible: Boolean = false,
 ): PrintStatusUiModel {
     val foot = derivePrintStatusControls(state = state, lastJob = lastJob, pendingAction = pendingAction).controls
     val launcherDests: ImmutableList<LauncherDest> = if (mode is PrintStatusMode.Standby) {
-        standbyLauncherDests(spoolmanPresent = spoolmanPresent, hasBookmarkedMacros = hasBookmarkedMacros)
+        standbyLauncherDests(spoolmanPresent = spoolmanPresent)
     } else {
         persistentListOf()
     }
@@ -112,13 +110,13 @@ fun uiModel(
 
 /**
  * The fixed, curated Standby launcher order (UI-SPEC "Launcher order"):
- * Files · Temperature · Move · Extrude · Calibration · Spool[if present] · Macros[if bookmarked] ·
- * Console. Forward stubs and system destinations (System page) are reached via WaterfallHome's
- * System foot button (NavDest.System) rather than via a launcher tile.
+ * Files · Temperature · Move · Extrude · Calibration · Spool[if present] · Macros · Console.
+ * Macros is ALWAYS present (no bookmark gate) — it is the only entry point to the Macros screen.
+ * Forward stubs and system destinations (System page) are reached via WaterfallHome's System foot
+ * button (NavDest.System) rather than via a launcher tile.
  */
 private fun standbyLauncherDests(
     spoolmanPresent: Boolean,
-    hasBookmarkedMacros: Boolean,
 ): ImmutableList<LauncherDest> = buildList {
     add(LauncherDest.Files)
     add(LauncherDest.Temperature)
@@ -126,6 +124,6 @@ private fun standbyLauncherDests(
     add(LauncherDest.Extrude)
     add(LauncherDest.Calibration)
     if (spoolmanPresent) add(LauncherDest.Spool)
-    if (hasBookmarkedMacros) add(LauncherDest.Macros)
+    add(LauncherDest.Macros)
     add(LauncherDest.Console)
 }.toImmutableList()
