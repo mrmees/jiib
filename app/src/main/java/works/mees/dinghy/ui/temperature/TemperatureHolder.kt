@@ -351,3 +351,13 @@ internal fun computeGraphYRange(
     if (hi - lo < GRAPH_STEP) hi = (lo + GRAPH_STEP).coerceAtMost(GRAPH_CEIL) // never degenerate
     return lo..hi
 }
+
+/**
+ * The adjust scrubber's range for a heater: 0 (= off) up to the configured `max_temp`, falling back to
+ * the global [works.mees.dinghy.command.PrinterCommands.MAX_TEMP_C] clamp when limits are unknown.
+ * `min_temp` is informational only — the floor stays 0 so the scrubber can reach off.
+ */
+fun heaterScrubberRange(limits: works.mees.dinghy.state.HeaterLimits?): ClosedFloatingPointRange<Float> {
+    val max = (limits?.maxTemp ?: works.mees.dinghy.command.PrinterCommands.MAX_TEMP_C.toDouble()).toFloat()
+    return 0f..max
+}
