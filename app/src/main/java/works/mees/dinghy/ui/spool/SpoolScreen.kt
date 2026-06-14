@@ -66,7 +66,6 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.layout.ListBlock as DesignListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -281,6 +280,9 @@ private fun SpoolContent(
 
         val t = LocalTokens.current
         val spoolColor = selected?.filament?.colorSwatches?.firstNotNullOfOrNull { parseNormalizedHex(it) }
+        // Focus header title = the selected spool's identity (mirrors the list row); generic when none.
+        val focusTitle = selected?.let { spoolDisplayTitle(it) }
+            ?: stringResource(R.string.cd_launcher_spool)
 
         // Sort options — SortOption with registered DinghyIcons tokens.
         val sortOptions = persistentListOf(
@@ -337,8 +339,9 @@ private fun SpoolContent(
                         .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 ) {
                     FocusFrame(
-                        title = stringResource(R.string.cd_launcher_spool),
-                        icon = DinghyIcons.LauncherSpool,
+                        title = focusTitle,
+                        icon = DinghyIcons.SpoolFilament,
+                        iconTint = spoolColor,
                         uDp = grid.uDp,
                         edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         modifier = Modifier.fillMaxSize(),
@@ -756,8 +759,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ")
-                    .ifBlank { stringResource(R.string.spool_unnamed, spool.id) },
+                text = spoolDisplayTitle(spool),
                 color = t.text,
                 fontFamily = Geist,
                 fontWeight = FontWeight.SemiBold,
@@ -829,9 +831,19 @@ private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens
 }
 
 /**
- * The Detail card content for the selected spool (23-06 rebuild inside [FocusFrame]).
- * The [SpoolGlyph] from Phase 18.3 stays the spool visual — do NOT reinvent it.
- * FillMeter shows the remaining fraction (remaining/original). No redundant Spoolman icon.
+ * The spool's display identity: `material · name` (e.g. `PLA · Galaxy Black`), degrading to
+ * `Spool <id>` when both are blank. One definition shared by the list row, the Focus header title,
+ * and the measure-weight info card (was duplicated inline at each).
+ */
+@Composable
+private fun spoolDisplayTitle(spool: SpoolmanSpool): String =
+    listOfNotNull(spool.filament?.material, spool.filament?.name).joinToString(" · ")
+        .ifBlank { stringResource(R.string.spool_unnamed, spool.id) }
+
+/**
+ * The Detail card content for the selected spool (inside [FocusFrame]). The spool's identity lives in
+ * the Focus header (title = material · name, icon = spool-colored ev_shadow); the empty state shows a
+ * neutral ev_shadow ([DinghyIcons.SpoolFilament]). The FillMeter is the in-card color/fullness visual.
  */
 @Composable
 private fun SpoolDetailContent(
@@ -843,10 +855,9 @@ private fun SpoolDetailContent(
 ) {
     if (spool == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            SpoolGlyph(
-                swatches = emptyList(),
-                bodyTint = t.text3,
-                keyline = t.hair,
+            DinghyIconView(
+                DinghyIcons.SpoolFilament,
+                tint = t.text3,
                 sizeDp = fsSp(64f, t.fs).dp,
                 contentDescription = stringResource(R.string.cd_spool_empty),
             )
@@ -854,30 +865,12 @@ private fun SpoolDetailContent(
         return
     }
     val filament = spool.filament
-    val headerSp = fsSp(26f, t.fs)
     val bodySp = fsSp(18f, t.fs)
     val iconSp = fsSp(20f, t.fs)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // (The large top spool glyph was removed 2026-06-12 — redundant with the FillMeter's
-        // fullness readout + the header color swatch. The FillMeter IS the spool's visual now.)
-        // Header: color swatch + material name.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DetailSwatch(filament?.colorSwatches ?: emptyList(), headerSp, t)
-            Text(
-                text = filament?.material?.ifBlank { null }
-                    ?: stringResource(R.string.spool_unnamed, spool.id),
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = headerSp.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        // The spool's identity now lives in the Focus header (title = material · name, icon tinted to
+        // the spool color); the FillMeter below is the in-card color/fullness visual. No chip row here.
         // FillMeter — remaining fraction (remaining/original); fallback t.accent when no filament color.
         val remaining = spool.remainingWeight
         val original = spool.originalWeight
@@ -1006,8 +999,7 @@ private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: Spoo
     val filament = spool.filament
     Column(Modifier.weight(1f).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ")
-                .ifBlank { stringResource(R.string.spool_unnamed, spool.id) },
+            text = spoolDisplayTitle(spool),
             color = t.text,
             fontFamily = Geist,
             fontWeight = FontWeight.SemiBold,
@@ -1071,25 +1063,6 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
 // ─────────────────────────────────────────────────────────────────────────────
 // Detail card sub-components (reused from original SpoolScreen)
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** The detail split swatch (D-08 normalized; multi-color split; neutral marker on absence). */
-@Composable
-private fun DetailSwatch(swatches: List<String>, sizeSp: Float, t: ThemeTokens) {
-    val size = sizeSp.dp
-    if (swatches.isEmpty()) {
-        Box(Modifier.size(size).clip(CircleShape).background(t.surface2).border(BorderStroke(1.dp, t.hair), CircleShape))
-        return
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        swatches.take(4).forEach { hex ->
-            Box(
-                Modifier.size(size).clip(CircleShape)
-                    .background(parseNormalizedHex(hex) ?: t.surface2)
-                    .border(BorderStroke(1.dp, t.hair), CircleShape),
-            )
-        }
-    }
-}
 
 /** A label-less detail value (body size; "—" when absent). */
 @Composable
