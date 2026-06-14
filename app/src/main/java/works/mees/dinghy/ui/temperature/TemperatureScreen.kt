@@ -486,7 +486,7 @@ private fun TemperatureContent(
                             available = availableSensors,
                             selected = selectedSensors,
                             onToggle = onToggleSensor,
-                            onDone = { settingsOpen = false },
+                            onDone = { settingsOpen = false; selectedName = null },
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             uDp = grid.uDp,
