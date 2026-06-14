@@ -87,6 +87,13 @@ object DinghyIcons {
     // BODY/FLANGES only; the color-reactive filament band is painted at runtime by `SpoolGlyph` (D-02/D-04).
     // Still distinct from `Progress` (donut_large) — they can co-render on PrintStatus (WR-02 still holds).
     val LauncherSpool = DinghyIcon(IconRef.Drawable(R.drawable.spool), alternate = "launcher_spool")
+
+    // Spool-screen identity glyph (owner-chosen 2026-06-13, icon law [[dinghy-never-pick-icons-ask]]).
+    // SpoolScreen's detail Focus header + empty state render this Material Symbol tinted to the spool's
+    // filament color (THEME-01 data carve-out), replacing the custom side-view spool drawable on THAT
+    // screen only (LauncherSpool stays for PrintStatus / idle list). `ev_shadow` is verified resolvable
+    // in the bundled v2.944 Material Symbols ttf (tools/verify_ligatures.py).
+    val SpoolFilament = DinghyIcon(IconRef.Ligature("ev_shadow"), alternate = "spool_filament")
     val LauncherMacros = DinghyIcon(IconRef.Ligature("bolt"), alternate = "launcher_macros")
     val LauncherConsole = DinghyIcon(IconRef.Ligature("terminal"), alternate = "launcher_console")
     val LauncherDrawer = DinghyIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")
@@ -290,7 +297,7 @@ object DinghyIcons {
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
         Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings, QrCodeScanner, DeleteSweep,
-        SpoolChange, SpoolClear, SpoolLocation, SpoolUsageStale, SpoolChangedExternally,
+        SpoolChange, SpoolClear, SpoolLocation, SpoolUsageStale, SpoolChangedExternally, SpoolFilament,
         ScanNoPermission, ScanNoCamera, ScanCameraBusy, ScanCameraFlip, ScanUsePicker,
         MatchCase, CalendarClock, Experiment, Home, QrCode,
         Print, Delete, HideTemps, HideTimelapse, HidePrompts,
