@@ -389,7 +389,7 @@ private fun FilesContent(
                 // Focus = image-backed FocusFrame of the selected file showing FUTURE-PRINT fields.
                 // E-stop now docks into the FocusFrame header (header slot morphs when isPrinting).
                 FocusFrame(
-                    title = stringResource(R.string.cd_launcher_files),
+                    title = state.selectedFile?.name ?: stringResource(R.string.cd_launcher_files),
                     icon = DinghyIcons.LauncherFiles,
                     uDp = grid.uDp,
                     modifier = Modifier
@@ -500,7 +500,8 @@ private fun FilesDetailContent(
             )
         }
 
-        // FOREGROUND — filename + future-print stats, vertically centered, left-aligned.
+        // FOREGROUND — future-print stats, vertically centered, left-aligned.
+        // Filename is now shown in the FocusFrame header title; no need to repeat it here.
         Column(
             Modifier
                 .align(Alignment.CenterStart)
@@ -508,16 +509,6 @@ private fun FilesDetailContent(
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = selected.name,
-                color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(20f, t.fs).sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
             preview?.let { p ->
                 p.estimatedTime?.let { FileStatRow(DinghyIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it), t) }
                 p.filamentTotal?.let { ft ->
