@@ -705,45 +705,47 @@ private fun FilesListRow(
                 )
             }
         },
-        trailingContent = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.padding(vertical = 4.dp),
-            ) {
-                row.sizeBytes?.let {
-                    Text(
-                        text = formatBytes(it),
-                        color = t.text2,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(15f, t.fs).sp,
-                        maxLines = 1,
-                    )
-                }
-                row.modifiedEpochSeconds?.let {
-                    Text(
-                        text = formatDate(it),
-                        color = t.text3,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(15f, t.fs).sp, // metadata floor 15sp ([[dinghy-font-sizes-too-small]])
-                        maxLines = 1,
-                    )
-                }
-            }
-        },
     ) {
-        Text(
-            text = row.name,
-            color = if (selected) t.accent2 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 4.dp),
-        )
+                .padding(vertical = 4.dp, horizontal = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            // Line 1 — filename. One line, ellipsized, so the row never grows past 1U (R23).
+            Text(
+                text = row.name,
+                color = if (selected) t.accent2 else t.text,
+                fontFamily = GeistMono,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = fsSp(18f, t.fs).sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Line 2 — date (start) … size (end). SpaceBetween anchors each to its edge even
+            // when one is null (the absent slot collapses but the present one keeps its edge).
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = row.modifiedEpochSeconds?.let { formatDate(it) }.orEmpty(),
+                    color = t.text2,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp, // metadata floor 15sp
+                    maxLines = 1,
+                )
+                Text(
+                    text = row.sizeBytes?.let { formatBytes(it) }.orEmpty(),
+                    color = t.text2,
+                    fontFamily = GeistMono,
+                    fontSize = fsSp(15f, t.fs).sp,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
