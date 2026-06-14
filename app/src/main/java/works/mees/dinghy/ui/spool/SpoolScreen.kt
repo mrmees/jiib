@@ -688,15 +688,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Entry prompt label.
-        Text(
-            text = stringResource(R.string.spool_measure_prompt),
-            color = t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(18f, t.fs).sp,
-        )
-        // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07).
+        // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07). The popup's
+        // identity is the Focus header above; the entry box + info card carry the rest (no prompt label,
+        // freeing vertical space so the hint fits on phone-sized layouts).
         Box(
             Modifier
                 .fillMaxWidth()
