@@ -820,9 +820,10 @@ fun AppShell(
 
         // ---- Overlays: Box siblings AFTER NavHost (render above every destination) -----------------
 
-        // MacroExecutionPopup REMOVED (25-05): param entry is now an in-screen Field-takeover inside
-        // BookmarkedMacrosScreen (MacroFieldMode.ParamEntry). The PROMPT-protocol overlay (D-13) below
-        // remains — it is independent of the macro execution path and untouched here.
+        // MacroExecutionPopup REMOVED (25-05): there is no longer a param-entry popup. The selected
+        // macro's params are entered in the Focus inside BookmarkedMacrosScreen, and Execute is a foot
+        // button. The PROMPT-protocol overlay (D-13) below remains — it is independent of the macro
+        // execution path and untouched here.
 
         // QR scan sub-surface overlay (11-07) — a full-screen camera scan floating over the Spool screen.
         if (nav.scanActive) {

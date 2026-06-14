@@ -239,7 +239,9 @@ private fun MacrosContent(
 
         val inFlight by (dispatcher?.inFlight ?: remember { MutableStateFlow(emptySet<String>()) })
             .collectAsStateWithLifecycle()
-        val running = selectedName != null && "macro_$selectedName" in inFlight
+        // Derive the in-flight key from the resolved macro (same source as the dispatch key) so a
+        // selectedName/canonical-name casing drift can never desync the "running" indicator.
+        val running = liveMacro != null && "macro_${liveMacro.name}" in inFlight
 
         // Hoisted per-macro entry state — reset whenever the selected macro (or its param set) changes.
         val values = remember(selectedName, params) {
@@ -427,6 +429,8 @@ private fun ColumnScope.MacroDetailFocusBody(
             )
         }
         else -> {
+            // This inner Column owns param-list overflow: it scrolls within the bounded Focus region
+            // (a high-param macro in a short landscape Focus stays usable).
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 params.forEach { param ->
                     if (param.isNumeric) {
