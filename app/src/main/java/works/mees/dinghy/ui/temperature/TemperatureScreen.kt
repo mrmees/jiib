@@ -94,6 +94,9 @@ private sealed class TempFieldMode {
     data object PresetPicker : TempFieldMode()
 }
 
+/** Top-level screen mode — Monitoring (read-only list) or Adjust (adjustable heaters only). */
+private enum class TempMode { Monitoring, Adjust }
+
 /**
  * ONE aligned visible-trace model: series, setpoints, names, and colors filtered together by
  * visibility so that every index-aligned list stays aligned (GraphView draws `setpoints[t]` at
@@ -400,6 +403,10 @@ private fun TemperatureContent(
     var activeStep by remember { mutableStateOf(TEMP_DEFAULT_STEP) }
     // D-12: Field-mode (SensorList | PresetPicker).
     var fieldMode by remember { mutableStateOf<TempFieldMode>(TempFieldMode.SensorList) }
+    // Top-level screen mode: Monitoring (read list) | Adjust (adjustable heaters, footers differ).
+    var mode by remember { mutableStateOf(TempMode.Monitoring) }
+    // Settings panel open flag — wired to Task 10/11; declared here so the footer button compiles.
+    var settingsOpen by remember { mutableStateOf(false) }
     // D-14 / finding 5: dedicated Colorful-8 swatch pool, independent of the active palette mode.
     // DEFAULT_MAX_ITEMS=4 (ThemePrefs.kt:185) and Simple/HighContrast collapse the active pool,
     // so we NEVER source from t.pool.take(8). Force Colorful, maxItems=8.
@@ -538,8 +545,11 @@ private fun TemperatureContent(
                 // D-12 Field-takeover: SensorList (default) or PresetPicker.
                 when (fieldMode) {
                     TempFieldMode.SensorList -> {
+                        // In Adjust mode only show adjustable sensors; in Monitoring show all.
+                        // idx is computed against the FULL legend so trace-color indexing is stable.
+                        val rows = if (mode == TempMode.Adjust) legend.filter { it.isAdjustable } else legend
                         ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                            items(legend, key = { it.name }) { sensor ->
+                            items(rows, key = { it.name }) { sensor ->
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
                                 val rowTint = traceColors[sensor.name] ?: t.seriesColor(idx)
@@ -585,29 +595,54 @@ private fun TemperatureContent(
                                 }
                             }
                         }
-                        val heating = legend.any { it.target != null }
-                        FootButtonBar(
-                            uDp = grid.uDp,
-                        ) {
-                            OutlinedControl(
-                                label = "",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Back = accent
-                                icon = DinghyIcons.Back,
-                            )
-                            OutlinedControl(
-                                label = stringResource(R.string.temp_presets),
-                                onClick = { fieldMode = TempFieldMode.PresetPicker },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Field-takeover nav — no safety conditional
-                            )
-                            OutlinedControl(
-                                label = stringResource(R.string.temp_cooldown),
-                                onClick = onCooldown,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Warn,
-                            )
+                        // Mode-specific footers: Monitoring = Back · Settings · Adjust-enter;
+                        // Adjust = Presets · Cooldown · Monitor-return (no Back).
+                        if (mode == TempMode.Monitoring) {
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = onBack,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { settingsOpen = true; selectedName = null },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.TempSettings,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.OutputHeater,
+                                )
+                            }
+                        } else {
+                            FootButtonBar(uDp = grid.uDp) {
+                                OutlinedControl(
+                                    label = stringResource(R.string.temp_presets),
+                                    onClick = { fieldMode = TempFieldMode.PresetPicker },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                )
+                                OutlinedControl(
+                                    label = stringResource(R.string.temp_cooldown),
+                                    onClick = onCooldown,
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Warn,
+                                )
+                                OutlinedControl(
+                                    label = "",
+                                    onClick = { mode = TempMode.Monitoring; selectedName = null },
+                                    modifier = Modifier.weight(1f),
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.MonitorMode,
+                                )
+                            }
                         }
                     }
 
