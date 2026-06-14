@@ -208,6 +208,9 @@ object DinghyIcons {
     // Files actions:
     val Print = DinghyIcon(IconRef.Ligature("print"), alternate = "files_print")                         // bucket: "start a print"
     val Delete = DinghyIcon(IconRef.Ligature("delete"), alternate = "files_delete")                      // bucket entry
+    // Files sort-by-size (owner-selected `line_weight`, 2026-06-13). Full Material Symbols font
+    // bundled so it resolves; new ligature, no uniqueness conflict.
+    val LineWeight = DinghyIcon(IconRef.Ligature("line_weight"), alternate = "files_sort_size")
     // Console filter toggles (hide-state glyphs — the icon shown when the toggle is in the HIDE state):
     val HideTemps = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "console_hide_temps")      // bucket: "hide temperature messages in console"
     val HideTimelapse = DinghyIcon(IconRef.Ligature("video_camera_back"), alternate = "console_hide_timelapse") // bucket: "webcam menu icon, also show timelapse in console"
@@ -300,7 +303,7 @@ object DinghyIcons {
         SpoolChange, SpoolClear, SpoolLocation, SpoolUsageStale, SpoolChangedExternally, SpoolFilament,
         ScanNoPermission, ScanNoCamera, ScanCameraBusy, ScanCameraFlip, ScanUsePicker,
         MatchCase, CalendarClock, Experiment, Home, QrCode,
-        Print, Delete, HideTemps, HideTimelapse, HidePrompts,
+        Print, Delete, LineWeight, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
         Visibility, VisibilityOff, Warning,
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
