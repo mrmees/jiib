@@ -147,7 +147,8 @@ fun focusFramePadding(placement: FocusFramePlacement, inset: Dp = ListFrameInset
  *                        [ThemeTokens.text2]. THEME-01 data carve-out (e.g. a spool's filament
  *                        color) — pass parsed item data, never a brand/role token.
  * @param uDp              the unit grid value (1U) for the header height and icon sizing.
- * @param modifier         caller-supplied modifier (sizing + vertical padding).
+ * @param modifier         caller-supplied modifier — SIZING ONLY (`fillMaxSize`/`weight`); the 8dp
+ *                        registration frame is self-owned (see [placement]), never caller padding.
  * @param edge             the Focus edge mode; defaults to [FocusEdge.Neutral].
  * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
