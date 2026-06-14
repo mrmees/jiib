@@ -232,6 +232,7 @@ aligns with the bottom of the Field's foot buttons — across the 50/50 divide.
   4dp) and a 4dp filter-row edge against the bar's 8dp (bottoms off by 4dp) — the misalignment
   Matthew called out. The pilot-approved home list (8dp column padding) is the reference.
 - Conformance: checklist criterion **C-E2**.
+- `FocusFrame` satisfies its 8dp top/bottom (and horizontal) registration **by construction** in `Region` placement (like `FootButtonBar`'s self-owned vertical gapS). Callers never add frame padding. `Composed`-placement screens (Spool/Files/Console) own their vertical scheme until the field-side pass unifies them.
 
 ---
 

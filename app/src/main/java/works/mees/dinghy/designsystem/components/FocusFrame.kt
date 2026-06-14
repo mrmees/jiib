@@ -124,9 +124,10 @@ fun focusFramePadding(placement: FocusFramePlacement, inset: Dp = ListFrameInset
  * The universal Focus container (Focus Frame law). Every Focus except Webcam uses this shell.
  *
  * ## Structure
- *  - Outer frame: self-owns the **horizontal** region-edge inset ([ListFrameInset], 8dp) so the
- *    Focus aligns with the Field's horizontal frame. Callers pass vertical (top/bottom) + sizing
- *    (`fillMaxSize`/`weight`) — never start/end/horizontal.
+ *  - Outer frame: with [FocusFramePlacement.Region] (default) self-owns the uniform 8dp registration
+ *    frame ([ListFrameInset]) on ALL four sides — callers pass SIZING ONLY (`fillMaxSize`/`weight`),
+ *    never frame padding. [FocusFramePlacement.Composed] keeps the horizontal-only frame for screens
+ *    whose Focus column composes its own vertical registration (Spool/Files/Console).
  *  - Header: mandatory [FocusHeader] — 1U bar with a start-icon slot and a centered/marquee title.
  *    When [isPrinting] and [onEmergencyStop] are both set, the icon slot morphs into the e-stop
  *    button (no overlay, no double e-stop); otherwise it shows the inert identity glyph [icon].
@@ -153,6 +154,8 @@ fun focusFramePadding(placement: FocusFramePlacement, inset: Dp = ListFrameInset
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
  * @param contentInset     inner inset around the content area below the header; defaults to [FocusInset]
  *                         (16dp). Screens whose content reads better tighter can pass a smaller value.
+ * @param placement       see [FocusFramePlacement]; defaults to [FocusFramePlacement.Region] (self-frames
+ *                        all four sides). [FocusFramePlacement.Composed] for composed-focus screens.
  * @param content          column content rendered inside the framed, clipped, padded surface.
  */
 @Composable

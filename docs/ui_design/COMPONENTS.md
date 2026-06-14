@@ -114,6 +114,8 @@ content reads better tighter may pass a smaller value — the Calibration Hub pa
 (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
 screen uses the 16dp default.
 
+FocusFrame self-owns its 8dp registration frame on all four sides (`FocusFramePlacement.Region`, the default); callers pass sizing only and never add frame padding. The three composed-focus screens (Spool, Files, Console) pass `FocusFramePlacement.Composed` and own their vertical registration — pending the Phase-2 field-side pass.
+
 **Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
 compiler-enforced — there is no title-less or icon-less `FocusFrame`.
