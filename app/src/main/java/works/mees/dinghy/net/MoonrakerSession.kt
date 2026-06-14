@@ -583,17 +583,16 @@ class MoonrakerSession(
             store.setBaselineUnretractExtraLength(fwRetractionCfg?.doubleOrNullAt("unretract_extra_length"))
             store.setBaselineUnretractSpeed(fwRetractionCfg?.doubleOrNullAt("unretract_speed"))
 
-            val macroBodies: Map<String, String> = settings
-                ?.entries
-                ?.mapNotNull { (key, value) ->
-                    if (!key.startsWith("gcode_macro ")) return@mapNotNull null
-                    val name = key.removePrefix("gcode_macro ").lowercase()
-                    val body = (value as? JsonObject)?.gcodeBodyOrNull() ?: return@mapNotNull null
-                    name to body
-                }
-                ?.toMap()
-                ?: emptyMap()
-            store.setMacroBodies(macroBodies)
+            // (b) every `gcode_macro <name>` section's `.gcode` body + `description`, keyed by the
+            // LOWERCASED macro name (Moonraker lowercases settings keys). One pure pass over settings
+            // (extractMacroConfigs) feeds BOTH the param-parser bodies and the Focus description text.
+            // The raw `config` map is passed as the description fallback (spec priority: settings → config).
+            val configRaw = parseStatus(cfgResult)?.objectOrNull("configfile")?.objectOrNull("config")
+            val macroConfigs = if (settings != null) extractMacroConfigs(settings, configRaw) else emptyMap()
+            store.setMacroBodies(macroConfigs.mapValues { it.value.gcode })
+            store.setMacroDescriptions(
+                macroConfigs.entries.mapNotNull { (name, cfg) -> cfg.description?.let { name to it } }.toMap(),
+            )
 
             // (e) Phase-19 Output Controls discovery (SC-1) — the 5th consumer off the SAME one-shot
             // configfile result (Pitfall 3, no extra query). parseOutputs intersects the lowercased settings
@@ -617,6 +616,8 @@ class MoonrakerSession(
             // (clear-on-failure, T-19-04-04). Best-effort — the handshake already reached subscribe above.
             store.setOutputDescriptors(emptyList())
             store.setHeaterLimits(emptyMap())
+            store.setMacroBodies(emptyMap())
+            store.setMacroDescriptions(emptyMap())
         }
     }
 
@@ -674,19 +675,6 @@ class MoonrakerSession(
         if (screws.isEmpty()) return null
         return ScrewConfig(screws = screws.toImmutableList(), screwThread = (sta["screw_thread"] as? JsonPrimitive)?.contentOrNull)
     }
-
-    /**
-     * Extract a macro section's `gcode` body (08-04, MACRO-02). Normally a single newline-joined string;
-     * tolerates an array-of-strings shape by joining with `\n`. A missing/garbage field yields null
-     * (skip the macro), never `!!` on wire data.
-     */
-    private fun JsonObject.gcodeBodyOrNull(): String? = runCatching {
-        when (val g = this["gcode"]) {
-            is JsonArray -> g.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.joinToString("\n")
-            is JsonPrimitive -> g.contentOrNull
-            else -> null
-        }
-    }.getOrNull()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun waitBackoffOrTrigger(attempt: Int) {

@@ -135,6 +135,14 @@ class PrinterStateStore(
      */
     val macroBodies: StateFlow<Map<String, String>> = _macroBodies.asStateFlow()
 
+    private val _macroDescriptions = MutableStateFlow<Map<String, String>>(emptyMap())
+    /**
+     * Macro-name (LOWERCASED) → Klipper `description:` docstring, from the SAME one-shot `configfile`
+     * query (Pitfall 3 — no extra request). Only macros that declared a non-blank description appear.
+     * Parallel to [macroBodies]; the MacroHolder combines both. Empty when unreadable/absent.
+     */
+    val macroDescriptions: StateFlow<Map<String, String>> = _macroDescriptions.asStateFlow()
+
     private val _screwsTiltConfig = MutableStateFlow<ScrewConfig?>(null)
     /**
      * The `[screws_tilt_adjust]` config (screw coords + names, D-04/D-06) read ONCE at handshake from the
@@ -354,6 +362,11 @@ class PrinterStateStore(
      */
     fun setMacroBodies(bodies: Map<String, String>) {
         _macroBodies.value = bodies
+    }
+
+    /** One-shot at (re)handshake: macro-name (lowercased) → description map, from the configfile query. */
+    fun setMacroDescriptions(descriptions: Map<String, String>) {
+        _macroDescriptions.value = descriptions
     }
 
     /**
