@@ -120,6 +120,9 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  *
  * @param title            the screen/section name shown in the header.
  * @param icon             the identity glyph shown in the header's start slot when not printing.
+ * @param iconTint        item-data override for the identity glyph tint; null (default) keeps
+ *                        [ThemeTokens.text2]. THEME-01 data carve-out (e.g. a spool's filament
+ *                        color) — pass parsed item data, never a brand/role token.
  * @param uDp              the unit grid value (1U) for the header height and icon sizing.
  * @param modifier         caller-supplied modifier (sizing + vertical padding).
  * @param edge             the Focus edge mode; defaults to [FocusEdge.Neutral].
@@ -134,6 +137,7 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
 fun FocusFrame(
     title: String,
     icon: DinghyIcon,
+    iconTint: Color? = null,
     uDp: Dp,
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
@@ -162,6 +166,7 @@ fun FocusFrame(
         FocusHeader(
             title = title,
             icon = icon,
+            iconTint = iconTint,
             uDp = uDp,
             isPrinting = isPrinting,
             onEmergencyStop = onEmergencyStop,
@@ -192,6 +197,7 @@ fun FocusFrame(
 private fun FocusHeader(
     title: String,
     icon: DinghyIcon,
+    iconTint: Color? = null,
     uDp: Dp,
     isPrinting: Boolean,
     onEmergencyStop: (() -> Unit)?,
@@ -245,7 +251,7 @@ private fun FocusHeader(
                 Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
                     DinghyIconView(
                         icon = icon,
-                        tint = t.text2,
+                        tint = iconTint ?: t.text2,
                         sizeDp = slot * IDENTITY_ICON_RATIO,
                     )
                 }
