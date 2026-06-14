@@ -162,4 +162,28 @@ class TraceStylePrefsSelectionTest {
         // ...and profile A's migrated data is untouched.
         assertEquals(setOf("temperature_sensor chamber"), prefs.selectedSensors(pidA).first())
     }
+
+    @Test
+    fun migrate_leavesAlreadyScopedKeysIntact_noDoubleScope() = runBlocking {
+        // Codex re-review race: a SCOPED write for pidA landed before the sentinel was set, alongside a
+        // legacy unscoped key. Migration must migrate the legacy one but leave the scoped one untouched
+        // (NOT re-scope it to trace_color_<pid>_<pid>_extruder and drop the correct key).
+        val ds = memDataStore()
+        ds.edit { p ->
+            p[intPreferencesKey(TraceStylePrefs.colorKey(pidA, "extruder"))] = 0xFF112233.toInt() // scoped
+            p[intPreferencesKey("trace_color_heater_bed")] = 0xFF445566.toInt()                   // legacy
+        }
+        val prefs = TraceStylePrefs(ds)
+        prefs.migrateUnscopedTo(pidA)
+
+        assertEquals(
+            mapOf("extruder" to 0xFF112233.toInt(), "heater_bed" to 0xFF445566.toInt()),
+            prefs.traceColors(pidA).first(),
+        )
+        val rawKeys = ds.data.first().asMap().keys.map { it.name }
+        assertFalse(
+            "no double-scoped key produced",
+            rawKeys.any { it.startsWith("trace_color_" + pidA + "_" + pidA + "_") },
+        )
+    }
 }

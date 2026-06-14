@@ -151,11 +151,20 @@ class TraceStylePrefs(
     suspend fun migrateUnscopedTo(profileId: String) {
         dataStore.edit { prefs ->
             if (prefs[MIGRATED_KEY] == true) return@edit
+            // Already-scoped prefixes for THIS profile. DataStore serializes writes, so the only scoped
+            // keys that can exist before the sentinel is set are racing scoped writes for this same
+            // profileId (the intents use activeProfileId.value). SKIP those — re-scoping them would
+            // double-scope (`trace_color_<pid>_<pid>_x`) and drop the correct key (Codex re-review fix).
+            val colorScope = PREFIX_COLOR + profileId + SEP
+            val visibleScope = PREFIX_VISIBLE + profileId + SEP
+            val selectedScope = PREFIX_SELECTED + profileId + SEP
             // Snapshot first — we mutate `prefs` while iterating the legacy entries.
             val legacy = prefs.asMap().toMap()
             for ((key, value) in legacy) {
                 val n = key.name
                 when {
+                    // Leave already-scoped (racing) writes for this profile untouched.
+                    n.startsWith(colorScope) || n.startsWith(visibleScope) || n.startsWith(selectedScope) -> {}
                     n.startsWith(PREFIX_COLOR) && value is Int -> {
                         prefs[intPreferencesKey(colorKey(profileId, n.removePrefix(PREFIX_COLOR)))] = value
                         prefs.remove(key)
