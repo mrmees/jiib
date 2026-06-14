@@ -11,8 +11,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -142,16 +146,19 @@ class MainActivity : ComponentActivity() {
                 // G-1 hardening: explicit token bg instead of a bare Material3 Surface() (which
                 // defaults to the never-populated colorScheme.surface). Production screens each
                 // paint t.bg, but this removes the bare-Surface footgun at the root.
-                // R1 (26.5-04): .background BEFORE .safeDrawingPadding — the token bg paints
+                // R1 (26.5-04): .background BEFORE the inset padding — the token bg paints
                 // edge-to-edge BEHIND the system bars/cutout while the padded content stays
                 // chrome-clear. The four Views-hosted surfaces (Files/Console/Graph/Webcam)
-                // live inside this root and inherit the insets. safeDrawing resolves to 0
-                // where the hardware lacks bars/cutouts — API-23 safe.
+                // live inside this root and inherit the insets. Insets resolve to 0 where the
+                // hardware lacks bars/cutouts — API-23 safe.
+                // safeDrawing EXCLUDING ime: the IME must OVERLAY the app (draw on top), NOT
+                // compress the content upward. Screens that need a field lifted above the
+                // keyboard opt in locally with Modifier.imePadding().
                 Box(
                     Modifier
                         .fillMaxSize()
                         .background(LocalTokens.current.bg)
-                        .safeDrawingPadding()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime))
                 ) {
                     // ALL routing is delegated to the single root authority (review #2). The dev-gated
                     // [startDest] (null in release / when the gate is off) seeds the initial screen ONCE.
