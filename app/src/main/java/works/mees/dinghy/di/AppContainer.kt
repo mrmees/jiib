@@ -417,6 +417,11 @@ class AppContainer(
         writeScope.launch { traceStylePrefs.setTraceVisibility(sensorName, visible) }
     }
 
+    /** Persist a Temperature sensor's monitored-set membership (opt-in). Routes through writeScope. */
+    fun setSensorSelected(sensorName: String, selected: Boolean) {
+        writeScope.launch { traceStylePrefs.setSensorSelected(sensorName, selected) }
+    }
+
     /**
      * The shared OkHttp client the webcam decode/poll layer derives its two postures off (CLAUDE.md
      * networking law: ONE pool/TLS config). The per-session websocket client lives in the SERVICE and is
