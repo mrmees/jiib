@@ -513,9 +513,10 @@ private fun TemperatureContent(
                                 // R10: flash on busy/debounce rejections of THIS heater's dispatch key.
                                 rejectTick = rejectTicks[heaterDispatchKey(sensor.name)] ?: 0L,
                                 uDp = grid.uDp,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(12.dp),
+                                // No inner padding — the FocusFrame contentInset (FocusInset/2) owns
+                                // the spacing, matching Fine-Tune (the redundant 12dp made the
+                                // Temperature controls sit too far from the focus edge, UAT 2026-06-13).
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
                     }

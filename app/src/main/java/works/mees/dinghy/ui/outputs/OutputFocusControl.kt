@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,9 +48,6 @@ import works.mees.dinghy.designsystem.rgbToHsv
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.outputs.OutputRowVm
 import works.mees.dinghy.outputs.OutputsHolder
-import works.mees.dinghy.theme.GeistMono
-import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
 
 /**
  * The per-output-type inline Focus control surface (D-18/D-19), hosted inside a `FocusFrame` in the
@@ -432,10 +428,11 @@ private fun FocusScrubberSurface(
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
         // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
-        // 004 ringed-thumb style (R9): the header row carries the name + live value, so the old
-        // standalone prettyName Text is gone.
+        // 004 ringed-thumb style (R9). Name-less: the FocusFrame header now carries the output's
+        // identity (selected-output title, 2026-06-13), so the Scrubber header shows the live value
+        // only — no duplicated name in the body.
         Scrubber(
-            name = prettyName,
+            name = "",
             value = value.coerceIn(range.start, range.endInclusive),
             range = range,
             step = step,
@@ -493,8 +490,6 @@ private fun FocusLedSurface(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-
     // Seed hue + brightness from the live color data (swatchArgb encodes the strip's packed RGB).
     // Unpack from ARGB long: R=(argb >> 16) & 0xFF, G=(argb >> 8) & 0xFF, B=argb & 0xFF.
     val (seedHue, seedBrightness) = remember(swatchArgb, ledHasRgb) {
@@ -513,13 +508,8 @@ private fun FocusLedSurface(
     var brightness by remember(seedBrightness) { mutableFloatStateOf(seedBrightness) }
 
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = prettyName,
-            color = t.text2,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(17f, t.fs).sp,
-        )
+        // Name-less: the FocusFrame header carries the output identity now (2026-06-13) — the old
+        // standalone prettyName Text was a duplicate of the title and has been removed.
         // GAP-B: the hue wheel renders ONLY for an RGB-capable LED.
         if (ledHasRgb) {
             // UAT-5 exception: LED ColorWheel may exceed 1U — it is the sole sanctioned >1U
