@@ -660,4 +660,6 @@
     <string name="splash_reason_error">Printer firmware error</string>
     <string name="splash_reason_unreachable">Can\'t reach the printer</string>
     <string name="splash_reason_connected">Connected</string>
+    <string name="cd_decrement">Decrease</string>
+    <string name="cd_increment">Increase</string>
 </resources>

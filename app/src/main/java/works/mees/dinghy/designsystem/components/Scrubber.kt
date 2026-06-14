@@ -39,11 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.fractionFromX
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.fractionFromY
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -397,20 +400,24 @@ fun Scrubber(
 
                 // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().height(uDp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedControl(
-                        label = "−",
+                        label = "",
                         onClick = { set(working - step); settle() },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                        icon = DinghyIcons.Decrease,
+                        contentDescription = stringResource(R.string.cd_decrement),
                     )
                     OutlinedControl(
-                        label = "+",
+                        label = "",
                         onClick = { set(working + step); settle() },
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
+                        icon = DinghyIcons.Increase,
+                        contentDescription = stringResource(R.string.cd_increment),
                     )
                 }
             }
