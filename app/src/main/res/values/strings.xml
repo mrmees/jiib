@@ -335,6 +335,7 @@
     <string name="cd_files_print">Start print</string>
     <string name="cd_files_delete">Delete file</string>
     <string name="cd_files_sort_date">Sort by date</string>
+    <string name="cd_files_sort_size">Sort by file size</string>
 
     <!-- Files screen visible labels (25-03 rebuild) -->
     <!-- Foot bar -->
