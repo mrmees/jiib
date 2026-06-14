@@ -131,8 +131,7 @@ fun CalibrationHubContent(
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .padding(vertical = 8.dp),
+                            .weight(1f),
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,

@@ -221,8 +221,7 @@ internal fun MoveHubContent(
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(8.dp),
+                        .weight(1f),
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,

@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -99,12 +100,34 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
     isPrinting && onEmergencyStop != null
 
 /**
+ * Where a [FocusFrame] sits, which decides who owns its 8dp edge-registration frame (LAYOUT.md R26).
+ *  - [Region]   — the FocusFrame IS the whole Focus region; it self-owns the uniform 8dp frame on
+ *                 ALL four sides. Callers pass SIZING ONLY (fillMaxSize / weight) — never frame padding.
+ *  - [Composed] — the FocusFrame is one card inside a larger Focus column whose siblings/wrapper own
+ *                 the VERTICAL registration (sort/filter rows, a foot bar). Keeps the horizontal-only
+ *                 frame; the caller column owns top/bottom. (Spool/Files/Console — Phase-2 untangles these.)
+ */
+enum class FocusFramePlacement { Region, Composed }
+
+/**
+ * Pure (host-testable) mapping from [FocusFramePlacement] to the FocusFrame's outer registration
+ * padding. [FocusFramePlacement.Region] frames all four sides at [inset]; [FocusFramePlacement.Composed]
+ * frames horizontal only (the caller column owns vertical). Value defaults to the shared [ListFrameInset].
+ */
+fun focusFramePadding(placement: FocusFramePlacement, inset: Dp = ListFrameInset): PaddingValues =
+    when (placement) {
+        FocusFramePlacement.Region -> PaddingValues(inset)
+        FocusFramePlacement.Composed -> PaddingValues(horizontal = inset)
+    }
+
+/**
  * The universal Focus container (Focus Frame law). Every Focus except Webcam uses this shell.
  *
  * ## Structure
- *  - Outer frame: self-owns the **horizontal** region-edge inset ([ListFrameInset], 8dp) so the
- *    Focus aligns with the Field's horizontal frame. Callers pass vertical (top/bottom) + sizing
- *    (`fillMaxSize`/`weight`) — never start/end/horizontal.
+ *  - Outer frame: with [FocusFramePlacement.Region] (default) self-owns the uniform 8dp registration
+ *    frame ([ListFrameInset]) on ALL four sides — callers pass SIZING ONLY (`fillMaxSize`/`weight`),
+ *    never frame padding. [FocusFramePlacement.Composed] keeps the horizontal-only frame for screens
+ *    whose Focus column composes its own vertical registration (Spool/Files/Console).
  *  - Header: mandatory [FocusHeader] — 1U bar with a start-icon slot and a centered/marquee title.
  *    When [isPrinting] and [onEmergencyStop] are both set, the icon slot morphs into the e-stop
  *    button (no overlay, no double e-stop); otherwise it shows the inert identity glyph [icon].
@@ -124,13 +147,16 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  *                        [ThemeTokens.text2]. THEME-01 data carve-out (e.g. a spool's filament
  *                        color) — pass parsed item data, never a brand/role token.
  * @param uDp              the unit grid value (1U) for the header height and icon sizing.
- * @param modifier         caller-supplied modifier (sizing + vertical padding).
+ * @param modifier         caller-supplied modifier — SIZING ONLY (`fillMaxSize`/`weight`); the 8dp
+ *                        registration frame is self-owned (see [placement]), never caller padding.
  * @param edge             the Focus edge mode; defaults to [FocusEdge.Neutral].
  * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
  * @param contentInset     inner inset around the content area below the header; defaults to [FocusInset]
  *                         (16dp). Screens whose content reads better tighter can pass a smaller value.
+ * @param placement       see [FocusFramePlacement]; defaults to [FocusFramePlacement.Region] (self-frames
+ *                        all four sides). [FocusFramePlacement.Composed] for composed-focus screens.
  * @param content          column content rendered inside the framed, clipped, padded surface.
  */
 @Composable
@@ -145,6 +171,7 @@ fun FocusFrame(
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
     contentInset: Dp = FocusInset,
+    placement: FocusFramePlacement = FocusFramePlacement.Region,
     trailingActionIcon: DinghyIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
@@ -155,7 +182,7 @@ fun FocusFrame(
     val stroke = focusEdgeStroke(edge, outline = t.outline)
     Column(
         modifier = modifier
-            .padding(horizontal = ListFrameInset) // outer region-edge frame (matches the Field)
+            .padding(focusFramePadding(placement)) // outer registration frame (R26): Region = all 4 sides
             .clip(shape)
             .then(
                 if (stroke != null) Modifier.border(BorderStroke(stroke.widthDp.dp, stroke.color), shape)

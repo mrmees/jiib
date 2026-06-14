@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -186,8 +187,7 @@ fun PrintersContent(
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            // R26 frame: ring lands at 8dp top (matches the Field list's first row).
-                            .padding(top = 8.dp, bottom = 4.dp),
+                            .weight(1f),
                         edge = ringColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
@@ -215,33 +215,48 @@ fun PrintersContent(
                             fontSize = fsSp(15f, t.fs).sp,
                         )
                     }
+                } else {
+                    // Framed empty state — Printers identity (existing owner-locked SystemRowPrinters
+                    // glyph) holding the no-printers headline/body (moved out of the Field).
+                    FocusFrame(
+                        title = stringResource(R.string.system_row_printers),
+                        icon = DinghyIcons.SystemRowPrinters,
+                        uDp = grid.uDp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(R.string.printers_empty_headline),
+                                    color = t.text,
+                                    fontFamily = Geist,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = fsSp(17f, t.fs).sp,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Text(
+                                    text = stringResource(R.string.printers_empty_body),
+                                    color = t.text2,
+                                    fontFamily = Geist,
+                                    fontSize = fsSp(15f, t.fs).sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             },
             field = {
                 if (profiles.isEmpty()) {
-                    Box(
-                        Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = stringResource(R.string.printers_empty_headline),
-                                color = t.text,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(17f, t.fs).sp,
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                text = stringResource(R.string.printers_empty_body),
-                                color = t.text2,
-                                fontFamily = Geist,
-                                fontSize = fsSp(15f, t.fs).sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
+                    // Blank weighted spacer keeps the FootButtonBar pinned to the foot of the Field;
+                    // the empty headline/body moved into the Focus card above.
+                    Spacer(Modifier.weight(1f))
                 } else {
                     ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                         items(profiles, key = { it.id }) { profile ->

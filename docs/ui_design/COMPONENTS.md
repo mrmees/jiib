@@ -106,13 +106,16 @@ Geist Mono at the call site (values, not labels).
 Every screen's Focus region is a `FocusFrame` — **except Webcam**, which stays full-bleed native
 media (the one exemption). Renamed from the old `DetailCard`. Filled background (`t.surface` — visually
 distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). It **self-owns its
-horizontal region frame** (`ListFrameInset`, 8dp — so the Focus aligns with the Field's horizontal
-frame; callers pass vertical/sizing only, mirroring `ListBlock`), **clips its content to bounds** (no
+8dp registration frame** (`ListFrameInset`) on **all four sides** in the default
+`FocusFramePlacement.Region` — so callers pass **sizing only** (`fillMaxSize`/`weight`) and never add
+frame padding (composed-focus screens pass `FocusFramePlacement.Composed`; see below). It **clips its content to bounds** (no
 overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
 content inset (the `contentInset` param, **default `FocusInset` = 16dp**). A screen whose Focus
 content reads better tighter may pass a smaller value — the Calibration Hub passes `FocusInset / 2`
 (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
 screen uses the 16dp default.
+
+FocusFrame self-owns its 8dp registration frame on all four sides (`FocusFramePlacement.Region`, the default); callers pass sizing only and never add frame padding. The three composed-focus screens (Spool, Files, Console) pass `FocusFramePlacement.Composed` and own their vertical registration — pending the Phase-2 field-side pass.
 
 **Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All

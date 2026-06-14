@@ -157,8 +157,7 @@ private fun OutputsContent(
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .padding(8.dp),
+                            .weight(1f),
                     ) {
                         FocusFrame(
                             title = selectedRow.descriptor.prettyName,
@@ -189,20 +188,28 @@ private fun OutputsContent(
                         }
                     }
                 } else {
-                    // No selection (or preview overload): prompt text centered in the Focus region.
-                    Box(
-                        Modifier
+                    // No selection: framed empty state — the Outputs section identity (icon law:
+                    // existing owner-locked OutputSection glyph) with the prompt centered inside.
+                    FocusFrame(
+                        title = stringResource(R.string.outputs_title),
+                        icon = DinghyIcons.OutputSection,
+                        uDp = grid.uDp,
+                        modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        contentAlignment = Alignment.Center,
+                        isPrinting = isPrinting,
+                        onEmergencyStop = onEmergencyStop,
+                        onPanic = onEmergencyStop,
                     ) {
-                        Text(
-                            text = stringResource(R.string.outputs_select_prompt),
-                            color = t.text3,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = fsSp(18f, t.fs).sp,
-                        )
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.outputs_select_prompt),
+                                color = t.text3,
+                                fontFamily = Geist,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = fsSp(18f, t.fs).sp,
+                            )
+                        }
                     }
                 }
             },
