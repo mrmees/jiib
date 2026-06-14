@@ -430,7 +430,9 @@ LOCKED compound anatomy"). Key invariants:
 > **UAT-5 (controls ≤ 1U):** All in-Focus controls cap at 1U (`height(uDp)`). Enforced sites:
 > **AdjusterPanel ± stepper row**, **Scrubber ± row**, **IncrementPicker** (was floor-only before
 > the 2026-06-13 compliance pass — now capped). The LED `ColorWheel` is the **sole sanctioned
-> >1U exception**. See `LAYOUT.md UAT-5`.
+> >1U exception**. For the tiles to actually FILL the 1U row (not just floor at 64dp),
+> `LocalUnitDp` must be PROVIDED at the adjuster layer — see "LocalUnitDp provision" in the
+> AdjusterPanel section below. See `LAYOUT.md UAT-5`.
 >
 > **UAT-1 (prominent icons ~70-80% U):** `FloatingEStop`'s glyph at `uDp * 0.7f` is the precedent
 > for U-relative icon sizing on Focus-anchoring controls. See `LAYOUT.md UAT-1`.
@@ -448,15 +450,55 @@ design. Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature,
 **AdjusterPanel — two-zone layout (compliance pass, 2026-06-13):**
 
 `AdjusterPanel` is a **two-zone** component: **(1) value zone** (absorbs available slack,
-centered — live value + `was X` baseline readout); **(2) bottom-docked controls** (± stepper
-row and IncrementPicker, pinned to the bottom of the panel). There is no Zone-1 identity
-(icon + name + reset) inside the panel — **identity lives in the `FocusFrame` header** (D9
-single-item rule, above). Do NOT re-render the selected item's icon or name inside AdjusterPanel.
+centered — live value + unit span + stacked "was X" baseline readout); **(2) bottom-docked
+controls** (± stepper row and IncrementPicker, pinned to the bottom of the panel). There is no
+Zone-1 identity (icon + name + reset) inside the panel — **identity lives in the `FocusFrame`
+header** (D9 single-item rule, above). Do NOT re-render the selected item's icon or name inside
+AdjusterPanel.
+
+**Zone-1 value display anatomy (owner UAT 2026-06-13):**
+
+- **Value line:** the numeric part at large size (e.g. 48sp), `text` color, Geist Mono. Carries
+  the R10 rejection flash.
+- **Unit span:** rendered on the same line as the value via `Modifier.alignByBaseline()` — NOT
+  box-bottom-aligned (that reads as a subscript). Smaller (~0.58× the numeric size, e.g. 28sp),
+  lighter (`text2` color), and with **NO separating space** (compact `"120mm/s²"`). Stays `text2`
+  and does NOT participate in the R10 flash.
+- **"was X" baseline:** stacked **directly below** the value+unit line (text3, 18sp, `text3`
+  color). Shown only when the live value has deviated from the entry baseline; hidden when
+  returned to baseline. The value zone has `weight(1f)` and absorbs the extra line — **a stacked
+  "was" does NOT overflow the 5U phone-landscape budget.** *(Note: earlier doc versions stated
+  "was X" must be inline on the same line and that stacking overflows 5U. That was reversed by
+  owner UAT 2026-06-13 — multi-word units like mm/s² made the inline form too long; the
+  weight-1f zone is the correct fix.)*
 
 **Content inset:** adjuster Focuses use `contentInset = FocusInset / 2` (8dp) — the same as the
 Calibration Hub — to give the bottom-docked control group sufficient breathing room without
 wasting vertical space on the value zone. This is the canonical **"Focus with a docked action
 region"** pattern; see `LAYOUT.md §"Focus with a docked action region"`.
+
+**IncrementPicker selected tile — `accentSoft` fill + accent outline (owner UAT 2026-06-13):**
+
+The active tile in `IncrementPicker` uses **`accentSoft` FILL plus the `accentLine` outline**,
+mirroring the `ListRow` selected-state convention. Inactive tiles keep the default `t.surface`
+fill and `t.outline` border. This is enabled by the optional **`fill: Color?` param on
+`OutlinedControl`** — when non-null, it overrides the default `t.surface` fill (null = no
+change). `IncrementPicker` is the first consumer: active tile passes `fill = t.accentSoft`,
+inactive tiles pass `fill = null`. This `fill` param is the correct extension point for any
+future selected/toggle state that needs a custom fill rather than just a border change.
+
+**LocalUnitDp provision — how 1U-capped rows FILL to 1U (owner UAT 2026-06-13):**
+
+UAT-5 caps all in-Focus controls at `height(uDp)`. Without `LocalUnitDp` being PROVIDED at the
+adjuster layer, `OutlinedControl` sees only its 64dp touch floor and sits top-aligned inside the
+taller 1U row — tiles look "smaller than 1U and spread out" except when `uDp ≈ 64` (small phone
+landscape). With `LocalUnitDp` provided, the tiles floor at 1U and FILL the row, and their
+glyphs size to the 0.6U tier.
+
+**Provider sites (in addition to `FootButtonBar` which always provided it):**
+- `AdjusterPanel` ± stepper row
+- `IncrementPicker`
+- `Scrubber` ± row
 
 **± = `DinghyIcons.Decrease` / `DinghyIcons.Increase` (compliance pass, 2026-06-13):**
 
