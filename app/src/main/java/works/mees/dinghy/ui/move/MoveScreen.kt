@@ -14,11 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
+import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
 import works.mees.dinghy.command.HomeAxisArgs
@@ -55,6 +54,7 @@ import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.ScrubberOrientation
 import works.mees.dinghy.designsystem.components.StepperRow
+import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -636,29 +636,17 @@ internal fun MoveHubContent(
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardType = KeyboardType.Text,
                                 )
-                                // Include-Z checkbox row: tapping the row (label or box) toggles state.
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { includeZ = !includeZ },
-                                ) {
-                                    Checkbox(
-                                        checked = includeZ,
-                                        onCheckedChange = { includeZ = it },
-                                        colors = CheckboxDefaults.colors(
-                                            checkedColor = t.accent,
-                                            uncheckedColor = t.outline,
-                                            checkmarkColor = t.surface,
-                                        ),
-                                    )
-                                    Text(
-                                        text = "Include Z height (Z = ${fmt1(vm.z)})",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(16f, t.fs).sp,
-                                        color = t.text,
-                                    )
-                                }
+                                // Include-Z toggle: the canonical full-width 1U On/Off ToggleRow
+                                // (control baseline audit, Phase 5 — kills the Material MUI tick-box
+                                // rogue). includeZ stays INTENTIONALLY ephemeral (reset per dialog
+                                // open) — render-only swap, no persistence.
+                                ToggleRow(
+                                    label = stringResource(R.string.move_include_z, fmt1(vm.z)),
+                                    checked = includeZ,
+                                    onToggle = { includeZ = it },
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                                 // BOTTOM-DOCK (master-list §f#7): weighted spacer pushes the Cancel/Save
                                 // button group to the BOTTOM of the Focus; the name field + include-Z
                                 // toggle form the body above. (Intents/labels unchanged — that's a later

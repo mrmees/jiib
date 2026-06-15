@@ -460,6 +460,7 @@
     <string name="move_disable_confirm">Disable steppers? This will un-home all axes.</string>
     <string name="cd_move_jog_pad">Move jog pad</string>
     <string name="move_focus_blurb">Move the print head and bed.</string>
+    <string name="move_include_z">Include Z height (Z = %1$s)</string>
 
     <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
     <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /
