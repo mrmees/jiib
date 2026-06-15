@@ -94,8 +94,7 @@ private fun DesignKitLayoutDemo(modifier: Modifier = Modifier) {
 
             ListBlock(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 4.dp),
+                    .weight(1f),
             ) {
                 items(rowLabels.size) { idx ->
                     UnitRow(label = rowLabels[idx], uDp = grid.uDp)

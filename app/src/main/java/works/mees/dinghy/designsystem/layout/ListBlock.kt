@@ -76,7 +76,7 @@ val FocusInset: Dp = 16.dp
  * own the items. Example:
  *
  * ```kotlin
- * ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {   // horizontal frame owned by enclosing region; ListBlock is flush
+ * ListBlock(modifier = Modifier.weight(1f)) {   // flush — the enclosing RegisteredRegion owns the 8dp frame + gap
  *     items(state.spools, key = { it.id }) { spool ->
  *         ListRow(selected = spool.id == selected?.id, onClick = { onRowClick(spool) }, uDp = grid.uDp) {
  *             SpoolRowContent(spool, t)
