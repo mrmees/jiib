@@ -399,7 +399,28 @@ git commit -m "test(type): FontConformanceTest in reporting mode (baseline)"
 
 ---
 
-## The sweep recipe (applies to Tasks 4–9)
+## Sweep execution model (CORRECTION after Task 3 baseline)
+
+The Task 3 reporter found **414** inline font sites (each site is usually a `fontFamily =` line + a `fontSize =` line, so ~2× the ~224 styles). The baseline area breakdown also revealed screens the original file-lists missed: `ui/temperature/` (14), `ui/systeminfo/` (8), `ui/shell/DevThemeCyclerOverlay.kt` (4), and the Compose wrappers inside the Views areas — `ui/console/ConsoleScreen.kt` (6), `ui/files/FilesScreen.kt` (19), `ui/webcam/WebcamScreen.kt` (6), `render/Media3SurfaceHost.kt` (6) — which are NOT the 4 allowlisted Views surfaces.
+
+**Therefore each sweep task is scoped by AREA and driven by the reporter, not a hand-typed file list:** a sweep task owns one or more directory prefixes; it runs `FontConformanceTest`, sweeps every flagged `.kt` under its area(s), and re-runs the reporter to prove its area is at **0**. The rebalanced area assignment (≈ counts):
+
+| Task | Area(s) | ~sites |
+|---|---|---|
+| T4 | `designsystem/` (components + control + root) | 40 |
+| T5 | `ui/printstatus/` + `ui/temperature/` | 35 |
+| T6 | `ui/calibration/` | 51 |
+| T7 | `ui/move/` + `ui/extrude/` + `ui/outputs/` + `ui/finetune/` | 55 |
+| T8 | `ui/spool/` (incl. `scan/`) | 73 |
+| T9 | `ui/screen/` + `ui/systeminfo/` | 80 |
+| T10 | `ui/macros/` + `ui/prompt/` | 37 |
+| T11 | mop-up: `ui/shell/`, `bench/`, and the non-allowlisted Compose files under `ui/console/`, `ui/files/`, `ui/webcam/`, `render/` (`Media3SurfaceHost`: if its text is `Paint`-drawn Views text, allowlist it with a justifying comment instead of forcing a role) | ~43 |
+| T12 | Views wiring (was Task 10) | — |
+| T13 | Enforce + docs (was Task 11) | — |
+
+`PromptMarkupText` author-hex carve-out and the `ScanSurface`/`ScanConfirmCard` text still apply (T8/T10).
+
+## The sweep recipe (applies to the T4–T11 sweep tasks)
 
 For each file, replace every inline text style with a role. **The deterministic rule:**
 
