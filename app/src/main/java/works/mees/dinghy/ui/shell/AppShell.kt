@@ -95,6 +95,7 @@ import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.AppSettingsScreen
+import works.mees.dinghy.ui.screen.PrinterSettingsScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.screen.SystemPageScreen
 import works.mees.dinghy.ui.screen.ThemeScreen
@@ -749,6 +750,20 @@ fun AppShell(
                 // NavDest.Devices (D-01): the printer switcher. onSwitched pops to the existing
                 // WaterfallHome root (FIX-4 gate, D-02) — navigate() would push a duplicate, breaking
                 // system Back (WR-03 fix). popBackStack is idempotent at root. NO rebind/disconnect here.
+                PrintersScreen(
+                    container = container,
+                    onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.PrinterSettings> {
+                PrinterSettingsScreen(
+                    container = container,
+                    onNavigate = { navController.navigate(it) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.ManagePrinters> {
                 PrintersScreen(
                     container = container,
                     onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
