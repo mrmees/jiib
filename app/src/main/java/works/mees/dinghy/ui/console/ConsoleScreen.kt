@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FocusFramePlacement
+
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -202,7 +202,6 @@ private fun ConsoleContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = 0.dp, // feed fills the frame edge-to-edge (rows carry their own padding)
-                    placement = FocusFramePlacement.Composed,
                 ) {
                     // Pinned-height BoxWithConstraints wrapper — load-bearing (the Files scroll lesson):
                     // pins the RecyclerView so it can't over-measure and composite past the frame.

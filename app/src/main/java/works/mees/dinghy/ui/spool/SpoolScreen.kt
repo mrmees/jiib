@@ -55,7 +55,7 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FocusFramePlacement
+
 import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
@@ -348,7 +348,6 @@ private fun SpoolContent(
                         uDp = grid.uDp,
                         edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         modifier = Modifier.fillMaxSize(),
-                        placement = FocusFramePlacement.Composed,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
