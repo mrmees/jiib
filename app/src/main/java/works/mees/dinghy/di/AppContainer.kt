@@ -712,8 +712,15 @@ class AppContainer(
      * profile/tuple than the one [seedTheme] applies — no idle-tuple omission, no profile skew.
      */
     val activeThemeTuple: Flow<ThemePrefs.ThemeTuple> =
-        activeProfile.flatMapLatest { p ->
-            if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
+        combine(
+            activeProfile.flatMapLatest { p ->
+                if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
+            },
+            fontScalePrefs.fontScale,
+        ) { tuple, appFs ->
+            // App-global font scale is the SOLE source of `--fs` — override whatever the per-profile /
+            // idle tuple carried. Both theme paths (seedTheme + effectiveTokens) read this flow.
+            tuple.copy(fs = appFs.multiplier)
         }
 
     /**
