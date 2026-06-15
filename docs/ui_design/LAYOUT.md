@@ -221,18 +221,16 @@ screen this is what makes the columns READ as one surface**: the top of the firs
 aligns with the top of the Focus card's ring, and the bottom of the Focus-foot control tiles
 aligns with the bottom of the Field's foot buttons — across the 50/50 divide.
 
-- `FootButtonBar` satisfies the bottom edge **by construction** (it owns vertical gapS padding —
-  R21). Never add caller padding to it.
-- `ListBlock` adds NO outer padding — the list CONTAINER must carry the frame
-  (`Modifier.padding(top = 8.dp)` or a parent column's vertical padding). The edge fades are
-  overlays, not spacing.
-- Inter-element gaps inside a column stay gapS (8dp), however the per-element paddings compose
-  (the common v4+v4 idiom is fine BETWEEN elements — but the frame edges must still total 8).
+- `RegisteredRegion` owns the 8dp frame once per region (default-on in `ScreenScaffold`, per-region
+  `focusFramed`/`fieldFramed` opt-out). Components (`FocusFrame`/`ListBlock`/`FootButtonBar`/`SortRow`/`FilterRow`)
+  are flush and never add frame padding; inter-element gaps are the region's `spacedBy(8dp)`. Non-region/embedded
+  uses add their own inset. (Supersedes the retired Phase-1 `FocusFramePlacement`.)
+- Inter-element gaps inside a region are owned by `RegisteredRegion`'s `spacedBy(RegionGap)` — never add
+  manual `spacedBy` or gap padding between direct-children components.
 - Origin: the Spool screen shipped with a 4dp card frame over a 0dp list frame (tops off by
   4dp) and a 4dp filter-row edge against the bar's 8dp (bottoms off by 4dp) — the misalignment
   Matthew called out. The pilot-approved home list (8dp column padding) is the reference.
 - Conformance: checklist criterion **C-E2**.
-- `FocusFrame` satisfies its 8dp top/bottom (and horizontal) registration **by construction** in `Region` placement (like `FootButtonBar`'s self-owned vertical gapS). Callers never add frame padding. `Composed`-placement screens (Spool/Files/Console) own their vertical scheme until the field-side pass unifies them.
 
 ---
 

@@ -37,6 +37,7 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -119,12 +120,7 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
             ),
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        RegisteredRegion(modifier = Modifier.fillMaxSize()) {
             // ── SortRow + FilterRow ───────────────────────────────────────────────
             SortRow(
                 options = sortOptions,

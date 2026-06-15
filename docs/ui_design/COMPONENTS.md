@@ -75,6 +75,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | `SortFilterControlRow` | Filled (control) | type-tile: `t.bg2`; option tile: `t.surface`; active: `t.accentSoft` | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
 | Control tile (general) | Filled | `t.surface` | `t.outline` / intent-line if active | Interactive grid tile (launcher, shortcut, jog pad cell) | `OutlinedControl.kt` (existing) |
 | `ListBlock` | — (scroll wrapper) | — | — | Edge-faded `LazyColumn` container | `designsystem/layout/ListBlock.kt` |
+| `RegisteredRegion` | — (frame owner) | — | — | 8dp edge-registration frame + inter-element gap owner for a screen region | `designsystem/layout/RegisteredRegion.kt` |
 
 ### Class details
 
@@ -105,17 +106,16 @@ Geist Mono at the call site (values, not labels).
 **THE universal Focus container** (Focus Frame law, `.planning/notes/2026-06-12-focus-frame-law-design.md`).
 Every screen's Focus region is a `FocusFrame` — **except Webcam**, which stays full-bleed native
 media (the one exemption). Renamed from the old `DetailCard`. Filled background (`t.surface` — visually
-distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). It **self-owns its
-8dp registration frame** (`ListFrameInset`) on **all four sides** in the default
-`FocusFramePlacement.Region` — so callers pass **sizing only** (`fillMaxSize`/`weight`) and never add
-frame padding (composed-focus screens pass `FocusFramePlacement.Composed`; see below). It **clips its content to bounds** (no
+distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). `FocusFrame` is
+authored **flush** — it adds NO frame padding of its own; the enclosing `RegisteredRegion` (the
+default in `ScreenScaffold`) owns the 8dp registration frame on all four sides. Callers pass
+**sizing only** (`fillMaxSize`/`weight`) and never add frame padding. (`FocusFramePlacement` is
+**retired** — the region now uniformly owns the frame for all placements.) It **clips its content to bounds** (no
 overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
 content inset (the `contentInset` param, **default `FocusInset` = 16dp**). A screen whose Focus
 content reads better tighter may pass a smaller value — the Calibration Hub passes `FocusInset / 2`
 (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
 screen uses the 16dp default.
-
-FocusFrame self-owns its 8dp registration frame on all four sides (`FocusFramePlacement.Region`, the default); callers pass sizing only and never add frame padding. The three composed-focus screens (Spool, Files, Console) pass `FocusFramePlacement.Composed` and own their vertical registration — pending the Phase-2 field-side pass.
 
 **Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
@@ -239,17 +239,17 @@ buttons (one wider primary action) are allowed if they stay on the grid (integer
 **Back is always the FIRST (start-aligned) button** (R8, 2026-06-12), app-wide. The bar is
 **optional per page** (R1) — it is the old gutter's successor, not a required element.
 
-**⚠ Edge-alignment rule (owner ruling, 2026-06-12).** A `FootButtonBar` stacked vertically with a
-list-format field area (`ListBlock`) — above OR below it — MUST have its outer left/right edges
-aligned with the list's outer edges. This is enforced structurally, not per screen: the horizontal
-frame is a single shared constant, **`ListFrameInset` (8dp, in `designsystem/layout/ListBlock.kt`)**,
-applied internally by BOTH `ListBlock` and `FootButtonBar`. Consequences for call sites:
+**`FootButtonBar` is authored flush** — it adds NO frame padding of its own. The enclosing
+`RegisteredRegion` owns the 8dp edge frame, which automatically aligns a stacked `FootButtonBar`
+with its sibling `ListBlock` (both are flush direct children of the same region). Consequences
+for call sites:
 - **Never** pass `start`/`end`/`horizontal` padding to a `ListBlock` or `FootButtonBar` — the
-  component owns it. Callers pass only `weight`/vertical (`top`/`vertical`).
-- **Never** wrap a stacked list+bar in a Column that adds `horizontal` padding — that double-insets
-  the bar (the bug this rule fixed: the home Standby foot bar sat 8dp inside the list). Frame the
-  Column vertically only; let the children own the horizontal frame.
-- To change the frame width app-wide, edit `ListFrameInset` in ONE place.
+  region owns it. Callers pass only `weight`/vertical (`top`/`vertical`).
+- **Never** wrap a stacked list+bar in a Column that adds `horizontal` padding — that
+  double-insets the bar. Frame the Column vertically only; let the region own the horizontal
+  frame.
+- To change the frame width app-wide, edit `ListFrameInset` (in `designsystem/layout/ListBlock.kt`,
+  aliased to `RegionInset` in `RegisteredRegion.kt`) in ONE place.
 
 Intent follows the four-class scheme (R5 — see `THEMING.md §"Button intent = color"`):
 - Load / Unload spool = `Intent.Go` (the expected action of the current selection state)
@@ -315,9 +315,22 @@ by `lazyListState.firstVisibleItemIndex > 0` (top) and `lazyListState.canScrollF
 
 No additional scrollbar indicator — Compose `LazyColumn` has none by default; this is intentional.
 
-`ListBlock` owns its **horizontal frame** (`ListFrameInset`, 8dp) internally so its outer edges match
-a stacked `FootButtonBar`'s — see the FootButtonBar §"Edge-alignment rule". Callers pass only
-`weight` + vertical padding (`top`/`vertical`), never `start`/`end`/`horizontal`.
+`ListBlock` is authored **flush** — it adds NO frame padding of its own. The enclosing
+`RegisteredRegion` owns the 8dp edge frame; `ListBlock`'s outer edges are therefore flush with
+a stacked `FootButtonBar` by construction (both are direct children of the same region and both
+sit inside the same `RegisteredRegion` inset). Callers pass only `weight` + vertical padding
+(`top`/`vertical`), never `start`/`end`/`horizontal`. Embedded uses of `ListBlock` inside a
+`FocusFrame` body (not a region child) must add their own inset explicitly.
+
+#### `RegisteredRegion`
+
+**RegisteredRegion** — the single owner of a screen region's 8dp edge-registration frame
+(R26) + inter-element gap. `ScreenScaffold` wraps each slot in it by default (per-region
+`focusFramed`/`fieldFramed` opt-out); Console and self-contained field helpers (PrintStatus)
+call it directly. `FocusFrame`, `ListBlock`, `FootButtonBar`, `SortRow`/`FilterRow` are
+authored FLUSH — they never add their own frame padding; the region owns it. Embedded
+(non-region-child) uses — e.g. a `ListBlock` inside a `FocusFrame` body — add their own
+inset explicitly.
 
 ---
 
