@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,15 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
-import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.fractionFromX
-import works.mees.dinghy.designsystem.layout.LocalUnitDp
-import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.gapM
 import works.mees.dinghy.designsystem.fractionFromY
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -400,33 +395,18 @@ fun Scrubber(
                     )
                 }
 
-                // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete gesture).
-                // LocalUnitDp so the tiles floor at 1U and FILL the height(uDp) row (R26 mechanism)
-                // rather than sitting at the bare 64dp floor, top-aligned (the "spread out, smaller
-                // than 1U" UAT defect, 2026-06-13); also drives 0.6U glyph sizing for the ± icons.
-                CompositionLocalProvider(LocalUnitDp provides uDp) {
-                    Row(
-                        Modifier.fillMaxWidth().height(uDp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedControl(
-                            label = "",
-                            onClick = { set(working - step); settle() },
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                            icon = DinghyIcons.Decrease,
-                            contentDescription = stringResource(R.string.cd_decrement),
-                        )
-                        OutlinedControl(
-                            label = "",
-                            onClick = { set(working + step); settle() },
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent, // R5: setting adjustment = accent (neutral retired)
-                            icon = DinghyIcons.Increase,
-                            contentDescription = stringResource(R.string.cd_increment),
-                        )
-                    }
-                }
+                // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete
+                // gesture). The canonical [StepperRow] (Phase 4): 1U row, LocalUnitDp-provided so the
+                // tiles floor at 1U and FILL the row (R26), Decrease/Increase icon tokens, Accent
+                // intent (R5: setting adjustment = accent). Spacing = gapM (12dp at U=64) — pixel-
+                // identical to the prior hand-rolled Row.
+                StepperRow(
+                    onDecrement = { set(working - step); settle() },
+                    onIncrement = { set(working + step); settle() },
+                    uDp = uDp,
+                    intent = Intent.Accent,
+                    spacing = gapM(uDp),
+                )
             }
         }
     } else {

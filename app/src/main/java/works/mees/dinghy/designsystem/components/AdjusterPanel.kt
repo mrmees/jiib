@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -26,9 +24,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.theme.GeistMono
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -188,40 +183,19 @@ fun AdjusterPanel(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // LocalUnitDp so the stepper tiles floor at 1U and FILL the height(uDp) row (R26
-            // mechanism) instead of sitting at the bare 64dp floor, top-aligned (the "spread out,
-            // smaller than 1U" UAT defect, 2026-06-13). Also drives 0.6U glyph sizing for the ± icons.
-            CompositionLocalProvider(LocalUnitDp provides uDp) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(uDp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedControl(
-                        label = "",
-                        onClick = onDecrement,
-                        enabled = controlsEnabled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .then(disabledModifier)
-                            .then(busyDimModifier),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Decrease,
-                        contentDescription = stringResource(R.string.cd_decrement),
-                    )
-                    OutlinedControl(
-                        label = "",
-                        onClick = onIncrement,
-                        enabled = controlsEnabled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .then(disabledModifier)
-                            .then(busyDimModifier),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Increase,
-                        contentDescription = stringResource(R.string.cd_increment),
-                    )
-                }
-            }
+            // The ± stepper is the canonical [StepperRow] (Phase 4): 1U row, LocalUnitDp-provided so
+            // the tiles floor at 1U and FILL the row (R26), Decrease/Increase icon tokens, Accent
+            // intent. `enabled`/`busy` pass straight through — TRUE disablement dims + announces
+            // disabled, busy dims but stays tappable (taps accumulate). Spacing = gapS (8dp at U=64,
+            // pixel-identical to the prior hand-rolled Row).
+            StepperRow(
+                onDecrement = onDecrement,
+                onIncrement = onIncrement,
+                uDp = uDp,
+                intent = Intent.Accent,
+                enabled = controlsEnabled,
+                busy = busy,
+            )
             incrementPicker()
         }
     }

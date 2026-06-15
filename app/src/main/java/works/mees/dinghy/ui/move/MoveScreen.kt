@@ -1,8 +1,5 @@
 package works.mees.dinghy.ui.move
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Checkbox
@@ -33,10 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -53,6 +45,8 @@ import works.mees.dinghy.command.JogArgs
 import works.mees.dinghy.command.MoveToArgs
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
+import works.mees.dinghy.designsystem.components.AxisOption
+import works.mees.dinghy.designsystem.components.AxisSelectorRow
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
@@ -60,6 +54,7 @@ import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.ScrubberOrientation
+import works.mees.dinghy.designsystem.components.StepperRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -488,95 +483,75 @@ internal fun MoveHubContent(
                                     else -> vm.zHomed
                                 }
 
+                                // BOTTOM-DOCK (master-list §f#7): the XYZ coordinate readout is the
+                                // weighted body (absorbs the slack above via weight(1f)); the three
+                                // control rows (step-size / jog / axis-select) are pinned to the
+                                // BOTTOM of the Focus content. Was top-aligned spacedBy(8.dp).
                                 Column(
                                     Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    // XYZ coordinate readout — shrinks to fit one line via TextAutoSize.
-                                    BasicText(
-                                        text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
-                                        style = TextStyle(
-                                            fontFamily = GeistMono,
-                                            color = t.text,
-                                            textAlign = TextAlign.Center,
-                                        ),
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        autoSize = TextAutoSize.StepBased(
-                                            minFontSize = fsSp(11f, t.fs).sp,
-                                            maxFontSize = fsSp(22f, t.fs).sp,
-                                            stepSize = 1.sp,
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                    )
-                                    // Wrapping − / value / + increment selector (inline; does NOT touch IncrementPicker).
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    // XYZ coordinate readout — weighted body, centered, shrinks to fit
+                                    // one line via TextAutoSize.
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().weight(1f),
+                                        contentAlignment = Alignment.Center,
                                     ) {
-                                        OutlinedControl(
-                                            label = "−",
-                                            onClick = { stepIndex = (stepIndex - 1 + steps.size) % steps.size },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                        )
-                                        Text(
-                                            text = fmtStep(activeStep),
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(22f, t.fs).sp,
-                                            color = t.text,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        OutlinedControl(
-                                            label = "+",
-                                            onClick = { stepIndex = (stepIndex + 1) % steps.size },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
+                                        BasicText(
+                                            text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
+                                            style = TextStyle(
+                                                fontFamily = GeistMono,
+                                                color = t.text,
+                                                textAlign = TextAlign.Center,
+                                            ),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            autoSize = TextAutoSize.StepBased(
+                                                minFontSize = fsSp(11f, t.fs).sp,
+                                                maxFontSize = fsSp(22f, t.fs).sp,
+                                                stepSize = 1.sp,
+                                            ),
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
-                                    // Row A — jog ±-pair: drives the SELECTED axis by ±activeStep.
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        OutlinedControl(
-                                            label = "−",
-                                            onClick = { onJog(selectedAxis, -activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = selectedHomed,
-                                        )
-                                        OutlinedControl(
-                                            label = "+",
-                                            onClick = { onJog(selectedAxis, activeStep) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            enabled = selectedHomed,
-                                        )
-                                    }
-                                    // Row B — axis selector: picks which axis the ±-pair drives.
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        listOf(
-                                            "X" to vm.xHomed,
-                                            "Y" to vm.yHomed,
-                                            "Z" to vm.zHomed,
-                                        ).forEach { (axis, homed) ->
-                                            AxisSelectChip(
-                                                axis = axis,
-                                                selected = axis == selectedAxis,
-                                                homed = homed,
-                                                uDp = grid.uDp,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = { selectedAxis = axis },
+                                    // Step-size cycler — [−][value][+] via StepperRow (kills the literal
+                                    // −/+; Decrease/Increase icon tokens). 7 magnitudes don't fit as
+                                    // tiles, so it stays a cycler with the step value in the center slot.
+                                    StepperRow(
+                                        onDecrement = { stepIndex = (stepIndex - 1 + steps.size) % steps.size },
+                                        onIncrement = { stepIndex = (stepIndex + 1) % steps.size },
+                                        uDp = grid.uDp,
+                                        intent = Intent.Accent,
+                                        center = {
+                                            Text(
+                                                text = fmtStep(activeStep),
+                                                fontFamily = GeistMono,
+                                                fontSize = fsSp(22f, t.fs).sp,
+                                                color = t.text,
+                                                textAlign = TextAlign.Center,
                                             )
-                                        }
-                                    }
+                                        },
+                                    )
+                                    // Jog ±-pair: drives the SELECTED axis by ±activeStep. Intent.Go
+                                    // (R19 — motion is Move's purpose); bare ±-pair (no center).
+                                    StepperRow(
+                                        onDecrement = { onJog(selectedAxis, -activeStep) },
+                                        onIncrement = { onJog(selectedAxis, activeStep) },
+                                        uDp = grid.uDp,
+                                        intent = Intent.Go,
+                                        enabled = selectedHomed,
+                                    )
+                                    // Axis selector: picks which axis the ±-pair drives — SelectorRow
+                                    // (X/Y/Z text-label tiles; selected = Accent + accentSoft fill).
+                                    AxisSelectorRow(
+                                        options = listOf(
+                                            AxisOption("X", isSelected = selectedAxis == "X", enabled = vm.xHomed),
+                                            AxisOption("Y", isSelected = selectedAxis == "Y", enabled = vm.yHomed),
+                                            AxisOption("Z", isSelected = selectedAxis == "Z", enabled = vm.zHomed),
+                                        ),
+                                        onSelect = { selectedAxis = it },
+                                        uDp = grid.uDp,
+                                    )
                                 }
                             }
                         }
@@ -684,6 +659,11 @@ internal fun MoveHubContent(
                                         color = t.text,
                                     )
                                 }
+                                // BOTTOM-DOCK (master-list §f#7): weighted spacer pushes the Cancel/Save
+                                // button group to the BOTTOM of the Focus; the name field + include-Z
+                                // toggle form the body above. (Intents/labels unchanged — that's a later
+                                // ActionButton sweep; this is ONLY the vertical docking.)
+                                Spacer(Modifier.weight(1f))
                                 // Save / Cancel button row.
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -921,45 +901,6 @@ private fun MoveRow(
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = tint) },
     ) {
         ListRowLabel(label)
-    }
-}
-
-/**
- * A small selectable axis chip for the Microstep axis selector (Row B). The SELECTED axis reads as
- * a *selection state* — a focus FILL mirroring the [ListRow] convention (`accentSoft` background +
- * 2dp `accentLine` border) rather than an action button. Unselected axes are outlined/transparent
- * (`outline`, 1.5dp). Unhomed axes are dimmed (`text2`) and not selectable ([homed] gates the tap).
- */
-@Composable
-private fun AxisSelectChip(
-    axis: String,
-    selected: Boolean,
-    homed: Boolean,
-    uDp: androidx.compose.ui.unit.Dp,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    val bg = if (selected) t.accentSoft else Color.Transparent
-    val borderColor = if (selected) t.accentLine else t.outline
-    val borderWidth = if (selected) 2.dp else 1.5.dp
-    Box(
-        modifier = modifier
-            .heightIn(min = uDp)
-            .clip(shape)
-            .background(bg)
-            .border(BorderStroke(borderWidth, borderColor), shape)
-            .clickable(enabled = homed, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = axis,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp,
-            color = if (homed) t.text else t.text2,
-        )
     }
 }
 

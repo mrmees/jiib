@@ -197,3 +197,50 @@ internal fun <K> SelectorRow(
         content()
     }
 }
+
+/**
+ * One axis option for [AxisSelectorRow]. [enabled] gates the tap (unhomed axis is not selectable);
+ * a disabled tile is dimmed via the standard true-disablement treatment.
+ */
+data class AxisOption(val axis: String, val isSelected: Boolean, val enabled: Boolean = true)
+
+/**
+ * The Move Microstep axis selector (control baseline audit, Phase 4) — a [SelectorRow] preset that
+ * picks which axis the ± jog pair drives. Text-label tiles ("X"/"Y"/"Z" — icon-never-twice rule:
+ * axis identity is a letter, not a glyph). Selected = [Intent.Accent] + accentSoft fill; inactive =
+ * [Intent.Neutral] (R18). Replaces the inline `AxisSelectChip` Box+border+clickable rogue.
+ *
+ * `provideUnitDp = true` so each tile floors at 1U and fills the row (R26), matching the Microstep
+ * jog/step rows. A disabled (unhomed) axis tile is greyed via [Modifier.alpha] + `disabled()`
+ * semantics and installs no click (the tap is gated by routing the select only for enabled axes).
+ *
+ * @param options the X/Y/Z options in display order.
+ * @param onSelect called with the tapped axis string (only for enabled tiles).
+ * @param uDp      one unit U — caps the row at 1U and drives tile fill.
+ */
+@Composable
+fun AxisSelectorRow(
+    options: List<AxisOption>,
+    onSelect: (String) -> Unit,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
+    SelectorRow(
+        options = options.map { opt ->
+            SelectorOption(
+                key = opt.axis,
+                label = opt.axis,
+                isActive = opt.isSelected,
+                contentDescription = opt.axis,
+            )
+        },
+        onSelect = { axis ->
+            // Gate the select to enabled (homed) axes — the disabled tile still renders (dimmed)
+            // but its tap is a no-op, mirroring the old AxisSelectChip `clickable(enabled = homed)`.
+            if (options.firstOrNull { it.axis == axis }?.enabled == true) onSelect(axis)
+        },
+        uDp = uDp,
+        modifier = modifier,
+        provideUnitDp = true,
+    )
+}
