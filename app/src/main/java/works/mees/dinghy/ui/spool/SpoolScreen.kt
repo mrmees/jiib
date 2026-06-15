@@ -37,14 +37,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.persistentListOf
@@ -77,10 +74,10 @@ import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.state.PrintState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -419,8 +416,7 @@ private fun SpoolContent(
             Text(
                 text = "U=${grid.uDp}",
                 color = t.accent2,
-                fontFamily = GeistMono,
-                fontSize = fsSp(11f, t.fs).sp,
+                style = DinghyType.dataMeta.toTextStyle(t),
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(4.dp)
@@ -464,8 +460,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
                     else -> stringResource(R.string.spool_empty_no_match)
                 },
                 color = t.text2,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
                 modifier = Modifier.padding(16.dp),
             )
         }
@@ -544,9 +539,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                         Text(
                             text = label,
                             color = if (selected) t.accent2 else t.text,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, t.fs).sp,
+                            style = DinghyType.listLabel.toTextStyle(t),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
@@ -584,8 +577,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     Text(
                         text = stringResource(R.string.spool_mfg_empty),
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontSize = fsSp(17f, t.fs).sp,
+                        style = DinghyType.body.toTextStyle(t),
                         modifier = Modifier.padding(8.dp),
                     )
                 }
@@ -601,9 +593,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                             Text(
                                 text = vendor,
                                 color = if (selected) t.accent2 else t.text,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(18f, t.fs).sp,
+                                style = DinghyType.listLabel.toTextStyle(t),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
@@ -695,12 +685,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                     weightText = filtered
                 },
                 singleLine = true,
-                textStyle = TextStyle(
-                    color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(30f, t.fs).sp,
-                ),
+                textStyle = DinghyType.focusHero.toTextStyle(t).copy(color = t.text),
                 cursorBrush = SolidColor(t.accent2),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
@@ -715,9 +700,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 Text(
                     text = stringResource(R.string.spool_measure_placeholder),
                     color = t.text3,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(30f, t.fs).sp,
+                    style = DinghyType.focusHero.toTextStyle(t),
                 )
             }
         }
@@ -736,9 +719,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
             Text(
                 text = stringResource(R.string.spool_measure_hint),
                 color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         }
     }
@@ -778,18 +759,14 @@ private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens
         Text(
             text = label,
             color = t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.caption.toTextStyle(t),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = grams?.let { "${it.roundToInt()} g" }
                 ?: stringResource(R.string.spool_measure_weight_not_set),
             color = if (grams == null) t.text3 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(26f, t.fs).sp,
+            style = DinghyType.statValue.toTextStyle(t),
             maxLines = 1,
         )
     }
@@ -843,7 +820,6 @@ private fun SpoolDetailContent(
         return
     }
     val filament = spool.filament
-    val bodySp = fsSp(18f, t.fs)
     val iconSp = fsSp(20f, t.fs)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -879,9 +855,9 @@ private fun SpoolDetailContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
-            Text(tempText(filament?.settingsExtruderTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+            Text(tempText(filament?.settingsExtruderTemp), color = t.text, style = DinghyType.dataInline.toTextStyle(t), maxLines = 1)
             DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
-            Text(tempText(filament?.settingsBedTemp), color = t.text, fontFamily = GeistMono, fontWeight = FontWeight.SemiBold, fontSize = bodySp.sp, maxLines = 1)
+            Text(tempText(filament?.settingsBedTemp), color = t.text, style = DinghyType.dataInline.toTextStyle(t), maxLines = 1)
         }
         // Registration date.
         Row(
@@ -893,16 +869,15 @@ private fun SpoolDetailContent(
                 text = spool.registered?.substringBefore('T')?.ifBlank { null }
                     ?: stringResource(R.string.spool_value_unset),
                 color = t.text,
-                fontFamily = GeistMono,
-                fontSize = bodySp.sp,
+                style = DinghyType.dataInline.toTextStyle(t),
                 maxLines = 1,
             )
         }
         if (isActive) {
-            DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), bodySp, iconSp, t.go)
+            DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), t, iconSp, t.go)
         }
         if (spool.archived) {
-            DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), bodySp, iconSp, t.heat)
+            DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)
         }
     }
 }
@@ -957,9 +932,7 @@ private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: Spoo
         Text(
             text = spoolDisplayTitle(spool),
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.listLabel.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -971,8 +944,7 @@ private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: Spoo
             Text(
                 text = meta,
                 color = t.text2,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.dataMeta.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -992,25 +964,20 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
             text = spool.remainingWeight?.let { "${it.roundToInt()} g" }
                 ?: stringResource(R.string.spool_value_unset),
             color = if (spool.remainingWeight == null) t.text3 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.dataInline.toTextStyle(t),
             maxLines = 1,
         )
         if (spool.id == activeId) {
             Text(
                 text = stringResource(R.string.spool_row_badge_loaded),
                 color = t.go,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         } else if (spool.archived) {
             Text(
                 text = stringResource(R.string.spool_row_badge_archived),
                 color = t.heat,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         }
     }
@@ -1031,7 +998,7 @@ private fun DetailBadge(
     icon: DinghyIcon,
     text: String,
     contentDescription: String,
-    textSp: Float,
+    t: ThemeTokens,
     iconSp: Float,
     color: Color,
 ) {
@@ -1040,7 +1007,7 @@ private fun DetailBadge(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
-        Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = textSp.sp)
+        Text(text, color = color, style = DinghyType.body.toTextStyle(t))
     }
 }
 
