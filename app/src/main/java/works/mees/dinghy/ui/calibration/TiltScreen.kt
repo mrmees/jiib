@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -154,7 +153,7 @@ fun TiltContent(
             ScreenScaffold(
                 focus = {
                     FocusFrame(
-                        title = stringResource(routineTitleRes(routine)),
+                        title = title,
                         icon = routineIconToken(routine),
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
@@ -255,13 +254,7 @@ private fun TiltFocus(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = title,
-            color = t.text,
-            style = DinghyType.focusHeader.toTextStyle(t),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 12.dp),
-        )
+        // Title lives in the FocusFrame header (the mandatory 1U header) — not repeated here.
         Box(
             Modifier.fillMaxWidth(0.9f).aspectRatio(1f),
             contentAlignment = Alignment.Center,
