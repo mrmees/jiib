@@ -389,6 +389,15 @@ matches before editing.
 - `ui/temperature/TemperatureScreen.kt:615` and `:725` — same `.padding(top = 8.dp)` removal (both `when` branches)
 - `ui/macros/BookmarkedMacrosScreen.kt:508` and `:656` — `ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp))` → `ListBlock(modifier = Modifier.weight(1f))` *(gap normalises to region 8dp — enumerate at UAT)*
 - `ui/spool/SpoolScreen.kt:483`, `:554`, `:613` — `DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp))` → `DesignListBlock(modifier = Modifier.weight(1f))` (the Spool **field** list — distinct from the Spool focus untangle in Task 8)
+- `ui/outputs/OutputsScreen.kt:220` — remove the `.padding(top = 8.dp)` line from that `ListBlock` modifier *(Codex C1)*
+- `ui/finetune/FineTuneScreen.kt:366` — remove `.padding(top = 8.dp)` *(Codex C1)*
+- `ui/calibration/ScrewsTiltScreen.kt:183` — remove `.padding(top = 8.dp)` *(Codex C1)*
+- `ui/move/MoveScreen.kt:730` — remove `.padding(top = 8.dp)` *(Codex C1)*
+
+**Direct-child `SeverityToast` horizontal pads** (also direct region children — drop the now-doubled `.padding(horizontal = 8.dp)`; matches the PrintStatus toast already handled in Task 7) *(Codex S1)*:
+- `ui/temperature/TemperatureScreen.kt:602-604` — the focus `SeverityToast` modifier `.fillMaxWidth().padding(horizontal = 8.dp)` → `.fillMaxWidth()`
+- `ui/files/FilesScreen.kt:624` — `SeverityToast(..., Modifier.fillMaxWidth().padding(horizontal = 8.dp))` → `Modifier.fillMaxWidth()`
+- `ui/calibration/ScrewsTiltScreen.kt:190` — same toast `.padding(horizontal = 8.dp)` removal
 
 - [ ] **Step 1: Apply all the removals above.**
 - [ ] **Step 2: Compile.** Run assemble-debug. Expected: BUILD SUCCESSFUL.
@@ -428,13 +437,20 @@ from the current ~16dp to region 8dp — **enumerate at UAT**).
 - `ui/calibration/TiltScreen.kt:174` — the field body call `TiltFieldBody(modifier = Modifier...weight(1f)...padding(8.dp))`: remove the `.padding(8.dp)` from that modifier (keep `weight(1f)`). Read the exact line first to match it precisely.
 - `ui/extrude/ExtrudeScreen.kt:333` — the field `Column(modifier = Modifier...weight(1f)...padding(8.dp))`: remove the `.padding(8.dp)` (keep `weight(1f)`). Read the exact line first.
 
-- [ ] **Step 1: Apply the three removals.**
+**Non-list primary children with their own outer frame pad** (other field-MODE primaries — also direct region children that would double-inset; remove ONLY the outer region-frame pad, keep any `spacedBy`/content arrangement) *(Codex C3)*:
+- `ui/spool/SpoolScreen.kt:467` — empty-state `Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp), …)` → remove `.padding(8.dp)`
+- `ui/spool/SpoolScreen.kt:584` — color-picker `Box(Modifier.fillMaxWidth().weight(1f).padding(start = 8.dp, end = 8.dp, top = 8.dp))` → remove that `.padding(...)`
+- `ui/spool/SpoolScreen.kt:601` — MFG-empty `Box(Modifier.fillMaxWidth().weight(1f).padding(8.dp), …)` → remove `.padding(8.dp)`
+- `ui/spool/SpoolScreen.kt:690` — measure field `Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp, vertical = 4.dp), verticalArrangement = spacedBy(12.dp))` → remove the `.padding(horizontal = 8.dp, vertical = 4.dp)` (KEEP `spacedBy(12.dp)`)
+- `ui/extrude/ExtrudeScreen.kt:440` — preset field `Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp), verticalArrangement = spacedBy(4.dp))` → remove `.padding(horizontal = 8.dp)` (KEEP `spacedBy(4.dp)`)
+
+- [ ] **Step 1: Apply all the removals above** (Probe/Tilt/Extrude list-less primaries + the Spool/Extrude field-mode primaries).
 - [ ] **Step 2: Compile.** Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
 "/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display add -A
-"/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display commit -m "refactor(region): drop primary-child frame pad (Probe, Tilt, Extrude)
+"/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display commit -m "refactor(region): drop primary-child frame pad (Probe/Tilt/Extrude + Spool/Extrude field modes)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -765,12 +781,29 @@ and is now flush; restore the foot bar's previous self-pad so the layout is unch
 
 Add `ListFrameInset` import if missing.
 
-- [ ] **Step 4: Compile.** Expected: BUILD SUCCESSFUL.
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: OldMoveScreen — freeze the deprecated debug jog pad** *(Codex C2)*
+
+`OldMoveScreen.kt` is NOT a `ScreenScaffold` (debug-gallery only), so Task 12 can't opt it out — and after
+Task 3 (FocusFrame flush) + Task 4 (component flush) its two cards lose horizontal inset and its two foot
+bars lose padding. Restore the component-owned insets explicitly so it stays frozen. Add
+`import works.mees.dinghy.designsystem.layout.ListFrameInset` (and `androidx.compose.foundation.layout.padding`
+if missing).
+
+- Both `FocusFrame` modifiers (landscape ~line 254 and portrait ~line 303), currently
+  `modifier = Modifier.fillMaxWidth()` → `modifier = Modifier.fillMaxWidth().padding(horizontal = ListFrameInset)`.
+- Landscape `FootButtonBar` (~line 285), currently `modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp)`
+  → `modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)`.
+- Portrait `FootButtonBar` (~line 351), currently no modifier → add
+  `modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)`.
+
+(Read each line first to match exactly; this is "good enough" preservation for dead debug code, not pixel-perfect.)
+
+- [ ] **Step 5: Compile.** Expected: BUILD SUCCESSFUL.
+- [ ] **Step 6: Commit**
 
 ```bash
 "/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display add -A
-"/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display commit -m "refactor(region): preserve embedded/frozen-component insets (Temp picker, Webcam, OutputToggle)
+"/mnt/c/Program Files/Git/cmd/git.exe" -C /mnt/e/claude/personal/github/dinghy-display commit -m "refactor(region): preserve embedded/frozen insets (Temp picker, Webcam, OutputToggle, OldMove)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -905,3 +938,9 @@ Use `superpowers:finishing-a-development-branch`. (Do not merge/push without own
   retirement (T3); #3 per-screen patterns replace blanket claim (T5–T11) + enumerated normalisations (T14);
   #4 PrintStatus helper region (T7); #5 full 30-site audit incl. nested (T12); #6 Webcam both branches (T11);
   #7 embedded ListBlock/FootButtonBar insets (T11).
+- **Codex FINAL-PLAN review findings folded (gpt-5.5/xhigh, 2026-06-15):** C1 four missed direct-child list
+  strips — Outputs/FineTune/ScrewsTilt/Move (T5); C2 OldMoveScreen frozen-preservation, not a scaffold so
+  needs explicit insets (T11 Step 4); C3 non-list primary frame pads — Spool field modes ×4 + Extrude preset
+  (T6); S1 three direct-child `SeverityToast` horizontal pads — Temperature/Files/ScrewsTilt (T5). Verdict was
+  FIX-FIRST; all four folded in here. Structural OKs confirmed: ScreenScaffold branch (T2), FocusFramePlacement
+  retirement coverage (T3), PrintStatus 3-helper/4-call-site model (T7).
