@@ -410,6 +410,19 @@ class AppContainer(
         writeScope.launch { displayPrefs.setKeepScreenOn(on) }
     }
 
+    /** App-global font scale (S/M/L) — connection-independent; the SOLE source of `--fs`. */
+    val fontScale: Flow<FontScale> = fontScalePrefs.fontScale
+
+    /**
+     * Persist the app-global font scale durably (writeScope, never a composition scope).
+     * Routes through the process-lifetime [writeScope] ([[dinghy-compose-write-scope-cancellation]])
+     * — the Settings chip tap can navigate away in the same frame, and a slow Nexus-7 flash drops
+     * a composition-scoped write. NEVER `rememberCoroutineScope()`.
+     */
+    fun setFontScale(choice: FontScale) {
+        writeScope.launch { fontScalePrefs.setFontScale(choice) }
+    }
+
     /**
      * Per-sensor trace color + visibility persistence (D-14, Phase 26) — the SEPARATE
      * tracestyle.preferences_pb-backed store. Like [babystepPrefs]/[macroPrefs] it is
