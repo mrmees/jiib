@@ -206,10 +206,10 @@ fun AppShell(
 
     // ---- Webcam holder (10-07) ---------------------------------------------------------------------
     // The webcam-tile gate (D-08 + MEDIUM-4, 15.2-03/04): the drawer Webcam tile is LIVE only when the
-    // CURRENT session enumerated ≥1 cam (D-08 capability) AND the active profile's per-profile webcam
-    // feature toggle is on (D-04 — flipped on the Settings screen). 15.2-04 repoints this from the bare
-    // `webcamCount > 0` to `container.webcamTileEnabled` (capability × per-profile toggle) so the Settings
-    // toggle actually greys/lights this tile. webcamCount is still collected below for the holder's
+    // CURRENT session enumerated ≥1 cam (D-08 capability) AND the app-global webcam toggle is on
+    // (flipped on the App Settings screen; moved per-profile→app-global 2026-06-15). This reads
+    // `container.webcamTileEnabled` (capability × app-global toggle) so the App Settings toggle
+    // actually greys/lights this tile. webcamCount is still collected below for the holder's
     // decode-budget / default-cam pick.
     val webcamCount by container.webcamCount.collectAsStateWithLifecycle(initialValue = 0)
     val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)

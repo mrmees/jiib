@@ -115,7 +115,8 @@ class AppContainer(
     /**
      * The EIGHTH, INDEPENDENT file: display.preferences_pb (§R2, Phase 26.5-05). Backs the
      * process-scoped display settings ([DisplayPrefs]: the keep-screen-on toggle, default ON for
-     * the dedicated-display use case). Carries no secrets (like macros/webcam/babystep/tracestyle),
+     * the dedicated-display use case, plus the app-global webcam-enabled toggle added 2026-06-15).
+     * Carries no secrets (like macros/webcam/babystep/tracestyle),
      * kept on its own connection-independent lifecycle per the separate-file discipline. Created
      * ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer invariant) and injected here.
      */
@@ -380,7 +381,9 @@ class AppContainer(
 
     /**
      * Display app-setting persistence (§R2, 26.5-05) — the SEPARATE display.preferences_pb-backed store
-     * holding the [DisplayPrefs.keepScreenOn] toggle (default true — the dedicated-display use case).
+     * holding the [DisplayPrefs.keepScreenOn] toggle (default true — the dedicated-display use case) and
+     * the app-global [DisplayPrefs.webcamEnabled] toggle (default true — moved per-profile→app-global
+     * 2026-06-15; surfaced as [webcamEnabled]/[setWebcamEnabled] and gated into [webcamTileEnabled]).
      * Like [babystepPrefs]/[macroPrefs] it is PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on
      * [SpineHandle]): the setting survives reconnects and printer swaps. The Settings UI reads
      * [keepScreenOn] and writes through the durable [setKeepScreenOn] intent; AppShell's root effect
