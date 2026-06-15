@@ -77,7 +77,10 @@ class DinghyIconsTest {
         //   - "settings": SystemRowSettings (System page settings row) + TempSettings (Temperature
         //     sensor-display picker) — System page and Temperature screen never co-render; owner-chosen
         //     glyph for both (Task 8, temperature-monitor-adjust branch).
-        val allowedSharedLigatures = setOf("output_circle", "palette", "settings")
+        //   - "print": Print (Files "start a print" action) + PrinterSettings (System page / Printer
+        //     Settings row) — Files and the System/Printer-Settings surfaces never co-render; owner-chosen
+        //     glyph for the Printer Settings door (app-printer-settings-split, 2026-06-15).
+        val allowedSharedLigatures = setOf("output_circle", "palette", "settings", "print")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->
