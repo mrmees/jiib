@@ -112,10 +112,13 @@ default in `ScreenScaffold`) owns the 8dp registration frame on all four sides. 
 **sizing only** (`fillMaxSize`/`weight`) and never add frame padding. (`FocusFramePlacement` is
 **retired** — the region now uniformly owns the frame for all placements.) It **clips its content to bounds** (no
 overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
-content inset (the `contentInset` param, **default `FocusInset` = 16dp**). A screen whose Focus
-content reads better tighter may pass a smaller value — the Calibration Hub passes `FocusInset / 2`
-(8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner UAT). Every other
-screen uses the 16dp default.
+content inset (the `contentInset` param, **default `FocusInset` = 16dp**) to the content area's
+**sides + bottom only — the TOP inset is 0** (2026-06-15 owner UAT). Content sits flush under the
+header divider (below); the old top gap stacked on top of an already-separated header bar and pushed
+content down, most visibly with vertically-centered panes. A screen whose Focus content reads better
+tighter may pass a smaller `contentInset` value (affects sides + bottom) — the Calibration Hub passes
+`FocusInset / 2` (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner
+UAT). Every other screen uses the 16dp default.
 
 **Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
@@ -137,6 +140,18 @@ header is always present — idle and printing alike. It contains:
   it scrolls horizontally on overflow — **NO shrink, NO ellipsis, NO wrap.** This is a
   **sanctioned exception to the no-continuous-animation motion law** (overflow-only, single-line,
   tiny dirty-rect — see `CLAUDE.md §Motion`). Drives the printing job-filename title.
+
+**Header/content divider (2026-06-15 owner UAT):**
+
+A **full-width 1dp `t.outline` hairline** sits flush at the 1U header's bottom edge (the content top
+inset is 0, so the divider is the boundary), separating the header bar from the content area. It is a
+**visual landmark**, app-wide on every `FocusFrame`. Without it, a vertically-centered Focus body
+reads as *floating* — the title sits centered in a tall 1U bar with no boundary beneath it, so the
+eye has nothing to measure "centered" against and the content feels pushed down even when it is
+mathematically centered. The divider gives that top edge, so **centered content reads as
+intentionally centered.** (This is the companion to the convention that a Focus body which is a
+**block of text** is **vertically centered**, not top-anchored — e.g. the Calibration Hub routine
+description, the Macros "select a macro" prompt — for readability across device sizes.)
 
 **Idle → printing morph (e-stop dock):**
 
