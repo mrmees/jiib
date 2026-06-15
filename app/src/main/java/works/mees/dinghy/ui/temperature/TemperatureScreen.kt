@@ -890,6 +890,7 @@ private fun SensorAppearanceFocus(
                 modifier = Modifier.weight(1f),
                 intent = if (traceVisible) Intent.Accent else Intent.Neutral,
                 icon = if (traceVisible) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                contentDescription = stringResource(R.string.cd_temp_trace_visibility),
             )
             OutlinedControl(
                 label = stringResource(R.string.common_done),

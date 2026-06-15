@@ -409,6 +409,7 @@ private fun FineTuneContent(
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent,
                         icon = DinghyIcons.Back,
+                        contentDescription = stringResource(R.string.cd_back),
                     )
                     OutlinedControl(
                         label = stringResource(R.string.finetune_reset_all),

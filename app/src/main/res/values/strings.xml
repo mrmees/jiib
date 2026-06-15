@@ -54,6 +54,7 @@
     <string name="cd_temp_settings">Sensor display settings</string>
     <string name="cd_temp_enter_adjust">Switch to adjust mode</string>
     <string name="cd_temp_enter_monitor">Switch to monitoring mode</string>
+    <string name="cd_temp_trace_visibility">Show or hide this trace</string>
 
     <!-- ========================= printstatus ========================== -->
     <string name="printstatus_title">Print Status</string>
