@@ -41,12 +41,9 @@ data class PersistedProfile(
     // Old stored blobs with the deleted field still decode cleanly via kotlinx ignoreUnknownKeys.
     val poolOverrides: Map<String, Long> = emptyMap(),
     val fsChoice: String = "M", // FontScale.name — a SEPARATE setting (D-05), NOT folded into the theme tuple.
-    // Per-profile FEATURE TOGGLE (D-04, 15.2-03) — NOT app-global. Defaults TRUE to preserve today's
-    // always-available webcam behavior (the prior gate was capability-only `webcamCount > 0`). When false,
-    // AppContainer.webcamTileEnabled greys the Webcam drawer tile/surface even on a printer that HAS cams.
-    val webcamEnabled: Boolean = true,
     // R7 (26.5-07): per-printer wss/https toggle. Defaults FALSE so every pre-R7 blob (no key present)
-    // decodes to today's plain ws/http posture — the webcamEnabled migration precedent exactly.
+    // decodes to today's plain ws/http posture — ignoreUnknownKeys tolerates old blobs carrying any
+    // retired key (e.g. the deleted webcamEnabled, removed 2026-06-15 when webcam became app-global).
     val useSecure: Boolean = false,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
@@ -82,8 +79,6 @@ data class Profile(
     val paletteMode: String = "Colorful",
     val poolShift: Int = 0,
     val poolOverrides: Map<String, Long> = emptyMap(),
-    // Per-profile feature toggle (D-04, 15.2-03) — see [PersistedProfile.webcamEnabled]. Default true.
-    val webcamEnabled: Boolean = true,
     // R7 (26.5-07): per-printer wss/https toggle — see [PersistedProfile.useSecure]. Default false.
     val useSecure: Boolean = false,
 ) {
@@ -129,7 +124,6 @@ data class Profile(
             poolShift = poolShift,
             poolOverrides = poolOverrides,
             fsChoice = "M", // runtime Profile no longer carries fsChoice; persist a stable default
-            webcamEnabled = webcamEnabled,
             useSecure = useSecure,
         )
 
@@ -156,7 +150,6 @@ data class Profile(
                 paletteMode = p.paletteMode,
                 poolShift = p.poolShift,
                 poolOverrides = p.poolOverrides,
-                webcamEnabled = p.webcamEnabled,
                 useSecure = p.useSecure,
             )
     }

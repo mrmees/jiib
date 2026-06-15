@@ -634,11 +634,6 @@ class AppContainer(
             webcamTileGate(count, enabled)
         }
 
-    /** Set the active profile's per-profile webcam toggle (D-04), durable + lost-update-safe (WR-01). */
-    fun setActiveWebcamEnabled(on: Boolean) {
-        mutateActiveProfile { it.copy(webcamEnabled = on) }
-    }
-
     /**
      * Live active-spool status (SPOOL-01/08, plan 11-04) — forwarded off the current session's
      * [SpineHandle.activeSpool], which a service-owned [works.mees.dinghy.spool.ActiveSpoolFacade]
