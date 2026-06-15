@@ -46,6 +46,7 @@ The process exit code is authoritative. On-device UAT installs both ABI slices t
 **Allowlist (exempt from FontConformanceTest):**
 - `theme/DinghyType.kt`, `theme/compose/DinghyTextStyle.kt` (role plumbing — the only place `fontFamily`/`fontSize` are written for text)
 - `designsystem/MaterialSymbol.kt` (icon glyph system — Material Symbols font, not text; icon law)
+- `ui/prompt/PromptMarkupText.kt` (macro-author markup renderer — its `sizeSpan` builds `SpanStyle(fontSize=…)` for the author's `<size:small/normal/large/x-large>` ladder; this is the SIZE analog of the sanctioned `<color:#hex>` author carve-out, THEMING.md §D-03. The base run is role-routed (`body`); the author size ladder is content, not chrome.)
 - the four Views surfaces above (they set `Paint.typeface`/`textSize`, not Compose `fontFamily =`/`fontSize =`, but are listed for clarity and for the `fsSp` rule)
 - `preview/**`, `gallery/**` (non-shipping dev surfaces)
 - **NOT `bench/**`** — `BenchActivity` is an *exported, shipping* Activity (`AndroidManifest.xml:99`) and `ComposeBenchScene.kt` has inline `fontSize =` sites. It must be swept, not allowlisted (Task 9).
@@ -525,7 +526,7 @@ Known: Move's XYZ coordinate readout is a shrink-to-fit Data value (its legacy 1
 
 **Files (Modify):** `ui/screen/SettingsScreen.kt`, `AboutScreen.kt`, `PrintersScreen.kt`, `ThemeEditorScreen.kt`, `TokenTextField.kt`, `ui/spool/SpoolScreen.kt`, `ui/spool/scan/ScanSurface.kt`, `ui/spool/scan/ScanConfirmCard.kt`, `ui/macros/BookmarkedMacrosScreen.kt`, `ui/prompt/PromptDialog.kt`, `PromptContentItems.kt`, `PromptMarkupText.kt`, `PromptImageItem.kt`
 
-**`PromptMarkupText` specifics (verified):** the only `fontSize =` site is the base text at `PromptMarkupText.kt:63` (`fsSp(18f, t.fs).sp`) — route it through a role (the prompt body text → `DinghyType.body`, base 18→20). Its `SpanStyle`s set `fontWeight`/`fontStyle`/`textDecoration`/`color`/`background` only — **no `fontFamily`/`fontSize`** — so the conformance scanner does not flag them and they need no change. The macro-author `<color:#hex>` carve-out is a sanctioned *color* exception (THEMING.md); leave all color logic alone. Net: only line 63 changes.
+**`PromptMarkupText` specifics (corrected during T10):** route the base text style (`PromptMarkupText.kt:63`, `fsSp(18f)`) through `DinghyType.body` (18→20). The emphasis/color SpanStyles set weight/style/decoration/color only and need no change. **BUT** `sizeSpan` builds `SpanStyle(fontSize=…)` for the macro-author `<size:…>` ladder — a content carve-out the scanner would otherwise flag, so the whole file is ALLOWLISTED (see allowlist note above) as the size-analog of the `<color:#hex>` carve-out. Leave all color/size span logic alone.
 
 - [ ] **Step 1:** Apply the sweep recipe.
 - [ ] **Step 2:** `assembleDebug` → SUCCESSFUL.
