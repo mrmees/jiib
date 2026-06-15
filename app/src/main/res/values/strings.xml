@@ -142,6 +142,9 @@
     <string name="system_row_power_sub">Coming soon</string>
     <!-- Section label reused for the printing shortcut grid System tile and System page section header. -->
     <string name="system_row_label">System</string>
+    <!-- System hub + settings split (Phase 29) -->
+    <string name="system_row_app_settings">App Settings</string>
+    <string name="system_row_printer_settings">Printer Settings</string>
 
     <!-- ========================== finetune ============================ -->
     <string name="finetune_title">Fine-Tune</string>
@@ -663,4 +666,28 @@
     <string name="cd_decrement">Decrease</string>
     <string name="cd_increment">Increase</string>
     <string name="cd_revert">Revert to default</string>
+
+    <!-- ============== printer settings screen (Phase 29 settings split) ============== -->
+    <string name="printer_settings_manage">Manage printers</string>
+    <string name="printer_settings_connection">Connection</string>
+    <string name="printer_settings_theme">Theme &amp; colors</string>
+    <string name="printer_settings_system_info">System Info</string>
+    <string name="printer_settings_power">Power</string>
+
+    <!-- ============== app settings screen — text size (Phase 29) ============== -->
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_s">S</string>
+    <string name="settings_text_size_m">M</string>
+    <string name="settings_text_size_l">L</string>
+
+    <!-- ============== printers — rename (Phase 29) ============== -->
+    <string name="printers_rename">Rename</string>
+    <string name="printers_edit_name">Printer name</string>
+
+    <!-- ============== content descriptions (Phase 29 settings split) ============== -->
+    <string name="cd_app_settings">App settings</string>
+    <string name="cd_printer_settings">Printer settings</string>
+    <string name="cd_manage_printers">Manage printers</string>
+    <string name="cd_text_size">Text size</string>
+    <string name="cd_rename">Rename printer</string>
 </resources>
