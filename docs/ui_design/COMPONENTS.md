@@ -332,6 +332,35 @@ authored FLUSH — they never add their own frame padding; the region owns it. E
 (non-region-child) uses — e.g. a `ListBlock` inside a `FocusFrame` body — add their own
 inset explicitly.
 
+#### `DinghyType`
+
+The named text-role catalog — the **type analog of the other component classes**. A call site
+says WHAT a piece of text is (a list label, a live value, a console line); the role owns its
+`(family, size, weight)`. The 11 roles:
+
+| Role | Family | Base sp | Use |
+|---|---|---|---|
+| `screenTitle` | Geist | 22 | screen / section titles |
+| `focusHeader` | Geist | 20 | the 1U `FocusFrame` header title |
+| `listLabel` | Geist | 20 | `ListRow` labels |
+| `buttonLabel` | Geist | 20 | `FootButtonBar` / control-tile labels |
+| `body` | Geist | 20 | prose, descriptions, captions over the floor |
+| `caption` | Geist | 15 | metadata floor — timestamps, fine print |
+| `focusHero` | Geist Mono | 40 → 15 (shrink-to-fit) | the Focus region's primary value, read across the room |
+| `statValue` | Geist Mono | 26 | tabular live-value readouts |
+| `dataInline` | Geist Mono | 20 | inline printer values (filenames, sensor names) |
+| `dataMeta` | Geist Mono | 15 | small printer-value metadata |
+| `consoleLine` | Geist Mono | 15 | console scrollback lines |
+
+The family rule is one question: **"did this value come from the printer?"** Yes → Geist Mono
+(`TypeRole.Data` — filenames, sensor readings, console). No → Geist (`TypeRole.Ui` — everything
+else). Sizes are base sp scaled by `fsSp(baseSp, fs)` for the S/M/L `--fs` setting; `focusHero`
+is the only shrink-to-fit role (`maxSp 40` / `minSp 15`). Call sites apply a role via
+`role.toTextStyle(t)` (Compose) or `FocusHeroText` (the hero); the four classic-Views surfaces
+derive their typeface + base size from the same roles via `TextRole.typeface(context)`. Inline
+`fontFamily` / `fontSize` are **forbidden** in `app/src/main` and enforced by
+`FontConformanceTest`. See THEMING.md §"The type ramp" for the ramp tiers these roles name.
+
 ---
 
 ## 4. The unit `U`

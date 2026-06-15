@@ -410,16 +410,26 @@ polish (R6), never a conformance requirement.
 
 All sizes are `fsSp(baseSp, fs)` — base × the S/M/L multiplier; never a bare sp/px. The ramp:
 
-| Tier | Base sp | Use |
-|---|---|---|
-| Metadata floor | **15** | captions, timestamps, fine print — NOTHING renders below this |
-| **List/button default** | **20** | every list-item label and button label (R11: the size fs=L used to render at the old 17–18 base is now the DEFAULT rendering) |
-| Titles | **22–24** | screen/section titles |
-| Tabular stats | **26** | live value readouts (Geist Mono, tabular) |
-| Focus heroes | **28+** | the Focus region's primary value — sized to be read across the room |
+| Tier | Base sp | Role (`DinghyType`) | Use |
+|---|---|---|---|
+| Metadata floor | **15** | `caption` (Ui); `dataMeta` / `consoleLine` (Data) | captions, timestamps, fine print — NOTHING renders below this |
+| **List/button default** | **20** | `listLabel`, `buttonLabel`, `body`, `focusHeader` (Ui); `dataInline` (Data) | every list-item label and button label (R11: the size fs=L used to render at the old 17–18 base is now the DEFAULT rendering) |
+| Titles | **22–24** | `screenTitle` (Ui) | screen/section titles |
+| Tabular stats | **26** | `statValue` (Data) | live value readouts (Geist Mono, tabular) |
+| Focus heroes | **28+** | `focusHero` (Data, 40 max → 15 shrink-to-fit) | the Focus region's primary value — sized to be read across the room |
 
 Secondary text and measurement-unit suffixes may sit below the 20sp default per-case (≥15).
 Bases of 11/13/14sp found in code are NON-CONFORMANT — normalization-audit flags.
+
+**The roles are the enforcement of this ramp.** Every text site uses a `DinghyType` role via
+`role.toTextStyle(t)` (Compose) or `FocusHeroText` (the shrink-to-fit hero), and the four classic-Views
+surfaces (Console, Files list, GraphView, WebcamView) derive their typeface + base size from the same
+roles through `TextRole.typeface(context)` — one source of truth across both toolkits. Inline
+`fontFamily =` / `fontSize =` are forbidden in `app/src/main` and enforced by `FontConformanceTest`
+(allowlist: the role plumbing, `MaterialSymbol`, the four Views surfaces, `PromptMarkupText`'s author
+`<size:…>` carve-out, and `preview/` / `gallery/`). Two fonts only: Geist (UI) and Geist Mono
+(printer-derived values — filenames, sensor readings, console). Whether to convert the four Views
+surfaces to Compose is a separate, deferred question.
 
 **Shrink-to-fit text (sanctioned pattern).** Text that must fit a bounded region without ever
 growing past a cap uses `BasicText` + `TextAutoSize.StepBased(minFontSize, maxFontSize, stepSize)`:

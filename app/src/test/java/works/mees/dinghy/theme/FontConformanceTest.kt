@@ -72,5 +72,5 @@ class FontConformanceTest {
         error("main source dir not found from $userDir")
     }
 
-    private companion object { const val ENFORCE = false }
+    private companion object { const val ENFORCE = true }
 }
