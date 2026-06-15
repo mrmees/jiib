@@ -307,6 +307,8 @@ object DinghyIcons {
     val ManagePrinters  = DinghyIcon(IconRef.Ligature("format_list_numbered"),      alternate = "manage_printers")
     val TextSize        = DinghyIcon(IconRef.Ligature("format_size"),               alternate = "text_size")
     val Rename          = DinghyIcon(IconRef.Ligature("drive_file_rename_outline"), alternate = "rename")
+    val Fluorescent     = DinghyIcon(IconRef.Ligature("fluorescent"),               alternate = "fluorescent")
+    val ShieldLock      = DinghyIcon(IconRef.Ligature("shield_lock"),               alternate = "shield_lock")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -344,6 +346,6 @@ object DinghyIcons {
         MoveHomeAll, MoveDisableMotors,
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
-        AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename,
+        AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
     )
 }
