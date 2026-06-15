@@ -395,9 +395,7 @@ private fun FilesContent(
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
-                        .padding(top = 8.dp, bottom = 4.dp),
+                        .weight(1f),
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
@@ -413,8 +411,6 @@ private fun FilesContent(
                     activeKey = state.sortField,
                     onSelect = { onSelectSort(it) },
                     uDp = grid.uDp,
-                    // R26 frame: bottom 8 aligns with the Field FootButtonBar.
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
