@@ -410,6 +410,14 @@ class AppContainer(
         writeScope.launch { displayPrefs.setKeepScreenOn(on) }
     }
 
+    /** App-global webcam-enabled (moved from per-profile, 2026-06-15) — process-scoped, durable. */
+    val webcamEnabled: Flow<Boolean> = displayPrefs.webcamEnabled
+
+    /** Persist the app-global webcam toggle, durably (process-lifetime writeScope, never composition). */
+    fun setWebcamEnabled(on: Boolean) {
+        writeScope.launch { displayPrefs.setWebcamEnabled(on) }
+    }
+
     /** App-global font scale (S/M/L) — connection-independent; the SOLE source of `--fs`. */
     val fontScale: Flow<FontScale> = fontScalePrefs.fontScale
 
@@ -617,15 +625,13 @@ class AppContainer(
 
     /**
      * The WIRED Webcam-tile/surface gate (MEDIUM-4, 15.2-03 D-04) — the tile is live ONLY when the
-     * connected printer actually HAS cams ([webcamCount] > 0) AND the active profile's per-profile
-     * [Profile.webcamEnabled] toggle is on. This REPLACES the bare `webcamCount > 0` consumer at
-     * AppShell.kt:183 (plan 04 repoints it) so toggling the per-profile setting actually greys the tile.
-     * Pure predicate [webcamTileGate] is the host-tested core; a null active profile keeps the prior
-     * always-on default (true) so an unmanaged/idle session is unchanged.
+     * connected printer actually HAS cams ([webcamCount] > 0) AND the app-global
+     * [DisplayPrefs.webcamEnabled] toggle is on. The gate is now app-global (moved from per-profile,
+     * 2026-06-15). Pure predicate [webcamTileGate] is the host-tested core.
      */
     val webcamTileEnabled: Flow<Boolean> =
-        combine(webcamCount, activeProfile) { count, p ->
-            webcamTileGate(count, p?.webcamEnabled ?: true)
+        combine(webcamCount, displayPrefs.webcamEnabled) { count, enabled ->
+            webcamTileGate(count, enabled)
         }
 
     /** Set the active profile's per-profile webcam toggle (D-04), durable + lost-update-safe (WR-01). */
@@ -897,7 +903,7 @@ class AppContainer(
     companion object {
         /**
          * PURE Webcam-tile gate (MEDIUM-4) — the tile is live ONLY when the printer has cams AND the
-         * per-profile toggle is on. Host-testable with no flow/IO; the [webcamTileEnabled] flow wraps it.
+         * app-global webcam toggle is on. Host-testable with no flow/IO; the [webcamTileEnabled] flow wraps it.
          */
         fun webcamTileGate(count: Int, webcamEnabled: Boolean): Boolean = count > 0 && webcamEnabled
 
