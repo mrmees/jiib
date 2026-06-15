@@ -13,12 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure host-testable helper — FillMeterTest asserts this directly
@@ -115,9 +113,7 @@ fun FillMeter(
             Text(
                 text = label,
                 color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp,  // metadata floor — never bare .sp
+                style = DinghyType.dataMeta.toTextStyle(t),  // Mono metadata floor
             )
         }
     }

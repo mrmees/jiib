@@ -15,13 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The four message severities (PRIM-04). Each maps to a role token from [LocalTokens] AND a
@@ -107,18 +105,14 @@ fun SeverityToast(
             Text(
                 text = severity.mark(),
                 color = accent,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(16f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         }
         // Text half — always present.
         Text(
             text = text,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(16f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
         )
     }
 }

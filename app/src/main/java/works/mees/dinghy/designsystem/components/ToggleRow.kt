@@ -21,14 +21,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure helpers (host-testable — no Compose runtime)
@@ -144,16 +142,13 @@ fun ToggleRow(
             Text(
                 text = label,
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.listLabel.toTextStyle(t),
             )
             if (subLabel != null) {
                 Text(
                     text = subLabel,
                     color = t.text3,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
         }
@@ -170,9 +165,7 @@ fun ToggleRow(
             Text(
                 text = stringResource(toggleStateLabelRes(checked)),
                 color = if (toggleWantsAccent(checked)) t.accent else t.text2,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.buttonLabel.toTextStyle(t),
             )
         }
     }

@@ -17,16 +17,14 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.finetune.DASH
 import works.mees.dinghy.ui.finetune.fmtValue
 import kotlin.math.pow
@@ -144,18 +142,14 @@ fun AdjusterPanel(
                 Row {
                     Text(
                         text = if (value == null) DASH else fmtValue(value, decimals),
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(48f, t.fs).sp,
+                        style = DinghyType.focusHero.toTextStyle(t),
                         color = valueColor,
                         modifier = Modifier.alignByBaseline(),
                     )
                     if (value != null && unit.isNotBlank()) {
                         Text(
                             text = unit.trim(),
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = fsSp(28f, t.fs).sp,
+                            style = DinghyType.statValue.toTextStyle(t),
                             color = t.text2,
                             modifier = Modifier.alignByBaseline(),
                         )
@@ -171,8 +165,7 @@ fun AdjusterPanel(
                             fmtValue(baseline!!, decimals) + unit.trim(),
                         ),
                         color = t.text3,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(18f, t.fs).sp,
+                        style = DinghyType.dataMeta.toTextStyle(t),
                     )
                 }
             }
