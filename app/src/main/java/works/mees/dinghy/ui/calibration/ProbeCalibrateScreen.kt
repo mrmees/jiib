@@ -233,8 +233,7 @@ fun ProbeCalibrateContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .padding(8.dp),
+                            .weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         // Column 1: Z-nudge column with live-Z readout center cell.

@@ -462,8 +462,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
         Box(
             Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(8.dp),
+                .weight(1f),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -579,8 +578,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                    .weight(1f),
             ) {
                 ColorSwatchGrid(
                     selectedHex = state.filters.colorSwatchHex,
@@ -596,8 +594,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(8.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -685,8 +682,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     Column(
         Modifier
             .fillMaxWidth()
-            .weight(1f)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .weight(1f),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07). The popup's

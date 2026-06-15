@@ -331,7 +331,7 @@ private fun ExtrudeContent(
                 when (fieldMode) {
                     is ExtrudeFieldMode.Main -> {
                         Column(
-                            Modifier.fillMaxWidth().weight(1f).padding(8.dp),
+                            Modifier.fillMaxWidth().weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             SelectorLabel(stringResource(R.string.extrude_distance_label))
@@ -437,7 +437,7 @@ private fun ExtrudeContent(
 
                     is ExtrudeFieldMode.FilamentPresets -> {
                         Column(
-                            Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp),
+                            Modifier.fillMaxWidth().weight(1f),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(
