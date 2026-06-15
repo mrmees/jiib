@@ -28,3 +28,6 @@ Thumbs.db
 .claude/settings.local.json
 *.apk.idsig
 tools/__pycache__/
+
+# Brainstorming visual-companion mockups (local only)
+.superpowers/
