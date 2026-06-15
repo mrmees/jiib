@@ -94,6 +94,7 @@ import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
 import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
+import works.mees.dinghy.ui.screen.AppSettingsScreen
 import works.mees.dinghy.ui.screen.SettingsScreen
 import works.mees.dinghy.ui.screen.SystemPageScreen
 import works.mees.dinghy.ui.screen.ThemeScreen
@@ -763,6 +764,12 @@ fun AppShell(
             }
             composable<NavDest.Settings> {
                 SettingsScreen(
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.AppSettings> {
+                AppSettingsScreen(
                     container = container,
                     onBack = { navController.popBackStack() },
                 )
