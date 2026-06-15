@@ -129,7 +129,7 @@ fun SystemInformationContent(
                 ) {}
             },
             field = {
-                ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                ListBlock(modifier = Modifier.weight(1f)) {
                     // ── SYS-01: Health chip ──────────────────────────────────────────────────
                     item(key = "health") {
                         val (icon, tint, labelRes) = healthChipVisual(health, t)

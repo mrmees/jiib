@@ -270,6 +270,8 @@ fun GalleryScreen(
         SectionLabel("ScreenScaffold — Focus / Field + foot bar (rotate device for orientation)")
         Box(Modifier.fillMaxWidth().height(280.dp)) {
             ScreenScaffold(
+                focusFramed = false,
+                fieldFramed = false,
                 focus = {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Box(Modifier.aspectRatio(1f).padding(12.dp)) {

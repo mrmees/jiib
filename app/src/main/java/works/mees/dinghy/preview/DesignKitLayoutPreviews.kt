@@ -2,10 +2,8 @@ package works.mees.dinghy.preview
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.GeistMono
@@ -58,7 +57,7 @@ private fun DesignKitLayoutDemo(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-        Column(Modifier.fillMaxSize()) {
+        RegisteredRegion(modifier = Modifier.fillMaxSize()) {
             // Unit size info bar — shows N and uDp value.
             Box(
                 Modifier
@@ -95,8 +94,7 @@ private fun DesignKitLayoutDemo(modifier: Modifier = Modifier) {
 
             ListBlock(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 4.dp),
+                    .weight(1f),
             ) {
                 items(rowLabels.size) { idx ->
                     UnitRow(label = rowLabels[idx], uDp = grid.uDp)

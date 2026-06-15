@@ -55,7 +55,7 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FocusFramePlacement
+
 import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
@@ -333,34 +333,27 @@ private fun SpoolContent(
 
         ScreenScaffold(
             focus = {
-                // Focus = FocusFrame (color-reactive ring + FillMeter) with FloatingEStop as Box sibling.
-                Box(
-                    Modifier
+                // Focus = FocusFrame (color-reactive ring + FillMeter) flush in the registered region.
+                FocusFrame(
+                    title = focusTitle,
+                    icon = DinghyIcons.SpoolFilament,
+                    iconTint = spoolColor,
+                    uDp = grid.uDp,
+                    edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        // R26 frame: ring lands at 8dp top; bottom 4 composes the 8dp gap with SortRow.
-                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                        .weight(1f),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
                 ) {
-                    FocusFrame(
-                        title = focusTitle,
-                        icon = DinghyIcons.SpoolFilament,
-                        iconTint = spoolColor,
-                        uDp = grid.uDp,
-                        edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
-                        modifier = Modifier.fillMaxSize(),
-                        placement = FocusFramePlacement.Composed,
-                        isPrinting = isPrinting,
-                        onEmergencyStop = onEmergencyStop,
-                        onPanic = onEmergencyStop,
-                    ) {
-                        SpoolDetailContent(
-                            spool = selected,
-                            isActive = isSelectedLoaded,
-                            spoolColor = spoolColor,
-                            onMeasure = onMeasure,
-                            t = t,
-                        )
-                    }
+                    SpoolDetailContent(
+                        spool = selected,
+                        isActive = isSelectedLoaded,
+                        spoolColor = spoolColor,
+                        onMeasure = onMeasure,
+                        t = t,
+                    )
                 }
                 // Sort and Filter control rows pinned below the detail card, at the foot of Focus.
                 SortRow(
@@ -368,14 +361,11 @@ private fun SpoolContent(
                     activeKey = state.sortKey,
                     onSelect = onSelectSort,
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
                 FilterRow(
                     options = filterOptions,
                     onSelect = onOpenFilter,
                     uDp = grid.uDp,
-                    // R26 frame: bottom 8 aligns the tile bottoms with the Field FootButtonBar.
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
@@ -463,8 +453,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
         Box(
             Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(8.dp),
+                .weight(1f),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -480,7 +469,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
             )
         }
     } else {
-        DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+        DesignListBlock(modifier = Modifier.weight(1f)) {
             items(state.spools, key = { it.id }) { spool ->
                 ListRow(
                     selected = spool.id == state.selected?.id,
@@ -551,7 +540,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 ) {
     when (category) {
         SpoolFilterCategory.TYPE -> {
-            DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+            DesignListBlock(modifier = Modifier.weight(1f)) {
                 items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
                     val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
                     ListRow(
@@ -580,8 +569,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                    .weight(1f),
             ) {
                 ColorSwatchGrid(
                     selectedHex = state.filters.colorSwatchHex,
@@ -597,8 +585,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(8.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -610,7 +597,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     )
                 }
             } else {
-                DesignListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                DesignListBlock(modifier = Modifier.weight(1f)) {
                     items(state.vendors, key = { it }) { vendor ->
                         val selected = state.filters.vendors.any { it.equals(vendor, ignoreCase = true) }
                         ListRow(
@@ -686,8 +673,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     Column(
         Modifier
             .fillMaxWidth()
-            .weight(1f)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .weight(1f),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Numeric IME entry box (D-07: system keyboard — NumpadPage retired in 26-07). The popup's

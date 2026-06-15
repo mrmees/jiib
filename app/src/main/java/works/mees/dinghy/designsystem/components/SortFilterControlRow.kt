@@ -96,7 +96,8 @@ data class FilterOption<K>(
  * @param onSelect  called when the user taps an option tile.
  * @param uDp       one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
  *                  tile height = `uDp` (full 1U — owner All-1U ruling, 2026-06-12).
- * @param modifier  caller-supplied modifier (e.g. `Modifier.padding(horizontal = 8.dp)`).
+ * @param modifier  caller-supplied modifier (sizing only — the enclosing RegisteredRegion owns the
+ *                  8dp frame; do NOT add frame padding here).
  */
 @Composable
 fun <K> SortRow(

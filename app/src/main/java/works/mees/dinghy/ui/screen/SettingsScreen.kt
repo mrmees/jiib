@@ -184,6 +184,7 @@ fun SettingsContent(
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
         ScreenScaffold(
+            fieldFramed = false,
             focus = {
                 FocusFrame(
                     title = stringResource(R.string.system_row_settings),

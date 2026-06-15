@@ -31,6 +31,7 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.render.Media3SurfaceHost
@@ -168,6 +169,8 @@ private fun WebcamContent(
             // the feed to half the screen in every full-focus case (single cam in any orientation,
             // landscape feed on a landscape device — the camera_feed rule + the KDoc above).
             ScreenScaffold(
+                focusFramed = false,
+                fieldFramed = false,
                 focus = {
                     FeedFocus(
                         vm = vm,
@@ -221,7 +224,7 @@ private fun WebcamBackBar(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FootButtonBar(uDp = uDp, modifier = modifier) {
+    FootButtonBar(uDp = uDp, modifier = modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)) {
         OutlinedControl(
             label = stringResource(R.string.common_back),
             onClick = onBack,

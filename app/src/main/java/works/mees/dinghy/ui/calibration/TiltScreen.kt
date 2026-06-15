@@ -177,7 +177,7 @@ fun TiltContent(
                         runLabel = runLabel,
                         adjustments = vm.adjustments,
                         errorText = vm.errorText,
-                        modifier = Modifier.weight(1f).padding(8.dp),
+                        modifier = Modifier.weight(1f),
                     )
                     // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(

@@ -48,7 +48,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
-import works.mees.dinghy.designsystem.components.FocusFramePlacement
+
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -395,10 +395,7 @@ private fun FilesContent(
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        // R26 frame: ring at 8dp top; bottom 4 composes the 8dp gap with SortRow.
-                        .padding(top = 8.dp, bottom = 4.dp),
-                    placement = FocusFramePlacement.Composed,
+                        .weight(1f),
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
@@ -414,8 +411,6 @@ private fun FilesContent(
                     activeKey = state.sortField,
                     onSelect = { onSelectSort(it) },
                     uDp = grid.uDp,
-                    // R26 frame: bottom 8 aligns with the Field FootButtonBar.
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
@@ -606,7 +601,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             )
         }
     } else {
-        ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+        ListBlock(modifier = Modifier.weight(1f)) {
             items(state.fileRows, key = { it.stableId }) { row ->
                 FilesListRow(
                     row = row,
@@ -621,7 +616,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
     }
 
     state.error?.let { msg ->
-        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
     }
 
     // FootButtonBar — Back · Print · Delete (D-07).
@@ -771,6 +766,8 @@ private fun SpoolWarningGuard(
     val t = LocalTokens.current
     Box(modifier.fillMaxSize().background(t.bg).background(t.heatSoft)) {
         ScreenScaffold(
+            focusFramed = false,
+            fieldFramed = false,
             field = {
                 Column(
                     Modifier.fillMaxSize().padding(24.dp),

@@ -726,8 +726,7 @@ internal fun MoveHubContent(
             field = {
                 ListBlock(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(top = 8.dp),
+                        .weight(1f),
                 ) {
                     // Homing rows (never "selected") — gated by availability. Home All moved to the foot bar.
                     if (avail.homeXY) {

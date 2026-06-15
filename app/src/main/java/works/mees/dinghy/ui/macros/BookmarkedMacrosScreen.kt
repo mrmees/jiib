@@ -505,7 +505,7 @@ private fun ColumnScope.MacroLauncherField(
             MacrosEmptyNotice(modifier = Modifier.weight(1f).padding(24.dp))
         }
         else -> {
-            ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
+            ListBlock(modifier = Modifier.weight(1f)) {
                 items(state.bookmarkedMacros, key = { it.name }) { macro ->
                     ListRow(
                         selected = macro.name.equals(selectedName, ignoreCase = true),
@@ -653,7 +653,7 @@ private fun ColumnScope.MacroManageField(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp),
         )
-        ListBlock(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
+        ListBlock(modifier = Modifier.weight(1f)) {
             items(state.visibleMacros, key = { it.name }) { macro ->
                 val isBookmarked = macro.isBookmarked
                 ListRow(

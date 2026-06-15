@@ -37,6 +37,11 @@ import androidx.compose.ui.Modifier
  * Regions are split with `weight` / `fillMax*` ONLY — NO hardcoded px for regions, cells, or
  * structural gaps. The single permitted fixed values in the design system live in the leaf controls
  * (the ≥64dp touch floor and the `--fs` text step), not here.
+ *
+ * ## Region framing
+ * By default ([focusFramed] = true, [fieldFramed] = true) each slot is wrapped in a
+ * [RegisteredRegion] which owns the 8dp inset + 8dp inter-item gap for that region. Screens that
+ * manage their own padding may opt out by passing `focusFramed = false` / `fieldFramed = false`.
  */
 @Composable
 fun ScreenScaffold(
@@ -52,6 +57,11 @@ fun ScreenScaffold(
     // would shrink the square to half-height with fat side margins. Null = the normal weighted split.
     // (Landscape is unaffected — there focus/field split the WIDTH as 50/50 columns.)
     portraitFocusAspect: Float? = null,
+    // Region framing (default on). When true the slot is wrapped in a [RegisteredRegion] which owns
+    // the 8dp inset + 8dp inter-item gap for that region. Pass false on screens that self-manage
+    // their own padding (e.g. screens migrated before the default-on convention was introduced).
+    focusFramed: Boolean = true,
+    fieldFramed: Boolean = true,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
@@ -59,20 +69,14 @@ fun ScreenScaffold(
             // Stage Row: 50/50 weighted Focus | Field columns.
             Row(Modifier.fillMaxSize()) {
                 if (focus != null) {
-                    Column(
-                        Modifier
-                            .weight(focusGrow)
-                            .fillMaxHeight(),
-                        content = focus,
-                    )
+                    val mod = Modifier.weight(focusGrow).fillMaxHeight()
+                    if (focusFramed) RegisteredRegion(mod, content = focus)
+                    else Column(mod, content = focus)
                 }
                 if (field != null) {
-                    Column(
-                        Modifier
-                            .weight(fieldGrow)
-                            .fillMaxHeight(),
-                        content = field,
-                    )
+                    val mod = Modifier.weight(fieldGrow).fillMaxHeight()
+                    if (fieldFramed) RegisteredRegion(mod, content = field)
+                    else Column(mod, content = field)
                 }
             }
         } else {
@@ -87,7 +91,8 @@ fun ScreenScaffold(
                     } else {
                         Modifier.fillMaxWidth().weight(focusGrow)
                     }
-                    Column(focusMod, content = focus)
+                    if (focusFramed) RegisteredRegion(focusMod, content = focus)
+                    else Column(focusMod, content = focus)
                 }
                 if (field != null) {
                     // Aspect-locked focus → field takes ALL the leftover height (weight 1); otherwise
@@ -97,7 +102,8 @@ fun ScreenScaffold(
                     } else {
                         Modifier.fillMaxWidth().weight(fieldGrow)
                     }
-                    Column(fieldMod, content = field)
+                    if (fieldFramed) RegisteredRegion(fieldMod, content = field)
+                    else Column(fieldMod, content = field)
                 }
             }
         }

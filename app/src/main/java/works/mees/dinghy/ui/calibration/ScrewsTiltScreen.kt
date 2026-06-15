@@ -179,15 +179,14 @@ fun ScrewsTiltContent(
                     // ListBlock suppresses swipe-up drawer automatically (scrollable Field — Pitfall 1).
                     ListBlock(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(top = 8.dp), // horizontal frame owned by ListBlock
+                            .weight(1f),
                     ) {
                         items(vm.points, key = { it.key }) { point ->
                             ScrewListRow(point = point, uDp = grid.uDp)
                         }
                     }
                     errorText?.let {
-                        SeverityToast(Severity.Error, it, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+                        SeverityToast(Severity.Error, it, Modifier.fillMaxWidth())
                     }
                     // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(
