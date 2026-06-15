@@ -1,19 +1,9 @@
 package works.mees.dinghy.designsystem.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.layout.LocalUnitDp
-import works.mees.dinghy.theme.compose.LocalTokens
 
 /**
  * A row of increment-step selector tiles — the shared sketch-003 increment picker.
@@ -54,28 +44,22 @@ fun IncrementPicker(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    CompositionLocalProvider(LocalUnitDp provides uDp) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(uDp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            steps.forEach { step ->
-                val selected = step == activeStep
-                OutlinedControl(
-                    label = formatStep(step),
-                    onClick = { onSelect(step) },
-                    modifier = Modifier.weight(1f),
-                    intent = if (selected) Intent.Accent else Intent.Neutral,
-                    // Selected tile = accentSoft fill (the ListRow selected convention); unselected
-                    // keeps the default surface fill.
-                    fill = if (selected) t.accentSoft else null,
-                )
-            }
-        }
-    }
+    // Thin preset over SelectorRow: no leading type tile, numeric label tiles, accentSoft selected
+    // fill, and LocalUnitDp provided (provideUnitDp = true) so each tile floors at 1U and fills the
+    // height(uDp) row — the R26 mechanism.
+    SelectorRow(
+        options = steps.map { step ->
+            SelectorOption(
+                key = step,
+                label = formatStep(step),
+                isActive = step == activeStep,
+            )
+        },
+        onSelect = onSelect,
+        uDp = uDp,
+        modifier = modifier,
+        provideUnitDp = true,
+    )
 }
 
 /**

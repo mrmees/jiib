@@ -1,28 +1,11 @@
 package works.mees.dinghy.designsystem.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
-import works.mees.dinghy.designsystem.MaterialSymbol
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data classes
@@ -78,14 +61,11 @@ data class FilterOption<K>(
  *  - Option tiles: filled surface; [Intent.Accent] when active, [Intent.Neutral] when inactive.
  *
  * ## Direction indicator
- * The active sort tile overlays a small `arrow_upward`/`arrow_downward` glyph at `Alignment.TopEnd`
- * of its `Box`. This overlay is in addition to the option tile's primary icon — it does NOT
- * displace or replace the primary glyph.
- *
- * NOTE: `arrow_upward`/`arrow_downward` are rendered via [MaterialSymbol] (the raw ligature
- * primitive) because they are not yet registered in [DinghyIcons]. When these glyphs are
- * assigned in a future icon-registry phase, the direction indicator should switch to
- * [DinghyIconView] with the registered tokens.
+ * The active sort tile overlays a small direction glyph at `Alignment.TopEnd` of its `Box`. This
+ * overlay is in addition to the option tile's primary icon — it does NOT displace or replace the
+ * primary glyph. As of the control baseline audit (Phase 3) the glyph is the registered
+ * [DinghyIcons.SortAsc] (`arrow_drop_up`) / [DinghyIcons.SortDesc] (`arrow_drop_down`) token pair
+ * (master-list §f#1), rendered via the shared [SelectorRow] primitive — no longer a raw ligature.
  *
  * ## Icon registry
  * Option tile glyphs are passed via [SortOption.icon] (registered [DinghyIcon] tokens) and
@@ -107,68 +87,24 @@ fun <K> SortRow(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    // Full 1U tiles (owner ruling 2026-06-12): toggle tiles are touch-target "buttons" and obey
-    // the All-1U rule like every other control — the old U−12 tile broke 1U conformance and read
-    // shorter than the foot bar. Floor 48dp keeps sub-floor hardware tappable.
-    val tileHeight = maxOf(uDp, 48.dp)
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // LEADING TYPE TILE — mandatory, recessed, non-interactive (NON-CONFORMANT without it)
-        Box(
-            modifier = Modifier
-                .heightIn(min = tileHeight)
-                .heightIn(max = tileHeight)
-                .clip(RoundedCornerShape(t.rCtrl))
-                .background(t.bg2)
-                .padding(horizontal = 10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Decorative — no contentDescription (type tile is visual grouping, not interactive)
-            DinghyIconView(
-                icon = DinghyIcons.Sort,
-                tint = t.text2,
-                sizeDp = fsSp(20f, t.fs).dp,
-                contentDescription = null,  // purely decorative grouping indicator
-            )
-        }
-
-        // OPTION TILES — each uses the DinghyIcon-aware OutlinedControl overload (icon = option.icon)
-        options.forEach { opt ->
+    // Thin preset over SelectorRow: Sort type-tile leader; each option is an icon tile whose active
+    // state derives from activeKey, with the registered direction-arrow overlay on the active tile.
+    SelectorRow(
+        options = options.map { opt ->
             val active = opt.key == activeKey
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = tileHeight),
-            ) {
-                OutlinedControl(
-                    label = "",
-                    onClick = { onSelect(opt.key) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = tileHeight),
-                    intent = if (active) Intent.Accent else Intent.Neutral,
-                    icon = opt.icon,  // registered DinghyIcon — NEVER a raw ligature string
-                )
-                // Direction indicator — small arrow overlay at TopEnd, non-displacing
-                // NOTE: arrow_upward/arrow_downward not yet in DinghyIcons; using MaterialSymbol
-                // directly (same pattern as SpoolPicker analog). Register in future icon phase.
-                val direction = opt.directionUp
-                if (active && direction != null) {
-                    MaterialSymbol(
-                        name = if (direction) "arrow_upward" else "arrow_downward",
-                        tint = t.accent2,
-                        sizeSp = fsSp(14f, t.fs),
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp),
-                    )
-                }
-            }
-        }
-    }
+            SelectorOption(
+                key = opt.key,
+                icon = opt.icon,
+                isActive = active,
+                // Direction overlay only on the active sort tile (registered SortAsc/SortDesc).
+                directionIcon = if (active) sortDirectionIcon(opt.directionUp) else null,
+            )
+        },
+        onSelect = onSelect,
+        uDp = uDp,
+        modifier = modifier,
+        leadingTypeTile = DinghyIcons.Sort,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,45 +140,19 @@ fun <K> FilterRow(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    // Full 1U tiles (owner ruling 2026-06-12): toggle tiles are touch-target "buttons" and obey
-    // the All-1U rule like every other control — the old U−12 tile broke 1U conformance and read
-    // shorter than the foot bar. Floor 48dp keeps sub-floor hardware tappable.
-    val tileHeight = maxOf(uDp, 48.dp)
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // LEADING TYPE TILE — mandatory, recessed, non-interactive (NON-CONFORMANT without it)
-        Box(
-            modifier = Modifier
-                .heightIn(min = tileHeight)
-                .heightIn(max = tileHeight)
-                .clip(RoundedCornerShape(t.rCtrl))
-                .background(t.bg2)
-                .padding(horizontal = 10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Decorative — no contentDescription (type tile is visual grouping, not interactive)
-            DinghyIconView(
-                icon = DinghyIcons.FilterList,
-                tint = t.text2,
-                sizeDp = fsSp(20f, t.fs).dp,
-                contentDescription = null,  // purely decorative grouping indicator
+    // Thin preset over SelectorRow: FilterList type-tile leader; each option is an icon tile whose
+    // active state is its own isActive flag (no direction overlay).
+    SelectorRow(
+        options = options.map { opt ->
+            SelectorOption(
+                key = opt.key,
+                icon = opt.icon,
+                isActive = opt.isActive,
             )
-        }
-
-        // OPTION TILES — each uses the DinghyIcon-aware OutlinedControl overload (icon = option.icon)
-        options.forEach { opt ->
-            OutlinedControl(
-                label = "",
-                onClick = { onSelect(opt.key) },
-                modifier = Modifier.weight(1f).heightIn(min = tileHeight),
-                intent = if (opt.isActive) Intent.Accent else Intent.Neutral,
-                icon = opt.icon,  // registered DinghyIcon — NEVER a raw ligature string
-            )
-        }
-    }
+        },
+        onSelect = onSelect,
+        uDp = uDp,
+        modifier = modifier,
+        leadingTypeTile = DinghyIcons.FilterList,
+    )
 }
