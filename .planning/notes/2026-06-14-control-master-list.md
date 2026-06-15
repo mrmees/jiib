@@ -47,6 +47,24 @@ and derives inner spacing from two U-fraction tokens.
 **Spacing tokens** (R13 supersession — names survive, now resolve to U-fractions): `gapS ≈ U×0.125`
 (absorbs the stray 4/10dp), `gapM ≈ U×0.1875`, `padFloat = 14dp` (floating-overlay edge case ONLY).
 
+**Focus-body layout law — GENERAL button groups BOTTOM-DOCK (owner, 2026-06-14).** A **general
+button / sort / filter / selector / stepper / toggle group** rendered inside a Focus is **pinned to
+the BOTTOM** of the Focus content area (weighted body/value zone above takes the slack via
+`weight(1f)`; the group sits at the bottom via `Arrangement.Bottom` / `SpaceBetween` / a trailing
+`Spacer`). It NEVER floats centered or top-aligned. This **generalizes** `LAYOUT.md §"Focus with a
+docked action region"` (was adjuster-only) to every in-scope Focus that holds a GENERAL control group.
+
+> ⚠ **DOES NOT APPLY to SPECIALIZED domain controls** — they keep their own layout, untouched:
+> bed-area representations (`BedMapView`/`BedMeshHeatmapView`/jog-pad-over-bed), **height/position-
+> relative sliders** (the Move **Z scrubber** — its vertical position IS the data), the **XY
+> scrubbers**, `ColorWheel`, and anything where vertical placement encodes meaning. Do NOT bottom-dock
+> these. Extrude excluded entirely.
+
+Compliant today: `AdjusterPanel` (Zone-2), Calibration Hub (docked Open). **NON-compliant general
+groups (fix in this audit):** the **Move Microstep** focus (`MoveScreen.kt:491-493` top-aligns), the
+**Move Bookmark / Add-bookmark** pages, and any in-Focus calibration ± stack that is a general button
+group — verify + bottom-dock each as its phase lands.
+
 ---
 
 ## Part 2 — Named-control mapping (THE MEAT — owner redlines this)
@@ -292,14 +310,19 @@ Final. Override any conflicting row/section above (incl. §e where noted).
 6. **Printers `SecureToggleRow` pill → OUT** this pass (ignore it). Interpretation: the rest of
    PrintersScreen's ActionButtons (Connect/Edit/Add/Delete/Clear-key/Scan/Back) stay **IN** as
    standard ActionButtons — only the pill is deferred. (Supersedes §(d)#1's "whole screen OUT".)
-7. **Move scope (overrides §(e) Move bullet + §(d)#2):**
-   - **IN:** Microstep focus controls — **step-size ±** (→ SelectorRow-style increment w/
-     `Decrease`/`Increase` icons, kills literal `−`/`+`), **jog ±-pair** (→ **`Intent.Go`** per R19,
-     motion is Move's purpose; kills literal `−`/`+`), **`AxisSelectChip`** (→ SelectorRow, X/Y/Z text
-     labels). PLUS the Move **foot bar** (Back/Disable/HomeAll/Save).
-   - **OUT:** the **MoveRow mode-select list** ("the list itself does not"), the TouchMove bed map,
-     the XY/Z position scrubbers, and the Bookmark sub-mode internals (protected touchscreen controls
-     / bed-area / field list — handled by per-page rules or the later list audit).
+7. **Move scope (owner-refined 2026-06-14; overrides §(e) Move bullet + §(d)#2). Only the pages with
+   GENERAL button groups get the treatment — Microstep + Bookmark + Add-bookmark; everything else is a
+   SPECIALIZED control left as-is.**
+   - **IN (general button groups → normalize + bottom-dock):**
+     - **Microstep** focus — **step-size ±** (→ SelectorRow-style increment w/ `Decrease`/`Increase`
+       icons, kills literal `−`/`+`), **jog ±-pair** (→ **`Intent.Go`** per R19, motion is Move's
+       purpose; kills literal `−`/`+`), **`AxisSelectChip`** (→ SelectorRow, X/Y/Z text labels).
+     - **Bookmark** page — Move/Delete button group.
+     - **Add-bookmark (SaveDialog)** — Cancel/Save button group + the include-Z toggle.
+     - The Move **foot bar** (Back/Disable/HomeAll/Save).
+   - **OUT (specialized — keep own layout, do NOT touch):** the **TouchMove bed map**, the **XY
+     position scrubbers**, the **Z position scrubber** (height-relative — vertical position IS the
+     data), and the **MoveRow mode-select list** ("the list itself does not" — field-list audit later).
 
 Rogue / migration-target sites verified at HEAD:
 - Move literal-`"−"`/`"+"` steppers: `ui/move/MoveScreen.kt:520, 534, 546, 554` (4 sites, `Intent.Accent`).

@@ -142,6 +142,16 @@ per-screen (`[[dinghy-component-class-workflow]]`).
 label-doubles for labeled. New conformance check: an icon-only `OutlinedControl`/control with no
 `contentDescription` = **fail**. (The inventory found dozens missing it — this closes that backlog.)
 
+**Focus-body layout law — GENERAL button groups BOTTOM-DOCK (owner, 2026-06-14).** A general
+button / sort / filter / selector / stepper / toggle group inside a Focus pins to the BOTTOM (weighted
+body above; docked via `Arrangement.Bottom`/`SpaceBetween`/trailing `Spacer`) — never centered or
+top-aligned. Generalizes `LAYOUT.md §"Focus with a docked action region"` from adjuster Focuses to
+every in-scope Focus with a GENERAL control group. **DOES NOT apply to SPECIALIZED domain controls**
+(bed-area representations, height/position-relative sliders like the Move Z scrubber, the XY scrubbers,
+`ColorWheel`) — those keep their own layout. Move Hub: only **Microstep + Bookmark + Add-bookmark**
+pages get it; TouchMove/XY/Z are specialized. Known non-compliant general group: Move Microstep
+(top-aligned). Broaden `LAYOUT.md` to match.
+
 ---
 
 ## 6. 1U + U-relative spacing (reduce, then go U-relative)
