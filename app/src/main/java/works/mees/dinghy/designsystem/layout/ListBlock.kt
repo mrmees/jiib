@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.Dp
@@ -77,7 +76,7 @@ val FocusInset: Dp = 16.dp
  * own the items. Example:
  *
  * ```kotlin
- * ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {   // horizontal frame owned by ListBlock
+ * ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {   // horizontal frame owned by enclosing region; ListBlock is flush
  *     items(state.spools, key = { it.id }) { spool ->
  *         ListRow(selected = spool.id == selected?.id, onClick = { onRowClick(spool) }, uDp = grid.uDp) {
  *             SpoolRowContent(spool, t)
@@ -114,9 +113,9 @@ fun ListBlock(
     // Fade height in dp — 32dp is visible enough without eating too much content area.
     val fadeHeight = 32.dp
 
-    // The horizontal frame is OWNED here (ListFrameInset) so the list's outer edges always match a
-    // stacked FootButtonBar's — callers pass only vertical/weight, never start/end (owner rule).
-    Box(modifier.padding(horizontal = ListFrameInset)) {
+    // The enclosing region owns the horizontal frame; `ListBlock` is flush (embedded, non-region
+    // uses must add their own inset). Callers pass only vertical/weight modifiers.
+    Box(modifier) {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
