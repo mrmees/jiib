@@ -333,33 +333,27 @@ private fun SpoolContent(
 
         ScreenScaffold(
             focus = {
-                // Focus = FocusFrame (color-reactive ring + FillMeter) with FloatingEStop as Box sibling.
-                Box(
-                    Modifier
+                // Focus = FocusFrame (color-reactive ring + FillMeter) flush in the registered region.
+                FocusFrame(
+                    title = focusTitle,
+                    icon = DinghyIcons.SpoolFilament,
+                    iconTint = spoolColor,
+                    uDp = grid.uDp,
+                    edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        // R26 frame: ring lands at 8dp top; bottom 4 composes the 8dp gap with SortRow.
-                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                        .weight(1f),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
                 ) {
-                    FocusFrame(
-                        title = focusTitle,
-                        icon = DinghyIcons.SpoolFilament,
-                        iconTint = spoolColor,
-                        uDp = grid.uDp,
-                        edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
-                        modifier = Modifier.fillMaxSize(),
-                        isPrinting = isPrinting,
-                        onEmergencyStop = onEmergencyStop,
-                        onPanic = onEmergencyStop,
-                    ) {
-                        SpoolDetailContent(
-                            spool = selected,
-                            isActive = isSelectedLoaded,
-                            spoolColor = spoolColor,
-                            onMeasure = onMeasure,
-                            t = t,
-                        )
-                    }
+                    SpoolDetailContent(
+                        spool = selected,
+                        isActive = isSelectedLoaded,
+                        spoolColor = spoolColor,
+                        onMeasure = onMeasure,
+                        t = t,
+                    )
                 }
                 // Sort and Filter control rows pinned below the detail card, at the foot of Focus.
                 SortRow(
@@ -367,14 +361,11 @@ private fun SpoolContent(
                     activeKey = state.sortKey,
                     onSelect = onSelectSort,
                     uDp = grid.uDp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
                 FilterRow(
                     options = filterOptions,
                     onSelect = onOpenFilter,
                     uDp = grid.uDp,
-                    // R26 frame: bottom 8 aligns the tile bottoms with the Field FootButtonBar.
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 )
             },
             field = {
