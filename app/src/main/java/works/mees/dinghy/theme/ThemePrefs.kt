@@ -53,7 +53,6 @@ class ThemePrefs(
                     rawDark = prefs[KEY_DARK],
                     rawMode = prefs[KEY_MODE],
                     rawShift = prefs[KEY_SHIFT],
-                    rawFs = prefs[KEY_FS],
                     rawOverrides = readOverrides(prefs),
                 )
             }
@@ -93,10 +92,6 @@ class ThemePrefs(
             val current = readOverrides(prefs)
             writeOverrides(prefs, transform(current))
         }
-    }
-
-    suspend fun setFs(choice: FontScale) {
-        dataStore.edit { it[KEY_FS] = choice.name }
     }
 
     /**
@@ -169,9 +164,6 @@ class ThemePrefs(
         private val KEY_OVERRIDE_KEYS = stringSetPreferencesKey("pool_override_keys")
         private fun overrideArgbKey(idxName: String) = "pool_override_argb_$idxName"
 
-        // The S/M/L text-size key (a SEPARATE setting, D-05) — read by tupleFlow + written by setFs.
-        private val KEY_FS = stringPreferencesKey("fs_choice")
-
         // The APP-GLOBAL dev-widget enable boolean (D-08, 15.2-01) — NOT profile-keyed, NOT BuildConfig.DEBUG.
         private val KEY_DEV_ENABLE = androidx.datastore.preferences.core.booleanPreferencesKey("dev_cycler_enabled")
 
@@ -241,14 +233,13 @@ class ThemePrefs(
             rawDark: Boolean?,
             rawMode: String?,
             rawShift: Int?,
-            rawFs: String?,
             rawOverrides: Map<String, Long>?,
         ): ThemeTuple {
             val seed = if (rawSeed != null && HEX_SEED.matches(rawSeed)) rawSeed else DEFAULT_SEED
             val dark = rawDark ?: true
             val mode = if (rawMode in VALID_MODES) rawMode!! else DEFAULT_MODE
             val shift = if (rawShift != null && rawShift in SHIFT_RANGE) rawShift else DEFAULT_SHIFT
-            val fs = (enumValuesOrNull<FontScale>(rawFs) ?: FontScale.M).multiplier
+            val fs = FontScale.M.multiplier   // app-global font scale overrides this downstream (activeThemeTuple)
 
             val overrides = mutableMapOf<Int, Long>()
             val statusOverrides = mutableMapOf<String, Long>()
@@ -272,12 +263,6 @@ class ThemePrefs(
                 statusOverrides = statusOverrides,
                 fs = fs,
             )
-        }
-
-        /** Case-exact enum lookup that returns null instead of throwing on an unknown/null name. */
-        private inline fun <reified E : Enum<E>> enumValuesOrNull(name: String?): E? {
-            if (name == null) return null
-            return enumValues<E>().firstOrNull { it.name == name }
         }
 
         /**

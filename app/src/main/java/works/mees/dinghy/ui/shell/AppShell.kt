@@ -94,7 +94,8 @@ import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
 import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
-import works.mees.dinghy.ui.screen.SettingsScreen
+import works.mees.dinghy.ui.screen.AppSettingsScreen
+import works.mees.dinghy.ui.screen.PrinterSettingsScreen
 import works.mees.dinghy.ui.screen.SystemPageScreen
 import works.mees.dinghy.ui.screen.ThemeScreen
 import works.mees.dinghy.ui.temperature.TemperatureHolder
@@ -135,9 +136,9 @@ import android.graphics.Bitmap
  * Stop Confirm guard) float as Box siblings AFTER the [NavHost] so they render above EVERY destination
  * (FIX-1 — the e-stop is now app-level, reachable from any screen).
  *
- * ## Settings is an IN-SHELL destination
- * Settings is reached via the System page ([NavDest.System] → [NavDest.Settings]) and rendered here
- * like any other destination. There is deliberately NO `onOpenSettings` callback on this shell.
+ * ## Settings are IN-SHELL destinations
+ * App settings ([NavDest.AppSettings]) and printer settings ([NavDest.PrinterSettings]) are reached
+ * via the System page ([NavDest.System]) and rendered here like any other destination.
  *
  * @param container the process-scoped service-locator (provides the live spine + theme + dispatcher).
  */
@@ -744,13 +745,17 @@ fun AppShell(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable<NavDest.Devices> {
-                // NavDest.Devices (D-01): the printer switcher. onSwitched pops to the existing
-                // WaterfallHome root (FIX-4 gate, D-02) — navigate() would push a duplicate, breaking
-                // system Back (WR-03 fix). popBackStack is idempotent at root. NO rebind/disconnect here.
+            composable<NavDest.PrinterSettings> {
+                PrinterSettingsScreen(
+                    container = container,
+                    onNavigate = { navController.navigate(it) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.ManagePrinters> {
                 PrintersScreen(
                     container = container,
-                    onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                    onSwitched = { navController.popBackStack<NavDest.PrinterSettings>(inclusive = false) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -761,8 +766,8 @@ fun AppShell(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable<NavDest.Settings> {
-                SettingsScreen(
+            composable<NavDest.AppSettings> {
+                AppSettingsScreen(
                     container = container,
                     onBack = { navController.popBackStack() },
                 )
@@ -939,7 +944,6 @@ fun AppShell(
             estopDest.isRoute<NavDest.Spool>() ||
             estopDest.isRoute<NavDest.Files>() ||
             estopDest.isRoute<NavDest.Outputs>() ||
-            estopDest.isRoute<NavDest.Devices>() ||
             estopDest.isRoute<NavDest.Console>() ||
             estopDest.isRoute<NavDest.Extrude>() ||
             estopDest.isRoute<NavDest.Move>() ||
@@ -951,9 +955,11 @@ fun AppShell(
             estopDest.isRoute<NavDest.CalibrationZTilt>() ||
             estopDest.isRoute<NavDest.CalibrationQgl>() ||
             estopDest.isRoute<NavDest.About>() ||
-            estopDest.isRoute<NavDest.Settings>() ||
             estopDest.isRoute<NavDest.System>() ||
-            estopDest.isRoute<NavDest.SystemInfo>()
+            estopDest.isRoute<NavDest.SystemInfo>() ||
+            estopDest.isRoute<NavDest.AppSettings>() ||
+            estopDest.isRoute<NavDest.PrinterSettings>() ||
+            estopDest.isRoute<NavDest.ManagePrinters>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(

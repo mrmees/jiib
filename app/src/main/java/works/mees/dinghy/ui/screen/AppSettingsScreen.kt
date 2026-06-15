@@ -39,6 +39,7 @@ import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -48,41 +49,42 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
+import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
+import works.mees.dinghy.ui.settings.TextSizeSelector
 
 /**
- * The **Settings** drawer destination (SET-01) — dense C6-exempt restyle (28-07, D-11/D-12).
- * A single `verticalScroll` Column of dense toggle + numeric-field rows; fits one page at M text
- * size in portrait and landscape. No section-header words — grouping by outline/fill only.
+ * The **App Settings** screen (APP-SETTINGS-01) — app-global preferences that apply
+ * across all printers: text size, display behaviour, battery handling, and babystep layers.
  *
- * ## Layout (D-11/D-12)
+ * Mirrors [SettingsScreen] structure with two differences:
+ *  - No webcam row (webcam is per-printer → moves to the future Printer Settings screen).
+ *  - Adds the app-global S/M/L [TextSizeSelector] at the top of the Field column.
+ *
+ * ## Layout
  * Field-only `ScreenScaffold`. Back is the last control inside the scrolling Column.
  * All toggles use the `ListRow` anatomy with a trailing `Switch` token-tinted via
  * `t.accent` for the checked state. The numeric babystep field uses `TokenTextField`
  * with a numeric keyboard. All persistence routes through the process-lifetime `container.set*`
  * writeScope intent helpers — never a composition scope (T-28-07-02).
  *
- * ## Feature toggles (D-14 — boundary is final)
- * Every existing feature toggle survives restyled in-place. Nothing moves to another screen.
- *
  * @param container the process-scoped service-locator.
  * @param onBack the explicit neutral Back exit.
  */
 @Composable
-fun SettingsScreen(
+fun AppSettingsScreen(
     container: AppContainer,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The active profile drives the per-profile toggle state. Null when no printer is configured —
-    // the toggles fall back to the default so the screen still composes.
-    val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
-    val webcamOn = activeProfile?.webcamEnabled ?: true
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
+
+    // App-global font scale — process-scoped, durable writeScope intent (T-28-07-02).
+    val fontScale by container.fontScale.collectAsStateWithLifecycle(FontScale.M)
 
     // Babystep app setting (D-06) — process-scoped, connection-INDEPENDENT (not per-profile).
     // All persistence routes through durable container intent helpers (writeScope), never a
@@ -111,10 +113,9 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    SettingsContent(
-        webcamOn = webcamOn,
-        webcamEnabled = activeProfile != null,
-        onWebcamToggle = { container.setActiveWebcamEnabled(it) },
+    AppSettingsContent(
+        fontScale = fontScale,
+        onFontScale = { container.setFontScale(it) },
         babystepOn = babystepOn,
         onBabystepToggle = { container.setBabystepEnabled(it) },
         babystepLayers = babystepLayers,
@@ -145,14 +146,13 @@ fun SettingsScreen(
 
 /**
  * The STATELESS content seam (PREVIEW_AND_TOKENS preview-first LAW) — pure inputs, no
- * AppContainer/Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.SettingsPreviews]
+ * AppContainer/Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.AppSettingsPreviews]
  * drives every theme + toggle state without a live session.
  */
 @Composable
-fun SettingsContent(
-    webcamOn: Boolean,
-    webcamEnabled: Boolean,
-    onWebcamToggle: (Boolean) -> Unit,
+fun AppSettingsContent(
+    fontScale: FontScale,
+    onFontScale: (FontScale) -> Unit,
     babystepOn: Boolean,
     onBabystepToggle: (Boolean) -> Unit,
     babystepLayers: Int,
@@ -186,8 +186,8 @@ fun SettingsContent(
             fieldFramed = false,
             focus = {
                 FocusFrame(
-                    title = stringResource(R.string.system_row_settings),
-                    icon = DinghyIcons.SystemRowSettings,
+                    title = stringResource(R.string.system_row_app_settings),
+                    icon = DinghyIcons.AppSettings,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
@@ -203,19 +203,72 @@ fun SettingsContent(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // ── Webcam toggle ─────────────────────────────────────────────────────────
-                    // Per-profile (MEDIUM-4, D-04): flipping this greys/lights the Webcam drawer tile.
-                    DenseToggleRow(
-                        label = stringResource(R.string.settings_webcam),
-                        checked = webcamOn,
-                        enabled = webcamEnabled,
-                        onToggle = onWebcamToggle,
+                    // ── Text size selector ────────────────────────────────────────────────────
+                    // App-global S/M/L font scale — durable writeScope intent (T-28-07-02).
+                    ListRow(
+                        selected = false,
+                        onClick = {},
+                        uDp = grid.uDp,
+                        leadingContent = {
+                            ListRowIcon(
+                                icon = DinghyIcons.TextSize,
+                                uDp = grid.uDp,
+                                tint = t.text,
+                            )
+                        },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_text_size),
+                            color = t.text,
+                            style = DinghyType.listLabel.toTextStyle(t),
+                        )
+                        Spacer(Modifier.weight(1f))
+                    }
+                    TextSizeSelector(
+                        selected = fontScale,
+                        onSelect = onFontScale,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+
+                    // ── Keep screen on ────────────────────────────────────────────────────────
+                    // App-global — durable writeScope intent (T-28-07-02).
+                    AppSettingsDenseToggleRow(
+                        label = stringResource(R.string.settings_keep_screen_on),
+                        checked = keepScreenOn,
+                        enabled = true,
+                        onToggle = onKeepScreenOnToggle,
                         uDp = grid.uDp,
                     )
 
+                    // ── Battery optimization exemption ────────────────────────────────────────
+                    // Status + tap-to-request deep-link. Once exempt the row reads greyed (system
+                    // offers no in-app un-exempt dialog). android.content.Intent is fully-qualified
+                    // because this file imports designsystem.control.Intent under the same name.
+                    ListRow(
+                        selected = false,
+                        onClick = { if (!isExempt) onRequestExempt() },
+                        uDp = grid.uDp,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_battery_optimization),
+                            color = if (isExempt) t.text3 else t.text,
+                            style = DinghyType.listLabel.toTextStyle(t),
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = if (isExempt) {
+                                stringResource(R.string.settings_battery_exempt)
+                            } else {
+                                stringResource(R.string.settings_battery_optimized)
+                            },
+                            color = if (isExempt) t.go else t.text2,
+                            style = DinghyType.caption.toTextStyle(t),
+                        )
+                    }
+
                     // ── Babystep enable ───────────────────────────────────────────────────────
                     // Process-scoped (D-06) — durable writeScope intent (T-28-07-02).
-                    DenseToggleRow(
+                    AppSettingsDenseToggleRow(
                         label = stringResource(R.string.settings_babystep),
                         checked = babystepOn,
                         enabled = true,
@@ -257,42 +310,6 @@ fun SettingsContent(
                         )
                     }
 
-                    // ── Keep screen on ────────────────────────────────────────────────────────
-                    // App-global — durable writeScope intent (T-28-07-02).
-                    DenseToggleRow(
-                        label = stringResource(R.string.settings_keep_screen_on),
-                        checked = keepScreenOn,
-                        enabled = true,
-                        onToggle = onKeepScreenOnToggle,
-                        uDp = grid.uDp,
-                    )
-
-                    // ── Battery optimization exemption ────────────────────────────────────────
-                    // Status + tap-to-request deep-link. Once exempt the row reads greyed (system
-                    // offers no in-app un-exempt dialog). android.content.Intent is fully-qualified
-                    // because this file imports designsystem.control.Intent under the same name.
-                    ListRow(
-                        selected = false,
-                        onClick = { if (!isExempt) onRequestExempt() },
-                        uDp = grid.uDp,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_battery_optimization),
-                            color = if (isExempt) t.text3 else t.text,
-                            style = DinghyType.listLabel.toTextStyle(t),
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            text = if (isExempt) {
-                                stringResource(R.string.settings_battery_exempt)
-                            } else {
-                                stringResource(R.string.settings_battery_optimized)
-                            },
-                            color = if (isExempt) t.go else t.text2,
-                            style = DinghyType.caption.toTextStyle(t),
-                        )
-                    }
-
                     // ── Back foot ─────────────────────────────────────────────────────────────
                     // R5/R8 (supersedes D-10): Back = accent. Inside the Column so it
                     // is always visible at the foot of the single-page scroll.
@@ -313,10 +330,12 @@ fun SettingsContent(
  * via `t.accent` for the checked state; `t.accentSoft` for the track. When [enabled] is false
  * the row reads greyed and is inert.
  *
- * All persistence is the caller's responsibility — this composable only calls [onToggle].
+ * Copied from [SettingsScreen]'s private `DenseToggleRow` — AppSettingsScreen is self-contained
+ * so it survives the future deletion of SettingsScreen.kt. All persistence is the caller's
+ * responsibility — this composable only calls [onToggle].
  */
 @Composable
-private fun DenseToggleRow(
+private fun AppSettingsDenseToggleRow(
     label: String,
     checked: Boolean,
     enabled: Boolean,

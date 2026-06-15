@@ -82,7 +82,6 @@ data class Profile(
     val paletteMode: String = "Colorful",
     val poolShift: Int = 0,
     val poolOverrides: Map<String, Long> = emptyMap(),
-    val fsChoice: String = "M",
     // Per-profile feature toggle (D-04, 15.2-03) — see [PersistedProfile.webcamEnabled]. Default true.
     val webcamEnabled: Boolean = true,
     // R7 (26.5-07): per-printer wss/https toggle — see [PersistedProfile.useSecure]. Default false.
@@ -113,7 +112,6 @@ data class Profile(
             rawDark = dark,
             rawMode = paletteMode,
             rawShift = poolShift,
-            rawFs = fsChoice,
             rawOverrides = poolOverrides,
         )
 
@@ -130,7 +128,7 @@ data class Profile(
             paletteMode = paletteMode,
             poolShift = poolShift,
             poolOverrides = poolOverrides,
-            fsChoice = fsChoice,
+            fsChoice = "M", // runtime Profile no longer carries fsChoice; persist a stable default
             webcamEnabled = webcamEnabled,
             useSecure = useSecure,
         )
@@ -139,7 +137,7 @@ data class Profile(
         "Profile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
             "paletteMode=$paletteMode, poolShift=$poolShift, " +
-            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
+            "poolOverrides=${poolOverrides.keys}, useSecure=$useSecure)"
 
     companion object {
         /** A stable, collision-safe profile identity (D-05). UUID is available since API 1. */
@@ -158,7 +156,6 @@ data class Profile(
                 paletteMode = p.paletteMode,
                 poolShift = p.poolShift,
                 poolOverrides = p.poolOverrides,
-                fsChoice = p.fsChoice,
                 webcamEnabled = p.webcamEnabled,
                 useSecure = p.useSecure,
             )

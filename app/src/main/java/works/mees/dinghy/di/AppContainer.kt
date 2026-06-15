@@ -46,6 +46,7 @@ import works.mees.dinghy.ui.move.SavedLocation
 import works.mees.dinghy.ui.move.SavedLocationPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
 import works.mees.dinghy.ui.settings.DisplayPrefs
+import works.mees.dinghy.ui.settings.FontScalePrefs
 import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
@@ -127,6 +128,15 @@ class AppContainer(
      * (the DataStore single-writer invariant) and injected here.
      */
     savedLocationDataStore: DataStore<Preferences>,
+    /**
+     * The TENTH, INDEPENDENT file: fontscale.preferences_pb (App/Printer Settings Split, Task 1.2).
+     * Backs the process-scoped app-global font-scale setting ([FontScalePrefs]: S/M/L FontScale
+     * choice). Replaces the retired per-printer [Profile.fsChoice] as the SOLE source of `--fs`.
+     * Carries no secrets, kept on its own connection-independent lifecycle per the separate-file
+     * discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer
+     * invariant) and injected here.
+     */
+    fontScaleDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -378,6 +388,16 @@ class AppContainer(
      */
     val displayPrefs: DisplayPrefs = DisplayPrefs(displayDataStore)
 
+    /**
+     * App-global font-scale persistence (Task 1.2, App/Printer Settings Split) — the SEPARATE
+     * fontscale.preferences_pb-backed store holding the [FontScalePrefs.fontScale] S/M/L choice
+     * (default [works.mees.dinghy.theme.FontScale.M]). Replaces the retired per-printer
+     * [works.mees.dinghy.config.Profile.fsChoice] as the SOLE source of `--fs`. PROCESS-SCOPED
+     * + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): the choice survives reconnects and
+     * printer swaps.
+     */
+    val fontScalePrefs: FontScalePrefs = FontScalePrefs(fontScaleDataStore)
+
     /** Whether the screen is held awake while the shell is foregrounded (§R2) — default true. */
     val keepScreenOn: Flow<Boolean> = displayPrefs.keepScreenOn
 
@@ -388,6 +408,19 @@ class AppContainer(
      */
     fun setKeepScreenOn(on: Boolean) {
         writeScope.launch { displayPrefs.setKeepScreenOn(on) }
+    }
+
+    /** App-global font scale (S/M/L) — connection-independent; the SOLE source of `--fs`. */
+    val fontScale: Flow<FontScale> = fontScalePrefs.fontScale
+
+    /**
+     * Persist the app-global font scale durably (writeScope, never a composition scope).
+     * Routes through the process-lifetime [writeScope] ([[dinghy-compose-write-scope-cancellation]])
+     * — the Settings chip tap can navigate away in the same frame, and a slow Nexus-7 flash drops
+     * a composition-scoped write. NEVER `rememberCoroutineScope()`.
+     */
+    fun setFontScale(choice: FontScale) {
+        writeScope.launch { fontScalePrefs.setFontScale(choice) }
     }
 
     /**
@@ -408,6 +441,16 @@ class AppContainer(
         writeScope.launch {
             val firstProfileId = activeProfileId.filterNotNull().first()
             traceStylePrefs.migrateUnscopedTo(firstProfileId)
+        }
+
+        // One-time font-scale migration (must NOT block on an active profile). Seeds the app-global
+        // font scale from the active printer's prior persisted fsChoice if one exists, else M.
+        // Idempotent via the FontScalePrefs sentinel. Process-lifetime writeScope.
+        writeScope.launch {
+            val seed = profileStore.readActiveFsChoiceRaw()
+                ?.let { runCatching { works.mees.dinghy.theme.FontScale.valueOf(it) }.getOrNull() }
+                ?: works.mees.dinghy.theme.FontScale.M
+            fontScalePrefs.migrateSeed(seed)
         }
     }
 
@@ -679,8 +722,15 @@ class AppContainer(
      * profile/tuple than the one [seedTheme] applies — no idle-tuple omission, no profile skew.
      */
     val activeThemeTuple: Flow<ThemePrefs.ThemeTuple> =
-        activeProfile.flatMapLatest { p ->
-            if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
+        combine(
+            activeProfile.flatMapLatest { p ->
+                if (p != null) flowOf(p.toThemeTuple()) else themePrefs.tupleFlow
+            },
+            fontScalePrefs.fontScale,
+        ) { tuple, appFs ->
+            // App-global font scale is the SOLE source of `--fs` — override whatever the per-profile /
+            // idle tuple carried. Both theme paths (seedTheme + effectiveTokens) read this flow.
+            tuple.copy(fs = appFs.multiplier)
         }
 
     /**
@@ -762,17 +812,6 @@ class AppContainer(
     fun setActiveDark(active: Boolean, dark: Boolean) {
         if (active) mutateActiveProfile { it.copy(dark = dark) }
         else writeScope.launch { themePrefs.setDark(dark) }
-    }
-
-    /**
-     * Persist the S/M/L font-size choice (D-09) — active profile (durable, lost-update-safe), else the
-     * global idle theme. CR-01: the idle branch MUST route through the process-lifetime [writeScope], never
-     * a composition `rememberCoroutineScope()` ([[dinghy-compose-write-scope-cancellation]]) — the S/M/L
-     * chip tap can navigate away in the same frame, and a slow Nexus-7 flash drops the cancelled write.
-     */
-    fun setActiveFs(active: Boolean, choice: FontScale) {
-        if (active) mutateActiveProfile { it.copy(fsChoice = choice.name) }
-        else writeScope.launch { themePrefs.setFs(choice) }
     }
 
     /**

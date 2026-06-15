@@ -21,9 +21,8 @@ class ThemePrefsFallbackTest {
         dark: Boolean? = true,
         mode: String? = "Colorful",
         shift: Int? = 0,
-        fs: String? = FontScale.M.name,
         overrides: Map<String, Long> = emptyMap(),
-    ) = ThemePrefs.sanitizeTuple(seed, dark, mode, shift, fs, overrides)
+    ) = ThemePrefs.sanitizeTuple(seed, dark, mode, shift, overrides)
 
     /** A tuple is "fully usable" if every field is a sane, in-range value (the resolver can generate). */
     private fun assertFullyUsable(t: ThemePrefs.ThemeTuple) {
@@ -81,8 +80,10 @@ class ThemePrefsFallbackTest {
     // ---- fs ----------------------------------------------------------------------------------------
 
     @Test
-    fun invalidFs_fallsBackToM_neverThrows() {
-        val t = sanitize(fs = "XL")
+    fun tupleFs_isAlwaysMDefault_appGlobalOverridesDownstream() {
+        // Per-printer fsChoice is retired; sanitizeTuple always produces FontScale.M.multiplier.
+        // The actual app-global value is injected by activeThemeTuple (AppContainer) downstream.
+        val t = sanitize()
         assertEquals(FontScale.M.multiplier, t.fs)
         assertFullyUsable(t)
     }
@@ -153,7 +154,6 @@ class ThemePrefsFallbackTest {
             seed = "???",
             mode = "???",
             shift = -999,
-            fs = "???",
             overrides = mapOf("Nope" to 0xDEAD_BEEF_DEADL),
         )
         assertEquals(ThemePrefs.TUPLE_DEFAULT, t)

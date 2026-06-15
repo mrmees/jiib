@@ -277,6 +277,29 @@ class ProfileStoreTest {
         assertEquals(listOf("first"), plan.profiles.map { it.id })
     }
 
+    // ---- readActiveFsChoiceRaw (font-scale migration reader) ----------------------------------------
+
+    @Test
+    fun readActiveFsChoiceRaw_emptyStore_returnsNull() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            assertNull(store.readActiveFsChoiceRaw())
+        }
+    }
+
+    @Test
+    fun readActiveFsChoiceRaw_activeProfile_returnsMDefault() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            // toPersisted() now always writes fsChoice="M" — per-printer fsChoice is retired.
+            // readActiveFsChoiceRaw() reads the persisted blob, so it returns "M" for all new profiles.
+            // Legacy blobs with fsChoice="L" are decoded correctly (PersistedProfile.fsChoice still exists).
+            store.upsert(profile(id = "alpha"))
+            settle()
+            assertEquals("M", store.readActiveFsChoiceRaw())
+        }
+    }
+
     /** Let the DataStore IO actor finish a write and release file handles before the next read/write. */
     private suspend fun settle() {
         yield()

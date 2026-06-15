@@ -112,6 +112,16 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("savedlocations.preferences_pb") },
         )
+        // A TENTH, INDEPENDENT file: fontscale.preferences_pb (App/Printer Settings Split, Task 1.2).
+        // It carries no secrets (like macros/webcam/babystep/tracestyle/display/savedlocations), so it
+        // is kept on its own connection-independent lifecycle per the separate-file discipline — it backs
+        // the process-scoped app-global font-scale setting (FontScalePrefs: S/M/L FontScale choice).
+        // Replaces the retired per-printer Profile.fsChoice as the SOLE source of --fs. One instance
+        // per process (the single-writer invariant DataStore needs — RESEARCH Pitfall 3).
+        val fontScaleDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("fontscale.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -123,6 +133,7 @@ class DinghyApp : Application() {
             traceStyleDataStore = traceStyleDataStore,
             displayDataStore = displayDataStore,
             savedLocationDataStore = savedLocationDataStore,
+            fontScaleDataStore = fontScaleDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

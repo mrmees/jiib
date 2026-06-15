@@ -5,18 +5,19 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
-import works.mees.dinghy.ui.screen.SettingsContent
+import works.mees.dinghy.theme.FontScale
+import works.mees.dinghy.ui.screen.AppSettingsContent
 
 /**
- * @Preview matrix for SettingsScreen (28-07, D-11/D-12).
+ * @Preview matrix for AppSettingsScreen (app-global settings: text size, display, battery, babystep).
  *
- * Targets the STATELESS [SettingsContent] seam — no AppContainer, no Moonraker.
+ * Targets the STATELESS [AppSettingsContent] seam — no AppContainer, no Moonraker.
  *
  * ## Axes exercised
- *  - Webcam-enabled axis: toggles all ON (webcam profile present) vs all OFF
- *  - Battery exempt vs optimized status row
+ *  - All-on vs all-off toggle states (battery exempt vs optimized)
  *  - 6 theme combos on toggles-all-ON state
- *  - fs = L overflow check — verifies dense rows + numeric field don't clip at large text
+ *  - FontScale axis: M (default) across most previews; L in the overflow check
+ *  - fs = L overflow check — verifies dense rows + text-size selector + numeric field don't clip
  *  - RTL spotcheck — confirms row mirrors correctly under Arabic layout direction
  *  - Pseudolocale en-XA — i18n completeness (all strings via stringResource)
  */
@@ -26,11 +27,10 @@ import works.mees.dinghy.ui.screen.SettingsContent
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun settingsAllOn() {
-    SettingsContent(
-        webcamOn = true,
-        webcamEnabled = true,
-        onWebcamToggle = {},
+private fun appSettingsAllOn() {
+    AppSettingsContent(
+        fontScale = FontScale.M,
+        onFontScale = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
@@ -44,11 +44,10 @@ private fun settingsAllOn() {
 }
 
 @Composable
-private fun settingsAllOff() {
-    SettingsContent(
-        webcamOn = false,
-        webcamEnabled = true,
-        onWebcamToggle = {},
+private fun appSettingsAllOff() {
+    AppSettingsContent(
+        fontScale = FontScale.M,
+        onFontScale = {},
         babystepOn = false,
         onBabystepToggle = {},
         babystepLayers = 3,
@@ -66,40 +65,93 @@ private fun settingsAllOff() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(
-    name = "Settings: all toggles ON (Nexus7 portrait)",
+    name = "AppSettings: all toggles ON (Nexus7 portrait)",
     device = NEXUS7_PORTRAIT,
     showBackground = true,
 )
 @Composable
-private fun SettingsAllOnPortrait() = PreviewBox(colorfulDark) { settingsAllOn() }
+private fun AppSettingsAllOnPortrait() = PreviewBox(colorfulDark) { appSettingsAllOn() }
 
 @Preview(
-    name = "Settings: all toggles ON (Nexus7 landscape)",
+    name = "AppSettings: all toggles ON (Nexus7 landscape)",
     device = NEXUS7,
     showBackground = true,
 )
 @Composable
-private fun SettingsAllOnLandscape() = PreviewBox(colorfulDark) { settingsAllOn() }
+private fun AppSettingsAllOnLandscape() = PreviewBox(colorfulDark) { appSettingsAllOn() }
 
 @Preview(
-    name = "Settings: all toggles OFF + exempt (Nexus7 portrait)",
+    name = "AppSettings: all toggles OFF + exempt (Nexus7 portrait)",
     device = NEXUS7_PORTRAIT,
     showBackground = true,
 )
 @Composable
-private fun SettingsAllOffPortrait() = PreviewBox(colorfulDark) { settingsAllOff() }
+private fun AppSettingsAllOffPortrait() = PreviewBox(colorfulDark) { appSettingsAllOff() }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6-theme matrix on all-ON (most interactive state — switches lit, babystep field, S/M/L selector)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeColorfulDark() = PreviewBox(colorfulDark) { appSettingsAllOn() }
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeColorfulLight() = PreviewBox(colorfulLight) { appSettingsAllOn() }
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeSimpleDark() = PreviewBox(simpleDark) { appSettingsAllOn() }
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeSimpleLight() = PreviewBox(simpleLight) { appSettingsAllOn() }
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeHighContrastDark() = PreviewBox(highContrastDark) { appSettingsAllOn() }
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsThemeHighContrastLight() = PreviewBox(highContrastLight) { appSettingsAllOn() }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fs = L overflow check — dense rows + text-size selector + numeric field at largest text size
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(
-    name = "Settings: webcam disabled (no profile) (Nexus7 portrait)",
+    name = "AppSettings fs=L portrait overflow check",
     device = NEXUS7_PORTRAIT,
     showBackground = true,
 )
 @Composable
-private fun SettingsWebcamNoProfile() = PreviewBox(colorfulDark) {
-    SettingsContent(
-        webcamOn = false,
-        webcamEnabled = false, // no active profile — toggle greyed
-        onWebcamToggle = {},
+private fun AppSettingsFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    AppSettingsContent(
+        fontScale = FontScale.L,
+        onFontScale = {},
+        babystepOn = true,
+        onBabystepToggle = {},
+        babystepLayers = 5,
+        onBabystepLayers = {},
+        keepScreenOn = true,
+        onKeepScreenOnToggle = {},
+        isExempt = false,
+        onRequestExempt = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "AppSettings fs=L landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun AppSettingsFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    AppSettingsContent(
+        fontScale = FontScale.L,
+        onFontScale = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
@@ -113,63 +165,15 @@ private fun SettingsWebcamNoProfile() = PreviewBox(colorfulDark) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6-theme matrix on all-ON (most interactive state — switches lit, babystep field)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeColorfulDark() = PreviewBox(colorfulDark) { settingsAllOn() }
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeColorfulLight() = PreviewBox(colorfulLight) { settingsAllOn() }
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeSimpleDark() = PreviewBox(simpleDark) { settingsAllOn() }
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeSimpleLight() = PreviewBox(simpleLight) { settingsAllOn() }
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeHighContrastDark() = PreviewBox(highContrastDark) { settingsAllOn() }
-
-@Nexus7Previews
-@Composable
-private fun SettingsThemeHighContrastLight() = PreviewBox(highContrastLight) { settingsAllOn() }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// fs = L overflow check — dense rows + numeric field at largest text size
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Preview(
-    name = "Settings fs=L portrait overflow check",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
-@Composable
-private fun SettingsFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) { settingsAllOn() }
-
-@Preview(
-    name = "Settings fs=L landscape overflow check",
-    device = NEXUS7,
-    showBackground = true,
-)
-@Composable
-private fun SettingsFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) { settingsAllOn() }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // RTL spotcheck — confirms start/end-relative modifiers mirror correctly
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
 @Composable
-private fun SettingsRtlSpotCheck() {
+private fun AppSettingsRtlSpotCheck() {
     PreviewBox(colorfulDark) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            settingsAllOn()
+            appSettingsAllOn()
         }
     }
 }
@@ -179,10 +183,10 @@ private fun SettingsRtlSpotCheck() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(
-    name = "Settings pseudolocale en-XA",
+    name = "AppSettings pseudolocale en-XA",
     device = NEXUS7_PORTRAIT,
     locale = "en-XA",
     showBackground = true,
 )
 @Composable
-private fun SettingsPseudolocaleSpotCheck() = PreviewBox(colorfulDark) { settingsAllOn() }
+private fun AppSettingsPseudolocaleSpotCheck() = PreviewBox(colorfulDark) { appSettingsAllOn() }

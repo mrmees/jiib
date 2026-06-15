@@ -55,9 +55,10 @@ class ThemeOverrideTest {
             themeStore,
             // connection, macro, webcam, profile, BABYSTEP (Phase 16, 6th store),
             // TRACESTYLE (Phase 26, 7th store), DISPLAY (Phase 26.5 §R2, 8th store),
-            // SAVEDLOCATIONS (feat/move-hub-redesign, 9th store), then discovery (last).
+            // SAVEDLOCATIONS (feat/move-hub-redesign, 9th store),
+            // FONTSCALE (App/Printer Settings Split, 10th store), then discovery (last).
             MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
-            MemDataStore(), MemDataStore(), MemDataStore(),
+            MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
             lazyDiscovery(),
         )
 

@@ -48,9 +48,10 @@ class AppContainerTest {
         AppContainer(
             // theme, connection, macro, webcam, PROFILE (Phase 14, 5th), BABYSTEP (Phase 16, 6th store),
             // TRACESTYLE (Phase 26, 7th store), DISPLAY (Phase 26.5 §R2, 8th store),
-            // SAVEDLOCATIONS (feat/move-hub-redesign, 9th store), discovery (last).
+            // SAVEDLOCATIONS (feat/move-hub-redesign, 9th store),
+            // FONTSCALE (App/Printer Settings Split, 10th store), discovery (last).
             FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
-            FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
+            FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
             lazyDiscovery(),
         )
 

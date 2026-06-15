@@ -50,16 +50,19 @@ sealed interface NavDest {
     @Serializable data object Spool                  : NavDest
     @Serializable data object Outputs                : NavDest
     @Serializable data object SystemInfo             : NavDest
-    @Serializable data object Devices                : NavDest
     @Serializable data object Theme                  : NavDest
-    @Serializable data object Settings               : NavDest
     @Serializable data object About                  : NavDest
     @Serializable data object System                 : NavDest   // System page hub (D-01, Phase 28)
+    // Settings split (app-printer split task 2.1)
+    @Serializable data object AppSettings            : NavDest
+    @Serializable data object PrinterSettings        : NavDest
+    @Serializable data object ManagePrinters         : NavDest
 }
 
 /**
- * All 23 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
- * + 1 System page hub D-01/Phase 28).
+ * All 24 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
+ * + 1 System page hub D-01/Phase 28 + 3 settings-split routes AppSettings/PrinterSettings/ManagePrinters
+ * − 2 retired routes Settings/Devices removed in task 7.1).
  *
  * Sealed interfaces have no `.entries` — use this list for round-trip testing ([parseStartDest]),
  * verification coverage, and any place that previously iterated [Dest.entries].
@@ -83,11 +86,13 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.Spool,
     NavDest.Outputs,
     NavDest.SystemInfo,
-    NavDest.Devices,
     NavDest.Theme,
-    NavDest.Settings,
     NavDest.About,
-    NavDest.System,   // Phase 28 D-01: System page hub; count = 23
+    NavDest.System,           // Phase 28 D-01: System page hub
+    // Settings split (task 2.1); count = 24 (Settings + Devices retired in task 7.1)
+    NavDest.AppSettings,
+    NavDest.PrinterSettings,
+    NavDest.ManagePrinters,
 )
 
 // ---------------------------------------------------------------------------

@@ -18,36 +18,26 @@ import works.mees.dinghy.ui.shell.ShellNavState
  *   - [ShellNavState.applyEntryReset] clears per-dest sub-nav on entry
  *   - [ShellNavState.resetTransient] clears camera/scan/prefilter transient state
  *   - [ShellNavState.startDest] seed is stored and readable
- *   - The four IA destinations (Devices/Theme/Settings/About) remain distinct [NavDest] members
+ *   - The three IA destinations (AppSettings/PrinterSettings/About) are distinct [NavDest] members
+ *     (task 7.1: old Settings + Devices routes retired; replaced by AppSettings + PrinterSettings)
  */
 class ShellNavStateTest {
 
     /**
-     * The four IA destinations (Printers=[NavDest.Devices], Theme, Settings, About) are four
-     * DISTINCT [NavDest] values in [knownNavDests] — the rename from "Printers" → [NavDest.Devices]
-     * is lexical; no dangling reference exists.
+     * The three post-split IA destinations (AppSettings, PrinterSettings, About) are DISTINCT
+     * [NavDest] values in [knownNavDests]. Old Settings + Devices were removed in task 7.1.
      */
     @Test
-    fun four_ia_destinations_are_distinct_known_dests() {
-        val ia = listOf(NavDest.Devices, NavDest.Theme, NavDest.Settings, NavDest.About)
+    fun ia_destinations_are_distinct_known_dests() {
+        val ia = listOf(NavDest.AppSettings, NavDest.PrinterSettings, NavDest.About)
 
-        // They are four DISTINCT values (no two tiles collide on one dest).
-        assertEquals("the four IA dests must be distinct", 4, ia.toSet().size)
+        // They are three DISTINCT values (no two tiles collide on one dest).
+        assertEquals("the IA dests must be distinct", 3, ia.toSet().size)
 
-        // All four remain in knownNavDests after the Phase-24-03 migration.
+        // All three are in knownNavDests after the task-7.1 cleanup.
         for (dest in ia) {
-            assertTrue("$dest must remain in knownNavDests", dest in knownNavDests)
+            assertTrue("$dest must be in knownNavDests", dest in knownNavDests)
         }
-    }
-
-    /** The Devices→Printers rename is lexical: NavDest.Devices is the single kept constant. */
-    @Test
-    fun devices_rename_no_dangling_ref() {
-        // NavDest.Devices remains a known dest (the drawer tile relabel "Printers" does not orphan it).
-        assertTrue(
-            "NavDest.Devices must remain in knownNavDests (the rename is the drawer LABEL only)",
-            NavDest.Devices in knownNavDests,
-        )
     }
 
     /** applyEntryReset on Macros clears macroShowSystem and macroPopupFor. */

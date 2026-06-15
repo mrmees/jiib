@@ -55,7 +55,6 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.PaletteMode
 import works.mees.dinghy.theme.StatusSlot
@@ -120,15 +119,15 @@ fun ThemeEditorScreen(
     var sat by remember { mutableFloatStateOf(1f) }
     var value by remember { mutableFloatStateOf(1f) }
 
-    // ---- Appearance (dark/light + S/M/L + palette-mode) mirror state -----------------------------
+    // ---- Appearance (dark/light + palette-mode) mirror state -------------------------------------
     // (15.2-04 finding 3 — RELOCATED here from the old SettingsScreen "Appearance" section that the
     // 4-tile split deleted without rehoming. The Theme tile is APPEARANCE per its own docstring, so
-    // dark/light, text-size, and palette mode belong here alongside seed/pool/status.) Each control
-    // drives the LIVE resolver AND persists via the durable AppContainer intents (writeScope, NOT a
+    // dark/light and palette mode belong here alongside seed/pool/status.) Each control drives the
+    // LIVE resolver AND persists via the durable AppContainer intents (writeScope, NOT a
     // rememberCoroutineScope — [[dinghy-compose-write-scope-cancellation]]). These mirror vars only
     // drive the selected-chip emphasis; the live resolver + persisted prefs/profile are the authority.
+    // Font scale is now app-global (AppSettingsScreen) and no longer per-printer.
     var dark by remember { mutableStateOf(true) }
-    var fsChoice by remember { mutableStateOf(FontScale.M) }
     var paletteMode by remember { mutableStateOf(ThemeResolver.MODE_COLORFUL) }
 
     // Reactively collect the global idle theme tuple (D-19): replaces the old one-shot firstOrNull()
@@ -141,10 +140,10 @@ fun ThemeEditorScreen(
     // Seed the Appearance mirror from the ACTIVE profile's theme tuple when one exists (so the screen
     // opens reflecting the active printer's look, D-09), else from the global theme tuple (idle default).
     // Keyed on BOTH activeProfile?.id AND globalTuple so a global-theme change re-seeds while idle.
+    // Font scale is no longer seeded here — it is app-global (AppSettingsScreen).
     LaunchedEffect(activeProfile?.id, globalTuple) {
         val tuple = activeProfile?.toThemeTuple() ?: globalTuple
         dark = tuple.dark
-        fsChoice = FontScale.entries.firstOrNull { it.multiplier == tuple.fs } ?: FontScale.M
         paletteMode = tuple.paletteMode
     }
 
@@ -219,7 +218,6 @@ fun ThemeEditorScreen(
         sat = sat,
         value = value,
         dark = dark,
-        fsChoice = fsChoice,
         paletteMode = paletteMode,
         poolOverrides = activeProfile?.poolOverrides ?: emptyMap(),
         statusOverrides = activeProfile?.poolOverrides ?: emptyMap(),
@@ -269,11 +267,6 @@ fun ThemeEditorScreen(
             dark = d
             container.themeResolver.setDark(d) // live
             container.setActiveDark(hasActive, d) // durable
-        },
-        onFsChoiceChange = { choice ->
-            fsChoice = choice
-            container.themeResolver.setFs(choice.multiplier) // live
-            container.setActiveFs(hasActive, choice) // durable (process-lifetime writeScope)
         },
         onPaletteModeChange = { mode ->
             paletteMode = mode
@@ -733,7 +726,6 @@ private fun approxSameHue(a: Float, b: Float): Boolean {
  * @param sat           saturation 0..1 for the S/V crosshair.
  * @param value         value/brightness 0..1 for the S/V crosshair.
  * @param dark          dark/light mode selection.
- * @param fsChoice      active S/M/L text-size choice.
  * @param paletteMode   active palette mode string.
  * @param poolOverrides pool slot override map (index string → ARGB Long).
  * @param statusOverrides status slot override map (slot key → ARGB Long).
@@ -757,7 +749,6 @@ internal fun ThemeEditorContent(
     sat: Float,
     value: Float,
     dark: Boolean,
-    fsChoice: FontScale,
     paletteMode: String,
     poolOverrides: Map<String, Long>,
     statusOverrides: Map<String, Long>,
@@ -773,7 +764,6 @@ internal fun ThemeEditorContent(
     onSlotClear: () -> Unit = {},
     onSlotDone: () -> Unit = {},
     onDarkChange: (Boolean) -> Unit = {},
-    onFsChoiceChange: (FontScale) -> Unit = {},
     onPaletteModeChange: (String) -> Unit = {},
     onSeedHueMove: (Float) -> Unit = {},
     onSeedHueSettle: (Float) -> Unit = {},
@@ -886,17 +876,6 @@ internal fun ThemeEditorContent(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedControl(label = stringResource(R.string.theme_dark), onClick = { onDarkChange(true) }, modifier = Modifier.weight(1f), intent = if (dark) Intent.Accent else Intent.Neutral)
             OutlinedControl(label = stringResource(R.string.theme_light), onClick = { onDarkChange(false) }, modifier = Modifier.weight(1f), intent = if (!dark) Intent.Accent else Intent.Neutral)
-        }
-
-        // S / M / L text size (the --fs authority). Each segment is filled with a POOL color from the
-        // active palette so the selector visibly reflects the current mode; the selected segment gets
-        // the accent ring. The fill is the literal pool color (data carve-out).
-        SectionLabel(stringResource(R.string.theme_section_text_size))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FontScale.entries.forEachIndexed { i, choice ->
-                val poolColor = if (t.pool.isEmpty()) t.accent else t.pool[i % t.pool.size]
-                PoolSizeSegment(label = choice.name, fill = poolColor, selected = fsChoice == choice, onClick = { onFsChoiceChange(choice) }, modifier = Modifier.weight(1f))
-            }
         }
 
         // Palette mode (D-15) — Colorful (default) / Simple / High contrast. Active = Intent.Accent.
