@@ -46,7 +46,7 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
-import works.mees.dinghy.designsystem.layout.ListFrameInset
+import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.Geist
@@ -89,65 +89,57 @@ internal fun PrintStatusStandbyField(
     // from this Field-slot box gave the home list a SMALLER U than every other screen (the field
     // box ≠ the screen short edge, esp. in landscape's 50% column) and made U vary with rotation
     // — both LAYOUT.md §"The unit U" violations. One screen = one U, derived at the root.
-    Box(modifier.fillMaxSize()) {
-        Column(
-            // Horizontal frame is owned by the children (ListBlock + FootButtonBar share ListFrameInset),
-            // so the list and the Preheat/System bar align on their outer edges (owner rule, 2026-06-12).
-            // The Column frames the vertical only — adding horizontal here would double-inset the foot bar.
-            Modifier.fillMaxSize().padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
-            // Each Destination row navigates; capability-absent rows are absent (D-08 HIDE, not grey).
-            ListBlock(modifier = Modifier.weight(1f)) {
-                items(
-                    items = idleActions.filterIsInstance<HomeAction.Destination>(),
-                    key = { it.dest::class.simpleName ?: it.dest.toString() },
-                ) { action ->
-                    ListRow(
-                        selected = false,
-                        onClick = { onNavigate(action.dest) },
-                        uDp = uDp,
-                        leadingContent = {
-                            // Leading icon — always a registered DinghyIcons token (icon law enforced
-                            // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
-                            // R23: canonical 0.6U list-row icon, U-relative.
-                            ListRowIcon(
-                                icon = action.icon,
-                                uDp = uDp,
-                                tint = LocalTokens.current.text2,
-                            )
-                        },
-                    ) {
-                        // Canonical list-label look — ListRowLabel (Geist SemiBold, R11 20sp default).
-                        ListRowLabel(stringResource(action.labelRes))
-                    }
+    RegisteredRegion(modifier.fillMaxSize()) {
+        // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
+        // Each Destination row navigates; capability-absent rows are absent (D-08 HIDE, not grey).
+        ListBlock(modifier = Modifier.weight(1f)) {
+            items(
+                items = idleActions.filterIsInstance<HomeAction.Destination>(),
+                key = { it.dest::class.simpleName ?: it.dest.toString() },
+            ) { action ->
+                ListRow(
+                    selected = false,
+                    onClick = { onNavigate(action.dest) },
+                    uDp = uDp,
+                    leadingContent = {
+                        // Leading icon — always a registered DinghyIcons token (icon law enforced
+                        // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
+                        // R23: canonical 0.6U list-row icon, U-relative.
+                        ListRowIcon(
+                            icon = action.icon,
+                            uDp = uDp,
+                            tint = LocalTokens.current.text2,
+                        )
+                    },
+                ) {
+                    // Canonical list-label look — ListRowLabel (Geist SemiBold, R11 20sp default).
+                    ListRowLabel(stringResource(action.labelRes))
                 }
             }
+        }
 
-            failureText?.let { msg ->
-                SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = ListFrameInset))
-            }
+        failureText?.let { msg ->
+            SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
+        }
 
-            // Idle foot bar: Preheat (warn — heats) + System (accent nav) per R5.
-            // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
-            // NOT red, NOT Power.
-            FootButtonBar(uDp = uDp) {
-                OutlinedControl(
-                    label = stringResource(R.string.home_foot_preheat),
-                    onClick = onPreheat,
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootPreheat,
-                    intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
-                )
-                OutlinedControl(
-                    label = stringResource(R.string.home_foot_system),
-                    onClick = { onNavigate(NavDest.System) },
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootSystem,
-                    intent = Intent.Accent, // R5: plain navigation = accent
-                )
-            }
+        // Idle foot bar: Preheat (warn — heats) + System (accent nav) per R5.
+        // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
+        // NOT red, NOT Power.
+        FootButtonBar(uDp = uDp) {
+            OutlinedControl(
+                label = stringResource(R.string.home_foot_preheat),
+                onClick = onPreheat,
+                modifier = Modifier.weight(1f),
+                icon = DinghyIcons.FootPreheat,
+                intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
+            )
+            OutlinedControl(
+                label = stringResource(R.string.home_foot_system),
+                onClick = { onNavigate(NavDest.System) },
+                modifier = Modifier.weight(1f),
+                icon = DinghyIcons.FootSystem,
+                intent = Intent.Accent, // R5: plain navigation = accent
+            )
         }
     }
 }
@@ -182,14 +174,9 @@ internal fun PrintStatusActiveField(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        // Outer Column frames the VERTICAL only — the content and the self-framed foot bar each own
-        // the horizontal frame (ListFrameInset) so their outer edges align (owner rule, 2026-06-12).
-        modifier.fillMaxSize().padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    RegisteredRegion(modifier.fillMaxSize()) {
         Column(
-            Modifier.weight(1f).padding(horizontal = ListFrameInset),
+            Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             StatGrid(
@@ -255,14 +242,9 @@ internal fun PrintStatusTerminalField(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        // Outer Column frames the VERTICAL only; content + self-framed foot bar each own the
-        // horizontal frame (ListFrameInset) so their outer edges align (owner rule, 2026-06-12).
-        modifier.fillMaxSize().padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    RegisteredRegion(modifier.fillMaxSize()) {
         Column(
-            Modifier.weight(1f).padding(horizontal = ListFrameInset),
+            Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Terminal field = a FINISHED-print summary LIST (not the live cockpit grid): the

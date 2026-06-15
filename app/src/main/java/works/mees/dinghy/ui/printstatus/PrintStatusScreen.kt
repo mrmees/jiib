@@ -470,6 +470,7 @@ private fun PrintStatusContent(
     ) { crossfadeMode ->
     when (crossfadeMode) {
         is PrintStatusMode.Standby -> ScreenScaffold(
+            fieldFramed = false,
             focus = {
                 StandbyFocus(
                     state = state,
@@ -490,6 +491,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Printing -> ScreenScaffold(
+            fieldFramed = false,
             focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase) },
             field = {
                 PrintStatusActiveField(
@@ -515,6 +517,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Paused -> ScreenScaffold(
+            fieldFramed = false,
             focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase, paused = true) },
             field = {
                 PrintStatusActiveField(
@@ -540,6 +543,7 @@ private fun PrintStatusContent(
         )
 
         is PrintStatusMode.Terminal -> ScreenScaffold(
+            fieldFramed = false,
             focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase, uDp = grid.uDp) },
             field = {
                 PrintStatusTerminalField(
