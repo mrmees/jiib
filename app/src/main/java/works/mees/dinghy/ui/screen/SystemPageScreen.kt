@@ -18,9 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
@@ -43,11 +41,10 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 import androidx.compose.ui.unit.Dp
 import works.mees.dinghy.ui.route.NavDest
 
@@ -222,22 +219,19 @@ private fun SystemFocusContent(
                 .padding(bottom = 8.dp),
         )
 
-        // App version string (Geist Mono 15sp — static BuildConfig.VERSION_NAME, not live data).
+        // App version string (Mono metadata — static BuildConfig.VERSION_NAME, not live data).
         Text(
             text = versionName,
             color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
 
-        // Active printer name (Geist 17sp — user-set display label; no host/IP shown).
+        // Active printer name (user-set display label; no host/IP shown).
         if (activePrinterName.isNotBlank()) {
             Text(
                 text = activePrinterName,
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.listLabel.toTextStyle(t),
             )
         }
     }
@@ -268,16 +262,13 @@ private fun PowerStubRow(uDp: Dp) {
         Text(
             text = stringResource(R.string.system_row_power),
             color = t.stop.copy(alpha = 0.38f),
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp, // R11/R22 parity with ListRowLabel
+            style = DinghyType.listLabel.toTextStyle(t), // R11/R22 parity with ListRowLabel
         )
         Spacer(Modifier.weight(1f))
         Text(
             text = stringResource(R.string.system_row_power_sub),
             color = t.text2.copy(alpha = 0.38f),
-            fontFamily = Geist,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.caption.toTextStyle(t),
         )
     }
 }

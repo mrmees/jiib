@@ -31,13 +31,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
@@ -60,10 +58,9 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 // =============================================================================
 // Pure mode-toggle state machine (28-06, D-13)
@@ -196,23 +193,19 @@ fun PrintersContent(
                         Text(
                             text = activeProfile.displayName(),
                             color = t.text,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(20f, t.fs).sp,
+                            style = DinghyType.focusHeader.toTextStyle(t),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = "${activeProfile.host}:${activeProfile.port}",
                             color = t.text2,
-                            fontFamily = GeistMono,
-                            fontSize = fsSp(15f, t.fs).sp,
+                            style = DinghyType.dataMeta.toTextStyle(t),
                         )
                         Text(
                             text = stringResource(connectionState.labelRes()),
                             color = ringColor ?: t.text2,
-                            fontFamily = Geist,
-                            fontSize = fsSp(15f, t.fs).sp,
+                            style = DinghyType.caption.toTextStyle(t),
                         )
                     }
                 } else {
@@ -234,16 +227,13 @@ fun PrintersContent(
                                 Text(
                                     text = stringResource(R.string.printers_empty_headline),
                                     color = t.text,
-                                    fontFamily = Geist,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = fsSp(17f, t.fs).sp,
+                                    style = DinghyType.focusHeader.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     text = stringResource(R.string.printers_empty_body),
                                     color = t.text2,
-                                    fontFamily = Geist,
-                                    fontSize = fsSp(15f, t.fs).sp,
+                                    style = DinghyType.caption.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
@@ -268,9 +258,7 @@ fun PrintersContent(
                                 Text(
                                     text = profile.displayName(),
                                     color = t.text,
-                                    fontFamily = Geist,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = fsSp(17f, t.fs).sp,
+                                    style = DinghyType.listLabel.toTextStyle(t),
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -278,8 +266,7 @@ fun PrintersContent(
                                 Text(
                                     text = "${profile.host}:${profile.port}",
                                     color = t.text2,
-                                    fontFamily = GeistMono,
-                                    fontSize = fsSp(15f, t.fs).sp,
+                                    style = DinghyType.dataMeta.toTextStyle(t),
                                     maxLines = 1,
                                 )
                             }
@@ -541,9 +528,7 @@ private fun PrinterConnectionEditor(
             Text(
                 text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(20f, t.fs).sp,
+                style = DinghyType.focusHeader.toTextStyle(t),
             )
 
             TokenTextField(
@@ -558,8 +543,7 @@ private fun PrinterConnectionEditor(
                 Text(
                     text = stringResource(R.string.printers_error_host_required),
                     color = t.stop,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
 
@@ -575,8 +559,7 @@ private fun PrinterConnectionEditor(
                 Text(
                     text = stringResource(R.string.printers_error_port_range),
                     color = t.stop,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
 
@@ -596,8 +579,7 @@ private fun PrinterConnectionEditor(
                 Text(
                     text = stringResource(R.string.printers_key_saved),
                     color = t.go,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
 
@@ -650,8 +632,7 @@ private fun PrinterConnectionEditor(
                 Text(
                     text = stringResource(R.string.printers_scan_none_found),
                     color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
             for (printer in discovered) {
@@ -764,16 +745,13 @@ private fun SecureToggleRow(
             Text(
                 text = label,
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.listLabel.toTextStyle(t),
             )
             if (subLabel != null) {
                 Text(
                     text = subLabel,
                     color = t.text2,
-                    fontFamily = Geist,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
         }
@@ -787,9 +765,7 @@ private fun SecureToggleRow(
             Text(
                 text = if (checked) stringResource(R.string.common_on) else stringResource(R.string.common_off),
                 color = if (checked) t.accent else t.text2,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.buttonLabel.toTextStyle(t),
             )
         }
     }
@@ -818,16 +794,13 @@ private fun DiscoveredPrinterRow(
         Text(
             text = printer.name,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.listLabel.toTextStyle(t),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = "${printer.host}:${printer.port}",
             color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
     }
 }

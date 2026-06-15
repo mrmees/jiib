@@ -6,14 +6,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.sp
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The token-aware text field (review #7) — the bridge that keeps the Settings screen's text entry
@@ -34,7 +32,8 @@ import works.mees.dinghy.theme.fsSp
  *  - text + container  → `text` / `surface` roles (strong text on the raised screen body)
  *  - label / muted     → `text2`          (the muted-text role)
  *
- * Type sizes route through [fsSp] + [Geist] so the field honors the S/M/L `--fs` text-size setting.
+ * Type routes through [works.mees.dinghy.theme.DinghyType] roles so the field honors the S/M/L
+ * `--fs` text-size setting (label → caption, input → dataInline).
  *
  * @param value the current field text.
  * @param onValueChange invoked on every edit.
@@ -62,16 +61,13 @@ fun TokenTextField(
         label = {
             Text(
                 text = label,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp, // R11 floor
+                style = DinghyType.caption.toTextStyle(t), // R11 floor
             )
         },
         singleLine = true,
         isError = isError,
-        textStyle = TextStyle(
-            fontFamily = Geist,
-            fontSize = fsSp(18f, t.fs).sp,
-        ),
+        // Input is connection/API-key DATA — monospace data role.
+        textStyle = DinghyType.dataInline.toTextStyle(t),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation =
             if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,

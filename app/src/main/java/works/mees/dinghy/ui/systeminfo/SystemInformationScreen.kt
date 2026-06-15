@@ -10,9 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.FocusFrame
@@ -39,11 +36,10 @@ import works.mees.dinghy.systeminfo.formatMemoryUsedOverTotal
 import works.mees.dinghy.systeminfo.formatTemp
 import works.mees.dinghy.systeminfo.formatUptime
 import works.mees.dinghy.systeminfo.healthState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The **System Information** drawer destination (Phase 20, SYS-01..05) — dense C6-exempt restyle
@@ -150,16 +146,13 @@ fun SystemInformationContent(
                             Text(
                                 text = stringResource(R.string.sysinfo_health),
                                 color = t.text,
-                                fontFamily = Geist,
-                                fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+                                style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
                                 text = stringResource(labelRes),
                                 color = tint,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(15f, t.fs).sp,
+                                style = DinghyType.caption.toTextStyle(t),
                             )
                         }
                     }
@@ -309,15 +302,13 @@ private fun InfoListRow(
         Text(
             text = label,
             color = t.text,
-            fontFamily = Geist,
-            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+            style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
         )
         Spacer(Modifier.weight(1f))
         Text(
             text = value,
             color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
     }
 }
