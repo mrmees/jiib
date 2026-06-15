@@ -111,4 +111,41 @@ class DisplayPrefsTest {
         prefs.setKeepScreenOn(true)
         assertTrue("setKeepScreenOn(true) after false round-trips", prefs.keepScreenOn.first())
     }
+
+    @Test
+    fun emptyStore_defaultsWebcamEnabledTrue() = runBlocking {
+        val (dataStore, _) = newDataStore()
+        val prefs = DisplayPrefs(dataStore)
+        assertTrue("default webcamEnabled is true", prefs.webcamEnabled.first())
+    }
+
+    @Test
+    fun setWebcamEnabledFalse_roundTrips() = runBlocking {
+        val (dataStore, _) = newDataStore()
+        val prefs = DisplayPrefs(dataStore)
+        prefs.setWebcamEnabled(false)
+        assertFalse("setWebcamEnabled(false) round-trips", prefs.webcamEnabled.first())
+    }
+
+    @Test
+    fun setWebcamEnabledTrueAfterFalse_roundTrips() = runBlocking {
+        // Two writes on one store → use the in-memory DataStore (the keepScreenOn two-write test's
+        // shape) to dodge the Windows .tmp→rename race; the single-write tests above cover the file path.
+        val mem = object : DataStore<Preferences> {
+            private val state = kotlinx.coroutines.flow.MutableStateFlow<Preferences>(
+                androidx.datastore.preferences.core.emptyPreferences(),
+            )
+            override val data: Flow<Preferences> = state
+            override suspend fun updateData(
+                transform: suspend (t: Preferences) -> Preferences,
+            ): Preferences {
+                val next = transform(state.value); state.value = next; return next
+            }
+        }
+        val prefs = DisplayPrefs(mem)
+        prefs.setWebcamEnabled(false)
+        assertFalse("intermediate false state persisted", prefs.webcamEnabled.first())
+        prefs.setWebcamEnabled(true)
+        assertTrue("setWebcamEnabled(true) after false round-trips", prefs.webcamEnabled.first())
+    }
 }
