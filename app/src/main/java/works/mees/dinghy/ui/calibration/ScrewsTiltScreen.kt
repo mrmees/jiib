@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,9 +55,9 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import kotlin.math.max
 
@@ -268,9 +267,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         trailingContent = {
             Text(
                 text = turnText,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp, // R11 floor
+                style = DinghyType.dataMeta.toTextStyle(t),
                 color = t.text2,
                 maxLines = 1,
                 modifier = Modifier.padding(start = 8.dp),
@@ -280,9 +277,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         Text(
             text = point.name ?: point.key,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(16f, t.fs).sp,
+            style = DinghyType.listLabel.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -320,8 +315,7 @@ private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
                     stringResource(R.string.screws_run_prompt)
                 },
                 color = t.text2,
-                fontFamily = Geist,
-                fontSize = fsSp(16f, t.fs).sp,
+                style = DinghyType.body.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
         }
@@ -401,9 +395,7 @@ private fun BoxWithPoints(
                         Text(
                             text = shortScrewName(name),
                             color = t.text2,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = fsSp(22f, t.fs).sp,
+                            style = DinghyType.body.toTextStyle(t),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -412,9 +404,7 @@ private fun BoxWithPoints(
                         Text(
                             text = "${"%.3f".format(turn.z)} mm",
                             color = t.text3,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = fsSp(16f, t.fs).sp,
+                            style = DinghyType.dataMeta.toTextStyle(t),
                             maxLines = 1,
                         )
                     }

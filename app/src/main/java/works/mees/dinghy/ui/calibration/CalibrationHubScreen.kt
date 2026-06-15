@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,9 +41,10 @@ import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -208,8 +208,7 @@ private fun HubRoutineFocus(
         // 20sp, so big screens just leave breathing room below it.
         BasicText(
             text = stringResource(routineDescRes(routine)),
-            style = TextStyle(
-                fontFamily = Geist,
+            style = DinghyType.body.toTextStyle(t).copy(
                 color = t.text2,
             ),
             autoSize = TextAutoSize.StepBased(
