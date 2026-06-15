@@ -351,6 +351,8 @@ dp-derived reasoning.** This section records the derived usage:
 and passed explicitly to each component. Promote to `CompositionLocal<UnitGrid>` if call-chain
 depth grows past 3 levels.
 
+Inner spacing is U-relative via `gapS`/`gapM` in `designsystem/layout/Spacing.kt` (see §7b).
+
 **Settings/config surfaces** (C6): densified by design — tighter grouping, inline keyboard
 fields, no wasted vertical whitespace — but **NEVER below the 1U row floor**. All row/control
 heights remain `heightIn(min = uDp)` even on C6 screens (owner "All 1U" ruling, Phase 28,
@@ -572,9 +574,16 @@ NON-NEGOTIABLE 3: spacing comes from the named set, not from U-derivation or ad-
 
 | Token | Value | Use |
 |---|---|---|
-| `gapS` | 8dp | grid/tile gaps, intra-row element spacing |
-| `gapM` | 12dp | inter-row rhythm (e.g. SortFilter tile = U − gapM) |
-| `padFloat` | 14dp | floating-overlay corner padding (FloatingEStop) |
+| `gapS` | ≈ U×0.125 (= 8dp at U=64) | grid/tile gaps, intra-row element spacing |
+| `gapM` | ≈ U×0.1875 (= 12dp at U=64) | inter-row rhythm (e.g. SortFilter tile = U − gapM) |
+| `padFloat` | 14dp (fixed) | floating-overlay corner padding (FloatingEStop) |
+
+> **Audit supersession (2026-06-14):** R13's "not from U-derivation" clause is superseded. `gapS`
+> and `gapM` are now U-fractions implemented in `designsystem/layout/Spacing.kt` — calibrated to
+> the same 8/12dp values at U=64dp (phone-landscape floor) so existing layouts are unchanged.
+> `padFloat` remains a fixed 14dp constant (floating overlays have no row context to scale against).
+> Call-site migration happens in later control-audit phases; this table remains the authoritative
+> token reference.
 
 ## 7c. Icon-size tiers (R15/R16, owner, 2026-06-12)
 

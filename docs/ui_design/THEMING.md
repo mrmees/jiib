@@ -395,7 +395,11 @@ The Phase-15.2 / later theme-UI conformance audit should treat author-hex inside
 `t.surface` fill with a 2dp intent-colored border (see the four-class intent scheme above);
 a browsable list row is transparent with a 1.5dp `t.outline` border (2dp `accentLine` +
 `accentSoft` fill when selected). Fill is what says "button"; transparency is what says
-"content." Authoritative stroke values: `COMPONENTS.md §7b`.
+"content." Authoritative stroke values: `COMPONENTS.md §7b`. The §7b named spacing tokens
+(`gapS`, `gapM`, `padFloat`) are implemented in `designsystem/layout/Spacing.kt`; the 2026-06-14
+control baseline audit re-expressed `gapS` (≈ U×0.125 → 8dp) and `gapM` (≈ U×0.1875 → 12dp) as
+U-fractions, superseding R13's "not from U-derivation" clause — `padFloat` stays a fixed 14dp
+constant (floating overlays have no row context).
 
 The old "2px outline + soft glow on a transparent fill" treatment (the hi-fi bundle's `.ctl`)
 is HISTORICAL. "Glow" today = the static alpha tokens (`edgeGlow`/`accentGlow` …) where used;
