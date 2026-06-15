@@ -66,35 +66,44 @@ file (not an in-place rename) so `SettingsScreen` keeps compiling its old route 
 
 # Phase 0 — Strings & Icons groundwork
 
-### Task 0.1: Add new icons to the registry
+### Task 0.1: Add new icons to the registry (Material Symbols LIGATURES — corrected)
+
+**MECHANISM (verified at execution time — NOT vector drawables):** icons are Material Symbols font
+ligatures via `DinghyIcon(IconRef.Ligature("<name>"), alternate = "<handle>")`, rendered from the
+bundled `app/src/main/res/font/material_symbols_outlined.ttf` (full v2.944, 3953 glyphs).
+`tools/verify_ligatures.py` is the build-adjacent gate that proves every registry ligature resolves
+in the font. **All five owner glyphs were confirmed present** (so NO drawable, NO font regeneration,
+NO owner asset needed):
+
+| Surface | Owner-named | Ligature to use (verified in font) |
+|---|---|---|
+| App Settings | `mobile_gear` | `mobile_gear` ✓ |
+| Printer Settings | `print` | `print` ✓ (already in registry as another entry — add a distinct `PrinterSettings` handle) |
+| Manage printers | `format_list_numbered` | `format_list_numbered` ✓ |
+| Text size | `format_size` | `format_size` ✓ |
+| Rename | `drive_file_rename` | **`drive_file_rename_outline`** ✓ — the bare name is absent; the `_outline` form IS that exact glyph (the documented suffix gotcha, like `text_select_move_forward_word`). Same glyph the owner chose, canonical name. |
 
 **Files:**
 - Modify: `app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt`
-- Create (drawables): `app/src/main/res/drawable/ic_app_settings.xml`, `ic_printer_settings.xml`,
-  `ic_manage_printers.xml`, `ic_text_size.xml`, `ic_rename.xml` (vector drawables from the
-  owner-named Material Symbols).
 
-Owner-specified glyphs (Material Symbols names): **App Settings = `mobile_gear`**, **Printer
-Settings = `print`**, **Manage printers = `format_list_numbered`**, **Text size = `format_size`**,
-**Rename = `drive_file_rename`**.
-
-- [ ] **Step 1: Check `img/` and the repo for existing source SVGs first** ([[dinghy-check-img-source-assets]])
-
-```bash
-ls img/ 2>/dev/null | grep -iE 'gear|print|list|size|rename'
-grep -rl 'mobile_gear\|format_list_numbered\|format_size\|drive_file_rename' app/src/main/res/drawable 2>/dev/null
+- [ ] **Step 1: Add five `IconRef.Ligature` registry entries** (match the surrounding entry shape;
+  unique non-blank `alternate` handles):
+```kotlin
+val AppSettings     = DinghyIcon(IconRef.Ligature("mobile_gear"),               alternate = "app_settings")
+val PrinterSettings = DinghyIcon(IconRef.Ligature("print"),                     alternate = "printer_settings")
+val ManagePrinters  = DinghyIcon(IconRef.Ligature("format_list_numbered"),      alternate = "manage_printers")
+val TextSize        = DinghyIcon(IconRef.Ligature("format_size"),               alternate = "text_size")
+val Rename          = DinghyIcon(IconRef.Ligature("drive_file_rename_outline"), alternate = "rename")
 ```
-Expected: identify whether any glyph already exists. If a needed Material Symbol SVG is NOT present
-and cannot be sourced, STOP and ask the owner to supply it — do not substitute a different glyph.
+(If any `alternate` handle collides with an existing one, pick a unique variant — the registry
+requires unique alternates.)
 
-- [ ] **Step 2: Add each new icon to the `DinghyIcons` registry**
+- [ ] **Step 2: Run the ligature gate**
 
-Follow the existing registry entries (e.g. `SystemRowSettings`, `SystemRowPrinters`) verbatim in
-shape. Add: `AppSettings`, `PrinterSettings`, `ManagePrinters`, `TextSize`, `Rename` referencing the
-new drawables. Match the surrounding entry pattern exactly (same `DinghyIcon(...)` constructor the
-file already uses).
+Run: `python tools/verify_ligatures.py` (WSL python 3.13, fonttools installed)
+Expected: exit 0 — all needed names (incl. the 5 new) resolve. A non-empty `missing` list = STOP.
 
-- [ ] **Step 3: Build to verify the registry compiles + drawables resolve**
+- [ ] **Step 3: Build to verify the registry compiles**
 
 Run: `... "E:\Android\gw.bat :app:assembleDebug --no-daemon" 2>&1 | tr -d '\r'`
 Expected: BUILD SUCCESSFUL.
@@ -102,8 +111,8 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt app/src/main/res/drawable/
-git commit -m "feat(icons): add app/printer settings, manage, text-size, rename glyphs"
+git add app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt
+git commit -m "feat(icons): register app/printer-settings, manage, text-size, rename ligatures"
 ```
 
 ### Task 0.2: Add new string resources
