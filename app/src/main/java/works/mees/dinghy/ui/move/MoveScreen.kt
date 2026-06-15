@@ -26,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -65,9 +64,9 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.screen.TokenTextField
 
@@ -230,8 +229,7 @@ internal fun MoveHubContent(
                                 val shownY = staged?.second ?: vm.y
                                 Text(
                                     text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
-                                    fontFamily = GeistMono,
-                                    fontSize = fsSp(22f, t.fs).sp,
+                                    style = DinghyType.statValue.toTextStyle(t),
                                     color = t.text,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
@@ -271,8 +269,7 @@ internal fun MoveHubContent(
                                 Text(
                                     text = "Tap to move, hold to refine",
                                     color = t.text2,
-                                    fontFamily = GeistMono,
-                                    fontSize = fsSp(15f, t.fs).sp,
+                                    style = DinghyType.caption.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -306,8 +303,7 @@ internal fun MoveHubContent(
                                     // TOP: centered X/Y coordinate readout showing the working target.
                                     Text(
                                         text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(22f, t.fs).sp,
+                                        style = DinghyType.statValue.toTextStyle(t),
                                         color = t.text,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier
@@ -428,8 +424,7 @@ internal fun MoveHubContent(
                                     ) {
                                         Text(
                                             text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
-                                            fontFamily = GeistMono,
-                                            fontSize = fsSp(20f, t.fs).sp,
+                                            style = DinghyType.dataInline.toTextStyle(t),
                                             color = t.text,
                                             maxLines = 1,
                                             softWrap = false,
@@ -499,16 +494,15 @@ internal fun MoveHubContent(
                                     ) {
                                         BasicText(
                                             text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
-                                            style = TextStyle(
-                                                fontFamily = GeistMono,
+                                            style = DinghyType.focusHero.toTextStyle(t).copy(
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
                                             ),
                                             maxLines = 1,
                                             softWrap = false,
                                             autoSize = TextAutoSize.StepBased(
-                                                minFontSize = fsSp(11f, t.fs).sp,
-                                                maxFontSize = fsSp(22f, t.fs).sp,
+                                                minFontSize = fsSp(15f, t.fs).sp,
+                                                maxFontSize = fsSp(40f, t.fs).sp,
                                                 stepSize = 1.sp,
                                             ),
                                             modifier = Modifier.fillMaxWidth(),
@@ -525,8 +519,7 @@ internal fun MoveHubContent(
                                         center = {
                                             Text(
                                                 text = fmtStep(activeStep),
-                                                fontFamily = GeistMono,
-                                                fontSize = fsSp(22f, t.fs).sp,
+                                                style = DinghyType.dataInline.toTextStyle(t),
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
                                             )
@@ -567,8 +560,7 @@ internal fun MoveHubContent(
                                     Text(
                                         text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
                                             if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
-                                        fontFamily = GeistMono,
-                                        fontSize = fsSp(22f, t.fs).sp,
+                                        style = DinghyType.statValue.toTextStyle(t),
                                         color = t.text,
                                         textAlign = TextAlign.Center,
                                         maxLines = 1,
@@ -843,8 +835,7 @@ private fun ZScrubberColumn(
     ) {
         Text(
             text = topLabel,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
             color = t.text2,
         )
         Box(
@@ -865,8 +856,7 @@ private fun ZScrubberColumn(
         }
         Text(
             text = "0",
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
             color = t.text2,
         )
     }
@@ -908,8 +898,7 @@ private fun FocusHint(text: String, modifier: Modifier = Modifier) {
         Text(
             text = text,
             color = t.text2,
-            fontFamily = Geist,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
     }

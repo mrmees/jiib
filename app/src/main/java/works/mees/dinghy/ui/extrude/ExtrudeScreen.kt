@@ -35,13 +35,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -70,9 +67,9 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.spool.SpoolmanSpool
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 
@@ -373,7 +370,6 @@ private fun ExtrudeContent(
                                     onClick = { fieldMode = ExtrudeFieldMode.FilamentPresets },
                                     borderColor = tempColor,
                                     contentColor = tempColor,
-                                    textSizeSp = 34f,
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     icon = {
                                         Icon(
@@ -443,9 +439,7 @@ private fun ExtrudeContent(
                             Text(
                                 text = stringResource(R.string.extrude_preset_title),
                                 color = t.text2,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(15f, t.fs).sp,
+                                style = DinghyType.caption.toTextStyle(t),
                                 modifier = Modifier.padding(vertical = 4.dp),
                             )
                             // Loaded-spool row — shown when Spoolman provides an active spool with a temp.
@@ -621,9 +615,7 @@ private fun BigCommand(
             Text(
                 text = label,
                 color = tint,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.buttonLabel.toTextStyle(t),
             )
         }
     }
@@ -658,9 +650,7 @@ private fun NumericSettingReadout(
             Text(
                 text = label,
                 color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(18f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
             BasicTextField(
                 value = text,
@@ -671,10 +661,7 @@ private fun NumericSettingReadout(
                     imeAction = ImeAction.Done,
                 ),
                 keyboardActions = KeyboardActions(onDone = { onDone() }),
-                textStyle = TextStyle(
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(48f, t.fs).sp,
+                textStyle = DinghyType.focusHero.toTextStyle(t).copy(
                     color = t.text,
                     textAlign = TextAlign.Center,
                 ),
@@ -683,9 +670,7 @@ private fun NumericSettingReadout(
             Text(
                 text = unit,
                 color = t.text3,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(16f, t.fs).sp,
+                style = DinghyType.dataMeta.toTextStyle(t),
             )
         }
     }
@@ -708,7 +693,6 @@ private fun FieldButton(
     modifier: Modifier = Modifier,
     borderColor: Color = LocalTokens.current.outline,
     contentColor: Color = LocalTokens.current.text,
-    textSizeSp: Float = 24f,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
@@ -731,9 +715,7 @@ private fun FieldButton(
                 Text(
                     text = text,
                     color = contentColor,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(textSizeSp, t.fs).sp,
+                    style = DinghyType.statValue.toTextStyle(t),
                 )
             }
         }
@@ -747,9 +729,7 @@ private fun SelectorLabel(text: String) {
     Text(
         text = text,
         color = t.text2,
-        fontFamily = GeistMono,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
+        style = DinghyType.caption.toTextStyle(t),
     )
 }
 
@@ -786,9 +766,7 @@ private fun DistanceSelector(
                         active -> t.accent2
                         else -> t.text2
                     },
-                    fontFamily = GeistMono,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = fsSp(24f, t.fs).sp,
+                    style = DinghyType.statValue.toTextStyle(t),
                 )
             }
         }
@@ -813,9 +791,7 @@ private fun SpeedSelector(selected: Int, onSelect: (Int) -> Unit, modifier: Modi
                 Text(
                     text = s.toString(),
                     color = if (active) t.accent2 else t.text2,
-                    fontFamily = GeistMono,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = fsSp(24f, t.fs).sp,
+                    style = DinghyType.statValue.toTextStyle(t),
                 )
             }
         }
@@ -844,9 +820,7 @@ private fun ToolSelector(
                 Text(
                     text = label,
                     color = t.accent2,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.dataInline.toTextStyle(t),
                 )
             }
         }
@@ -880,16 +854,12 @@ private fun PresetRow(
         Text(
             text = name,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.listLabel.toTextStyle(t),
         )
         Text(
             text = "${temp}°C",
             color = t.text2,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.dataInline.toTextStyle(t),
         )
     }
 }

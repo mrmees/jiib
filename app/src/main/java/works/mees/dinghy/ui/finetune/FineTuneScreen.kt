@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -56,10 +55,9 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * Fine-Tune flat-list screen — the canonical sketch-003 adjustment archetype (D-01).
@@ -386,8 +384,7 @@ private fun FineTuneContent(
                                     // No-space value/unit to match the Focus hero value (UAT 2026-06-13).
                                     text = if (displayValue == null) DASH
                                            else fmtValue(displayValue, param.decimals) + param.unit.trim(),
-                                    fontFamily = GeistMono,
-                                    fontSize = fsSp(17f, t.fs).sp,
+                                    style = DinghyType.dataInline.toTextStyle(t),
                                     color = t.text2,
                                 )
                             },

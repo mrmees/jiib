@@ -16,9 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
@@ -43,10 +41,9 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.outputs.OutputRowVm
 import works.mees.dinghy.outputs.OutputsHolder
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The Outputs screen (D-18/D-19) — a list+detail-in-Focus layout collapsing the three legacy detail
@@ -205,9 +202,7 @@ private fun OutputsContent(
                             Text(
                                 text = stringResource(R.string.outputs_select_prompt),
                                 color = t.text3,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = fsSp(18f, t.fs).sp,
+                                style = DinghyType.body.toTextStyle(t),
                             )
                         }
                     }
@@ -237,9 +232,7 @@ private fun OutputsContent(
                                     Text(
                                         text = row.displayValue,
                                         color = t.text2,
-                                        fontFamily = GeistMono,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = fsSp(17f, t.fs).sp,
+                                        style = DinghyType.dataInline.toTextStyle(t),
                                     )
                                 }
                             } else null,
