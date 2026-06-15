@@ -504,7 +504,9 @@ private fun FilesDetailContent(
             Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .padding(8.dp),
+                // top=0 so the stats sit flush under the header (the FocusFrame top inset is already
+                // 0); 8dp side/bottom only. Was padding(8.dp) all-round, which re-added a top gap.
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             preview?.let { p ->
