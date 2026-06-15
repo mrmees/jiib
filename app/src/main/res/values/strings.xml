@@ -51,6 +51,9 @@
     <string name="cd_back">Back</string>
     <string name="cd_save">Save</string>
     <string name="cd_fine_tune">Fine-tune live print adjustments</string>
+    <string name="cd_temp_settings">Sensor display settings</string>
+    <string name="cd_temp_enter_adjust">Switch to adjust mode</string>
+    <string name="cd_temp_enter_monitor">Switch to monitoring mode</string>
 
     <!-- ========================= printstatus ========================== -->
     <string name="printstatus_title">Print Status</string>

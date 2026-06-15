@@ -44,6 +44,7 @@ import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -205,10 +206,9 @@ fun ScrewsTiltContent(
                             !vm.homedGate -> {
                                 // Unhomed: offer Home All instead of Run.
                                 OutlinedControl(
-                                    label = stringResource(R.string.calibration_home_all),
+                                    spec = ControlSpecs.calibrationHomeAll,
                                     onClick = onHome,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R19: this state's expected action
                                 )
                             }
                             running -> {

@@ -59,6 +59,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.IconRef
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -346,10 +347,9 @@ fun ProbeCalibrateContent(
                                     contentDescription = stringResource(R.string.common_back),
                                 )
                                 OutlinedControl(
-                                    label = stringResource(R.string.calibration_home_all),
+                                    spec = ControlSpecs.calibrationHomeAll,
                                     onClick = onHomeAll,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Go,
                                 )
                             } else {
                                 // Back FIRST (accent); Start = go (the screen's expected action).

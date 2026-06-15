@@ -33,6 +33,14 @@ object ControlSpecs {
         type = ControlType.Button,
     )
 
+    val calibrationHomeAll = ControlSpec(
+        key = ControlKey("calibration.home_all"),
+        labelRes = R.string.calibration_home_all, // LABELED → no contentDescriptionRes required
+        icon = null, // label-only foot button (master list: no glyph)
+        intent = Intent.Go, // R19: homing is the expected action of the unhomed state
+        type = ControlType.Button,
+    )
+
     val commonHome = ControlSpec(
         key = ControlKey("common.home"),
         labelRes = null, // icon-only
@@ -76,6 +84,14 @@ object ControlSpecs {
         contentDescriptionRes = R.string.cd_macros_manage,
         icon = DinghyIcons.ManageMacros,
         intent = Intent.Accent,
+        type = ControlType.Button,
+    )
+
+    val outputOff = ControlSpec(
+        key = ControlKey("output.off"),
+        labelRes = R.string.output_off, // LABELED → no contentDescriptionRes required
+        icon = null,
+        intent = Intent.Warn, // §f#3 — Warn app-wide (Outputs Off Danger→Warn)
         type = ControlType.Button,
     )
 
@@ -136,12 +152,14 @@ object ControlSpecs {
 
     /** Hand-rolled list of every spec above (grep-auditable; no reflection). Alphabetized by key. */
     val all: List<ControlSpec> = listOf(
+        calibrationHomeAll,
         commonBack,
         commonHome,
         filesDelete,
         filesPrint,
         macrosExecute,
         macrosManage,
+        outputOff,
         printerEstop,
         spoolLoad,
         spoolScan,

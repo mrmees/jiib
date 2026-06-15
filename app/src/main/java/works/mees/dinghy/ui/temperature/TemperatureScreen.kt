@@ -667,6 +667,7 @@ private fun TemperatureContent(
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
                                     icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.cd_back),
                                 )
                                 OutlinedControl(
                                     label = "",
@@ -674,6 +675,7 @@ private fun TemperatureContent(
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
                                     icon = DinghyIcons.TempSettings,
+                                    contentDescription = stringResource(R.string.cd_temp_settings),
                                 )
                                 OutlinedControl(
                                     label = "",
@@ -681,6 +683,7 @@ private fun TemperatureContent(
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
                                     icon = DinghyIcons.OutputHeater,
+                                    contentDescription = stringResource(R.string.cd_temp_enter_adjust),
                                 )
                             }
                         } else {
@@ -702,6 +705,7 @@ private fun TemperatureContent(
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
                                     icon = DinghyIcons.Back,
+                                    contentDescription = stringResource(R.string.cd_back),
                                 )
                                 OutlinedControl(
                                     label = stringResource(R.string.temp_cooldown),
@@ -715,6 +719,7 @@ private fun TemperatureContent(
                                     modifier = Modifier.weight(1f),
                                     intent = Intent.Accent,
                                     icon = DinghyIcons.MonitorMode,
+                                    contentDescription = stringResource(R.string.cd_temp_enter_monitor),
                                 )
                             }
                         }
@@ -748,6 +753,7 @@ private fun TemperatureContent(
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Accent, // R5: Back = accent
                                 icon = DinghyIcons.Back,
+                                contentDescription = stringResource(R.string.cd_back),
                             )
                         }
                     }
