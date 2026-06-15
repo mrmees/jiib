@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -203,21 +204,24 @@ private fun HubRoutineFocus(
     // space above the bottom-docked Open button (constant position across routines/orientations/screen
     // sizes). The icon + title that used to live here are gone — they're the FocusFrame header now.
     Column(modifier = Modifier.fillMaxSize()) {
-        // Description owns the space between header and the Open button (weight(1f)). TextAutoSize caps
-        // it at the 20sp title/list standard and SHRINKS to fit on tight screens — it never grows past
-        // 20sp, so big screens just leave breathing room below it.
-        BasicText(
-            text = stringResource(routineDescRes(routine)),
-            style = DinghyType.body.toTextStyle(t).copy(
-                color = t.text2,
-            ),
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
-                maxFontSize = fsSp(20f, t.fs).sp, // caps at the list/title standard — never grows past it
-                stepSize = 1.sp,
-            ),
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
+        // Description owns the space between header and the Open button (weight(1f)) and is VERTICALLY
+        // CENTERED in it (owner UAT 2026-06-15: a top-aligned text body floats high on big screens —
+        // centering reads better across device sizes). TextAutoSize caps it at the 20sp title/list
+        // standard and SHRINKS to fit on tight screens — never grows past 20sp.
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            BasicText(
+                text = stringResource(routineDescRes(routine)),
+                style = DinghyType.body.toTextStyle(t).copy(
+                    color = t.text2,
+                ),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
+                    maxFontSize = fsSp(20f, t.fs).sp, // caps at the list/title standard — never grows past it
+                    stepSize = 1.sp,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         OutlinedControl(
             label = stringResource(R.string.calibration_open_routine),
             onClick = onOpen,
