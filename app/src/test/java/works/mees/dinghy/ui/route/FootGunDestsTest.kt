@@ -45,12 +45,14 @@ class FootGunDestsTest {
             NavDest.Spool,
             NavDest.Outputs,
             NavDest.SystemInfo,
-            NavDest.Devices,
             NavDest.Theme,
-            NavDest.Settings,
             NavDest.About,
             // Phase 28 D-01/D-06: System cluster is mid-print reachable — never foot-gun
             NavDest.System,
+            // Settings-split routes (task 7.1): all mid-print reachable via System hub
+            NavDest.AppSettings,
+            NavDest.PrinterSettings,
+            NavDest.ManagePrinters,
         )
         for (dest in midPrint) {
             assertTrue("$dest must NOT be in FOOT_GUN_DESTS", dest !in FOOT_GUN_DESTS)

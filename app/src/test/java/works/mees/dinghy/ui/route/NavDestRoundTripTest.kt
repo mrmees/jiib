@@ -34,9 +34,7 @@ class NavDestRoundTripTest {
     @Test fun spool_roundTrips()         { assertRoundTrip(NavDest.Spool) }
     @Test fun outputs_roundTrips()       { assertRoundTrip(NavDest.Outputs) }
     @Test fun systemInfo_roundTrips()    { assertRoundTrip(NavDest.SystemInfo) }
-    @Test fun devices_roundTrips()       { assertRoundTrip(NavDest.Devices) }
     @Test fun theme_roundTrips()         { assertRoundTrip(NavDest.Theme) }
-    @Test fun settings_roundTrips()      { assertRoundTrip(NavDest.Settings) }
     @Test fun about_roundTrips()         { assertRoundTrip(NavDest.About) }
 
     // ---------------------------------------------------------------------------
