@@ -91,6 +91,7 @@ fun ConfirmGuard(
     Box(modifier.fillMaxSize().background(t.bg).background(tint)) {
         // Gutter omitted (LAYOUT.md): the Field's CONFIRM/CANCEL buttons are the navigation.
         ScreenScaffold(
+            fieldFramed = false,
             field = {
                 Column(
                     Modifier

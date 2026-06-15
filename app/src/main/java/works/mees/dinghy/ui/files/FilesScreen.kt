@@ -766,6 +766,8 @@ private fun SpoolWarningGuard(
     val t = LocalTokens.current
     Box(modifier.fillMaxSize().background(t.bg).background(t.heatSoft)) {
         ScreenScaffold(
+            focusFramed = false,
+            fieldFramed = false,
             field = {
                 Column(
                     Modifier.fillMaxSize().padding(24.dp),

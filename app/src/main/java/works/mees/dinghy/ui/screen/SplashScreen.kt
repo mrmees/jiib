@@ -79,6 +79,7 @@ fun SplashScreen(
     Box(modifier.fillMaxSize().background(t.bg)) {
         // Gutter omitted (LAYOUT.md): the Field's recovery buttons ARE the navigation (hard override).
         ScreenScaffold(
+            fieldFramed = false,
             field = {
                 Column(
                     Modifier
