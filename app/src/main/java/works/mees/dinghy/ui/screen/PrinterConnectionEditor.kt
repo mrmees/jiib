@@ -82,6 +82,7 @@ internal fun PrinterConnectionEditor(
 ) {
     val t = LocalTokens.current
 
+    var name by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("7125") }
     var apiKey by remember { mutableStateOf("") }
@@ -121,6 +122,7 @@ internal fun PrinterConnectionEditor(
 
     // Seed from profile on open — NEVER pre-fill raw API key (T-28-06-01 / MEDIUM-5 / V7).
     LaunchedEffect(profile?.id) {
+        name = profile?.name ?: ""
         host = profile?.host ?: ""
         port = profile?.port?.toString() ?: "7125"
         apiKey = ""
@@ -148,6 +150,14 @@ internal fun PrinterConnectionEditor(
                 text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
                 color = t.text,
                 style = DinghyType.focusHeader.toTextStyle(t),
+            )
+
+            TokenTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.printers_edit_name),
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Text,
             )
 
             TokenTextField(
@@ -283,8 +293,10 @@ internal fun PrinterConnectionEditor(
                             keyCleared = keyCleared,
                             fieldInput = apiKey,
                         )
+                        val cleanName = name.trim().ifBlank { null }
                         val next = if (profile != null) {
                             profile.copy(
+                                name = cleanName,
                                 host = host.trim(),
                                 port = portInt!!,
                                 apiKey = resolvedKey,
@@ -293,7 +305,7 @@ internal fun PrinterConnectionEditor(
                         } else {
                             Profile(
                                 id = Profile.newId(),
-                                name = null,
+                                name = cleanName,
                                 host = host.trim(),
                                 port = portInt!!,
                                 apiKey = resolvedKey,

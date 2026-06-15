@@ -766,7 +766,7 @@ fun AppShell(
             composable<NavDest.ManagePrinters> {
                 PrintersScreen(
                     container = container,
-                    onSwitched = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                    onSwitched = { navController.popBackStack<NavDest.PrinterSettings>(inclusive = false) },
                     onBack = { navController.popBackStack() },
                 )
             }
