@@ -216,8 +216,7 @@ private fun OutputsContent(
             field = {
                 ListBlock(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(top = 8.dp), // horizontal frame owned by ListBlock
+                        .weight(1f),
                 ) {
                     items(rows, key = { it.descriptor.objectKey }) { row ->
                         ListRow(

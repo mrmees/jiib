@@ -600,8 +600,7 @@ private fun TemperatureContent(
                         severity = Severity.Error,
                         text = msg,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
+                            .fillMaxWidth(),
                     )
                 }
             },
@@ -612,7 +611,7 @@ private fun TemperatureContent(
                         // In Adjust mode only show adjustable sensors; in Monitoring show all.
                         // idx is computed against the FULL legend so trace-color indexing is stable.
                         val rows = if (mode == TempMode.Adjust) legend.filter { it.isAdjustable } else legend
-                        ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                        ListBlock(modifier = Modifier.weight(1f)) {
                             items(rows, key = { it.name }) { sensor ->
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
@@ -722,7 +721,7 @@ private fun TemperatureContent(
 
                     TempFieldMode.PresetPicker -> {
                         // D-12: Field-takeover preset picker (the old full-screen scrim is retired).
-                        ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                        ListBlock(modifier = Modifier.weight(1f)) {
                             // Loaded-spool preset FIRST when available (heat to the active filament's temps).
                             spoolPreset?.let { sp ->
                                 item(key = "__spool_preset__") {

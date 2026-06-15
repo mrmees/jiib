@@ -258,7 +258,7 @@ fun PrintersContent(
                     // the empty headline/body moved into the Focus card above.
                     Spacer(Modifier.weight(1f))
                 } else {
-                    ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                    ListBlock(modifier = Modifier.weight(1f)) {
                         items(profiles, key = { it.id }) { profile ->
                             ListRow(
                                 selected = profile.id == activeId,

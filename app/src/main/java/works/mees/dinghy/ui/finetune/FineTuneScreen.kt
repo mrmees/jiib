@@ -362,8 +362,7 @@ private fun FineTuneContent(
                 // Field: param list + FootButtonBar (FootButtonBar lives HERE).
                 ListBlock(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(top = 8.dp), // horizontal frame owned by ListBlock
+                        .weight(1f),
                 ) {
                     // D-02: group identity = pool-color tint on leading icon; no text group labels.
                     items(visibleParams, key = { it.tuner.name }) { param ->

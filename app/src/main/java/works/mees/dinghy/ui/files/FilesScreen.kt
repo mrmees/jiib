@@ -605,7 +605,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             )
         }
     } else {
-        ListBlock(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+        ListBlock(modifier = Modifier.weight(1f)) {
             items(state.fileRows, key = { it.stableId }) { row ->
                 FilesListRow(
                     row = row,
@@ -620,7 +620,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
     }
 
     state.error?.let { msg ->
-        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
     }
 
     // FootButtonBar — Back · Print · Delete (D-07).
