@@ -12,16 +12,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The single full-screen Confirm guard (PRIM-03) — the one safety gate every destructive printer
@@ -103,17 +101,13 @@ fun ConfirmGuard(
                     Text(
                         text = title,
                         color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(28f, t.fs).sp,
+                        style = DinghyType.screenTitle.toTextStyle(t),
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = message,
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = fsSp(17f, t.fs).sp,
+                        style = DinghyType.body.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
                     )

@@ -30,8 +30,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import works.mees.dinghy.theme.DinghyType
+import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -127,7 +129,7 @@ private fun FilesList(files: List<GcodeFile>, modifier: Modifier = Modifier) {
                     Text(
                         text = "${file.sizeKb} KB",
                         color = Color(0xFF8A98A6),
-                        fontSize = 12.sp,
+                        style = DinghyType.dataMeta.toTextStyle(LocalTokens.current),
                     )
                 }
             }
@@ -181,7 +183,7 @@ private fun ConsoleSpew(lines: List<String>, modifier: Modifier = Modifier) {
             Text(
                 text = line,
                 color = Color(0xFF9CCC65),
-                fontSize = 11.sp,
+                style = DinghyType.consoleLine.toTextStyle(LocalTokens.current),
                 maxLines = 1,
                 overflow = TextOverflow.Clip,
                 modifier = Modifier.fillMaxWidth(),

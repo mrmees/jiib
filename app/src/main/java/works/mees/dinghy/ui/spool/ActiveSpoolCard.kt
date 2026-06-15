@@ -20,10 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -31,10 +29,10 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanStatus
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -146,9 +144,7 @@ fun ActiveSpoolCard(
             Text(
                 text = cardTitle(state),
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.screenTitle.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -221,9 +217,7 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
         Text(
             text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ").ifBlank { "—" },
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.dataInline.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -238,13 +232,11 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon = DinghyIcons.Scale, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
-        Text("Remaining", color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
+        Text("Remaining", color = t.text2, style = DinghyType.caption.toTextStyle(t))
         Text(
             text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
             color = if (spool.remainingWeight == null) t.text3 else t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(26f, t.fs).sp,
+            style = DinghyType.statValue.toTextStyle(t),
             maxLines = 1,
         )
     }
@@ -295,13 +287,11 @@ private fun SpoolStatRow(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp)
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
         Text(
             value,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -316,14 +306,14 @@ private fun StateBadge(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, te
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon, tint = color, sizeDp = fsSp(18f, t.fs).dp)
-        Text(text, color = color, fontFamily = Geist, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(text, color = color, style = DinghyType.caption.toTextStyle(t))
     }
 }
 
 /** A plain notice line for the non-loaded variants (metadata floor 15sp). */
 @Composable
 private fun CardNotice(text: String, t: ThemeTokens) {
-    Text(text, color = t.text2, fontFamily = Geist, fontSize = fsSp(15f, t.fs).sp)
+    Text(text, color = t.text2, style = DinghyType.caption.toTextStyle(t))
 }
 
 private fun cardTitle(state: ActiveSpoolCardState): String = when (state) {

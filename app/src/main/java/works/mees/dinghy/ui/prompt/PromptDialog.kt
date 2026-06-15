@@ -13,16 +13,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.prompt.PromptView
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The full-screen Macro Prompt overlay (PROMPT-02, 12-04). An AppShell-level overlay — NOT a Dest (D-05);
@@ -83,9 +81,7 @@ fun PromptDialog(
             Text(
                 text = view.title,
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(28f, t.fs).sp,
+                style = DinghyType.screenTitle.toTextStyle(t),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
@@ -103,8 +99,7 @@ fun PromptDialog(
                     Text(
                         text = "This prompt has no content.",
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.caption.toTextStyle(t),
                     )
                 } else {
                     for (item in view.items) {

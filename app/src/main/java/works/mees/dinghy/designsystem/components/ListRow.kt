@@ -18,16 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure host-testable helpers — ListRowTest asserts these directly
@@ -168,9 +166,7 @@ fun ListRowLabel(
     Text(
         text = text,
         color = color ?: t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(20f, t.fs).sp,
+        style = DinghyType.listLabel.toTextStyle(t),
         // Rows are FIXED at 1U (R23 precondition: multiline must not grow them) — one line,
         // ellipsized. A genuinely-overflowing line may marquee per the panel-text law instead.
         maxLines = 1,

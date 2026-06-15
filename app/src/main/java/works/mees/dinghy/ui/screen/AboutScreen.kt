@@ -20,7 +20,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
@@ -36,11 +35,10 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The **About** drawer destination (15.2-04, D-05) — dense C6-exempt restyle (28-07, D-11).
@@ -129,15 +127,13 @@ fun AboutContent(
                     Text(
                         text = stringResource(R.string.about_tagline),
                         color = LocalTokens.current.text3,
-                        fontFamily = Geist,
-                        fontSize = fsSp(15f, LocalTokens.current.fs).sp,
+                        style = DinghyType.caption.toTextStyle(LocalTokens.current),
                     )
                     // D-11: the jib-explainer note, directly below the kept tagline (D-10).
                     Text(
                         text = stringResource(R.string.about_jib_note),
                         color = LocalTokens.current.text3,
-                        fontFamily = Geist,
-                        fontSize = fsSp(15f, LocalTokens.current.fs).sp,
+                        style = DinghyType.caption.toTextStyle(LocalTokens.current),
                     )
 
                     // ── Developer section ─────────────────────────────────────────────────────
@@ -230,14 +226,12 @@ private fun InfoRow(label: String, value: String) {
         Text(
             text = label,
             color = t.text,
-            fontFamily = Geist,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.listLabel.toTextStyle(t),
         )
         Text(
             text = value,
             color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
     }
 }

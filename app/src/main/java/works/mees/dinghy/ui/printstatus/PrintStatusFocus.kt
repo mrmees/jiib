@@ -30,10 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlin.math.roundToInt
@@ -47,9 +45,10 @@ import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
+import works.mees.dinghy.theme.compose.FocusHeroText
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 
@@ -143,9 +142,7 @@ internal fun PrintStatusFocus(
                         Text(
                             text = filename,
                             color = t.text,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = fsSp(18f, t.fs).sp,
+                            style = DinghyType.dataInline.toTextStyle(t),
                             maxLines = 1,
                             softWrap = false,
                             modifier = Modifier.padding(horizontal = 10.dp).basicMarquee(),
@@ -157,14 +154,13 @@ internal fun PrintStatusFocus(
                 // CLIPS to its bounds, cutting off this label's 6-o'clock overhang (2026-06-06 UAT). The
                 // outer ring Box doesn't clip, so here it stays fully visible AND full-opacity (readable in
                 // Paused). Centered on the ring's 6-o'clock point (box-center + R): "Ready"/"NN%"/"PAUSED".
-                Text(
+                FocusHeroText(
                     text = if (state.printState == PrintState.Printing)
                         "${(state.progress * 100).roundToInt()}%"
                     else stringResource(statusLabelRes(state.printState)),
+                    role = DinghyType.focusHero,
+                    t = t,
                     color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(30f, t.fs).sp,
                     modifier = Modifier.align(Alignment.Center).offset(y = ringSize / 2),
                 )
                 // Static pause overlay (NOT dimmed) centered on the ring — the Focus carries the paused
@@ -255,8 +251,8 @@ internal fun StandbyFocus(
 internal fun GlanceRow(key: String, label: String, value: String, valueColor: Color) {
     val t = LocalTokens.current
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(23f, t.fs).sp)
-        Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(34f, t.fs).sp)
+        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        Text(value, color = valueColor, style = DinghyType.focusHero.toTextStyle(t))
     }
 }
 
@@ -319,9 +315,7 @@ internal fun TerminalFocus(state: PrinterState, metadata: PrintMetadata?, httpBa
                 Text(
                     stringResource(statusLabelRes(state.printState)),
                     color = t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(22f, t.fs).sp,
+                    style = DinghyType.statValue.toTextStyle(t),
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }

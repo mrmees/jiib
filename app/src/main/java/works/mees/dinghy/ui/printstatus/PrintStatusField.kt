@@ -25,10 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.remember
@@ -49,9 +47,9 @@ import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.ui.route.HomeAction
@@ -473,8 +471,8 @@ internal fun IconTwoRowCell(
             Modifier.weight(1f - CELL_ICON_WEIGHT),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(active, color = activeColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
-            Text(inactive, color = t.text3, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(17f, t.fs).sp)
+            Text(active, color = activeColor, style = DinghyType.statValue.toTextStyle(t))
+            Text(inactive, color = t.text3, style = DinghyType.dataMeta.toTextStyle(t))
         }
     }
 }
@@ -501,7 +499,7 @@ internal fun IconValueCell(
             icon()
         }
         Box(Modifier.weight(1f - CELL_ICON_WEIGHT).fillMaxHeight(), contentAlignment = Alignment.Center) {
-            Text(value, color = valueColor, fontFamily = GeistMono, fontWeight = FontWeight.Bold, fontSize = fsSp(26f, t.fs).sp)
+            Text(value, color = valueColor, style = DinghyType.statValue.toTextStyle(t))
         }
     }
 }
@@ -757,9 +755,7 @@ internal fun BabystepRow(
             Text(
                 fmtStep(step),
                 color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.statValue.toTextStyle(t),
             )
         }
         BabystepIconCell(
@@ -817,9 +813,7 @@ internal fun SpoolmanPrintLine(
         Text(
             stringResource(R.string.printstatus_spool_remaining, availableG.roundToInt()),
             color = t.text2,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(16f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
     }
 }
@@ -864,16 +858,12 @@ internal fun TerminalStatRow(label: String, value: String, marquee: Boolean = fa
         Text(
             label,
             color = t.text2,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(20f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
         )
         Text(
             value,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
+            style = DinghyType.statValue.toTextStyle(t),
             maxLines = 1,
             softWrap = false,
             overflow = if (marquee) androidx.compose.ui.text.style.TextOverflow.Clip else androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -900,9 +890,7 @@ internal fun TerminalErrorLines(lines: List<String>, modifier: Modifier = Modifi
             Text(
                 line,
                 color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.consoleLine.toTextStyle(t),
                 maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )

@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -68,10 +67,10 @@ import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.render.BedMeshHeatmapView
 import works.mees.dinghy.ui.screen.TokenTextField
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -322,16 +321,13 @@ internal fun BedMeshContent(
                                         Text(
                                             text = stringResource(R.string.mesh_empty_state),
                                             color = t.text2,
-                                            fontFamily = Geist,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = fsSp(16f, t.fs).sp,
+                                            style = DinghyType.body.toTextStyle(t),
                                             textAlign = TextAlign.Center,
                                         )
                                         Text(
                                             text = stringResource(R.string.mesh_empty_state_hint),
                                             color = t.text3,
-                                            fontFamily = Geist,
-                                            fontSize = fsSp(15f, t.fs).sp,
+                                            style = DinghyType.caption.toTextStyle(t),
                                             textAlign = TextAlign.Center,
                                         )
                                     }
@@ -349,9 +345,7 @@ internal fun BedMeshContent(
                                                     Text(
                                                         text = stringResource(R.string.mesh_profile_active),
                                                         color = t.accent2,
-                                                        fontFamily = Geist,
-                                                        fontWeight = FontWeight.Medium,
-                                                        fontSize = fsSp(15f, t.fs).sp,
+                                                        style = DinghyType.caption.toTextStyle(t),
                                                     )
                                                 }
                                             } else null,
@@ -464,9 +458,7 @@ internal fun BedMeshContent(
                                 Text(
                                     text = stringResource(R.string.mesh_save_name_label),
                                     color = t.text,
-                                    fontFamily = Geist,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = fsSp(20f, t.fs).sp,
+                                    style = DinghyType.listLabel.toTextStyle(t),
                                     modifier = Modifier.padding(bottom = 4.dp),
                                 )
                                 TokenTextField(
@@ -480,8 +472,7 @@ internal fun BedMeshContent(
                                     Text(
                                         text = stringResource(R.string.mesh_save_name_invalid),
                                         color = t.stop,
-                                        fontFamily = Geist,
-                                        fontSize = fsSp(15f, t.fs).sp,
+                                        style = DinghyType.caption.toTextStyle(t),
                                     )
                                 }
                             }
@@ -592,17 +583,14 @@ private fun BedMeshFocusRegion(
                     Text(
                         text = stringResource(R.string.mesh_no_active_mesh),
                         color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(22f, t.fs).sp,
+                        style = DinghyType.focusHeader.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                     Text(
                         text = stringResource(R.string.mesh_no_active_mesh_hint),
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 4.dp),
                     )
@@ -656,9 +644,7 @@ private fun ScaleToggle(label: String, onClick: () -> Unit, uDp: Dp) {
         Text(
             text = label,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(16f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
         )
     }
 }

@@ -13,9 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
@@ -25,9 +23,10 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
+import works.mees.dinghy.theme.compose.FocusHeroText
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The digital On/Off toggle page (SC-2) — the ONE new small control this plan adds, for a non-PWM
@@ -75,31 +74,27 @@ fun OutputToggleControl(
                     Text(
                         text = prettyName,
                         color = t.text2,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(20f, t.fs).sp,
+                        style = DinghyType.dataInline.toTextStyle(t),
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     if (readOnly) {
                         // SC-3: value-only, no control.
                         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                            Text(
+                            FocusHeroText(
                                 text = if (isOn == true) {
                                     stringResource(R.string.output_on)
                                 } else {
                                     stringResource(R.string.output_off)
                                 },
+                                role = DinghyType.focusHero,
+                                t = t,
                                 color = t.text3,
-                                fontFamily = GeistMono,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = fsSp(48f, t.fs).sp,
                             )
                         }
                         Text(
                             text = stringResource(R.string.output_read_only),
                             color = t.text3,
-                            fontFamily = GeistMono,
-                            fontSize = fsSp(15f, t.fs).sp,
+                            style = DinghyType.caption.toTextStyle(t),
                         )
                     } else {
                         Row(

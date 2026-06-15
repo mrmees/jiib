@@ -32,10 +32,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -76,13 +74,12 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.spool.SpoolmanSpool
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.Palette
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.HeaterLimits
@@ -636,16 +633,13 @@ private fun TemperatureContent(
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
                                                 text = "${fmt(sensor.current)}°",
-                                                fontFamily = GeistMono,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = fsSp(17f, t.fs).sp,
+                                                style = DinghyType.dataInline.toTextStyle(t),
                                                 color = t.text,
                                             )
                                             sensor.target?.let { tgt ->
                                                 Text(
                                                     text = "→ ${fmt(tgt)}°",
-                                                    fontFamily = GeistMono,
-                                                    fontSize = fsSp(15f, t.fs).sp,
+                                                    style = DinghyType.dataMeta.toTextStyle(t),
                                                     color = rowTint,
                                                 )
                                             }
@@ -946,17 +940,13 @@ private fun HeaterControlFocus(
             Row {
                 Text(
                     text = shown.toString(),
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(48f, t.fs).sp,
+                    style = DinghyType.focusHero.toTextStyle(t),
                     color = t.text,
                     modifier = Modifier.alignByBaseline(),
                 )
                 Text(
                     text = "°C",
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = fsSp(28f, t.fs).sp,
+                    style = DinghyType.statValue.toTextStyle(t),
                     color = t.text2,
                     modifier = Modifier.alignByBaseline(),
                 )
@@ -1027,16 +1017,14 @@ private fun PresetListRow(
         trailingContent = {
             Text(
                 text = "${preset.nozzle}° / ${preset.bed}°",
-                fontFamily = GeistMono,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.dataInline.toTextStyle(t),
                 color = t.text2,
             )
         },
     ) {
         Text(
             text = preset.name,
-            fontFamily = Geist,
-            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+            style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
             color = t.text,
         )
     }
@@ -1101,9 +1089,7 @@ internal fun PresetSelector(
             Text(
                 text = stringResource(R.string.temp_preheat_preset),
                 color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.screenTitle.toTextStyle(t),
             )
             for (p in PrinterCommands.MATERIAL_PRESETS) {
                 val key = "preset_${p.name}"

@@ -30,7 +30,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,9 +47,9 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The **Settings** drawer destination (SET-01) — dense C6-exempt restyle (28-07, D-11/D-12).
@@ -235,8 +234,7 @@ fun SettingsContent(
                         Text(
                             text = stringResource(R.string.settings_babystep_layers),
                             color = if (babystepOn) t.text else t.text3,
-                            fontFamily = Geist,
-                            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+                            style = DinghyType.listLabel.toTextStyle(t),
                         )
                         Spacer(Modifier.weight(1f))
                         TokenTextField(
@@ -281,8 +279,7 @@ fun SettingsContent(
                         Text(
                             text = stringResource(R.string.settings_battery_optimization),
                             color = if (isExempt) t.text3 else t.text,
-                            fontFamily = Geist,
-                            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+                            style = DinghyType.listLabel.toTextStyle(t),
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
@@ -292,8 +289,7 @@ fun SettingsContent(
                                 stringResource(R.string.settings_battery_optimized)
                             },
                             color = if (isExempt) t.go else t.text2,
-                            fontFamily = Geist,
-                            fontSize = fsSp(15f, t.fs).sp,
+                            style = DinghyType.caption.toTextStyle(t),
                         )
                     }
 
@@ -348,8 +344,7 @@ private fun DenseToggleRow(
         Text(
             text = label,
             color = if (enabled) t.text else t.text3,
-            fontFamily = Geist,
-            fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+            style = DinghyType.listLabel.toTextStyle(t),
         )
         Spacer(Modifier.weight(1f))
     }

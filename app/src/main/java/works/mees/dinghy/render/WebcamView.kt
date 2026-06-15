@@ -7,14 +7,13 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.content.res.ResourcesCompat
-import works.mees.dinghy.R
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.views.ThemeableView
+import works.mees.dinghy.theme.views.typeface
 
 /**
  * The live webcam raster surface (CAM-01) — a classic-Views custom-`Canvas` `View`, the ADR-0001
@@ -107,18 +106,25 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         strokeWidth = 1.5f * density
     }
 
-    /** Strong chrome text (badge / cycle name / card title). GeistMedium, color from `--text`. */
+    /** Strong chrome text (badge / reconnect / cycle name). [DinghyType.caption] (Ui 15), color `--text`. */
     private val chromeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = runCatching { ResourcesCompat.getFont(context, R.font.geist_medium) }
-            .getOrNull() ?: Typeface.DEFAULT
+        typeface = DinghyType.caption.typeface(context)
     }
 
-    /** Muted chrome text (the dead-end card body line). GeistRegular, color from `--text-2`. */
+    /** Dead-end card TITLE — a UI status headline (e.g. "Camera not supported"). [DinghyType.focusHeader] (Ui 20), color `--text`. */
+    private val cardTitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.LEFT
+        typeface = DinghyType.focusHeader.typeface(context)
+    }
+
+    /**
+     * Muted chrome text (the dead-end card body line). [DinghyType.caption] (Ui 15) — replaces the old
+     * sub-floor 13sp; color from `--text-2`.
+     */
     private val chromeBodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = runCatching { ResourcesCompat.getFont(context, R.font.geist_regular) }
-            .getOrNull() ?: Typeface.DEFAULT
+        typeface = DinghyType.caption.typeface(context)
     }
 
     /** The burst-mode glyph for the cycle overlay (a small accent-tinted stack of squares). */
@@ -190,10 +196,13 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         cardOutlinePaint.color = t.outline.toArgb()
 
         chromeTextPaint.color = t.text.toArgb()
-        chromeTextPaint.textSize = fsSp(CHROME_TEXT_SP, t.fs) * density
+        chromeTextPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density
+
+        cardTitlePaint.color = t.text.toArgb()
+        cardTitlePaint.textSize = fsSp(DinghyType.focusHeader.baseSp, t.fs) * density
 
         chromeBodyPaint.color = t.text2.toArgb()
-        chromeBodyPaint.textSize = fsSp(CARD_BODY_SP, t.fs) * density
+        chromeBodyPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density
 
         glyphPaint.color = t.accent2.toArgb()
         glyphPaint.strokeWidth = 1.5f * density
@@ -410,14 +419,14 @@ class WebcamView(context: Context) : View(context), ThemeableView {
 
         val hPad = CARD_HPAD * density
         val vPad = CARD_VPAD * density
-        val titleH = chromeTextPaint.textSize
+        val titleH = cardTitlePaint.textSize
         val bodyH = chromeBodyPaint.textSize
         val lineGap = CARD_LINE_GAP * density
 
-        val curTitleTextSize = chromeTextPaint.textSize
+        val curTitleTextSize = cardTitlePaint.textSize
         if (title != lastCardTitleText || curTitleTextSize != lastCardTitleTextSize) {
             lastCardTitleText = title; lastCardTitleTextSize = curTitleTextSize
-            lastCardTitleWidth = chromeTextPaint.measureText(title)
+            lastCardTitleWidth = cardTitlePaint.measureText(title)
         }
         val curBodyTextSize = chromeBodyPaint.textSize
         if (body != lastCardBodyText || curBodyTextSize != lastCardBodyTextSize) {
@@ -435,7 +444,7 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         canvas.drawRoundRect(cutoutRect, cutoutRadiusPx, cutoutRadiusPx, cardOutlinePaint)
 
         val titleBaseline = top + vPad + titleH
-        canvas.drawText(title, left + hPad, titleBaseline, chromeTextPaint)
+        canvas.drawText(title, left + hPad, titleBaseline, cardTitlePaint)
         val bodyBaseline = titleBaseline + lineGap + bodyH
         canvas.drawText(body, left + hPad, bodyBaseline, chromeBodyPaint)
     }
@@ -483,12 +492,6 @@ class WebcamView(context: Context) : View(context), ThemeableView {
     }
 
     companion object {
-        /** Strong chrome text base size (sp) — `--fs`-scaled (badge / reconnect / cycle name / card title). */
-        private const val CHROME_TEXT_SP = 15f
-
-        /** Dead-end card body base size (sp) — slightly smaller than the title; `--fs`-scaled. */
-        private const val CARD_BODY_SP = 13f
-
         /** Dimming-scrim alpha over the last frame while reconnecting (0-255) — visible but not black. */
         private const val DIM_ALPHA = 140
 

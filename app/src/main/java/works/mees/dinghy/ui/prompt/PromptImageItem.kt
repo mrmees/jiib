@@ -16,16 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * A `prompt_image` content item — a Coil 3 [AsyncImage] bounded HARD for the Adreno-320 fill-rate floor
@@ -88,9 +85,7 @@ fun PromptImageItem(
                     Text(
                         text = alt,
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )

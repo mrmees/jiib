@@ -23,14 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The fixed color-palette swatches (D-06; docs/view_specific_notes/spoolman.md §Spool Picker). Tapping
@@ -174,9 +172,7 @@ private fun ColorTile(
     fun TileLabel(mod: Modifier) = Text(
         text = label,
         color = labelColor,
-        fontFamily = Geist,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(15f, t.fs).sp,
+        style = DinghyType.caption.toTextStyle(t),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = mod,

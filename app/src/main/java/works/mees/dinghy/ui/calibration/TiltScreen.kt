@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,10 +46,9 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /** The two routines this ONE screen serves (D-10 shared automatic-flow code path). */
 enum class TiltVariant { ZTilt, Qgl }
@@ -260,9 +258,7 @@ private fun TiltFocus(
         Text(
             text = title,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
+            style = DinghyType.focusHeader.toTextStyle(t),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 12.dp),
         )
@@ -323,16 +319,12 @@ private fun TiltFieldBody(
                             Text(
                                 text = adj.stepper,
                                 color = t.text2,
-                                fontFamily = GeistMono,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = fsSp(16f, t.fs).sp,
+                                style = DinghyType.dataInline.toTextStyle(t),
                             )
                             Text(
                                 text = String.format(Locale.US, "%+.4f mm", adj.mm),
                                 color = t.text,
-                                fontFamily = GeistMono,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = fsSp(16f, t.fs).sp,
+                                style = DinghyType.dataInline.toTextStyle(t),
                             )
                         }
                     }
@@ -348,9 +340,7 @@ private fun TiltHeadlineText(text: String, color: Color) {
     Text(
         text = text,
         color = color,
-        fontFamily = GeistMono,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(26f, t.fs).sp,
+        style = DinghyType.statValue.toTextStyle(t),
     )
 }
 
@@ -360,9 +350,7 @@ private fun TiltBodyText(text: String) {
     Text(
         text = text,
         color = t.text2,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Normal,
-        fontSize = fsSp(16f, t.fs).sp,
+        style = DinghyType.body.toTextStyle(t),
         modifier = Modifier.padding(top = 8.dp),
     )
 }

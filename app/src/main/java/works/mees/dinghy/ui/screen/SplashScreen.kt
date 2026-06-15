@@ -16,10 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -29,10 +27,10 @@ import works.mees.dinghy.net.ConnectionError
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The splash / initializing surface (SHELL-05) — a **hard override** (D-06). `TopRoute.derive()`
@@ -93,9 +91,7 @@ fun SplashScreen(
                         text = reasonText(hasConfig, state),
                         color = t.text2,
                         // GeistMono: the reason often carries a verbatim Klippy/MCU message (tabular).
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = fsSp(16f, t.fs).sp,
+                        style = DinghyType.dataInline.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
                     )

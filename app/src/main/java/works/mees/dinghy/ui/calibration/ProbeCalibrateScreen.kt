@@ -36,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
@@ -67,9 +66,9 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -495,9 +494,7 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
         Text(
             text = zText,
             color = zColor,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Bold,
-            fontSize = fsSp(72f, t.fs).sp,
+            style = DinghyType.focusHero.toTextStyle(t),
             modifier = Modifier.padding(top = 20.dp),
         )
         if (vm.state != ProbePageState.Idle) {
@@ -509,18 +506,14 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
                     Text(
                         text = stringResource(R.string.probe_saved_ref, fmtZ(-it)),
                         color = t.text2,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(24f, t.fs).sp,
+                        style = DinghyType.statValue.toTextStyle(t),
                     )
                 }
                 currentZ?.let {
                     Text(
                         text = "Z  ${fmtZ(it)}",
                         color = t.text2,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(24f, t.fs).sp,
+                        style = DinghyType.statValue.toTextStyle(t),
                     )
                 }
             }
@@ -549,15 +542,12 @@ private fun ZReadoutDisplay(zValue: Double?, modifier: Modifier = Modifier) {
             Text(
                 text = zValue?.let { fmtZ(it) } ?: "—",
                 color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.statValue.toTextStyle(t),
             )
             Text(
                 text = "mm",
                 color = t.text3,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         }
     }
@@ -580,15 +570,12 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
             Text(
                 text = fmtStep(value),
                 color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(34f, t.fs).sp,
+                style = DinghyType.statValue.toTextStyle(t),
             )
             Text(
                 text = "mm",
                 color = t.text3,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         }
     }

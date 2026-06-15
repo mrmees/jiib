@@ -56,13 +56,13 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.theme.FontScale
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.PaletteMode
 import works.mees.dinghy.theme.StatusSlot
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.theme.ThemePrefs
@@ -336,9 +336,12 @@ private fun PoolSizeSegment(
         Text(
             text = label,
             color = ink,
-            fontFamily = Geist,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-            fontSize = fsSp(20f, t.fs).sp, // R11 list/button default
+            // R11 list/button default; selected state bumps to Bold for emphasis.
+            style = if (selected) {
+                DinghyType.buttonLabel.toTextStyle(t).copy(fontWeight = FontWeight.Bold)
+            } else {
+                DinghyType.buttonLabel.toTextStyle(t)
+            },
         )
     }
 }
@@ -548,9 +551,7 @@ private fun ScreenTitle(text: String) {
     Text(
         text = text,
         color = t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Bold,
-        fontSize = fsSp(22f, t.fs).sp,
+        style = DinghyType.screenTitle.toTextStyle(t),
     )
 }
 
@@ -560,9 +561,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         color = t.text2,
-        fontFamily = Geist,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = fsSp(20f, t.fs).sp,
+        style = DinghyType.listLabel.toTextStyle(t),
         modifier = Modifier.padding(top = 8.dp),
     )
 }
@@ -573,8 +572,7 @@ private fun SubLabel(text: String) {
     Text(
         text = text,
         color = t.text3,
-        fontFamily = Geist,
-        fontSize = fsSp(15f, t.fs).sp,
+        style = DinghyType.caption.toTextStyle(t),
     )
 }
 

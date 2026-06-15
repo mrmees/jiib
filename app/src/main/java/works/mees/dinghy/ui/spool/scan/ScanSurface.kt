@@ -25,10 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -39,10 +37,10 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.preview.PreviewPlaceholderBox
 import works.mees.dinghy.spool.SpoolmanClient
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -293,9 +291,7 @@ private fun ScanHint(text: String, t: ThemeTokens, modifier: Modifier = Modifier
         Text(
             text = text,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         )
@@ -324,16 +320,13 @@ private fun DegradePanel(
         Text(
             text = title,
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
+            style = DinghyType.screenTitle.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
         Text(
             text = body,
             color = t.text2,
-            fontFamily = GeistMono,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
         OutlinedControl(

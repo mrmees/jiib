@@ -35,20 +35,17 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.fractionFromX
 import works.mees.dinghy.designsystem.layout.gapM
 import works.mees.dinghy.designsystem.fractionFromY
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /** Axis orientation for the [Scrubber] component. */
 enum class ScrubberOrientation { Horizontal, Vertical }
@@ -345,9 +342,7 @@ fun Scrubber(
                         Text(
                             text = name,
                             color = t.text,
-                            fontFamily = Geist,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = fsSp(20f, t.fs).sp,
+                            style = DinghyType.listLabel.toTextStyle(t),
                             modifier = Modifier.weight(1f),
                         )
                     } else {
@@ -357,17 +352,13 @@ fun Scrubber(
                         Text(
                             text = fmt(working),
                             color = t.text,
-                            fontFamily = GeistMono,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = fsSp(40f, t.fs).sp,
+                            style = DinghyType.focusHero.toTextStyle(t),
                         )
                         if (unit.isNotEmpty()) {
                             Text(
                                 text = unit,
                                 color = t.text3,
-                                fontFamily = GeistMono,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = fsSp(22f, t.fs).sp,
+                                style = DinghyType.dataInline.toTextStyle(t),
                             )
                         }
                     }
@@ -382,16 +373,12 @@ fun Scrubber(
                     Text(
                         text = fmt(range.start) + unit,
                         color = t.text3,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.dataMeta.toTextStyle(t),
                     )
                     Text(
                         text = fmt(range.endInclusive) + unit,
                         color = t.text3,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.dataMeta.toTextStyle(t),
                     )
                 }
 

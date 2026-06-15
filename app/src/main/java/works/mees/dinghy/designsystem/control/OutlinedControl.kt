@@ -19,17 +19,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalDensity
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.IconRef
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import androidx.compose.material3.Text
 
@@ -189,18 +188,14 @@ fun OutlinedControl(
                 Text(
                     text = label,
                     color = t.text,
-                    fontFamily = Geist,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = fsSp(18f, t.fs).sp,
+                    style = DinghyType.buttonLabel.toTextStyle(t),
                 )
             }
         } else {
             Text(
                 text = label,
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
+                style = DinghyType.buttonLabel.toTextStyle(t),
             )
         }
     }

@@ -23,10 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -36,10 +34,10 @@ import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -99,9 +97,7 @@ fun ScanConfirmCard(
             Text(
                 text = "Scanned spool #$spoolId",
                 color = t.text2,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.body.toTextStyle(t),
             )
         }
 
@@ -113,22 +109,18 @@ fun ScanConfirmCard(
             Text(
                 text = "Spool $spoolId",
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.screenTitle.toTextStyle(t),
             )
             Text(
                 text = "Details unavailable — confirm to set active anyway.",
                 color = t.text3,
-                fontFamily = GeistMono,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
             )
         } else {
             Text(
                 text = "Resolving…",
                 color = t.text3,
-                fontFamily = GeistMono,
-                fontSize = fsSp(17f, t.fs).sp,
+                style = DinghyType.body.toTextStyle(t),
             )
         }
 
@@ -169,9 +161,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
                 text = listOfNotNull(filament?.material, filament?.name)
                     .joinToString(" · ").ifBlank { "Spool ${spool.id}" },
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(22f, t.fs).sp,
+                style = DinghyType.screenTitle.toTextStyle(t),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -186,12 +176,10 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
             Text(
                 text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
                 color = if (spool.remainingWeight == null) t.text3 else t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(26f, t.fs).sp,
+                style = DinghyType.statValue.toTextStyle(t),
                 maxLines = 1,
             )
-            Text("remaining", color = t.text2, fontFamily = GeistMono, fontSize = fsSp(17f, t.fs).sp)
+            Text("remaining", color = t.text2, style = DinghyType.caption.toTextStyle(t))
         }
         spool.location?.let { ConfirmRow(DinghyIcons.SpoolLocation, "Location", it, t) }
         if (spool.archived) {
@@ -204,9 +192,7 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
                 Text(
                     text = "Archived — verify before loading",
                     color = t.heat,
-                    fontFamily = Geist,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.caption.toTextStyle(t),
                 )
             }
         }
@@ -243,13 +229,11 @@ private fun ConfirmRow(icon: works.mees.dinghy.designsystem.icons.DinghyIcon, la
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp)
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
         Text(
             value,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.dataMeta.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
