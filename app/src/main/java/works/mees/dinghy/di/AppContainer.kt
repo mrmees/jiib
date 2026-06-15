@@ -46,6 +46,7 @@ import works.mees.dinghy.ui.move.SavedLocation
 import works.mees.dinghy.ui.move.SavedLocationPrefs
 import works.mees.dinghy.ui.settings.BabystepPrefs
 import works.mees.dinghy.ui.settings.DisplayPrefs
+import works.mees.dinghy.ui.settings.FontScalePrefs
 import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
@@ -127,6 +128,15 @@ class AppContainer(
      * (the DataStore single-writer invariant) and injected here.
      */
     savedLocationDataStore: DataStore<Preferences>,
+    /**
+     * The TENTH, INDEPENDENT file: fontscale.preferences_pb (App/Printer Settings Split, Task 1.2).
+     * Backs the process-scoped app-global font-scale setting ([FontScalePrefs]: S/M/L FontScale
+     * choice). Replaces the retired per-printer [Profile.fsChoice] as the SOLE source of `--fs`.
+     * Carries no secrets, kept on its own connection-independent lifecycle per the separate-file
+     * discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore single-writer
+     * invariant) and injected here.
+     */
+    fontScaleDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -377,6 +387,16 @@ class AppContainer(
      * gates `View.keepScreenOn` (→ FLAG_KEEP_SCREEN_ON on the hosting window) on the same flow.
      */
     val displayPrefs: DisplayPrefs = DisplayPrefs(displayDataStore)
+
+    /**
+     * App-global font-scale persistence (Task 1.2, App/Printer Settings Split) — the SEPARATE
+     * fontscale.preferences_pb-backed store holding the [FontScalePrefs.fontScale] S/M/L choice
+     * (default [works.mees.dinghy.theme.FontScale.M]). Replaces the retired per-printer
+     * [works.mees.dinghy.config.Profile.fsChoice] as the SOLE source of `--fs`. PROCESS-SCOPED
+     * + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): the choice survives reconnects and
+     * printer swaps.
+     */
+    val fontScalePrefs: FontScalePrefs = FontScalePrefs(fontScaleDataStore)
 
     /** Whether the screen is held awake while the shell is foregrounded (§R2) — default true. */
     val keepScreenOn: Flow<Boolean> = displayPrefs.keepScreenOn
