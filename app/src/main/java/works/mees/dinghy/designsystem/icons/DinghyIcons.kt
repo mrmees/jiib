@@ -299,6 +299,15 @@ object DinghyIcons {
     val SortDesc = DinghyIcon(IconRef.Ligature("arrow_drop_down"), alternate = "sort_desc")
     val Close = DinghyIcon(IconRef.Ligature("close"), alternate = "close")
 
+    // --- App/Printer Settings split glyphs (Task 0.1, OWNER-LOCKED — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]). All five ligatures verified resolvable in the bundled Material
+    // Symbols ttf (verify_ligatures.py gate). Groundwork for the Settings split feature.
+    val AppSettings     = DinghyIcon(IconRef.Ligature("mobile_gear"),               alternate = "app_settings")
+    val PrinterSettings = DinghyIcon(IconRef.Ligature("print"),                     alternate = "printer_settings")
+    val ManagePrinters  = DinghyIcon(IconRef.Ligature("format_list_numbered"),      alternate = "manage_printers")
+    val TextSize        = DinghyIcon(IconRef.Ligature("format_size"),               alternate = "text_size")
+    val Rename          = DinghyIcon(IconRef.Ligature("drive_file_rename_outline"), alternate = "rename")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -335,5 +344,6 @@ object DinghyIcons {
         MoveHomeAll, MoveDisableMotors,
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
+        AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename,
     )
 }
