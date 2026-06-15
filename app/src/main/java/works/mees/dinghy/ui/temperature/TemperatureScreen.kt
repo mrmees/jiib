@@ -69,6 +69,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -784,7 +785,7 @@ private fun SensorPickerFocus(
         contentInset = FocusInset / 2,
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ListBlock(modifier = Modifier.weight(1f)) {
+            ListBlock(modifier = Modifier.weight(1f).padding(horizontal = ListFrameInset)) {
                 items(available, key = { it }) { name ->
                     val isOn = name in selected
                     ListRow(

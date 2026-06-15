@@ -22,6 +22,7 @@ import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.GeistMono
@@ -65,6 +66,7 @@ fun OutputToggleControl(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         ScreenScaffold(
+            fieldFramed = false,
             field = {
                 Column(
                     Modifier.fillMaxSize().padding(16.dp),
@@ -120,7 +122,7 @@ fun OutputToggleControl(
                     }
                     failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
                     // Foot-of-list Back (R1 gutter retirement): FIRST + accent per R5/R8.
-                    FootButtonBar(uDp = grid.uDp) {
+                    FootButtonBar(uDp = grid.uDp, modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)) {
                         OutlinedControl(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,

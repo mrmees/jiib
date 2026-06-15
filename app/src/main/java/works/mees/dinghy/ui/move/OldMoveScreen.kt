@@ -59,6 +59,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.IconRef
+import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
@@ -251,7 +252,7 @@ internal fun OldMoveContent(
                         title = stringResource(R.string.cd_launcher_move),
                         icon = DinghyIcons.LauncherMove,
                         uDp = grid.uDp,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = ListFrameInset),
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
@@ -283,7 +284,7 @@ internal fun OldMoveContent(
                     }
                     FootButtonBar(
                         uDp = grid.uDp,
-                        modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp),
                     ) {
                         MoveFootButtons(onHomeAll, { showDisableGuard = true }, onBack, Modifier.weight(1f))
                     }
@@ -298,7 +299,7 @@ internal fun OldMoveContent(
                     title = stringResource(R.string.cd_launcher_move),
                     icon = DinghyIcons.LauncherMove,
                     uDp = grid.uDp,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = ListFrameInset),
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
@@ -348,6 +349,7 @@ internal fun OldMoveContent(
                 }
                 FootButtonBar(
                     uDp = grid.uDp,
+                    modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp),
                 ) {
                     MoveFootButtons(onHomeAll, { showDisableGuard = true }, onBack, Modifier.weight(1f))
                 }
