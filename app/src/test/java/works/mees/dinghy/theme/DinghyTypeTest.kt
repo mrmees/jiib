@@ -4,6 +4,7 @@ import androidx.compose.ui.text.font.FontWeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import works.mees.dinghy.theme.compose.toTextStyle
 
 class DinghyTypeTest {
 
@@ -38,5 +39,17 @@ class DinghyTypeTest {
     fun captionIsAtTheMetadataFloor() {
         assertEquals(15f, DinghyType.caption.baseSp)
         assertEquals(15f, DinghyType.dataMeta.baseSp)
+    }
+
+    @Test
+    fun toTextStyleResolvesFamilyAndScaledSize() {
+        val tokens = TokensDark.copy(fs = 1.0f) // baked default-seed fail-safe (theme/BakedTokens.kt)
+        val style = DinghyType.statValue.toTextStyle(tokens)
+        assertEquals(GeistMono, style.fontFamily)
+        assertEquals(26f, style.fontSize.value)   // fs = 1.0 → 26 * 1.0
+        assertEquals(FontWeight.SemiBold, style.fontWeight)
+
+        val uiStyle = DinghyType.listLabel.toTextStyle(tokens)
+        assertEquals(Geist, uiStyle.fontFamily)
     }
 }
