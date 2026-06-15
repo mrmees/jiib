@@ -1,8 +1,5 @@
 package works.mees.dinghy.ui.screen
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -10,10 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -21,10 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +27,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -206,55 +200,22 @@ private fun DevEnableRow(
     onToggle: (Boolean) -> Unit,
     uDp: Dp,
 ) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    val outline = if (checked) t.accentLine else t.outline
-    // 1U height floor — owner UAT ruling, Phase 28, 2026-06-12.
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, outline), shape)
-            .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.about_dev_widgets),
-                color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(17f, t.fs).sp,
-            )
-            Text(
-                text = if (checked) {
-                    stringResource(R.string.about_dev_widgets_on)
-                } else {
-                    stringResource(R.string.about_dev_widgets_off)
-                },
-                color = t.text3,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
-            )
-        }
-        val pillShape = RoundedCornerShape(t.rPill)
-        androidx.compose.foundation.layout.Box(
-            Modifier
-                .clip(pillShape)
-                .border(BorderStroke(2.dp, if (checked) t.accentLine else t.outline), pillShape)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(
-                text = if (checked) stringResource(R.string.common_on) else stringResource(R.string.common_off),
-                color = if (checked) t.accent else t.text2,
-                fontFamily = Geist,
-                fontWeight = FontWeight.Bold,
-                fontSize = fsSp(17f, t.fs).sp,
-            )
-        }
-    }
+    // Thin About-specific preset over the canonical [ToggleRow] (control baseline audit, Phase 5).
+    // Owns the About-specific strings + the "OFF restores theme" sub-label semantics (D-08);
+    // the look (1U row, On/Off text pill) lives in ToggleRow. Persistence path UNCHANGED —
+    // onToggle still routes to AppContainer.setDevCyclerEnabled via the writeScope intent helper.
+    ToggleRow(
+        label = stringResource(R.string.about_dev_widgets),
+        checked = checked,
+        onToggle = onToggle,
+        uDp = uDp,
+        subLabel = if (checked) {
+            stringResource(R.string.about_dev_widgets_on)
+        } else {
+            stringResource(R.string.about_dev_widgets_off)
+        },
+        contentDescription = stringResource(R.string.about_dev_widgets),
+    )
 }
 
 /** A label : monospace-value info row (version/build). */

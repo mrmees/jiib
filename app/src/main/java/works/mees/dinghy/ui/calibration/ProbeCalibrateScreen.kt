@@ -29,10 +29,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +59,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.icons.IconRef
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -273,21 +277,45 @@ fun ProbeCalibrateContent(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            ProbeIconButton(
-                                glyphName = "add",
-                                contentDescription = stringResource(R.string.probe_cd_step_larger),
+                            // Control baseline audit (Phase 4b, owner ruling 2026-06-15): the
+                            // step-size ± migrate off the hand-rolled ProbeIconButton rogue onto the
+                            // canonical OutlinedControl with the REGISTERED Increase/Decrease tokens
+                            // (kills the raw "add"/"remove" ligature strings). Stays Intent.Neutral —
+                            // this picks a magnitude (a setting), it does not command motion (§b#2).
+                            // The vertical paired-column "Move motif" layout is preserved (owner kept
+                            // the paired columns; the Z-nudge column beside it is a bed-area jog and
+                            // stays as-is). End-stop disablement dims via the StepperRow/WR-07
+                            // convention (alpha 0.38 + semantics{disabled()}) so a dead end-button
+                            // reads as disabled rather than active-but-inert (R10).
+                            OutlinedControl(
+                                label = "",
                                 onClick = onStepUp,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (idx < TESTZ_STEPS.lastIndex) Modifier
+                                        else Modifier.alpha(0.38f).semantics { disabled() },
+                                    ),
                                 intent = Intent.Neutral,
+                                icon = DinghyIcons.Increase,
+                                contentDescription = stringResource(R.string.probe_cd_step_larger),
                                 enabled = idx < TESTZ_STEPS.lastIndex,
                             )
                             StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
-                            ProbeIconButton(
-                                glyphName = "remove",
-                                contentDescription = stringResource(R.string.probe_cd_step_smaller),
+                            OutlinedControl(
+                                label = "",
                                 onClick = onStepDown,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (idx > 0) Modifier
+                                        else Modifier.alpha(0.38f).semantics { disabled() },
+                                    ),
                                 intent = Intent.Neutral,
+                                icon = DinghyIcons.Decrease,
+                                contentDescription = stringResource(R.string.probe_cd_step_smaller),
                                 enabled = idx > 0,
                             )
                         }
@@ -319,10 +347,9 @@ fun ProbeCalibrateContent(
                                     contentDescription = stringResource(R.string.common_back),
                                 )
                                 OutlinedControl(
-                                    label = stringResource(R.string.calibration_home_all),
+                                    spec = ControlSpecs.calibrationHomeAll,
                                     onClick = onHomeAll,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Go,
                                 )
                             } else {
                                 // Back FIRST (accent); Start = go (the screen's expected action).

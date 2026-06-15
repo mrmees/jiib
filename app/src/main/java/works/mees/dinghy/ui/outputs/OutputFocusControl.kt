@@ -41,6 +41,7 @@ import works.mees.dinghy.designsystem.ColorWheel
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.Scrubber
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.hsvToRgb
@@ -457,10 +458,9 @@ private fun FocusScrubberSurface(
                 intent = Intent.Accent,
             )
             OutlinedControl(
-                label = stringResource(R.string.output_off),
+                spec = ControlSpecs.outputOff,
                 onClick = { if (!busy) onOff() },
                 modifier = Modifier.weight(1f),
-                intent = Intent.Danger,
             )
         }
     }
@@ -559,10 +559,9 @@ private fun FocusLedSurface(
                 intent = Intent.Accent,
             )
             OutlinedControl(
-                label = stringResource(R.string.output_off),
+                spec = ControlSpecs.outputOff,
                 onClick = { if (!busy) onOff() },
                 modifier = Modifier.weight(1f),
-                intent = Intent.Danger,
             )
         }
     }

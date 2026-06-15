@@ -40,6 +40,7 @@ import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -196,10 +197,9 @@ fun TiltContent(
                             !vm.homedGate -> {
                                 // Unhomed: offer Home All.
                                 OutlinedControl(
-                                    label = stringResource(R.string.calibration_home_all),
+                                    spec = ControlSpecs.calibrationHomeAll,
                                     onClick = onHome,
                                     modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R19: this state's expected action
                                 )
                             }
                             running -> {

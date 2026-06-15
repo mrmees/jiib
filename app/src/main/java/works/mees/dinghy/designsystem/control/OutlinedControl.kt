@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -255,5 +256,37 @@ fun OutlinedControl(
         contentDescription = contentDescription,
         enabled = enabled,
         fill = fill,
+    )
+}
+
+/**
+ * [ControlSpec]-driven [OutlinedControl] overload (control baseline audit, Phase 2 — 2026-06-14). A
+ * NAMED control passes its registered [spec] instead of spelling out label/icon/intent at the call site;
+ * the spec composes `R.string` + [DinghyIcon][works.mees.dinghy.designsystem.icons.DinghyIcon] +
+ * `CommandRegistry` (the catalogId dispatch reference is the CALLER's concern — this overload renders
+ * only). [ControlSpec.labelRes] null = icon-only ([ControlSpec.contentDescriptionRes] then supplies the
+ * a11y label, enforced by `ControlCatalogDriftTest`).
+ *
+ * Delegates to the existing `icon:`-overload — single rendering path, no duplicated body. All other
+ * overloads are untouched.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun OutlinedControl(
+    spec: ControlSpec,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+) {
+    OutlinedControl(
+        label = spec.labelRes?.let { stringResource(it) } ?: "",
+        onClick = onClick,
+        modifier = modifier,
+        intent = spec.intent,
+        icon = spec.icon,
+        onLongClick = onLongClick,
+        contentDescription = spec.contentDescriptionRes?.let { stringResource(it) },
+        enabled = enabled,
     )
 }

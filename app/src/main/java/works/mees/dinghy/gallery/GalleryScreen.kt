@@ -49,8 +49,6 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.move.BedExtent
 import works.mees.dinghy.ui.move.BedMapView
-import works.mees.dinghy.ui.move.MoveVm
-import works.mees.dinghy.ui.move.OldMoveScreen
 
 /**
  * The in-APK component gallery (D-07) — the primary ON-DEVICE preview/sign-off surface. It renders
@@ -351,22 +349,6 @@ fun GalleryScreen(
                 onTapBed = { x, y -> tgt = x to y },
                 onDragBed = { x, y -> tgt = x to y },
                 onDragEnd = {},
-            )
-        }
-
-        // ---- OLD MOVE SCREEN (retired jog pad — preserved for comparison) ----------------------
-        SectionLabel("OldMoveScreen (retired jog pad)")
-        Box(Modifier.fillMaxWidth().height(420.dp)) {
-            OldMoveScreen(
-                vm = MoveVm(
-                    xHomed = true,
-                    yHomed = true,
-                    zHomed = true,
-                    allHomed = true,
-                    x = 117.0,
-                    y = 117.0,
-                    z = 5.0,
-                ),
             )
         }
 

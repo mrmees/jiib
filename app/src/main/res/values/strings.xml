@@ -51,6 +51,10 @@
     <string name="cd_back">Back</string>
     <string name="cd_save">Save</string>
     <string name="cd_fine_tune">Fine-tune live print adjustments</string>
+    <string name="cd_temp_settings">Sensor display settings</string>
+    <string name="cd_temp_enter_adjust">Switch to adjust mode</string>
+    <string name="cd_temp_enter_monitor">Switch to monitoring mode</string>
+    <string name="cd_temp_trace_visibility">Show or hide this trace</string>
 
     <!-- ========================= printstatus ========================== -->
     <string name="printstatus_title">Print Status</string>
@@ -460,6 +464,7 @@
     <string name="move_disable_confirm">Disable steppers? This will un-home all axes.</string>
     <string name="cd_move_jog_pad">Move jog pad</string>
     <string name="move_focus_blurb">Move the print head and bed.</string>
+    <string name="move_include_z">Include Z height (Z = %1$s)</string>
 
     <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
     <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /

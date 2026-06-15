@@ -54,6 +54,7 @@ import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowLabel
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
@@ -380,10 +381,9 @@ internal fun BedMeshContent(
                                             contentDescription = stringResource(R.string.common_back),
                                         )
                                         OutlinedControl(
-                                            label = stringResource(R.string.calibration_home_all),
+                                            spec = ControlSpecs.calibrationHomeAll,
                                             onClick = onHomeAll,
                                             modifier = Modifier.weight(1f),
-                                            intent = Intent.Go,
                                             enabled = dispatcherPresent,
                                         )
                                     }

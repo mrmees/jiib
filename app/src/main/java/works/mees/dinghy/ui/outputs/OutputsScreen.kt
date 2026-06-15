@@ -258,6 +258,7 @@ private fun OutputsContent(
                         modifier = Modifier.weight(1f),
                         intent = Intent.Accent, // R5: Back = accent
                         icon = DinghyIcons.Back,
+                        contentDescription = stringResource(R.string.cd_back),
                     )
                 }
             },

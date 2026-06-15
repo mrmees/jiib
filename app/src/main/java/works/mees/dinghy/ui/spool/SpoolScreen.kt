@@ -64,6 +64,7 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
 import works.mees.dinghy.designsystem.components.SortRow
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -487,35 +488,27 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
         uDp = uDp,
     ) {
         OutlinedControl(
-            label = "",
+            spec = ControlSpecs.commonHome,
             onClick = onHome,
             modifier = Modifier.weight(1f),
-            intent = Intent.Accent,
-            icon = DinghyIcons.Home,
         )
         OutlinedControl(
-            label = "",
+            spec = ControlSpecs.spoolScan,
             onClick = onScan,
             modifier = Modifier.weight(1f),
-            intent = Intent.Accent,
-            icon = DinghyIcons.QrCode,
         )
         // Conditional Load / Unload (LOCKED logic — RESEARCH §"Foot button logic").
         if (isSelectedLoaded) {
             OutlinedControl(
-                label = "",
+                spec = ControlSpecs.spoolUnload,
                 onClick = onUnload,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Go, // R5: the selection state's expected action
-                icon = DinghyIcons.ExpandCircleDown,
             )
         } else {
             OutlinedControl(
-                label = "",
+                spec = ControlSpecs.spoolLoad,
                 onClick = onLoad,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Go, // R5: the selection state's expected action
-                icon = DinghyIcons.ExpandCircleUp,
             )
         }
     }
