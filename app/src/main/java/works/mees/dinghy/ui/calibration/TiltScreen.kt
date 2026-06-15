@@ -164,7 +164,7 @@ fun TiltContent(
                         TiltFocus(
                             title = title,
                             state = state,
-                            modifier = Modifier.fillMaxSize().padding(8.dp),
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 },

@@ -111,7 +111,8 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  *  - Edge: [FocusEdge] — [FocusEdge.Neutral] by default ([ThemeTokens.outline]); [FocusEdge.Data]
  *    tints it with item data; [FocusEdge.Progress] draws a perimeter bar (deferred).
  *  - Content clip: content is clipped to the rounded bounds — it never overflows the frame.
- *  - Inner inset: [FocusInset] (16dp) on the content area below the header.
+ *  - Inner inset: [FocusInset] (16dp) on the content area's SIDES + BOTTOM only; the TOP inset is 0
+ *    (the 1U header bar already separates), so content sits directly under the header.
  *
  * ## THEME-01 data carve-out — [FocusEdge.Data]
  * Carries the item's actual physical color hex (e.g. Spoolman colorSwatches). It is item DATA, not a
@@ -130,8 +131,9 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
- * @param contentInset     inner inset around the content area below the header; defaults to [FocusInset]
- *                         (16dp). Screens whose content reads better tighter can pass a smaller value.
+ * @param contentInset     inner inset on the content area's SIDES + BOTTOM (the TOP is always 0 so
+ *                         content sits flush under the header); defaults to [FocusInset] (16dp).
+ *                         Screens whose content reads better tighter can pass a smaller value.
  * @param content          column content rendered inside the framed, clipped, padded surface.
  */
 @Composable
@@ -184,7 +186,10 @@ fun FocusFrame(
         val contentModifier = Modifier
             .fillMaxWidth()
             .weight(1f)
-            .padding(contentInset)
+            // TOP inset dropped (owner UAT 2026-06-15): the 1U header bar already separates header
+            // from content, so an extra gap below it only pushed content down — most visibly with
+            // vertically-centered panes. Keep the side + bottom inset for breathing room.
+            .padding(start = contentInset, end = contentInset, bottom = contentInset)
         CompositionLocalProvider(LocalUnitDp provides uDp) {
             Column(modifier = contentModifier, content = content)
         }
