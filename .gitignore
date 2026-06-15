@@ -25,5 +25,6 @@ Thumbs.db
 
 # local artifacts
 .claude/scheduled_tasks.lock
+.claude/settings.local.json
 *.apk.idsig
 tools/__pycache__/
