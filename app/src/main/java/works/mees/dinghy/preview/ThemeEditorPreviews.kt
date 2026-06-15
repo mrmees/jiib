@@ -2,7 +2,6 @@ package works.mees.dinghy.preview
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.StatusSlot
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.screen.ThemeEditorContent
@@ -48,7 +47,7 @@ private val mockStatusOverrides: Map<String, Long> = mapOf("stop" to 0xFF4488FFL
 private fun ThemeEditorColorfulDarkClosed() = PreviewBox(colorfulDark) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = mockPoolOverrides, statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -63,7 +62,7 @@ private fun ThemeEditorColorfulDarkClosed() = PreviewBox(colorfulDark) {
 private fun ThemeEditorColorfulLightClosed() = PreviewBox(colorfulLight) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = false, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = false, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -78,7 +77,7 @@ private fun ThemeEditorColorfulLightClosed() = PreviewBox(colorfulLight) {
 private fun ThemeEditorSimpleDarkClosed() = PreviewBox(simpleDark) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_SIMPLE,
+        dark = true, paletteMode = ThemeResolver.MODE_SIMPLE,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -93,7 +92,7 @@ private fun ThemeEditorSimpleDarkClosed() = PreviewBox(simpleDark) {
 private fun ThemeEditorSimpleLightClosed() = PreviewBox(simpleLight) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = false, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_SIMPLE,
+        dark = false, paletteMode = ThemeResolver.MODE_SIMPLE,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -108,7 +107,7 @@ private fun ThemeEditorSimpleLightClosed() = PreviewBox(simpleLight) {
 private fun ThemeEditorHighContrastDarkClosed() = PreviewBox(highContrastDark) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_HIGH_CONTRAST,
+        dark = true, paletteMode = ThemeResolver.MODE_HIGH_CONTRAST,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -123,7 +122,7 @@ private fun ThemeEditorHighContrastDarkClosed() = PreviewBox(highContrastDark) {
 private fun ThemeEditorHighContrastLightClosed() = PreviewBox(highContrastLight) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = false, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_HIGH_CONTRAST,
+        dark = false, paletteMode = ThemeResolver.MODE_HIGH_CONTRAST,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -142,7 +141,7 @@ private fun ThemeEditorHighContrastLightClosed() = PreviewBox(highContrastLight)
 private fun ThemeEditorFsLargeOverflow() = PreviewBox(fsLargeSeed) {
     ThemeEditorContent(
         hue = 120f, sat = 0.7f, value = 0.9f,
-        dark = true, fsChoice = FontScale.L, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = mockPoolOverrides, statusOverrides = mockStatusOverrides,
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -162,7 +161,7 @@ private fun ThemeEditorFsLargeOverflow() = PreviewBox(fsLargeSeed) {
 private fun ThemeEditorRtlSpotCheck() = PreviewBox(colorfulDark) {
     ThemeEditorContent(
         hue = 30f, sat = 1f, value = 1f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -182,7 +181,7 @@ private fun ThemeEditorRtlSpotCheck() = PreviewBox(colorfulDark) {
 private fun ThemeEditorPseudolocale() = PreviewBox(colorfulDark) {
     ThemeEditorContent(
         hue = 220f, sat = 0.85f, value = 1f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = emptyMap(), statusOverrides = emptyMap(),
         editingSlot = null, editingStatusSlot = null, onBack = {},
     )
@@ -201,7 +200,7 @@ private fun ThemeEditorPseudolocale() = PreviewBox(colorfulDark) {
 private fun ThemeEditorPoolPickerOpen() = PreviewBox(colorfulDark) {
     ThemeEditorContent(
         hue = 30f, sat = 0.8f, value = 0.9f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = mockPoolOverrides, statusOverrides = emptyMap(),
         editingSlot = 0, editingStatusSlot = null, onBack = {},
     )
@@ -220,7 +219,7 @@ private fun ThemeEditorPoolPickerOpen() = PreviewBox(colorfulDark) {
 private fun ThemeEditorStatusPickerOpen() = PreviewBox(colorfulDark) {
     ThemeEditorContent(
         hue = 0f, sat = 1f, value = 0.9f,
-        dark = true, fsChoice = FontScale.M, paletteMode = ThemeResolver.MODE_COLORFUL,
+        dark = true, paletteMode = ThemeResolver.MODE_COLORFUL,
         poolOverrides = emptyMap(), statusOverrides = mockStatusOverrides,
         editingSlot = null, editingStatusSlot = StatusSlot.Stop, onBack = {},
     )

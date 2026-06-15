@@ -815,17 +815,6 @@ class AppContainer(
     }
 
     /**
-     * Persist the S/M/L font-size choice (D-09) — active profile (durable, lost-update-safe), else the
-     * global idle theme. CR-01: the idle branch MUST route through the process-lifetime [writeScope], never
-     * a composition `rememberCoroutineScope()` ([[dinghy-compose-write-scope-cancellation]]) — the S/M/L
-     * chip tap can navigate away in the same frame, and a slow Nexus-7 flash drops the cancelled write.
-     */
-    fun setActiveFs(active: Boolean, choice: FontScale) {
-        if (active) mutateActiveProfile { it.copy(fsChoice = choice.name) }
-        else writeScope.launch { themePrefs.setFs(choice) }
-    }
-
-    /**
      * Edit ONE pool override slot (poolIndex → unsigned-32 ARGB, or null to clear) — active profile, else
      * global. Read-modify-write of the sparse [Profile.poolOverrides] map inside the durable [mutateActiveProfile].
      */

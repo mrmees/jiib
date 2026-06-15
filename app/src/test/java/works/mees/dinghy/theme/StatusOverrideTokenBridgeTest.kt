@@ -61,7 +61,7 @@ class StatusOverrideTokenBridgeTest {
     private suspend fun resolveViaIdle(mode: String, wire: Map<String, Long>): ThemeTokens {
         val tuple = ThemePrefs.sanitizeTuple(
             rawSeed = seed, rawDark = true, rawMode = mode, rawShift = 0,
-            rawFs = "M", rawOverrides = wire,
+            rawOverrides = wire,
         )
         return applyTuple(tuple)
     }
@@ -69,7 +69,7 @@ class StatusOverrideTokenBridgeTest {
     private suspend fun resolveViaActiveProfile(mode: String, wire: Map<String, Long>): ThemeTokens {
         val tuple = Profile(
             id = "p1", host = "h", seedHex = seed, dark = true, paletteMode = mode,
-            poolShift = 0, poolOverrides = wire, fsChoice = "M",
+            poolShift = 0, poolOverrides = wire,
         ).toThemeTuple()
         return applyTuple(tuple)
     }
@@ -180,7 +180,6 @@ class StatusOverrideTokenBridgeTest {
     fun sanitize_splitsKeysCorrectly_statusVsPool_dropsBoth() {
         val tuple = ThemePrefs.sanitizeTuple(
             rawSeed = seed, rawDark = true, rawMode = "Colorful", rawShift = 0,
-            rawFs = "M",
             rawOverrides = mapOf(
                 "stop" to 0xFFAB12CDL,       // status
                 "2" to 0xFF445566L,          // pool index

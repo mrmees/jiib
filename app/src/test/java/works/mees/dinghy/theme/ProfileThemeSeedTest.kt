@@ -21,7 +21,6 @@ class ProfileThemeSeedTest {
         dark: Boolean = true,
         mode: String = "Colorful",
         shift: Int = 0,
-        fs: String = "M",
         overrides: Map<String, Long> = emptyMap(),
     ) = Profile(
         id = "a",
@@ -30,18 +29,19 @@ class ProfileThemeSeedTest {
         dark = dark,
         paletteMode = mode,
         poolShift = shift,
-        fsChoice = fs,
         poolOverrides = overrides,
     )
 
     @Test
     fun mapsTuplePrimitivesToResolved() {
-        val t = profile(seedHex = "#abcdef", dark = false, mode = "Simple", shift = 90, fs = "L").toThemeTuple()
+        // fs is now app-global (FontScalePrefs); sanitizeTuple always defaults to FontScale.M.multiplier
+        // and activeThemeTuple overrides it with the app-global choice. The per-profile fsChoice is retired.
+        val t = profile(seedHex = "#abcdef", dark = false, mode = "Simple", shift = 90).toThemeTuple()
         assertEquals("#abcdef", t.seedHex)
         assertFalse(t.dark)
         assertEquals("Simple", t.paletteMode)
         assertEquals(90, t.poolShift)
-        assertEquals(FontScale.L.multiplier, t.fs)
+        assertEquals(FontScale.M.multiplier, t.fs)
     }
 
     @Test
@@ -79,8 +79,10 @@ class ProfileThemeSeedTest {
     }
 
     @Test
-    fun badFs_failsSafeToM() {
-        assertEquals(FontScale.M.multiplier, profile(fs = "XXL").toThemeTuple().fs)
+    fun tupleFs_isAlwaysMDefault_fsIsAppGlobal() {
+        // Per-printer fsChoice is retired; sanitizeTuple always produces FontScale.M.multiplier.
+        // The actual app-global value is injected by activeThemeTuple in AppContainer.
+        assertEquals(FontScale.M.multiplier, profile().toThemeTuple().fs)
     }
 
     /**
@@ -111,7 +113,6 @@ class ProfileThemeSeedTest {
             seedHex = "###",
             mode = "Nope",
             shift = -50,
-            fs = "???",
             overrides = mapOf("x" to 0x1_FFFF_FFFFL),
         ).toThemeTuple()
         // dark default(true) + every other field defaulted + no surviving overrides == the full default tuple.

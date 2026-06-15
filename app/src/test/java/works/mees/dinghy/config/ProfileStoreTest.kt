@@ -68,8 +68,7 @@ class ProfileStoreTest {
         name: String? = null,
         apiKey: String? = null,
         seedHex: String = "#3f78ff",
-        fsChoice: String = "M",
-    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, seedHex = seedHex, fsChoice = fsChoice)
+    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, seedHex = seedHex)
 
     private fun blob(vararg persisted: PersistedProfile): String =
         json.encodeToString(ListSerializer(PersistedProfile.serializer()), persisted.toList())
@@ -289,13 +288,15 @@ class ProfileStoreTest {
     }
 
     @Test
-    fun readActiveFsChoiceRaw_activeProfileWithFsChoiceL_returnsL() = runTest {
+    fun readActiveFsChoiceRaw_activeProfile_returnsMDefault() = runTest {
         val (store, ioScope) = newStore()
         withContext(ioScope.coroutineContext) {
-            // upsert with fsChoice="L" — one atomic edit that writes both the blob + active-id.
-            store.upsert(profile(id = "alpha", fsChoice = "L"))
+            // toPersisted() now always writes fsChoice="M" — per-printer fsChoice is retired.
+            // readActiveFsChoiceRaw() reads the persisted blob, so it returns "M" for all new profiles.
+            // Legacy blobs with fsChoice="L" are decoded correctly (PersistedProfile.fsChoice still exists).
+            store.upsert(profile(id = "alpha"))
             settle()
-            assertEquals("L", store.readActiveFsChoiceRaw())
+            assertEquals("M", store.readActiveFsChoiceRaw())
         }
     }
 
