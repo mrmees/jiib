@@ -143,6 +143,9 @@ NEEDED = {
     # v2.944 bundled ttf (set de-dups, so any already-present name is harmless).
     "my_location", "control_camera", "swap_vert", "bookmark", "bookmark_add",
     "home_app_logo", "stack_off",
+    # control baseline audit 2026-06-14 — sort-direction arrows + shared close glyph
+    # (SortAsc=arrow_drop_up, SortDesc=arrow_drop_down, Close=close).
+    "arrow_drop_up", "arrow_drop_down", "close",
 }
 
 

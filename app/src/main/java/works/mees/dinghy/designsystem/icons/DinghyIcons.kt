@@ -292,6 +292,13 @@ object DinghyIcons {
     val SystemRowAbout = DinghyIcon(IconRef.Ligature("info"), alternate = "system_row_about")
     val SystemRowPower = DinghyIcon(IconRef.Ligature("power_settings_new"), alternate = "system_row_power")
 
+    // --- Control baseline audit (2026-06-14, OWNER-LOCKED master-list §f #1/#2) — sort-direction
+    // arrow pair + the shared close glyph. Registered now; call sites (SortFilterControlRow's raw
+    // arrow_upward/arrow_downward and PromptDialog's raw "close") migrate in later audit phases.
+    val SortAsc = DinghyIcon(IconRef.Ligature("arrow_drop_up"), alternate = "sort_asc")
+    val SortDesc = DinghyIcon(IconRef.Ligature("arrow_drop_down"), alternate = "sort_desc")
+    val Close = DinghyIcon(IconRef.Ligature("close"), alternate = "close")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -327,5 +334,6 @@ object DinghyIcons {
         MoveTouch, MoveXY, MoveZ, SavedLocation, SaveLocation,
         MoveHomeAll, MoveDisableMotors,
         MonitorMode, TempSettings,
+        SortAsc, SortDesc, Close,
     )
 }
