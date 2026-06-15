@@ -442,6 +442,16 @@ class AppContainer(
             val firstProfileId = activeProfileId.filterNotNull().first()
             traceStylePrefs.migrateUnscopedTo(firstProfileId)
         }
+
+        // One-time font-scale migration (must NOT block on an active profile). Seeds the app-global
+        // font scale from the active printer's prior persisted fsChoice if one exists, else M.
+        // Idempotent via the FontScalePrefs sentinel. Process-lifetime writeScope.
+        writeScope.launch {
+            val seed = profileStore.readActiveFsChoiceRaw()
+                ?.let { runCatching { works.mees.dinghy.theme.FontScale.valueOf(it) }.getOrNull() }
+                ?: works.mees.dinghy.theme.FontScale.M
+            fontScalePrefs.migrateSeed(seed)
+        }
     }
 
     /**

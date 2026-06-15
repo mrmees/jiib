@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -115,6 +116,18 @@ class ProfileStore(
                 .also { it[idx] = transform(Profile.fromPersisted(list[idx])).toPersisted() }
             prefs[KEY_PROFILES] = json.encodeToString(PROFILE_LIST_SERIALIZER, next)
         }
+    }
+
+    /**
+     * One-shot, non-blocking read of the active printer's persisted fsChoice — for the font-scale
+     * migration ONLY. `dataStore.data.first()` emits the CURRENT stored prefs immediately (even when
+     * empty); it never waits for a non-null active profile. Reads the PERSISTED blob, so it still works
+     * after the runtime [Profile.fsChoice] is retired (later task).
+     */
+    suspend fun readActiveFsChoiceRaw(): String? {
+        val prefs = dataStore.data.first()
+        val activeId = prefs[KEY_ACTIVE_ID] ?: return null
+        return decode(prefs[KEY_PROFILES]).firstOrNull { it.id == activeId }?.fsChoice
     }
 
     companion object {

@@ -68,7 +68,8 @@ class ProfileStoreTest {
         name: String? = null,
         apiKey: String? = null,
         seedHex: String = "#3f78ff",
-    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, seedHex = seedHex)
+        fsChoice: String = "M",
+    ) = Profile(id = id, name = name, host = host, port = port, apiKey = apiKey, seedHex = seedHex, fsChoice = fsChoice)
 
     private fun blob(vararg persisted: PersistedProfile): String =
         json.encodeToString(ListSerializer(PersistedProfile.serializer()), persisted.toList())
@@ -275,6 +276,27 @@ class ProfileStoreTest {
         )
         assertEquals(ProfileStore.ActiveIdWrite.Unchanged, plan.activeId)
         assertEquals(listOf("first"), plan.profiles.map { it.id })
+    }
+
+    // ---- readActiveFsChoiceRaw (font-scale migration reader) ----------------------------------------
+
+    @Test
+    fun readActiveFsChoiceRaw_emptyStore_returnsNull() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            assertNull(store.readActiveFsChoiceRaw())
+        }
+    }
+
+    @Test
+    fun readActiveFsChoiceRaw_activeProfileWithFsChoiceL_returnsL() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            // upsert with fsChoice="L" — one atomic edit that writes both the blob + active-id.
+            store.upsert(profile(id = "alpha", fsChoice = "L"))
+            settle()
+            assertEquals("L", store.readActiveFsChoiceRaw())
+        }
     }
 
     /** Let the DataStore IO actor finish a write and release file handles before the next read/write. */
