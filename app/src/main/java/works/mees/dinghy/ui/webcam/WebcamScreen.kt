@@ -20,10 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import works.mees.dinghy.R
@@ -40,10 +38,10 @@ import works.mees.dinghy.render.WebcamView
 import works.mees.dinghy.render.WebcamViewHost
 import works.mees.dinghy.state.Webcam
 import works.mees.dinghy.state.selectsH264Rung
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The Webcam page (CAM-01) — the camera_feed-note design contract realized on [ScreenScaffold]
@@ -313,9 +311,7 @@ private fun CamPicker(
                 Text(
                     text = cam.name.ifBlank { stringResource(R.string.webcam_cam_unnamed) },
                     color = if (isSelected) t.accent2 else t.text,
-                    fontFamily = GeistMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fsSp(20f, t.fs).sp, // R11 list-label default
+                    style = DinghyType.dataInline.toTextStyle(t),
                 )
                 if (isSelected) {
                     // Expanded Moonraker info for the selected cam (service + resolution/aspect).
@@ -323,15 +319,13 @@ private fun CamPicker(
                     Text(
                         text = service,
                         color = t.text2,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
+                        style = DinghyType.dataMeta.toTextStyle(t),
                     )
                     cam.aspectRatio?.takeIf { it.isNotBlank() }?.let { aspect ->
                         Text(
                             text = stringResource(R.string.webcam_aspect_format, aspect),
                             color = t.text3,
-                            fontFamily = GeistMono,
-                            fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]]).
+                            style = DinghyType.dataMeta.toTextStyle(t),
                         )
                     }
                 }

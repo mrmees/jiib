@@ -27,17 +27,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.ui.text.TextStyle
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.FontScale
 import works.mees.dinghy.theme.ThemeOverride
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 import kotlin.math.roundToInt
 
 // ---- Pure MERGE-onto-current combo-stepping logic (HIGH-4 + atomic-stepping transform shape) --------
@@ -239,11 +237,7 @@ fun DevThemeCyclerOverlay(
             ) {
                 BasicText(
                     text = "THEME",
-                    style = TextStyle(
-                        color = t.text3,
-                        fontSize = fsSp(11f, t.fs).sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
+                    style = DinghyType.caption.toTextStyle(t).copy(color = t.text3),
                 )
                 DismissChip(onDismiss = onDismiss)
             }
@@ -315,15 +309,11 @@ private fun CyclerChip(
     ) {
         BasicText(
             text = title,
-            style = TextStyle(color = t.text3, fontSize = fsSp(11f, t.fs).sp),
+            style = DinghyType.caption.toTextStyle(t).copy(color = t.text3),
         )
         BasicText(
             text = value,
-            style = TextStyle(
-                color = if (enabled) t.text else t.text3,
-                fontSize = fsSp(15f, t.fs).sp,
-                fontWeight = FontWeight.Medium,
-            ),
+            style = DinghyType.caption.toTextStyle(t).copy(color = if (enabled) t.text else t.text3),
         )
     }
 }
@@ -355,7 +345,7 @@ private fun DismissChip(onDismiss: () -> Unit) {
     ) {
         BasicText(
             text = "Dismiss",
-            style = TextStyle(color = t.stop, fontSize = fsSp(12f, t.fs).sp, fontWeight = FontWeight.Bold),
+            style = DinghyType.caption.toTextStyle(t).copy(color = t.stop),
         )
     }
 }

@@ -21,10 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.FocusFrame
@@ -35,9 +33,9 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The read-only Console screen (CONS-02 / D-01..D-05). A SINGLE Focus pane: one [FocusFrame]
@@ -288,16 +286,13 @@ private fun EmptyConsole(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.console_empty_title),
                 color = t.text,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(20f, t.fs).sp,
+                style = DinghyType.focusHeader.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = stringResource(R.string.console_empty_body),
                 color = t.text2,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]])
+                style = DinghyType.caption.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
         }
@@ -319,9 +314,7 @@ private fun BackfillFailedNotice(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.console_backfill_failed),
             color = t.heat,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(15f, t.fs).sp, // 15.2-06: metadata floor 15sp ([[dinghy-font-sizes-too-small]])
+            style = DinghyType.caption.toTextStyle(t),
         )
     }
 }

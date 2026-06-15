@@ -29,7 +29,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -71,10 +70,10 @@ import works.mees.dinghy.state.FilePreviewMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.spool.SpoolWarning
 import works.mees.dinghy.ui.spool.evaluatePrintStartGate
@@ -543,13 +542,11 @@ private fun FileStatRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp, contentDescription = null)
-        Text(label, color = t.text2, fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = fsSp(15f, t.fs).sp)
+        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
         Text(
             value,
             color = t.text,
-            fontFamily = GeistMono,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.dataInline.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -593,9 +590,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                     else -> stringResource(R.string.files_empty)
                 },
                 color = t.text2,
-                fontFamily = Geist,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
+                style = DinghyType.body.toTextStyle(t),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(16.dp),
             )
@@ -706,9 +701,7 @@ private fun FilesListRow(
             Text(
                 text = row.name,
                 color = if (selected) t.accent2 else t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
+                style = DinghyType.dataInline.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
@@ -723,15 +716,13 @@ private fun FilesListRow(
                 Text(
                     text = row.modifiedEpochSeconds?.let { formatDate(it) }.orEmpty(),
                     color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp, // metadata floor 15sp
+                    style = DinghyType.dataMeta.toTextStyle(t),
                     maxLines = 1,
                 )
                 Text(
                     text = row.sizeBytes?.let { formatBytes(it) }.orEmpty(),
                     color = t.text2,
-                    fontFamily = GeistMono,
-                    fontSize = fsSp(15f, t.fs).sp,
+                    style = DinghyType.dataMeta.toTextStyle(t),
                     maxLines = 1,
                 )
             }
@@ -777,17 +768,13 @@ private fun SpoolWarningGuard(
                     Text(
                         text = stringResource(R.string.files_confirm_print_title, fileName),
                         color = t.text,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fsSp(28f, t.fs).sp,
+                        style = DinghyType.screenTitle.toTextStyle(t),
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = stringResource(R.string.files_spool_warning_subtitle),
                         color = t.text2,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = fsSp(17f, t.fs).sp,
+                        style = DinghyType.body.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
                     )
@@ -809,9 +796,7 @@ private fun SpoolWarningGuard(
                             Text(
                                 text = w.message,
                                 color = t.heat,
-                                fontFamily = Geist,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = fsSp(18f, t.fs).sp,
+                                style = DinghyType.body.toTextStyle(t),
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -819,9 +804,7 @@ private fun SpoolWarningGuard(
                     Text(
                         text = fileDetails,
                         color = t.text3,
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = fsSp(15f, t.fs).sp,
+                        style = DinghyType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
                     )

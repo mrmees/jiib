@@ -13,14 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import works.mees.dinghy.preview.PreviewPlaceholderBox
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The H.264 rung's render host (Phase 21) — the `AndroidView<SurfaceView>` analog of [WebcamViewHost],
@@ -149,8 +147,7 @@ private fun OverlayPill(
     Text(
         text = text,
         color = tokens.text,
-        fontFamily = Geist,
-        fontSize = 16.sp,
+        style = DinghyType.body.toTextStyle(tokens),
         modifier = modifier
             .background(tokens.surface, shape)
             .border(2.dp, tokens.outline, shape)
@@ -178,15 +175,12 @@ private fun DeadEndCard(
         Text(
             text = "Feed unavailable",
             color = tokens.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
+            style = DinghyType.focusHeader.toTextStyle(tokens),
         )
         Text(
             text = if (serviceName.isBlank()) "No usable stream or snapshot." else "$serviceName has no playable stream.",
             color = tokens.text2,
-            fontFamily = GeistMono,
-            fontSize = 15.sp,
+            style = DinghyType.caption.toTextStyle(tokens),
             modifier = Modifier.padding(top = 6.dp),
         )
     }
