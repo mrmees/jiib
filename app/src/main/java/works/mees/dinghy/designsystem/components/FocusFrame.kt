@@ -177,6 +177,10 @@ fun FocusFrame(
             onTrailingAction = onTrailingAction,
             trailingActionContentDescription = trailingActionContentDescription,
         )
+        // Header/content divider (owner UAT 2026-06-15): a full-width hairline landmark under the
+        // title so centered content reads against a clear top boundary instead of floating in the
+        // borderless surface. Sits flush at the 1U header bottom (the content top inset is 0).
+        Box(Modifier.fillMaxWidth().height(1.dp).background(t.outline))
         // Content fills the space below the header; contentInset (FocusInset by default) insets it.
         // Provide LocalUnitDp = uDp so EVERY control in the focus body floors at 1U (uDp) and sizes
         // its glyph to the 0.6U tier — matching the foot bar. Without this, a standalone focus button

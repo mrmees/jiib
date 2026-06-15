@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -308,13 +309,17 @@ private fun MacrosContent(
                     when {
                         state.unavailable -> MacrosUnavailable(modifier = Modifier.fillMaxWidth())
                         fieldMode is MacroFieldMode.ManageMode || liveMacro == null -> {
-                            Text(
-                                text = stringResource(R.string.macros_focus_select_prompt),
-                                color = t.text2,
-                                style = DinghyType.body.toTextStyle(t),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
-                            )
+                            // Vertically centered prompt (owner UAT 2026-06-15) — a top-anchored text
+                            // body floats high under the header divider; center it for readability.
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = stringResource(R.string.macros_focus_select_prompt),
+                                    color = t.text2,
+                                    style = DinghyType.body.toTextStyle(t),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                         else -> MacroDetailFocusBody(
                             macro = liveMacro,
