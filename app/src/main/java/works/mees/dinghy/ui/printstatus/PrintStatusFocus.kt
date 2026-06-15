@@ -251,7 +251,7 @@ internal fun StandbyFocus(
 internal fun GlanceRow(key: String, label: String, value: String, valueColor: Color) {
     val t = LocalTokens.current
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = t.text2, style = DinghyType.statValue.toTextStyle(t))
+        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
         Text(value, color = valueColor, style = DinghyType.focusHero.toTextStyle(t))
     }
 }

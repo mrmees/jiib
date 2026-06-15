@@ -112,10 +112,10 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         typeface = DinghyType.caption.typeface(context)
     }
 
-    /** Dead-end card TITLE — the printer-data filename class. [DinghyType.dataInline] (Data 20), color `--text`. */
+    /** Dead-end card TITLE — a UI status headline (e.g. "Camera not supported"). [DinghyType.focusHeader] (Ui 20), color `--text`. */
     private val cardTitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = DinghyType.dataInline.typeface(context)
+        typeface = DinghyType.focusHeader.typeface(context)
     }
 
     /**
@@ -199,7 +199,7 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         chromeTextPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density
 
         cardTitlePaint.color = t.text.toArgb()
-        cardTitlePaint.textSize = fsSp(DinghyType.dataInline.baseSp, t.fs) * density
+        cardTitlePaint.textSize = fsSp(DinghyType.focusHeader.baseSp, t.fs) * density
 
         chromeBodyPaint.color = t.text2.toArgb()
         chromeBodyPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density

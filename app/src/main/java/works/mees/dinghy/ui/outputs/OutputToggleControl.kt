@@ -94,7 +94,7 @@ fun OutputToggleControl(
                         Text(
                             text = stringResource(R.string.output_read_only),
                             color = t.text3,
-                            style = DinghyType.dataMeta.toTextStyle(t),
+                            style = DinghyType.caption.toTextStyle(t),
                         )
                     } else {
                         Row(
