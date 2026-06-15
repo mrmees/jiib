@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
-import androidx.compose.foundation.layout.heightIn
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
@@ -33,7 +30,6 @@ import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -45,7 +41,6 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.brandTint
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
-import androidx.compose.ui.unit.Dp
 import works.mees.dinghy.ui.route.NavDest
 
 /**
@@ -94,8 +89,8 @@ fun SystemPageScreen(
  * Focus is STATIC brand identity (jiib lockup + version + active printer name) — no connection
  * state, no live telemetry.
  *
- * Field rows in D-03 order (direct-tap nav; no selection state — tap = navigate immediately):
- *   Printers → Settings → Theme → System Info → About → Power (inert stub, D-08).
+ * Field rows (direct-tap nav; no selection state — tap = navigate immediately):
+ *   App Settings → Printer Settings → About.
  *
  * Shell-level FloatingEStop applies (this screen does NOT render its own e-stop; D-06 / Pitfall 6).
  *
@@ -149,7 +144,7 @@ fun SystemPageContent(
                 field = {
                     // Field: dense ListBlock of direct-tap nav rows in D-03 order.
                     ListBlock(modifier = Modifier.weight(1f)) {
-                        // Rows 1-5: direct-tap (onClick navigates immediately; no selection state).
+                        // 3 rows: direct-tap (onClick navigates immediately; no selection state).
                         items(systemNavRows()) { row ->
                             ListRow(
                                 selected = false,   // nav, not a picker — never selected
@@ -169,10 +164,6 @@ fun SystemPageContent(
                             }
                         }
 
-                        // Row 6: Power stub — D-08. No onClick. stop-tinted at alpha 0.38; inert.
-                        item {
-                            PowerStubRow(uDp = grid.uDp)
-                        }
                     }
 
                     FootButtonBar(
@@ -238,43 +229,7 @@ private fun SystemFocusContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Power stub row (D-08 — greyed/inert, no onClick, stop-tinted at 0.38f)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun PowerStubRow(uDp: Dp) {
-    val t = LocalTokens.current
-    // 1U height floor — unit grid rules ALL rows (owner UAT ruling, Phase 28, 2026-06-12).
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DinghyIconView(
-            icon = DinghyIcons.SystemRowPower,
-            contentDescription = null,
-            tint = t.stop.copy(alpha = 0.38f),
-            sizeDp = uDp * 0.6f, // R23 parity with ListRowIcon
-            modifier = Modifier.padding(end = 12.dp), // gapM parity with ListRow anatomy
-        )
-        Text(
-            text = stringResource(R.string.system_row_power),
-            color = t.stop.copy(alpha = 0.38f),
-            style = DinghyType.listLabel.toTextStyle(t), // R11/R22 parity with ListRowLabel
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = stringResource(R.string.system_row_power_sub),
-            color = t.text2.copy(alpha = 0.38f),
-            style = DinghyType.caption.toTextStyle(t),
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Nav row model (D-03 order: Printers → Settings → Theme → System Info → About)
+// Nav row model (App Settings → Printer Settings → About)
 // ─────────────────────────────────────────────────────────────────────────────
 
 private data class SystemNavRow(
@@ -284,9 +239,7 @@ private data class SystemNavRow(
 )
 
 private fun systemNavRows(): List<SystemNavRow> = listOf(
-    SystemNavRow(NavDest.Devices,    DinghyIcons.SystemRowPrinters, R.string.system_row_printers),
-    SystemNavRow(NavDest.Settings,   DinghyIcons.SystemRowSettings, R.string.system_row_settings),
-    SystemNavRow(NavDest.Theme,      DinghyIcons.SystemRowTheme,    R.string.system_row_theme),
-    SystemNavRow(NavDest.SystemInfo, DinghyIcons.SysInfoTile,       R.string.system_row_sysinfo),
-    SystemNavRow(NavDest.About,      DinghyIcons.SystemRowAbout,    R.string.system_row_about),
+    SystemNavRow(NavDest.AppSettings,     DinghyIcons.AppSettings,     R.string.system_row_app_settings),
+    SystemNavRow(NavDest.PrinterSettings, DinghyIcons.PrinterSettings, R.string.system_row_printer_settings),
+    SystemNavRow(NavDest.About,           DinghyIcons.SystemRowAbout,  R.string.system_row_about),
 )
