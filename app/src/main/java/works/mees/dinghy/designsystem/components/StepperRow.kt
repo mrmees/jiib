@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -21,6 +20,7 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
+import works.mees.dinghy.designsystem.layout.controlHeight
 import works.mees.dinghy.designsystem.layout.gapS
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ fun StepperRow(
 
     CompositionLocalProvider(LocalUnitDp provides uDp) {
         Row(
-            modifier = modifier.fillMaxWidth().height(uDp),
+            modifier = modifier.fillMaxWidth().controlHeight(uDp),
             horizontalArrangement = Arrangement.spacedBy(spacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -12,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
+import works.mees.dinghy.designsystem.layout.controlHeight
 
 /**
  * A row of foot-of-list action controls (docs/ui_design/COMPONENTS.md §"Component catalog — FootButtonBar").
@@ -73,9 +73,10 @@ fun FootButtonBar(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                // Flush: the enclosing RegisteredRegion owns the 8dp frame + inter-element gap.
-                // Non-region uses (e.g. inside a reading column) must pass their own padding.
-                .heightIn(min = uDp),
+                // The single shared exact-1U rule (controlHeight) — same as every other control row,
+                // so the foot bar can't drift off 1U vs focus tiles. Flush: the enclosing
+                // RegisteredRegion owns the 8dp frame + inter-element gap.
+                .controlHeight(uDp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = content,

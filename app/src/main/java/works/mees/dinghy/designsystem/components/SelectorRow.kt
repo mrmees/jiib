@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +21,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
+import works.mees.dinghy.designsystem.layout.controlHeight
 import works.mees.dinghy.designsystem.layout.gapS
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.fsSp
@@ -109,10 +109,10 @@ internal data class SelectorOption<K>(
  *    `Alignment.TopEnd`, non-displacing (does not replace the tile's primary icon). Sort only.
  *
  * ## Sizing
- *  - Tile height = 1U (`maxOf(uDp, 48.dp)` — [selectorTileHeightDp]).
- *  - When [provideUnitDp] is true (IncrementPicker), the row is exactly `height(uDp)` and provides
- *    [LocalUnitDp] so each tile's glyph floors at 1U and hits the 0.6U icon tier. Sort/Filter use the
- *    `heightIn(min = tileHeight)` form and do NOT provide [LocalUnitDp] (preserving their exact look).
+ *  - Row height = exactly 1U via [controlHeight] — the single shared control-height rule, identical
+ *    to [FootButtonBar] and [StepperRow] (owner UAT 2026-06-15).
+ *  - [LocalUnitDp] is ALWAYS provided so each tile's glyph floors at 1U and hits the 0.6U icon tier,
+ *    matching the foot bar (every preset — Sort/Filter/Increment/axis).
  *  - Inter-tile spacing = [gapS] (`uDp × 0.125`, = 8dp at U=64 — Phase-1 token).
  *
  * Stateless, tokens-only. Internal — presets are the public surface.
@@ -124,19 +124,17 @@ internal fun <K> SelectorRow(
     uDp: Dp,
     modifier: Modifier = Modifier,
     leadingTypeTile: DinghyIcon? = null,
-    provideUnitDp: Boolean = false,
 ) {
     val t = LocalTokens.current
     // 1U tiles (owner All-1U ruling 2026-06-12), floored at 48dp touch target.
     val tileHeight = maxOf(uDp, 48.dp)
 
-    val content: @Composable () -> Unit = {
+    // EXACT 1U height + LocalUnitDp for EVERY preset (owner UAT 2026-06-14 — uniform control height
+    // and glyph tier matching the foot bar). Was gated by a `provideUnitDp` flag that left Sort/Filter
+    // on `heightIn(min)` + the legacy glyph, so their tiles read a hair tall and the glyph differed.
+    CompositionLocalProvider(LocalUnitDp provides uDp) {
         Row(
-            modifier = if (provideUnitDp) {
-                modifier.fillMaxWidth().height(uDp)
-            } else {
-                modifier.fillMaxWidth()
-            },
+            modifier = modifier.fillMaxWidth().controlHeight(uDp),
             horizontalArrangement = Arrangement.spacedBy(gapS(uDp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -160,13 +158,18 @@ internal fun <K> SelectorRow(
                 }
             }
 
-            // OPTION TILES
+            // OPTION TILES — structurally IDENTICAL to a FootButtonBar button (owner UAT 2026-06-14):
+            // a plain OutlinedControl carrying its OWN 1U via heightIn(min=uDp) (LocalUnitDp provided
+            // here), NOT a fillMaxHeight tile. The earlier `Box.fillMaxHeight { OutlinedControl
+            // .fillMaxHeight }` form measured ~7px TALLER than the foot button at the same uDp — fill
+            // semantics differed from the foot button's intrinsic-min sizing. The Box stays only to
+            // host the non-displacing direction overlay; it wraps the control's natural 1U height.
             options.forEach { opt ->
-                Box(modifier = Modifier.weight(1f).heightIn(min = tileHeight)) {
+                Box(modifier = Modifier.weight(1f)) {
                     OutlinedControl(
                         label = opt.label,
                         onClick = { onSelect(opt.key) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = tileHeight),
+                        modifier = Modifier.fillMaxWidth(),
                         intent = selectorTileIntent(opt.isActive),
                         icon = opt.icon,
                         contentDescription = opt.contentDescription,
@@ -190,12 +193,6 @@ internal fun <K> SelectorRow(
             }
         }
     }
-
-    if (provideUnitDp) {
-        CompositionLocalProvider(LocalUnitDp provides uDp, content = content)
-    } else {
-        content()
-    }
 }
 
 /**
@@ -210,8 +207,8 @@ data class AxisOption(val axis: String, val isSelected: Boolean, val enabled: Bo
  * axis identity is a letter, not a glyph). Selected = [Intent.Accent] + accentSoft fill; inactive =
  * [Intent.Neutral] (R18). Replaces the inline `AxisSelectChip` Box+border+clickable rogue.
  *
- * `provideUnitDp = true` so each tile floors at 1U and fills the row (R26), matching the Microstep
- * jog/step rows. A disabled (unhomed) axis tile is greyed via [Modifier.alpha] + `disabled()`
+ * Tiles are exactly 1U (the shared [controlHeight] rule, [LocalUnitDp] provided by [SelectorRow]),
+ * matching the Microstep jog/step rows. A disabled (unhomed) axis tile is greyed via [Modifier.alpha] + `disabled()`
  * semantics and installs no click (the tap is gated by routing the select only for enabled axes).
  *
  * @param options the X/Y/Z options in display order.
@@ -241,6 +238,5 @@ fun AxisSelectorRow(
         },
         uDp = uDp,
         modifier = modifier,
-        provideUnitDp = true,
     )
 }

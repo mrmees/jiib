@@ -45,8 +45,7 @@ fun IncrementPicker(
     modifier: Modifier = Modifier,
 ) {
     // Thin preset over SelectorRow: no leading type tile, numeric label tiles, accentSoft selected
-    // fill, and LocalUnitDp provided (provideUnitDp = true) so each tile floors at 1U and fills the
-    // height(uDp) row — the R26 mechanism.
+    // fill. SelectorRow owns the shared 1U controlHeight + LocalUnitDp (0.6U glyph tier).
     SelectorRow(
         options = steps.map { step ->
             SelectorOption(
@@ -58,7 +57,6 @@ fun IncrementPicker(
         onSelect = onSelect,
         uDp = uDp,
         modifier = modifier,
-        provideUnitDp = true,
     )
 }
 

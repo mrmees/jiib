@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.FocusInset
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -176,13 +178,18 @@ fun FocusFrame(
             trailingActionContentDescription = trailingActionContentDescription,
         )
         // Content fills the space below the header; contentInset (FocusInset by default) insets it.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(contentInset),
-            content = content,
-        )
+        // Provide LocalUnitDp = uDp so EVERY control in the focus body floors at 1U (uDp) and sizes
+        // its glyph to the 0.6U tier — matching the foot bar. Without this, a standalone focus button
+        // falls to the flat 64dp floor and reads SHORTER than foot-bar buttons on larger screens
+        // (owner UAT 2026-06-14 — the Move "pressed bookmark" Move/Delete buttons). weight(1f) must be
+        // computed in this ColumnScope, so build the modifier here and pass it into the provider.
+        val contentModifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .padding(contentInset)
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Column(modifier = contentModifier, content = content)
+        }
     }
 }
 
