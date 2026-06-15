@@ -953,7 +953,10 @@ fun AppShell(
             estopDest.isRoute<NavDest.About>() ||
             estopDest.isRoute<NavDest.Settings>() ||
             estopDest.isRoute<NavDest.System>() ||
-            estopDest.isRoute<NavDest.SystemInfo>()
+            estopDest.isRoute<NavDest.SystemInfo>() ||
+            estopDest.isRoute<NavDest.AppSettings>() ||
+            estopDest.isRoute<NavDest.PrinterSettings>() ||
+            estopDest.isRoute<NavDest.ManagePrinters>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(

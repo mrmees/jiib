@@ -72,6 +72,14 @@ class NavDestRoundTripTest {
     }
 
     // ---------------------------------------------------------------------------
+    // Settings-split routes (task 2.1)
+    // ---------------------------------------------------------------------------
+
+    @Test fun appSettings_roundTrips()     { assertRoundTrip(NavDest.AppSettings) }
+    @Test fun printerSettings_roundTrips() { assertRoundTrip(NavDest.PrinterSettings) }
+    @Test fun managePrinters_roundTrips()  { assertRoundTrip(NavDest.ManagePrinters) }
+
+    // ---------------------------------------------------------------------------
     // All knownNavDests round-trip (completeness guard)
     // ---------------------------------------------------------------------------
 
