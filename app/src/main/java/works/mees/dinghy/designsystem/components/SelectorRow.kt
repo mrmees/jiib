@@ -173,12 +173,14 @@ internal fun <K> SelectorRow(
                         // Selected tile = accentSoft fill (ListRow selected convention).
                         fill = if (selectorWantsAccentFill(opt.isActive)) t.accentSoft else null,
                     )
-                    // Direction overlay — small registered glyph at TopEnd, non-displacing.
+                    // Direction overlay — registered glyph at TopEnd, non-displacing.
                     if (opt.directionIcon != null) {
                         DinghyIconView(
                             icon = opt.directionIcon,
                             tint = t.accent2,
-                            sizeDp = fsSp(14f, t.fs).dp,
+                            // U-relative (~0.5U) so the arrow_drop caret reads as a clear direction
+                            // indicator, not a dot (owner UAT 2026-06-14 — fsSp(14) was far too small).
+                            sizeDp = uDp * 0.5f,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(6.dp),
