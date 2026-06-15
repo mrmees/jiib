@@ -40,6 +40,7 @@ fun FileListView(
         text = t.text.toArgb(),
         textSecondary = t.text2.toArgb(),
         textMuted = t.text3.toArgb(),
+        fs = t.fs,
     )
     val adapter = remember {
         FileRowsAdapter(FileThumbnailLoader.get(context))

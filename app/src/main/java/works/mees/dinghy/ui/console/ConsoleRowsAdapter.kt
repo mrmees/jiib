@@ -1,15 +1,15 @@
 package works.mees.dinghy.ui.console
 
-import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.dinghy.R
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.views.typeface
 
 /**
  * The View-side severity color palette for console rows. The Composable resolves role tokens
@@ -152,11 +152,11 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         )
         gravity = Gravity.START or Gravity.CENTER_VERTICAL
         setPadding(dp(12), dp(4), dp(12), dp(4))
-        // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the same res/font the
-        // Compose GeistMono FontFamily uses; falls back to platform monospace if unavailable.
-        typeface = ResourcesCompat.getFont(context, R.font.geist_mono_medium) ?: Typeface.MONOSPACE
-        // 15sp floor as the unbound fallback; bind() rescales to the active --fs from the palette (WR-04).
-        textSize = 15f
+        // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the DinghyType.consoleLine
+        // role — single source of truth shared with the Compose toolkit; falls back to platform monospace.
+        typeface = DinghyType.consoleLine.typeface(context)
+        // consoleLine base (15sp) as the unbound fallback; bind() rescales to the active --fs (WR-04).
+        textSize = DinghyType.consoleLine.baseSp
         setTextIsSelectable(false)
     }
 
@@ -164,9 +164,9 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         text = displayText(line.rawMessage)
         val p = palette
         if (p != null) {
-            // Honor the active S/M/L --fs (WR-04): 15sp base * fs, matching fsSp() on Compose surfaces.
+            // Honor the active S/M/L --fs (WR-04): consoleLine base * fs, matching fsSp() on Compose surfaces.
             // The glyph below is sized off this scaled textSize, so it tracks --fs too.
-            textSize = fsSp(15f, p.fs)
+            textSize = fsSp(DinghyType.consoleLine.baseSp, p.fs)
             setBackgroundColor(p.background)
             setTextColor(
                 when (line.severity) {

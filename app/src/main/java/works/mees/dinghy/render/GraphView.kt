@@ -5,16 +5,15 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Typeface
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.content.res.ResourcesCompat
 import kotlin.math.roundToInt
-import works.mees.dinghy.R
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.theme.views.ThemeableView
+import works.mees.dinghy.theme.views.typeface
 
 /**
  * The live line graph (D-11) — a classic-Views custom-`Canvas` `View`, the HIGH-churn render
@@ -128,10 +127,9 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * Focus|Field center seam. Color is pushed from the muted [ThemeTokens.text3] in [applyTokens].
      */
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = LABEL_BASE_SP * density // default; re-set --fs-scaled in applyTokens
+        textSize = DinghyType.statValue.baseSp * density // default; re-set --fs-scaled in applyTokens
         textAlign = Paint.Align.RIGHT
-        typeface = runCatching { ResourcesCompat.getFont(context, R.font.geist_mono_medium) }
-            .getOrNull() ?: Typeface.MONOSPACE
+        typeface = DinghyType.statValue.typeface(context)
     }
 
     /**
@@ -287,7 +285,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
         // reapplyOverrides() re-reads lastTokens (now updated above) and lastOverrides.
         reapplyOverrides()
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
-        labelPaint.textSize = fsSp(LABEL_BASE_SP, t.fs) * density // match the --fs-scaled button text size
+        labelPaint.textSize = fsSp(DinghyType.statValue.baseSp, t.fs) * density // statValue role — --fs-scaled
         invalidate()
     }
 
@@ -461,9 +459,6 @@ class GraphView(context: Context) : View(context), ThemeableView {
         /** Dash on/off lengths for the setpoint line (px). */
         private const val SETPOINT_DASH_ON = 8f
         private const val SETPOINT_DASH_OFF = 6f
-
-        /** Y-axis label base size (sp) — ~1.5× the OutlinedControl button label; `--fs`-scaled in applyTokens. */
-        private const val LABEL_BASE_SP = 27f
 
         /** Y-axis label inset from the graph edge (dp-equivalent; scaled by density). */
         private const val LABEL_PAD = 6f
