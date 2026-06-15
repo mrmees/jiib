@@ -33,6 +33,7 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.theme.Geist
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -192,7 +193,7 @@ private fun ConsoleContent(
             // with the FootButtonBar beneath it. NOT a two-region ScreenScaffold — the console is a
             // single-pane special-use screen; a plain Column is the honest structure and renders the
             // same in portrait and landscape (no side-by-side split).
-            Column(Modifier.fillMaxSize()) {
+            RegisteredRegion(Modifier.fillMaxSize()) {
                 FocusFrame(
                     title = stringResource(R.string.cd_launcher_console),
                     icon = DinghyIcons.LauncherConsole,
