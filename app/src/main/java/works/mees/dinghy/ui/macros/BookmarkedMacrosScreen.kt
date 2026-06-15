@@ -35,14 +35,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,9 +63,9 @@ import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.net.JsonRpcMethods
-import works.mees.dinghy.theme.Geist
-import works.mees.dinghy.theme.GeistMono
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.screen.TokenTextField
 
@@ -314,8 +311,7 @@ private fun MacrosContent(
                             Text(
                                 text = stringResource(R.string.macros_focus_select_prompt),
                                 color = t.text2,
-                                fontFamily = Geist,
-                                fontSize = fsSp(17f, t.fs).sp,
+                                style = DinghyType.body.toTextStyle(t),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
                             )
@@ -392,8 +388,7 @@ private fun ColumnScope.MacroDetailFocusBody(
         Text(
             text = macro.description,
             color = t.text2,
-            fontFamily = Geist,
-            fontSize = fsSp(17f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -405,8 +400,7 @@ private fun ColumnScope.MacroDetailFocusBody(
             Text(
                 text = stringResource(R.string.macros_loading_params),
                 color = t.text2,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -423,8 +417,7 @@ private fun ColumnScope.MacroDetailFocusBody(
             Text(
                 text = stringResource(R.string.macros_raw_args_hint),
                 color = t.text3,
-                fontFamily = Geist,
-                fontSize = fsSp(15f, t.fs).sp,
+                style = DinghyType.caption.toTextStyle(t),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -577,9 +570,7 @@ private fun MacroNumericParamField(
         Text(
             text = paramLabel(param),
             color = t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.caption.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -595,12 +586,7 @@ private fun MacroNumericParamField(
                 }
             },
             singleLine = true,
-            textStyle = TextStyle(
-                color = t.text,
-                fontFamily = GeistMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = fsSp(18f, t.fs).sp,
-            ),
+            textStyle = DinghyType.dataInline.toTextStyle(t).copy(color = t.text),
             cursorBrush = SolidColor(t.accent2),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
@@ -618,8 +604,7 @@ private fun MacroNumericParamField(
                     Text(
                         text = "0",
                         color = t.text3,
-                        fontFamily = GeistMono,
-                        fontSize = fsSp(18f, t.fs).sp,
+                        style = DinghyType.dataInline.toTextStyle(t),
                     )
                 }
                 innerField()
@@ -647,8 +632,7 @@ private fun ColumnScope.MacroManageField(
         Text(
             text = stringResource(R.string.macros_helper_hint),
             color = t.text2,
-            fontFamily = Geist,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.caption.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp),
@@ -675,9 +659,7 @@ private fun ColumnScope.MacroManageField(
                     Text(
                         text = macro.name,
                         color = t.text,
-                        fontFamily = GeistMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = fsSp(18f, t.fs).sp,
+                        style = DinghyType.listLabel.toTextStyle(t),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
@@ -717,16 +699,13 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.macros_empty_title),
             color = t.text,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(22f, t.fs).sp,
+            style = DinghyType.screenTitle.toTextStyle(t),
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = stringResource(R.string.macros_empty_body),
             color = t.text2,
-            fontFamily = Geist,
-            fontSize = fsSp(15f, t.fs).sp,
+            style = DinghyType.caption.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
@@ -741,9 +720,7 @@ internal fun MacrosUnavailable(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.macros_unavailable),
             color = t.text2,
-            fontFamily = Geist,
-            fontWeight = FontWeight.Medium,
-            fontSize = fsSp(16f, t.fs).sp,
+            style = DinghyType.body.toTextStyle(t),
         )
     }
 }

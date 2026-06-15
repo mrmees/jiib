@@ -16,9 +16,10 @@ import androidx.compose.ui.unit.sp
 import works.mees.dinghy.prompt.EmphasisTag
 import works.mees.dinghy.prompt.MarkupNode
 import works.mees.dinghy.prompt.PromptTextSize
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 
 /**
@@ -55,12 +56,10 @@ fun PromptMarkupText(
     Text(
         text = annotated,
         modifier = modifier,
-        // Default run color/size/weight (a run with no <color>/<size>/<b> uses these): `--text`, 18sp
-        // Geist Regular. Individual spans override color/background/size/weight/style as the AST dictates.
+        // Default run color/size/weight (a run with no <color>/<size>/<b> uses these): `--text`, the body
+        // role (Geist 20 Med). Individual spans override color/background/size/weight/style as the AST dictates.
         color = t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Normal,
-        fontSize = fsSp(18f, t.fs).sp,
+        style = DinghyType.body.toTextStyle(t),
     )
 }
 

@@ -22,6 +22,11 @@ class FontConformanceTest {
         "ui/files/FileRowsAdapter.kt",
         "render/GraphView.kt",
         "render/WebcamView.kt",
+        // The macro-author `<size:…>` markup ladder is DATA (the size analog of the documented
+        // `<color:#hex>` author-hex carve-out, THEMING.md §D-03) — a SpanStyle fontSize the author
+        // chooses, not chrome. The base run is role-routed (DinghyType.body); only the sanctioned
+        // size-span carve-out remains inline here.
+        "ui/prompt/PromptMarkupText.kt",
         "/preview/", "/gallery/",   // NOT /bench/ — BenchActivity ships (manifest), gets swept
     )
 

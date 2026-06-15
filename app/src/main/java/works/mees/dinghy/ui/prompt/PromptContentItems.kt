@@ -17,19 +17,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import works.mees.dinghy.prompt.MarkupNode
 import works.mees.dinghy.prompt.PromptAlign
 import works.mees.dinghy.prompt.PromptItem
 import works.mees.dinghy.prompt.PromptItemType
 import works.mees.dinghy.prompt.PromptStyle
-import works.mees.dinghy.theme.Geist
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
-import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
  * The per-item renderers for the prompt Field (12-04 Task 2). A [PromptItem] is rendered by [type]:
@@ -142,9 +140,7 @@ private fun PromptTextItem(text: String, align: PromptAlign?, modifier: Modifier
     Text(
         text = text,
         color = t.text,
-        fontFamily = Geist,
-        fontWeight = FontWeight.Normal,
-        fontSize = fsSp(18f, t.fs).sp,
+        style = DinghyType.body.toTextStyle(t),
         textAlign = align.toTextAlign(),
         modifier = modifier,
     )
@@ -193,9 +189,7 @@ internal fun PromptButtonControl(
         Text(
             text = label,
             color = color,
-            fontFamily = Geist,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fsSp(18f, t.fs).sp,
+            style = DinghyType.buttonLabel.toTextStyle(t),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
