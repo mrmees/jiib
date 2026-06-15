@@ -91,10 +91,10 @@ sealed interface MoveMode {
  * archetype: a [ScreenScaffold] whose Field is a translucent [ListRow] action-list and whose Focus
  * is a [FocusFrame] that swaps its content (and header identity) by the selected [MoveMode].
  *
- * This LIVE entry mirrors [OldMoveScreen]'s collection (dispatcher / vm / printerState / inFlight /
- * isPrinting) and additionally collects [AppContainer.savedLocations], then delegates rendering to
- * the stateless [MoveHubContent]. Signature is IDENTICAL to [OldMoveScreen] so the AppShell route
- * swap is one line.
+ * This LIVE entry collects the standard Move inputs (dispatcher / vm / printerState / inFlight /
+ * isPrinting) plus [AppContainer.savedLocations], then delegates rendering to the stateless
+ * [MoveHubContent]. (It replaced the retired command-centric jog-pad screen, deleted in the
+ * control-baseline audit Phase 9 — the AppShell route now points here.)
  *
  * @param container service-locator (live `printerState`, session dispatcher, saved locations).
  * @param holder    toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating + bounds/feed).
