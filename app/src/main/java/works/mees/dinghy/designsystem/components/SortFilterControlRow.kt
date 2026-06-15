@@ -2,6 +2,7 @@ package works.mees.dinghy.designsystem.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import kotlinx.collections.immutable.ImmutableList
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -98,6 +99,9 @@ fun <K> SortRow(
                 isActive = active,
                 // Direction overlay only on the active sort tile (registered SortAsc/SortDesc).
                 directionIcon = if (active) sortDirectionIcon(opt.directionUp) else null,
+                // Forward the caller's TalkBack label — icon-only sort tiles are otherwise silent
+                // (control-audit Codex review 2026-06-15: the preset was dropping it).
+                contentDescription = stringResource(opt.contentDescriptionRes),
             )
         },
         onSelect = onSelect,
@@ -148,6 +152,8 @@ fun <K> FilterRow(
                 key = opt.key,
                 icon = opt.icon,
                 isActive = opt.isActive,
+                // Forward the caller's TalkBack label (control-audit Codex review 2026-06-15).
+                contentDescription = stringResource(opt.contentDescriptionRes),
             )
         },
         onSelect = onSelect,

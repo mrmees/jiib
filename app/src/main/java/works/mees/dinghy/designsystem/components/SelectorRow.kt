@@ -12,7 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.dinghy.designsystem.control.Intent
@@ -88,6 +91,8 @@ internal data class SelectorOption<K>(
     val isActive: Boolean = false,
     val directionIcon: DinghyIcon? = null,
     val contentDescription: String? = null,
+    /** When false, the tile is dimmed + announced disabled and installs no click (R10). Default true. */
+    val enabled: Boolean = true,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -165,7 +170,11 @@ internal fun <K> SelectorRow(
             // semantics differed from the foot button's intrinsic-min sizing. The Box stays only to
             // host the non-displacing direction overlay; it wraps the control's natural 1U height.
             options.forEach { opt ->
-                Box(modifier = Modifier.weight(1f)) {
+                // A disabled tile (e.g. AxisSelectorRow's unhomed axis) dims + announces disabled
+                // (the StepperRow/WR-07 convention); OutlinedControl(enabled=false) installs no click.
+                val tileDisabledModifier =
+                    if (!opt.enabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier
+                Box(modifier = Modifier.weight(1f).then(tileDisabledModifier)) {
                     OutlinedControl(
                         label = opt.label,
                         onClick = { onSelect(opt.key) },
@@ -173,6 +182,7 @@ internal fun <K> SelectorRow(
                         intent = selectorTileIntent(opt.isActive),
                         icon = opt.icon,
                         contentDescription = opt.contentDescription,
+                        enabled = opt.enabled,
                         // Selected tile = accentSoft fill (ListRow selected convention).
                         fill = if (selectorWantsAccentFill(opt.isActive)) t.accentSoft else null,
                     )
@@ -229,6 +239,9 @@ fun AxisSelectorRow(
                 label = opt.axis,
                 isActive = opt.isSelected,
                 contentDescription = opt.axis,
+                // Forward the homed gate so an unhomed axis renders dimmed + disabled (was dropped —
+                // control-audit Codex review 2026-06-15; the KDoc promised this but the map omitted it).
+                enabled = opt.enabled,
             )
         },
         onSelect = { axis ->
