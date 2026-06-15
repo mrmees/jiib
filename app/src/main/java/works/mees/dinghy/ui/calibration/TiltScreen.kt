@@ -330,10 +330,12 @@ private fun TiltFieldBody(
 @Composable
 private fun TiltHeadlineText(text: String, color: Color) {
     val t = LocalTokens.current
+    // State copy ("Ready to Run", "Leveled", …) is UI text → Geist. Only the printer-pulled
+    // stepper names + adjustment values below stay Mono.
     Text(
         text = text,
         color = color,
-        style = DinghyType.statValue.toTextStyle(t),
+        style = DinghyType.screenTitle.toTextStyle(t),
     )
 }
 
