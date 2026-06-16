@@ -225,6 +225,8 @@ git commit -m "feat(printstatus): two-axis home state-label helper + SHUTDOWN st
 
 This task is layout/Compose work — verified by **build-green + preview render**, not a unit test.
 
+> **Executor note on e-stop (intentional):** `isPrinting` is computed as `printState ∈ {Printing, Paused}` ONLY. During Klipper `Error`/`Shutdown` the header e-stop is deliberately ABSENT — the firmware is already halted, so emergency-stop is a no-op there; the meaningful recovery (firmware restart) is a build-up concern. This is correct, not a bug — do not "fix" it by widening `isPrinting` to cover klippy faults.
+
 - [ ] **Step 1: Replace `StandbyFocus` and `GlanceRow`** (PrintStatusFocus.kt:202-257) with the universal `HomeFocus`. `isPrinting` is computed internally; e-stop is wired so the FocusFrame header e-stop appears while printing (preserving today's behavior — `StandbyFocus` never wired it):
 
 ```kotlin
@@ -429,14 +431,14 @@ git commit -m "refactor(printstatus): collapse the four-mode render to one home 
 
 - [ ] **Step 2: Delete from `PrintStatusField.kt`:** `PrintStatusActiveField`, `PrintStatusTerminalField`, `ShortcutRow`, `BabystepRow`, the StatGrid composable, `TerminalStatsList`, `TerminalErrorLines`, and the per-state foot-bar renderer (`PrintStatusFootBar` and the `PrintStatusControl`-driven button row). Keep `HomeField`. Remove now-unused imports (`basicMarquee`, `ImmutableList`, `Severity`/`SeverityToast` only if `HomeField` no longer uses them — it DOES use `SeverityToast` for `failureText`, so keep those).
 
+> NOTE: the composables deleted here are referenced ONLY by `PrintStatusContent` (whose calls Task 4 already removed) — `PrintStatusPreviews.kt` references `PrintStatusScreen` + `SampleFixtures.forMode`/`PrintStatusMode`, NOT these composables, and those still exist until Task 6. So `assembleDebug` stays green at this commit. (The `PrintStatusMode` main-sourceset coupling is handled in Task 6, before its `git rm`.)
+
 - [ ] **Step 3: Build to verify it compiles.**
 
 Run: `timeout 900 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug --no-daemon" 2>&1 | tr -d '\r'`
-Expected: BUILD FAILS only in the test/preview sourceset references resolved in Tasks 6-7, OR succeeds for `:app:assembleDebug` (which excludes unit tests). If `assembleDebug` fails because `PrintStatusPreviews.kt` (a `main`-sourceset preview file) references deleted symbols, that's expected — proceed to Task 7's preview rewrite BEFORE relying on a green `assembleDebug`. To keep this task self-contained, do the minimal preview fix inline here if the build blocks: temporarily comment out the broken preview bodies, with a `// rewritten in Task 7` marker. Prefer leaving Task 7 to do it cleanly if `assembleDebug` still succeeds (previews are `@Preview`-only and may not block the APK build depending on usage).
+Expected: BUILD SUCCESSFUL. If it fails on an unexpected reference to a just-deleted composable, grep `app/src` for that symbol and remove/repoint the straggler before committing.
 
-> NOTE for the executor: `PrintStatusPreviews.kt` lives in `main`, so deleting symbols it references WILL break `assembleDebug`. Recommended: **fold Task 7's preview rewrite into this task's commit** if the build is red, so every commit builds. The plan keeps them separate for reviewability, but a green build at each commit takes precedence.
-
-- [ ] **Step 4: Commit** (only once `assembleDebug` is green — combine with Task 7 if needed).
+- [ ] **Step 4: Commit.**
 
 ```bash
 git add app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusFocus.kt app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusField.kt
@@ -463,60 +465,9 @@ git commit -m "refactor(printstatus): delete orphaned per-state Focus/Field comp
 
 - [ ] **Step 2: Trim the `PrintStatusContent` signature** to only the params it still consumes after Task 4's collapse: `state, metadata, httpBase, printerName, isMultiPrinter, idleActions, spoolmanPresent, activeSpoolCardState, failureText, onEmergencyStop, onNavigate, onPreheat, modifier`. Delete the `mode` param and all deleted-feature params. (`metadata`/`httpBase`/`errorLines` are no longer rendered by the single path — delete them too unless retained for the preview overload; prefer deleting and simplifying the preview overload to match.)
 
-- [ ] **Step 3: Delete the three model files** and their now-dead helpers:
+> **Codex fix (ERROR 1, 2026-06-15):** `PrintStatusMode` is referenced by two **main**-sourceset files (`SampleFixtures.kt`, `PrintStatusPreviews.kt`). They MUST be rewritten **before** the model files are `git rm`ed, or this task's commit breaks `assembleDebug`. Steps 3-4 below do that rewrite first; the `git rm` is Step 5.
 
-```bash
-git rm app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusMode.kt \
-       app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModel.kt \
-       app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModel.kt
-```
-
-This removes `classifyPrintStatus`, `PrintStatusMode`/`TerminalKind`, `babystepVisible`, `nextBabystepStep`, `uiModel`/`PrintStatusUiModel`/`LauncherDest` derivation, `derivePrintStatusControls`/`terminalControls`/`PrintStatusControl`/`PrintStatusControlAction`/`PrintStatusPendingAction`/`clearPrintStatusPendingAction`/`clearPendingOnDispatchFailure`. If any of these symbols are referenced elsewhere in `main` (grep first — see Step 4), move the still-needed ones into `PrintStatusScreen.kt` instead of deleting; expectation is none survive.
-
-- [ ] **Step 4: Grep for stragglers in `main`.**
-
-Run:
-```bash
-cd /mnt/e/claude/personal/github/dinghy-display && grep -rn "classifyPrintStatus\|PrintStatusMode\|TerminalKind\|uiModel\|derivePrintStatusControls\|PrintStatusPendingAction\|PrintStatusControlAction\|babystepVisible\|nextBabystepStep\|clearPendingOnDispatchFailure\|clearPrintStatusPendingAction" app/src/main/java
-```
-Expected: no results in `main` (all references gone). Fix any that remain.
-
-- [ ] **Step 5: Build to verify `main` compiles.**
-
-Run: `timeout 900 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug --no-daemon" 2>&1 | tr -d '\r'`
-Expected: BUILD SUCCESSFUL (test sourceset still references deleted symbols — fixed in Task 7).
-
-- [ ] **Step 6: Commit.**
-
-```bash
-git add -A app/src/main/java/works/mees/dinghy/ui/printstatus/
-git commit -m "refactor(printstatus): delete per-state mode/uimodel/control logic; simplify container"
-```
-
----
-
-## Task 7: Prune & rewrite dependent tests and previews
-
-**Files:**
-- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusModeTest.kt`
-- Delete: `app/src/test/java/works/mees/dinghy/preview/SampleFixturesTest.kt`
-- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModelTest.kt`
-- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModelTest.kt`
-- Modify: `app/src/main/java/works/mees/dinghy/preview/PrintStatusPreviews.kt`
-- Modify: `app/src/main/java/works/mees/dinghy/preview/SampleFixtures.kt` (the `forMode`/`printStatusModes` helpers)
-
-- [ ] **Step 1: Delete the four obsolete test files** (their subjects no longer exist):
-
-```bash
-git rm app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusModeTest.kt \
-       app/src/test/java/works/mees/dinghy/preview/SampleFixturesTest.kt \
-       app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModelTest.kt \
-       app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModelTest.kt
-```
-
-(Per the spec, per-state foot controls / pending-action machinery are deliberately removed, not relocated — so these tests have no new home. The behavior returns, with tests, during the per-state build-up.)
-
-- [ ] **Step 2: Rewrite `SampleFixtures` mode helpers.** Replace the `PrintStatusMode`-keyed `forMode(mode: PrintStatusMode)` / `printStatusModes` with a `PrintState`-keyed fixture set. In `SampleFixtures.kt`:
+- [ ] **Step 3: Rewrite `SampleFixtures` mode helpers** so nothing in `main` references `PrintStatusMode`. Replace the `PrintStatusMode`-keyed `forMode(mode: PrintStatusMode)` / `printStatusModes` with a `PrintState`-keyed fixture set. In `app/src/main/java/works/mees/dinghy/preview/SampleFixtures.kt`:
 
 ```kotlin
     /** One representative PrinterState per print-job state, for the home-screen preview matrix. */
@@ -530,25 +481,76 @@ git rm app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusModeTest.kt
         printFilename = if (s == PrintState.Printing || s == PrintState.Paused) "benchy.gcode" else "",
         klippyState = KlippyState.Ready,
     )
-```
 
-Use the file's existing `base()`/builder idiom (match its actual helper name and required fields — read the file first). Add a Klipper-fault fixture too:
-
-```kotlin
     fun klippyShutdown(): PrinterState = base().copy(klippyState = KlippyState.Shutdown)
 ```
 
-- [ ] **Step 3: Rewrite `PrintStatusPreviews.kt`** to iterate `PrintState` (not `PrintStatusMode`). Replace `PrintStatusModeProvider` with a `PrintState` parameter provider and update the matrix preview to call `PrintStatusScreen(state = SampleFixtures.forState(s), ...)`. Preserve the existing 6-theme matrix, `fs=L` overflow, and RTL spot-check patterns. Add one preview using `SampleFixtures.klippyShutdown()` to exercise the two-axis title.
+Use the file's existing `base()`/builder idiom (read it first — match the real helper name and required fields). **Add the import `import works.mees.dinghy.state.KlippyState`** (Codex ERROR 2 — the file's current import block lacks it; `SampleFixtures.kt:23`). Remove `import ...PrintStatusMode` / `TerminalKind` and the old `forMode`/`printStatusModes`.
 
-- [ ] **Step 4: Grep the whole repo for any remaining references** to deleted symbols:
+- [ ] **Step 4: Rewrite `PrintStatusPreviews.kt`** to iterate `PrintState` (not `PrintStatusMode`). Replace `PrintStatusModeProvider` with a `PrintState` parameter provider; update the matrix preview to call `PrintStatusScreen(state = SampleFixtures.forState(s), ...)`. Preserve the existing 6-theme matrix, `fs=L` overflow, and RTL spot-check patterns. Add one preview using `SampleFixtures.klippyShutdown()` to exercise the two-axis SHUTDOWN title. Remove the `PrintStatusMode`/`TerminalKind` imports.
+
+- [ ] **Step 5: Delete the three model files** and their now-dead helpers:
+
+```bash
+git rm app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusMode.kt \
+       app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModel.kt \
+       app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModel.kt
+```
+
+This removes `classifyPrintStatus`, `PrintStatusMode`/`TerminalKind`, `babystepVisible`, `nextBabystepStep`, `uiModel`/`PrintStatusUiModel`/`LauncherDest` derivation, `derivePrintStatusControls`/`terminalControls`/`PrintStatusControl`/`PrintStatusControlAction`/`PrintStatusPendingAction`/`clearPrintStatusPendingAction`/`clearPendingOnDispatchFailure`. If any of these symbols are referenced elsewhere in `main` (grep first — see Step 6), move the still-needed ones into `PrintStatusScreen.kt` instead of deleting; expectation is none survive.
+
+- [ ] **Step 6: Grep for stragglers in `main`.**
+
+Run:
+```bash
+cd /mnt/e/claude/personal/github/dinghy-display && grep -rn "classifyPrintStatus\|PrintStatusMode\|TerminalKind\|uiModel\|derivePrintStatusControls\|PrintStatusPendingAction\|PrintStatusControlAction\|babystepVisible\|nextBabystepStep\|clearPendingOnDispatchFailure\|clearPrintStatusPendingAction\|forMode\|printStatusModes" app/src/main/java
+```
+Expected: no results in `main` (all references gone). Fix any that remain.
+
+- [ ] **Step 7: Build to verify `main` compiles.**
+
+Run: `timeout 900 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug --no-daemon" 2>&1 | tr -d '\r'`
+Expected: BUILD SUCCESSFUL (only the test sourceset still references deleted symbols — fixed in Task 7; `assembleDebug` excludes unit tests, so it is GREEN here).
+
+- [ ] **Step 8: Commit.**
+
+```bash
+git add -A app/src/main/java/works/mees/dinghy/
+git commit -m "refactor(printstatus): delete per-state mode/uimodel/control logic; repoint main previews/fixtures"
+```
+
+---
+
+## Task 7: Prune dependent tests
+
+**Files:**
+- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusModeTest.kt`
+- Delete: `app/src/test/java/works/mees/dinghy/preview/SampleFixturesTest.kt`
+- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModelTest.kt`
+- Delete: `app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModelTest.kt`
+
+> NOTE: the **main**-sourceset preview/fixture rewrites (`SampleFixtures.kt`, `PrintStatusPreviews.kt`) were already done in Task 6 (Codex ERROR 1 fix — they must precede the model deletion). This task only handles the **test** sourceset.
+
+- [ ] **Step 1: Delete the four obsolete test files** (their subjects no longer exist):
+
+```bash
+git rm app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusModeTest.kt \
+       app/src/test/java/works/mees/dinghy/preview/SampleFixturesTest.kt \
+       app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusControlModelTest.kt \
+       app/src/test/java/works/mees/dinghy/ui/printstatus/PrintStatusUiModelTest.kt
+```
+
+(Per the spec, per-state foot controls / pending-action machinery are deliberately removed, not relocated — so these tests have no new home. The behavior returns, with tests, during the per-state build-up.)
+
+- [ ] **Step 2: Grep the whole repo for any remaining references** to deleted symbols:
 
 Run:
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display && grep -rn "PrintStatusMode\|classifyPrintStatus\|forMode\|printStatusModes\|derivePrintStatusControls\|uiModel\|PrintStatusPendingAction\|babystepVisible\|nextBabystepStep" app/src
 ```
-Expected: no results anywhere. Fix any stragglers (incl. `androidTest`).
+Expected: no results anywhere. Fix any stragglers (incl. `androidTest` — any `SampleFixtures.forMode(...)` calls there must move to `forState(...)`).
 
-- [ ] **Step 5: Run the full unit suite + debug build.**
+- [ ] **Step 3: Run the full unit suite + debug build.**
 
 Run:
 ```bash
@@ -556,11 +558,11 @@ timeout 900 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:testDebug
 ```
 Expected: BUILD SUCCESSFUL; all tests pass.
 
-- [ ] **Step 6: Commit.**
+- [ ] **Step 4: Commit.**
 
 ```bash
 git add -A app/src
-git commit -m "test(printstatus): prune deleted-symbol tests; repoint previews to PrintState"
+git commit -m "test(printstatus): prune deleted-symbol tests"
 ```
 
 ---
