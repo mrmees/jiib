@@ -17,8 +17,6 @@ import works.mees.dinghy.ui.screen.PrinterSettingsContent
  * ## Axes exercised
  *  - **Connection state:** Connected (accent ring), Disconnected (no ring), Error (stop ring).
  *  - **Active vs empty:** active profile present vs null (empty state).
- *  - **Profile count:** 1 vs 3 (Manage row trailing badge).
- *  - **Webcam toggle:** on vs off, enabled vs disabled (no active profile).
  *  - **6 theme combos** on the representative Connected/active state.
  *  - **fs = L overflow** — dense rows must not clip at largest text size.
  *  - **RTL spot-check** — start/end-relative Modifiers mirror correctly.
@@ -39,15 +37,10 @@ private fun PrinterSettingsConnected() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
             activeProfile = activeProfile,
-            profileCount = 2,
             connectionState = ConnectionState.Connected,
-            webcamOn = true,
-            webcamEnabled = true,
             onConnection = {},
             onTheme = {},
-            onWebcamToggle = {},
             onSystemInfo = {},
-            onManage = {},
             onAdd = {},
             onBack = {},
         )
@@ -60,15 +53,10 @@ private fun PrinterSettingsDisconnected() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
             activeProfile = activeProfile,
-            profileCount = 2,
             connectionState = ConnectionState.Disconnected,
-            webcamOn = true,
-            webcamEnabled = true,
             onConnection = {},
             onTheme = {},
-            onWebcamToggle = {},
             onSystemInfo = {},
-            onManage = {},
             onAdd = {},
             onBack = {},
         )
@@ -81,15 +69,10 @@ private fun PrinterSettingsError() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
             activeProfile = activeProfile,
-            profileCount = 2,
             connectionState = ConnectionState.Error(ConnectionError.NetworkUnavailable),
-            webcamOn = true,
-            webcamEnabled = true,
             onConnection = {},
             onTheme = {},
-            onWebcamToggle = {},
             onSystemInfo = {},
-            onManage = {},
             onAdd = {},
             onBack = {},
         )
@@ -101,7 +84,7 @@ private fun PrinterSettingsError() =
 
 /**
  * Empty state — activeProfile = null. Focus shows the no-printers headline/body;
- * Field shows only the Add affordance row; webcam toggle is disabled.
+ * Field shows only the Add affordance row.
  */
 @Nexus7Previews
 @Composable
@@ -109,93 +92,17 @@ private fun PrinterSettingsEmpty() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
             activeProfile = null,
-            profileCount = 0,
             connectionState = ConnectionState.Disconnected,
-            webcamOn = false,
-            webcamEnabled = false,
             onConnection = {},
             onTheme = {},
-            onWebcamToggle = {},
             onSystemInfo = {},
-            onManage = {},
             onAdd = {},
             onBack = {},
         )
     }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Profile-count axis (Manage row trailing badge).
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Single printer — Manage row shows "1". */
-@Nexus7Previews
-@Composable
-private fun PrinterSettingsSinglePrinter() =
-    PreviewBox(colorfulDark) {
-        PrinterSettingsContent(
-            activeProfile = activeProfile,
-            profileCount = 1,
-            connectionState = ConnectionState.Connected,
-            webcamOn = true,
-            webcamEnabled = true,
-            onConnection = {},
-            onTheme = {},
-            onWebcamToggle = {},
-            onSystemInfo = {},
-            onManage = {},
-            onAdd = {},
-            onBack = {},
-        )
-    }
-
-/** Three printers — Manage row shows "3". */
-@Nexus7Previews
-@Composable
-private fun PrinterSettingsThreePrinters() =
-    PreviewBox(colorfulDark) {
-        PrinterSettingsContent(
-            activeProfile = activeProfile,
-            profileCount = 3,
-            connectionState = ConnectionState.Connected,
-            webcamOn = true,
-            webcamEnabled = true,
-            onConnection = {},
-            onTheme = {},
-            onWebcamToggle = {},
-            onSystemInfo = {},
-            onManage = {},
-            onAdd = {},
-            onBack = {},
-        )
-    }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Webcam toggle axis.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Webcam toggle OFF — switch unchecked. */
-@Nexus7Previews
-@Composable
-private fun PrinterSettingsWebcamOff() =
-    PreviewBox(colorfulDark) {
-        PrinterSettingsContent(
-            activeProfile = activeProfile,
-            profileCount = 2,
-            connectionState = ConnectionState.Connected,
-            webcamOn = false,
-            webcamEnabled = true,
-            onConnection = {},
-            onTheme = {},
-            onWebcamToggle = {},
-            onSystemInfo = {},
-            onManage = {},
-            onAdd = {},
-            onBack = {},
-        )
-    }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Full 6-theme matrix on one representative state (Connected/active/webcamOn).
+// Full 6-theme matrix on one representative state (Connected/active).
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
@@ -203,10 +110,10 @@ private fun PrinterSettingsWebcamOff() =
 private fun PrinterSettingsThemeColorfulDark() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -215,10 +122,10 @@ private fun PrinterSettingsThemeColorfulDark() =
 private fun PrinterSettingsThemeColorfulLight() =
     PreviewBox(colorfulLight) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -227,10 +134,10 @@ private fun PrinterSettingsThemeColorfulLight() =
 private fun PrinterSettingsThemeSimpleDark() =
     PreviewBox(simpleDark) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -239,10 +146,10 @@ private fun PrinterSettingsThemeSimpleDark() =
 private fun PrinterSettingsThemeSimpleLight() =
     PreviewBox(simpleLight) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -251,10 +158,10 @@ private fun PrinterSettingsThemeSimpleLight() =
 private fun PrinterSettingsThemeHighContrastDark() =
     PreviewBox(highContrastDark) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -263,10 +170,10 @@ private fun PrinterSettingsThemeHighContrastDark() =
 private fun PrinterSettingsThemeHighContrastLight() =
     PreviewBox(highContrastLight) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -283,10 +190,10 @@ private fun PrinterSettingsThemeHighContrastLight() =
 private fun PrinterSettingsFsLargeOverflow() =
     PreviewBox(fsLargeSeed) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }
 
@@ -300,10 +207,10 @@ private fun PrinterSettingsRtlSpotCheck() {
     PreviewBox(colorfulDark) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             PrinterSettingsContent(
-                activeProfile = activeProfile, profileCount = 2,
-                connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-                onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-                onManage = {}, onAdd = {}, onBack = {},
+                activeProfile = activeProfile,
+                connectionState = ConnectionState.Connected,
+                onConnection = {}, onTheme = {}, onSystemInfo = {},
+                onAdd = {}, onBack = {},
             )
         }
     }
@@ -318,9 +225,9 @@ private fun PrinterSettingsRtlSpotCheck() {
 private fun PrinterSettingsPseudolocaleSpotCheck() =
     PreviewBox(colorfulDark) {
         PrinterSettingsContent(
-            activeProfile = activeProfile, profileCount = 2,
-            connectionState = ConnectionState.Connected, webcamOn = true, webcamEnabled = true,
-            onConnection = {}, onTheme = {}, onWebcamToggle = {}, onSystemInfo = {},
-            onManage = {}, onAdd = {}, onBack = {},
+            activeProfile = activeProfile,
+            connectionState = ConnectionState.Connected,
+            onConnection = {}, onTheme = {}, onSystemInfo = {},
+            onAdd = {}, onBack = {},
         )
     }

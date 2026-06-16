@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import works.mees.dinghy.theme.FontScale
+import works.mees.dinghy.ui.screen.AppSetting
 import works.mees.dinghy.ui.screen.AppSettingsContent
 
 /**
@@ -31,12 +32,14 @@ private fun appSettingsAllOn() {
     AppSettingsContent(
         fontScale = FontScale.M,
         onFontScale = {},
+        keepScreenOn = true,
+        onKeepScreenOnToggle = {},
+        webcamEnabled = true,
+        onWebcamToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
         onBabystepLayers = {},
-        keepScreenOn = true,
-        onKeepScreenOnToggle = {},
         isExempt = false,
         onRequestExempt = {},
         onBack = {},
@@ -48,12 +51,14 @@ private fun appSettingsAllOff() {
     AppSettingsContent(
         fontScale = FontScale.M,
         onFontScale = {},
+        keepScreenOn = false,
+        onKeepScreenOnToggle = {},
+        webcamEnabled = false,
+        onWebcamToggle = {},
         babystepOn = false,
         onBabystepToggle = {},
         babystepLayers = 3,
         onBabystepLayers = {},
-        keepScreenOn = false,
-        onKeepScreenOnToggle = {},
         isExempt = true,
         onRequestExempt = {},
         onBack = {},
@@ -130,12 +135,14 @@ private fun AppSettingsFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
     AppSettingsContent(
         fontScale = FontScale.L,
         onFontScale = {},
+        keepScreenOn = true,
+        onKeepScreenOnToggle = {},
+        webcamEnabled = true,
+        onWebcamToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
         onBabystepLayers = {},
-        keepScreenOn = true,
-        onKeepScreenOnToggle = {},
         isExempt = false,
         onRequestExempt = {},
         onBack = {},
@@ -152,12 +159,14 @@ private fun AppSettingsFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
     AppSettingsContent(
         fontScale = FontScale.L,
         onFontScale = {},
+        keepScreenOn = true,
+        onKeepScreenOnToggle = {},
+        webcamEnabled = true,
+        onWebcamToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
         onBabystepLayers = {},
-        keepScreenOn = true,
-        onKeepScreenOnToggle = {},
         isExempt = false,
         onRequestExempt = {},
         onBack = {},
@@ -190,3 +199,77 @@ private fun AppSettingsRtlSpotCheck() {
 )
 @Composable
 private fun AppSettingsPseudolocaleSpotCheck() = PreviewBox(colorfulDark) { appSettingsAllOn() }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-selection Focus previews — one per AppSetting to cover each Focus detail
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusTextSize() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.TextSize,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusKeepAwake() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.KeepAwake,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusWebcam() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.Webcam,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusBabystep() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.Babystep,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusBattery() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.Battery,
+    )
+}

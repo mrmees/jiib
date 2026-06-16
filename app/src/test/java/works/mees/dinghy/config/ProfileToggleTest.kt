@@ -8,55 +8,16 @@ import org.junit.Test
 import works.mees.dinghy.di.AppContainer
 
 /**
- * Host-pure proof of the Phase-15.2-03 per-profile feature toggle (D-04) + the wired webcam gating
- * (MEDIUM-4) + the explicit Connection apiKey edit semantics (MEDIUM-5).
+ * Host-pure proof of the wired webcam gating (MEDIUM-4) + the explicit Connection apiKey edit
+ * semantics (MEDIUM-5). Webcam is now app-global (DisplayPrefs) — per-profile toggle tests removed.
  *
- * All four behaviors are provable WITHOUT a DataStore/IO (no Windows back-to-back-`edit` race):
- *  - the toggle round-trips through the same `toPersisted → fromPersisted` wire form `ProfileStore.mutateActive`
- *    re-encodes inside its single `edit` (so a value persisted by `mutateActive { it.copy(webcamEnabled = …) }`
- *    survives a reload) — exercised here as the pure round-trip the writer applies;
- *  - the toggle is PER-PROFILE, not global (two profiles hold different values at once);
+ * All behaviors are provable WITHOUT a DataStore/IO (no Windows back-to-back-`edit` race):
  *  - the `count × toggle` gate predicate (the Webcam-tile gate) is pure;
  *  - the apiKey blank-preserves / clear / replace resolution is pure.
  */
 class ProfileToggleTest {
 
-    private fun profile(id: String, webcamEnabled: Boolean = true, apiKey: String? = null) =
-        Profile(id = id, host = "192.168.1.120", port = 7125, apiKey = apiKey, webcamEnabled = webcamEnabled)
-
-    // ---- D-04: per-profile toggle round-trips through the wire form mutateActive re-encodes -----------
-
-    @Test
-    fun toggle_defaultsTrue_onFreshProfile() {
-        // Preserve today's always-on webcam behavior: a profile constructed without the flag defaults true.
-        assertTrue(Profile(id = "fresh", host = "h").webcamEnabled)
-        assertTrue(PersistedProfile(id = "fresh", host = "h").webcamEnabled)
-    }
-
-    @Test
-    fun toggle_round_trips_through_mutate_active() {
-        // The exact transform mutateActive applies: copy the field, re-encode to the wire form, lift back.
-        val before = profile(id = "a", webcamEnabled = true)
-        val mutated = before.copy(webcamEnabled = false)
-        val reloaded = Profile.fromPersisted(mutated.toPersisted())
-        assertFalse("the toggled value must survive toPersisted → fromPersisted", reloaded.webcamEnabled)
-        // The OTHER fields ride through unchanged.
-        assertEquals("192.168.1.120", reloaded.host)
-        assertEquals(7125, reloaded.port)
-    }
-
-    @Test
-    fun toggle_is_per_profile_not_global() {
-        val a = profile(id = "a", webcamEnabled = false)
-        val b = profile(id = "b", webcamEnabled = true)
-        // Mutating A does not touch B — they hold independent values simultaneously.
-        val aReloaded = Profile.fromPersisted(a.toPersisted())
-        val bReloaded = Profile.fromPersisted(b.toPersisted())
-        assertFalse(aReloaded.webcamEnabled)
-        assertTrue(bReloaded.webcamEnabled)
-    }
-
-    // ---- MEDIUM-4: the webcam-tile gate requires BOTH count>0 AND the per-profile toggle on -----------
+    // ---- MEDIUM-4: the webcam-tile gate requires BOTH count>0 AND the app-global toggle on -----------
 
     @Test
     fun webcam_tile_gating_requires_both_count_and_toggle() {

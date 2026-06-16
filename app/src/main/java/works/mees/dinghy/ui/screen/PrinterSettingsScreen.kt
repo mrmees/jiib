@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -77,7 +74,6 @@ fun PrinterSettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val connectionState by container.connectionState.collectAsStateWithLifecycle(ConnectionState.Disconnected)
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -99,17 +95,12 @@ fun PrinterSettingsScreen(
 
     PrinterSettingsContent(
         activeProfile = activeProfile,
-        profileCount = profiles.size,
         connectionState = connectionState,
-        webcamOn = activeProfile?.webcamEnabled ?: true,
-        webcamEnabled = activeProfile != null,
         isPrinting = isPrinting,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onConnection = { editingConnection = true },
         onTheme = { onNavigate(NavDest.Theme) },
-        onWebcamToggle = { container.setActiveWebcamEnabled(it) },
         onSystemInfo = { onNavigate(NavDest.SystemInfo) },
-        onManage = { onNavigate(NavDest.ManagePrinters) },
         onAdd = { editingConnection = true },
         onBack = onBack,
         modifier = modifier,
@@ -130,42 +121,29 @@ fun PrinterSettingsScreen(
  *  - **Field**: [ListBlock] of 1U nav/toggle rows:
  *      1. Connection — → [onConnection]
  *      2. Theme & colors — → [onTheme]
- *      3. Webcam — trailing [Switch]; [webcamEnabled] gates the row.
- *      4. System Info — → [onSystemInfo]
- *      5. Power — inert stub, stop-tinted at 0.38f (D-08 parity with [PowerStubRow]).
- *      6. Thin divider.
- *      7. Manage printers — trailing count badge → [onManage].
+ *      3. System Info — → [onSystemInfo]
+ *      4. Power — inert stub, stop-tinted at 0.38f (D-08 parity with [PowerStubRow]).
  *  - **Foot**: single Back button (accent, R5).
  *
  * @param activeProfile    the currently active [Profile], or null (empty state / no printers).
- * @param profileCount     total number of profiles (shown as trailing count on Manage row).
  * @param connectionState  live [ConnectionState] for the active printer.
- * @param webcamOn         current per-printer webcam-enabled setting.
- * @param webcamEnabled    false when no profile is active (disables the webcam toggle row).
  * @param isPrinting       whether the printer is currently printing or paused (e-stop morph).
  * @param onEmergencyStop  e-stop callback (wired to shell-level FloatingEStop in FocusFrame).
  * @param onConnection     Connection row click handler.
  * @param onTheme          Theme row click handler.
- * @param onWebcamToggle   webcam switch toggle callback.
  * @param onSystemInfo     System Info row click handler.
- * @param onManage         Manage printers row click handler.
  * @param onAdd            Add affordance handler in empty state.
  * @param onBack           Back foot button handler.
  */
 @Composable
 fun PrinterSettingsContent(
     activeProfile: Profile?,
-    profileCount: Int,
     connectionState: ConnectionState,
-    webcamOn: Boolean,
-    webcamEnabled: Boolean,
     isPrinting: Boolean = false,
     onEmergencyStop: () -> Unit = {},
     onConnection: () -> Unit,
     onTheme: () -> Unit,
-    onWebcamToggle: (Boolean) -> Unit,
     onSystemInfo: () -> Unit,
-    onManage: () -> Unit,
     onAdd: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -274,17 +252,7 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 3: Webcam toggle (DenseToggleRow pattern)
-                        item {
-                            PrinterSettingsWebcamToggleRow(
-                                checked = webcamOn,
-                                enabled = webcamEnabled,
-                                onToggle = onWebcamToggle,
-                                uDp = grid.uDp,
-                            )
-                        }
-
-                        // Row 4: System Info
+                        // Row 3: System Info
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.SysInfoTile,
@@ -294,43 +262,11 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 5: Power stub — inert, stop-tinted (D-08 parity with PowerStubRow)
+                        // Row 4: Power stub — inert, stop-tinted (D-08 parity with PowerStubRow)
                         item {
                             PrinterSettingsPowerStubRow(uDp = grid.uDp)
                         }
 
-                        // Row 6: Thin hairline divider
-                        item {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                color = t.outline,
-                                thickness = 1.dp,
-                            )
-                        }
-
-                        // Row 7: Manage printers (with trailing count)
-                        item {
-                            ListRow(
-                                selected = false,
-                                onClick = onManage,
-                                uDp = grid.uDp,
-                                leadingContent = {
-                                    ListRowIcon(
-                                        icon = DinghyIcons.ManagePrinters,
-                                        uDp = grid.uDp,
-                                        tint = t.text,
-                                    )
-                                },
-                            ) {
-                                ListRowLabel(stringResource(R.string.printer_settings_manage))
-                                Spacer(Modifier.weight(1f))
-                                Text(
-                                    text = profileCount.toString(),
-                                    color = t.text2,
-                                    style = DinghyType.dataMeta.toTextStyle(t),
-                                )
-                            }
-                        }
                     }
                 } else {
                     // Empty state: only an Add affordance.
@@ -393,51 +329,6 @@ private fun PrinterSettingsNavRow(
         },
     ) {
         ListRowLabel(label)
-    }
-}
-
-/**
- * Webcam toggle row — [ListRow] + trailing [Switch], same pattern as
- * [AppSettingsDenseToggleRow] in [AppSettingsScreen].
- */
-@Composable
-private fun PrinterSettingsWebcamToggleRow(
-    checked: Boolean,
-    enabled: Boolean,
-    onToggle: (Boolean) -> Unit,
-    uDp: Dp,
-) {
-    val t = LocalTokens.current
-    ListRow(
-        selected = false,
-        onClick = { if (enabled) onToggle(!checked) },
-        uDp = uDp,
-        leadingContent = {
-            ListRowIcon(
-                icon = DinghyIcons.LauncherWebcam,
-                uDp = uDp,
-                tint = if (enabled) t.text else t.text3,
-            )
-        },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = { if (enabled) onToggle(it) },
-                enabled = enabled,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = t.accent,
-                    checkedTrackColor = t.accentSoft,
-                    checkedBorderColor = t.accentLine,
-                ),
-            )
-        },
-    ) {
-        Text(
-            text = stringResource(R.string.settings_webcam),
-            color = if (enabled) t.text else t.text3,
-            style = DinghyType.listLabel.toTextStyle(t),
-        )
-        Spacer(Modifier.weight(1f))
     }
 }
 

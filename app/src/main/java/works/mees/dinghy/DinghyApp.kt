@@ -96,7 +96,8 @@ class DinghyApp : Application() {
         // An EIGHTH, INDEPENDENT file: display.preferences_pb (§R2, Phase 26.5-05). It carries no secrets
         // (like macros/webcam/babystep/tracestyle), so it is kept on its own connection-independent
         // lifecycle per the separate-file discipline — it backs the process-scoped display settings
-        // (DisplayPrefs: the keep-screen-on toggle, default ON for the dedicated-display use case). One
+        // (DisplayPrefs: the keep-screen-on toggle, default ON for the dedicated-display use case, plus
+        // the app-global webcam-enabled toggle added 2026-06-15). One
         // instance per process (the single-writer invariant DataStore needs — RESEARCH Pitfall 3).
         val displayDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
             scope = appScope,

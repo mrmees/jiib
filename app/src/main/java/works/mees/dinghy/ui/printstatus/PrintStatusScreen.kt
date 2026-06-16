@@ -93,7 +93,7 @@ fun PrintStatusScreen(
     val bookmarkedMacros by container.macroPrefs.bookmarks.collectAsStateWithLifecycle(initialValue = emptySet())
     // Idle-list D-08 capability gates (24-04): Outputs and Webcam rows are hidden when absent.
     // outputsPresent = the printer exposes ≥1 controllable output (AppContainer.outputsPresent spine-scoped).
-    // webcamEnabled  = ≥1 webcam configured AND not toggled off by per-profile setting (webcamTileEnabled).
+    // webcamEnabled  = ≥1 webcam configured AND not toggled off by the app-global setting (webcamTileEnabled).
     val outputsPresent by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
     val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
 

@@ -13,7 +13,8 @@ import java.io.IOException
 /**
  * DataStore(Preferences) persistence of the display app settings (§R2, 26.5-05): the [keepScreenOn]
  * toggle (whether the shell holds `FLAG_KEEP_SCREEN_ON` on its window while foregrounded — default
- * TRUE for the dedicated-display use case).
+ * TRUE for the dedicated-display use case) and the [webcamEnabled] app-global toggle (whether the
+ * webcam tile is offered app-wide — moved here from per-profile 2026-06-15, default TRUE).
  *
  * Copies the [BabystepPrefs] shape EXACTLY: the [DataStore] is INJECTED (no `preferencesDataStore`
  * delegate), so it is host-testable. The PRODUCTION instance (its OWN `display.preferences_pb`, NOT
@@ -46,8 +47,27 @@ class DisplayPrefs(
         dataStore.edit { prefs -> prefs[KEY_KEEP_SCREEN_ON] = on }
     }
 
+    /**
+     * Whether the webcam tile/surface is offered app-wide (moved from per-profile `Profile.webcamEnabled`
+     * to app-global, 2026-06-15). Default TRUE — preserves today's always-available webcam behavior; a
+     * printer with no cams still hides the tile via [AppContainer.webcamTileGate] (`count > 0`).
+     * Fail-safe: a read error yields the default.
+     */
+    val webcamEnabled: Flow<Boolean> =
+        dataStore.data
+            .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+            .map { prefs -> prefs[KEY_WEBCAM_ENABLED] ?: DEFAULT_WEBCAM_ENABLED }
+
+    /** Persist the app-global webcam-enabled toggle. */
+    suspend fun setWebcamEnabled(on: Boolean) {
+        dataStore.edit { prefs -> prefs[KEY_WEBCAM_ENABLED] = on }
+    }
+
     companion object {
         const val DEFAULT_KEEP_SCREEN_ON = true
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+
+        const val DEFAULT_WEBCAM_ENABLED = true
+        private val KEY_WEBCAM_ENABLED = booleanPreferencesKey("webcam_enabled")
     }
 }
