@@ -20,8 +20,8 @@ import works.mees.dinghy.designsystem.icons.DinghyIcons
  * This [FloatingEStop] survives ONLY as the **shell-level fallback** for the handful of destinations
  * that do NOT render a FocusFrame header — currently **Webcam** (full-bleed media, the deliberate
  * header exemption) and **Theme** (outside the header migration scope). It is rendered once, app-level,
- * in [works.mees.dinghy.ui.shell.AppShell] and gated by `!screenOwnsEstop` (the set of header-owning
- * destinations) — so it appears only where no header e-stop exists. It is NOT placed per-screen anymore.
+ * in [works.mees.dinghy.ui.shell.AppShell] and positively gated to those fallback destinations — so it
+ * appears only where no header e-stop exists. It is NOT placed per-screen anymore.
  *
  * ## Glyph — registered e-stop icon
  * Renders [DinghyIcons.StatusStop] (`disabled_by_default` ligature) — the owner-assigned e-stop

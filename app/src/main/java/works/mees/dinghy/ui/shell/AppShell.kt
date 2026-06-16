@@ -132,9 +132,9 @@ import android.graphics.Bitmap
  * (webcam/spool/console/macro) are preserved verbatim above the [NavHost].
  *
  * ## Overlays
- * All overlays (ScanSurface, PromptDialog, DevThemeCycler, and the printing-only [FloatingEStop] +
- * Stop Confirm guard) float as Box siblings AFTER the [NavHost] so they render above EVERY destination
- * (FIX-1 — the e-stop is now app-level, reachable from any screen).
+ * All overlays (ScanSurface, PromptDialog, DevThemeCycler, and the printing-only fallback
+ * [FloatingEStop] + Stop Confirm guard) float as Box siblings AFTER the [NavHost]. The fallback
+ * e-stop is visible only on destinations that do not own a FocusFrame header dock.
  *
  * ## Settings are IN-SHELL destinations
  * App settings ([NavDest.AppSettings]) and printer settings ([NavDest.PrinterSettings]) are reached
@@ -483,10 +483,9 @@ fun AppShell(
     // rebuilds so a reconnect re-points at the new session's store flag.
     val consoleBackfillFailed by store.consoleBackfillFailed.collectAsStateWithLifecycle()
 
-    // ---- App-level e-stop guard state (FIX-1 — hoisted from PrintStatusScreen) ----------------------
-    // The FloatingEStop + Stop Confirm guard are now AppShell-level Box siblings ABOVE the NavHost so
-    // they appear on EVERY destination while printing — not just WaterfallHome. This is D-14: "every
-    // screen only when printing". The guard is reachable from Move/Extrude/Console/etc. while printing.
+    // ---- App-level fallback e-stop guard state ------------------------------------------------------
+    // The FloatingEStop + Stop Confirm guard are AppShell-level Box siblings above the NavHost, but the
+    // visible affordance is gated to destinations without a FocusFrame header dock.
     var showEstopGuard by remember { mutableStateOf(false) }
 
     // ---- BackHandler priority (FIX-2, corrected by 27-review CR-01) --------------------------------
@@ -782,8 +781,8 @@ fun AppShell(
             composable<NavDest.System> {
                 // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
                 // D-03 direct-tap dense rows (Printers/Settings/Theme/SystemInfo/About) + inert Power stub.
-                // E-stop: System now docks it in its FocusFrame header (in screenOwnsEstop, Focus-header
-                // law 2026-06-13) — the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
+                // E-stop: System now docks it in its FocusFrame header (Focus-header law 2026-06-13) —
+                // the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
                 // the else -> null path in shouldPopToRoot covers System (pop-to-root never fires from here).
                 SystemPageScreen(
                     container = container,
@@ -930,12 +929,11 @@ fun AppShell(
         // UnitGrid for sizing: derive U from the minimum dimension (portrait- and landscape-safe).
         // Focus-header law (2026-06-13): the canonical e-stop is now the FocusFrame HEADER DOCK — every
         // FocusFrame's start-icon slot morphs into the e-stop while printing. So nearly every destination
-        // "owns" its e-stop (see screenOwnsEstop below) and this shell-level float is the FALLBACK for the
-        // few non-FocusFrame destinations only: Webcam (full-bleed, the header exemption) and Theme
-        // (outside the header migration scope). On any owned destination the float is suppressed, else two
-        // stacked e-stops would co-render. ONE owner per destination.
-        // screenOwnsEstop = the header-owning destinations (every audited screen). Only Webcam + Theme
-        // fall through to the shell float above.
+        // owns its e-stop (screenOwnsEstop below) and this shell-level float is the fallback for the few
+        // non-FocusFrame destinations only: Webcam (full-bleed, the header exemption) and Theme (outside
+        // the header migration scope). ONE owner per destination.
+        // The shell float is also fail-CLOSED: even if route matching ever misses a header-owning screen,
+        // it still only appears on destinations explicitly known to lack a FocusFrame header.
         val estopDest = navBackStackEntry?.destination
         val screenOwnsEstop = estopDest != null && (
             estopDest.isRoute<NavDest.WaterfallHome>() ||
@@ -961,9 +959,13 @@ fun AppShell(
             estopDest.isRoute<NavDest.PrinterSettings>() ||
             estopDest.isRoute<NavDest.ManagePrinters>()
         )
+        val screenUsesShellEstop = estopDest != null && !screenOwnsEstop && (
+            estopDest.isRoute<NavDest.Webcam>() ||
+            estopDest.isRoute<NavDest.Theme>()
+        )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
-            visible = !screenOwnsEstop &&
+            visible = screenUsesShellEstop &&
                 (printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused),
             onClick = { showEstopGuard = true },
             // R1 hold-parity: the retired gutter StopButton carried HOLD = fire IMMEDIATELY (the
@@ -990,11 +992,14 @@ fun AppShell(
 }
 
 /**
- * Type-safe route check for navigation-compose 2.8.x.
- *
- * `navDestination.hasRoute<T>()` in 2.8.x would pick up the instance method `hasRoute(String, Bundle?)`
- * which does not accept type arguments. The generic `hasRoute<T>()` lives on the Companion object.
- * This wrapper calls the Companion static via explicit receiver syntax.
+ * Type-safe route check for navigation-compose 2.8.x. Typed route strings have shifted between fully
+ * qualified and serializer-derived names across migrations, so normalize to the base route and accept
+ * either the qualified class name or the final simple route segment.
  */
 private inline fun <reified T : NavDest> androidx.navigation.NavDestination.isRoute(): Boolean =
-    route?.let { r -> r == T::class.qualifiedName || r.startsWith(T::class.qualifiedName + "?") } == true
+    route?.let { r ->
+        val base = r.substringBefore('?').substringBefore('/')
+        val qualifiedName = T::class.qualifiedName
+        val simpleName = T::class.simpleName
+        base == qualifiedName || base == simpleName || base.substringAfterLast('.') == simpleName
+    } == true
