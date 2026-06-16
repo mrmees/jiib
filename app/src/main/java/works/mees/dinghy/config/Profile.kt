@@ -45,6 +45,9 @@ data class PersistedProfile(
     // decodes to today's plain ws/http posture — ignoreUnknownKeys tolerates old blobs carrying any
     // retired key (e.g. the deleted webcamEnabled, removed 2026-06-15 when webcam became app-global).
     val useSecure: Boolean = false,
+    // 2026-06-15: set TRUE once a name has been locked (user-typed OR auto-seeded from hostname). Old blobs
+    // without this key decode to false via kotlinx ignoreUnknownKeys — safe default: re-evaluates on connect.
+    val nameAutoSeeded: Boolean = false,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
     // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
@@ -57,7 +60,8 @@ data class PersistedProfile(
         "PersistedProfile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
             "paletteMode=$paletteMode, poolShift=$poolShift, " +
-            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure)"
+            "poolOverrides=${poolOverrides.keys}, fsChoice=$fsChoice, useSecure=$useSecure, " +
+            "nameAutoSeeded=$nameAutoSeeded)"
 }
 
 /**
@@ -81,6 +85,9 @@ data class Profile(
     val poolOverrides: Map<String, Long> = emptyMap(),
     // R7 (26.5-07): per-printer wss/https toggle — see [PersistedProfile.useSecure]. Default false.
     val useSecure: Boolean = false,
+    // 2026-06-15: mirrors [PersistedProfile.nameAutoSeeded] — true once the name is locked (user-typed
+    // or auto-seeded from hostname); prevents re-seeding on reconnect. Default false.
+    val nameAutoSeeded: Boolean = false,
 ) {
     /**
      * The connection projection — host/port/apiKey/useSecure ONLY. This is the value
@@ -125,13 +132,14 @@ data class Profile(
             poolOverrides = poolOverrides,
             fsChoice = "M", // runtime Profile no longer carries fsChoice; persist a stable default
             useSecure = useSecure,
+            nameAutoSeeded = nameAutoSeeded,
         )
 
     override fun toString(): String =
         "Profile(id=$id, name=$name, host=$host, port=$port, " +
             "apiKey=${if (apiKey != null) "***" else "null"}, seedHex=$seedHex, dark=$dark, " +
             "paletteMode=$paletteMode, poolShift=$poolShift, " +
-            "poolOverrides=${poolOverrides.keys}, useSecure=$useSecure)"
+            "poolOverrides=${poolOverrides.keys}, useSecure=$useSecure, nameAutoSeeded=$nameAutoSeeded)"
 
     companion object {
         /** A stable, collision-safe profile identity (D-05). UUID is available since API 1. */
@@ -151,6 +159,7 @@ data class Profile(
                 poolShift = p.poolShift,
                 poolOverrides = p.poolOverrides,
                 useSecure = p.useSecure,
+                nameAutoSeeded = p.nameAutoSeeded,
             )
     }
 }
