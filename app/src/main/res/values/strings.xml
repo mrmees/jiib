@@ -73,6 +73,7 @@
     <string name="printstatus_status_complete">COMPLETE</string>
     <string name="printstatus_status_cancelled">CANCELLED</string>
     <string name="printstatus_status_error">ERROR</string>
+    <string name="printstatus_status_shutdown">SHUTDOWN</string>
 
     <!-- Terminal summary-list row labels (finished-print summary). -->
     <string name="printstatus_terminal_file_label">File</string>

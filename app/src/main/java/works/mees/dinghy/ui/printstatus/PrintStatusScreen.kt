@@ -636,3 +636,14 @@ internal fun statusLabelRes(s: works.mees.dinghy.state.PrintState): Int = when (
     works.mees.dinghy.state.PrintState.Cancelled -> R.string.printstatus_status_cancelled
     works.mees.dinghy.state.PrintState.Error -> R.string.printstatus_status_error
 }
+
+/** Two-axis home title label: a Klipper host fault (Shutdown/Error) takes precedence over the
+ *  print-job state; otherwise the print-state label. Klipper Error reuses the ERROR string. */
+internal fun homeStateLabelRes(
+    printState: works.mees.dinghy.state.PrintState,
+    klippyState: works.mees.dinghy.state.KlippyState,
+): Int = when (klippyState) {
+    works.mees.dinghy.state.KlippyState.Shutdown -> R.string.printstatus_status_shutdown
+    works.mees.dinghy.state.KlippyState.Error -> R.string.printstatus_status_error
+    else -> statusLabelRes(printState)
+}
