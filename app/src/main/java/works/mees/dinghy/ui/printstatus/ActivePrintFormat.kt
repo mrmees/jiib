@@ -29,7 +29,10 @@ fun formatLayerHeight(
         objectHeight != null -> "${mm(currentZ)}/${mm(objectHeight)}mm"
         else -> "${mm(currentZ)}mm"
     }
-    val layers = if (currentLayer != null && totalLayer != null) "$currentLayer/$totalLayer layers" else null
+    val layers = if (
+        currentLayer != null && currentLayer > 0 &&
+        totalLayer != null && totalLayer > 0
+    ) "$currentLayer/$totalLayer layers" else null
     return if (layers != null) "$height · $layers" else height
 }
 
@@ -50,7 +53,8 @@ fun deriveCurrentLayer(
     val flh = firstLayerHeight ?: layerHeight
     val raw = kotlin.math.floor((currentZ - flh) / layerHeight).toInt() + 1
     val low = raw.coerceAtLeast(1)
-    return if (totalLayer != null) low.coerceAtMost(totalLayer) else low
+    val boundedTotal = totalLayer?.takeIf { it > 0 }
+    return if (boundedTotal != null) low.coerceAtMost(boundedTotal) else low
 }
 
 /** The print filename's basename (leading directory stripped); extension retained. */

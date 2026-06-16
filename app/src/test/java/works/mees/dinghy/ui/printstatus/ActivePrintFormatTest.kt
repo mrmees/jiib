@@ -27,6 +27,11 @@ class ActivePrintFormatTest {
         assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 5, null))
     }
 
+    @Test fun layer_height_non_positive_layers_drops_clause() {
+        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 0, 220))
+        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 5, 0))
+    }
+
     @Test fun layer_height_no_z_falls_back_to_dash() {
         assertEquals("—", formatLayerHeight(null, 55.0, null, null))
         assertEquals("— · 5/220 layers", formatLayerHeight(null, 55.0, 5, 220))
@@ -44,6 +49,7 @@ class ActivePrintFormatTest {
         assertEquals(152, deriveCurrentLayer(99.0, 0.24, 0.2, 152)) // past the top -> clamp to total
         // no first-layer height (falls back to layerHeight 0.2) and no total: (1.0-0.2)/0.2=4, +1=5
         assertEquals(5, deriveCurrentLayer(1.0, null, 0.2, null))
+        assertEquals(5, deriveCurrentLayer(1.0, null, 0.2, 0)) // non-positive total is invalid, not a clamp
     }
 
     @Test fun derive_current_layer_null_when_inputs_missing() {

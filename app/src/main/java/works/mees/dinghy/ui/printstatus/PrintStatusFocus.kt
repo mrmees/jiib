@@ -191,8 +191,8 @@ private fun ActivePrintFocus(
         // the slicer didn't emit them (current/total null), fall back to the gcode metadata: total from
         // layer_count, current derived from the print height (Fluidd/Mainsail-style).
         val currentZ = state.gcodePosition?.getOrNull(2)
-        val totalLayer = state.totalLayer ?: printMetadata?.layerCount
-        val currentLayer = state.currentLayer ?: deriveCurrentLayer(
+        val totalLayer = (state.totalLayer ?: printMetadata?.layerCount)?.takeIf { it > 0 }
+        val currentLayer = state.currentLayer?.takeIf { it > 0 } ?: deriveCurrentLayer(
             currentZ = currentZ,
             firstLayerHeight = printMetadata?.firstLayerHeight,
             layerHeight = printMetadata?.layerHeight,
