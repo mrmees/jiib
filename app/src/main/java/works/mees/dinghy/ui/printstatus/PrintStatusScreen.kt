@@ -44,8 +44,9 @@ import works.mees.dinghy.ui.route.buildIdleActions
  * (Standby / Printing / Paused / Terminal) classifier, per-state UI model, and per-state foot/control
  * sets are GONE; the home is the root for idle/printing/paused/terminal alike. The Focus owns the home
  * title (print-state OR Klipper host-fault via [homeStateLabelRes]) and the docked e-stop; the Field
- * carries the idle action list + the spool-aware [runPreheat] (gated by [selectPreheatPath]). E-Stop
- * elsewhere = the AppShell-level FloatingEStop while printing (D-14).
+ * carries the idle action list + the spool-aware [runPreheat] (gated by [selectPreheatPath]). E-stop:
+ * WaterfallHome is in AppShell `screenOwnsEstop`, so the FocusFrame header (via [HomeFocus] passing
+ * `isPrinting`/`onEmergencyStop`) owns it — NOT the shell FloatingEStop, which is gated off here.
  *
  * @param container the service-locator (live `printerState` + the session dispatcher).
  * @param onNavigate launcher/forward-nav seam — every idle action routes to a real [NavDest];
@@ -108,9 +109,9 @@ fun PrintStatusScreen(
         detail = spoolDetail,
     )
 
-    // The FloatingEStop and its Stop Confirm guard are owned by the AppShell overlay layer (24-03),
-    // where they appear on EVERY destination while Printing/Paused (D-14). No e-stop path exists in
-    // this screen — the foot bars carry only the mode actions (R1 gutter→foot migration).
+    // E-stop for the home: HomeFocus passes isPrinting + onEmergencyStop (below) into the FocusFrame
+    // header, which renders the docked e-stop while Printing/Paused. WaterfallHome is in AppShell's
+    // screenOwnsEstop set, so the shell-level FloatingEStop is gated OFF here (no double-render).
 
     // Idle action list (24-04, D-05/D-06/D-08): built once per capability-flag change.
     // All four capability flags are live StateFlows so the list is rebuilt whenever the printer
