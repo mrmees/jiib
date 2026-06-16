@@ -4,11 +4,18 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.lazy.items
 import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -56,6 +63,11 @@ internal fun HomeField(
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
     uDp: Dp,
+    isPrinting: Boolean = false,
+    isPaused: Boolean = false,
+    onPause: () -> Unit = {},
+    onResume: () -> Unit = {},
+    onCancel: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Pilot fix 2026-06-12: U is now PASSED from the SCREEN root, not derived here. Deriving it
@@ -104,24 +116,73 @@ internal fun HomeField(
             SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
         }
 
-        // Idle foot bar: Preheat (warn — heats) + System (accent nav) per R5.
-        // "System" navigates to NavDest.System (D-04/28-05 — formerly opened the App Drawer).
-        // NOT red, NOT Power.
+        // Foot bar branches on print state (R5 intents):
+        //  - Printing → Pause (warn — interrupts the running process) + Cancel (danger — aborts).
+        //  - Paused   → Resume (go — the expected action) + Cancel (danger).
+        //  - Idle     → Preheat (warn — heats) + System (accent nav). "System" navigates to
+        //    NavDest.System (D-04/28-05); while printing it lives in the list instead (buildIdleActions).
+        var showCancelGuard by remember { mutableStateOf(false) }
         FootButtonBar(uDp = uDp) {
-            OutlinedControl(
-                label = stringResource(R.string.home_foot_preheat),
-                onClick = onPreheat,
-                modifier = Modifier.weight(1f),
-                icon = DinghyIcons.FootPreheat,
-                intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
-            )
-            OutlinedControl(
-                label = stringResource(R.string.home_foot_system),
-                onClick = { onNavigate(NavDest.System) },
-                modifier = Modifier.weight(1f),
-                icon = DinghyIcons.FootSystem,
-                intent = Intent.Accent, // R5: plain navigation = accent
-            )
+            if (isPrinting) {
+                if (isPaused) {
+                    OutlinedControl(
+                        label = stringResource(R.string.printstatus_foot_resume),
+                        onClick = onResume,
+                        modifier = Modifier.weight(1f),
+                        icon = DinghyIcons.FootResume,
+                        intent = Intent.Go,
+                    )
+                } else {
+                    OutlinedControl(
+                        label = stringResource(R.string.printstatus_foot_pause),
+                        onClick = onPause,
+                        modifier = Modifier.weight(1f),
+                        icon = DinghyIcons.PauseCircle,
+                        intent = Intent.Warn,
+                    )
+                }
+                OutlinedControl(
+                    label = stringResource(R.string.printstatus_foot_cancel),
+                    onClick = { showCancelGuard = true },
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootCancel,
+                    intent = Intent.Danger,
+                )
+            } else {
+                OutlinedControl(
+                    label = stringResource(R.string.home_foot_preheat),
+                    onClick = onPreheat,
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootPreheat,
+                    intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.home_foot_system),
+                    onClick = { onNavigate(NavDest.System) },
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootSystem,
+                    intent = Intent.Accent, // R5: plain navigation = accent
+                )
+            }
+        }
+
+        // Cancel confirm (destructive — aborts the print). Wrapped in a Dialog so the scrim escapes
+        // the Field region and covers the whole screen (mirrors the FocusFrame e-stop guard).
+        if (showCancelGuard) {
+            Dialog(
+                onDismissRequest = { showCancelGuard = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false),
+            ) {
+                ConfirmGuard(
+                    title = stringResource(R.string.printstatus_cancel_guard_title),
+                    message = stringResource(R.string.printstatus_cancel_guard_message),
+                    confirmLabel = stringResource(R.string.printstatus_cancel_guard_confirm),
+                    cancelLabel = stringResource(R.string.common_cancel),
+                    onConfirm = { onCancel(); showCancelGuard = false },
+                    onCancel = { showCancelGuard = false },
+                    destructive = true,
+                )
+            }
         }
     }
 }
