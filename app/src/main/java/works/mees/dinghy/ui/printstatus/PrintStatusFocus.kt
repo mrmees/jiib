@@ -192,18 +192,25 @@ internal fun PrintStatusFocus(
 }
 
 /**
- * Standby Focus: the app-icon base + a minimal centered glance overlay (UI-SPEC Standby). The glance
- * list is intentionally short/glanceable: Nozzle · Bed · the MCU/host glance sensor (only when a real
- * `selectGlanceSensor` reading exists, else omitted — NO host-load fallback in P16) · Active spool
- * remaining (only when Spoolman is available). NO connection-state line.
+ * The universal home Focus (was StandbyFocus). Renders for EVERY printer state in the collapsed
+ * skeleton: a 1U-header FocusFrame (two-axis state title + optional printer name), a faint brand
+ * watermark at 30% of the focus's smaller edge pinned bottom-end, and a top-start glance block
+ * (Nozzle · Bed · glance sensor · spool remaining) at uniform focusHero sizing.
  *
- * Extracted as a named top-level composable for restartability (D-01/D-02 P0 fix).
+ * E-stop: PrintStatus owns its e-stop via the FocusFrame header (AppShell screenOwnsEstop); the
+ * header shows it only when `isPrinting && onEmergencyStop != null`. We pass both so e-stop stays
+ * reachable while Printing/Paused. During Klipper Error/Shutdown the firmware is already halted, so
+ * the header e-stop is intentionally absent. Named top-level composable for an independently-
+ * restartable scope (D-01/D-02).
  */
 @Composable
-internal fun StandbyFocus(
+internal fun HomeFocus(
     state: PrinterState,
+    printerName: String?,
+    isMultiPrinter: Boolean,
     spoolmanPresent: Boolean,
     activeSpoolCardState: ActiveSpoolCardState,
+    onEmergencyStop: (() -> Unit)?,
     uDp: Dp,
 ) {
     val t = LocalTokens.current
@@ -211,47 +218,52 @@ internal fun StandbyFocus(
     val bed = state.heaters["heater_bed"]
     val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
+    val isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused
+    val stateLabel = stringResource(homeStateLabelRes(state.printState, state.klippyState))
+    val title = if (isMultiPrinter && !printerName.isNullOrBlank()) "$printerName · $stateLabel" else stateLabel
     FocusFrame(
-        title = stringResource(R.string.printstatus_title),
+        title = title,
         icon = DinghyIcons.PrintStatusStandby,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
+        isPrinting = isPrinting,
+        onEmergencyStop = onEmergencyStop,
+        onPanic = onEmergencyStop,
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            // App-icon base (faint backdrop): the jiib brand mark. ContentScale.Fit (Focus Frame law:
-            // content FITS the frame, never clips — fixes the flox half-focus crop). The leftover space
-            // is now the FocusFrame's surface fill, so Fit no longer reads as empty margins (the
-            // 2026-06-06 reason for Crop). Themed via accent2 tint, faint under the glance list.
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Brand watermark: 30% of the smaller edge, bottom-end, faint accent2 tint.
+            val markSize = minOf(maxWidth, maxHeight) * 0.30f
             Image(
                 painter = painterResource(R.drawable.jiib_icon),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(t.accent2),
                 alpha = 0.45f,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
             )
-            // The centered glance list overlaid on the backdrop.
+            // Glance block: top-start, tight, label + value both focusHero.
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier.align(Alignment.TopStart),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                GlanceRow("nozzle-temp", stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
-                GlanceRow("heat-bed", stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
-                glance?.let { GlanceRow("glance", glanceLabel(it.name), "${fmt(it.temperature)}", t.text) }
+                GlanceRow(stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
+                GlanceRow(stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
+                glance?.let { GlanceRow(glanceLabel(it.name), fmt(it.temperature), t.text) }
                 if (spoolmanPresent && spoolRemaining != null) {
-                    GlanceRow("spool", stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
+                    GlanceRow(stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
                 }
             }
         }
     }
 }
 
-/** One glance line: dim caption + GeistMono value (focus-tier — "large and in charge", 2026-06-06 UAT). */
+/** One glance line: dim label + colored value, BOTH focusHero (normalized size), tight, one row. */
 @Composable
-internal fun GlanceRow(key: String, label: String, value: String, valueColor: Color) {
+internal fun GlanceRow(label: String, value: String, valueColor: Color) {
     val t = LocalTokens.current
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        Text(label, color = t.text2, style = DinghyType.focusHero.toTextStyle(t))
         Text(value, color = valueColor, style = DinghyType.focusHero.toTextStyle(t))
     }
 }

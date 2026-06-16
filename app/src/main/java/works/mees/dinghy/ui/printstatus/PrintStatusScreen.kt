@@ -18,6 +18,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.map
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.DispatchEvent
@@ -96,6 +97,12 @@ fun PrintStatusScreen(
     // webcamEnabled  = ≥1 webcam configured AND not toggled off by the app-global setting (webcamTileEnabled).
     val outputsPresent by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
     val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
+
+    // Title data (Part B): the active printer's display name + whether >1 profile is saved.
+    val printerName by container.activeName.collectAsStateWithLifecycle(initialValue = null)
+    val profileCount by container.profileStore.profiles
+        .map { it.size }
+        .collectAsStateWithLifecycle(initialValue = 0)
 
     // ---- Active-spool card (SPOOL-02, 11-06) -------------------------------------------------------
     // The D-03 card reads the capability gate + the D-10-reconciled active status; the spool DETAIL is
@@ -292,6 +299,8 @@ fun PrintStatusScreen(
             state = state,
             metadata = metadata,
             httpBase = httpBase,
+            printerName = printerName,
+            isMultiPrinter = profileCount > 1,
             ui = ui,
             errorLines = errorLines,
             idleActions = idleActions,
@@ -369,6 +378,8 @@ fun PrintStatusScreen(
     state: PrinterState,
     metadata: PrintMetadata? = null,
     httpBase: String = "",
+    printerName: String? = null,
+    isMultiPrinter: Boolean = false,
     errorLines: List<String> = emptyList(),
     spoolmanPresent: Boolean = false,
     spoolSwatches: ImmutableList<Color> = persistentListOf(),
@@ -399,6 +410,8 @@ fun PrintStatusScreen(
             state = state,
             metadata = metadata,
             httpBase = httpBase,
+            printerName = printerName,
+            isMultiPrinter = isMultiPrinter,
             ui = ui,
             errorLines = errorLines,
             idleActions = idleActions,
@@ -437,6 +450,8 @@ private fun PrintStatusContent(
     state: PrinterState,
     metadata: PrintMetadata?,
     httpBase: String,
+    printerName: String?,
+    isMultiPrinter: Boolean,
     ui: PrintStatusUiModel,
     errorLines: List<String>,
     idleActions: List<HomeAction>,
@@ -472,10 +487,13 @@ private fun PrintStatusContent(
         is PrintStatusMode.Standby -> ScreenScaffold(
             fieldFramed = false,
             focus = {
-                StandbyFocus(
+                HomeFocus(
                     state = state,
+                    printerName = printerName,
+                    isMultiPrinter = isMultiPrinter,
                     spoolmanPresent = spoolmanPresent,
                     activeSpoolCardState = activeSpoolCardState,
+                    onEmergencyStop = onEmergencyStop,
                     uDp = grid.uDp,
                 )
             },
