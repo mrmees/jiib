@@ -28,6 +28,15 @@ fun TextRole.toTextStyle(t: ThemeTokens): TextStyle = TextStyle(
 )
 
 /**
+ * Like [toTextStyle] but at an EXPLICIT, already-fs-scaled size — for UNIFORM shrink-to-fit blocks
+ * (e.g. the home digest) where several rows must share ONE caller-measured size, which per-text
+ * [FocusHeroText] autosize cannot coordinate. [sizeSp] is a final sp value (the caller already applied
+ * [fsSp]). This is the sanctioned size-application point (FontConformanceTest allowlists this file).
+ */
+fun TextRole.toTextStyle(t: ThemeTokens, sizeSp: Float): TextStyle =
+    toTextStyle(t).copy(fontSize = sizeSp.sp)
+
+/**
  * The Focus region's primary value: renders at [TextRole.maxSp] when there's room and steps DOWN to
  * [TextRole.minSp] to fit, never up — the sanctioned shrink-to-fit pattern (THEMING.md). Pass the
  * focusHero role (or any role carrying max/min). Centered, single line, by default.
