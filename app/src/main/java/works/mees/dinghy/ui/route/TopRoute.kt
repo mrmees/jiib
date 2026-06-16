@@ -15,7 +15,9 @@ sealed interface TopRoute {
     /** First run / no saved connection config — the root controller opens Settings (D-11). */
     data object Connect : TopRoute
 
-    /** Klippy is not Ready — a hard override initializing/recovery surface (D-06). */
+    /** Connection fault or host-not-up-yet (no live socket, or Klippy Disconnected/Startup) — the
+     *  initializing/recovery surface (D-06). NOTE: Klippy Error/Shutdown with a live connection now
+     *  route to [Shell], not here (2026-06-15). */
     data object Splash : TopRoute
 
     /** The running shell — the NavHost owns routing; the start destination is [NavDest.WaterfallHome]. */
