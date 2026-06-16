@@ -9,12 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import works.mees.dinghy.R
@@ -29,7 +25,6 @@ import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.parseSpoolmanSpools
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 import works.mees.dinghy.ui.spool.deriveActiveSpoolCardState
-import works.mees.dinghy.ui.spool.parseNormalizedHex
 import androidx.compose.foundation.layout.BoxWithConstraints
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.ui.route.HomeAction
@@ -69,9 +64,6 @@ fun PrintStatusScreen(
 ) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
-    // The active print's gcode metadata — fuels the D-07 fallback swatch (gcode filament_colors) on the
-    // active-spool glyph when Spoolman is present but its record has no usable color.
-    val metadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
     // Per-heater capability gate (16-06): the Preheat per-temp dispatch is gated on each heater being
     // present (a bed temp is NEVER routed to an absent heater_bed). Read the live capabilities.
     val capabilities by container.capabilities.collectAsStateWithLifecycle(initialValue = works.mees.dinghy.state.Capabilities())
@@ -115,25 +107,6 @@ fun PrintStatusScreen(
         status = activeSpool,
         detail = spoolDetail,
     )
-
-    // D-07 color precedence for the reactive spool glyph on the launcher tile + mid-print shortcut slot.
-    // These surfaces are ALREADY Spoolman-gated (standbyLauncherDests/spoolmanPresent), so this resolution
-    // only changes the icon the gated slot draws — never un-gates it. From state already collected (no new
-    // fetch): (1) the active Spoolman record's color FIRST, then (2) the active print's gcode
-    // filament_colors[0] FALLBACK (fires only when Spoolman IS present but the active record has no usable
-    // color — exactly D-07's middle tier), else (3) persistentListOf() → the empty spool (D-03). Index [0] /
-    // first only (D-09). The parse helpers null-guard malformed hex → that swatch drops → empty spool, never a
-    // throw. ImmutableList: stable Compose param so SpoolGlyph/LauncherTile recomposition can be skipped when
-    // the swatch list hasn't changed (D-02/D-03 P1 allocation fix).
-    val spoolSwatches: ImmutableList<Color> = remember(spoolDetail, metadata) {
-        val spoolmanColors = spoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
-        if (spoolmanColors.isNotEmpty()) {
-            spoolmanColors.toImmutableList()
-        } else {
-            val gcodeColor = metadata?.filamentColors?.firstOrNull()?.let(::parseNormalizedHex)
-            if (gcodeColor != null) persistentListOf(gcodeColor) else persistentListOf()
-        }
-    }
 
     // The FloatingEStop and its Stop Confirm guard are owned by the AppShell overlay layer (24-03),
     // where they appear on EVERY destination while Printing/Paused (D-14). No e-stop path exists in
