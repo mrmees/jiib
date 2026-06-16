@@ -383,9 +383,10 @@ class HomeDigestTest {
     }
 
     @Test
-    fun homedTextUppercasesOrNone() {
+    fun homedTextCanonicalizesXyzOrderOrNone() {
         assertEquals("XYZ", homedText("xyz"))
-        assertEquals("XY", homedText("xy"))
+        assertEquals("XYZ", homedText("yzx"))   // R-CDX-4 NIT: force X/Y/Z order regardless of input order
+        assertEquals("XY", homedText("yx"))
         assertEquals("NONE", homedText(""))
     }
 
@@ -463,9 +464,12 @@ internal fun activeHeaterKeys(heaters: Map<String, HeaterState>): List<String> =
 internal fun heaterValueText(h: HeaterState): String =
     "${h.temperature.roundToInt()}/${h.target.roundToInt()}"
 
-/** Homed axes uppercased (Klipper already orders x,y,z); blank → `NONE`. */
-internal fun homedText(homedAxes: String): String =
-    homedAxes.ifBlank { null }?.uppercase() ?: "NONE"
+/** Homed axes in canonical X/Y/Z order (R-CDX-4), any extra axes appended; blank → `NONE`. */
+internal fun homedText(homedAxes: String): String {
+    val lower = homedAxes.lowercase()
+    val ordered = "xyz".filter { it in lower } + lower.filter { it !in "xyz" }
+    return ordered.uppercase().ifBlank { "NONE" }
+}
 
 /**
  * Spool digest value (R-CDX-4). `null` → hide the row (Spoolman not configured). Otherwise `{weight}g`
@@ -587,7 +591,7 @@ private fun DigestRow(label: String, value: String, valueColor: Color) {
 
 Add the remaining imports used above (`androidx.compose.ui.res.stringResource`, `androidx.compose.ui.unit.dp`) to the file's import block.
 
-> NOTE: uniform-size contract — `focusHero`/`focusHeroLabel` are shrink-to-fit (40→15) PER text. For v1 this is acceptable (rows carry similar-length content). If on-device review (Task 9) shows uneven row sizing when many rows are present, raise it then; do not pre-optimize.
+> NOTE (R-CDX-3, corrected): `toTextStyle` renders at the FIXED `baseSp` (40sp) — it does NOT auto-shrink. The `maxSp`/`minSp` shrink envelope only fires via the separate `FocusHeroText` composable, which we are NOT using here. This matches the EXISTING `GlanceRow` (also fixed `focusHero.toTextStyle`), so the digest renders at a fixed 40sp like today's glance. The `maxSp=40f` on `focusHeroLabel` is still REQUIRED — it exempts the role from `DinghyTypeTest.everyFixedRoleSitsOnASanctionedRampTier` (40 is not a sanctioned ramp tier), not for any runtime shrink. If 5–6 rows overflow the Focus on the smallest device at `--fs = L` (Task 9), the fix is a follow-up: switch the rows to `FocusHeroText` or a smaller role. Do not pre-optimize.
 
 - [ ] **Step 2: Add the string resources**
 
@@ -653,11 +657,17 @@ Replace the `BoxWithConstraints { … }` body's glance `Column` (the block that 
                 alpha = 0.45f,
                 modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
             )
-            if (isPrinting) {
+            // Glance only for a LIVE print (Printing/Paused) that is NOT a Klippy fault. Error/Shutdown
+            // are non-printing treatments (digest) even if printState is a stale Printing — matches the
+            // title precedence in homeStateLabelRes (R-CDX-2 blocker fix). isPrinting (for the e-stop) is
+            // unchanged; this is a SEPARATE branch var.
+            val klippyFault = state.klippyState == KlippyState.Shutdown || state.klippyState == KlippyState.Error
+            val showGlance = isPrinting && !klippyFault
+            if (showGlance) {
                 // Printing/Paused KEEP today's glance (current temps). Separate future treatment.
                 GlanceBlock(state, spoolmanPresent, spoolRemaining, Modifier.align(Alignment.TopStart))
             } else {
-                // Non-printing: the state digest.
+                // Non-printing (incl. Klippy Error/Shutdown): the state digest.
                 HomeDigest(
                     state = state,
                     spoolmanPresent = spoolmanPresent,
@@ -699,7 +709,7 @@ private fun GlanceBlock(
 }
 ```
 
-Keep the `spoolRemaining`/`isPrinting`/`stateLabel`/`title` derivations and the `FocusFrame(...)` wrapper as-is. `GlanceRow` and `glanceLabel` stay in the file (now used only by `GlanceBlock`).
+Keep the `spoolRemaining`/`isPrinting`/`stateLabel`/`title` derivations and the `FocusFrame(...)` wrapper as-is (`spoolRemaining` is still derived in `HomeFocus` and passed to `GlanceBlock`). `GlanceRow` and `glanceLabel` stay in the file (now used only by `GlanceBlock`). Add the import `works.mees.dinghy.state.KlippyState` (used by the new `klippyFault` check).
 
 - [ ] **Step 2: Verify it compiles**
 
@@ -720,9 +730,34 @@ git commit -m "feat(printstatus): branch HomeFocus printing-glance vs non-printi
 **Files:**
 - Modify: `app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusScreen.kt`
 
-- [ ] **Step 1: Collect the heater override colors**
+> ⚠ `HomeFocus` is called inside the PRIVATE shared `PrintStatusContent` (`PrintStatusScreen.kt:275`, the `focus = { HomeFocus(...) }` slot ~line 298), reached by BOTH the live `PrintStatusScreen(container)` overload (call site ~line 188) and the stateless preview overload (call site ~line 248). So `heaterColors` must be (a) a new `PrintStatusContent` parameter, (b) passed to `HomeFocus` inside it, (c) supplied at BOTH call sites — the real value live, `persistentMapOf()` for previews.
 
-In `PrintStatusScreen`, after the existing `collectAsStateWithLifecycle` calls (~line 90), add a per-printer trace-color flow mirroring `TemperatureHolder`:
+- [ ] **Step 1: Add `heaterColors` to `PrintStatusContent` and pass it to `HomeFocus`**
+
+In the `PrintStatusContent` signature (~line 275), add the parameter after `activeSpoolCardState`:
+
+```kotlin
+    activeSpoolCardState: ActiveSpoolCardState,
+    heaterColors: kotlinx.collections.immutable.ImmutableMap<String, androidx.compose.ui.graphics.Color>,
+```
+
+In the `focus = { HomeFocus(...) }` slot (~line 298), add the argument alongside `activeSpoolCardState = activeSpoolCardState,`:
+
+```kotlin
+                heaterColors = heaterColors,
+```
+
+- [ ] **Step 2: Supply it at the preview (stateless) call site**
+
+At the `PrintStatusContent(...)` call inside the stateless `PrintStatusScreen(state = …)` overload (~line 248), add:
+
+```kotlin
+            heaterColors = kotlinx.collections.immutable.persistentMapOf(),
+```
+
+- [ ] **Step 3: Collect + supply the real colors in the live overload**
+
+In the live `PrintStatusScreen(container, …)` overload, after the existing `collectAsStateWithLifecycle` calls (~line 90), add the per-printer trace-color flow (mirrors `TemperatureHolder`):
 
 ```kotlin
     // Per-printer trace-color overrides (R-CDX-3) — same source as the Temperature graph. Used to color
@@ -739,38 +774,39 @@ In `PrintStatusScreen`, after the existing `collectAsStateWithLifecycle` calls (
     }.collectAsStateWithLifecycle(initialValue = persistentMapOf())
 ```
 
-Add imports at the top:
+Then at the live `PrintStatusContent(...)` call (~line 188), add the argument alongside `activeSpoolCardState = activeSpoolCardState,`:
+
+```kotlin
+            heaterColors = heaterColors,
+```
+
+Add imports at the top of the file:
 
 ```kotlin
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 ```
 
-(`remember` and `map` may already be imported — dedupe. `flatMapLatest` is `@OptIn(ExperimentalCoroutinesApi)` — if the compiler requires it, add `@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)` to the function, matching how `TemperatureHolder` opts in.)
+(`remember` / `map` may already be imported — dedupe. `flatMapLatest` needs `@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)` on the live overload function, matching how `TemperatureHolder` opts in — add it if the compiler requires.)
 
-- [ ] **Step 2: Pass it into `HomeFocus`**
+> The `collectAsStateWithLifecycle(initialValue = persistentMapOf())` gives `heaterColors` the type `PersistentMap<String, Color>`, which IS an `ImmutableMap<String, Color>` — matching the `PrintStatusContent`/`HomeFocus`/`HomeDigest` param type. No cast needed.
 
-At the `HomeFocus(...)` call (~line 296), add the argument:
-
-```kotlin
-                heaterColors = heaterColors,
-```
-
-(place it alongside `activeSpoolCardState = activeSpoolCardState,`).
-
-- [ ] **Step 3: Build the whole debug variant**
+- [ ] **Step 4: Build the whole debug variant**
 
 Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug --no-daemon" | tr -d '\r'`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 4: Run the full unit suite**
+- [ ] **Step 5: Run the full unit suite**
 
 Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:testDebugUnitTest --no-daemon" | tr -d '\r'`
 Expected: BUILD SUCCESSFUL (incl. `FontConformanceTest`, `DinghyTypeTest`, the new tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add app/src/main/java/works/mees/dinghy/ui/printstatus/PrintStatusScreen.kt
