@@ -2900,6 +2900,29 @@
       ]
     },
     {
+      "catalog_id": "MR-printer.info",
+      "name": "printer.info",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "GET /printer/info probed 2026-06-15; result.hostname='ender5plus' (state 'ready')."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "GET /printer/info probed 2026-06-15; result.hostname='ender3' (state 'ready')."
+        }
+      ]
+    },
+    {
       "catalog_id": "MR-machine.proc_stats",
       "name": "machine.proc_stats",
       "source_api": "moonraker",

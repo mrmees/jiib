@@ -385,6 +385,14 @@ object CommandRegistry {
     // notify_proc_stat_update push (NOT these). These supply identity (system_info) + throttle/uptime
     // (proc_stats), both OMITTED from the push.
 
+    /** `printer.info` — host identity incl. `hostname` (used to seed an un-named profile's name). One-shot. */
+    val printerInfo: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-printer.info",
+        method = "printer.info",
+        key = { "printer_info" },
+        params = { null },
+    )
+
     /** `machine.system_info` — static host identity (cpu_info, distribution). One-shot per handshake. */
     val machineSystemInfo: CommandSpec<Unit> = jsonRpc(
         catalogId = "MR-machine.system_info",
@@ -810,6 +818,7 @@ object CommandRegistry {
         spoolmanGetSpoolId,
         spoolmanPostSpoolId,
         spoolmanProxy,
+        printerInfo,
         machineSystemInfo,
         machineProcStats,
         emergencyStop,

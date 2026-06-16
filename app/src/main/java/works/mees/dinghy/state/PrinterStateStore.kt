@@ -99,6 +99,10 @@ class PrinterStateStore(
      */
     val systemInfo: StateFlow<SystemInfo?> = _systemInfo.asStateFlow()
 
+    private val _hostname = MutableStateFlow<String?>(null)
+    /** `printer.info` hostname (2026-06-15) — one-shot per handshake, NOT the hot path. Null until read. */
+    val hostname: StateFlow<String?> = _hostname.asStateFlow()
+
     private val _procStatQuery = MutableStateFlow<ProcStatQuery?>(null)
     /**
      * `machine.proc_stats` query result (SYS-02/03, Phase 20) — the ONLY source of throttled_state +
@@ -329,6 +333,11 @@ class PrinterStateStore(
     /** One-shot at (re)handshake: `machine.system_info` host identity (SYS-01). NOT the throttled hot path. */
     fun setSystemInfo(info: SystemInfo) {
         _systemInfo.value = info
+    }
+
+    /** One-shot at (re)handshake: the `printer.info` hostname (used to seed an un-named profile's name). */
+    fun setHostname(value: String?) {
+        _hostname.value = value
     }
 
     /** One-shot at (re)handshake: `machine.proc_stats` throttle+uptime (SYS-02/03). NOT the throttled hot path. */
