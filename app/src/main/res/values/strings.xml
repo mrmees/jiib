@@ -63,6 +63,14 @@
     <string name="printstatus_spool_label">Spool</string>
     <string name="printstatus_print_time_label">Print time</string>
 
+    <!-- Home Focus state digest (non-printing states): label start-aligned, value end-aligned. -->
+    <string name="printstatus_digest_heaters">Heaters</string>
+    <string name="printstatus_digest_motors">Motors</string>
+    <string name="printstatus_digest_homed">Homed</string>
+    <string name="printstatus_digest_spool">Spool</string>
+    <string name="printstatus_digest_on">ON</string>
+    <string name="printstatus_digest_off">OFF</string>
+
     <!-- Format-arg proof (SC-3): a single positional string substitution. -->
     <string name="printstatus_layer_progress">Layer %1$d of %2$d</string>
 
