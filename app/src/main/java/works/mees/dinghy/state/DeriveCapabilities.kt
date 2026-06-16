@@ -54,6 +54,7 @@ private val V1_SUBSCRIBE_CORE: Set<String> = setOf(
     "virtual_sdcard",  // progress (Phase 6)
     "display_status",  // progress/message (Phase 6)
     "toolhead",        // position, homed_axes (Move/Phase 4)
+    "stepper_enable",  // motion-stepper enable map → PrinterState.motorsEnabled (home digest)
     "gcode_move",      // speed/extrude factor, gcode_position (Phase 4/6)
     "heater_bed",      // temp/target/power (Temp/Phase 4)
     "extruder",        // temp/target/power/can_extrude (Temp/Extrude/Phase 4)

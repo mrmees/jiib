@@ -440,6 +440,7 @@ class PrinterStateStore(
         if (diff.containsKey("webhooks")) return true
         val toolhead = diff["toolhead"] as? JsonObject
         if (toolhead != null && toolhead.containsKey("homed_axes")) return true
+        if (diff.containsKey("stepper_enable")) return true
         return false
     }
 
