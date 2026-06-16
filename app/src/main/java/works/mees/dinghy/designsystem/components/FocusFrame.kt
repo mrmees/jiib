@@ -23,7 +23,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -50,6 +57,49 @@ import works.mees.dinghy.theme.compose.toTextStyle
  */
 private const val IDENTITY_ICON_RATIO = 0.82f
 
+/** Perimeter progress-bar stroke weight — heavier than the 3dp Data edge so the bar reads as a gauge. */
+private const val PROGRESS_STROKE_DP = 4f
+
+/**
+ * Draw the [FocusEdge.Progress] bar: a rounded-rect perimeter traced CLOCKWISE FROM TOP-CENTER,
+ * stroked for the first [fraction] of its length. The path is inset by half the stroke (and its
+ * corner radius shrunk to match) so the full stroke sits inside the frame's clip — never clipped to
+ * half-width on the outer edge.
+ */
+private fun DrawScope.drawFocusProgress(
+    fraction: Float,
+    color: Color,
+    strokeWidthPx: Float,
+    cornerRadiusPx: Float,
+) {
+    val f = fraction.coerceIn(0f, 1f)
+    if (f <= 0f) return
+    val inset = strokeWidthPx / 2f
+    val left = inset
+    val top = inset
+    val right = size.width - inset
+    val bottom = size.height - inset
+    // Shrink the corner radius by the same inset so the arc stays CONCENTRIC with the frame corner.
+    val r = (cornerRadiusPx - inset).coerceIn(0f, minOf(right - left, bottom - top) / 2f)
+    val cx = (left + right) / 2f
+    val path = Path().apply {
+        moveTo(cx, top)
+        lineTo(right - r, top)
+        arcTo(Rect(right - 2 * r, top, right, top + 2 * r), -90f, 90f, false)         // top-right
+        lineTo(right, bottom - r)
+        arcTo(Rect(right - 2 * r, bottom - 2 * r, right, bottom), 0f, 90f, false)      // bottom-right
+        lineTo(left + r, bottom)
+        arcTo(Rect(left, bottom - 2 * r, left + 2 * r, bottom), 90f, 90f, false)       // bottom-left
+        lineTo(left, top + r)
+        arcTo(Rect(left, top, left + 2 * r, top + 2 * r), 180f, 90f, false)            // top-left
+        lineTo(cx, top)
+    }
+    val measure = PathMeasure().apply { setPath(path, false) }
+    val dest = Path()
+    measure.getSegment(0f, measure.length * f, dest, true)
+    drawPath(dest, color, style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round))
+}
+
 /**
  * The Focus edge — the bounded-surface border whose COLOR/FORM encodes meaning (Focus Frame law §2,
  * `.planning/notes/2026-06-12-focus-frame-law-design.md`). The edge is the constant "this is the
@@ -66,11 +116,13 @@ sealed interface FocusEdge {
     data class Data(val color: Color) : FocusEdge
 
     /**
-     * Print-progress: the edge becomes a perimeter progress bar (the Scrubber's visual language
-     * unwrapped around the frame). Drawn specially in [FocusFrame] — NOT a uniform border.
-     * Deferred; renders borderless until implemented.
+     * Print-progress perimeter bar (the Scrubber's visual language unwrapped around the frame):
+     * a [color] stroke tracing the rounded-rect perimeter CLOCKWISE FROM TOP-CENTER, arc length =
+     * [fraction] (0..1). 0 → invisible; .5 → reaches 6 o'clock; .75 → 9 o'clock; 1 → closed loop.
+     * Drawn specially in [FocusFrame] — NOT a uniform border. [color] is accent while printing,
+     * the heat/amber token while paused (the caller resolves it from tokens).
      */
-    data class Progress(val fraction: Float) : FocusEdge
+    data class Progress(val fraction: Float, val color: Color) : FocusEdge
 }
 
 /** A resolved uniform-border stroke. */
@@ -161,9 +213,20 @@ fun FocusFrame(
             .clip(shape)
             .then(
                 if (stroke != null) Modifier.border(BorderStroke(stroke.widthDp.dp, stroke.color), shape)
-                else Modifier, // FocusEdge.Progress draws its own perimeter bar (deferred)
+                else Modifier, // FocusEdge.Progress draws its own perimeter bar (below)
             )
-            .background(t.surface),
+            .background(t.surface)
+            .then(
+                if (edge is FocusEdge.Progress) Modifier.drawWithContent {
+                    drawContent()
+                    drawFocusProgress(
+                        fraction = edge.fraction,
+                        color = edge.color,
+                        strokeWidthPx = PROGRESS_STROKE_DP.dp.toPx(),
+                        cornerRadiusPx = t.rCard.toPx(),
+                    )
+                } else Modifier,
+            ),
     ) {
         FocusHeader(
             title = title,
