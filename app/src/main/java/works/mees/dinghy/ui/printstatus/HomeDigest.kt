@@ -1,11 +1,11 @@
 package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -142,30 +142,28 @@ internal fun HomeDigest(
     val maxScaled = labelBase.fontSize.value          // already fs-scaled (fsSp(40, fs))
     val minScaled = fsSp(DinghyType.focusHero.minSp ?: 15f, t.fs)
 
-    BoxWithConstraints(modifier) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
         val availPx = if (constraints.hasBoundedWidth) constraints.maxWidth.toFloat() else Float.MAX_VALUE
         val gapPx = with(density) { DIGEST_GAP.toPx() }
 
-        // Measure each column at the BASE (max) size; widths scale ~linearly with font size, so one
-        // measure pass gives us everything. Keyed so temp ticks (same digit-count) don't re-measure.
+        // ONE font size for the whole block: the largest at which the WIDEST row (its own label+value)
+        // fits availPx on a single line. Rows fill the Focus width with the value pinned to the end, so
+        // every value's right edge is flush to the Focus frame and nothing wraps. Widths scale ~linearly
+        // with size, so one base-size measure pass suffices. Keyed so temp ticks (same digit-count) skip
+        // re-measuring.
         val key = rows.joinToString("·") { "${it.label}/${it.value.length}" } + "|$availPx|${t.fs}"
-        val grid = remember(key) {
-            val maxLabelPx = rows.maxOf { measurer.measure(it.label, labelBase, maxLines = 1, softWrap = false).size.width }
-            val maxValuePx = rows.maxOf { measurer.measure(it.value, valueBase, maxLines = 1, softWrap = false).size.width }
-            val textBindingPx = (maxLabelPx + maxValuePx).toFloat()
-            val sizeSp = if (textBindingPx <= 0f || availPx == Float.MAX_VALUE) maxScaled
-                else (maxScaled * (availPx - gapPx) / textBindingPx).coerceIn(minScaled, maxScaled)
-            val scale = if (maxScaled > 0f) sizeSp / maxScaled else 1f
-            // +1px guards against rounding clipping the last glyph.
-            val labelDp = with(density) { (maxLabelPx * scale + 1f).toDp() }
-            val valueDp = with(density) { (maxValuePx * scale + 1f).toDp() }
-            Triple(sizeSp, labelDp, valueDp)
+        val sizeSp = remember(key) {
+            val widestRowPx = rows.maxOf {
+                measurer.measure(it.label, labelBase, maxLines = 1, softWrap = false).size.width +
+                    measurer.measure(it.value, valueBase, maxLines = 1, softWrap = false).size.width
+            }.toFloat()
+            if (widestRowPx <= 0f || availPx == Float.MAX_VALUE) maxScaled
+            else (maxScaled * (availPx - gapPx) / widestRowPx).coerceIn(minScaled, maxScaled)
         }
-        val (sizeSp, labelColDp, valueColDp) = grid
 
-        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             rows.forEach { r ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         r.label,
                         color = t.text2,
@@ -173,18 +171,16 @@ internal fun HomeDigest(
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.width(labelColDp),
+                        modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(DIGEST_GAP))
-                    Box(Modifier.width(valueColDp), contentAlignment = Alignment.CenterEnd) {
-                        Text(
-                            r.value,
-                            color = r.color,
-                            style = DinghyType.focusHero.toTextStyle(t, sizeSp),
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    }
+                    Text(
+                        r.value,
+                        color = r.color,
+                        style = DinghyType.focusHero.toTextStyle(t, sizeSp),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                 }
             }
         }
