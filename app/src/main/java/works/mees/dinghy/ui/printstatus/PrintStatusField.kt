@@ -112,3 +112,14 @@ internal fun HomeField(
         }
     }
 }
+
+/**
+ * The home Spool row's identity text: the loaded filament's `name / material / vendor` (color /
+ * type / mfg), non-null/non-blank fields joined with " / ". Null when no usable field exists
+ * (the caller then shows "No Spool Loaded" or the generic "Spool" label). Pure — unit-tested.
+ */
+internal fun spoolRowText(filament: works.mees.dinghy.spool.SpoolmanFilament?): String? =
+    listOfNotNull(filament?.name, filament?.material, filament?.vendor?.name)
+        .filter { it.isNotBlank() }
+        .joinToString(" / ")
+        .ifBlank { null }
