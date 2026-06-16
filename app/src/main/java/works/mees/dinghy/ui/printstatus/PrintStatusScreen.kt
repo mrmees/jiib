@@ -25,6 +25,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.HeaterState
+import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.parseSpoolmanSpools
@@ -99,6 +100,11 @@ fun PrintStatusScreen(
         .map { it.size }
         .collectAsStateWithLifecycle(initialValue = 0)
 
+    // Active-print Focus inputs: the one-shot-per-filename gcode metadata (thumbnail + object height +
+    // layer count) and the HTTP base for the thumbnail URL. Both already exposed on AppContainer.
+    val printMetadata by container.printMetadata.collectAsStateWithLifecycle(initialValue = null)
+    val httpBase by container.httpBase.collectAsStateWithLifecycle(initialValue = "")
+
     // ---- Active-spool card (SPOOL-02, 11-06) -------------------------------------------------------
     // The D-03 card reads the capability gate + the D-10-reconciled active status; the spool DETAIL is
     // resolved once-per-id via the session's lean SpoolmanClient (a best-effort getSpool — a rejected/
@@ -135,15 +141,26 @@ fun PrintStatusScreen(
     // Idle action list (24-04, D-05/D-06/D-08): built once per capability-flag change.
     // All four capability flags are live StateFlows so the list is rebuilt whenever the printer
     // connects/disconnects, Spoolman changes, or the user toggles webcam in Settings.
+    // Active-print state axis: while Printing/Paused the System action moves into the idle list
+    // (it leaves the foot bar, replaced by Pause/Cancel). Keyed into the remember so the row appears
+    // the moment a print starts.
+    val isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused
+    val isPaused = state.printState == PrintState.Paused
     val idleActions: List<HomeAction> = remember(
-        spoolmanPresent, outputsPresent, webcamEnabled,
+        spoolmanPresent, outputsPresent, webcamEnabled, isPrinting,
     ) {
         buildIdleActions(
             spoolmanPresent = spoolmanPresent,
             outputsPresent  = outputsPresent,
             webcamEnabled   = webcamEnabled,
+            isPrinting      = isPrinting,
         )
     }
+
+    // Pause / Resume / Cancel dispatch (existing CommandSpecs, availability-gated on pause_resume).
+    val onPause: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printPause, Unit); Unit }
+    val onResume: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printResume, Unit); Unit }
+    val onCancel: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printCancel, Unit); Unit }
 
     var showPresetSelector by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
@@ -212,10 +229,17 @@ fun PrintStatusScreen(
             spoolmanPresent = spoolmanPresent,
             activeSpoolCardState = activeSpoolCardState,
             heaterColors = heaterColors,
+            printMetadata = printMetadata,
+            httpBase = httpBase,
+            isPrinting = isPrinting,
+            isPaused = isPaused,
             failureText = failureText,
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onNavigate = onNavigate,
             onPreheat = ::runPreheat,
+            onPause = onPause,
+            onResume = onResume,
+            onCancel = onCancel,
         )
 
         // Spool-aware Preheat fallback (D-01): the now-internal Phase-5 PresetSelector (fixed
@@ -273,10 +297,17 @@ fun PrintStatusScreen(
             spoolmanPresent = spoolmanPresent,
             activeSpoolCardState = activeSpoolCardState,
             heaterColors = persistentMapOf(),
+            printMetadata = null,
+            httpBase = "",
+            isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused,
+            isPaused = state.printState == PrintState.Paused,
             failureText = null,
             onEmergencyStop = null,
             onNavigate = onNavigate,
             onPreheat = {},
+            onPause = {},
+            onResume = {},
+            onCancel = {},
         )
     }
 }
@@ -301,10 +332,17 @@ private fun PrintStatusContent(
     spoolmanPresent: Boolean,
     activeSpoolCardState: ActiveSpoolCardState,
     heaterColors: ImmutableMap<String, Color>,
+    printMetadata: works.mees.dinghy.state.PrintMetadata?,
+    httpBase: String,
+    isPrinting: Boolean,
+    isPaused: Boolean,
     failureText: String?,
     onEmergencyStop: (() -> Unit)?,
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     // Pilot fix 2026-06-12: ONE screen-root unit grid (LAYOUT.md §"The unit U" — derived from the
     // SCREEN short edge, constant through rotation), passed down to U-consumers. The standby field
@@ -326,6 +364,8 @@ private fun PrintStatusContent(
                 heaterColors = heaterColors,
                 onEmergencyStop = onEmergencyStop,
                 uDp = grid.uDp,
+                printMetadata = printMetadata,
+                httpBase = httpBase,
             )
         },
         field = {
@@ -336,6 +376,11 @@ private fun PrintStatusContent(
                 onNavigate = onNavigate,
                 onPreheat = onPreheat,
                 uDp = grid.uDp,
+                isPrinting = isPrinting,
+                isPaused = isPaused,
+                onPause = onPause,
+                onResume = onResume,
+                onCancel = onCancel,
             )
         },
     )
