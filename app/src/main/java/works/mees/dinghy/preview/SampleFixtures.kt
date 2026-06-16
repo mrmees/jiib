@@ -20,11 +20,10 @@ import works.mees.dinghy.config.Profile
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
+import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.ui.finetune.FineTuneVm
-import works.mees.dinghy.ui.printstatus.PrintStatusMode
-import works.mees.dinghy.ui.printstatus.TerminalKind
 import works.mees.dinghy.ui.spool.FieldMode
 import works.mees.dinghy.ui.spool.SpoolFilterCategory
 import works.mees.dinghy.ui.spool.SpoolPickerState
@@ -41,39 +40,33 @@ import works.mees.dinghy.ui.spool.SpoolPickerState
 object SampleFixtures {
 
     // ---------------------------------------------------------------------------------------------
-    // Print-Status modes (the 4/6-state classifier surface — PrintStatusMode.kt)
+    // Print-Status states (the single collapsed home path — PrintStatusScreen.kt)
     // ---------------------------------------------------------------------------------------------
 
-    /** All FOUR PrintStatusMode states, with Terminal expanded to its three kinds (six entries). */
-    val printStatusModes: List<PrintStatusMode> = listOf(
-        PrintStatusMode.Standby,
-        PrintStatusMode.Printing,
-        PrintStatusMode.Paused,
-        PrintStatusMode.Terminal(TerminalKind.Complete),
-        PrintStatusMode.Terminal(TerminalKind.Cancelled),
-        PrintStatusMode.Terminal(TerminalKind.Error),
+    /** All six raw [PrintState] values — the home renders ONE path for each. */
+    val printStates: List<PrintState> = listOf(
+        PrintState.Standby,
+        PrintState.Printing,
+        PrintState.Paused,
+        PrintState.Complete,
+        PrintState.Cancelled,
+        PrintState.Error,
     )
 
     /**
-     * Build a [PrinterState] whose `printState` classifies to [mode] (the inverse of
-     * `classifyPrintStatus`). The PrintStatus screen derives its mode from `printState` ONLY
-     * (PrintStatusMode.kt — print-state-only discipline), so a fixture that sets the matching
-     * `printState` reproduces every screen state deterministically. Defaults fill everything else.
+     * Build a [PrinterState] in the given print [s]tate. The collapsed PrintStatus home renders ONE
+     * path off [PrinterState.printState] (plus [PrinterState.klippyState] for the title), so a fixture
+     * that sets the matching `printState` reproduces every home state deterministically. A filename is
+     * supplied for the active/paused states so the Focus has a job to present; defaults fill the rest.
      */
-    fun forMode(mode: PrintStatusMode): PrinterState =
-        PrinterState(printState = printStateFor(mode))
+    fun forState(s: PrintState): PrinterState = PrinterState(
+        printState = s,
+        printFilename = if (s == PrintState.Printing || s == PrintState.Paused) "benchy.gcode" else "",
+        klippyState = KlippyState.Ready,
+    )
 
-    /** The raw [PrintState] that classifies to [mode] (inverse of `classifyPrintStatus`). */
-    private fun printStateFor(mode: PrintStatusMode): PrintState = when (mode) {
-        PrintStatusMode.Standby -> PrintState.Standby
-        PrintStatusMode.Printing -> PrintState.Printing
-        PrintStatusMode.Paused -> PrintState.Paused
-        is PrintStatusMode.Terminal -> when (mode.kind) {
-            TerminalKind.Complete -> PrintState.Complete
-            TerminalKind.Cancelled -> PrintState.Cancelled
-            TerminalKind.Error -> PrintState.Error
-        }
-    }
+    /** A Klipper-host SHUTDOWN fixture — exercises the host-fault home title (homeStateLabelRes). */
+    fun klippyShutdown(): PrinterState = PrinterState(klippyState = KlippyState.Shutdown)
 
     // ---------------------------------------------------------------------------------------------
     // Fine-Tune live-adjust variants (capability-gate present / absent / busy — FineTuneVm.kt)
