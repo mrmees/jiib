@@ -26,21 +26,25 @@ sealed interface TopRoute {
  * PURE top-level route derivation (mirrors the `derive*` idiom in `state/DeriveCapabilities.kt`):
  * no I/O, no coroutines, no Compose — same input always yields the same output, host-unit-testable.
  *
- * Arm order is LOAD-BEARING (Codex-reviewed, 13-05 Task 3) — first-run and the klippy gate must still
- * WIN, and an auth/unreachable failure must NOT be trapped behind a bare Syncing splash:
+ * Arm order is LOAD-BEARING (Codex-reviewed, 13-05 Task 3; re-ordered 2026-06-15) — first-run still
+ * WINS, then a REAL connection fault is checked BEFORE the klippy state, and an auth/unreachable failure
+ * must NOT be trapped behind a bare Syncing splash:
  * - no config              → [TopRoute.Connect] (D-11),
- * - Klippy != Ready        → [TopRoute.Splash] (hard override, D-06),
- * - connection !is Connected → [TopRoute.Splash] — NEW (13-05): a socket RECONNECT (Connecting/Syncing/
- *   Disconnected/Error while config is present and klippy is otherwise Ready) now shows the full recovery
- *   Splash. This is the DELIBERATE D-05 departure (Matthew 2026-06-03): the socket [ConnectionState] now
- *   routes the recovery splash so a mid-print WiFi drop is visibly non-silent. It is SAFE only because
- *   13-05 Task 2 HOISTED the shell nav state above the Splash/Shell switch — the splash no longer bounces
- *   the user off their screen. (SplashScreen already maps Disconnected/Error → an "Unreachable" surface
- *   with Retry + "Edit connection", so a printer that is simply OFF stays reachable, not an eternal dead
- *   "Syncing" — the Settings escape is preserved on this path.)
- * - else                   → [TopRoute.Shell] of [Dest.PrintStatus] (printing AND idle resolve to the
- *   SAME surface; the screen itself adapts its content on [PrinterState.printState], D-06 — so printState
- *   is NOT a route input, only a content input the screen reads downstream).
+ * - connection !is Connected → [TopRoute.Splash] — a socket RECONNECT (Connecting/Syncing/Disconnected/
+ *   Error while config is present) shows the full recovery Splash. This is the DELIBERATE D-05 departure
+ *   (Matthew 2026-06-03): the socket [ConnectionState] routes the recovery splash so a mid-print WiFi drop
+ *   is visibly non-silent. It is SAFE only because 13-05 Task 2 HOISTED the shell nav state above the
+ *   Splash/Shell switch — the splash no longer bounces the user off their screen. (SplashScreen already
+ *   maps Disconnected/Error → an "Unreachable" surface with Retry + "Edit connection", so a printer that
+ *   is simply OFF stays reachable, not an eternal dead "Syncing" — the Settings escape is preserved.)
+ *   This arm now PRECEDES the klippy arm so a connected Klippy fault can fall through to the shell.
+ * - klippy Disconnected/Startup → [TopRoute.Splash] — the host is not up yet (D-06). Note: ONLY these two
+ *   klippy states route Splash now; [KlippyState.Error] and [KlippyState.Shutdown] (with a LIVE connection)
+ *   fall through to [TopRoute.Shell] — the home skeleton itself renders the Klippy fault (owner decision
+ *   2026-06-15), rather than a hard Splash override.
+ * - else                   → [TopRoute.Shell] of [Dest.PrintStatus] — Ready, Error, AND Shutdown (when
+ *   connected) all resolve to the SAME home surface; the screen adapts its content on [PrinterState] (the
+ *   printState/klippyState are content inputs the screen reads downstream, NOT route inputs here, D-06).
  *
  * It reads [PrinterState.klippyState] AND [PrinterState.connection]. The perceptibility floor (a minimum
  * visible splash dwell on a FAST recovery) is NOT here — it is a [RootController]-owned UI latch (it must
@@ -48,7 +52,8 @@ sealed interface TopRoute {
  */
 fun derive(cfgPresent: Boolean, s: PrinterState): TopRoute = when {
     !cfgPresent -> TopRoute.Connect
-    s.klippyState != KlippyState.Ready -> TopRoute.Splash
-    s.connection !is ConnectionState.Connected -> TopRoute.Splash
-    else -> TopRoute.Shell
+    s.connection !is ConnectionState.Connected -> TopRoute.Splash      // real connection fault
+    s.klippyState == KlippyState.Disconnected ||
+        s.klippyState == KlippyState.Startup -> TopRoute.Splash         // host not up yet
+    else -> TopRoute.Shell                                              // Ready, Error, Shutdown → home
 }
