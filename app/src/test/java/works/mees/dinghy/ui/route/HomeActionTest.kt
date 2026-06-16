@@ -234,4 +234,28 @@ class HomeActionTest {
             }
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // Active-print: System row moves from the foot bar into the list while printing
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun systemRow_absentWhenIdle() {
+        val actions = buildIdleActions(
+            spoolmanPresent = false, outputsPresent = false, webcamEnabled = false, isPrinting = false,
+        )
+        assertFalse("System row must be absent when idle (it lives in the foot bar)",
+            NavDest.System in actions.destSet())
+    }
+
+    @Test
+    fun systemRow_presentAndLastWhenPrinting() {
+        val actions = buildIdleActions(
+            spoolmanPresent = false, outputsPresent = false, webcamEnabled = false, isPrinting = true,
+        )
+        val dests = actions.destinations()
+        assertTrue("System row must be present while printing", NavDest.System in dests)
+        // assertEquals (not Kotlin assert(), a no-op without -ea): it is appended LAST.
+        assertEquals(NavDest.System, dests.last())
+    }
 }

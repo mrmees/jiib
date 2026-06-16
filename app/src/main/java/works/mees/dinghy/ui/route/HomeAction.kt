@@ -79,6 +79,7 @@ fun buildIdleActions(
     spoolmanPresent: Boolean,
     outputsPresent: Boolean,
     webcamEnabled: Boolean,
+    isPrinting: Boolean = false,
 ): List<HomeAction> = buildList {
     // D-05/D-06 order: Spool → Files → Move → Extrude → Macros → Calibration → Temperature → Console → Fine-Tune → Outputs → Webcam
 
@@ -157,6 +158,17 @@ fun buildIdleActions(
             dest     = NavDest.Webcam,
             labelRes = R.string.cd_launcher_webcam,
             icon     = DinghyIcons.LauncherWebcam,
+        ))
+    }
+
+    // While a print runs, System leaves the foot bar (replaced by Pause/Cancel) and lands here so it
+    // stays reachable. Reuses the SAME registered System glyph + label (icon-never-invent: same
+    // function, same token object — no new registry entry, no iconRef_isUnique duplicate).
+    if (isPrinting) {
+        add(HomeAction.Destination(
+            dest     = NavDest.System,
+            labelRes = R.string.home_foot_system,
+            icon     = DinghyIcons.FootSystem,
         ))
     }
 }
