@@ -4,11 +4,13 @@ import android.content.Context
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -17,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -345,9 +348,18 @@ private fun AppSettingsFocus(
 ) {
     val t = LocalTokens.current
 
-    // Local helper to share the FocusFrame boilerplate (+ e-stop wiring) across the six branches.
+    // Local helper: applies the Focus-body layout law (owner 2026-06-14 / LAYOUT.md §"Focus with a
+    // docked action region") — the [description] is vertically CENTERED in the weighted body and the
+    // [control] group is pinned to the BOTTOM (never top-stacked). Also shares the FocusFrame
+    // boilerplate (+ e-stop wiring) across the branches. A null [control] (the no-selection overview)
+    // just centers the description in the whole body.
     @Composable
-    fun frame(title: String, icon: DinghyIcon, body: @Composable ColumnScope.() -> Unit) {
+    fun frame(
+        title: String,
+        icon: DinghyIcon,
+        description: String,
+        control: (@Composable ColumnScope.() -> Unit)? = null,
+    ) {
         FocusFrame(
             title = title,
             icon = icon,
@@ -356,56 +368,72 @@ private fun AppSettingsFocus(
             isPrinting = isPrinting,
             onEmergencyStop = onEmergencyStop,
             onPanic = onEmergencyStop,
-            content = body,
-        )
+        ) {
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Text(text = description, color = t.text2, style = DinghyType.body.toTextStyle(t))
+            }
+            if (control != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = control,
+                )
+            }
+        }
     }
 
     when (selected) {
-        null -> frame(stringResource(R.string.system_row_app_settings), DinghyIcons.AppSettings) {
-            Text(
-                text = stringResource(R.string.settings_app_settings_placeholder),
-                color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
-            )
+        null -> frame(
+            stringResource(R.string.system_row_app_settings),
+            DinghyIcons.AppSettings,
+            stringResource(R.string.settings_app_settings_placeholder),
+        )
+        AppSetting.TextSize -> frame(
+            stringResource(R.string.settings_text_size),
+            DinghyIcons.TextSize,
+            stringResource(R.string.settings_text_size_focus),
+        ) {
+            TextSizeSelector(selected = fontScale, onSelect = onFontScale, modifier = Modifier.fillMaxWidth())
         }
-        AppSetting.TextSize -> frame(stringResource(R.string.settings_text_size), DinghyIcons.TextSize) {
-            Text(stringResource(R.string.settings_text_size_focus), color = t.text2, style = DinghyType.body.toTextStyle(t))
-            TextSizeSelector(selected = fontScale, onSelect = onFontScale, modifier = Modifier.padding(top = 12.dp))
-        }
-        AppSetting.KeepAwake -> frame(stringResource(R.string.settings_keep_screen_on), DinghyIcons.Fluorescent) {
-            Text(stringResource(R.string.settings_keep_screen_on_focus), color = t.text2, style = DinghyType.body.toTextStyle(t))
+        AppSetting.KeepAwake -> frame(
+            stringResource(R.string.settings_keep_screen_on),
+            DinghyIcons.Fluorescent,
+            stringResource(R.string.settings_keep_screen_on_focus),
+        ) {
             ToggleRow(
                 label = stringResource(R.string.settings_keep_screen_on),
                 checked = keepScreenOn,
                 onToggle = onKeepScreenOnToggle,
                 uDp = uDp,
-                modifier = Modifier.padding(top = 12.dp),
             )
         }
-        AppSetting.Webcam -> frame(stringResource(R.string.settings_webcam), DinghyIcons.LauncherWebcam) {
-            Text(stringResource(R.string.settings_webcam_focus), color = t.text2, style = DinghyType.body.toTextStyle(t))
+        AppSetting.Webcam -> frame(
+            stringResource(R.string.settings_webcam),
+            DinghyIcons.LauncherWebcam,
+            stringResource(R.string.settings_webcam_focus),
+        ) {
             ToggleRow(
                 label = stringResource(R.string.settings_webcam),
                 checked = webcamEnabled,
                 onToggle = onWebcamToggle,
                 uDp = uDp,
-                modifier = Modifier.padding(top = 12.dp),
             )
         }
-        AppSetting.Babystep -> frame(stringResource(R.string.settings_babystep), DinghyIcons.LineWeight) {
-            Text(stringResource(R.string.settings_babystep_focus), color = t.text2, style = DinghyType.body.toTextStyle(t))
+        AppSetting.Babystep -> frame(
+            stringResource(R.string.settings_babystep),
+            DinghyIcons.LineWeight,
+            stringResource(R.string.settings_babystep_focus),
+        ) {
             ToggleRow(
                 label = stringResource(R.string.settings_babystep),
                 checked = babystepOn,
                 onToggle = onBabystepToggle,
                 uDp = uDp,
-                modifier = Modifier.padding(top = 12.dp),
             )
             StepperRow(
                 onDecrement = { onBabystepLayers((babystepLayers - 1).coerceAtLeast(1)) },
                 onIncrement = { onBabystepLayers(babystepLayers + 1) },
                 uDp = uDp,
-                modifier = Modifier.padding(top = 12.dp),
                 enabled = babystepOn,
                 center = {
                     Text(
@@ -416,19 +444,18 @@ private fun AppSettingsFocus(
                 },
             )
         }
-        AppSetting.Battery -> frame(stringResource(R.string.settings_battery_optimization), DinghyIcons.ShieldLock) {
-            Text(
-                text = stringResource(
-                    if (isExempt) R.string.settings_battery_exempt else R.string.settings_battery_optimized,
-                ),
-                color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
-            )
+        AppSetting.Battery -> frame(
+            stringResource(R.string.settings_battery_optimization),
+            DinghyIcons.ShieldLock,
+            stringResource(
+                if (isExempt) R.string.settings_battery_exempt else R.string.settings_battery_optimized,
+            ),
+        ) {
             OutlinedControl(
                 label = stringResource(R.string.settings_battery_request),
                 onClick = onRequestExempt,
                 enabled = !isExempt,
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 intent = Intent.Accent,
             )
         }
