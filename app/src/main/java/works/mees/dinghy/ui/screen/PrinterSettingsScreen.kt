@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -75,7 +74,6 @@ fun PrinterSettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val profiles by container.profileStore.profiles.collectAsStateWithLifecycle(emptyList())
     val activeProfile by container.activeProfile.collectAsStateWithLifecycle(null)
     val connectionState by container.connectionState.collectAsStateWithLifecycle(ConnectionState.Disconnected)
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -97,14 +95,12 @@ fun PrinterSettingsScreen(
 
     PrinterSettingsContent(
         activeProfile = activeProfile,
-        profileCount = profiles.size,
         connectionState = connectionState,
         isPrinting = isPrinting,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onConnection = { editingConnection = true },
         onTheme = { onNavigate(NavDest.Theme) },
         onSystemInfo = { onNavigate(NavDest.SystemInfo) },
-        onManage = { onNavigate(NavDest.ManagePrinters) },
         onAdd = { editingConnection = true },
         onBack = onBack,
         modifier = modifier,
@@ -127,33 +123,27 @@ fun PrinterSettingsScreen(
  *      2. Theme & colors — → [onTheme]
  *      3. System Info — → [onSystemInfo]
  *      4. Power — inert stub, stop-tinted at 0.38f (D-08 parity with [PowerStubRow]).
- *      5. Thin divider.
- *      6. Manage printers — trailing count badge → [onManage].
  *  - **Foot**: single Back button (accent, R5).
  *
  * @param activeProfile    the currently active [Profile], or null (empty state / no printers).
- * @param profileCount     total number of profiles (shown as trailing count on Manage row).
  * @param connectionState  live [ConnectionState] for the active printer.
  * @param isPrinting       whether the printer is currently printing or paused (e-stop morph).
  * @param onEmergencyStop  e-stop callback (wired to shell-level FloatingEStop in FocusFrame).
  * @param onConnection     Connection row click handler.
  * @param onTheme          Theme row click handler.
  * @param onSystemInfo     System Info row click handler.
- * @param onManage         Manage printers row click handler.
  * @param onAdd            Add affordance handler in empty state.
  * @param onBack           Back foot button handler.
  */
 @Composable
 fun PrinterSettingsContent(
     activeProfile: Profile?,
-    profileCount: Int,
     connectionState: ConnectionState,
     isPrinting: Boolean = false,
     onEmergencyStop: () -> Unit = {},
     onConnection: () -> Unit,
     onTheme: () -> Unit,
     onSystemInfo: () -> Unit,
-    onManage: () -> Unit,
     onAdd: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -277,38 +267,6 @@ fun PrinterSettingsContent(
                             PrinterSettingsPowerStubRow(uDp = grid.uDp)
                         }
 
-                        // Row 5: Thin hairline divider
-                        item {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                color = t.outline,
-                                thickness = 1.dp,
-                            )
-                        }
-
-                        // Row 6: Manage printers (with trailing count)
-                        item {
-                            ListRow(
-                                selected = false,
-                                onClick = onManage,
-                                uDp = grid.uDp,
-                                leadingContent = {
-                                    ListRowIcon(
-                                        icon = DinghyIcons.ManagePrinters,
-                                        uDp = grid.uDp,
-                                        tint = t.text,
-                                    )
-                                },
-                            ) {
-                                ListRowLabel(stringResource(R.string.printer_settings_manage))
-                                Spacer(Modifier.weight(1f))
-                                Text(
-                                    text = profileCount.toString(),
-                                    color = t.text2,
-                                    style = DinghyType.dataMeta.toTextStyle(t),
-                                )
-                            }
-                        }
                     }
                 } else {
                     // Empty state: only an Add affordance.

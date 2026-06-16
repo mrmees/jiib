@@ -241,5 +241,6 @@ private data class SystemNavRow(
 private fun systemNavRows(): List<SystemNavRow> = listOf(
     SystemNavRow(NavDest.AppSettings,     DinghyIcons.AppSettings,     R.string.system_row_app_settings),
     SystemNavRow(NavDest.PrinterSettings, DinghyIcons.PrinterSettings, R.string.system_row_printer_settings),
+    SystemNavRow(NavDest.ManagePrinters,  DinghyIcons.ManagePrinters,  R.string.printer_settings_manage),
     SystemNavRow(NavDest.About,           DinghyIcons.SystemRowAbout,  R.string.system_row_about),
 )
