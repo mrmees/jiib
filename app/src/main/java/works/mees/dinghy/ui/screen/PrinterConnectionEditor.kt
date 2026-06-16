@@ -33,6 +33,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.Profile
+import works.mees.dinghy.config.resolveAutoSeededOnSave
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -301,6 +302,7 @@ internal fun PrinterConnectionEditor(
                                 port = portInt!!,
                                 apiKey = resolvedKey,
                                 useSecure = useSecure,
+                                nameAutoSeeded = resolveAutoSeededOnSave(cleanName, profile.nameAutoSeeded, profile.name),
                             )
                         } else {
                             Profile(
@@ -310,6 +312,7 @@ internal fun PrinterConnectionEditor(
                                 port = portInt!!,
                                 apiKey = resolvedKey,
                                 useSecure = useSecure,
+                                nameAutoSeeded = resolveAutoSeededOnSave(cleanName, prior = false, priorName = null),
                             )
                         }
                         container.saveProfile(next)

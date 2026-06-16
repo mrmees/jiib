@@ -19,11 +19,13 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
+import works.mees.dinghy.config.shouldSeedName
 import works.mees.dinghy.config.ConnectionStore
 import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.config.Profile
@@ -618,6 +620,36 @@ class AppContainer(
     /** Live `printer.info` hostname off the current session; null when idle. */
     val hostname: Flow<String?> =
         spine.flatMapLatest { it?.hostname ?: flowOf(null) }
+
+    // One-time printer-name seed from the Moonraker hostname (printer.info, 2026-06-15). When a live
+    // session reports a hostname, seed THAT session's active profile's name once — iff un-named and
+    // not yet seeded. The sessionConfig guard prevents seeding the wrong profile across a switch
+    // (Codex B-2): activeProfile (ProfileStore) can update before the spine republishes. Idempotent —
+    // the predicate is re-checked against the freshly-decoded profile INSIDE ProfileStore.mutateActive.
+    // Process-lifetime writeScope (never a composition scope). This init block sits AFTER the [spine]
+    // and [hostname] declarations so they are initialized when it runs.
+    init {
+        writeScope.launch {
+            spine.collectLatest { handle ->
+                val sessionConfig = handle?.sessionConfig ?: return@collectLatest
+                handle.hostname
+                    .map { it?.trim()?.ifBlank { null } }
+                    .filterNotNull()
+                    .distinctUntilChanged()
+                    .collect { hn ->
+                        profileStore.mutateActive { p ->
+                            if (p.toConnectionConfig() == sessionConfig &&
+                                shouldSeedName(p.name, p.nameAutoSeeded, hn)
+                            ) {
+                                p.copy(name = hn, nameAutoSeeded = true)
+                            } else {
+                                p
+                            }
+                        }
+                    }
+            }
+        }
+    }
 
     /** Live one-shot-per-handshake webcam enumeration; empty when none / idle (CAM-01, 10-03). */
     val webcams: Flow<List<Webcam>> =
