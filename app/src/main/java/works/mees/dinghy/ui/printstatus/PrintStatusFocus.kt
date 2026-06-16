@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -35,6 +37,7 @@ import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.DinghyType
+import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
@@ -146,7 +149,7 @@ private fun ActivePrintFocus(
             null
         }
     }
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
         // Background: thumbnail (Fit, centered) or watermark fallback.
         if (thumbUrl != null && !inspection) {
             AsyncImage(
@@ -195,17 +198,37 @@ private fun ActivePrintFocus(
             layerHeight = printMetadata?.layerHeight,
             totalLayer = totalLayer,
         )
+        val layerHeightText = formatLayerHeight(
+            currentZ = currentZ,
+            objectHeight = printMetadata?.objectHeight,
+            currentLayer = currentLayer,
+            totalLayer = totalLayer,
+        )
+        // Bottom line is CENTERED and SHRINK-TO-FIT: scale the statValue size down (to a 15sp floor) so
+        // the whole "<z>/<h>mm · <cur>/<tot> layers" fits the Focus width on the narrowest device (moto),
+        // and center it so short strings (low layer/height numbers) stay balanced instead of stranded.
+        // Same measurer-driven uniform-shrink approach as HomeDigest.
+        val measurer = rememberTextMeasurer()
+        val layerBase = DinghyType.statValue.toTextStyle(t)
+        val maxScaled = layerBase.fontSize.value
+        val minScaled = fsSp(15f, t.fs)
+        val availPx = constraints.maxWidth.toFloat()
+        val sizeSp = remember(layerHeightText, availPx, t.fs) {
+            val w = measurer.measure(layerHeightText, layerBase, maxLines = 1, softWrap = false)
+                .size.width.toFloat()
+            // Target 96% of the width: the measured layout width undercounts the last glyph's side
+            // bearing + sub-pixel rounding, so fitting to the full width clips the final letter.
+            if (w <= 0f || availPx <= 0f) maxScaled
+            else (maxScaled * (availPx * 0.96f) / w).coerceIn(minScaled, maxScaled)
+        }
         Text(
-            text = formatLayerHeight(
-                currentZ = currentZ,
-                objectHeight = printMetadata?.objectHeight,
-                currentLayer = currentLayer,
-                totalLayer = totalLayer,
-            ),
+            text = layerHeightText,
             color = t.text,
-            style = DinghyType.statValue.toTextStyle(t),
+            style = DinghyType.statValue.toTextStyle(t, sizeSp),
             maxLines = 1,
-            modifier = Modifier.align(Alignment.BottomStart),
+            softWrap = false,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
         )
     }
 }
