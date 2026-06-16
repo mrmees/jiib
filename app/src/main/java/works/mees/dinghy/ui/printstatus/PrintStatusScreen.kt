@@ -9,9 +9,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
@@ -55,6 +60,7 @@ import works.mees.dinghy.ui.route.buildIdleActions
  * @param errorLines retained for the AppShell call site (the former Terminal(Error) projection);
  *   the collapsed home no longer consumes it — see the single-path note above.
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @Composable
 fun PrintStatusScreen(
     container: AppContainer,
@@ -73,6 +79,19 @@ fun PrintStatusScreen(
     // webcamEnabled  = ≥1 webcam configured AND not toggled off by the app-global setting (webcamTileEnabled).
     val outputsPresent by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
     val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
+
+    // Per-printer trace-color overrides (R-CDX-3) — same source as the Temperature graph. Used to color
+    // heater values in the home digest; the digest falls back to seriesColor when a heater has no override.
+    val heaterColors by remember(container) {
+        container.activeProfileId.flatMapLatest { pid ->
+            if (pid == null) flowOf(persistentMapOf<String, Color>())
+            else container.traceStylePrefs.traceColors(pid).map { argbByName ->
+                argbByName.entries.fold(persistentMapOf<String, Color>()) { acc, (name, argb) ->
+                    acc.put(name, Color(argb))
+                }
+            }
+        }
+    }.collectAsStateWithLifecycle(initialValue = persistentMapOf())
 
     // Title data (Part B): the active printer's display name + whether >1 profile is saved.
     val printerName by container.activeName.collectAsStateWithLifecycle(initialValue = null)
@@ -192,6 +211,7 @@ fun PrintStatusScreen(
             idleActions = idleActions,
             spoolmanPresent = spoolmanPresent,
             activeSpoolCardState = activeSpoolCardState,
+            heaterColors = heaterColors,
             failureText = failureText,
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onNavigate = onNavigate,
@@ -252,6 +272,7 @@ fun PrintStatusScreen(
             idleActions = idleActions,
             spoolmanPresent = spoolmanPresent,
             activeSpoolCardState = activeSpoolCardState,
+            heaterColors = persistentMapOf(),
             failureText = null,
             onEmergencyStop = null,
             onNavigate = onNavigate,
@@ -279,6 +300,7 @@ private fun PrintStatusContent(
     idleActions: List<HomeAction>,
     spoolmanPresent: Boolean,
     activeSpoolCardState: ActiveSpoolCardState,
+    heaterColors: ImmutableMap<String, Color>,
     failureText: String?,
     onEmergencyStop: (() -> Unit)?,
     onNavigate: (NavDest) -> Unit,
@@ -301,6 +323,7 @@ private fun PrintStatusContent(
                 isMultiPrinter = isMultiPrinter,
                 spoolmanPresent = spoolmanPresent,
                 activeSpoolCardState = activeSpoolCardState,
+                heaterColors = heaterColors,
                 onEmergencyStop = onEmergencyStop,
                 uDp = grid.uDp,
             )

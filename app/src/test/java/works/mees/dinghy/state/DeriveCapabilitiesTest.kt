@@ -68,6 +68,18 @@ class DeriveCapabilitiesTest {
     }
 
     @Test
+    fun stepperEnableIsSubscribedWhenPresent() {
+        val set = deriveSubscribeSet(listOf("webhooks", "toolhead", "extruder", "stepper_enable"))
+        assertTrue("stepper_enable must be subscribed when the printer defines it", "stepper_enable" in set)
+    }
+
+    @Test
+    fun stepperEnableAbsentIsNotSubscribed() {
+        val set = deriveSubscribeSet(listOf("webhooks", "toolhead", "extruder"))
+        assertFalse("never subscribe an object the printer lacks (A3)", "stepper_enable" in set)
+    }
+
+    @Test
     fun subscribeSetOmitsMissingObjectsOnMinimalPrinter() {
         val set = deriveSubscribeSet(minimal)
         // A3: never subscribe to an object the printer does not define.

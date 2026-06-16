@@ -76,6 +76,13 @@ data class PrinterState(
     /** Homed axes string from `toolhead.homed_axes` (e.g. "xyz", "" when none). */
     val homedAxes: String = "",
 
+    /**
+     * Any MOTION stepper enabled (`stepper_enable.steppers`, extruder steppers excluded). `null` =
+     * never reported (object absent / not yet seen) → the home digest hides the Motors row. Only set
+     * when a diff carries `stepper_enable` (retain-on-absent merge; R-CDX-1).
+     */
+    val motorsEnabled: Boolean? = null,
+
     /** `gcode_move.speed_factor` (1.0 = 100%). */
     val speedFactor: Double = 1.0,
 

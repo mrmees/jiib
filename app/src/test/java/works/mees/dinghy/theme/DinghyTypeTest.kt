@@ -27,6 +27,15 @@ class DinghyTypeTest {
     }
 
     @Test
+    fun focusHeroLabelIsGeistHeroEnvelope() {
+        val role = DinghyType.focusHeroLabel
+        assertEquals(TypeRole.Ui, role.role)        // Geist (labels are UI text)
+        assertEquals(40f, role.maxSp)
+        assertEquals(15f, role.minSp)
+        assertTrue("focusHeroLabel must be registered in DinghyType.all", DinghyType.focusHeroLabel in DinghyType.all)
+    }
+
+    @Test
     fun dataRolesAreDataUiRolesAreUi() {
         assertEquals(TypeRole.Data, DinghyType.statValue.role)
         assertEquals(TypeRole.Data, DinghyType.dataInline.role)

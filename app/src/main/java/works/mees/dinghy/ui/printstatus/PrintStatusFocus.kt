@@ -20,8 +20,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import works.mees.dinghy.R
+import kotlinx.collections.immutable.ImmutableMap
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
@@ -49,13 +51,11 @@ internal fun HomeFocus(
     isMultiPrinter: Boolean,
     spoolmanPresent: Boolean,
     activeSpoolCardState: ActiveSpoolCardState,
+    heaterColors: ImmutableMap<String, Color>,
     onEmergencyStop: (() -> Unit)?,
     uDp: Dp,
 ) {
     val t = LocalTokens.current
-    val nozzle = primaryHeater(state)
-    val bed = state.heaters["heater_bed"]
-    val glance = selectGlanceSensor(state.temperatureSensors)
     val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
     val isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused
     val stateLabel = stringResource(homeStateLabelRes(state.printState, state.klippyState))
@@ -80,19 +80,51 @@ internal fun HomeFocus(
                 alpha = 0.45f,
                 modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
             )
-            // Glance block: top-start, tight, label + value both focusHero.
-            Column(
-                Modifier.align(Alignment.TopStart),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                GlanceRow(stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
-                GlanceRow(stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
-                glance?.let { GlanceRow(glanceLabel(it.name), fmt(it.temperature), t.text) }
-                if (spoolmanPresent && spoolRemaining != null) {
-                    GlanceRow(stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
-                }
+            // Glance only for a LIVE print (Printing/Paused) that is NOT a Klippy fault. Error/Shutdown
+            // are non-printing treatments (digest) even if printState is a stale Printing — matches the
+            // title precedence in homeStateLabelRes (R-CDX-2). isPrinting (for the e-stop) is unchanged;
+            // this is a SEPARATE branch var.
+            val klippyFault = state.klippyState == KlippyState.Shutdown || state.klippyState == KlippyState.Error
+            val showGlance = isPrinting && !klippyFault
+            if (showGlance) {
+                // Printing/Paused KEEP today's glance (current temps). Separate future treatment.
+                GlanceBlock(state, spoolmanPresent, spoolRemaining, Modifier.align(Alignment.TopStart))
+            } else {
+                // Non-printing (incl. Klippy Error/Shutdown): the state digest.
+                HomeDigest(
+                    state = state,
+                    spoolmanPresent = spoolmanPresent,
+                    activeSpoolCardState = activeSpoolCardState,
+                    heaterColors = heaterColors,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
             }
+        }
+    }
+}
+
+/** The legacy current-temp glance, retained for the Printing/Paused Focus path only. */
+@Composable
+private fun GlanceBlock(
+    state: PrinterState,
+    spoolmanPresent: Boolean,
+    spoolRemaining: Double?,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val nozzle = primaryHeater(state)
+    val bed = state.heaters["heater_bed"]
+    val glance = selectGlanceSensor(state.temperatureSensors)
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        GlanceRow(stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
+        GlanceRow(stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
+        glance?.let { GlanceRow(glanceLabel(it.name), fmt(it.temperature), t.text) }
+        if (spoolmanPresent && spoolRemaining != null) {
+            GlanceRow(stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
         }
     }
 }

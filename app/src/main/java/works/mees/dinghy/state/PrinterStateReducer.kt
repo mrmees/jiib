@@ -6,6 +6,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
@@ -169,6 +170,18 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         s = s.copy(pauseResumePaused = it)
     }
 
+    // stepper_enable → motorsEnabled (R-CDX-1): MOTION steppers only (exclude extruder steppers).
+    // Update-on-present: only when this diff carries `stepper_enable` do we recompute; an absent object
+    // RETAINS the prior value (null until first reported). Flexible to any motor topology — anything not
+    // named like an extruder stepper (stepper_x/y/z, stepper_z1/z2, dual_carriage, …) is a motion stepper.
+    status.objectOrNull("stepper_enable")?.objectOrNull("steppers")?.let { steppers ->
+        val anyMotionEnabled = steppers.entries.any { (name, value) ->
+            if (name.matches(EXTRUDER_STEPPER)) return@any false
+            (value as? JsonPrimitive)?.booleanOrNull == true
+        }
+        s = s.copy(motorsEnabled = anyMotionEnabled)
+    }
+
     // --- Phase-9 calibration live objects (CALIB-02..05) -----------------------------------------
     // Each walk is null-safe (the house rule): a missing object is skipped (retained); a present object
     // REPLACES the prior value (these are whole structured objects, not field-merged like heaters). The
@@ -318,6 +331,9 @@ private fun isHeaterObject(name: String): Boolean =
     name == "heater_bed" || name == "extruder" || name.matches(EXTRUDER_N) || name.startsWith("heater_generic ")
 
 private val EXTRUDER_N = Regex("""extruder\d+""")
+
+/** Matches an EXTRUDER stepper name (`extruder`, `extruder1`, …) — excluded from the motion-motor check. */
+private val EXTRUDER_STEPPER = Regex("""extruder\d*""")
 
 private fun klippyFromWebhook(state: String): KlippyState = when (state) {
     "ready" -> KlippyState.Ready
