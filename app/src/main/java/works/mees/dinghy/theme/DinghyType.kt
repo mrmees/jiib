@@ -37,6 +37,10 @@ object DinghyType {
 
     // Geist Mono — live printer data
     val focusHero   = TextRole(TypeRole.Data, baseSp = 40f, weight = FontWeight.Bold, maxSp = 40f, minSp = 15f)
+
+    /** Geist (UI) mirror of [focusHero]'s envelope — for a Focus-hero LABEL beside a Mono value. The
+     *  maxSp is load-bearing for the ramp-tier test exemption (40 is not a sanctioned fixed tier). */
+    val focusHeroLabel = TextRole(TypeRole.Ui, baseSp = 40f, weight = FontWeight.SemiBold, maxSp = 40f, minSp = 15f)
     val statValue   = TextRole(TypeRole.Data, 26f, FontWeight.SemiBold)
     val dataInline  = TextRole(TypeRole.Data, 20f, FontWeight.Medium)
     val dataMeta    = TextRole(TypeRole.Data, 15f, FontWeight.Medium)
@@ -45,6 +49,6 @@ object DinghyType {
     /** All roles, for tests and tooling. */
     val all: List<TextRole> = listOf(
         screenTitle, focusHeader, listLabel, buttonLabel, body, caption,
-        focusHero, statValue, dataInline, dataMeta, consoleLine,
+        focusHero, focusHeroLabel, statValue, dataInline, dataMeta, consoleLine,
     )
 }
