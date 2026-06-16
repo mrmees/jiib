@@ -11,14 +11,15 @@ import org.junit.Test
 
 /**
  * Pure-derivation proof for the SINGLE top-level routing authority (review HIGH #2). Arm order is
- * load-bearing (Codex-reviewed, 13-05 Task 3): first-run Connect wins, then the klippy gate, then —
- * NEW in 13-05 — a socket RECONNECT routes the recovery Splash too (the deliberate D-05 departure,
- * Matthew 2026-06-03; safe because Task 2 hoisted the shell nav state so the splash can't bounce the
- * user). All host-side, no Compose, no I/O.
+ * load-bearing (Codex-reviewed, 13-05 Task 3; re-ordered 2026-06-15): first-run Connect wins, then a
+ * REAL connection fault (socket RECONNECT — the deliberate D-05 departure, Matthew 2026-06-03) routes
+ * the recovery Splash, then ONLY klippy Disconnected/Startup route Splash (host not up yet). All
+ * host-side, no Compose, no I/O.
  *
- * NOTE: a "Ready Shell" requires BOTH klippy Ready AND connection Connected — so the happy-path cases
- * below pin `connection = ConnectionState.Connected` explicitly (the default is Disconnected, which now
- * routes Splash).
+ * NOTE: with a LIVE connection, [KlippyState.Error] and [KlippyState.Shutdown] now fall through to the
+ * home Shell (the skeleton renders the fault — owner decision 2026-06-15), NOT a hard Splash override.
+ * The happy-path cases below pin `connection = ConnectionState.Connected` explicitly (the default is
+ * Disconnected, which routes Splash via the connection arm).
  */
 class TopRouteTest {
 
@@ -52,12 +53,32 @@ class TopRouteTest {
     }
 
     @Test
-    fun klippyErrorShutdownDisconnected_routeToSplash() {
-        for (k in listOf(KlippyState.Error, KlippyState.Shutdown, KlippyState.Disconnected)) {
+    fun klippyDisconnected_routesToSplash() {
+        assertEquals(
+            "klippyState=Disconnected must route to Splash",
+            TopRoute.Splash,
+            derive(cfgPresent = true, s = PrinterState(klippyState = KlippyState.Disconnected, connection = connected)),
+        )
+    }
+
+    @Test
+    fun klippyErrorOrShutdown_connectedAndConfig_routeToShell() {
+        for (k in listOf(KlippyState.Error, KlippyState.Shutdown)) {
             assertEquals(
-                "klippyState=$k must route to Splash",
-                TopRoute.Splash,
+                "klippyState=$k with a live connection must reach the home Shell",
+                TopRoute.Shell,
                 derive(cfgPresent = true, s = PrinterState(klippyState = k, connection = connected)),
+            )
+        }
+    }
+
+    @Test
+    fun klippyErrorOrShutdown_butDisconnected_routeToSplash() {
+        for (k in listOf(KlippyState.Error, KlippyState.Shutdown)) {
+            assertEquals(
+                "klippyState=$k must still go to Splash when the socket is down",
+                TopRoute.Splash,
+                derive(cfgPresent = true, s = PrinterState(klippyState = k, connection = ConnectionState.Disconnected)),
             )
         }
     }

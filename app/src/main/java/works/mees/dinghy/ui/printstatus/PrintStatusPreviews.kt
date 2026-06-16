@@ -15,6 +15,6 @@ package works.mees.dinghy.ui.printstatus
  * under `preview/` should be added here; currently none exist.
  *
  * @see works.mees.dinghy.preview.PrintStatusPreviews — the actual @Preview matrix
- * @see works.mees.dinghy.preview.PrintStatusModeProvider — the 6-state parameter provider
+ * @see works.mees.dinghy.preview.PrintStatePreviewProvider — the PrintState parameter provider
  */
 // No preview declarations yet — all previews live in works.mees.dinghy.preview.PrintStatusPreviews
