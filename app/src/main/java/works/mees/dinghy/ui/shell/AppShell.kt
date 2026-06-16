@@ -992,14 +992,9 @@ fun AppShell(
 }
 
 /**
- * Type-safe route check for navigation-compose 2.8.x. Typed route strings have shifted between fully
- * qualified and serializer-derived names across migrations, so normalize to the base route and accept
- * either the qualified class name or the final simple route segment.
+ * Type-safe route check for navigation-compose 2.8.x. Use Navigation's serializer/id based matcher
+ * instead of parsing [NavDestination.route] text; typed route strings are an implementation detail and
+ * can drift across Navigation/Kotlin serialization/R8 changes.
  */
 private inline fun <reified T : NavDest> androidx.navigation.NavDestination.isRoute(): Boolean =
-    route?.let { r ->
-        val base = r.substringBefore('?').substringBefore('/')
-        val qualifiedName = T::class.qualifiedName
-        val simpleName = T::class.simpleName
-        base == qualifiedName || base == simpleName || base.substringAfterLast('.') == simpleName
-    } == true
+    with(NavDestination.Companion) { this@isRoute.hasRoute<T>() }
