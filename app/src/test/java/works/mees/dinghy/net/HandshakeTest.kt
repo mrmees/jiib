@@ -122,6 +122,9 @@ class HandshakeTest {
         // configfile one-shot read populated the min/max extrude hints from the PRIMARY extruder.
         assertEquals(170.0f, store.minExtrudeTemp.value)
         assertEquals(50.0f, store.maxExtrudeDistance.value)
+        // printer.info one-shot landed the hostname on the store (the handshake→store integration link
+        // that feeds the profile-name seed; the canned harness reply carries hostname "ender5plus").
+        assertEquals("ender5plus", store.hostname.value)
 
         // 08-04: the gcode_store one-shot read REPLACES the console backfill (CONS-02 / D-02). The faithful
         // harness reply carries a "// " response (→ WARNING) and a plain command (→ NORMAL).
