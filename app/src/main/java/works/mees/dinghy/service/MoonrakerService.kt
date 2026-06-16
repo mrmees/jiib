@@ -224,6 +224,8 @@ class MoonrakerService : Service() {
             // store like the other one-shots; the SystemInfoHolder (built below) consumes them.
             systemInfo = store.systemInfo,
             procStatQuery = store.procStatQuery,
+            hostname = store.hostname, // printer.info hostname (2026-06-15) — seeds un-named profile name.
+            sessionConfig = cfg, // the ConnectionConfig this spine was built for (name-seed guard).
             httpBase = cfg.httpBase, // REST base for building gcode thumbnail URLs (260601-sip Inc 2).
             metadata = metadataHolder.metadata, // one-shot-per-filename gcode metadata (260601-sip Inc 2).
             lastJob = lastJobHolder.lastJob, // one-shot-on-idle last completed job (260601-th9 Inc 3).

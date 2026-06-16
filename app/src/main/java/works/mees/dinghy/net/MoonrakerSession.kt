@@ -44,6 +44,7 @@ import works.mees.dinghy.state.ScrewConfig
 import works.mees.dinghy.state.deriveCapabilities
 import works.mees.dinghy.state.deriveSubscribeSet
 import works.mees.dinghy.state.parseHeaterLimits
+import works.mees.dinghy.state.parsePrinterInfoHostname
 import works.mees.dinghy.state.parseTemperatureStore
 import works.mees.dinghy.state.reduceSnapshot
 import works.mees.dinghy.ui.console.parseGcodeStore
@@ -507,6 +508,12 @@ class MoonrakerSession(
             // Best-effort: a host lacking the endpoint leaves the seam at null → the page degrades to "—".
             val sysResult = rpc.request(CommandRegistry.machineSystemInfo, Unit)
             store.setSystemInfo(SystemInfo.from(sysResult.jsonObject))
+        }
+        runCatching {
+            // printer.info: host identity incl. hostname (2026-06-15) — one-shot per handshake, beside
+            // machine.system_info (which carries NO hostname). Best-effort: absent → null → no name seed.
+            val infoResult = rpc.request(CommandRegistry.printerInfo, Unit)
+            store.setHostname(parsePrinterInfoHostname(infoResult.jsonObject))
         }
         runCatching {
             // machine.proc_stats: the ONLY source of throttled_state + system_uptime (the 1 Hz push omits

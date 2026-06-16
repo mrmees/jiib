@@ -53,7 +53,7 @@ class HandshakeTest {
         assertEquals(
             "D-05/D-12: registry request wrappers must preserve identify → server.info → list → query → subscribe, " +
                 "THEN the one-shot reads (05-03 temperature_store backfill + Phase-20 machine.system_info + " +
-                "machine.proc_stats + 08-04 gcode_store backfill + configfile one-shot query), in order, once each",
+                "printer.info hostname + machine.proc_stats + 08-04 gcode_store backfill + configfile one-shot query), in order, once each",
             listOf(
                 JsonRpcMethods.IDENTIFY,
                 "server.info",
@@ -62,6 +62,7 @@ class HandshakeTest {
                 JsonRpcMethods.OBJECTS_SUBSCRIBE,
                 JsonRpcMethods.TEMPERATURE_STORE,
                 "machine.system_info", // Phase-20 SYS-01 host identity (best-effort, in-handshake)
+                "printer.info", // hostname seed (2026-06-15, best-effort, in-handshake)
                 "machine.proc_stats", // Phase-20 SYS-02/03 throttle+uptime (best-effort, in-handshake)
                 JsonRpcMethods.GCODE_STORE, // 08-04 console backfill (best-effort, in-handshake)
                 JsonRpcMethods.OBJECTS_QUERY, // one-shot configfile read

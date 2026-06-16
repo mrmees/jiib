@@ -56,6 +56,14 @@ class SessionTestHarness {
     var subscribeSnapshotJson: String? = null
 
     /**
+     * The `printer.info` one-shot RESULT object (2026-06-15 hostname seed). Defaults to a realistic
+     * `{hostname,state}` shape faithful to the live Moonraker contract so the one-shot read exercises
+     * [works.mees.dinghy.state.parsePrinterInfoHostname] the way flox will.
+     */
+    @Volatile
+    var printerInfoResultJson: String = """{"hostname":"ender5plus","state":"ready"}"""
+
+    /**
      * The `server.temperature_store` reply RESULT object (05-03 backfill). Defaults to a realistic
      * heater-keyed shape (index 0 = oldest) — faithful to the live contract so the one-shot read exercises
      * [works.mees.dinghy.state.parseTemperatureStore] the way flox will. The store also returns pure
@@ -260,6 +268,9 @@ class SessionTestHarness {
             // One-shot temperature_store backfill (05-03) — NOT subscribed; faithful heater-keyed reply.
             JsonRpcMethods.TEMPERATURE_STORE ->
                 """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(temperatureStoreResultJson)},"id":$id}"""
+            // One-shot printer.info hostname seed (2026-06-15) — NOT subscribed; faithful {hostname,state} reply.
+            "printer.info" ->
+                """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(printerInfoResultJson)},"id":$id}"""
             // One-shot gcode_store console backfill (08-04) — NOT subscribed; faithful entry-list reply.
             JsonRpcMethods.GCODE_STORE ->
                 """{"jsonrpc":"2.0","result":${MoonrakerJson.parseToJsonElement(gcodeStoreResultJson)},"id":$id}"""

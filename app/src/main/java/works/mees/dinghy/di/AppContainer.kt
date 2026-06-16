@@ -615,6 +615,10 @@ class AppContainer(
     val lastJob: Flow<LastJob?> =
         spine.flatMapLatest { it?.lastJob ?: flowOf(null) }
 
+    /** Live `printer.info` hostname off the current session; null when idle. */
+    val hostname: Flow<String?> =
+        spine.flatMapLatest { it?.hostname ?: flowOf(null) }
+
     /** Live one-shot-per-handshake webcam enumeration; empty when none / idle (CAM-01, 10-03). */
     val webcams: Flow<List<Webcam>> =
         spine.flatMapLatest { it?.webcams ?: flowOf(emptyList()) }

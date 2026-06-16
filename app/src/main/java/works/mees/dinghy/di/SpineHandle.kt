@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.LastJob
@@ -81,6 +82,17 @@ data class SpineHandle(
      * headless test sites; the live service forwards the store flow.
      */
     val procStatQuery: StateFlow<ProcStatQuery?> = MutableStateFlow(null).asStateFlow(),
+    /**
+     * `printer.info` hostname (2026-06-15) — forwarded off the store like [systemInfo]. Seeds an
+     * un-named active profile's name once. Null-seeded default for headless test construction.
+     */
+    val hostname: StateFlow<String?> = MutableStateFlow(null).asStateFlow(),
+    /**
+     * The [ConnectionConfig] this live session was built for (the `cfg` passed to the spine build).
+     * The name-seed verifies the still-active profile's `toConnectionConfig()` matches THIS before
+     * writing (Codex B-2 guard) — no racy `activeProfileId.value` read. Null in headless tests.
+     */
+    val sessionConfig: ConnectionConfig? = null,
     /**
      * The `http://host:port` REST base (from `cfg.httpBase`) — the UI joins this with a metadata
      * `relative_path` to build the gcode thumbnail URL (260601-sip Inc 2). Carried on the handle so
