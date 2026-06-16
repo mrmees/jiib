@@ -33,6 +33,12 @@ data class PrintMetadata(
     val objectHeight: Double?,
     /** `estimated_time` (s) — slicer file estimate, the ETA source; null when absent. */
     val estimatedTime: Double?,
+    /** `layer_height` (mm) — slicer layer pitch; null when absent. Used to derive the current layer
+     *  from print height when `print_stats.info.current_layer` is null. */
+    val layerHeight: Double? = null,
+    /** `first_layer_height` (mm) — slicer first-layer pitch; null when absent (then [layerHeight] is
+     *  assumed for layer 1). */
+    val firstLayerHeight: Double? = null,
     /** `relative_path` of the LARGEST thumbnail by width (typically the 300×300); null if none. */
     val largestThumbRelPath: String?,
     /**
@@ -79,11 +85,15 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
     val layerCount = runCatching { result["layer_count"]?.jsonPrimitive?.intOrNull }.getOrNull()
     val objectHeight = runCatching { result["object_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
     val estimatedTime = runCatching { result["estimated_time"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+    val layerHeight = runCatching { result["layer_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+    val firstLayerHeight = runCatching { result["first_layer_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
 
     return PrintMetadata(
         layerCount = layerCount,
         objectHeight = objectHeight,
         estimatedTime = estimatedTime,
+        layerHeight = layerHeight,
+        firstLayerHeight = firstLayerHeight,
         largestThumbRelPath = largestThumbRelPath(result),
         filamentColors = stringArray(result, "filament_colors"),
     )

@@ -184,13 +184,23 @@ private fun ActivePrintFocus(
             maxLines = 1,
             modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
         )
-        // Layer / height — bottom (Mono tabular).
+        // Layer / height — bottom (Mono tabular). Prefer the live print_stats.info layer fields; when
+        // the slicer didn't emit them (current/total null), fall back to the gcode metadata: total from
+        // layer_count, current derived from the print height (Fluidd/Mainsail-style).
+        val currentZ = state.gcodePosition?.getOrNull(2)
+        val totalLayer = state.totalLayer ?: printMetadata?.layerCount
+        val currentLayer = state.currentLayer ?: deriveCurrentLayer(
+            currentZ = currentZ,
+            firstLayerHeight = printMetadata?.firstLayerHeight,
+            layerHeight = printMetadata?.layerHeight,
+            totalLayer = totalLayer,
+        )
         Text(
             text = formatLayerHeight(
-                currentZ = state.gcodePosition?.getOrNull(2),
+                currentZ = currentZ,
                 objectHeight = printMetadata?.objectHeight,
-                currentLayer = state.currentLayer,
-                totalLayer = state.totalLayer,
+                currentLayer = currentLayer,
+                totalLayer = totalLayer,
             ),
             color = t.text,
             style = DinghyType.statValue.toTextStyle(t),
