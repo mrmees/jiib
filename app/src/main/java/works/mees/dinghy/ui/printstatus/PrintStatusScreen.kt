@@ -476,108 +476,32 @@ private fun PrintStatusContent(
     // previously self-derived from its Field-slot box → smaller rows than every other screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
     val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-    // D-13: one-shot ~150ms Crossfade for idle ↔ printing ↔ terminal transitions.
-    // No continuous/looping animation (Adreno-320 fill-rate budget; LAYOUT.md motion rule).
-    androidx.compose.animation.Crossfade(
-        targetState = mode,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 150),
-        label = "PrintStatusMorph",
-    ) { crossfadeMode ->
-    when (crossfadeMode) {
-        is PrintStatusMode.Standby -> ScreenScaffold(
-            fieldFramed = false,
-            focus = {
-                HomeFocus(
-                    state = state,
-                    printerName = printerName,
-                    isMultiPrinter = isMultiPrinter,
-                    spoolmanPresent = spoolmanPresent,
-                    activeSpoolCardState = activeSpoolCardState,
-                    onEmergencyStop = onEmergencyStop,
-                    uDp = grid.uDp,
-                )
-            },
-            field = {
-                PrintStatusStandbyField(
-                    idleActions = idleActions,
-                    failureText = failureText,
-                    onNavigate = onNavigate,
-                    onPreheat = onPreheat,
-                    uDp = grid.uDp,
-                )
-            },
-        )
-
-        is PrintStatusMode.Printing -> ScreenScaffold(
-            fieldFramed = false,
-            focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase) },
-            field = {
-                PrintStatusActiveField(
-                    state = state,
-                    metadata = metadata,
-                    babystepShown = babystepShown,
-                    spoolmanPresent = spoolmanPresent,
-                    spoolSwatches = spoolSwatches,
-                    activeSpoolCardState = activeSpoolCardState,
-                    babystepStep = babystepStep,
-                    failureText = failureText,
-                    hasBookmarkedMacros = hasBookmarkedMacros,
-                    ui = ui,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    onBabystepCompress = onBabystepCompress,
-                    onBabystepExpand = onBabystepExpand,
-                    onCycleBabystepStep = onCycleBabystepStep,
-                    onNavigate = onNavigate,
-                    uDp = grid.uDp,
-                )
-            },
-        )
-
-        is PrintStatusMode.Paused -> ScreenScaffold(
-            fieldFramed = false,
-            focus = { PrintStatusFocus(state = state, uDp = grid.uDp, onEmergencyStop = onEmergencyStop, metadata = metadata, httpBase = httpBase, paused = true) },
-            field = {
-                PrintStatusActiveField(
-                    state = state,
-                    metadata = metadata,
-                    babystepShown = babystepShown,
-                    spoolmanPresent = spoolmanPresent,
-                    spoolSwatches = spoolSwatches,
-                    activeSpoolCardState = activeSpoolCardState,
-                    babystepStep = babystepStep,
-                    failureText = failureText,
-                    hasBookmarkedMacros = hasBookmarkedMacros,
-                    ui = ui,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    onBabystepCompress = onBabystepCompress,
-                    onBabystepExpand = onBabystepExpand,
-                    onCycleBabystepStep = onCycleBabystepStep,
-                    onNavigate = onNavigate,
-                    uDp = grid.uDp,
-                )
-            },
-        )
-
-        is PrintStatusMode.Terminal -> ScreenScaffold(
-            fieldFramed = false,
-            focus = { TerminalFocus(state = state, metadata = metadata, httpBase = httpBase, uDp = grid.uDp) },
-            field = {
-                PrintStatusTerminalField(
-                    state = state,
-                    metadata = metadata,
-                    ui = ui,
-                    errorLines = errorLines,
-                    failureText = failureText,
-                    pendingActionIsNull = pendingActionIsNull,
-                    onRunAction = onRunAction,
-                    uDp = grid.uDp,
-                )
-            },
-        )
-    }
-    } // end Crossfade
+    // Collapsed skeleton (2026-06-15): ONE rendering path for every printer state — the universal
+    // HomeFocus + the universal HomeField. No more four-mode Crossfade/when. The per-state morph
+    // is gone; the home is the root for idle/printing/paused/terminal alike.
+    ScreenScaffold(
+        fieldFramed = false,
+        focus = {
+            HomeFocus(
+                state = state,
+                printerName = printerName,
+                isMultiPrinter = isMultiPrinter,
+                spoolmanPresent = spoolmanPresent,
+                activeSpoolCardState = activeSpoolCardState,
+                onEmergencyStop = onEmergencyStop,
+                uDp = grid.uDp,
+            )
+        },
+        field = {
+            HomeField(
+                idleActions = idleActions,
+                failureText = failureText,
+                onNavigate = onNavigate,
+                onPreheat = onPreheat,
+                uDp = grid.uDp,
+            )
+        },
+    )
     } // end screen-root BoxWithConstraints (unit grid)
 }
 

@@ -70,12 +70,16 @@ import works.mees.dinghy.ui.spool.ActiveSpoolCardState
  * below the list per the foot-of-list pattern. The gutter region is retired app-wide (R1,
  * 2026-06-12): every Print-Status mode now carries its actions in a foot bar.
  *
- * Extracted as a named top-level composable so the Standby ScreenScaffold `field` slot lambda
- * body contains ONLY a call to this function — creating an independently-restartable recomposition
- * scope (D-01/D-02 P0 fix).
+ * This is the UNIVERSAL home Field — the data-driven idle action list + Preheat/System foot +
+ * optional failure toast — rendered for EVERY printer state in the collapsed PrintStatus skeleton
+ * (idle, printing, paused, terminal all share this one Field path now).
+ *
+ * Extracted as a named top-level composable so the ScreenScaffold `field` slot lambda body contains
+ * ONLY a call to this function — creating an independently-restartable recomposition scope
+ * (D-01/D-02 P0 fix).
  */
 @Composable
-internal fun PrintStatusStandbyField(
+internal fun HomeField(
     idleActions: List<HomeAction>,
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
