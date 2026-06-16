@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -39,8 +40,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -306,23 +305,36 @@ private fun FocusHeader(
                 .padding(horizontal = slot) // keep the centered text clear of the start icon
                 .basicMarquee(), // overflow-only scroll (motion-law exception)
         )
-        // Start icon slot: e-stop while printing, else the inert identity glyph.
+        // Start icon slot: e-stop while printing, else the inert identity glyph. BOTH render as a bare
+        // glyph centered in the slot at the same IDENTITY_ICON_RATIO size — so the e-stop CLEANLY
+        // REPLACES the identity glyph (same place/size), it is NOT a bordered button. The e-stop glyph
+        // is tinted t.stop (the stop color) and carries tap→guard / long-press→panic on the slot. (The
+        // old OutlinedControl wrapper double-boxed the disabled_by_default glyph — itself a square — and
+        // tinted it text-color, not red; owner UAT 2026-06-16.)
         Box(modifier = Modifier.align(Alignment.CenterStart)) {
             if (headerShowsEStop(isPrinting, onEmergencyStop)) {
-                OutlinedControl(
-                    label = "",
-                    onClick = { showGuard = true },
-                    onLongClick = onPanic, // long-press = instant halt, no guard (float's onHold)
-                    modifier = Modifier.size(slot),
-                    intent = Intent.Danger,
-                    icon = DinghyIcons.StatusStop,
-                    contentDescription = stringResource(R.string.cd_emergency_stop),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(slot)
+                        .clip(RoundedCornerShape(t.rCtrl))
+                        .combinedClickable(
+                            onClick = { showGuard = true },
+                            onLongClick = onPanic, // long-press = instant halt, no guard (float's onHold)
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DinghyIconView(
+                        icon = DinghyIcons.StatusStop,
+                        tint = t.stop,
+                        sizeDp = slot * IDENTITY_ICON_RATIO,
+                        contentDescription = stringResource(R.string.cd_emergency_stop),
+                    )
+                }
             } else {
                 // Identity glyph renders a touch smaller than the e-stop slot and is centered within
                 // it, so edge-heavy Material Symbols (e.g. linear_scale / blur_linear / linked_services)
                 // don't clip against the 1U header bar or the card's rounded corner. The slot itself
-                // (and thus the e-stop tap target, below) is unchanged — only the inert glyph shrinks.
+                // (and thus the e-stop tap target, above) is unchanged — only the inert glyph shrinks.
                 Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
                     DinghyIconView(
                         icon = icon,
