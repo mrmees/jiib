@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.printstatus
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -19,7 +20,9 @@ import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
+import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
+import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.route.HomeAction
 import works.mees.dinghy.ui.route.NavDest
 
@@ -48,6 +51,7 @@ import works.mees.dinghy.ui.route.NavDest
 @Composable
 internal fun HomeField(
     idleActions: List<HomeAction>,
+    activeSpoolCardState: works.mees.dinghy.ui.spool.ActiveSpoolCardState,
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
@@ -61,28 +65,37 @@ internal fun HomeField(
     RegisteredRegion(modifier.fillMaxSize()) {
         // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
         // Each Destination row navigates; capability-absent rows are absent (D-08 HIDE, not grey).
+        val loadedSpool = (activeSpoolCardState as? works.mees.dinghy.ui.spool.ActiveSpoolCardState.Loaded)?.spool
         ListBlock(modifier = Modifier.weight(1f)) {
             items(
                 items = idleActions.filterIsInstance<HomeAction.Destination>(),
                 key = { it.dest::class.simpleName ?: it.dest.toString() },
             ) { action ->
-                ListRow(
-                    selected = false,
-                    onClick = { onNavigate(action.dest) },
-                    uDp = uDp,
-                    leadingContent = {
-                        // Leading icon — always a registered DinghyIcons token (icon law enforced
-                        // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
-                        // R23: canonical 0.6U list-row icon, U-relative.
-                        ListRowIcon(
-                            icon = action.icon,
-                            uDp = uDp,
-                            tint = LocalTokens.current.text2,
-                        )
-                    },
-                ) {
-                    // Canonical list-label look — ListRowLabel (Geist SemiBold, R11 20sp default).
-                    ListRowLabel(stringResource(action.labelRes))
+                if (action.dest == NavDest.Spool) {
+                    SpoolStatusRow(
+                        spool = loadedSpool,
+                        uDp = uDp,
+                        onClick = { onNavigate(NavDest.Spool) },
+                    )
+                } else {
+                    ListRow(
+                        selected = false,
+                        onClick = { onNavigate(action.dest) },
+                        uDp = uDp,
+                        leadingContent = {
+                            // Leading icon — always a registered DinghyIcons token (icon law enforced
+                            // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
+                            // R23: canonical 0.6U list-row icon, U-relative.
+                            ListRowIcon(
+                                icon = action.icon,
+                                uDp = uDp,
+                                tint = LocalTokens.current.text2,
+                            )
+                        },
+                    ) {
+                        // Canonical list-label look — ListRowLabel (Geist SemiBold, R11 20sp default).
+                        ListRowLabel(stringResource(action.labelRes))
+                    }
                 }
             }
         }
@@ -123,3 +136,48 @@ internal fun spoolRowText(filament: works.mees.dinghy.spool.SpoolmanFilament?): 
         .filter { it.isNotBlank() }
         .joinToString(" / ")
         .ifBlank { null }
+
+/**
+ * The home Spool row (data-rich, 2026-06-16): leading [DinghyIcons.SpoolFilament] (ev_shadow) tinted
+ * to the loaded filament's color (THEME-01 data carve-out — same derivation as the Spool screen
+ * header), and the `name / material / vendor` identity text scrolling on overflow. Uncolored icon +
+ * "No Spool Loaded" when nothing is loaded; "Spool" when a spool is loaded but carries none of the
+ * identity fields. Taps through to [NavDest.Spool] in every state.
+ */
+@Composable
+private fun SpoolStatusRow(
+    spool: works.mees.dinghy.spool.SpoolmanSpool?,
+    uDp: Dp,
+    onClick: () -> Unit,
+) {
+    val t = LocalTokens.current
+    val spoolColor = spool?.filament?.colorSwatches?.firstNotNullOfOrNull {
+        works.mees.dinghy.ui.spool.parseNormalizedHex(it)
+    }
+    val text = spoolRowText(spool?.filament)
+    val label = when {
+        text != null -> text
+        spool != null -> stringResource(R.string.cd_launcher_spool) // loaded but no identity fields
+        else -> stringResource(R.string.printstatus_spool_none)     // nothing loaded
+    }
+    ListRow(
+        selected = false,
+        onClick = onClick,
+        uDp = uDp,
+        leadingContent = {
+            ListRowIcon(
+                icon = DinghyIcons.SpoolFilament,
+                uDp = uDp,
+                tint = spoolColor ?: t.text2,
+            )
+        },
+    ) {
+        androidx.compose.material3.Text(
+            text = label,
+            color = t.text,
+            style = DinghyType.listLabel.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.basicMarquee(),
+        )
+    }
+}

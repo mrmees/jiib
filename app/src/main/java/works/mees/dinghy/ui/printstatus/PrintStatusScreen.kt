@@ -308,6 +308,7 @@ private fun PrintStatusContent(
         field = {
             HomeField(
                 idleActions = idleActions,
+                activeSpoolCardState = activeSpoolCardState,
                 failureText = failureText,
                 onNavigate = onNavigate,
                 onPreheat = onPreheat,
