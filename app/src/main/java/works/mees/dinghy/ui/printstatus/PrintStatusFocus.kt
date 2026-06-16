@@ -1,35 +1,42 @@
 package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import works.mees.dinghy.R
 import kotlinx.collections.immutable.ImmutableMap
+import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.state.KlippyState
+import works.mees.dinghy.state.PrintMetadata
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
+import works.mees.dinghy.state.thumbnailUrl
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
-import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 
 /**
@@ -54,42 +61,55 @@ internal fun HomeFocus(
     heaterColors: ImmutableMap<String, Color>,
     onEmergencyStop: (() -> Unit)?,
     uDp: Dp,
+    printMetadata: PrintMetadata? = null,
+    httpBase: String = "",
 ) {
     val t = LocalTokens.current
-    val spoolRemaining = (activeSpoolCardState as? ActiveSpoolCardState.Loaded)?.spool?.remainingWeight
     val isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused
+    val isPaused = state.printState == PrintState.Paused
+    // Active-print treatment only for a LIVE print (Printing/Paused) that is NOT a Klippy fault.
+    // Error/Shutdown stay the digest even if printState is a stale Printing — matches the title
+    // precedence in homeStateLabelRes (R-CDX-2). isPrinting (for the e-stop) is unchanged.
+    val klippyFault = state.klippyState == KlippyState.Shutdown || state.klippyState == KlippyState.Error
+    val showActivePrint = isPrinting && !klippyFault
+
     val stateLabel = stringResource(homeStateLabelRes(state.printState, state.klippyState))
-    val title = if (isMultiPrinter && !printerName.isNullOrBlank()) "$printerName · $stateLabel" else stateLabel
+    val nameStatePart =
+        if (isMultiPrinter && !printerName.isNullOrBlank()) "$printerName · $stateLabel" else stateLabel
+    // Active print appends the live percent: "PRINTING · 42%" / "PAUSED · 42%".
+    val title = if (showActivePrint) "$nameStatePart · ${progressPercent(state.progress)}%" else nameStatePart
+
+    // Accent perimeter progress while printing; amber (heat) while paused — the in-frame paused signal.
+    val edge = if (showActivePrint) {
+        FocusEdge.Progress(state.progress.toFloat(), color = if (isPaused) t.heat else t.accent)
+    } else {
+        FocusEdge.Neutral
+    }
+
     FocusFrame(
         title = title,
         icon = DinghyIcons.PrintStatusStandby,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
+        edge = edge,
         isPrinting = isPrinting,
         onEmergencyStop = onEmergencyStop,
         onPanic = onEmergencyStop,
     ) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            // Brand watermark: 30% of the smaller edge, bottom-end, faint accent2 tint.
-            val markSize = minOf(maxWidth, maxHeight) * 0.30f
-            Image(
-                painter = painterResource(R.drawable.jiib_icon),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(t.accent2),
-                alpha = 0.45f,
-                modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
-            )
-            // Glance only for a LIVE print (Printing/Paused) that is NOT a Klippy fault. Error/Shutdown
-            // are non-printing treatments (digest) even if printState is a stale Printing — matches the
-            // title precedence in homeStateLabelRes (R-CDX-2). isPrinting (for the e-stop) is unchanged;
-            // this is a SEPARATE branch var.
-            val klippyFault = state.klippyState == KlippyState.Shutdown || state.klippyState == KlippyState.Error
-            val showGlance = isPrinting && !klippyFault
-            if (showGlance) {
-                // Printing/Paused KEEP today's glance (current temps). Separate future treatment.
-                GlanceBlock(state, spoolmanPresent, spoolRemaining, Modifier.align(Alignment.TopStart))
-            } else {
+        if (showActivePrint) {
+            ActivePrintFocus(state = state, printMetadata = printMetadata, httpBase = httpBase)
+        } else {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                // Brand watermark: 30% of the smaller edge, bottom-end, faint accent2 tint.
+                val markSize = minOf(maxWidth, maxHeight) * 0.30f
+                Image(
+                    painter = painterResource(R.drawable.jiib_icon),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(t.accent2),
+                    alpha = 0.45f,
+                    modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
+                )
                 // Non-printing (incl. Klippy Error/Shutdown): the state digest.
                 HomeDigest(
                     state = state,
@@ -103,42 +123,79 @@ internal fun HomeFocus(
     }
 }
 
-/** The legacy current-temp glance, retained for the Printing/Paused Focus path only. */
+/**
+ * The active-print Focus body (Printing/Paused): the file's thumbnail filling the frame (Fit,
+ * centered) with top/bottom legibility scrims, the filename top-aligned (marquee on overflow), and
+ * the condensed layer/height line bottom-aligned. No thumbnail (null metadata / inspection mode) →
+ * the faint brand watermark. The clockwise perimeter progress stroke is the FocusFrame edge (caller).
+ */
 @Composable
-private fun GlanceBlock(
+private fun ActivePrintFocus(
     state: PrinterState,
-    spoolmanPresent: Boolean,
-    spoolRemaining: Double?,
-    modifier: Modifier = Modifier,
+    printMetadata: PrintMetadata?,
+    httpBase: String,
 ) {
     val t = LocalTokens.current
-    val nozzle = primaryHeater(state)
-    val bed = state.heaters["heater_bed"]
-    val glance = selectGlanceSensor(state.temperatureSensors)
-    Column(
-        modifier,
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        GlanceRow(stringResource(R.string.printstatus_nozzle_label), tempActive(nozzle), t.seriesColor(0))
-        GlanceRow(stringResource(R.string.printstatus_bed_label), tempActive(bed), t.seriesColor(1))
-        glance?.let { GlanceRow(glanceLabel(it.name), fmt(it.temperature), t.text) }
-        if (spoolmanPresent && spoolRemaining != null) {
-            GlanceRow(stringResource(R.string.printstatus_spool_label), "${spoolRemaining.roundToInt()} g", t.text)
+    val context = LocalContext.current
+    val inspection = LocalInspectionMode.current
+    val thumbUrl = remember(httpBase, state.printFilename, printMetadata?.largestThumbRelPath) {
+        val rel = printMetadata?.largestThumbRelPath
+        if (httpBase.isNotBlank() && state.printFilename.isNotBlank() && rel != null) {
+            thumbnailUrl(httpBase, state.printFilename, rel)
+        } else {
+            null
         }
     }
-}
-
-/** One glance line: dim label + colored value, BOTH focusHero (normalized size), tight, one row. */
-@Composable
-internal fun GlanceRow(label: String, value: String, valueColor: Color) {
-    val t = LocalTokens.current
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = t.text2, style = DinghyType.focusHero.toTextStyle(t))
-        Text(value, color = valueColor, style = DinghyType.focusHero.toTextStyle(t))
+    Box(Modifier.fillMaxSize()) {
+        // Background: thumbnail (Fit, centered) or watermark fallback.
+        if (thumbUrl != null && !inspection) {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(thumbUrl).build(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Image(
+                painter = painterResource(R.drawable.jiib_icon),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(t.accent2),
+                alpha = 0.45f,
+                modifier = Modifier.fillMaxSize(0.30f).align(Alignment.BottomEnd),
+            )
+        }
+        // Legibility scrims behind the text (top + bottom vertical gradients of the surface color).
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    0f to t.surface.copy(alpha = 0.72f),
+                    0.22f to Color.Transparent,
+                    0.78f to Color.Transparent,
+                    1f to t.surface.copy(alpha = 0.72f),
+                ),
+            ),
+        )
+        // Filename — top.
+        Text(
+            text = printFileBasename(state.printFilename),
+            color = t.text,
+            style = DinghyType.screenTitle.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
+        )
+        // Layer / height — bottom (Mono tabular).
+        Text(
+            text = formatLayerHeight(
+                currentZ = state.gcodePosition?.getOrNull(2),
+                objectHeight = printMetadata?.objectHeight,
+                currentLayer = state.currentLayer,
+                totalLayer = state.totalLayer,
+            ),
+            color = t.text,
+            style = DinghyType.statValue.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.align(Alignment.BottomStart),
+        )
     }
 }
-
-/** Friendly glance-sensor label: strip the `temperature_sensor ` prefix, fall back to the raw key. */
-internal fun glanceLabel(name: String): String =
-    name.removePrefix("temperature_sensor ").ifBlank { name }
