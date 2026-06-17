@@ -317,6 +317,18 @@ object DinghyIcons {
     val Fluorescent     = DinghyIcon(IconRef.Ligature("fluorescent"),               alternate = "fluorescent")
     val ShieldLock      = DinghyIcon(IconRef.Ligature("shield_lock"),               alternate = "shield_lock")
 
+    // --- Foot-bar button conformance (2026-06-17, OWNER-LOCKED — icon law [[dinghy-never-pick-icons-ask]]).
+    // play_circle / stop_circle are from img/material-icon-bucket.json; hourglass / print_add / save /
+    // tab_close are new — ALL gated by tools/verify_ligatures.py (Task 2 step 4). mode_heat_off is shared
+    // with HideTemps (Temp vs Console never co-render) → allow-listed in DinghyIconsTest.
+    val CalibrationRun   = DinghyIcon(IconRef.Ligature("play_circle"),   alternate = "calibration_run")
+    val CalibrationWait  = DinghyIcon(IconRef.Ligature("hourglass"),     alternate = "calibration_wait")
+    val CalibrationAbort = DinghyIcon(IconRef.Ligature("stop_circle"),   alternate = "calibration_abort")
+    val PrinterAdd       = DinghyIcon(IconRef.Ligature("print_add"),     alternate = "printer_add")
+    val Save             = DinghyIcon(IconRef.Ligature("save"),          alternate = "save")
+    val DialogClose      = DinghyIcon(IconRef.Ligature("tab_close"),     alternate = "dialog_close")
+    val TempCooldown     = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "temp_cooldown")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -354,5 +366,6 @@ object DinghyIcons {
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
+        CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
     )
 }

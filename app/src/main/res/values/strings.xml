@@ -528,6 +528,7 @@
 
     <!-- Probe Calibrate screen (Phase 27-04) -->
     <string name="calibration_home_all">Home All</string>
+    <string name="cd_calibration_home_all">Home all axes</string>
     <string name="calibration_start">Start</string>
     <string name="calibration_accept">Accept</string>
     <string name="calibration_abort">Abort</string>

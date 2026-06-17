@@ -80,7 +80,10 @@ class DinghyIconsTest {
         //   - "print": Print (Files "start a print" action) + PrinterSettings (System page / Printer
         //     Settings row) — Files and the System/Printer-Settings surfaces never co-render; owner-chosen
         //     glyph for the Printer Settings door (app-printer-settings-split, 2026-06-15).
-        val allowedSharedLigatures = setOf("output_circle", "palette", "settings", "print")
+        //   - "mode_heat_off": HideTemps (Console filter toggle) + TempCooldown (Temperature foot button)
+        //     — Console and Temperature screens never co-render; the same "heat off" glyph is appropriate
+        //     for both concepts and the owner has confirmed the assignment (foot-bar conformance, 2026-06-17).
+        val allowedSharedLigatures = setOf("output_circle", "palette", "settings", "print", "mode_heat_off")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->

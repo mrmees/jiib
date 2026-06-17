@@ -35,8 +35,9 @@ object ControlSpecs {
 
     val calibrationHomeAll = ControlSpec(
         key = ControlKey("calibration.home_all"),
-        labelRes = R.string.calibration_home_all, // LABELED → no contentDescriptionRes required
-        icon = null, // label-only foot button (master list: no glyph)
+        labelRes = R.string.calibration_home_all,
+        contentDescriptionRes = R.string.cd_calibration_home_all, // icon-only a11y fallback in ≥3 bars
+        icon = DinghyIcons.MoveHomeAll, // owner: home_app_logo (reuses MoveHomeAll)
         intent = Intent.Go, // R19: homing is the expected action of the unhomed state
         type = ControlType.Button,
     )

@@ -148,6 +148,11 @@ NEEDED = {
     # control baseline audit 2026-06-14 — sort-direction arrows + shared close glyph
     # (SortAsc=arrow_drop_up, SortDesc=arrow_drop_down, Close=close).
     "arrow_drop_up", "arrow_drop_down", "close",
+    # Foot-bar button conformance (2026-06-17): play_circle=calibration run/start,
+    # hourglass=calibration in-progress, stop_circle=calibration abort, print_add=add printer,
+    # save=save config/mesh, tab_close=field-takeover cancel.
+    # mode_heat_off (TempCooldown) is already in NEEDED above (Phase-25 Console filters).
+    "play_circle", "hourglass", "stop_circle", "print_add", "save", "tab_close",
 }
 
 
