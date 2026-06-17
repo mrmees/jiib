@@ -123,6 +123,16 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("fontscale.preferences_pb") },
         )
+        // An ELEVENTH, INDEPENDENT file: extrude_macros.preferences_pb (Extrude rework, Task 4). It
+        // carries no secrets (like macros/webcam/babystep/tracestyle/display/savedlocations/fontscale),
+        // so it is kept on its own connection-independent lifecycle per the separate-file discipline — it
+        // backs the process-scoped EXTRUDE-screen pinned filament macro NAMEs (ExtrudeMacroPrefs: a
+        // Set<String>), DELIBERATELY independent of the global Macros bookmarks. One instance per process
+        // (the single-writer invariant DataStore needs — RESEARCH Pitfall 3).
+        val extrudeMacroDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("extrude_macros.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -135,6 +145,7 @@ class DinghyApp : Application() {
             displayDataStore = displayDataStore,
             savedLocationDataStore = savedLocationDataStore,
             fontScaleDataStore = fontScaleDataStore,
+            extrudeMacroDataStore = extrudeMacroDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.
