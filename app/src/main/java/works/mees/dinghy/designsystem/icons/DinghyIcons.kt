@@ -328,6 +328,10 @@ object DinghyIcons {
     val Save             = DinghyIcon(IconRef.Ligature("save"),          alternate = "save")
     val DialogClose      = DinghyIcon(IconRef.Ligature("tab_close"),     alternate = "dialog_close")
     val TempCooldown     = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "temp_cooldown")
+    /** Temperature: Presets — owner-chosen ligature `thermostat_auto` (2026-06-17; pre-verified in
+     *  bundled v2.944 font; distinct from `thermostat`=LauncherTemperature, `mode_heat_off`=TempCooldown,
+     *  `format_list_bulleted`=MonitorMode — all three co-render with this in Adjust mode). */
+    val TempPresets      = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -367,5 +371,6 @@ object DinghyIcons {
         SortAsc, SortDesc, Close,
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
+        TempPresets,
     )
 }

@@ -153,6 +153,8 @@ NEEDED = {
     # save=save config/mesh, tab_close=field-takeover cancel.
     # mode_heat_off (TempCooldown) is already in NEEDED above (Phase-25 Console filters).
     "play_circle", "hourglass", "stop_circle", "print_add", "save", "tab_close",
+    # Task 8 — TempPresets (owner-chosen 2026-06-17; distinct from `thermostat`=LauncherTemperature).
+    "thermostat_auto",
 }
 
 
