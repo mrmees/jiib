@@ -63,6 +63,8 @@ def resolvable_ligatures(path):
 NEEDED = {
     # Spool filter-picker Clear (owner-assigned, 2026-06-12 wide pass):
     "delete_sweep",
+    # Complete-screen Dismiss foot button (owner 2026-06-16):
+    "clear_all",
     # current IconRef.Ligature entries
     "arrow_back", "check", "edit", "instant_mix", "height", "altitude", "layers", "scale",
     "storefront", "timer_arrow_down", "timer_arrow_up", "donut_large", "pause_circle",

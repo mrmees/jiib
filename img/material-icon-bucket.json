@@ -76,6 +76,24 @@
     },
     {
       "family": "Material Symbols Outlined",
+      "iconName": "clear_all",
+      "label": "Clear all",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#1f1f1f",
+      "size": "24",
+      "notes": "Complete-screen Dismiss foot button (owner 2026-06-16)",
+      "createdAt": 1780707263707,
+      "updatedAt": 1780707263707,
+      "key": "Material Symbols Outlined::clear_all",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aclear_all%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%231f1f1f"
+    },
+    {
+      "family": "Material Symbols Outlined",
       "iconName": "stack_off",
       "label": "Stack Off",
       "axes": {
