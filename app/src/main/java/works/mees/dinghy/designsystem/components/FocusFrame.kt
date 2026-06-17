@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -23,7 +24,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -32,8 +40,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ConfirmGuard
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -49,6 +55,54 @@ import works.mees.dinghy.theme.compose.toTextStyle
  * full slot as its tap target). < 1.0 so edge-heavy Material Symbols clear the 1U bar / card corner.
  */
 private const val IDENTITY_ICON_RATIO = 0.82f
+
+/** Perimeter progress-bar stroke weight — heavier than the 3dp Data edge so the bar reads as a gauge. */
+private const val PROGRESS_STROKE_DP = 4f
+
+/**
+ * Draw the [FocusEdge.Progress] bar: a rounded-rect perimeter traced CLOCKWISE FROM TOP-CENTER,
+ * stroked for the first [fraction] of its length. The path is inset by half the stroke (and its
+ * corner radius shrunk to match) so the full stroke sits inside the frame's clip — never clipped to
+ * half-width on the outer edge.
+ */
+private fun DrawScope.drawFocusProgress(
+    fraction: Float,
+    color: Color,
+    strokeWidthPx: Float,
+    cornerRadiusPx: Float,
+) {
+    // Non-finite fraction (NaN/Inf from a degenerate progress value) → draw nothing, never crash.
+    val f = if (fraction.isFinite()) fraction.coerceIn(0f, 1f) else 0f
+    if (f <= 0f) return
+    val inset = strokeWidthPx / 2f
+    val left = inset
+    val top = inset
+    val right = size.width - inset
+    val bottom = size.height - inset
+    // Frame smaller than the stroke (transient 0-size layout pass) → the inset rect is degenerate and
+    // `coerceIn(0f, negative)` would throw; bail before drawing.
+    val maxR = minOf(right - left, bottom - top) / 2f
+    if (maxR <= 0f) return
+    // Shrink the corner radius by the same inset so the arc stays CONCENTRIC with the frame corner.
+    val r = (cornerRadiusPx - inset).coerceIn(0f, maxR)
+    val cx = (left + right) / 2f
+    val path = Path().apply {
+        moveTo(cx, top)
+        lineTo(right - r, top)
+        arcTo(Rect(right - 2 * r, top, right, top + 2 * r), -90f, 90f, false)         // top-right
+        lineTo(right, bottom - r)
+        arcTo(Rect(right - 2 * r, bottom - 2 * r, right, bottom), 0f, 90f, false)      // bottom-right
+        lineTo(left + r, bottom)
+        arcTo(Rect(left, bottom - 2 * r, left + 2 * r, bottom), 90f, 90f, false)       // bottom-left
+        lineTo(left, top + r)
+        arcTo(Rect(left, top, left + 2 * r, top + 2 * r), 180f, 90f, false)            // top-left
+        lineTo(cx, top)
+    }
+    val measure = PathMeasure().apply { setPath(path, false) }
+    val dest = Path()
+    measure.getSegment(0f, measure.length * f, dest, true)
+    drawPath(dest, color, style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round))
+}
 
 /**
  * The Focus edge — the bounded-surface border whose COLOR/FORM encodes meaning (Focus Frame law §2,
@@ -66,11 +120,13 @@ sealed interface FocusEdge {
     data class Data(val color: Color) : FocusEdge
 
     /**
-     * Print-progress: the edge becomes a perimeter progress bar (the Scrubber's visual language
-     * unwrapped around the frame). Drawn specially in [FocusFrame] — NOT a uniform border.
-     * Deferred; renders borderless until implemented.
+     * Print-progress perimeter bar (the Scrubber's visual language unwrapped around the frame):
+     * a [color] stroke tracing the rounded-rect perimeter CLOCKWISE FROM TOP-CENTER, arc length =
+     * [fraction] (0..1). 0 → invisible; .5 → reaches 6 o'clock; .75 → 9 o'clock; 1 → closed loop.
+     * Drawn specially in [FocusFrame] — NOT a uniform border. [color] is accent while printing,
+     * the heat/amber token while paused (the caller resolves it from tokens).
      */
-    data class Progress(val fraction: Float) : FocusEdge
+    data class Progress(val fraction: Float, val color: Color) : FocusEdge
 }
 
 /** A resolved uniform-border stroke. */
@@ -161,9 +217,20 @@ fun FocusFrame(
             .clip(shape)
             .then(
                 if (stroke != null) Modifier.border(BorderStroke(stroke.widthDp.dp, stroke.color), shape)
-                else Modifier, // FocusEdge.Progress draws its own perimeter bar (deferred)
+                else Modifier, // FocusEdge.Progress draws its own perimeter bar (below)
             )
-            .background(t.surface),
+            .background(t.surface)
+            .then(
+                if (edge is FocusEdge.Progress) Modifier.drawWithContent {
+                    drawContent()
+                    drawFocusProgress(
+                        fraction = edge.fraction,
+                        color = edge.color,
+                        strokeWidthPx = PROGRESS_STROKE_DP.dp.toPx(),
+                        cornerRadiusPx = t.rCard.toPx(),
+                    )
+                } else Modifier,
+            ),
     ) {
         FocusHeader(
             title = title,
@@ -243,23 +310,36 @@ private fun FocusHeader(
                 .padding(horizontal = slot) // keep the centered text clear of the start icon
                 .basicMarquee(), // overflow-only scroll (motion-law exception)
         )
-        // Start icon slot: e-stop while printing, else the inert identity glyph.
+        // Start icon slot: e-stop while printing, else the inert identity glyph. BOTH render as a bare
+        // glyph centered in the slot at the same IDENTITY_ICON_RATIO size — so the e-stop CLEANLY
+        // REPLACES the identity glyph (same place/size), it is NOT a bordered button. The e-stop glyph
+        // is tinted t.stop (the stop color) and carries tap→guard / long-press→panic on the slot. (The
+        // old OutlinedControl wrapper double-boxed the disabled_by_default glyph — itself a square — and
+        // tinted it text-color, not red; owner UAT 2026-06-16.)
         Box(modifier = Modifier.align(Alignment.CenterStart)) {
             if (headerShowsEStop(isPrinting, onEmergencyStop)) {
-                OutlinedControl(
-                    label = "",
-                    onClick = { showGuard = true },
-                    onLongClick = onPanic, // long-press = instant halt, no guard (float's onHold)
-                    modifier = Modifier.size(slot),
-                    intent = Intent.Danger,
-                    icon = DinghyIcons.StatusStop,
-                    contentDescription = stringResource(R.string.cd_emergency_stop),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(slot)
+                        .clip(RoundedCornerShape(t.rCtrl))
+                        .combinedClickable(
+                            onClick = { showGuard = true },
+                            onLongClick = onPanic, // long-press = instant halt, no guard (float's onHold)
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DinghyIconView(
+                        icon = DinghyIcons.StatusStop,
+                        tint = t.stop,
+                        sizeDp = slot * IDENTITY_ICON_RATIO,
+                        contentDescription = stringResource(R.string.cd_emergency_stop),
+                    )
+                }
             } else {
                 // Identity glyph renders a touch smaller than the e-stop slot and is centered within
                 // it, so edge-heavy Material Symbols (e.g. linear_scale / blur_linear / linked_services)
                 // don't clip against the 1U header bar or the card's rounded corner. The slot itself
-                // (and thus the e-stop tap target, below) is unchanged — only the inert glyph shrinks.
+                // (and thus the e-stop tap target, above) is unchanged — only the inert glyph shrinks.
                 Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
                     DinghyIconView(
                         icon = icon,

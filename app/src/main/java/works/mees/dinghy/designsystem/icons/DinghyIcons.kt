@@ -104,6 +104,11 @@ object DinghyIcons {
     val FootPreheat = DinghyIcon(IconRef.Ligature("chair_fireplace"), alternate = "home_foot_preheat")
     val FootSystem = DinghyIcon(IconRef.Ligature("bottom_panel_open"), alternate = "home_foot_system")
 
+    // Active-print foot-bar glyphs (owner-confirmed 2026-06-16; icon-never-invent law). Pause reuses
+    // the registered PauseCircle ("pause_circle"). "resume"/"cancel" verified on-device at UAT.
+    val FootResume = DinghyIcon(IconRef.Ligature("resume"), alternate = "printstatus_foot_resume")
+    val FootCancel = DinghyIcon(IconRef.Ligature("cancel"), alternate = "printstatus_foot_cancel")
+
     // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
     val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
     val BabystepExpand = DinghyIcon(IconRef.Ligature("expand"), alternate = "babystep_expand")
@@ -321,7 +326,7 @@ object DinghyIcons {
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
-        FootPreheat, FootSystem,
+        FootPreheat, FootSystem, FootResume, FootCancel,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle, Revert,

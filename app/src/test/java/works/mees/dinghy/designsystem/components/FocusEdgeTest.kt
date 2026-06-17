@@ -25,7 +25,7 @@ class FocusEdgeTest {
     @Test
     fun progress_is_drawn_specially_not_a_uniform_border() {
         // Progress draws a perimeter bar in FocusFrame, so the uniform-stroke helper returns null.
-        assertNull(focusEdgeStroke(FocusEdge.Progress(0.5f), outline = Color.Gray))
+        assertNull(focusEdgeStroke(FocusEdge.Progress(0.5f, Color.Red), outline = Color.Gray))
     }
 
     @Test
