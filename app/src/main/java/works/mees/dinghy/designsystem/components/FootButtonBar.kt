@@ -2,7 +2,6 @@ package works.mees.dinghy.designsystem.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -51,33 +50,11 @@ import works.mees.dinghy.designsystem.layout.controlHeight
  *
  * @param uDp      one unit U from [works.mees.dinghy.designsystem.layout.rememberUnitGrid];
  *                 used as the row's [heightIn] minimum so the foot bar matches the grid unit.
+ * @param actions  list of [FootAction] items rendered with `Modifier.weight(1f)` for equal
+ *                 distribution; the count determines the render mode (icon+text vs icon-only).
  * @param modifier caller-supplied modifier — flush; the enclosing [works.mees.dinghy.designsystem.layout.RegisteredRegion]
  *                 owns the 8dp frame + inter-element gap; non-region callers must pass their own padding.
- * @param content  the [OutlinedControl] instances rendered with `Modifier.weight(1f)` for
- *                 equal distribution.
  */
-@Composable
-fun FootButtonBar(
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
-) {
-    // R24: provide U to the controls inside so their glyphs size at the 0.6U icon tier
-    // (OutlinedControl reads LocalUnitDp; null elsewhere falls back to legacy sizing).
-    CompositionLocalProvider(LocalUnitDp provides uDp) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                // The single shared exact-1U rule (controlHeight) — same as every other control row,
-                // so the foot bar can't drift off 1U vs focus tiles. Flush: the enclosing
-                // RegisteredRegion owns the 8dp frame + inter-element gap.
-                .controlHeight(uDp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Count-driven list API (spec 2026-06-17)

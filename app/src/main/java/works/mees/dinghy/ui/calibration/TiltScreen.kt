@@ -42,7 +42,6 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
