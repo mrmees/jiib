@@ -29,11 +29,11 @@ import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FocusEdge
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -239,34 +239,36 @@ fun PrintersContent(
                 }
                 FootButtonBar(
                     uDp = grid.uDp,
-                ) {
+                    // 4 actions → icon-only (count rule, spec 2026-06-17).
                     // Back FIRST (accent — R5/R8); armed toggles keep Neutral as the
                     // inactive-state style (R18).
-                    OutlinedControl(
-                        label = stringResource(R.string.common_back),
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_add),
-                        onClick = onAdd,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_edit),
-                        onClick = onArmEdit,
-                        modifier = Modifier.weight(1f),
-                        intent = if (printerMode == PrinterMode.EditArmed) Intent.Accent else Intent.Neutral,
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_delete),
-                        onClick = onArmDelete,
-                        modifier = Modifier.weight(1f),
-                        intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
-                    )
-                }
+                    actions = listOf(
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            icon = DinghyIcons.Back,
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                        ),
+                        FootAction(
+                            label = stringResource(R.string.printers_add),
+                            icon = DinghyIcons.PrinterAdd,
+                            onClick = onAdd,
+                            intent = Intent.Accent,
+                        ),
+                        FootAction(
+                            label = stringResource(R.string.printers_edit),
+                            icon = DinghyIcons.Edit,
+                            onClick = onArmEdit,
+                            intent = if (printerMode == PrinterMode.EditArmed) Intent.Accent else Intent.Neutral,
+                        ),
+                        FootAction(
+                            label = stringResource(R.string.printers_delete),
+                            icon = DinghyIcons.Delete,
+                            onClick = onArmDelete,
+                            intent = if (printerMode == PrinterMode.DeleteArmed) Intent.Danger else Intent.Neutral,
+                        ),
+                    ),
+                )
             },
         )
     }
