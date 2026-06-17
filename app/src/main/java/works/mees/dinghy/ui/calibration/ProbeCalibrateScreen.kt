@@ -52,8 +52,10 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -322,86 +324,80 @@ fun ProbeCalibrateContent(
                     // D-09: state-adaptive FootButtonBar (verbatim semantics from prior gutter).
                     FootButtonBar(
                         uDp = grid.uDp,
-                    ) {
-                        when (vm.state) {
-                            ProbePageState.Idle -> if (starting) {
-                                // Start dispatched, session not yet live — disabled "Starting…" feedback.
-                                // Back is also suppressed here (nav-layer BackHandler handles it).
-                                OutlinedControl(
-                                    label = stringResource(R.string.probe_starting),
-                                    onClick = {},
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
-                                    enabled = false,
-                                )
-                            } else if (!vm.homedGate) {
-                                // Back FIRST (accent — R5/R8); Home All = go (this state's
-                                // expected action, R19 motion-as-purpose).
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.common_back),
-                                )
-                                OutlinedControl(
-                                    spec = ControlSpecs.calibrationHomeAll,
-                                    onClick = onHomeAll,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            } else {
-                                // Back FIRST (accent); Start = go (the screen's expected action).
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.common_back),
-                                )
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_start),
-                                    onClick = onStart,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go,
-                                )
+                        actions = buildList {
+                            when (vm.state) {
+                                ProbePageState.Idle -> if (starting) {
+                                    // Start dispatched, session not yet live — disabled "Starting…" feedback.
+                                    // Back is also suppressed here (nav-layer BackHandler handles it).
+                                    add(FootAction(
+                                        label = stringResource(R.string.probe_starting),
+                                        icon = DinghyIcons.CalibrationWait,
+                                        onClick = {},
+                                        intent = Intent.Neutral,
+                                        enabled = false,
+                                    ))
+                                } else if (!vm.homedGate) {
+                                    // Back FIRST (accent — R5/R8); Home All = go (this state's
+                                    // expected action, R19 motion-as-purpose).
+                                    add(FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
+                                    ))
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHomeAll))
+                                } else {
+                                    // Back FIRST (accent); Start = go (the screen's expected action).
+                                    add(FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
+                                    ))
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_start),
+                                        icon = DinghyIcons.CalibrationRun,
+                                        onClick = onStart,
+                                        intent = Intent.Go,
+                                    ))
+                                }
+                                ProbePageState.Active -> {
+                                    // Back SUPPRESSED — nav-layer BackHandler in AppShell swallows system Back (D-09 / T-27-04-01).
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_accept),
+                                        icon = DinghyIcons.CheckCircle,
+                                        onClick = onAccept,
+                                        intent = Intent.Go,
+                                    ))
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_abort),
+                                        icon = DinghyIcons.CalibrationAbort,
+                                        onClick = onAbort,
+                                        intent = Intent.Danger,
+                                    ))
+                                }
+                                ProbePageState.Accepted -> {
+                                    // Back FIRST (accent); SAVE_CONFIG stays warn (restarts Klipper —
+                                    // hazard-in-process, R5).
+                                    add(FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
+                                    ))
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_save_config),
+                                        icon = DinghyIcons.Save,
+                                        onClick = onSaveGuardShow,
+                                        intent = Intent.Warn,
+                                    ))
+                                }
                             }
-                            ProbePageState.Active -> {
-                                // Back SUPPRESSED — nav-layer BackHandler in AppShell swallows system Back (D-09 / T-27-04-01).
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_accept),
-                                    onClick = onAccept,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go,
-                                )
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_abort),
-                                    onClick = onAbort,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Danger,
-                                )
-                            }
-                            ProbePageState.Accepted -> {
-                                // Back FIRST (accent); SAVE_CONFIG stays warn (restarts Klipper —
-                                // hazard-in-process, R5).
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.common_back),
-                                )
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_save_config),
-                                    onClick = onSaveGuardShow,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Warn,
-                                )
-                            }
-                        }
-                    }
+                        },
+                    )
                 },
             )
 

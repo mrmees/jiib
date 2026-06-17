@@ -36,8 +36,10 @@ import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -180,56 +182,52 @@ fun TiltContent(
                     // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(
                         uDp = grid.uDp,
-                    ) {
-                        // Back FIRST (accent — R5/R8), before the state-adaptive primary.
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                        when {
-                            !vm.homedGate -> {
-                                // Unhomed: offer Home All.
-                                OutlinedControl(
-                                    spec = ControlSpecs.calibrationHomeAll,
-                                    onClick = onHome,
-                                    modifier = Modifier.weight(1f),
-                                )
+                        actions = buildList {
+                            // Back FIRST (accent — R5/R8), before the state-adaptive primary.
+                            add(FootAction(
+                                label = stringResource(R.string.common_back),
+                                icon = DinghyIcons.Back,
+                                onClick = onBack,
+                                intent = Intent.Accent,
+                                contentDescription = stringResource(R.string.common_back),
+                            ))
+                            when {
+                                !vm.homedGate -> {
+                                    // Unhomed: offer Home All.
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome))
+                                }
+                                running -> {
+                                    // Running: non-interactive.
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_running),
+                                        icon = DinghyIcons.CalibrationWait,
+                                        onClick = {},
+                                        intent = Intent.Neutral,
+                                        enabled = false,
+                                    ))
+                                }
+                                state == TiltState.Done || state == TiltState.Failed -> {
+                                    // Result shown: Run Again.
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_run_again),
+                                        icon = DinghyIcons.Revert,
+                                        onClick = onRun,
+                                        intent = Intent.Go, // R5: expected re-run action
+                                    ))
+                                }
+                                else -> {
+                                    // Homed idle: Run (variant-selected, gated on not Running).
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_run),
+                                        icon = DinghyIcons.CalibrationRun,
+                                        onClick = onRun,
+                                        intent = Intent.Go, // R5: the screen's expected action
+                                        enabled = !running,
+                                    ))
+                                }
                             }
-                            running -> {
-                                // Running: non-interactive.
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_running),
-                                    onClick = {},
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
-                                    enabled = false,
-                                )
-                            }
-                            state == TiltState.Done || state == TiltState.Failed -> {
-                                // Result shown: Run Again.
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_run_again),
-                                    onClick = onRun,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R5: expected re-run action
-                                )
-                            }
-                            else -> {
-                                // Homed idle: Run (variant-selected, gated on not Running).
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_run),
-                                    onClick = onRun,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R5: the screen's expected action
-                                    enabled = !running,
-                                )
-                            }
-                        }
-                    }
+                        },
+                    )
                 },
             )
         }

@@ -40,9 +40,11 @@ import works.mees.dinghy.command.DispatchEvent
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -191,55 +193,51 @@ fun ScrewsTiltContent(
                     // State-adaptive FootButtonBar (D-10).
                     FootButtonBar(
                         uDp = grid.uDp,
-                    ) {
-                        // Back FIRST (accent — R5/R8), before the state-adaptive primary.
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                        when {
-                            !vm.homedGate -> {
-                                // Unhomed: offer Home All instead of Run.
-                                OutlinedControl(
-                                    spec = ControlSpecs.calibrationHomeAll,
-                                    onClick = onHome,
-                                    modifier = Modifier.weight(1f),
-                                )
+                        actions = buildList {
+                            // Back FIRST (accent — R5/R8), before the state-adaptive primary.
+                            add(FootAction(
+                                label = stringResource(R.string.common_back),
+                                icon = DinghyIcons.Back,
+                                onClick = onBack,
+                                intent = Intent.Accent,
+                                contentDescription = stringResource(R.string.common_back),
+                            ))
+                            when {
+                                !vm.homedGate -> {
+                                    // Unhomed: offer Home All instead of Run.
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome))
+                                }
+                                running -> {
+                                    // Running: non-interactive; no abort in current impl.
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_running),
+                                        icon = DinghyIcons.CalibrationWait,
+                                        onClick = {},
+                                        intent = Intent.Neutral,
+                                        enabled = false,
+                                    ))
+                                }
+                                vm.loop.totalScrews > 0 -> {
+                                    // Result shown: Run Again.
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_run_again),
+                                        icon = DinghyIcons.Revert,
+                                        onClick = onRun,
+                                        intent = Intent.Go, // R5: expected re-run action
+                                    ))
+                                }
+                                else -> {
+                                    // Homed idle: Run.
+                                    add(FootAction(
+                                        label = stringResource(R.string.calibration_run),
+                                        icon = DinghyIcons.CalibrationRun,
+                                        onClick = onRun,
+                                        intent = Intent.Go, // R5: the screen's expected action
+                                    ))
+                                }
                             }
-                            running -> {
-                                // Running: non-interactive; no abort in current impl.
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_running),
-                                    onClick = {},
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Neutral,
-                                    enabled = false,
-                                )
-                            }
-                            vm.loop.totalScrews > 0 -> {
-                                // Result shown: Run Again.
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_run_again),
-                                    onClick = onRun,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R5: expected re-run action
-                                )
-                            }
-                            else -> {
-                                // Homed idle: Run.
-                                OutlinedControl(
-                                    label = stringResource(R.string.calibration_run),
-                                    onClick = onRun,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go, // R5: the screen's expected action
-                                )
-                            }
-                        }
-                    }
+                        },
+                    )
                 },
             )
         }
