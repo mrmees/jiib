@@ -517,6 +517,8 @@ internal fun MoveHubContent(
                                         onIncrement = { stepIndex = (stepIndex + 1) % steps.size },
                                         uDp = grid.uDp,
                                         intent = Intent.Accent,
+                                        decrementIcon = DinghyIcons.StatMinus1,
+                                        incrementIcon = DinghyIcons.StatPlus1,
                                         center = {
                                             Text(
                                                 text = fmtStep(activeStep),

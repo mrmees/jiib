@@ -99,6 +99,8 @@ fun StepperRow(
     spacing: Dp = gapS(uDp),
     decreaseContentDescription: String? = null,
     increaseContentDescription: String? = null,
+    decrementIcon: DinghyIcon = DinghyIcons.Decrease,
+    incrementIcon: DinghyIcon = DinghyIcons.Increase,
 ) {
     // R10: true disablement dims + announces disabled; BUSY dims but stays clickable so taps
     // landing during an in-flight commit accumulate (the AdjusterPanel convention, verbatim).
@@ -126,7 +128,7 @@ fun StepperRow(
                     .then(disabledModifier)
                     .then(busyDimModifier),
                 intent = intent,
-                icon = DinghyIcons.Decrease,
+                icon = decrementIcon,
                 contentDescription = decreaseCd,
             )
             if (center != null) {
@@ -146,7 +148,7 @@ fun StepperRow(
                     .then(disabledModifier)
                     .then(busyDimModifier),
                 intent = intent,
-                icon = DinghyIcons.Increase,
+                icon = incrementIcon,
                 contentDescription = increaseCd,
             )
         }
