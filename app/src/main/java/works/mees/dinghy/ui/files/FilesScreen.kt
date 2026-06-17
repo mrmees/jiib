@@ -48,6 +48,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
@@ -618,39 +619,38 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
 
     // FootButtonBar — Back · Print · Delete (D-07).
     // OutlinedControl does not have an `enabled` param; use alpha + semantics disabled to gate.
+    // 3 actions → icon-only; per-button alpha/disabled modifiers pass through FootAction.modifier.
     FootButtonBar(
         uDp = uDp,
-    ) {
-        OutlinedControl(
-            label = stringResource(R.string.common_back),
-            onClick = onBack,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Accent, // R5: Back = accent
-            icon = DinghyIcons.Back,
-        )
-        OutlinedControl(
-            label = stringResource(R.string.files_foot_print),
-            onClick = { if (startEnabled) onStartPrint() },
-            modifier = Modifier
-                .weight(1f)
-                .alpha(if (startEnabled) 1f else 0.38f)
-                .then(if (!startEnabled) Modifier.semantics { disabled() } else Modifier),
-            intent = Intent.Go, // R5: Print = the expected action
-            icon = DinghyIcons.Print,
-            contentDescription = stringResource(R.string.cd_files_print),
-        )
-        OutlinedControl(
-            label = stringResource(R.string.files_foot_delete),
-            onClick = { if (deleteEnabled) onDelete() },
-            modifier = Modifier
-                .weight(1f)
-                .alpha(if (deleteEnabled) 1f else 0.38f)
-                .then(if (!deleteEnabled) Modifier.semantics { disabled() } else Modifier),
-            intent = Intent.Danger,
-            icon = DinghyIcons.Delete,
-            contentDescription = stringResource(R.string.cd_files_delete),
-        )
-    }
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.common_back),
+                icon = DinghyIcons.Back,
+                onClick = onBack,
+                intent = Intent.Accent, // R5: Back = accent
+            ),
+            FootAction(
+                label = stringResource(R.string.files_foot_print),
+                icon = DinghyIcons.Print,
+                onClick = { if (startEnabled) onStartPrint() },
+                intent = Intent.Go, // R5: Print = the expected action
+                contentDescription = stringResource(R.string.cd_files_print),
+                modifier = Modifier
+                    .alpha(if (startEnabled) 1f else 0.38f)
+                    .then(if (!startEnabled) Modifier.semantics { disabled() } else Modifier),
+            ),
+            FootAction(
+                label = stringResource(R.string.files_foot_delete),
+                icon = DinghyIcons.Delete,
+                onClick = { if (deleteEnabled) onDelete() },
+                intent = Intent.Danger,
+                contentDescription = stringResource(R.string.cd_files_delete),
+                modifier = Modifier
+                    .alpha(if (deleteEnabled) 1f else 0.38f)
+                    .then(if (!deleteEnabled) Modifier.semantics { disabled() } else Modifier),
+            ),
+        ),
+    )
 }
 
 /** A single file row in the flat list — thumbnail leading, size+modified trailing. */

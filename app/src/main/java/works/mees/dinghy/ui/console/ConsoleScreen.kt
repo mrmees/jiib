@@ -27,9 +27,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.components.FocusFrame
 
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -221,54 +221,50 @@ private fun ConsoleContent(
                     }
                 }
                 // D-15: filter toggles + Back live in the FootButtonBar beneath the Focus pane.
+                // 4 actions (Back + 3 toggles) → icon-only; selected semantics pass through
+                // FootAction.modifier. Labels are non-blank (required) but blanked at render time.
                 FootButtonBar(
                     uDp = grid.uDp,
-                ) {
-                    // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
-                    OutlinedControl(
-                        label = "",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Back,
-                        contentDescription = stringResource(R.string.common_back),
-                    )
-                    // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
-                    // semantics — active-filter state is otherwise outline-color-only.
-                    // Hide-temperatures toggle
-                    OutlinedControl(
-                        label = "",
-                        onClick = onToggleTemps,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { selected = hideTemps },
-                        intent = if (hideTemps) Intent.Accent else Intent.Neutral,
-                        icon = DinghyIcons.HideTemps,
-                        contentDescription = stringResource(R.string.cd_console_hide_temps),
-                    )
-                    // Hide-timelapse toggle
-                    OutlinedControl(
-                        label = "",
-                        onClick = onToggleTimelapse,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { selected = hideTimelapse },
-                        intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
-                        icon = DinghyIcons.HideTimelapse,
-                        contentDescription = stringResource(R.string.cd_console_hide_timelapse),
-                    )
-                    // Hide-prompts toggle
-                    OutlinedControl(
-                        label = "",
-                        onClick = onTogglePrompt,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { selected = hidePrompt },
-                        intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
-                        icon = DinghyIcons.HidePrompts,
-                        contentDescription = stringResource(R.string.cd_console_hide_prompts),
-                    )
-                }
+                    actions = listOf(
+                        // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            icon = DinghyIcons.Back,
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                            contentDescription = stringResource(R.string.common_back),
+                        ),
+                        // WR-05: each icon-only toggle gets its cd_* spoken label plus selected-state
+                        // semantics — active-filter state is otherwise outline-color-only.
+                        // Hide-temperatures toggle
+                        FootAction(
+                            label = stringResource(R.string.cd_console_hide_temps),
+                            icon = DinghyIcons.HideTemps,
+                            onClick = onToggleTemps,
+                            intent = if (hideTemps) Intent.Accent else Intent.Neutral,
+                            contentDescription = stringResource(R.string.cd_console_hide_temps),
+                            modifier = Modifier.semantics { selected = hideTemps },
+                        ),
+                        // Hide-timelapse toggle
+                        FootAction(
+                            label = stringResource(R.string.cd_console_hide_timelapse),
+                            icon = DinghyIcons.HideTimelapse,
+                            onClick = onToggleTimelapse,
+                            intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
+                            contentDescription = stringResource(R.string.cd_console_hide_timelapse),
+                            modifier = Modifier.semantics { selected = hideTimelapse },
+                        ),
+                        // Hide-prompts toggle
+                        FootAction(
+                            label = stringResource(R.string.cd_console_hide_prompts),
+                            icon = DinghyIcons.HidePrompts,
+                            onClick = onTogglePrompt,
+                            intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
+                            contentDescription = stringResource(R.string.cd_console_hide_prompts),
+                            modifier = Modifier.semantics { selected = hidePrompt },
+                        ),
+                    ),
+                )
             }
         }
     }
