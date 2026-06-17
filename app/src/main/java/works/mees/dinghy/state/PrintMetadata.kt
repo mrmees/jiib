@@ -33,6 +33,9 @@ data class PrintMetadata(
     val objectHeight: Double?,
     /** `estimated_time` (s) — slicer file estimate, the ETA source; null when absent. */
     val estimatedTime: Double?,
+    /** `filament_total` (mm) — total filament the slicer expects for the whole job; null when absent.
+     *  Pairs with the LIVE `print_stats.filament_used` for the "Filament: used / total" readout. */
+    val filamentTotal: Double? = null,
     /** `layer_height` (mm) — slicer layer pitch; null when absent. Used to derive the current layer
      *  from print height when `print_stats.info.current_layer` is null. */
     val layerHeight: Double? = null,
@@ -85,6 +88,7 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
     val layerCount = runCatching { result["layer_count"]?.jsonPrimitive?.intOrNull }.getOrNull()
     val objectHeight = runCatching { result["object_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
     val estimatedTime = runCatching { result["estimated_time"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+    val filamentTotal = runCatching { result["filament_total"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
     val layerHeight = runCatching { result["layer_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
     val firstLayerHeight = runCatching { result["first_layer_height"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
 
@@ -92,6 +96,7 @@ fun parsePrintMetadata(result: JsonObject): PrintMetadata {
         layerCount = layerCount,
         objectHeight = objectHeight,
         estimatedTime = estimatedTime,
+        filamentTotal = filamentTotal,
         layerHeight = layerHeight,
         firstLayerHeight = firstLayerHeight,
         largestThumbRelPath = largestThumbRelPath(result),

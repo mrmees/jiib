@@ -73,6 +73,7 @@ object SampleFixtures {
             totalDuration = if (printing) 3120.0 else 0.0,    // 52m
             currentLayer = if (printing) 5 else null,
             totalLayer = if (printing) 220 else null,
+            filamentUsed = if (printing) 4200.0 else 0.0,    // 4.2m
             gcodePosition = if (printing) persistentListOf(0.0, 0.0, 1.2, 0.0) else null,
             heaters = if (printing) {
                 persistentMapOf(

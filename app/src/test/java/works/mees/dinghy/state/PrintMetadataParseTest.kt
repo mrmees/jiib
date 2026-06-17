@@ -68,6 +68,7 @@ class PrintMetadataParseTest {
         val md = parse(e5Metadata)
         assertEquals(50, md.layerCount)
         assertEquals(2191.0, md.estimatedTime!!, 0.0)
+        assertEquals(5749.86, md.filamentTotal!!, 0.0001)
         assertNull("E5 sample omits object_height → null, never fabricated", md.objectHeight)
         assertTrue(md.largestThumbRelPath!!.endsWith("-300x300.png"))
     }

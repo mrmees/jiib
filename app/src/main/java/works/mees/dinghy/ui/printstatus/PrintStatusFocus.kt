@@ -2,11 +2,13 @@ package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -170,13 +172,21 @@ private fun ActivePrintFocus(
     )
     val heatersLine = formatHeatersLine(state.heaters)
     val jobLine = stringResource(R.string.printstatus_job_time, formatPrintDuration(state.totalDuration))
-    val printLine = formatPrintVsEstimate(state.printDuration, printMetadata?.estimatedTime)
-    val zLine = formatZHeight(currentZ, printMetadata?.objectHeight)
+    val printLine = stringResource(
+        R.string.printstatus_print_time,
+        formatPrintVsEstimate(state.printDuration, printMetadata?.estimatedTime),
+    )
+    val filamentLine = stringResource(
+        R.string.printstatus_filament,
+        formatFilament(state.filamentUsed, printMetadata?.filamentTotal),
+    )
+    val zLine = stringResource(R.string.printstatus_z_height, formatZHeight(currentZ, printMetadata?.objectHeight))
     val layersLine = formatLayersLine(currentLayer, totalLayer)
     val dataLines: List<String> = buildList {
         if (heatersLine.isNotBlank()) add(heatersLine)
         add(jobLine)
         add(printLine)
+        add(filamentLine)
         add(zLine)
         layersLine?.let { add(it) }
     }
@@ -203,24 +213,30 @@ private fun ActivePrintFocus(
         // Uniform ~50% scrim across the whole body so text stays legible over any render.
         Box(Modifier.fillMaxSize().background(t.surface.copy(alpha = 0.5f)))
 
-        // --- Uniform shrink-to-fit: one scale fits the WIDEST line to the body width AND all lines
-        //     (+ fixed gaps) to the body height. Width & height both scale ~linearly with font size. ---
+        // --- Uniform FILL-to-fit: one scale fits the WIDEST line to the body width AND all lines
+        //     (+ fixed gaps) to the body height — growing INTO spare room as well as shrinking when
+        //     cramped (owner: use the moto's leftover space). Width & height scale ~linearly w/ size. ---
         val measurer = rememberTextMeasurer()
-        val maxData = fsSp(DinghyType.statValue.baseSp, t.fs)   // 26 * fs
+        val maxData = fsSp(26f, t.fs)                           // measurement REFERENCE (cancels out in the fill calc)
         val minData = fsSp(15f, t.fs)
+        val maxCap = fsSp(46f, t.fs)                            // grow ceiling — fill the room, don't run away
+        // Whole block is normal Geist UI (screenTitle role) — owner: it's the main display, make it look good.
         val nameStyleBase = DinghyType.screenTitle.toTextStyle(t, maxData * FILENAME_FACTOR)
-        val dataStyleBase = DinghyType.statValue.toTextStyle(t, maxData)
+        val dataStyleBase = DinghyType.screenTitle.toTextStyle(t, maxData)
         val gapPx = with(density) { BLOCK_LINE_GAP.toPx() }
         val availW = constraints.maxWidth.toFloat()
         val availH = constraints.maxHeight.toFloat()
 
-        // Key on line LENGTHS (statValue is Mono → width is proportional to char count; same-length temp
-        // ticks reuse the cached fit). Filename is non-mono but constant during a print, so verbatim.
+        // Key on line LENGTHS (not contents): same digit-count ticks reuse the cached size, so the block
+        // never resizes as live values change (owner: no jitter). Geist UI is ~proportional, so this is a
+        // hair approximate on width — but holding the SIZE steady matters more here than sub-pixel width.
         val key = filename + "|" + dataLines.joinToString("¦") { it.length.toString() } + "|$availW|$availH|${t.fs}"
         val sizeFrac = remember(key) {
             val nameLayout = measurer.measure(filename, nameStyleBase, maxLines = 1, softWrap = false)
             val dataLayouts = dataLines.map { measurer.measure(it, dataStyleBase, maxLines = 1, softWrap = false) }
-            val widestPx = (listOf(nameLayout) + dataLayouts).maxOf { it.size.width }.toFloat()
+            // Filename is EXCLUDED from the width fit — it marquees when too long (owner) instead of
+            // shrinking the whole block; the Mono data lines drive the width. Its HEIGHT still counts.
+            val widestPx = dataLayouts.maxOf { it.size.width }.toFloat()
             val textHPx = (nameLayout.size.height + dataLayouts.sumOf { it.size.height }).toFloat()
             // Fixed BLOCK_LINE_GAP gaps DON'T scale with font — subtract them from the height budget
             // first (N = 1 filename + dataLines.size lines → N-1 == dataLines.size gaps), then fit text to
@@ -228,10 +244,10 @@ private fun ActivePrintFocus(
             val gapCount = dataLines.size
             val wFrac = if (widestPx > 0f && availW > 0f) (availW * 0.96f) / widestPx else 1f
             val hFrac = if (textHPx > 0f && availH > 0f) (availH - gapPx * gapCount).coerceAtLeast(0f) / textHPx else 1f
-            minOf(wFrac, hFrac, 1f)
+            minOf(wFrac, hFrac)   // no 1f cap → the block grows to fill spare room, not just shrinks
         }
-        val dataSp = (maxData * sizeFrac).coerceIn(minData, maxData)
-        val nameSp = (maxData * FILENAME_FACTOR * sizeFrac).coerceAtLeast(minData)
+        val dataSp = (maxData * sizeFrac).coerceIn(minData, maxCap)
+        val nameSp = (maxData * FILENAME_FACTOR * sizeFrac).coerceIn(minData, maxCap * FILENAME_FACTOR)
         val shadow = remember(t.surface, density) {
             Shadow(color = t.surface, offset = Offset(0f, with(density) { 2.dp.toPx() }), blurRadius = with(density) { 4.dp.toPx() })
         }
@@ -247,14 +263,16 @@ private fun ActivePrintFocus(
                     style = DinghyType.screenTitle.toTextStyle(t, nameSp).copy(shadow = shadow),
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
+                    // Indefinite scroll (owner) — overrides the "no looping animation" design law on
+                    // purpose; only animates when the name actually overflows, otherwise it sits still.
+                    modifier = Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE),
                 )
                 dataLines.forEach { line ->
                     Text(
                         text = line,
                         color = t.text,
-                        style = DinghyType.statValue.toTextStyle(t, dataSp).copy(shadow = shadow),
+                        style = DinghyType.screenTitle.toTextStyle(t, dataSp).copy(shadow = shadow),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,

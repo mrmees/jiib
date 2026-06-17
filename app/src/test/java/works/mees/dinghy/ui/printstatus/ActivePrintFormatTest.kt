@@ -86,8 +86,8 @@ class ActivePrintFormatTest {
     }
 
     @Test fun z_height_line() {
-        assertEquals("1.2 / 55 mm", formatZHeight(1.2, 55.0))
-        assertEquals("1.2 mm", formatZHeight(1.2, null))
+        assertEquals("1.20 / 55.00 mm", formatZHeight(1.2, 55.0))
+        assertEquals("1.20 mm", formatZHeight(1.2, null))
         assertEquals("—", formatZHeight(null, 55.0))
     }
 
@@ -97,5 +97,12 @@ class ActivePrintFormatTest {
         assertNull(formatLayersLine(5, null))
         assertNull(formatLayersLine(0, 220))
         assertNull(formatLayersLine(5, 0))
+    }
+
+    @Test fun filament_line() {
+        assertEquals("5.2 / 12.3 m", formatFilament(5200.0, 12345.0))
+        assertEquals("5.2 m", formatFilament(5200.0, null))   // no total → used alone
+        assertEquals("5.2 m", formatFilament(5200.0, 0.0))    // zero total → used alone
+        assertEquals("0.0 / 12.3 m", formatFilament(0.0, 12345.0))   // job start (total present)
     }
 }

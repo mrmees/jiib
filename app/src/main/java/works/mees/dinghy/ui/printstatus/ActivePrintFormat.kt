@@ -60,17 +60,26 @@ fun formatHeatersLine(heaters: Map<String, HeaterState>): String =
         heaters[key]?.let { "${prettyHeaterLabel(key)} ${it.temperature.roundToInt()}" }
     }.joinToString(" · ")
 
-/** Z-height line: `"1.2 / 55 mm"`, `"1.2 mm"` (no total height), `"—"` (no current Z). */
+/**
+ * Z-height line, ALWAYS 2 decimals so the value never changes width as Z climbs (no resize jitter):
+ * `"1.20 / 55.00 mm"`, `"1.20 mm"` (no total height), `"—"` (no current Z).
+ */
 fun formatZHeight(currentZ: Double?, objectHeight: Double?): String {
-    fun mm(v: Double): String {
-        val r = (v * 10).roundToInt() / 10.0
-        return if (r % 1.0 == 0.0) r.toInt().toString() else r.toString()
-    }
+    fun mm(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
     return when {
         currentZ == null -> "—"
         objectHeight != null -> "${mm(currentZ)} / ${mm(objectHeight)} mm"
         else -> "${mm(currentZ)} mm"
     }
+}
+
+/**
+ * Filament used / total in METERS, 1 decimal: `"5.2 / 12.3 m"`. Total null/≤0 → used alone (`"5.2 m"`).
+ * Inputs are millimetres (live `print_stats.filament_used` and slicer `filament_total`).
+ */
+fun formatFilament(usedMm: Double, totalMm: Double?): String {
+    fun m(v: Double): String = String.format(java.util.Locale.US, "%.1f", v / 1000.0)
+    return if (totalMm != null && totalMm > 0.0) "${m(usedMm)} / ${m(totalMm)} m" else "${m(usedMm)} m"
 }
 
 /** Layers line: `"5 / 220 layers"`, or null when either bound is missing/≤ 0 (caller drops the line). */

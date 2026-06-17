@@ -73,7 +73,10 @@
 
     <!-- Format-arg proof (SC-3): a single positional string substitution. -->
     <string name="printstatus_layer_progress">Layer %1$d of %2$d</string>
-    <string name="printstatus_job_time">Job: %1$s</string>
+    <string name="printstatus_job_time">Job Time: %1$s</string>
+    <string name="printstatus_print_time">Print Time: %1$s</string>
+    <string name="printstatus_filament">Filament: %1$s</string>
+    <string name="printstatus_z_height">Z: %1$s</string>
 
     <!-- Ring-center status labels (idle/finished print states; the Printing case shows the live %). -->
     <string name="printstatus_status_standby">STANDBY</string>
