@@ -56,6 +56,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.Scrubber
@@ -654,68 +655,72 @@ private fun TemperatureContent(
                         // Mode-specific footers: Monitoring = Back · Settings · Adjust-enter;
                         // Adjust = Presets · Cooldown · Monitor-return (no Back).
                         if (mode == TempMode.Monitoring) {
-                            FootButtonBar(uDp = grid.uDp) {
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.cd_back),
-                                )
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = { settingsOpen = true; selectedName = null },
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.TempSettings,
-                                    contentDescription = stringResource(R.string.cd_temp_settings),
-                                )
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.OutputHeater,
-                                    contentDescription = stringResource(R.string.cd_temp_enter_adjust),
-                                )
-                            }
+                            FootButtonBar(
+                                uDp = grid.uDp,
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.cd_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.cd_back),
+                                    ),
+                                    FootAction(
+                                        label = stringResource(R.string.cd_temp_settings),
+                                        icon = DinghyIcons.TempSettings,
+                                        onClick = { settingsOpen = true; selectedName = null },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.cd_temp_settings),
+                                    ),
+                                    FootAction(
+                                        label = stringResource(R.string.cd_temp_enter_adjust),
+                                        icon = DinghyIcons.OutputHeater,
+                                        onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.cd_temp_enter_adjust),
+                                    ),
+                                ),
+                            )
                         } else {
                             // Adjust footer — two rows (owner 2026-06-14): Presets spans the top row;
                             // Back · Cooldown · Monitor on the bottom. Back exits the screen so the user
                             // can leave without first switching back to Monitoring mode.
-                            FootButtonBar(uDp = grid.uDp) {
-                                OutlinedControl(
-                                    label = stringResource(R.string.temp_presets),
-                                    onClick = { fieldMode = TempFieldMode.PresetPicker },
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                )
-                            }
-                            FootButtonBar(uDp = grid.uDp) {
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = onBack,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
-                                    contentDescription = stringResource(R.string.cd_back),
-                                )
-                                OutlinedControl(
-                                    label = stringResource(R.string.temp_cooldown),
-                                    onClick = onCooldown,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Warn,
-                                )
-                                OutlinedControl(
-                                    label = "",
-                                    onClick = { mode = TempMode.Monitoring; selectedName = null },
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Accent,
-                                    icon = DinghyIcons.MonitorMode,
-                                    contentDescription = stringResource(R.string.cd_temp_enter_monitor),
-                                )
-                            }
+                            FootButtonBar(
+                                uDp = grid.uDp,
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.temp_presets),
+                                        icon = DinghyIcons.TempPresets,
+                                        onClick = { fieldMode = TempFieldMode.PresetPicker },
+                                        intent = Intent.Accent,
+                                    ),
+                                ),
+                            )
+                            FootButtonBar(
+                                uDp = grid.uDp,
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.cd_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.cd_back),
+                                    ),
+                                    FootAction(
+                                        label = stringResource(R.string.temp_cooldown),
+                                        icon = DinghyIcons.TempCooldown,
+                                        onClick = onCooldown,
+                                        intent = Intent.Warn,
+                                    ),
+                                    FootAction(
+                                        label = stringResource(R.string.cd_temp_enter_monitor),
+                                        icon = DinghyIcons.MonitorMode,
+                                        onClick = { mode = TempMode.Monitoring; selectedName = null },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.cd_temp_enter_monitor),
+                                    ),
+                                ),
+                            )
                         }
                     }
 
@@ -740,16 +745,16 @@ private fun TemperatureContent(
                         }
                         FootButtonBar(
                             uDp = grid.uDp,
-                        ) {
-                            OutlinedControl(
-                                label = "",
-                                onClick = { fieldMode = TempFieldMode.SensorList },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Back = accent
-                                icon = DinghyIcons.Back,
-                                contentDescription = stringResource(R.string.cd_back),
-                            )
-                        }
+                            actions = listOf(
+                                FootAction(
+                                    label = stringResource(R.string.cd_back),
+                                    icon = DinghyIcons.Back,
+                                    onClick = { fieldMode = TempFieldMode.SensorList },
+                                    intent = Intent.Accent, // R5: Back = accent
+                                    contentDescription = stringResource(R.string.cd_back),
+                                ),
+                            ),
+                        )
                     }
                 }
             },

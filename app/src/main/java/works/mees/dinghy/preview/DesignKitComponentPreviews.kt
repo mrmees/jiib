@@ -29,12 +29,12 @@ import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
 import works.mees.dinghy.designsystem.components.FilterRow
 import works.mees.dinghy.designsystem.components.FloatingEStop
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
 import works.mees.dinghy.designsystem.components.SortRow
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
@@ -240,29 +240,17 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
             }
 
             // ── FootButtonBar ────────────────────────────────────────────────────
-            FootButtonBar(uDp = grid.uDp, modifier = Modifier.fillMaxWidth()) {
-                OutlinedControl(
-                    label = "",
-                    onClick = {},
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent,
-                    icon = DinghyIcons.ExpandCircleUp,
-                )
-                OutlinedControl(
-                    label = "",
-                    onClick = {},
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Neutral,
-                    icon = DinghyIcons.ExpandCircleDown,
-                )
-                OutlinedControl(
-                    label = "",
-                    onClick = {},
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent,
-                    icon = DinghyIcons.Archive,
-                )
-            }
+            // ≤2 actions → icon+text mode
+            FootButtonBar(uDp = grid.uDp, actions = listOf(
+                FootAction("Back", DinghyIcons.Back, {}, Intent.Accent),
+                FootAction("Save", DinghyIcons.Save, {}, Intent.Go),
+            ))
+            // ≥3 actions → icon-only mode (FOOT_BAR_ICON_ONLY_THRESHOLD)
+            FootButtonBar(uDp = grid.uDp, actions = listOf(
+                FootAction("Back", DinghyIcons.Back, {}, Intent.Accent),
+                FootAction("Edit", DinghyIcons.Edit, {}, Intent.Accent),
+                FootAction("Delete", DinghyIcons.Delete, {}, Intent.Danger),
+            ))
         }
     }
 }

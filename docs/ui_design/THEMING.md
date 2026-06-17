@@ -404,7 +404,9 @@ constant (floating overlays have no row context).
 The old "2px outline + soft glow on a transparent fill" treatment (the hi-fi bundle's `.ctl`)
 is HISTORICAL. "Glow" today = the static alpha tokens (`edgeGlow`/`accentGlow` …) where used;
 a true blur glow is not on the API floor — achieving one via cached rendering is aspirational
-polish (R6), never a conformance requirement.
+polish (R6), never a conformance requirement. **Press feedback today** = the soft intent-tint
+pressed fill on `OutlinedControl` (ripple OFF), not a glow — see `COMPONENTS.md §"Pressed state
+— soft intent tint"`.
 
 ## The type ramp (R11, owner, 2026-06-12)
 

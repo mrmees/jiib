@@ -49,13 +49,14 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -361,86 +362,85 @@ internal fun BedMeshContent(
                             // D-14 state-adaptive FootButtonBar
                             FootButtonBar(
                                 uDp = grid.uDp,
-                            ) {
-                                when {
-                                    !vm.homed -> {
-                                        // Unhomed branch: Back (accent, FIRST — R5/R8) + Home All
-                                        // (go — homing is this state's expected action, R19).
-                                        OutlinedControl(
-                                            label = "",
-                                            onClick = onBack,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            icon = DinghyIcons.Back,
-                                            contentDescription = stringResource(R.string.common_back),
-                                        )
-                                        OutlinedControl(
-                                            spec = ControlSpecs.calibrationHomeAll,
-                                            onClick = onHomeAll,
-                                            modifier = Modifier.weight(1f),
-                                            enabled = dispatcherPresent,
-                                        )
+                                actions = buildList {
+                                    when {
+                                        !vm.homed -> {
+                                            // Unhomed branch: Back (accent, FIRST — R5/R8) + Home All
+                                            // (go — homing is this state's expected action, R19).
+                                            add(FootAction(
+                                                label = stringResource(R.string.common_back),
+                                                icon = DinghyIcons.Back,
+                                                onClick = onBack,
+                                                intent = Intent.Accent,
+                                                contentDescription = stringResource(R.string.common_back),
+                                            ))
+                                            add(footAction(
+                                                ControlSpecs.calibrationHomeAll,
+                                                onClick = onHomeAll,
+                                                enabled = dispatcherPresent,
+                                            ))
+                                        }
+                                        selectedProfile != null -> {
+                                            // Profile selected: Back (accent, FIRST) + Apply (go —
+                                            // the selection state's expected action, R5) + Remove (stop).
+                                            add(FootAction(
+                                                label = stringResource(R.string.common_back),
+                                                icon = DinghyIcons.Back,
+                                                onClick = onBack,
+                                                intent = Intent.Accent,
+                                                contentDescription = stringResource(R.string.common_back),
+                                            ))
+                                            add(FootAction(
+                                                label = stringResource(R.string.mesh_apply),
+                                                icon = DinghyIcons.CheckCircle,
+                                                onClick = { selectedProfile?.let { onApplyProfile(it) } },
+                                                intent = Intent.Go,
+                                                enabled = dispatcherPresent,
+                                            ))
+                                            add(FootAction(
+                                                label = stringResource(R.string.mesh_remove),
+                                                icon = DinghyIcons.Delete,
+                                                onClick = onShowRemoveGuard,
+                                                intent = Intent.Danger,
+                                                enabled = dispatcherPresent,
+                                            ))
+                                        }
+                                        else -> {
+                                            // Homed, no selection: Back (accent, FIRST) + Calibrate
+                                            // (go — the screen's expected action, R5/R19) + Save
+                                            // (go — accept/commit class, R5).
+                                            add(FootAction(
+                                                label = stringResource(R.string.common_back),
+                                                icon = DinghyIcons.Back,
+                                                onClick = onBack,
+                                                intent = Intent.Accent,
+                                                contentDescription = stringResource(R.string.common_back),
+                                            ))
+                                            add(FootAction(
+                                                // owner 2026-06-17: play_circle (CalibrationRun), NOT
+                                                // RoutineBedMesh/blur_linear — the Focus header already
+                                                // shows blur_linear (routineIconToken(BED_MESH)); a foot
+                                                // button reusing it = same-glyph-twice-on-one-screen.
+                                                label = stringResource(R.string.mesh_calibrate),
+                                                icon = DinghyIcons.CalibrationRun,
+                                                onClick = onCalibrate,
+                                                intent = Intent.Go,
+                                                enabled = dispatcherPresent,
+                                            ))
+                                            // WR-05 (27-review): with no active mesh, BED_MESH_PROFILE SAVE
+                                            // errors in Klipper — Save is gated on a mesh being loaded (the
+                                            // empty-state Focus already tells the user to calibrate first).
+                                            add(FootAction(
+                                                label = stringResource(R.string.mesh_save),
+                                                icon = DinghyIcons.Save,
+                                                onClick = onShowSaveName,
+                                                intent = Intent.Go,
+                                                enabled = dispatcherPresent && !vm.isEmpty,
+                                            ))
+                                        }
                                     }
-                                    selectedProfile != null -> {
-                                        // Profile selected: Back (accent, FIRST) + Apply (go —
-                                        // the selection state's expected action, R5) + Remove (stop).
-                                        OutlinedControl(
-                                            label = "",
-                                            onClick = onBack,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            icon = DinghyIcons.Back,
-                                            contentDescription = stringResource(R.string.common_back),
-                                        )
-                                        OutlinedControl(
-                                            label = stringResource(R.string.mesh_apply),
-                                            onClick = {
-                                                selectedProfile?.let { onApplyProfile(it) }
-                                            },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Go,
-                                            enabled = dispatcherPresent,
-                                        )
-                                        OutlinedControl(
-                                            label = stringResource(R.string.mesh_remove),
-                                            onClick = onShowRemoveGuard,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Danger,
-                                            enabled = dispatcherPresent,
-                                        )
-                                    }
-                                    else -> {
-                                        // Homed, no selection: Back (accent, FIRST) + Calibrate
-                                        // (go — the screen's expected action, R5/R19) + Save
-                                        // (go — accept/commit class, R5).
-                                        OutlinedControl(
-                                            label = "",
-                                            onClick = onBack,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Accent,
-                                            icon = DinghyIcons.Back,
-                                            contentDescription = stringResource(R.string.common_back),
-                                        )
-                                        OutlinedControl(
-                                            label = stringResource(R.string.mesh_calibrate),
-                                            onClick = onCalibrate,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Go,
-                                            enabled = dispatcherPresent,
-                                        )
-                                        // WR-05 (27-review): with no active mesh, BED_MESH_PROFILE SAVE
-                                        // errors in Klipper — Save is gated on a mesh being loaded (the
-                                        // empty-state Focus already tells the user to calibrate first).
-                                        OutlinedControl(
-                                            label = stringResource(R.string.mesh_save),
-                                            onClick = onShowSaveName,
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Go,
-                                            enabled = dispatcherPresent && !vm.isEmpty,
-                                        )
-                                    }
-                                }
-                            }
+                                },
+                            )
                         }
 
                         is MeshFieldMode.SaveName -> {
@@ -481,22 +481,23 @@ internal fun BedMeshContent(
                             // + Cancel (danger, C7 cancel-with-loss)
                             FootButtonBar(
                                 uDp = grid.uDp,
-                            ) {
-                                OutlinedControl(
-                                    label = stringResource(R.string.mesh_save_confirm),
-                                    onClick = { onSaveNameConfirm(saveName) },
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Go,
-                                    enabled = valid && dispatcherPresent,
-                                )
-                                // C7: cancel-with-loss → Intent.Danger (red)
-                                OutlinedControl(
-                                    label = stringResource(R.string.common_cancel),
-                                    onClick = onSaveNameCancel,
-                                    modifier = Modifier.weight(1f),
-                                    intent = Intent.Danger,
-                                )
-                            }
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.mesh_save_confirm),
+                                        icon = DinghyIcons.CheckCircle,
+                                        onClick = { onSaveNameConfirm(saveName) },
+                                        intent = Intent.Go,
+                                        enabled = valid && dispatcherPresent,
+                                    ),
+                                    // C7: cancel-with-loss → Intent.Danger (red)
+                                    FootAction(
+                                        label = stringResource(R.string.common_cancel),
+                                        icon = DinghyIcons.DialogClose,
+                                        onClick = onSaveNameCancel,
+                                        intent = Intent.Danger,
+                                    ),
+                                ),
+                            )
                         }
                     }
                 },

@@ -53,11 +53,11 @@ import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -516,37 +516,35 @@ private fun ColumnScope.MacroLauncherField(
             }
         }
     }
-    FootButtonBar(uDp = uDp) {
-        OutlinedControl(
-            label = stringResource(R.string.macros_foot_back),
-            onClick = onBack,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Accent, // R5: Back = accent
-            icon = DinghyIcons.Back,
-        )
-        OutlinedControl(
-            label = stringResource(R.string.macros_foot_manage),
-            onClick = onManage,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Accent, // R5: plain navigation = accent
-            icon = DinghyIcons.ManageMacros,
-            contentDescription = stringResource(R.string.cd_macros_manage),
-        )
-        // Execute (R5: Go = the expected action). OutlinedControl has no `enabled` param — use
-        // alpha+semantics (the established disabled convention).
-        OutlinedControl(
-            label = stringResource(R.string.macros_foot_execute),
-            onClick = { if (executeEnabled) onExecute() },
-            modifier = Modifier
-                .weight(1f)
-                .then(
-                    if (!executeEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier,
-                ),
-            intent = Intent.Go,
-            icon = DinghyIcons.ExecuteMacro,
-            contentDescription = stringResource(R.string.cd_macros_execute),
-        )
-    }
+    // 3 actions → icon-only; execute alpha/disabled modifier passes through FootAction.modifier.
+    FootButtonBar(
+        uDp = uDp,
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.macros_foot_back),
+                icon = DinghyIcons.Back,
+                onClick = onBack,
+                intent = Intent.Accent, // R5: Back = accent
+            ),
+            FootAction(
+                label = stringResource(R.string.macros_foot_manage),
+                icon = DinghyIcons.ManageMacros,
+                onClick = onManage,
+                intent = Intent.Accent, // R5: plain navigation = accent
+                contentDescription = stringResource(R.string.cd_macros_manage),
+            ),
+            // Execute (R5: Go = the expected action). OutlinedControl has no `enabled` param — use
+            // alpha+semantics (the established disabled convention).
+            FootAction(
+                label = stringResource(R.string.macros_foot_execute),
+                icon = DinghyIcons.ExecuteMacro,
+                onClick = { if (executeEnabled) onExecute() },
+                intent = Intent.Go,
+                contentDescription = stringResource(R.string.cd_macros_execute),
+                modifier = if (!executeEnabled) Modifier.alpha(0.38f).semantics { disabled() } else Modifier,
+            ),
+        ),
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -675,22 +673,24 @@ private fun ColumnScope.MacroManageField(
             }
         }
     }
-    FootButtonBar(uDp = uDp) {
-        OutlinedControl(
-            label = stringResource(R.string.macros_foot_back),
-            onClick = onBack,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Accent, // R5: Back = accent
-            icon = DinghyIcons.Back,
-        )
-        OutlinedControl(
-            label = stringResource(R.string.macros_foot_show_hidden),
-            onClick = { onSetRevealHidden(!state.revealHidden) },
-            modifier = Modifier.weight(1f),
-            intent = if (state.revealHidden) Intent.Accent else Intent.Neutral,
-            icon = if (state.revealHidden) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
-        )
-    }
+    // 2 actions → icon+text (label visible).
+    FootButtonBar(
+        uDp = uDp,
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.macros_foot_back),
+                icon = DinghyIcons.Back,
+                onClick = onBack,
+                intent = Intent.Accent, // R5: Back = accent
+            ),
+            FootAction(
+                label = stringResource(R.string.macros_foot_show_hidden),
+                icon = if (state.revealHidden) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                onClick = { onSetRevealHidden(!state.revealHidden) },
+                intent = if (state.revealHidden) Intent.Accent else Intent.Neutral,
+            ),
+        ),
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

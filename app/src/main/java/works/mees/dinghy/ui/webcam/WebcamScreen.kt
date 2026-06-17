@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import works.mees.dinghy.R
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -222,15 +223,18 @@ private fun WebcamBackBar(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FootButtonBar(uDp = uDp, modifier = modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)) {
-        OutlinedControl(
-            label = stringResource(R.string.common_back),
-            onClick = onBack,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Accent, // R5/R8 (supersedes D-10): Back = accent.
-            icon = DinghyIcons.Back,
-        )
-    }
+    FootButtonBar(
+        uDp = uDp,
+        modifier = modifier.padding(horizontal = ListFrameInset, vertical = 8.dp),
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.common_back),
+                icon = DinghyIcons.Back,
+                onClick = onBack,
+                intent = Intent.Accent, // R5/R8 (supersedes D-10): Back = accent.
+            ),
+        ),
+    )
 }
 
 /** The Focus region: the hosted [WebcamView] feed, optionally tap-to-cycle in full-focus multi-cam. */

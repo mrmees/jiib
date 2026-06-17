@@ -31,6 +31,7 @@ import works.mees.dinghy.calibration.CalibrationHubHolder
 import works.mees.dinghy.calibration.CalibrationRoutine
 import works.mees.dinghy.calibration.RoutineEntry
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -174,16 +175,16 @@ fun CalibrationHubContent(
                     }
                     FootButtonBar(
                         uDp = grid.uDp,
-                    ) {
-                        OutlinedControl(
-                            label = "",
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent, // R5: Back = accent
-                            icon = DinghyIcons.Back,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                    }
+                        actions = listOf(
+                            FootAction(
+                                label = stringResource(R.string.common_back),
+                                icon = DinghyIcons.Back,
+                                onClick = onBack,
+                                intent = Intent.Accent, // R5: Back = accent
+                                contentDescription = stringResource(R.string.common_back),
+                            ),
+                        ),
+                    )
                 },
             )
         }

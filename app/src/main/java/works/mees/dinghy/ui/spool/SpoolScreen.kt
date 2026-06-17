@@ -57,13 +57,14 @@ import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FillMeter
 import works.mees.dinghy.designsystem.components.FilterOption
 import works.mees.dinghy.designsystem.components.FilterRow
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.SortOption
 import works.mees.dinghy.designsystem.components.SortRow
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -481,32 +482,18 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
     }
     FootButtonBar(
         uDp = uDp,
-    ) {
-        OutlinedControl(
-            spec = ControlSpecs.commonHome,
-            onClick = onHome,
-            modifier = Modifier.weight(1f),
-        )
-        OutlinedControl(
-            spec = ControlSpecs.spoolScan,
-            onClick = onScan,
-            modifier = Modifier.weight(1f),
-        )
-        // Conditional Load / Unload (LOCKED logic — RESEARCH §"Foot button logic").
-        if (isSelectedLoaded) {
-            OutlinedControl(
-                spec = ControlSpecs.spoolUnload,
-                onClick = onUnload,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            OutlinedControl(
-                spec = ControlSpecs.spoolLoad,
-                onClick = onLoad,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+        actions = listOf(
+            // owner 2026-06-17: the typical Back arrow (not the Home glyph); still navigates to PrintStatus.
+            footAction(ControlSpecs.commonBack, onClick = onHome),
+            footAction(ControlSpecs.spoolScan, onClick = onScan),
+            // Conditional Load / Unload (LOCKED logic — RESEARCH §"Foot button logic").
+            if (isSelectedLoaded) {
+                footAction(ControlSpecs.spoolUnload, onClick = onUnload)
+            } else {
+                footAction(ControlSpecs.spoolLoad, onClick = onLoad)
+            },
+        ),
+    )
 }
 
 /**
@@ -609,22 +596,21 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
     // Filter picker footer: Clear (danger) · Done (go).
     FootButtonBar(
         uDp = uDp,
-    ) {
-        OutlinedControl(
-            label = stringResource(R.string.spool_filter_clear),
-            onClick = onClear,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Danger,
-            icon = DinghyIcons.DeleteSweep, // owner-assigned glyph (2026-06-12; closes WR-02)
-        )
-        OutlinedControl(
-            label = stringResource(R.string.spool_filter_done),
-            onClick = onDone,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Go,
-            icon = DinghyIcons.Check,
-        )
-    }
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.spool_filter_clear),
+                onClick = onClear,
+                intent = Intent.Danger,
+                icon = DinghyIcons.DeleteSweep, // owner-assigned glyph (2026-06-12; closes WR-02)
+            ),
+            FootAction(
+                label = stringResource(R.string.spool_filter_done),
+                onClick = onDone,
+                intent = Intent.Go,
+                icon = DinghyIcons.Check,
+            ),
+        ),
+    )
 }
 
 /**
@@ -726,27 +712,26 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
     // Footer: Back (Danger — discards; C7 rule) · Set (Go — applies when valid).
     FootButtonBar(
         uDp = uDp,
-    ) {
-        OutlinedControl(
-            label = stringResource(R.string.spool_measure_back),
-            onClick = onCancel,
-            modifier = Modifier.weight(1f),
-            intent = Intent.Danger,
-            icon = DinghyIcons.Back,
-        )
-        OutlinedControl(
-            label = stringResource(R.string.spool_measure_set),
-            onClick = {
-                if (valid) {
-                    keyboardController?.hide()
-                    onApply(grams!!)
-                }
-            },
-            modifier = Modifier.weight(1f),
-            intent = Intent.Go,
-            icon = DinghyIcons.Check,
-        )
-    }
+        actions = listOf(
+            FootAction(
+                label = stringResource(R.string.spool_measure_back),
+                onClick = onCancel,
+                intent = Intent.Danger,
+                icon = DinghyIcons.Back,
+            ),
+            FootAction(
+                label = stringResource(R.string.spool_measure_set),
+                onClick = {
+                    if (valid) {
+                        keyboardController?.hide()
+                        onApply(grams!!)
+                    }
+                },
+                intent = Intent.Go,
+                icon = DinghyIcons.Check,
+            ),
+        ),
+    )
 }
 
 /** One labelled weight stat in the measure-weight header: label and grams or "not set" when null. */

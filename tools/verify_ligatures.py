@@ -30,11 +30,13 @@ USAGE (WSL python 3.13 — fonttools 4.63.0 already installed):
     python tools/verify_ligatures.py        # exit 0 = all needed names resolve; exit 1 = missing
 """
 
+import re
 import sys
 
 from fontTools.ttLib import TTFont
 
 FONT = "app/src/main/res/font/material_symbols_outlined.ttf"
+DINGHY_ICONS = "app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt"
 
 
 def resolvable_ligatures(path):
@@ -148,13 +150,45 @@ NEEDED = {
     # control baseline audit 2026-06-14 — sort-direction arrows + shared close glyph
     # (SortAsc=arrow_drop_up, SortDesc=arrow_drop_down, Close=close).
     "arrow_drop_up", "arrow_drop_down", "close",
+    # Foot-bar button conformance (2026-06-17): play_circle=calibration run/start,
+    # hourglass=calibration in-progress, stop_circle=calibration abort, print_add=add printer,
+    # save=save config/mesh, tab_close=field-takeover cancel.
+    # mode_heat_off (TempCooldown) is already in NEEDED above (Phase-25 Console filters).
+    "play_circle", "hourglass", "stop_circle", "print_add", "save", "tab_close",
+    # Task 8 — TempPresets (owner-chosen 2026-06-17; distinct from `thermostat`=LauncherTemperature).
+    "thermostat_auto",
 }
+
+
+def registered_ligatures(path):
+    """Scrape every IconRef.Ligature("name") declared in DinghyIcons.kt → {name: token}.
+
+    Hardening (2026-06-17): the curated NEEDED set only checked a hand-maintained subset, so
+    registry tokens added without updating NEEDED (e.g. SpoolClear=remove_circle, location_on,
+    fluorescent) escaped the gate and rendered as literal text on-device. This derives the check
+    set from the registry itself, so any new `val X = DinghyIcon(IconRef.Ligature("...")` is
+    verified automatically and a missing glyph fails the build.
+    """
+    src = open(path, encoding="utf-8").read()
+    pat = re.compile(r'val\s+(\w+)\s*=\s*DinghyIcon\(IconRef\.Ligature\("([^"]+)"\)')
+    return {lig: tok for tok, lig in pat.findall(src)}
 
 
 def main():
     have = resolvable_ligatures(FONT)
-    missing = sorted(NEEDED - have)
-    print(f"{len(NEEDED)} needed, {len(have)} ligatures in font, missing: {missing}")
+
+    registered = registered_ligatures(DINGHY_ICONS)
+    # Check set = the curated NEEDED names (D-08 conversion targets / non-registry call sites)
+    # UNION every ligature actually registered in DinghyIcons.
+    check = set(NEEDED) | set(registered)
+    missing = sorted(check - have)
+
+    print(f"{len(check)} needed ({len(NEEDED)} curated + {len(registered)} registry-derived), "
+          f"{len(have)} ligatures in font, missing: {missing}")
+    if missing:
+        for lig in missing:
+            who = registered.get(lig, "(NEEDED set only)")
+            print(f"  MISSING: {lig}  <- DinghyIcons.{who}")
     sys.exit(1 if missing else 0)
 
 

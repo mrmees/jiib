@@ -6,16 +6,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -72,6 +77,21 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
 }
 
 /**
+ * The SOFT pressed-fill tint per intent (owner 2026-06-17): a low-alpha intent color flattened
+ * over the surface — the same softness as the IncrementPicker selected tile (`accentSoft` fill +
+ * intent-colored border). Subtle enough that the strong text/icon stay readable in dark AND light
+ * themes (the tint never lightens the surface past where `t.text` reads), so no content-color flip
+ * is needed; the border (still [outlineColor]) carries the intent's full color.
+ */
+private fun Intent.softColor(t: ThemeTokens): Color = when (this) {
+    Intent.Neutral -> t.outline.copy(alpha = 0.22f).compositeOver(t.surface)
+    Intent.Accent -> t.accentSoft.compositeOver(t.surface)
+    Intent.Warn -> t.heatSoft.compositeOver(t.surface)
+    Intent.Danger -> t.stopSoft.compositeOver(t.surface)
+    Intent.Go -> t.goSoft.compositeOver(t.surface)
+}
+
+/**
  * The outline-led, touch-first control language (UI-02) — the single most-reused interactive
  * primitive. A 2dp outline + intent color on a FILLED `t.surface` base (R4 — fill says "button";
  * the old transparent-fill control language is superseded), with a ≥64dp touch target floor
@@ -122,22 +142,30 @@ fun OutlinedControl(
         Modifier
     }
     val shape = RoundedCornerShape(t.rCtrl)
-    // R10 (26.5-03 + codex review): the enabled=true paths are the PLAIN pre-plan overloads —
-    // byte-identical behavior at every existing call site, and the parameterless form keeps
-    // Compose's lazy indication attach (perf floor). An earlier draft passed explicit
-    // interactionSource + LocalIndication here for Part 5 cause #4 "indication immediacy";
-    // REVERTED: that form doesn't bypass the scrollable press-delay (which lives in clickable's
-    // pointer logic, not indication laziness) and eagerly allocates per control. Cause #4 is
-    // DEFERRED pending the morning instrumentation verdict — a real fix needs custom press
-    // detection (Modifier.indication + manual Press emission), not parameter plumbing.
+
+    // PRESSED STATE (owner 2026-06-17): on touch-down the button fills with a SOFT tint of its
+    // intent color (see [softColor]) — the same softness as the tuning-screen IncrementPicker —
+    // instead of the default Material ripple (which on the dark theme just dimmed toward the
+    // background and read as "nothing happened"). `indication = null` kills the ripple; the fill is
+    // driven straight off the press interaction. The intent-colored border still frames it.
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val backgroundColor = if (pressed) intent.softColor(t) else (fill ?: t.surface)
+
     val clickMod = when {
         // R10 true disablement: a bare Modifier — no clickable installed, no ripple, no event consumed.
         !enabled -> Modifier
         onLongClick != null -> Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
             onClick = onClick,
             onLongClick = onLongClick,
         )
-        else -> Modifier.clickable(onClick = onClick)
+        else -> Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+        )
     }
     // R26 edge frame: inside a U-aware container (FootButtonBar — the only LocalUnitDp provider)
     // the control's height floor is ONE UNIT, not just the 64dp touch floor — the law's
@@ -150,9 +178,9 @@ fun OutlinedControl(
             .heightIn(min = minHeight) // ≥64dp touch floor (UI-02); 1U inside FootButtonBar (R26).
             .clip(shape)
             // Controls = filled (COMPONENTS.md §2). [fill] overrides the default surface fill for
-            // a selected/toggled state (e.g. IncrementPicker's active tile = accentSoft, matching
-            // the ListRow selected convention); null keeps the standard surface fill.
-            .background(fill ?: t.surface)
+            // a selected/toggled state (e.g. IncrementPicker's active tile = accentSoft); pressed
+            // overrides BOTH with the soft intent tint (see [softColor]). null = standard surface.
+            .background(backgroundColor)
             .border(BorderStroke(2.dp, intent.outlineColor(t)), shape)
             .then(clickMod),
         contentAlignment = Alignment.Center,

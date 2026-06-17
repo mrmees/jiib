@@ -549,6 +549,30 @@ change). `IncrementPicker` is the first consumer: active tile passes `fill = t.a
 inactive tiles pass `fill = null`. This `fill` param is the correct extension point for any
 future selected/toggle state that needs a custom fill rather than just a border change.
 
+**Pressed state — soft intent tint (LAW, owner UAT 2026-06-17):**
+
+Makes concrete the design-CLAUDE.md intent "primary/pressed states tint faintly with the
+accent" — generalized to the button's own **intent** color (per the R5 four-class scheme).
+Every `OutlinedControl` (so every button app-wide) signals touch-down by **filling its
+background with a SOFT tint of its intent color**, keeping the full intent color on the border —
+the same softness as the `IncrementPicker` selected tile. This **replaces the default Material
+ripple**, which on the dark theme merely dimmed toward the background and read as "nothing
+happened" (the retired hi-fi `.ctl` press-glow left no successor until now; THEMING.md).
+
+- **Per-intent soft fill** (`OutlinedControl.softColor`): Accent → `accentSoft`, Warn →
+  `heatSoft`, Go → `goSoft`, Danger → `stopSoft`, Neutral → `t.outline` @ 22% — each flattened
+  over `t.surface` (`compositeOver`) so a translucent token resolves to a solid, predictable tint.
+- **Ripple is OFF** (`indication = null`); the fill is driven directly from
+  `interactionSource.collectIsPressedAsState()`.
+- **Content stays `t.text`** — the soft tint never lightens past readability in dark OR light
+  theme, so no content-color flip is needed (a full-saturation pressed fill was tried and
+  rejected as too loud, owner).
+- **Pressed overrides the `fill` param** (a selected tile still shows the press tint while held).
+- **Known tradeoff:** a control inside a *scrollable* container won't tint until the press clears
+  Compose's tap-vs-scroll disambiguation (~the long-press threshold); foot-bar / non-scrollable
+  controls tint instantly. An instant-everywhere fill would need custom press detection — deferred
+  unless requested.
+
 **LocalUnitDp provision — how 1U-capped rows FILL to 1U (owner UAT 2026-06-13):**
 
 UAT-5 caps all in-Focus controls at `height(uDp)`. Without `LocalUnitDp` being PROVIDED at the

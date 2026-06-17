@@ -54,10 +54,13 @@ object DinghyIcons {
     //     pre-existing in-use ligatures flipped from raw MaterialSymbol params; NO new glyph picks) ---
     /** Active-spool card "Change" action (swap to another spool). */
     val SpoolChange = DinghyIcon(IconRef.Ligature("swap_horiz"), alternate = "spool_change")
-    /** Active-spool card "Clear" action (post_spool_id {} — unload the active record). */
-    val SpoolClear = DinghyIcon(IconRef.Ligature("remove_circle"), alternate = "spool_clear")
-    /** Spool storage-location stat row (active-spool card + scan-confirm). */
-    val SpoolLocation = DinghyIcon(IconRef.Ligature("location_on"), alternate = "spool_location")
+    /** Active-spool card "Clear" action (post_spool_id {} — unload the active record).
+     *  Owner 2026-06-17: `do_not_disturb_on` (visual twin of remove_circle, which is absent
+     *  from the pinned v2.944 bundled font — it rendered as literal text). */
+    val SpoolClear = DinghyIcon(IconRef.Ligature("do_not_disturb_on"), alternate = "spool_clear")
+    /** Spool storage-location stat row (active-spool card + scan-confirm).
+     *  Owner 2026-06-17: `place` (visual twin of location_on, absent from the v2.944 font). */
+    val SpoolLocation = DinghyIcon(IconRef.Ligature("place"), alternate = "spool_location")
     /** Amber badge: queued usage not yet synced — remaining may be stale. */
     val SpoolUsageStale = DinghyIcon(IconRef.Ligature("sync_problem"), alternate = "spool_usage_stale")
     /** Amber badge: the active spool changed externally (another client). */
@@ -314,8 +317,27 @@ object DinghyIcons {
     val ManagePrinters  = DinghyIcon(IconRef.Ligature("format_list_numbered"),      alternate = "manage_printers")
     val TextSize        = DinghyIcon(IconRef.Ligature("format_size"),               alternate = "text_size")
     val Rename          = DinghyIcon(IconRef.Ligature("drive_file_rename_outline"), alternate = "rename")
-    val Fluorescent     = DinghyIcon(IconRef.Ligature("fluorescent"),               alternate = "fluorescent")
+    // Owner 2026-06-17: `wb_iridescent` — the original `fluorescent` ligature is NOT in the pinned
+    // v2.944 bundled font (it's a newer Material Symbol), so it rendered as literal text. Labels the
+    // "Keep Screen On" app setting. Token name kept to avoid churn; alternate updated to match.
+    val Fluorescent     = DinghyIcon(IconRef.Ligature("wb_iridescent"),             alternate = "keep_screen_on")
     val ShieldLock      = DinghyIcon(IconRef.Ligature("shield_lock"),               alternate = "shield_lock")
+
+    // --- Foot-bar button conformance (2026-06-17, OWNER-LOCKED — icon law [[dinghy-never-pick-icons-ask]]).
+    // play_circle / stop_circle are from img/material-icon-bucket.json; hourglass / print_add / save /
+    // tab_close are new — ALL gated by tools/verify_ligatures.py (Task 2 step 4). mode_heat_off is shared
+    // with HideTemps (Temp vs Console never co-render) → allow-listed in DinghyIconsTest.
+    val CalibrationRun   = DinghyIcon(IconRef.Ligature("play_circle"),   alternate = "calibration_run")
+    val CalibrationWait  = DinghyIcon(IconRef.Ligature("hourglass"),     alternate = "calibration_wait")
+    val CalibrationAbort = DinghyIcon(IconRef.Ligature("stop_circle"),   alternate = "calibration_abort")
+    val PrinterAdd       = DinghyIcon(IconRef.Ligature("print_add"),     alternate = "printer_add")
+    val Save             = DinghyIcon(IconRef.Ligature("save"),          alternate = "save")
+    val DialogClose      = DinghyIcon(IconRef.Ligature("tab_close"),     alternate = "dialog_close")
+    val TempCooldown     = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "temp_cooldown")
+    /** Temperature: Presets — owner-chosen ligature `thermostat_auto` (2026-06-17; pre-verified in
+     *  bundled v2.944 font; distinct from `thermostat`=LauncherTemperature, `mode_heat_off`=TempCooldown,
+     *  `format_list_bulleted`=MonitorMode — all three co-render with this in Adjust mode). */
+    val TempPresets      = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -354,5 +376,7 @@ object DinghyIcons {
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
+        CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
+        TempPresets,
     )
 }

@@ -496,6 +496,7 @@
     <string name="cd_move_jog_pad">Move jog pad</string>
     <string name="move_focus_blurb">Move the print head and bed.</string>
     <string name="move_include_z">Include Z height (Z = %1$s)</string>
+    <string name="move_save_location">Save Location</string>
 
     <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
     <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /
@@ -528,6 +529,7 @@
 
     <!-- Probe Calibrate screen (Phase 27-04) -->
     <string name="calibration_home_all">Home All</string>
+    <string name="cd_calibration_home_all">Home all axes</string>
     <string name="calibration_start">Start</string>
     <string name="calibration_accept">Accept</string>
     <string name="calibration_abort">Abort</string>

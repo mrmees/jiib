@@ -18,12 +18,12 @@ import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.RegisteredRegion
@@ -124,65 +124,30 @@ internal fun HomeField(
         //  - Idle     → Preheat (warn — heats) + System (accent nav). "System" navigates to
         //    NavDest.System (D-04/28-05); while printing it lives in the list instead (buildIdleActions).
         var showCancelGuard by remember { mutableStateOf(false) }
-        FootButtonBar(uDp = uDp) {
-            if (isPrinting) {
-                if (isPaused) {
-                    OutlinedControl(
-                        label = stringResource(R.string.printstatus_foot_resume),
-                        onClick = onResume,
-                        modifier = Modifier.weight(1f),
-                        icon = DinghyIcons.FootResume,
-                        intent = Intent.Go,
-                    )
+        FootButtonBar(
+            uDp = uDp,
+            actions = buildList {
+                if (isPrinting) {
+                    if (isPaused) add(FootAction(stringResource(R.string.printstatus_foot_resume),
+                        DinghyIcons.FootResume, onResume, Intent.Go))
+                    else add(FootAction(stringResource(R.string.printstatus_foot_pause),
+                        DinghyIcons.PauseCircle, onPause, Intent.Warn))
+                    add(FootAction(stringResource(R.string.printstatus_foot_cancel),
+                        DinghyIcons.FootCancel, { showCancelGuard = true }, Intent.Danger))
+                } else if (isComplete) {
+                    // Complete → Dismiss (clears the finished job to standby) + System nav.
+                    add(FootAction(stringResource(R.string.printstatus_foot_dismiss),
+                        DinghyIcons.FootDismiss, onDismiss, Intent.Go)) // R5: the expected action on a finished print
+                    add(FootAction(stringResource(R.string.home_foot_system),
+                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 } else {
-                    OutlinedControl(
-                        label = stringResource(R.string.printstatus_foot_pause),
-                        onClick = onPause,
-                        modifier = Modifier.weight(1f),
-                        icon = DinghyIcons.PauseCircle,
-                        intent = Intent.Warn,
-                    )
+                    add(FootAction(stringResource(R.string.home_foot_preheat),
+                        DinghyIcons.FootPreheat, onPreheat, Intent.Warn)) // R5: heats nozzle/bed — hazard-in-process class
+                    add(FootAction(stringResource(R.string.home_foot_system),
+                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 }
-                OutlinedControl(
-                    label = stringResource(R.string.printstatus_foot_cancel),
-                    onClick = { showCancelGuard = true },
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootCancel,
-                    intent = Intent.Danger,
-                )
-            } else if (isComplete) {
-                // Complete → Dismiss (clears the finished job to standby) + System nav.
-                OutlinedControl(
-                    label = stringResource(R.string.printstatus_foot_dismiss),
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootDismiss,
-                    intent = Intent.Go, // R5: the expected action on a finished print
-                )
-                OutlinedControl(
-                    label = stringResource(R.string.home_foot_system),
-                    onClick = { onNavigate(NavDest.System) },
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootSystem,
-                    intent = Intent.Accent, // R5: plain navigation = accent
-                )
-            } else {
-                OutlinedControl(
-                    label = stringResource(R.string.home_foot_preheat),
-                    onClick = onPreheat,
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootPreheat,
-                    intent = Intent.Warn, // R5: heats nozzle/bed — hazard-in-process class
-                )
-                OutlinedControl(
-                    label = stringResource(R.string.home_foot_system),
-                    onClick = { onNavigate(NavDest.System) },
-                    modifier = Modifier.weight(1f),
-                    icon = DinghyIcons.FootSystem,
-                    intent = Intent.Accent, // R5: plain navigation = accent
-                )
-            }
-        }
+            },
+        )
 
         // Cancel confirm (destructive — aborts the print). Wrapped in a Dialog so the scrim escapes
         // the Field region and covers the whole screen (mirrors the FocusFrame e-stop guard).
