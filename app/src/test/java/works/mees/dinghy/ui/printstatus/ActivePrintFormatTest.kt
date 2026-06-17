@@ -3,6 +3,7 @@ package works.mees.dinghy.ui.printstatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import works.mees.dinghy.state.HeaterState
 
 class ActivePrintFormatTest {
     @Test fun percent_rounds_to_int() {
@@ -62,5 +63,61 @@ class ActivePrintFormatTest {
         assertEquals("benchy.gcode", printFileBasename("prints/calib/benchy.gcode"))
         assertEquals("benchy.gcode", printFileBasename("benchy.gcode"))
         assertEquals("", printFileBasename(""))
+    }
+
+    @Test fun print_duration_brackets() {
+        assertEquals("1h01m", formatPrintDuration(3661.0))
+        assertEquals("1h00m", formatPrintDuration(3600.0))
+        assertEquals("45m", formatPrintDuration(2700.0))
+        assertEquals("1m", formatPrintDuration(60.0))
+        assertEquals("59s", formatPrintDuration(59.0))
+        assertEquals("30s", formatPrintDuration(30.0))
+        assertEquals("0s", formatPrintDuration(0.0))
+        assertEquals("0s", formatPrintDuration(-5.0))
+    }
+
+    @Test fun print_vs_estimate() {
+        assertEquals("45m / 3h20m", formatPrintVsEstimate(2700.0, 12000.0))
+        assertEquals("45m", formatPrintVsEstimate(2700.0, null))
+        assertEquals("45m", formatPrintVsEstimate(2700.0, 0.0))
+    }
+
+    @Test fun heaters_line_all_current_only() {
+        val h = mapOf(
+            "extruder" to HeaterState(temperature = 229.6, target = 230.0),
+            "heater_bed" to HeaterState(temperature = 75.2, target = 75.0),
+        )
+        assertEquals("Extruder 230 · Bed 75", formatHeatersLine(h))
+    }
+
+    @Test fun heaters_line_cold_still_shown() {
+        val h = mapOf("extruder" to HeaterState(temperature = 24.0, target = 0.0))
+        assertEquals("Extruder 24", formatHeatersLine(h))
+    }
+
+    @Test fun heaters_line_empty_is_blank() {
+        assertEquals("", formatHeatersLine(emptyMap()))
+    }
+
+    @Test fun heaters_line_chamber_sorts_after_bed() {
+        val h = mapOf(
+            "heater_bed" to HeaterState(temperature = 60.0, target = 60.0),
+            "heater_generic chamber" to HeaterState(temperature = 40.0, target = 45.0),
+            "extruder" to HeaterState(temperature = 200.0, target = 200.0),
+        )
+        assertEquals("Extruder 200 · Bed 60 · Chamber 40", formatHeatersLine(h))
+    }
+
+    @Test fun z_height_line() {
+        assertEquals("1.2 / 55 mm", formatZHeight(1.2, 55.0))
+        assertEquals("1.2 mm", formatZHeight(1.2, null))
+        assertEquals("—", formatZHeight(null, 55.0))
+    }
+
+    @Test fun layers_line() {
+        assertEquals("5 / 220 layers", formatLayersLine(5, 220))
+        assertNull(formatLayersLine(null, 220))
+        assertNull(formatLayersLine(5, null))
+        assertNull(formatLayersLine(0, 220))
     }
 }

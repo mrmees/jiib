@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.printstatus
 
 import kotlin.math.roundToInt
+import works.mees.dinghy.state.HeaterState
 
 /** Integer print-% for the header (`PRINTING · NN%`), clamped 0..100. */
 fun progressPercent(progress: Double): Int =
@@ -59,3 +60,53 @@ fun deriveCurrentLayer(
 
 /** The print filename's basename (leading directory stripped); extension retained. */
 fun printFileBasename(filename: String): String = filename.substringAfterLast('/')
+
+/** Compact print duration: `1h05m` (≥ 1h, minutes zero-padded), `45m` (≥ 1m), `30s` (< 1m). Negatives → 0. */
+fun formatPrintDuration(seconds: Double): String {
+    val s = seconds.coerceAtLeast(0.0).toInt()
+    val h = s / 3600
+    val m = (s % 3600) / 60
+    return when {
+        h > 0 -> "${h}h${m.toString().padStart(2, '0')}m"
+        m > 0 -> "${m}m"
+        else -> "${s % 60}s"
+    }
+}
+
+/** `elapsed / estimate` print-time line; no/zero slicer estimate → elapsed alone. */
+fun formatPrintVsEstimate(printDuration: Double, estimatedTime: Double?): String =
+    if (estimatedTime != null && estimatedTime > 0.0) {
+        "${formatPrintDuration(printDuration)} / ${formatPrintDuration(estimatedTime)}"
+    } else {
+        formatPrintDuration(printDuration)
+    }
+
+/**
+ * All configured heaters (active OR cold — owner ruling: users must see a cold hot end), current temp
+ * only, canonical order, `·`-joined: `"Extruder 230 · Bed 75"`. Empty map → "".
+ */
+fun formatHeatersLine(heaters: Map<String, HeaterState>): String =
+    orderedHeaterKeys(heaters).mapNotNull { key ->
+        heaters[key]?.let { "${prettyHeaterLabel(key)} ${it.temperature.roundToInt()}" }
+    }.joinToString(" · ")
+
+/** Z-height line: `"1.2 / 55 mm"`, `"1.2 mm"` (no total height), `"—"` (no current Z). */
+fun formatZHeight(currentZ: Double?, objectHeight: Double?): String {
+    fun mm(v: Double): String {
+        val r = (v * 10).roundToInt() / 10.0
+        return if (r % 1.0 == 0.0) r.toInt().toString() else r.toString()
+    }
+    return when {
+        currentZ == null -> "—"
+        objectHeight != null -> "${mm(currentZ)} / ${mm(objectHeight)} mm"
+        else -> "${mm(currentZ)} mm"
+    }
+}
+
+/** Layers line: `"5 / 220 layers"`, or null when either bound is missing/≤ 0 (caller drops the line). */
+fun formatLayersLine(currentLayer: Int?, totalLayer: Int?): String? =
+    if (currentLayer != null && currentLayer > 0 && totalLayer != null && totalLayer > 0) {
+        "$currentLayer / $totalLayer layers"
+    } else {
+        null
+    }
