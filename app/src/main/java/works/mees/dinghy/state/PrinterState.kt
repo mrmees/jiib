@@ -215,6 +215,25 @@ data class PrinterState(
      * (SC-3 — hides the value, stays tappable) instead of flickering to a default.
      */
     val outputs: ImmutableMap<String, OutputLiveValue> = persistentMapOf(),
+
+    /**
+     * Filament-runout sensor live state (Extrude rework), keyed by the FULL objectKey
+     * (`filament_switch_sensor Runout` / `filament_motion_sensor Encoder`). Mirrors the [outputs] /
+     * [temperatureSensors] pipeline: update-on-present merge — a partial diff updates only the present
+     * field, an absent field RETAINS prior (never clobbered).
+     */
+    val filamentSensors: ImmutableMap<String, FilamentSensorState> = persistentMapOf(),
+)
+
+/**
+ * One filament-runout sensor's live state (`filament_switch_sensor` / `filament_motion_sensor`).
+ */
+@Immutable
+data class FilamentSensorState(
+    /** `enabled` — whether Klipper is currently watching this runout sensor. */
+    val enabled: Boolean = false,
+    /** `filament_detected` — true = filament present at the sensor (null = not reported). */
+    val filamentDetected: Boolean? = null,
 )
 
 /**
