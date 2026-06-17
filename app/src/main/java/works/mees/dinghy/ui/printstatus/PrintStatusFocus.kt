@@ -2,28 +2,32 @@ package works.mees.dinghy.ui.printstatus
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import works.mees.dinghy.R
@@ -127,10 +131,13 @@ internal fun HomeFocus(
 }
 
 /**
- * The active-print Focus body (Printing/Paused): the file's thumbnail filling the frame (Fit,
- * centered) with top/bottom legibility scrims, the filename top-aligned (marquee on overflow), and
- * the condensed layer/height line bottom-aligned. No thumbnail (null metadata / inspection mode) →
- * the faint brand watermark. The clockwise perimeter progress stroke is the FocusFrame edge (caller).
+ * The active-print Focus body (Printing/Paused): the file thumbnail filling the frame (Fit, centered)
+ * under a uniform 50% surface scrim, with a single CENTERED 6-line data block reading as one list over
+ * the image — filename (slightly larger, Geist UI), then all-heater current temps, job time, print/
+ * estimate, Z height, and layers (Geist Mono tabular). Every line carries a surface-color drop shadow
+ * so it pops on busy renders. The block uniformly shrinks (width AND height) to fit the focus, floor
+ * 15sp. No thumbnail (null metadata / inspection mode) → the faint brand watermark. The clockwise
+ * perimeter progress stroke is the FocusFrame edge (owned by the caller).
  */
 @Composable
 private fun ActivePrintFocus(
@@ -139,6 +146,7 @@ private fun ActivePrintFocus(
     httpBase: String,
 ) {
     val t = LocalTokens.current
+    val density = LocalDensity.current
     val context = LocalContext.current
     val inspection = LocalInspectionMode.current
     val thumbUrl = remember(httpBase, state.printFilename, printMetadata?.largestThumbRelPath) {
@@ -149,6 +157,30 @@ private fun ActivePrintFocus(
             null
         }
     }
+
+    // --- Resolve the data lines (filename is separate; the rest are the shrinking "list"). ---
+    val filename = printFileBasename(state.printFilename)
+    val currentZ = state.gcodePosition?.getOrNull(2)
+    val totalLayer = (state.totalLayer ?: printMetadata?.layerCount)?.takeIf { it > 0 }
+    val currentLayer = state.currentLayer?.takeIf { it > 0 } ?: deriveCurrentLayer(
+        currentZ = currentZ,
+        firstLayerHeight = printMetadata?.firstLayerHeight,
+        layerHeight = printMetadata?.layerHeight,
+        totalLayer = totalLayer,
+    )
+    val heatersLine = formatHeatersLine(state.heaters)
+    val jobLine = stringResource(R.string.printstatus_job_time, formatPrintDuration(state.totalDuration))
+    val printLine = formatPrintVsEstimate(state.printDuration, printMetadata?.estimatedTime)
+    val zLine = formatZHeight(currentZ, printMetadata?.objectHeight)
+    val layersLine = formatLayersLine(currentLayer, totalLayer)
+    val dataLines: List<String> = buildList {
+        if (heatersLine.isNotBlank()) add(heatersLine)
+        add(jobLine)
+        add(printLine)
+        add(zLine)
+        layersLine?.let { add(it) }
+    }
+
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Background: thumbnail (Fit, centered) or watermark fallback.
         if (thumbUrl != null && !inspection) {
@@ -168,67 +200,74 @@ private fun ActivePrintFocus(
                 modifier = Modifier.fillMaxSize(0.30f).align(Alignment.BottomEnd),
             )
         }
-        // Legibility scrims behind the text (top + bottom vertical gradients of the surface color).
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    0f to t.surface.copy(alpha = 0.72f),
-                    0.22f to Color.Transparent,
-                    0.78f to Color.Transparent,
-                    1f to t.surface.copy(alpha = 0.72f),
-                ),
-            ),
-        )
-        // Filename — top.
-        Text(
-            text = printFileBasename(state.printFilename),
-            color = t.text,
-            style = DinghyType.screenTitle.toTextStyle(t),
-            maxLines = 1,
-            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
-        )
-        // Layer / height — bottom (Mono tabular). Prefer the live print_stats.info layer fields; when
-        // the slicer didn't emit them (current/total null), fall back to the gcode metadata: total from
-        // layer_count, current derived from the print height (Fluidd/Mainsail-style).
-        val currentZ = state.gcodePosition?.getOrNull(2)
-        val totalLayer = (state.totalLayer ?: printMetadata?.layerCount)?.takeIf { it > 0 }
-        val currentLayer = state.currentLayer?.takeIf { it > 0 } ?: deriveCurrentLayer(
-            currentZ = currentZ,
-            firstLayerHeight = printMetadata?.firstLayerHeight,
-            layerHeight = printMetadata?.layerHeight,
-            totalLayer = totalLayer,
-        )
-        val layerHeightText = formatLayerHeight(
-            currentZ = currentZ,
-            objectHeight = printMetadata?.objectHeight,
-            currentLayer = currentLayer,
-            totalLayer = totalLayer,
-        )
-        // Bottom line is CENTERED and SHRINK-TO-FIT: scale the statValue size down (to a 15sp floor) so
-        // the whole "<z>/<h>mm · <cur>/<tot> layers" fits the Focus width on the narrowest device (moto),
-        // and center it so short strings (low layer/height numbers) stay balanced instead of stranded.
-        // Same measurer-driven uniform-shrink approach as HomeDigest.
+        // Uniform ~50% scrim across the whole body so text stays legible over any render.
+        Box(Modifier.fillMaxSize().background(t.surface.copy(alpha = 0.5f)))
+
+        // --- Uniform shrink-to-fit: one scale fits the WIDEST line to the body width AND all lines
+        //     (+ fixed gaps) to the body height. Width & height both scale ~linearly with font size. ---
         val measurer = rememberTextMeasurer()
-        val layerBase = DinghyType.statValue.toTextStyle(t)
-        val maxScaled = layerBase.fontSize.value
-        val minScaled = fsSp(15f, t.fs)
-        val availPx = constraints.maxWidth.toFloat()
-        val sizeSp = remember(layerHeightText, availPx, t.fs) {
-            val w = measurer.measure(layerHeightText, layerBase, maxLines = 1, softWrap = false)
-                .size.width.toFloat()
-            // Target 96% of the width: the measured layout width undercounts the last glyph's side
-            // bearing + sub-pixel rounding, so fitting to the full width clips the final letter.
-            if (w <= 0f || availPx <= 0f) maxScaled
-            else (maxScaled * (availPx * 0.96f) / w).coerceIn(minScaled, maxScaled)
+        val maxData = fsSp(DinghyType.statValue.baseSp, t.fs)   // 26 * fs
+        val minData = fsSp(15f, t.fs)
+        val nameStyleBase = DinghyType.screenTitle.toTextStyle(t, maxData * FILENAME_FACTOR)
+        val dataStyleBase = DinghyType.statValue.toTextStyle(t, maxData)
+        val gapPx = with(density) { BLOCK_LINE_GAP.toPx() }
+        val availW = constraints.maxWidth.toFloat()
+        val availH = constraints.maxHeight.toFloat()
+
+        // Key on line LENGTHS (statValue is Mono → width is proportional to char count; same-length temp
+        // ticks reuse the cached fit). Filename is non-mono but constant during a print, so verbatim.
+        val key = filename + "|" + dataLines.joinToString("¦") { it.length.toString() } + "|$availW|$availH|${t.fs}"
+        val sizeFrac = remember(key) {
+            val nameLayout = measurer.measure(filename, nameStyleBase, maxLines = 1, softWrap = false)
+            val dataLayouts = dataLines.map { measurer.measure(it, dataStyleBase, maxLines = 1, softWrap = false) }
+            val widestPx = (listOf(nameLayout) + dataLayouts).maxOf { it.size.width }.toFloat()
+            val textHPx = (nameLayout.size.height + dataLayouts.sumOf { it.size.height }).toFloat()
+            // Fixed BLOCK_LINE_GAP gaps DON'T scale with font — subtract them from the height budget
+            // first (N = 1 filename + dataLines.size lines → N-1 == dataLines.size gaps), then fit text to
+            // the remainder. Width fits to 96%: full-width fitting clips the last glyph's side bearing.
+            val gapCount = dataLines.size
+            val wFrac = if (widestPx > 0f && availW > 0f) (availW * 0.96f) / widestPx else 1f
+            val hFrac = if (textHPx > 0f && availH > 0f) (availH - gapPx * gapCount).coerceAtLeast(0f) / textHPx else 1f
+            minOf(wFrac, hFrac, 1f)
         }
-        Text(
-            text = layerHeightText,
-            color = t.text,
-            style = DinghyType.statValue.toTextStyle(t, sizeSp),
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
-        )
+        val dataSp = (maxData * sizeFrac).coerceIn(minData, maxData)
+        val nameSp = (maxData * FILENAME_FACTOR * sizeFrac).coerceAtLeast(minData)
+        val shadow = remember(t.surface, density) {
+            Shadow(color = t.surface, offset = Offset(0f, with(density) { 2.dp.toPx() }), blurRadius = with(density) { 4.dp.toPx() })
+        }
+
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(BLOCK_LINE_GAP),
+            ) {
+                Text(
+                    text = filename,
+                    color = t.text,
+                    style = DinghyType.screenTitle.toTextStyle(t, nameSp).copy(shadow = shadow),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+                dataLines.forEach { line ->
+                    Text(
+                        text = line,
+                        color = t.text,
+                        style = DinghyType.statValue.toTextStyle(t, dataSp).copy(shadow = shadow),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
     }
 }
+
+/** Filename size = data size × this (owner: "slightly bigger"). Tweakable at on-device UAT. */
+private const val FILENAME_FACTOR = 1.2f
+
+/** Vertical gap between the centered data-block lines ("reads as one list"). */
+private val BLOCK_LINE_GAP = 4.dp

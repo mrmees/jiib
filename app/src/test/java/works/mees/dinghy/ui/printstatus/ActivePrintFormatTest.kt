@@ -15,29 +15,6 @@ class ActivePrintFormatTest {
         assertEquals(0, progressPercent(-0.2))    // clamps
     }
 
-    @Test fun layer_height_full() {
-        assertEquals("1.2/55mm · 5/220 layers", formatLayerHeight(1.2, 55.0, 5, 220))
-    }
-
-    @Test fun layer_height_no_total_height() {
-        assertEquals("1.2mm · 5/220 layers", formatLayerHeight(1.2, null, 5, 220))
-    }
-
-    @Test fun layer_height_no_layers_drops_clause() {
-        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, null, 220))
-        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 5, null))
-    }
-
-    @Test fun layer_height_non_positive_layers_drops_clause() {
-        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 0, 220))
-        assertEquals("1.2/55mm", formatLayerHeight(1.2, 55.0, 5, 0))
-    }
-
-    @Test fun layer_height_no_z_falls_back_to_dash() {
-        assertEquals("—", formatLayerHeight(null, 55.0, null, null))
-        assertEquals("— · 5/220 layers", formatLayerHeight(null, 55.0, 5, 220))
-    }
-
     @Test fun derive_current_layer_from_height() {
         // first=0.24, layer=0.2: z=0.24 -> layer 1; z=0.44 -> layer 2; z=23.8 -> 118 (clamped to 152)
         assertEquals(1, deriveCurrentLayer(0.24, 0.24, 0.2, 152))
@@ -119,5 +96,6 @@ class ActivePrintFormatTest {
         assertNull(formatLayersLine(null, 220))
         assertNull(formatLayersLine(5, null))
         assertNull(formatLayersLine(0, 220))
+        assertNull(formatLayersLine(5, 0))
     }
 }
