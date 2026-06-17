@@ -44,6 +44,10 @@ object PrinterCommands {
     const val MAX_EXTRUDE_MM = 100.0
     const val MAX_EXTRUDE_FEED_MM_MIN = 6_000
 
+    /** Fallback feed ceiling (mm/s) for the Extrude speed scrubber when the printer does not report
+     *  `max_extrude_only_velocity`. Conservative — a 1.75 mm hotend grinds far below 50 mm/s. */
+    const val MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK = 15
+
     /** Force-move velocity ceiling (mm/s) — kept conservative; force moves skip all limit checks. */
     const val MAX_FORCE_VEL_MM_S = 50
 
