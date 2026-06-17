@@ -64,18 +64,19 @@ object SampleFixtures {
      */
     fun forState(s: PrintState): PrinterState {
         val printing = s == PrintState.Printing || s == PrintState.Paused
+        val hasJob = printing || s == PrintState.Complete   // Complete shows the finished job's block too
         return PrinterState(
             printState = s,
-            printFilename = if (printing) "benchy.gcode" else "",
+            printFilename = if (hasJob) "benchy.gcode" else "",
             klippyState = KlippyState.Ready,
-            progress = if (printing) 0.42 else 0.0,
-            printDuration = if (printing) 2700.0 else 0.0,    // 45m
-            totalDuration = if (printing) 3120.0 else 0.0,    // 52m
-            currentLayer = if (printing) 5 else null,
-            totalLayer = if (printing) 220 else null,
-            filamentUsed = if (printing) 4200.0 else 0.0,    // 4.2m
-            gcodePosition = if (printing) persistentListOf(0.0, 0.0, 1.2, 0.0) else null,
-            heaters = if (printing) {
+            progress = if (printing) 0.42 else if (s == PrintState.Complete) 1.0 else 0.0,
+            printDuration = if (hasJob) 2700.0 else 0.0,    // 45m
+            totalDuration = if (hasJob) 3120.0 else 0.0,    // 52m
+            currentLayer = if (hasJob) (if (s == PrintState.Complete) 220 else 5) else null,
+            totalLayer = if (hasJob) 220 else null,
+            filamentUsed = if (hasJob) 4200.0 else 0.0,    // 4.2m
+            gcodePosition = if (hasJob) persistentListOf(0.0, 0.0, 1.2, 0.0) else null,
+            heaters = if (hasJob) {
                 persistentMapOf(
                     "extruder" to HeaterState(temperature = 229.6, target = 230.0),
                     "heater_bed" to HeaterState(temperature = 75.2, target = 75.0),
