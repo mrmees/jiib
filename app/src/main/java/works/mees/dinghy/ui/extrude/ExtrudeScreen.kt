@@ -11,15 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -46,21 +42,25 @@ import works.mees.dinghy.command.SelectToolArgs
 import works.mees.dinghy.command.SetFilamentSensorArgs
 import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.MaterialSymbol
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
+import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.components.Scrubber
-import works.mees.dinghy.designsystem.components.StepperRow
 import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.FocusInset
+import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
+import works.mees.dinghy.designsystem.layout.controlHeight
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.net.JsonRpcMethods
@@ -73,16 +73,18 @@ import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 
-/** Default highlighted length (mm) — must be a member of [DISTANCE_PRESETS]. */
+/** Default highlighted length (mm). */
 private const val DEFAULT_DISTANCE = 5.0
 
 /** Default feedrate (mm/s). */
 private const val DEFAULT_SPEED_MM_S = 5
 
-/** The fixed 4-up filament-length presets (mm). The distance ±stepper indexes through these. */
-private val DISTANCE_PRESETS = listOf(1.0, 5.0, 25.0, 50.0)
+/** Length-slider floor / ceiling (mm). The ceiling is the owner-set max, capped further at runtime by
+ *  the printer's reported `max_extrude_only_distance`. */
+private const val MIN_DISTANCE_MM = 1f
+private const val MAX_DISTANCE_MM = 100f
 
-/** Feedrate floor (mm/s) for the speed scrubber. */
+/** Feedrate floor (mm/s) for the speed slider. */
 private const val MIN_SPEED_MM_S = 1
 
 /** Material-Symbol shown on Extrude/Retract while the cold-extrude gate is closed (needs heat). */
@@ -103,13 +105,15 @@ sealed class ExtrudeFieldMode {
 /**
  * The Extrude panel — rebuilt on the Focus/Field grammar (2026-06-16) as the filament-handling hub.
  *
- * ## Focus (fixed feed surface)
- *  - LEFT column: big **Extrude** / **Retract** accent commands. When the LIVE per-tool `can_extrude`
- *    gate ([ExtrudeVm.canExtrude]) is closed they swap to [COLD_SYMBOL] and render DISABLED — the icon
- *    IS the cold signal (EXTR-04 / D-07). Extrude → `extrude(+dist, speed)`, Retract → `extrude(-dist)`.
- *  - RIGHT column (no keyboard — UI law): an optional [ToolSelector] (multi-extruder only), a distance
- *    ±stepper through 1/5/25/50 mm (clamped, ceiling-skipped), a speed scrubber capped to the printer's
- *    reported `max_extrude_only_velocity`, and a live nozzle current/target readout.
+ * ## Focus (fixed feed surface) — a single vertical stack, top→bottom (no keyboard, slider-only — UI law):
+ *  - An optional [ToolSelector] (multi-extruder only).
+ *  - An info line (values only, units disambiguate): current temperature · Length · Speed.
+ *  - Two bare slider rows (title start-aligned, no ± stepper): Length (1–100 mm, printer-capped) and
+ *    Speed (capped to the reported `max_extrude_only_velocity`).
+ *  - A bottom **Extrude** / **Retract** big-command row (the hero, fills remaining height). When the
+ *    LIVE per-tool `can_extrude` gate ([ExtrudeVm.canExtrude]) is closed they swap to [COLD_SYMBOL] and
+ *    render DISABLED — the icon IS the cold signal (EXTR-04 / D-07). Extrude → `extrude(+dist, speed)`,
+ *    Retract → `extrude(-dist, speed)`.
  *
  * ## Field (scrolling action list)
  *  - Live runout-sensor toggles (hidden when none discovered).
@@ -270,12 +274,11 @@ private fun ExtrudeContent(
     var speed by remember { mutableStateOf(DEFAULT_SPEED_MM_S) }
     var fieldMode by remember { mutableStateOf<ExtrudeFieldMode>(ExtrudeFieldMode.Main) }
 
-    // If the live max-extrude ceiling makes the selected length illegal, fall back to the largest enabled.
+    // Keep the length within the slider ceiling (owner max 100 mm, capped further by the printer's
+    // reported max_extrude_only_distance) when that live ceiling drops below the current value.
     LaunchedEffect(vm.maxExtrudeDistance) {
-        val max = vm.maxExtrudeDistance
-        if (max != null && distance > max) {
-            distance = DISTANCE_PRESETS.filter { it <= max }.maxOrNull() ?: DISTANCE_PRESETS.first()
-        }
+        val ceiling = (vm.maxExtrudeDistance?.coerceAtMost(MAX_DISTANCE_MM) ?: MAX_DISTANCE_MM).toDouble()
+        if (distance > ceiling) distance = ceiling
     }
     // If the printer's reported max velocity is below the current speed, pull speed down so Extrude
     // never dispatches over cap (the scrubber range also caps, but the seeded default could exceed a
@@ -297,6 +300,7 @@ private fun ExtrudeContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    contentInset = FocusInset / 2, // shared adjustment-focus rhythm (matches Fine-Tune)
                 ) {
                     FocusGrid(
                         vm = vm,
@@ -316,12 +320,20 @@ private fun ExtrudeContent(
             field = {
                 when (fieldMode) {
                     is ExtrudeFieldMode.Main -> {
-                        Column(
-                            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        // Canonical scrolling list (ListBlock = LazyColumn + gradient fade-edges +
+                        // owned 8dp spacing); rows are the canonical ListRow class (translucent, 1U,
+                        // 0.6U leading icons). The loaded-spool preheat temp is captured outside the
+                        // LazyListScope (stringResource isn't callable inside `item {}` lambdas cleanly).
+                        val loadedTemp = activeSpoolDetail?.filament?.settingsExtruderTemp
+                        val loadedName = activeSpoolDetail?.filament?.name
+                            ?: activeSpoolDetail?.filament?.material
+                            ?: stringResource(R.string.extrude_loaded_filament)
+                        val loadedLabel = stringResource(R.string.extrude_loaded_prefix, loadedName)
+                        val loadLabel = stringResource(R.string.extrude_load)
+                        val unloadLabel = stringResource(R.string.extrude_unload)
+                        ListBlock(modifier = Modifier.fillMaxWidth().weight(1f)) {
                             // 1. Runout sensors (the whole section is hidden when none discovered).
-                            vm.sensors.forEach { s ->
+                            items(vm.sensors, key = { it.objectKey }) { s ->
                                 ToggleRow(
                                     label = s.prettyName,
                                     subLabel = s.filamentDetected?.let {
@@ -338,23 +350,13 @@ private fun ExtrudeContent(
                             }
                             // 2. Macros — Load/Unload presence-gated, then screen-scoped pins (run bare).
                             if (vm.hasLoadMacro) {
-                                MacroActionRow(
-                                    label = stringResource(R.string.extrude_load),
-                                    icon = DinghyIcons.ExpandCircleUp,
-                                    onClick = onLoad,
-                                    uDp = grid.uDp,
-                                )
+                                item { MacroListRow(loadLabel, DinghyIcons.ExpandCircleUp, onLoad, grid.uDp) }
                             }
                             if (vm.hasUnloadMacro) {
-                                MacroActionRow(
-                                    label = stringResource(R.string.extrude_unload),
-                                    icon = DinghyIcons.ExpandCircleDown,
-                                    onClick = onUnload,
-                                    uDp = grid.uDp,
-                                )
+                                item { MacroListRow(unloadLabel, DinghyIcons.ExpandCircleDown, onUnload, grid.uDp) }
                             }
-                            vm.pinnedMacros.forEach { m ->
-                                MacroActionRow(
+                            items(vm.pinnedMacros, key = { "pin_${it.name}" }) { m ->
+                                MacroListRow(
                                     label = m.name,
                                     icon = DinghyIcons.LauncherMacros,
                                     onClick = { onRunMacro(m.name) },
@@ -362,21 +364,20 @@ private fun ExtrudeContent(
                                     busy = "macro_${m.name}" in inFlight,
                                 )
                             }
-                            // 3. Inline nozzle-only thermal preset chips.
-                            ThermalChips(
-                                activeSpoolDetail = activeSpoolDetail,
-                                onSetExtruderTemp = onSetExtruderTemp,
-                                uDp = grid.uDp,
-                            )
-                            // 4. Spool link.
-                            SpoolLinkRow(
-                                activeSpoolDetail = activeSpoolDetail,
-                                onOpenSpool = onOpenSpool,
-                                uDp = grid.uDp,
-                            )
-                            failureText?.let { msg ->
-                                SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
+                            // 3. Inline nozzle-only thermal presets (loaded-spool preheat first).
+                            if (loadedTemp != null) {
+                                item {
+                                    HeatPresetRow(loadedLabel, loadedTemp, { onSetExtruderTemp(loadedTemp) }, grid.uDp)
+                                }
                             }
+                            items(PrinterCommands.MATERIAL_PRESETS, key = { "mat_${it.name}" }) { preset ->
+                                HeatPresetRow(preset.name, preset.nozzle, { onSetExtruderTemp(preset.nozzle) }, grid.uDp)
+                            }
+                            // 4. Spool link.
+                            item { SpoolLinkListRow(activeSpoolDetail, onOpenSpool, grid.uDp) }
+                        }
+                        failureText?.let { msg ->
+                            SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                         }
                         FootButtonBar(uDp = grid.uDp) {
                             OutlinedControl(
@@ -387,37 +388,40 @@ private fun ExtrudeContent(
                                 icon = DinghyIcons.Back,
                             )
                             OutlinedControl(
-                                label = stringResource(R.string.extrude_cooldown),
+                                label = "",
                                 onClick = onCooldown,
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Warn, // hazardous-but-deliberate (heat off)
                                 icon = DinghyIcons.HideTemps,
+                                contentDescription = stringResource(R.string.extrude_cooldown),
                             )
                             OutlinedControl(
-                                label = stringResource(R.string.extrude_macro_settings),
+                                label = "",
                                 onClick = { fieldMode = ExtrudeFieldMode.MacroSettings },
                                 modifier = Modifier.weight(1f),
                                 intent = Intent.Accent,
                                 icon = DinghyIcons.ManageMacros,
+                                contentDescription = stringResource(R.string.extrude_macro_settings),
                             )
                         }
                     }
 
                     is ExtrudeFieldMode.MacroSettings -> {
                         val t = LocalTokens.current
-                        Column(
-                            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            if (vm.allMacros.isEmpty()) {
+                        if (vm.allMacros.isEmpty()) {
+                            Box(
+                                Modifier.fillMaxWidth().weight(1f),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Text(
                                     text = stringResource(R.string.extrude_no_macros),
                                     color = t.text2,
                                     style = DinghyType.caption.toTextStyle(t),
-                                    modifier = Modifier.padding(vertical = 4.dp),
                                 )
-                            } else {
-                                vm.allMacros.forEach { m ->
+                            }
+                        } else {
+                            ListBlock(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                items(vm.allMacros, key = { it.name }) { m ->
                                     ToggleRow(
                                         label = m.name,
                                         checked = m.name in vm.pinnedNames,
@@ -448,8 +452,9 @@ private fun ExtrudeContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * The Focus feed surface: LEFT = Extrude/Retract big commands (cold → [COLD_SYMBOL] + disabled),
- * RIGHT = (optional tool selector) + distance ±stepper + capped speed scrubber + nozzle readout.
+ * The Focus feed surface, top→bottom: (optional tool selector) · an info line (temp · length · speed) ·
+ * Length slider · Speed slider · an Extrude/Retract big-command row (the hero, fills the remaining
+ * height; cold → [COLD_SYMBOL] + disabled).
  */
 @Composable
 private fun FocusGrid(
@@ -465,163 +470,154 @@ private fun FocusGrid(
     onRetract: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        // LEFT column — the physical commands.
-        Column(Modifier.weight(1f).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            BigCommand(
-                label = stringResource(R.string.extrude_cmd_extrude),
-                symbol = if (!vm.canExtrude) COLD_SYMBOL else "output_circle",
-                disabled = !vm.canExtrude || "extrude" in inFlight,
-                onClick = onExtrude,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-            )
-            BigCommand(
-                label = stringResource(R.string.extrude_cmd_retract),
-                symbol = if (!vm.canExtrude) COLD_SYMBOL else "input_circle",
-                disabled = !vm.canExtrude || "retract" in inFlight,
-                onClick = onRetract,
-                modifier = Modifier.fillMaxWidth().weight(1f),
+    // Single vertical stack (2026-06-17 reflow): top→bottom = [tool selector] · nozzle readout ·
+    // distance selector · speed slider · Extrude/Retract in one bottom row (the hero, fills remaining).
+    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (vm.showToolSelector) {
+            ToolSelector(
+                tools = vm.tools,
+                inFlight = inFlight,
+                onSelect = onSelectTool,
+                modifier = Modifier.fillMaxWidth().controlHeight(uDp),
             )
         }
-        // RIGHT column — distance stepper + speed scrubber + nozzle readout (no keyboard — UI law).
+        // Info line + sliders, centered vertically in the leftover space above the command row.
+        val lengthCeiling = vm.maxExtrudeDistance?.coerceAtMost(MAX_DISTANCE_MM) ?: MAX_DISTANCE_MM
         Column(
-            Modifier.weight(1f).fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         ) {
-            if (vm.showToolSelector) {
-                ToolSelector(
-                    tools = vm.tools,
-                    inFlight = inFlight,
-                    onSelect = onSelectTool,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+            // Info line — current temperature · length · speed (values only; the unit disambiguates).
+            InfoLine(temp = vm.nozzleTemp, distance = distance, speed = speed, modifier = Modifier.fillMaxWidth())
+            // Length slider — title start-aligned, bare track; max 100 mm (capped by printer ceiling).
+            LabeledSlider(
+                title = stringResource(R.string.extrude_length),
+                value = distance.toFloat(),
+                range = MIN_DISTANCE_MM..lengthCeiling,
+                onChange = { onSelectDistance(it.toDouble()) },
+                uDp = uDp,
+            )
+            // Speed slider — capped to the printer's reported max_extrude_only_velocity.
+            LabeledSlider(
+                title = stringResource(R.string.extrude_speed_readout),
+                value = speed.toFloat(),
+                range = MIN_SPEED_MM_S.toFloat()..vm.maxExtrudeVelocity.toFloat(),
+                onChange = { onSpeedSettle(it.roundToInt()) },
+                uDp = uDp,
+            )
+        }
+        // Command row pinned at the bottom — canonical [OutlinedControl] (filled + intent-colored
+        // border), 1U tall, glyph at the 0.6U tier (LocalUnitDp provided like every other control
+        // row). Warm = Accent; cold lockout = Danger/stop border + cold glyph, not tappable; an
+        // in-flight dispatch dims the affected button.
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                Modifier.fillMaxWidth().controlHeight(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val extrudeBusy = "extrude" in inFlight
+                OutlinedControl(
+                    label = "",
+                    onClick = onExtrude,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .alpha(if (vm.canExtrude && extrudeBusy) 0.38f else 1f),
+                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    symbol = if (vm.canExtrude) "output_circle" else COLD_SYMBOL,
+                    enabled = vm.canExtrude && !extrudeBusy,
+                    contentDescription = stringResource(R.string.extrude_cmd_extrude),
+                )
+                val retractBusy = "retract" in inFlight
+                OutlinedControl(
+                    label = "",
+                    onClick = onRetract,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .alpha(if (vm.canExtrude && retractBusy) 0.38f else 1f),
+                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    symbol = if (vm.canExtrude) "input_circle" else COLD_SYMBOL,
+                    enabled = vm.canExtrude && !retractBusy,
+                    contentDescription = stringResource(R.string.extrude_cmd_retract),
                 )
             }
-            DistanceStepper(
-                selected = distance,
-                maxDistance = vm.maxExtrudeDistance,
-                onSelect = onSelectDistance,
-                uDp = uDp,
-            )
-            SpeedScrubberRow(
-                speed = speed,
-                maxVelocity = vm.maxExtrudeVelocity,
-                onSettle = onSpeedSettle,
-                uDp = uDp,
-            )
-            NozzleReadout(temp = vm.nozzleTemp, target = vm.nozzleTarget)
         }
     }
 }
 
 /**
- * The distance ±stepper: indexes through [DISTANCE_PRESETS], clamps at the ends, and skips presets
- * over the printer's live `max_extrude_only_distance` ceiling.
+ * A labelled bare slider row: the [title] start-aligned on the same line as a track-only [Scrubber]
+ * (no ± stepper, no inline value — the value is shown in the [SliderValuesLine] above). [onChange]
+ * fires live per drag frame AND once on settle; it only mutates caller state, never dispatches.
+ * Title/track widths are weighted (1:3) so both sliders' tracks align.
  */
 @Composable
-private fun DistanceStepper(
-    selected: Double,
-    maxDistance: Float?,
-    onSelect: (Double) -> Unit,
+private fun LabeledSlider(
+    title: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    val enabledPresets = DISTANCE_PRESETS.filter { maxDistance == null || it <= maxDistance }
-        .ifEmpty { listOf(DISTANCE_PRESETS.first()) }
-    val idx = enabledPresets.indexOf(selected).let {
-        if (it < 0) enabledPresets.indexOfLast { p -> p <= selected }.coerceAtLeast(0) else it
-    }
-    StepperRow(
-        onDecrement = { onSelect(enabledPresets[(idx - 1).coerceAtLeast(0)]) },
-        onIncrement = { onSelect(enabledPresets[(idx + 1).coerceAtMost(enabledPresets.lastIndex)]) },
-        uDp = uDp,
-        modifier = modifier,
-        center = {
-            Text(
-                text = "${fmtDist(selected)} mm",
-                color = t.text,
-                style = DinghyType.statValue.toTextStyle(t),
-            )
-        },
-        decreaseContentDescription = stringResource(R.string.extrude_distance_dec),
-        increaseContentDescription = stringResource(R.string.extrude_distance_inc),
-    )
-}
-
-/** The speed scrubber, range capped to the printer's reported `max_extrude_only_velocity`. */
-@Composable
-private fun SpeedScrubberRow(
-    speed: Int,
-    maxVelocity: Int,
-    onSettle: (Int) -> Unit,
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-) {
-    Scrubber(
-        name = stringResource(R.string.extrude_speed_readout),
-        value = speed.toFloat(),
-        range = MIN_SPEED_MM_S.toFloat()..maxVelocity.toFloat(),
-        step = 1f,
-        uDp = uDp,
-        onSettle = { onSettle(it.roundToInt().coerceIn(MIN_SPEED_MM_S, maxVelocity)) },
-        unit = "mm/s",
-        modifier = modifier,
-    )
-}
-
-/** A small live nozzle current/target readout (display only — arbitrary entry lives on Temperature). */
-@Composable
-private fun NozzleReadout(temp: Double, target: Double, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     Row(
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            painter = painterResource(R.drawable.nozzle),
-            contentDescription = null,
-            tint = t.text2,
-            modifier = Modifier.size(fsSp(28f, t.fs).dp),
-        )
         Text(
-            text = "${temp.roundToInt()} / ${target.roundToInt()}°C",
+            text = title,
             color = t.text,
-            style = DinghyType.dataInline.toTextStyle(t),
+            style = DinghyType.listLabel.toTextStyle(t),
+            modifier = Modifier.weight(1f),
+        )
+        Scrubber(
+            name = "",
+            value = value,
+            range = range,
+            step = 1f,
+            uDp = uDp,
+            bare = true,
+            onSettle = onChange,
+            onValueChange = onChange,
+            modifier = Modifier.weight(3f),
         )
     }
 }
 
-/** A large accent (physical-command) button: Material-Symbol glyph over the label; disabled cells dim. */
+/**
+ * The Focus info line, start→finish: current temperature · length · speed. Values only — no titles
+ * (the unit on each disambiguates; the sliders below carry their own start titles). Temperature is the
+ * live current reading only (no setpoint).
+ */
 @Composable
-private fun BigCommand(
-    label: String,
-    symbol: String,
-    disabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun InfoLine(temp: Double, distance: Double, speed: Int, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
+        ValueReadout(temp.roundToInt().toString(), "°C")
+        ValueReadout(fmtDist(distance), "mm")
+        ValueReadout(speed.toString(), "mm/s")
+    }
+}
+
+/**
+ * One "value unit" readout — the canonical Focus value/unit pairing (AdjusterPanel): a [focusHero]
+ * value with a readable [statValue] unit, baseline-aligned so the unit rides the value's baseline
+ * (not a subscript). Unit is [text2] (brighter than the old dim [text3]) for legibility.
+ */
+@Composable
+private fun ValueReadout(value: String, unit: String) {
     val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    val tint = if (disabled) t.text3 else t.accent2
-    var box = modifier
-        .alpha(if (disabled) 0.4f else 1f)
-        .clip(shape)
-        .border(BorderStroke(2.dp, if (disabled) t.hair else t.accentLine), shape)
-    if (!disabled) box = box.clickable(onClick = onClick)
-    Box(box, contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            // UAT-1: BigCommand is a Focus hero tile — prominent icon tier (~70-80% of U).
-            MaterialSymbol(name = symbol, tint = tint, sizeSp = fsSp(56f, t.fs))
-            Text(
-                text = label,
-                color = tint,
-                style = DinghyType.buttonLabel.toTextStyle(t),
-            )
-        }
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = value,
+            color = t.text,
+            style = DinghyType.focusHero.toTextStyle(t),
+            modifier = Modifier.alignByBaseline(),
+        )
+        Text(
+            text = unit,
+            color = t.text2,
+            style = DinghyType.statValue.toTextStyle(t),
+            modifier = Modifier.alignByBaseline(),
+        )
     }
 }
 
@@ -659,150 +655,81 @@ private fun ToolSelector(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * An outlined clickable macro action row: leading [icon] + label, runs bare on tap. Dims when [busy]
- * (an in-flight dispatch of the same macro). Mirrors the outline+click style of [PresetRow].
+ * A macro action list row — canonical [ListRow] with an accent 0.6U leading icon; runs bare on tap.
+ * Dims when [busy] (an in-flight dispatch of the same macro).
  */
 @Composable
-private fun MacroActionRow(
+private fun MacroListRow(
     label: String,
     icon: DinghyIcon,
     onClick: () -> Unit,
     uDp: Dp,
-    modifier: Modifier = Modifier,
     busy: Boolean = false,
 ) {
     val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .alpha(if (busy) 0.4f else 1f)
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.outline), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ListRow(
+        selected = false,
+        onClick = onClick,
+        uDp = uDp,
+        modifier = Modifier.alpha(if (busy) 0.4f else 1f),
+        leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = t.accent) },
     ) {
-        DinghyIconView(icon = icon, tint = t.text2, sizeDp = fsSp(24f, t.fs).dp)
-        Text(
-            text = label,
-            color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
-        )
+        ListRowLabel(label)
     }
 }
 
 /**
- * Inline nozzle-only thermal preset chips: the loaded-spool temp (when a spool with a temp is active)
- * + PLA/PETG/ABS/TPU. One tap applies the nozzle setpoint ONLY (never the bed — D-17).
+ * A heat-preset list row — canonical [ListRow] with the accent thermostat leading glyph (owner,
+ * 2026-06-17) and the nozzle temp as the trailing value. Selecting dispatches the extruder
+ * temperature ONLY (never the bed — D-17).
  */
 @Composable
-private fun ThermalChips(
-    activeSpoolDetail: SpoolmanSpool?,
-    onSetExtruderTemp: (Int) -> Unit,
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-) {
-    val loadedTemp = activeSpoolDetail?.filament?.settingsExtruderTemp
-    if (loadedTemp != null) {
-        val spoolName = activeSpoolDetail.filament?.name
-            ?: activeSpoolDetail.filament?.material
-            ?: stringResource(R.string.extrude_loaded_filament)
-        PresetRow(
-            name = stringResource(R.string.extrude_loaded_prefix, spoolName),
-            temp = loadedTemp,
-            onClick = { onSetExtruderTemp(loadedTemp) },
-            modifier = modifier,
-            uDp = uDp,
-        )
-    }
-    PrinterCommands.MATERIAL_PRESETS.forEach { preset ->
-        PresetRow(
-            name = preset.name,
-            temp = preset.nozzle,
-            onClick = { onSetExtruderTemp(preset.nozzle) },
-            modifier = modifier,
-            uDp = uDp,
-        )
+private fun HeatPresetRow(name: String, temp: Int, onClick: () -> Unit, uDp: Dp) {
+    val t = LocalTokens.current
+    ListRow(
+        selected = false,
+        onClick = onClick,
+        uDp = uDp,
+        leadingContent = {
+            ListRowIcon(icon = DinghyIcons.LauncherTemperature, uDp = uDp, tint = t.accent)
+        },
+        trailingContent = {
+            Text(
+                text = "${temp}°C",
+                color = t.text2,
+                style = DinghyType.dataInline.toTextStyle(t),
+            )
+        },
+    ) {
+        ListRowLabel(name)
     }
 }
 
-/** The spool link row — reactive [SpoolGlyph] + label; navigates to the Spoolman library. */
+/**
+ * The spool-link list row — canonical [ListRow] with the reactive [SpoolGlyph] (accent body) as the
+ * 0.6U leading slot; navigates to the Spoolman library.
+ */
 @Composable
-private fun SpoolLinkRow(
-    activeSpoolDetail: SpoolmanSpool?,
-    onOpenSpool: () -> Unit,
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-) {
+private fun SpoolLinkListRow(activeSpoolDetail: SpoolmanSpool?, onOpenSpool: () -> Unit, uDp: Dp) {
     val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
     val spoolSwatches = remember(activeSpoolDetail) {
         activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
     }
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.outline), shape)
-            .clickable(onClick = onOpenSpool)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ListRow(
+        selected = false,
+        onClick = onOpenSpool,
+        uDp = uDp,
+        leadingContent = {
+            SpoolGlyph(
+                swatches = spoolSwatches,
+                bodyTint = t.accent,
+                keyline = t.hair,
+                sizeDp = uDp * 0.6f,
+                contentDescription = null,
+            )
+        },
     ) {
-        SpoolGlyph(
-            swatches = spoolSwatches,
-            bodyTint = t.text2,
-            keyline = t.hair,
-            sizeDp = fsSp(28f, t.fs).dp,
-            contentDescription = null,
-        )
-        Text(
-            text = stringResource(R.string.cd_launcher_spool),
-            color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
-        )
-    }
-}
-
-/**
- * A single thermal-preset row: material name on the left, nozzle temp on the right. Selecting
- * dispatches the extruder temperature ONLY (never the bed — D-17).
- */
-@Composable
-private fun PresetRow(
-    name: String,
-    temp: Int,
-    onClick: () -> Unit,
-    uDp: Dp,
-    modifier: Modifier = Modifier,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.outline), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = name,
-            color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
-        )
-        Text(
-            text = "${temp}°C",
-            color = t.text2,
-            style = DinghyType.dataInline.toTextStyle(t),
-        )
+        ListRowLabel(stringResource(R.string.cd_launcher_spool))
     }
 }
 

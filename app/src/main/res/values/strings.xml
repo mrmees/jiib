@@ -441,6 +441,7 @@
     <!-- Focus readout labels (inline IME entry, D-16) -->
     <string name="extrude_distance_readout">Distance</string>
     <string name="extrude_speed_readout">Speed</string>
+    <string name="extrude_length">Length</string>
     <!-- BigCommand labels -->
     <string name="extrude_cmd_extrude">Extrude</string>
     <string name="extrude_cmd_retract">Retract</string>
