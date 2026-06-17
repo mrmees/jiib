@@ -559,6 +559,7 @@ class MoonrakerSession(
             val extruderCfg = settings?.objectOrNull("extruder")
             store.setMinExtrudeTemp(extruderCfg?.floatOrNullAt("min_extrude_temp"))
             store.setMaxExtrudeDistance(extruderCfg?.floatOrNullAt("max_extrude_only_distance"))
+            store.setMaxExtrudeVelocity(extruderCfg?.floatOrNullAt("max_extrude_only_velocity"))
 
             // The saved probe z_offset (09-07): shown as the idle "current Z offset" on Probe-Calibrate.
             // Same one-shot configfile result (Pitfall 3, no extra query); null on a probe-less printer.
@@ -624,6 +625,7 @@ class MoonrakerSession(
             store.setHeaterLimits(emptyMap())
             store.setMacroBodies(emptyMap())
             store.setMacroDescriptions(emptyMap())
+            store.setMaxExtrudeVelocity(null)
         }
     }
 

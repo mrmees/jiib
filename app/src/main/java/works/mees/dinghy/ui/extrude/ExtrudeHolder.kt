@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import works.mees.dinghy.command.CommandMap
+import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.state.Capabilities
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
@@ -45,6 +46,7 @@ import works.mees.dinghy.state.PrinterStateStore
 class ExtrudeHolder(
     scope: CoroutineScope,
     private val store: PrinterStateStore,
+    private val pinnedExtrudeMacros: StateFlow<Set<String>> = MutableStateFlow(emptySet()),
 ) {
     /**
      * The active tool's heater object name (the per-tool gate reads its `can_extrude`). Default
@@ -65,8 +67,10 @@ class ExtrudeHolder(
                 store.printerState,
                 store.minExtrudeTemp,
                 store.maxExtrudeDistance,
-            ) { state, minTemp, maxDist ->
-                buildVm(state, store.capabilities.value, minTemp, maxDist)
+                store.maxExtrudeVelocity,
+                pinnedExtrudeMacros,
+            ) { state, minTemp, maxDist, maxVel, pins ->
+                buildVm(state, store.capabilities.value, minTemp, maxDist, maxVel, pins)
             }.collect { _vm.value = it }
         }
     }
@@ -76,10 +80,9 @@ class ExtrudeHolder(
         activeTool = toolHeaterName
         // Re-resolve immediately off the latest known state so the gate reflects the new tool at once.
         _vm.value = buildVm(
-            store.printerState.value,
-            store.capabilities.value,
-            store.minExtrudeTemp.value,
-            store.maxExtrudeDistance.value,
+            store.printerState.value, store.capabilities.value,
+            store.minExtrudeTemp.value, store.maxExtrudeDistance.value,
+            store.maxExtrudeVelocity.value, pinnedExtrudeMacros.value,
         )
     }
 
@@ -88,6 +91,8 @@ class ExtrudeHolder(
         caps: Capabilities,
         minTemp: Float?,
         maxDist: Float?,
+        maxVel: Float?,
+        pins: Set<String>,
     ): ExtrudeVm {
         // The active extruder's live readings (per-tool). Absent extruder → fail-safe defaults.
         val heater = state.heaters[activeTool]
@@ -96,6 +101,33 @@ class ExtrudeHolder(
         // Tool list / selector visibility from the derived extruder count (D-09).
         val tools = (0 until caps.extruderCount).map { "T$it" }
         val showToolSelector = caps.extruderCount > 1
+
+        // Runout sensors — derive bare/pretty from the FULL object key.
+        val sensors = state.filamentSensors.entries
+            .sortedBy { it.key }
+            .map { (objectKey, live) ->
+                val bare = objectKey.substringAfter(' ')
+                SensorRowVm(
+                    objectKey = objectKey,
+                    sensorName = bare,
+                    prettyName = bare.replace('_', ' ').replace('-', ' ').trim()
+                        .split(' ').filter { it.isNotBlank() }
+                        .joinToString(" ") { it.replaceFirstChar(Char::uppercase) },
+                    enabled = live.enabled,
+                    filamentDetected = live.filamentDetected,
+                )
+            }
+
+        fun canonical(name: String): String? = caps.macros.firstOrNull { it.equals(name, ignoreCase = true) }
+        val visible = caps.macros.filter { !it.startsWith("_") }.map { ExtrudeMacroRowVm(it, null) }
+        val pinnedRows = pins.mapNotNull { canonical(it) }
+            .filter { !it.equals(CommandMap.loadFilament.macro, ignoreCase = true) &&
+                      !it.equals(CommandMap.unloadFilament.macro, ignoreCase = true) }
+            .map { ExtrudeMacroRowVm(it, null) }
+
+        val builderCeiling = PrinterCommands.MAX_EXTRUDE_FEED_MM_MIN / 60
+        val velCap = (maxVel?.toInt()?.coerceAtLeast(1)
+            ?: PrinterCommands.MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK).coerceAtMost(builderCeiling)
 
         return ExtrudeVm(
             canExtrude = canExtrude,
@@ -111,6 +143,11 @@ class ExtrudeHolder(
             nozzleTemp = heater?.temperature ?: 0.0,
             nozzleTarget = heater?.target ?: 0.0,
             activeHeater = activeTool,
+            sensors = sensors,
+            maxExtrudeVelocity = velCap,
+            pinnedMacros = pinnedRows,
+            allMacros = visible,
+            pinnedNames = pins,
         )
     }
 }
@@ -138,4 +175,24 @@ data class ExtrudeVm(
     val nozzleTarget: Double = 0.0,
     /** The active extruder's heater object name (`extruder`, `extruder1`, …) the temp set targets. */
     val activeHeater: String = "extruder",
+    val sensors: List<SensorRowVm> = emptyList(),
+    val maxExtrudeVelocity: Int = works.mees.dinghy.command.PrinterCommands.MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK,
+    val pinnedMacros: List<ExtrudeMacroRowVm> = emptyList(),
+    val allMacros: List<ExtrudeMacroRowVm> = emptyList(),
+    val pinnedNames: Set<String> = emptySet(),
+)
+
+/** One discovered runout sensor surfaced to the Field as a live ToggleRow. */
+data class SensorRowVm(
+    val objectKey: String,       // FULL "filament_switch_sensor Runout" — live-state + busy key
+    val sensorName: String,      // BARE "Runout" — the SET_FILAMENT_SENSOR SENSOR= arg
+    val prettyName: String,      // display label
+    val enabled: Boolean,        // live `enabled`
+    val filamentDetected: Boolean?,
+)
+
+/** One filament macro row (Load/Unload auto-rows + user pins). Runs BARE on tap. */
+data class ExtrudeMacroRowVm(
+    val name: String,            // canonical (case-recovered) macro name
+    val description: String?,    // v1: always null (bare-run needs no description)
 )

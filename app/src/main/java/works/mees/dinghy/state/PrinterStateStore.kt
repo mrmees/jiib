@@ -78,6 +78,10 @@ class PrinterStateStore(
     /** `configfile.settings.extruder.max_extrude_only_distance` (Extrude ceiling); null if unreadable. */
     val maxExtrudeDistance: StateFlow<Float?> = _maxExtrudeDistance.asStateFlow()
 
+    private val _maxExtrudeVelocity = MutableStateFlow<Float?>(null)
+    /** One-shot handshake read of `extruder.max_extrude_only_velocity` (mm/s). Null = unknown. */
+    val maxExtrudeVelocity: StateFlow<Float?> = _maxExtrudeVelocity.asStateFlow()
+
     private val _probeZOffset = MutableStateFlow<Float?>(null)
     /** `configfile.settings.probe.z_offset` (the saved probe calibration — shown idle on Probe-Calibrate);
      *  null if the printer has no `[probe]` section (probe-less, Z_ENDSTOP_CALIBRATE) or the read fails. */
@@ -314,6 +318,8 @@ class PrinterStateStore(
     fun setMaxExtrudeDistance(value: Float?) {
         _maxExtrudeDistance.value = value
     }
+
+    fun setMaxExtrudeVelocity(v: Float?) { _maxExtrudeVelocity.value = v }
 
     /** One-shot at handshake: the saved probe `z_offset` (09-07 Probe-Calibrate idle readout). */
     fun setProbeZOffset(value: Float?) {

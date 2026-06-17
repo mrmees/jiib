@@ -4,27 +4,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.ui.extrude.ExtrudeMacroRowVm
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
 import works.mees.dinghy.ui.extrude.ExtrudeVm
+import works.mees.dinghy.ui.extrude.SensorRowVm
 
 /**
- * @Preview matrix for the Extrude screen (26-06 / D-23 preview-first convention).
+ * @Preview matrix for the Extrude screen — refreshed for the 2026-06-16 Focus/Field rebuild.
  *
- * ExtrudeScreen uses a SPECIALIZED command-centric layout (D-15 exemption — like Move's jog grid,
- * the function requires its shape). The conformance changes are:
- *  - FootButtonBar in the field (foot-of-list pattern)
- *  - Numeric IME for Distance/Speed (BasicTextField, KeyboardType.Decimal)
- *  - FilamentPresets Field-takeover for the nozzle-temp button (D-17)
+ * ExtrudeScreen is the filament-handling hub on the two-region grammar:
+ *  - Focus: Extrude/Retract accent commands + distance ±[StepperRow] (1/5/25/50 mm) + speed
+ *    [Scrubber] capped to `max_extrude_only_velocity` + a live nozzle current/target readout.
+ *  - Field: live runout-sensor [ToggleRow]s (hidden when none discovered) + presence-gated
+ *    Load/Unload macro rows + the user's pinned macro rows + inline nozzle-only thermal chips +
+ *    a spool link row.
+ *  - FootButtonBar: Back / Cooldown / Macros.
  *
- * The STATELESS overload `ExtrudeScreen(vm, activeSpoolDetail, onBack)` drives ALL previews —
- * no live Moonraker, no [works.mees.dinghy.ui.extrude.ExtrudeHolder].
+ * The STATELESS overload `ExtrudeScreen(vm, activeSpoolDetail, onBack, onOpenSpool)` drives ALL
+ * previews — no live Moonraker, no [works.mees.dinghy.ui.extrude.ExtrudeHolder].
  *
  * Interesting axes:
- *  - [ExtrudeVm] capability state: cold-extruder (can_extrude = false), tool-selector visible
- *  - FilamentPresets mode with + without a loaded spool row
- *  - Theme: 6 combos × dark/light × palette mode
- *  - fs = L overflow check (text/tile clipping)
- *  - Landscape 5U phone budget (800×480dp)
+ *  - [ExtrudeVm] capability state: cold-extruder (`canExtrude = false`), populated vs no-sensor.
+ *  - Runout-sensor section present (with enabled + disabled rows) vs absent (empty `sensors`).
+ *  - Loaded-spool row (`activeSpoolDetail`) driving the inline thermal preset.
+ *  - Theme: the 6 palette/luminance combos.
+ *  - `fs = L` overflow check (text/tile clipping).
+ *  - Landscape 5U phone budget (800×480dp).
+ *
+ * The MacroSettings field-takeover is INTERNAL screen state (no public param). It is not directly
+ * previewable without adding plumbing just for a preview, so it is intentionally skipped here; the
+ * populated fixture still seeds [ExtrudeVm.allMacros]/[ExtrudeVm.pinnedNames] so that data path
+ * compiles and is exercised by the screen's unit tests.
  *
  * A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette MODE; the themes
  * MUST be explicit [PreviewBox] seed wrappers. `fs = L` is injected via [fsLargeSeed] (NOT
@@ -35,33 +45,69 @@ import works.mees.dinghy.ui.extrude.ExtrudeVm
 // Sample fixtures for Extrude
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Standard Extrude state: extrudable (can_extrude = true), single extruder, nozzle warm. */
+/**
+ * Fully-populated, extrudable state: warm nozzle, two runout sensors (one enabled / one disabled),
+ * Load+Unload present, two pinned macros, and the macro-settings library seeded.
+ */
 private val extrudeReady = ExtrudeVm(
     canExtrude = true,
+    maxExtrudeVelocity = 15,
+    maxExtrudeDistance = 50f,
     nozzleTemp = 210.0,
     nozzleTarget = 210.0,
     activeHeater = "extruder",
     hasLoadMacro = true,
     hasUnloadMacro = true,
+    sensors = listOf(
+        SensorRowVm(
+            objectKey = "filament_switch_sensor Runout",
+            sensorName = "Runout",
+            prettyName = "Runout",
+            enabled = true,
+            filamentDetected = true,
+        ),
+        SensorRowVm(
+            objectKey = "filament_motion_sensor Encoder",
+            sensorName = "Encoder",
+            prettyName = "Encoder",
+            enabled = false,
+            filamentDetected = null,
+        ),
+    ),
+    pinnedMacros = listOf(
+        ExtrudeMacroRowVm(name = "PURGE", description = null),
+        ExtrudeMacroRowVm(name = "TIP_SHAPING", description = null),
+    ),
+    allMacros = listOf(
+        ExtrudeMacroRowVm(name = "PURGE", description = null),
+        ExtrudeMacroRowVm(name = "TIP_SHAPING", description = null),
+        ExtrudeMacroRowVm(name = "CLEAN_NOZZLE", description = null),
+        ExtrudeMacroRowVm(name = "M600", description = null),
+    ),
+    pinnedNames = setOf("PURGE", "TIP_SHAPING"),
 )
 
-/** Cold state — nozzle not at temp, Extrude/Retract buttons should be disabled + show cold glyph. */
+/**
+ * Cold state — nozzle not at temp, no sensors discovered. Extrude/Retract should be disabled +
+ * show the cold glyph, and the runout section should vanish.
+ */
 private val extrudeCold = ExtrudeVm(
     canExtrude = false,
-    nozzleTemp = 25.0,
+    nozzleTemp = 24.0,
     nozzleTarget = 0.0,
     activeHeater = "extruder",
     hasLoadMacro = true,
     hasUnloadMacro = true,
+    sensors = emptyList(),
 )
 
-/** Multi-extruder state — tool selector row visible (EXTR-03 / D-09). */
-private val extrudeMultiTool = extrudeReady.copy(
-    showToolSelector = true,
-    tools = listOf("T0", "T1"),
-)
+/**
+ * Warm + extrudable but NO runout sensors — confirms the runout ToggleRow section disappears while
+ * the macro/thermal rows remain.
+ */
+private val extrudeNoSensors = extrudeReady.copy(sensors = emptyList())
 
-/** A loaded spool with a known extruder temperature for the preset takeover. */
+/** A loaded spool with a known extruder temperature for the inline thermal preset row. */
 private val loadedSpool = SpoolmanSpool(
     id = 1,
     filament = SpoolmanFilament(
@@ -75,41 +121,41 @@ private val loadedSpool = SpoolmanSpool(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6-theme matrix on the standard ready state (cold-extruder dimming exercise)
+// 6-theme matrix on the populated ready state
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeColorfulDark() =
-    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeColorfulLight() =
-    PreviewBox(colorfulLight) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(colorfulLight) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeSimpleDark() =
-    PreviewBox(simpleDark) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(simpleDark) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeSimpleLight() =
-    PreviewBox(simpleLight) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(simpleLight) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeHighContrastDark() =
-    PreviewBox(highContrastDark) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(highContrastDark) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 @Nexus7Previews
 @Composable
 private fun ExtrudeThemeHighContrastLight() =
-    PreviewBox(highContrastLight) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(highContrastLight) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cold-extrude gating (EXTR-04) — Extrude/Retract should be disabled + cold glyph
+// Cold-extrude gating (EXTR-04) — Extrude/Retract disabled + cold glyph, no runout section
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
@@ -118,40 +164,22 @@ private fun ExtrudeColdGated() =
     PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeCold) }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Multi-tool selector visible (EXTR-03 / D-09)
+// No-sensor case — confirms the runout ToggleRow section vanishes (warm + extrudable)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
 @Composable
-private fun ExtrudeMultiTool() =
-    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeMultiTool) }
+private fun ExtrudeNoSensors() =
+    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeNoSensors) }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FilamentPresets Field-takeover (D-17) — WITHOUT a loaded-spool row
-// ─────────────────────────────────────────────────────────────────────────────
-// NOTE: We can't force fieldMode=FilamentPresets from the outside (it is internal state).
-// This preview uses the standard ready state; tapping the nozzle-temp button in a real
-// render would show the preset list. The stateless overload covers compilation + layout.
-// The loaded-spool variant below exercises the activeSpoolDetail parameter.
-
-@Nexus7Previews
-@Composable
-private fun ExtrudePresetTakeoverNoSpool() =
-    PreviewBox(colorfulDark) {
-        ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = null)
-    }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FilamentPresets Field-takeover WITH a loaded spool row (activeSpoolDetail present)
-// Exercises the conditional row that reads activeSpoolDetail.filament.settingsExtruderTemp
+// Inline thermal preset WITHOUT a loaded spool (activeSpoolDetail = null)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Nexus7Previews
 @Composable
-private fun ExtrudePresetTakeoverWithSpool() =
-    PreviewBox(colorfulDark) {
-        ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool)
-    }
+private fun ExtrudeNoSpool() =
+    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = null) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // fs = L overflow check — catches tile/text clipping at the LARGEST in-app text size
@@ -160,7 +188,7 @@ private fun ExtrudePresetTakeoverWithSpool() =
 @Nexus7Previews
 @Composable
 private fun ExtrudeFsLargeOverflow() =
-    PreviewBox(fsLargeSeed) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(fsLargeSeed) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Landscape — 5U phone-landscape Focus budget (800×480dp)
@@ -174,4 +202,4 @@ private fun ExtrudeFsLargeOverflow() =
 )
 @Composable
 private fun ExtrudeLandscape() =
-    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeReady) }
+    PreviewBox(colorfulDark) { ExtrudeScreen(vm = extrudeReady, activeSpoolDetail = loadedSpool) }

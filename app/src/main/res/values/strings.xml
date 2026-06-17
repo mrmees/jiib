@@ -441,6 +441,7 @@
     <!-- Focus readout labels (inline IME entry, D-16) -->
     <string name="extrude_distance_readout">Distance</string>
     <string name="extrude_speed_readout">Speed</string>
+    <string name="extrude_length">Length</string>
     <!-- BigCommand labels -->
     <string name="extrude_cmd_extrude">Extrude</string>
     <string name="extrude_cmd_retract">Retract</string>
@@ -453,6 +454,19 @@
     <string name="extrude_preset_title">Set nozzle temperature</string>
     <string name="extrude_loaded_filament">Loaded filament</string>
     <string name="extrude_loaded_prefix">%1$s (loaded)</string>
+
+    <!-- ============== Extrude rework (2026-06-16) ============== -->
+    <!-- Foot bar -->
+    <string name="extrude_cooldown">Cooldown</string>
+    <string name="extrude_macro_settings">Macros</string>
+    <!-- Distance ±stepper a11y -->
+    <string name="extrude_distance_dec">Decrease distance</string>
+    <string name="extrude_distance_inc">Increase distance</string>
+    <!-- Runout-sensor toggle sub-labels -->
+    <string name="extrude_filament_present">Filament present</string>
+    <string name="extrude_filament_absent">No filament</string>
+    <!-- Macro-settings takeover empty state -->
+    <string name="extrude_no_macros">No macros found</string>
 
     <!-- ============== Phase 26 adjustment surfaces (26-rev WR-11) ============== -->
     <string name="common_apply">Apply</string>

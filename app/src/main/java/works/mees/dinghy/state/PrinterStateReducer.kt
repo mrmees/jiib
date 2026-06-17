@@ -315,6 +315,24 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         s = s.copy(outputs = (s.outputs + outputUpdates).toImmutableMap())
     }
 
+    // Filament-runout sensors (Extrude rework). Reduce each present filament_switch_sensor /
+    // filament_motion_sensor's `enabled`/`filament_detected` into PrinterState.filamentSensors keyed by
+    // the FULL objectKey. UPDATE-ON-PRESENT merge onto the retained value (mirrors the outputs loop): an
+    // absent field RETAINS prior (a partial diff carrying only `enabled` keeps the prior `filament_detected`).
+    val filamentUpdates = mutableMapOf<String, FilamentSensorState>()
+    for ((key, value) in status) {
+        if (!isFilamentSensorObject(key)) continue
+        val obj = (value as? JsonObject) ?: continue
+        val prev = s.filamentSensors[key] ?: FilamentSensorState()
+        filamentUpdates[key] = prev.copy(
+            enabled = obj.booleanOrNull("enabled") ?: prev.enabled,
+            filamentDetected = obj.booleanOrNull("filament_detected") ?: prev.filamentDetected,
+        )
+    }
+    if (filamentUpdates.isNotEmpty()) {
+        s = s.copy(filamentSensors = (s.filamentSensors + filamentUpdates).toImmutableMap())
+    }
+
     return s
 }
 
@@ -326,6 +344,10 @@ private fun isReducedOutputObject(name: String): Boolean {
     val family = name.substringBefore(' ')
     return family != "heater_generic" && family in works.mees.dinghy.outputs.OutputsGate.WHITELIST
 }
+
+/** Filament-runout sensor families reduced into [PrinterState.filamentSensors] (Extrude rework). */
+private fun isFilamentSensorObject(name: String): Boolean =
+    name.substringBefore(' ') in setOf("filament_switch_sensor", "filament_motion_sensor")
 
 private fun isHeaterObject(name: String): Boolean =
     name == "heater_bed" || name == "extruder" || name.matches(EXTRUDER_N) || name.startsWith("heater_generic ")

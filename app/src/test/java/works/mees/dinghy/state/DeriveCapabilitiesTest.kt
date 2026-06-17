@@ -171,6 +171,14 @@ class DeriveCapabilitiesTest {
         assertTrue("temperature_sensor chamber subscribed", "temperature_sensor chamber" in set)
     }
 
+    // --- Extrude rework: filament-runout sensors join the dynamic subscribe set ---
+
+    @Test
+    fun subscribeIncludesFilamentSensors() {
+        val subset = deriveSubscribeSet(listOf("toolhead", "filament_switch_sensor Runout", "extruder"))
+        assertTrue("filament_switch_sensor Runout" in subset)
+    }
+
     @Test
     fun liveComponentsAreRetainedAndHasComponentWorks() {
         val caps = deriveCapabilities(

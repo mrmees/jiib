@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.extrude
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -16,6 +17,7 @@ import kotlinx.collections.immutable.toImmutableMap
 import works.mees.dinghy.command.CommandMap
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.FilamentSensorState
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
@@ -227,6 +229,122 @@ class ExtrudeHolderTest {
         // CommandMap.kt would both gate (capability check) and fire (gcode emission) correctly.
         assertEquals(CommandMap.loadFilament.gcode, PrinterCommands.loadFilament())
         assertEquals(CommandMap.unloadFilament.gcode, PrinterCommands.unloadFilament())
+    }
+
+    // --- Task 5: sensors, velocity cap, pinned + all macros ------------------------------------
+
+    @Test
+    fun filamentSensorSurfacesAsSensorRow() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        store.setCapabilities(Capabilities(extruderCount = 1, heaters = listOf("extruder")))
+
+        store.seed(
+            PrinterState(
+                heaters = heaters("extruder" to HeaterState(canExtrude = true)),
+                filamentSensors = persistentMapOf(
+                    "filament_switch_sensor Runout" to FilamentSensorState(enabled = true, filamentDetected = true),
+                ),
+            ),
+        )
+        runCurrent()
+
+        val sensors = holder.vm.value.sensors
+        assertEquals("one discovered sensor row", 1, sensors.size)
+        val row = sensors.single()
+        assertEquals("filament_switch_sensor Runout", row.objectKey)
+        assertEquals("bare name = SET_FILAMENT_SENSOR SENSOR= arg", "Runout", row.sensorName)
+        assertEquals("Runout", row.prettyName)
+        assertTrue("live enabled surfaces", row.enabled)
+        assertEquals(true, row.filamentDetected)
+    }
+
+    @Test
+    fun maxExtrudeVelocityFallsBackTo15WhenNull() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        store.setCapabilities(Capabilities(extruderCount = 1, heaters = listOf("extruder")))
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        runCurrent()
+
+        assertEquals(
+            "null reported velocity → the 15 mm/s fallback",
+            PrinterCommands.MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK,
+            holder.vm.value.maxExtrudeVelocity,
+        )
+    }
+
+    @Test
+    fun maxExtrudeVelocityReflectsReportedValue() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        store.setCapabilities(Capabilities(extruderCount = 1, heaters = listOf("extruder")))
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        store.setMaxExtrudeVelocity(8f)
+        runCurrent()
+
+        assertEquals("reported 8 mm/s surfaces as 8", 8, holder.vm.value.maxExtrudeVelocity)
+    }
+
+    @Test
+    fun maxExtrudeVelocityNeverExceedsBuilderCeiling() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ExtrudeHolder(backgroundScope, store)
+        store.setCapabilities(Capabilities(extruderCount = 1, heaters = listOf("extruder")))
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        // A wildly high reported velocity must clamp to MAX_EXTRUDE_FEED_MM_MIN / 60.
+        store.setMaxExtrudeVelocity(9_999f)
+        runCurrent()
+
+        assertEquals(
+            "velocity capped at the builder feed ceiling",
+            PrinterCommands.MAX_EXTRUDE_FEED_MM_MIN / 60,
+            holder.vm.value.maxExtrudeVelocity,
+        )
+    }
+
+    @Test
+    fun pinnedMacrosIncludeCustomAndExcludeLoadUnload() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val pins = MutableStateFlow(
+            setOf("MY_PURGE", CommandMap.loadFilament.macro.lowercase()),
+        )
+        val holder = ExtrudeHolder(backgroundScope, store, pins)
+        store.setCapabilities(
+            Capabilities(
+                extruderCount = 1,
+                heaters = listOf("extruder"),
+                macros = listOf(
+                    "MY_PURGE",
+                    CommandMap.loadFilament.macro,
+                    CommandMap.unloadFilament.macro,
+                    "_HIDDEN_HELPER",
+                ),
+            ),
+        )
+
+        store.seed(PrinterState(heaters = heaters("extruder" to HeaterState(canExtrude = true))))
+        runCurrent()
+
+        val vm = holder.vm.value
+        val pinnedNames = vm.pinnedMacros.map { it.name }
+        assertTrue("custom pinned macro present (case-recovered to canonical)", pinnedNames.contains("MY_PURGE"))
+        assertFalse(
+            "load macro excluded from pinned rows (it has its own action)",
+            pinnedNames.any { it.equals(CommandMap.loadFilament.macro, ignoreCase = true) },
+        )
+        assertFalse(
+            "unload macro excluded from pinned rows",
+            pinnedNames.any { it.equals(CommandMap.unloadFilament.macro, ignoreCase = true) },
+        )
+
+        val allNames = vm.allMacros.map { it.name }
+        assertTrue("visible list includes the custom macro", allNames.contains("MY_PURGE"))
+        assertFalse("underscore-prefixed macros are hidden from the all-list", allNames.any { it.startsWith("_") })
+        assertEquals("pinnedNames passes through raw", pins.value, vm.pinnedNames)
     }
 
     @Test

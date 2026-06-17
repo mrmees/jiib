@@ -42,6 +42,7 @@ import works.mees.dinghy.theme.mergeOnto
 import works.mees.dinghy.theme.ThemePrefs
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.toComposeColor
+import works.mees.dinghy.ui.extrude.ExtrudeMacroPrefs
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.move.SavedLocation
@@ -141,6 +142,15 @@ class AppContainer(
      */
     fontScaleDataStore: DataStore<Preferences>,
     /**
+     * The ELEVENTH, INDEPENDENT file: extrude_macros.preferences_pb (Extrude rework, Task 4). Backs the
+     * process-scoped EXTRUDE-screen-scoped pinned filament macro NAMEs ([ExtrudeMacroPrefs]: a
+     * Set<String> of macro names), DELIBERATELY INDEPENDENT of the global Macros bookmarks
+     * ([macroPrefs]). Carries no secrets, kept on its own connection-independent lifecycle per the
+     * separate-file discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore
+     * single-writer invariant) and injected here.
+     */
+    extrudeMacroDataStore: DataStore<Preferences>,
+    /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
      * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
@@ -231,6 +241,18 @@ class AppContainer(
     }
 
     /**
+     * Toggle an EXTRUDE-screen-scoped pinned macro NAME (Extrude rework, Task 4), durably — same
+     * [[dinghy-compose-write-scope-cancellation]] guard as [toggleMacroBookmark]: a composition-scoped
+     * launch is cancelled the instant its host leaves composition, silently dropping the DataStore write
+     * mid-`edit` on slow flash. Always call this from UI — never
+     * `rememberCoroutineScope().launch { extrudeMacroPrefs… }`. This is INDEPENDENT of the global Macros
+     * bookmarks ([toggleMacroBookmark]).
+     */
+    fun toggleExtrudeMacroPin(name: String) {
+        writeScope.launch { extrudeMacroPrefs.togglePin(name) }
+    }
+
+    /**
      * The currently-active [Profile] (or null when there is none — no profiles, or a dangling active-id).
      * A PURE pick: combine the sanitized profile set with the writer-owned active-id and pick by id
      * (RESEARCH Pattern 2). The D-12 auto-pick on delete lives in the [ProfileStore] writer, NOT here —
@@ -303,6 +325,24 @@ class AppContainer(
      */
     val macroRevealHidden: StateFlow<Boolean> =
         macroPrefs.revealHidden.stateIn(stateScope, SharingStarted.Eagerly, false)
+
+    /**
+     * Extrude-screen pinned-macro persistence (Extrude rework, Task 4) — the SEPARATE
+     * extrude_macros.preferences_pb-backed store holding the user's EXTRUDE-screen pinned macro NAMEs
+     * ([Set]<String>), DELIBERATELY INDEPENDENT of the global Macros bookmarks ([macroPrefs]). Like
+     * [macroPrefs] it is PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): pins
+     * survive reconnects and printer swaps. The Extrude screen reads [extrudeMacroPins] and writes
+     * through the durable [toggleExtrudeMacroPin] intent helper.
+     */
+    val extrudeMacroPrefs: ExtrudeMacroPrefs = ExtrudeMacroPrefs(extrudeMacroDataStore)
+
+    /**
+     * Process-scoped [StateFlow] of the user's EXTRUDE-screen pinned macro NAMEs. Eagerly matches the
+     * pattern of [macroBookmarks] — hosted on the process-lifetime [stateScope] so it outlives any
+     * Composable and survives recovery Splashes intact.
+     */
+    val extrudeMacroPins: StateFlow<Set<String>> =
+        extrudeMacroPrefs.pins.stateIn(stateScope, SharingStarted.Eagerly, emptySet())
 
     /**
      * Named toolhead-position persistence (Move hub, feat/move-hub-redesign) — the SEPARATE

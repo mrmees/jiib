@@ -44,6 +44,10 @@ object PrinterCommands {
     const val MAX_EXTRUDE_MM = 100.0
     const val MAX_EXTRUDE_FEED_MM_MIN = 6_000
 
+    /** Fallback feed ceiling (mm/s) for the Extrude speed scrubber when the printer does not report
+     *  `max_extrude_only_velocity`. Conservative — a 1.75 mm hotend grinds far below 50 mm/s. */
+    const val MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK = 15
+
     /** Force-move velocity ceiling (mm/s) — kept conservative; force moves skip all limit checks. */
     const val MAX_FORCE_VEL_MM_S = 50
 
@@ -261,6 +265,15 @@ object PrinterCommands {
      * (`extruder`, `heater_bed`, `heater_generic chamber`). [target] clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
     fun setHeater(heater: String, target: Int): String =
         "SET_HEATER_TEMPERATURE HEATER=$heater TARGET=${clampHeaterTarget(target)}"
+
+    /** `SET_FILAMENT_SENSOR SENSOR=<name> ENABLE=0|1`. [sensor] is the BARE Klipper section name
+     *  (from the discovered object list — never free-text). Blank/illegal names are rejected, not escaped. */
+    fun setFilamentSensor(sensor: String, enable: Boolean): String {
+        require(sensor.isNotBlank() && sensor.none { it.isWhitespace() || it == ';' || it == '"' }) {
+            "illegal filament sensor name"
+        }
+        return "SET_FILAMENT_SENSOR SENSOR=$sensor ENABLE=${if (enable) 1 else 0}"
+    }
 
     /** Two newline-joined SET_HEATER_TEMPERATURE lines for the PRIMARY `extruder` + `heater_bed`
      * (v1 scope; multi-tool per-preset targeting deferred). Both targets clamped. */

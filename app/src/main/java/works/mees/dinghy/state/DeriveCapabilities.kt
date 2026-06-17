@@ -106,6 +106,10 @@ fun deriveSubscribeSet(objects: List<String>): Set<String> {
             // is the function's contract (A3), so we only subscribe outputs the printer actually defines.
             // heater_generic is already added above (its own clause) and flows through the heaters map.
             name.substringBefore(' ') in works.mees.dinghy.outputs.OutputsGate.WHITELIST -> result += name
+            // Extrude rework: filament-runout sensors so their enabled/filament_detected live diffs
+            // reach the reducer (PrinterState.filamentSensors). Same intersect-with-detected contract (A3).
+            name.substringBefore(' ') in setOf("filament_switch_sensor", "filament_motion_sensor") ->
+                result += name
         }
     }
 
