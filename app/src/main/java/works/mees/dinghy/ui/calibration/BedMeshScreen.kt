@@ -417,8 +417,12 @@ internal fun BedMeshContent(
                                                 contentDescription = stringResource(R.string.common_back),
                                             ))
                                             add(FootAction(
+                                                // owner 2026-06-17: play_circle (CalibrationRun), NOT
+                                                // RoutineBedMesh/blur_linear — the Focus header already
+                                                // shows blur_linear (routineIconToken(BED_MESH)); a foot
+                                                // button reusing it = same-glyph-twice-on-one-screen.
                                                 label = stringResource(R.string.mesh_calibrate),
-                                                icon = DinghyIcons.RoutineBedMesh,
+                                                icon = DinghyIcons.CalibrationRun,
                                                 onClick = onCalibrate,
                                                 intent = Intent.Go,
                                                 enabled = dispatcherPresent,
