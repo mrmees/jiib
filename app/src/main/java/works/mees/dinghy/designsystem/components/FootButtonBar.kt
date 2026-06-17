@@ -105,14 +105,17 @@ data class FootAction(
 ) {
     init {
         require(label.isNotBlank()) { "FootAction.label must be non-blank" }
-        require(icon.primary is IconRef.Ligature) { "FootAction.icon must be ligature-backed: ${icon.alternate}" }
+        require(icon.primary is IconRef.Ligature) {
+            "FootAction.icon must be ligature-backed (use a Ligature IconRef, not Drawable): " +
+            "alternate='${icon.alternate}', primary=${icon.primary}"
+        }
     }
 }
 
 /**
  * Build a [FootAction] from a named [ControlSpec]. The spec may be icon-only (`labelRes = null`,
  * e.g. Spool's load/scan/unload) — in that case the `contentDescriptionRes` supplies the required
- * non-blank label (it renders only in ≤2 bars; in ≥3 bars it's the a11y fallback). Codex BLOCKER F1.
+ * non-blank label (it renders only in ≤2 bars; in ≥3 bars it's the a11y fallback).
  */
 @Composable
 fun footAction(spec: ControlSpec, onClick: () -> Unit, enabled: Boolean = true): FootAction {
