@@ -47,7 +47,6 @@ import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.calibration.CalibrationRoutine
