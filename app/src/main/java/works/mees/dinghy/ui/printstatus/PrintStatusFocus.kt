@@ -76,28 +76,38 @@ internal fun HomeFocus(
     val t = LocalTokens.current
     val isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused
     val isPaused = state.printState == PrintState.Paused
+    val isComplete = state.printState == PrintState.Complete
     // Active-print treatment only for a LIVE print (Printing/Paused) that is NOT a Klippy fault.
     // Error/Shutdown stay the digest even if printState is a stale Printing — matches the title
     // precedence in homeStateLabelRes (R-CDX-2). isPrinting (for the e-stop) is unchanged.
     val klippyFault = state.klippyState == KlippyState.Shutdown || state.klippyState == KlippyState.Error
     val showActivePrint = isPrinting && !klippyFault
+    // Complete reuses the SAME data block; the only deltas are the header icon, a pinned 100% title,
+    // and a pinned full accent ring (a finished job's live progress may have reset).
+    val showComplete = isComplete && !klippyFault
+    val showDataBlock = showActivePrint || showComplete
 
     val stateLabel = stringResource(homeStateLabelRes(state.printState, state.klippyState))
     val nameStatePart =
         if (isMultiPrinter && !printerName.isNullOrBlank()) "$printerName · $stateLabel" else stateLabel
-    // Active print appends the live percent: "PRINTING · 42%" / "PAUSED · 42%".
-    val title = if (showActivePrint) "$nameStatePart · ${progressPercent(state.progress)}%" else nameStatePart
+    // Active print appends the live percent ("PRINTING · 42%"); Complete pins "· 100%".
+    val title = when {
+        showComplete -> "$nameStatePart · 100%"
+        showActivePrint -> "$nameStatePart · ${progressPercent(state.progress)}%"
+        else -> nameStatePart
+    }
 
-    // Accent perimeter progress while printing; amber (heat) while paused — the in-frame paused signal.
-    val edge = if (showActivePrint) {
-        FocusEdge.Progress(state.progress.toFloat(), color = if (isPaused) t.heat else t.accent)
-    } else {
-        FocusEdge.Neutral
+    // Accent perimeter progress while printing; amber (heat) while paused; full accent ring (pinned)
+    // for Complete.
+    val edge = when {
+        showComplete -> FocusEdge.Progress(1f, t.accent)
+        showActivePrint -> FocusEdge.Progress(state.progress.toFloat(), color = if (isPaused) t.heat else t.accent)
+        else -> FocusEdge.Neutral
     }
 
     FocusFrame(
         title = title,
-        icon = DinghyIcons.PrintStatusStandby,
+        icon = if (showComplete) DinghyIcons.CheckCircle else DinghyIcons.PrintStatusStandby,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
         edge = edge,
@@ -105,7 +115,7 @@ internal fun HomeFocus(
         onEmergencyStop = onEmergencyStop,
         onPanic = onEmergencyStop,
     ) {
-        if (showActivePrint) {
+        if (showDataBlock) {
             ActivePrintFocus(state = state, printMetadata = printMetadata, httpBase = httpBase)
         } else {
             BoxWithConstraints(Modifier.fillMaxSize()) {
