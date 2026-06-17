@@ -483,7 +483,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
     FootButtonBar(
         uDp = uDp,
         actions = listOf(
-            footAction(ControlSpecs.commonHome, onClick = onHome),
+            // owner 2026-06-17: the typical Back arrow (not the Home glyph); still navigates to PrintStatus.
+            footAction(ControlSpecs.commonBack, onClick = onHome),
             footAction(ControlSpecs.spoolScan, onClick = onScan),
             // Conditional Load / Unload (LOCKED logic — RESEARCH §"Foot button logic").
             if (isSelectedLoaded) {
