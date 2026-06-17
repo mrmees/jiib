@@ -25,6 +25,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.HeaterState
+import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.spool.SpoolmanSpool
@@ -161,6 +162,10 @@ fun PrintStatusScreen(
     val onPause: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printPause, Unit); Unit }
     val onResume: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printResume, Unit); Unit }
     val onCancel: () -> Unit = { dispatcher?.dispatch(CommandRegistry.printCancel, Unit); Unit }
+    // Complete (Klippy-fault gated to match HomeFocus.showComplete) → Dismiss clears the job to standby.
+    val isComplete = state.printState == PrintState.Complete &&
+        state.klippyState != KlippyState.Shutdown && state.klippyState != KlippyState.Error
+    val onDismiss: () -> Unit = { dispatcher?.dispatch(CommandRegistry.dismissPrint, Unit); Unit }
 
     var showPresetSelector by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
@@ -233,6 +238,8 @@ fun PrintStatusScreen(
             httpBase = httpBase,
             isPrinting = isPrinting,
             isPaused = isPaused,
+            isComplete = isComplete,
+            onDismiss = onDismiss,
             failureText = failureText,
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onNavigate = onNavigate,
@@ -302,6 +309,9 @@ fun PrintStatusScreen(
             httpBase = "",
             isPrinting = state.printState == PrintState.Printing || state.printState == PrintState.Paused,
             isPaused = state.printState == PrintState.Paused,
+            isComplete = state.printState == PrintState.Complete &&
+                state.klippyState != KlippyState.Shutdown && state.klippyState != KlippyState.Error,
+            onDismiss = {},
             failureText = null,
             onEmergencyStop = null,
             onNavigate = onNavigate,
@@ -337,6 +347,8 @@ private fun PrintStatusContent(
     httpBase: String,
     isPrinting: Boolean,
     isPaused: Boolean,
+    isComplete: Boolean,
+    onDismiss: () -> Unit,
     failureText: String?,
     onEmergencyStop: (() -> Unit)?,
     onNavigate: (NavDest) -> Unit,
@@ -382,6 +394,8 @@ private fun PrintStatusContent(
                 onPause = onPause,
                 onResume = onResume,
                 onCancel = onCancel,
+                isComplete = isComplete,
+                onDismiss = onDismiss,
             )
         },
     )
