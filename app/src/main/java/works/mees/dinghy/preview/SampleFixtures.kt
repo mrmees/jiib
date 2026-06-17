@@ -20,6 +20,9 @@ import works.mees.dinghy.config.Profile
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.spool.SpoolmanVendor
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.state.KlippyState
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -59,11 +62,28 @@ object SampleFixtures {
      * that sets the matching `printState` reproduces every home state deterministically. A filename is
      * supplied for the active/paused states so the Focus has a job to present; defaults fill the rest.
      */
-    fun forState(s: PrintState): PrinterState = PrinterState(
-        printState = s,
-        printFilename = if (s == PrintState.Printing || s == PrintState.Paused) "benchy.gcode" else "",
-        klippyState = KlippyState.Ready,
-    )
+    fun forState(s: PrintState): PrinterState {
+        val printing = s == PrintState.Printing || s == PrintState.Paused
+        return PrinterState(
+            printState = s,
+            printFilename = if (printing) "benchy.gcode" else "",
+            klippyState = KlippyState.Ready,
+            progress = if (printing) 0.42 else 0.0,
+            printDuration = if (printing) 2700.0 else 0.0,    // 45m
+            totalDuration = if (printing) 3120.0 else 0.0,    // 52m
+            currentLayer = if (printing) 5 else null,
+            totalLayer = if (printing) 220 else null,
+            gcodePosition = if (printing) persistentListOf(0.0, 0.0, 1.2, 0.0) else null,
+            heaters = if (printing) {
+                persistentMapOf(
+                    "extruder" to HeaterState(temperature = 229.6, target = 230.0),
+                    "heater_bed" to HeaterState(temperature = 75.2, target = 75.0),
+                )
+            } else {
+                persistentMapOf()
+            },
+        )
+    }
 
     /** A Klipper-host SHUTDOWN fixture — exercises the host-fault home title (homeStateLabelRes). */
     fun klippyShutdown(): PrinterState = PrinterState(klippyState = KlippyState.Shutdown)
