@@ -17,9 +17,11 @@ import androidx.compose.ui.unit.dp
 import works.mees.dinghy.R
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
@@ -117,14 +119,18 @@ fun OutputToggleControl(
                     }
                     failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
                     // Foot-of-list Back (R1 gutter retirement): FIRST + accent per R5/R8.
-                    FootButtonBar(uDp = grid.uDp, modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp)) {
-                        OutlinedControl(
-                            label = stringResource(R.string.common_back),
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f),
-                            intent = Intent.Accent,
-                        )
-                    }
+                    FootButtonBar(
+                        uDp = grid.uDp,
+                        modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp),
+                        actions = listOf(
+                            FootAction(
+                                label = stringResource(R.string.common_back),
+                                icon = DinghyIcons.Back,
+                                onClick = onBack,
+                                intent = Intent.Accent,
+                            ),
+                        ),
+                    )
                 }
             },
         )

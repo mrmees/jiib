@@ -31,12 +31,12 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
@@ -290,14 +290,17 @@ fun PrinterSettingsContent(
                     }
                 }
 
-                FootButtonBar(uDp = grid.uDp) {
-                    OutlinedControl(
-                        label = stringResource(R.string.common_back),
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                    )
-                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    actions = listOf(
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            icon = DinghyIcons.Back,
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                        ),
+                    ),
+                )
             },
         )
     }

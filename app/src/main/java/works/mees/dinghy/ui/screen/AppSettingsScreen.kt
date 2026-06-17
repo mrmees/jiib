@@ -34,6 +34,7 @@ import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -265,16 +266,18 @@ fun AppSettingsContent(
                         )
                     }
                 }
-                FootButtonBar(uDp = grid.uDp) {
-                    OutlinedControl(
-                        label = "",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Back,
-                        contentDescription = stringResource(R.string.cd_back),
-                    )
-                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    actions = listOf(
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            icon = DinghyIcons.Back,
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                            contentDescription = stringResource(R.string.cd_back),
+                        ),
+                    ),
+                )
             },
         )
     }
