@@ -588,19 +588,21 @@ git commit -m "refactor(footbar): migrate Printers bar; add/edit/delete/back gly
 
 ---
 
-## Task 8: Temperature screen — BLOCKED on `temp_presets` glyph
+## Task 8: Temperature screen
 
-**Files:** `app/.../ui/temperature/TemperatureScreen.kt` bars at `:657` (3, icon-only), `:687` (1, presets), `:695` (3, icon-only), `:743` (1).
+**Files:** `app/.../ui/temperature/TemperatureScreen.kt` bars at `:657` (3, icon-only), `:687` (1, presets), `:695` (3, icon-only — Back · Cooldown · Monitor-return), `:741` (PresetPicker takeover, 1).
 
-| Action | Token |
-|---|---|
-| `temp_cooldown` | `TempCooldown` |
-| `temp_presets` | **`TempPresets` — OWNER-PENDING ligature** |
+| Action | Token | Ligature |
+|---|---|---|
+| `temp_cooldown` | `TempCooldown` | `mode_heat_off` (registered in Task 2) |
+| `temp_presets` | `TempPresets` (NEW) | **`thermostat_auto`** (owner-chosen 2026-06-17; pre-verified resolvable in the bundled v2.944 font; distinct from `thermostat`=LauncherTemperature header and `format_list_bulleted`=MonitorMode, both also on this screen) |
 
-- [ ] **Step 0 (GATE): obtain the `temp_presets` ligature from Matthew.** Then: register the token in `DinghyIcons.kt` + `all`; **add the ligature string to `NEEDED` in `tools/verify_ligatures.py`** (Codex F2 — the gate won't check it otherwise); run `python3 tools/verify_ligatures.py` (must exit 0); allow-list in `DinghyIconsTest` only if it duplicates an existing ligature. Do NOT proceed without it.
+> Note on the same-screen icon budget: in **Adjust mode** the footer is TWO stacked bars — the Presets bar (`:687`) and the Back·Cooldown·Monitor bar (`:695`) render simultaneously. `thermostat_auto` (Presets) must NOT equal any glyph in that second bar (`Back`=arrow_back, `TempCooldown`=mode_heat_off, `MonitorMode`=format_list_bulleted) nor the header `thermostat` — confirmed distinct.
+
+- [ ] **Step 0: register `TempPresets`.** Add the token in `DinghyIcons.kt` + the `all` list; **add `"thermostat_auto"` to `NEEDED` in `tools/verify_ligatures.py`** (Codex F2 — the gate won't check it otherwise); run `python3 tools/verify_ligatures.py` (must exit 0). `thermostat_auto` is a unique ligature (not shared), so NO `DinghyIconsTest` allow-list entry is needed.
 
 ```kotlin
-val TempPresets = DinghyIcon(IconRef.Ligature("<OWNER_PROVIDED>"), alternate = "temp_presets")
+val TempPresets = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 ```
 
 - [ ] **Step 1: Migrate all four Temperature bars** following the recipe. The `:657`/`:695` icon-only bars are already iconed (API conversion); apply `TempCooldown` to the cooldown button and `TempPresets` to the presets button.
