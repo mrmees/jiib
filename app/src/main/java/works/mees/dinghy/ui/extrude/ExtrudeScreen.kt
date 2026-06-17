@@ -45,6 +45,7 @@ import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -379,31 +380,31 @@ private fun ExtrudeContent(
                         failureText?.let { msg ->
                             SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
                         }
-                        FootButtonBar(uDp = grid.uDp) {
-                            OutlinedControl(
-                                label = "",
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent, // R5: Back/nav = accent
-                                icon = DinghyIcons.Back,
-                            )
-                            OutlinedControl(
-                                label = "",
-                                onClick = onCooldown,
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Warn, // hazardous-but-deliberate (heat off)
-                                icon = DinghyIcons.HideTemps,
-                                contentDescription = stringResource(R.string.extrude_cooldown),
-                            )
-                            OutlinedControl(
-                                label = "",
-                                onClick = { fieldMode = ExtrudeFieldMode.MacroSettings },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent,
-                                icon = DinghyIcons.ManageMacros,
-                                contentDescription = stringResource(R.string.extrude_macro_settings),
-                            )
-                        }
+                        FootButtonBar(
+                            uDp = grid.uDp,
+                            actions = listOf(
+                                FootAction(
+                                    label = stringResource(R.string.common_back),
+                                    onClick = onBack,
+                                    intent = Intent.Accent, // R5: Back/nav = accent
+                                    icon = DinghyIcons.Back,
+                                ),
+                                FootAction(
+                                    label = stringResource(R.string.extrude_cooldown),
+                                    onClick = onCooldown,
+                                    intent = Intent.Warn, // hazardous-but-deliberate (heat off)
+                                    icon = DinghyIcons.HideTemps,
+                                    contentDescription = stringResource(R.string.extrude_cooldown),
+                                ),
+                                FootAction(
+                                    label = stringResource(R.string.extrude_macro_settings),
+                                    onClick = { fieldMode = ExtrudeFieldMode.MacroSettings },
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.ManageMacros,
+                                    contentDescription = stringResource(R.string.extrude_macro_settings),
+                                ),
+                            ),
+                        )
                     }
 
                     is ExtrudeFieldMode.MacroSettings -> {
@@ -431,15 +432,17 @@ private fun ExtrudeContent(
                                 }
                             }
                         }
-                        FootButtonBar(uDp = grid.uDp) {
-                            OutlinedControl(
-                                label = "",
-                                onClick = { fieldMode = ExtrudeFieldMode.Main },
-                                modifier = Modifier.weight(1f),
-                                intent = Intent.Accent,
-                                icon = DinghyIcons.Back,
-                            )
-                        }
+                        FootButtonBar(
+                            uDp = grid.uDp,
+                            actions = listOf(
+                                FootAction(
+                                    label = stringResource(R.string.common_back),
+                                    onClick = { fieldMode = ExtrudeFieldMode.Main },
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.Back,
+                                ),
+                            ),
+                        )
                     }
                 }
             },

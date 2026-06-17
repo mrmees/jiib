@@ -46,6 +46,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.AxisOption
 import works.mees.dinghy.designsystem.components.AxisSelectorRow
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
@@ -740,45 +741,44 @@ internal fun MoveHubContent(
                     }
                 }
 
-                FootButtonBar(uDp = grid.uDp) {
-                    // Back: sub-mode → Touch Move; Touch Move → onBack (accent, FIRST — R5/R8).
-                    OutlinedControl(
-                        label = "",
-                        onClick = { if (mode == MoveMode.TouchMove) onBack() else mode = MoveMode.TouchMove },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Back,
-                        contentDescription = "Back",
-                    )
-                    // Disable Motors (danger) — drops stepper hold.
-                    OutlinedControl(
-                        label = "",
-                        onClick = { onDisableSteppers() },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
-                        icon = DinghyIcons.MoveDisableMotors,
-                        contentDescription = "Disable motors",
-                    )
-                    // Home All (go) — the expected homing action.
-                    OutlinedControl(
-                        label = "",
-                        onClick = { onHomeAll() },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
-                        icon = DinghyIcons.MoveHomeAll,
-                        contentDescription = "Home all",
-                    )
-                    // Save Location (accent) — only when all XYZ known.
-                    OutlinedControl(
-                        label = "",
-                        onClick = { mode = MoveMode.SaveDialog },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.SaveLocation,
-                        enabled = avail.saveLocation,
-                        contentDescription = "Save location",
-                    )
-                }
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    actions = listOf(
+                        // Back: sub-mode → Touch Move; Touch Move → onBack (accent, FIRST — R5/R8).
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            onClick = { if (mode == MoveMode.TouchMove) onBack() else mode = MoveMode.TouchMove },
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.Back,
+                            contentDescription = "Back",
+                        ),
+                        // Disable Motors (danger) — drops stepper hold.
+                        FootAction(
+                            label = stringResource(R.string.move_disable_steppers),
+                            onClick = { onDisableSteppers() },
+                            intent = Intent.Danger,
+                            icon = DinghyIcons.MoveDisableMotors,
+                            contentDescription = "Disable motors",
+                        ),
+                        // Home All (go) — the expected homing action.
+                        FootAction(
+                            label = stringResource(R.string.move_home_all),
+                            onClick = { onHomeAll() },
+                            intent = Intent.Go,
+                            icon = DinghyIcons.MoveHomeAll,
+                            contentDescription = "Home all",
+                        ),
+                        // Save Location (accent) — only when all XYZ known.
+                        FootAction(
+                            label = stringResource(R.string.move_save_location),
+                            onClick = { mode = MoveMode.SaveDialog },
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.SaveLocation,
+                            enabled = avail.saveLocation,
+                            contentDescription = "Save location",
+                        ),
+                    ),
+                )
             },
         )
 

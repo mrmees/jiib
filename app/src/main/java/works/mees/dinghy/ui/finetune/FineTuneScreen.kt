@@ -38,6 +38,7 @@ import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.AdjusterPanel
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.IncrementPicker
 import works.mees.dinghy.designsystem.components.ListRow
@@ -51,7 +52,6 @@ import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
@@ -398,23 +398,23 @@ private fun FineTuneContent(
                 // FootButtonBar is INSIDE the field lambda (D-23 / shared pattern).
                 FootButtonBar(
                     uDp = grid.uDp,
-                ) {
-                    // Back (accent, FIRST — R5/R8) + Reset All (warn/amber).
-                    OutlinedControl(
-                        label = "",
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Accent,
-                        icon = DinghyIcons.Back,
-                        contentDescription = stringResource(R.string.cd_back),
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.finetune_reset_all),
-                        onClick = onResetAll,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Warn,
-                    )
-                }
+                    actions = listOf(
+                        // Back (accent, FIRST — R5/R8) + Reset All (warn/amber).
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.cd_back),
+                        ),
+                        FootAction(
+                            label = stringResource(R.string.finetune_reset_all),
+                            onClick = onResetAll,
+                            intent = Intent.Warn,
+                            icon = DinghyIcons.ResetSettings, // distinct from per-field Revert glyph
+                        ),
+                    ),
+                )
             },
         )
 
