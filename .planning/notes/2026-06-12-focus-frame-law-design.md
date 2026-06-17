@@ -33,13 +33,16 @@ It is a **filled, bounded surface**:
 - Outer inset (region-edge → frame): the shared `frame` token (8dp) — the SAME token the Field
   uses, so in landscape the two regions sit symmetric and the center gutter reads even.
 
-### 2. The edge encodes meaning — default is NEUTRAL
+### 2. The edge encodes meaning — default is a SOFT-ACCENT resting edge
 The bounding edge is the constant "this is the Focus" signal; its **color/form carries the why**.
-Accent is **reserved**, no longer the resting color (revised from the first pass this session).
+The resting edge is **soft accent** (`t.accentLine`, the half-alpha accent that also outlines selected
+list rows / focused fields) — quiet enough to be the default, but it makes the Focus frame rhyme with
+the rest of the accent-selection chrome (owner UAT 2026-06-17, revised from the earlier neutral-`outline`
+resting edge). The heavier **full-strength `accent`** stays the **Progress** perimeter bar's.
 
 | Mode | Edge treatment | Used for |
 |---|---|---|
-| **Neutral** (default) | `t.outline`, list-row stroke weight (same as a `ListRow` border) | Ordinary focus — calibrate, settings info, most screens |
+| **Neutral** (default) | `t.accentLine` (soft accent), list-row stroke weight (same as a `ListRow` border) | Ordinary focus — calibrate, settings info, most screens |
 | **Data** | edge tinted by the item's real data color (the existing `ringColor` carve-out — spool filament color) | Spool detail, anything whose identity is a physical color |
 | **Progress** | the edge becomes a **perimeter progress bar** using the **Scrubber's exact visual language**: `surface3` track + **`accent` fill** sweeping the frame border + the **34dp ringed-thumb circle** (`surface` knob, 5dp `accent` ring) riding the perimeter as the exact progress marker | the actively-printing screen |
 

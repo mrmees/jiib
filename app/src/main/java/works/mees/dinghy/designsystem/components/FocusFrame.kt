@@ -107,10 +107,15 @@ private fun DrawScope.drawFocusProgress(
 /**
  * The Focus edge — the bounded-surface border whose COLOR/FORM encodes meaning (Focus Frame law §2,
  * `.planning/notes/2026-06-12-focus-frame-law-design.md`). The edge is the constant "this is the
- * Focus" signal; what it looks like tells you why. Accent is RESERVED for [Progress].
+ * Focus" signal; what it looks like tells you why. The resting edge carries a soft accent tint
+ * ([ThemeTokens.accentLine]); the heavier full-strength accent stays the [Progress] perimeter bar's.
  */
 sealed interface FocusEdge {
-    /** Default resting edge: neutral [ThemeTokens.outline] at list-row stroke weight. */
+    /**
+     * Default resting edge: a soft accent tint ([ThemeTokens.accentLine], the half-alpha accent that
+     * also outlines selected list rows / focused fields) at list-row stroke weight — so a Focus frame
+     * reads as "accent, but quiet" and rhymes with the rest of the accent-selection chrome.
+     */
     data object Neutral : FocusEdge
 
     /**
@@ -135,7 +140,8 @@ data class EdgeStroke(val color: Color, val widthDp: Float)
 /**
  * Pure (host-testable) mapping from a [FocusEdge] to its uniform border stroke, or `null` when the
  * edge is drawn specially ([FocusEdge.Progress] — a perimeter bar, not a border).
- *  - [FocusEdge.Neutral] → [outline] at 1.5dp (the list-row outline weight).
+ *  - [FocusEdge.Neutral] → the resting-edge [outline] color at 1.5dp (the list-row stroke weight).
+ *    The caller feeds [ThemeTokens.accentLine] for the soft-accent resting edge.
  *  - [FocusEdge.Data]    → the literal data color at 3dp (heavier so the color reads as a signal).
  *  - [FocusEdge.Progress]→ `null` (perimeter bar drawn by [FocusFrame]).
  */
@@ -164,8 +170,8 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  *    When [isPrinting] and [onEmergencyStop] are both set, the icon slot morphs into the e-stop
  *    button (no overlay, no double e-stop); otherwise it shows the inert identity glyph [icon].
  *  - Fill: [ThemeTokens.surface] — visually distinct from the translucent list/Field area.
- *  - Edge: [FocusEdge] — [FocusEdge.Neutral] by default ([ThemeTokens.outline]); [FocusEdge.Data]
- *    tints it with item data; [FocusEdge.Progress] draws a perimeter bar (deferred).
+ *  - Edge: [FocusEdge] — [FocusEdge.Neutral] by default (soft-accent [ThemeTokens.accentLine]);
+ *    [FocusEdge.Data] tints it with item data; [FocusEdge.Progress] draws a perimeter bar (deferred).
  *  - Content clip: content is clipped to the rounded bounds — it never overflows the frame.
  *  - Inner inset: [FocusInset] (16dp) on the content area's SIDES + BOTTOM only; the TOP inset is 0
  *    (the 1U header bar already separates), so content sits directly under the header.
@@ -211,7 +217,7 @@ fun FocusFrame(
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCard)
-    val stroke = focusEdgeStroke(edge, outline = t.outline)
+    val stroke = focusEdgeStroke(edge, outline = t.accentLine)
     Column(
         modifier = modifier
             .clip(shape)

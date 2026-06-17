@@ -8,7 +8,9 @@ import org.junit.Test
 /** Pure mapping contract for [focusEdgeStroke] (Focus Frame law §2 — edge encodes meaning). */
 class FocusEdgeTest {
     @Test
-    fun neutral_uses_outline_token_at_listrow_weight() {
+    fun neutral_uses_the_resting_edge_color_at_listrow_weight() {
+        // The resting edge maps the caller-supplied color through at list-row weight; the call site
+        // feeds t.accentLine (soft accent) for the soft-accent resting edge.
         val s = focusEdgeStroke(FocusEdge.Neutral, outline = Color.Gray)
         assertEquals(Color.Gray, s!!.color)
         assertEquals(1.5f, s.widthDp, 0.001f)
