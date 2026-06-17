@@ -32,15 +32,16 @@
 - `app/src/main/java/works/mees/dinghy/state/PrinterState.kt` — add `filamentSensors` map + `FilamentSensorState`.
 - `app/src/main/java/works/mees/dinghy/state/PrinterStateReducer.kt` — add filament-sensor reduce arm.
 - `app/src/main/java/works/mees/dinghy/state/PrinterStateStore.kt` — add `maxExtrudeVelocity` StateFlow + setter.
-- `app/src/main/java/works/mees/dinghy/net/DeriveCapabilities.kt` — subscribe filament-sensor families.
-- `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt` — parse `max_extrude_only_velocity`.
+- `app/src/main/java/works/mees/dinghy/state/DeriveCapabilities.kt` — subscribe filament-sensor families (package `works.mees.dinghy.state`, **not** `net`; `deriveSubscribeSet` is here ~line 82).
+- `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt` — parse `max_extrude_only_velocity`; reset one-shots on config-failure path (~line 619).
 - `app/src/main/java/works/mees/dinghy/di/AppContainer.kt` — wire `ExtrudeMacroPrefs` (11th DataStore, prefs, StateFlow, intent method).
+- `app/src/main/java/works/mees/dinghy/DinghyApp.kt` — the 10 DataStores are **created manually here (~line 42) and passed to `AppContainer(...)` (~line 127)**; add the 11th here. There is NO extension-property file.
+- `app/src/test/java/works/mees/dinghy/di/AppContainerTest.kt` (~line 47) and `app/src/test/java/works/mees/dinghy/theme/ThemeOverrideTest.kt` (~line 53) — direct `AppContainer(...)` call sites that MUST be updated for the new ctor param.
 - `app/src/main/java/works/mees/dinghy/ui/extrude/ExtrudeHolder.kt` — expand `ExtrudeVm` (sensor rows, velocity, pinned + all macros).
 - `app/src/main/java/works/mees/dinghy/ui/extrude/ExtrudeScreen.kt` — Focus + Field rebuild, foot bar, new modes.
-- `app/src/main/java/works/mees/dinghy/ui/extrude/ExtrudePreviews.kt` — preview fixtures.
-- The `ExtrudeHolder` + `ExtrudeScreen` call site (AppShell / holder factory — locate with `grep -rn "ExtrudeHolder(" app/src/main`).
+- `app/src/main/java/works/mees/dinghy/preview/ExtrudePreviews.kt` — preview fixtures (lives in `preview/`, **not** `ui/extrude/`).
+- The `ExtrudeHolder` + `ExtrudeScreen` call site (locate with `grep -rn "ExtrudeHolder(" app/src/main`).
 - `app/src/main/res/values/strings.xml` — new string resources.
-- DataStore extension-property file where the other 10 `*DataStore` are declared (locate with `grep -rln "savedLocationDataStore" app/src/main`).
 
 > **Decomposition note:** Tasks 1–4 are pure backend/plumbing (independently testable, no UI). Task 5 is the holder seam. Tasks 6–11 are UI. Each task ends green + committed.
 
@@ -70,7 +71,7 @@ val maxExtrudeVelocity: StateFlow<Float?> = _maxExtrudeVelocity.asStateFlow()
 fun setMaxExtrudeVelocity(v: Float?) { _maxExtrudeVelocity.value = v }
 ```
 
-Also clear it wherever `setMaxExtrudeDistance(null)` is reset on disconnect/reconnect (grep for `setMaxExtrudeDistance(null)` and add the velocity reset beside it).
+> **Reset note (Codex):** there is currently NO `setMaxExtrudeDistance(null)` reset call. The config-failure path in `MoonrakerSession.kt` (~line 619) clears outputs/limits/macros but not the min/max-extrude one-shots. Add `store.setMaxExtrudeVelocity(null)` beside those existing clears (and, for consistency, `store.setMaxExtrudeDistance(null)` + `store.setMinExtrudeTemp(null)` if not already there). On a successful handshake the parse in Step 3 overwrites the value, so the only gap is a connect-then-config-fail sequence.
 
 - [ ] **Step 3: Parse it in `MoonrakerSession.kt`** beside the existing extruder-config reads (line ~560):
 
@@ -193,7 +194,7 @@ Then add `setFilamentSensor,` to the `CommandRegistry.all` list.
   },
 ```
 
-> Check whether `CommandCatalogDriftTest` requires a `printer-matrix.json` row. Filament sensors already appear in the captured `objects` arrays (e.g. `filament_motion_sensor encoder_sensor`), so the command-availability predicate is satisfied by capture — no matrix edit unless the drift test fails specifically on this id.
+- [ ] **Step 5b: Add the `printer-matrix.json` command-availability row (REQUIRED — Codex blocker).** `CommandCatalogDriftTest` (`app/src/test/java/works/mees/dinghy/command/CommandCatalogDriftTest.kt:131`) requires a `command_availability` row for every `catalogId` registered in `CommandRegistry.all`. The matrix currently has only `SET_FILAMENT_SENSOR` *help evidence* (`printer-matrix.json:427`, `:1042`) — NOT a command-availability row. Open `docs/commands/printer-matrix.json`, find the `command_availability` section, and add a `KGC-SET_FILAMENT_SENSOR` row mirroring the shape of an existing registered gcode row (copy e.g. the `KGC-TURN_OFF_HEATERS` row's structure and per-printer availability — both captured printers (`ender5plus`, `ender3pro`) report a `filament_*_sensor` object, so mark available accordingly; match exactly the field names/shape the drift test reads).
 
 - [ ] **Step 6: Run the command test + the drift test — expect PASS.**
 
@@ -215,7 +216,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `app/src/main/java/works/mees/dinghy/state/PrinterState.kt`
 - Modify: `app/src/main/java/works/mees/dinghy/state/PrinterStateReducer.kt`
-- Modify: `app/src/main/java/works/mees/dinghy/net/DeriveCapabilities.kt`
+- Modify: `app/src/main/java/works/mees/dinghy/state/DeriveCapabilities.kt` (package `state`, **not** `net`)
 - Test: `app/src/test/java/works/mees/dinghy/ui/extrude/ExtrudeSensorReducerTest.kt`
 
 - [ ] **Step 1: Write the failing reducer test.** Mirror `PrinterStateReducerOutputsTest` (use its `reduceSnapshot`/`reduceDiff`/`status("…")` helpers — copy the imports/helpers from that file):
@@ -280,8 +281,8 @@ for ((key, value) in status) {
     val obj = (value as? JsonObject) ?: continue
     val prev = s.filamentSensors[key] ?: FilamentSensorState()
     sensorUpdates[key] = prev.copy(
-        enabled = obj.booleanOrNullAt("enabled") ?: prev.enabled,
-        filamentDetected = obj.booleanOrNullAt("filament_detected") ?: prev.filamentDetected,
+        enabled = obj.booleanOrNull("enabled") ?: prev.enabled,
+        filamentDetected = obj.booleanOrNull("filament_detected") ?: prev.filamentDetected,
     )
 }
 if (sensorUpdates.isNotEmpty()) {
@@ -293,7 +294,7 @@ Add the predicate near `isReducedOutputObject`:
 private fun isFilamentSensorObject(name: String): Boolean =
     name.substringBefore(' ') in setOf("filament_switch_sensor", "filament_motion_sensor")
 ```
-> If no `booleanOrNullAt` JSON helper exists, add it beside `doubleOrNullAt` in the same JSON-ext file: `fun JsonObject.booleanOrNullAt(k: String): Boolean? = runCatching { this[k]?.jsonPrimitive?.booleanOrNull }.getOrNull()`.
+> **Use the EXISTING `booleanOrNull(...)` helper** already in `PrinterStateReducer.kt` (~line 370) — do NOT add a new `booleanOrNullAt`. Confirm its exact call shape (it may be `obj.booleanOrNull("key")` or a free function `booleanOrNull(obj, "key")`); match the local usage in the outputs/heaters arms.
 
 - [ ] **Step 5: Subscribe the families in `DeriveCapabilities.kt`.** In `deriveSubscribeSet`, beside the output-whitelist check (line ~108), also admit filament-sensor families:
 
@@ -407,7 +408,11 @@ class ExtrudeMacroPrefs(private val dataStore: DataStore<Preferences>) {
 
 - [ ] **Step 4: Run the prefs test — expect PASS.**
 
-- [ ] **Step 5: Wire `AppContainer`.** (a) Add an 11th DataStore extension property beside `savedLocationDataStore` (copy its declaration, rename to `extrudeMacroDataStore` / file name `extrude_macros`). (b) Add the constructor param `extrudeMacroDataStore: DataStore<Preferences>,` and pass it at the call site that constructs `AppContainer`. (c) In `AppContainer`:
+- [ ] **Step 5: Wire `AppContainer` (Codex-corrected — there is NO extension-property file).** The 10 DataStores are created manually in `DinghyApp.kt` (~line 42) and handed to `AppContainer(...)` (~line 127). Do all of:
+  - **(a)** In `DinghyApp.kt`, create an 11th store next to the others (copy a `PreferenceDataStoreFactory.create(...)` / `preferencesDataStore("…")` line for the existing `savedLocation` store, file name `extrude_macros`), and pass it into the `AppContainer(...)` constructor call at ~line 127.
+  - **(b)** Add the constructor param `extrudeMacroDataStore: DataStore<Preferences>,` to `AppContainer`.
+  - **(c)** Update the two DIRECT test call sites that construct `AppContainer(...)`: `AppContainerTest.kt` (~line 47) and `ThemeOverrideTest.kt` (~line 53) — pass a temp/in-memory store like they do for the other params (copy how they build `savedLocationDataStore` in those tests).
+  - **(d)** In `AppContainer`, add:
 
 ```kotlin
 val extrudeMacroPrefs: ExtrudeMacroPrefs = ExtrudeMacroPrefs(extrudeMacroDataStore)
@@ -516,27 +521,33 @@ val sensors = state.filamentSensors.entries
     }
 
 // Macro rows. Resolve canonical names case-insensitively from caps.macros.
+// v1: description = null (rows only need the name to RUN bare — owner said no fancy macro UI).
 fun canonical(name: String): String? = caps.macros.firstOrNull { it.equals(name, ignoreCase = true) }
-val descriptions = store.printerState.value // descriptions live where MacroHolder reads them; see note
 val visible = caps.macros.filter { !it.startsWith("_") }
-    .map { ExtrudeMacroRowVm(it, store.macroDescription(it)) }   // see Step 4 note
+    .map { ExtrudeMacroRowVm(it, description = null) }
 val pinnedRows = pins.mapNotNull { canonical(it) }
     .filter { !it.equals(CommandMap.loadFilament.macro, ignoreCase = true) &&
               !it.equals(CommandMap.unloadFilament.macro, ignoreCase = true) }
-    .map { ExtrudeMacroRowVm(it, store.macroDescription(it)) }
+    .map { ExtrudeMacroRowVm(it, description = null) }
+
+// Cap the displayed/scrubbable velocity at BOTH the printer's reported max AND the builder ceiling
+// (PrinterCommands.extrude clamps feed to MAX_EXTRUDE_FEED_MM_MIN/60 mm/s — never advertise above what
+// the dispatch can actually send, else the scrubber shows a value that gets silently clamped).
+val builderCeiling = PrinterCommands.MAX_EXTRUDE_FEED_MM_MIN / 60
+val velCap = (maxVel?.toInt()?.coerceAtLeast(1)
+    ?: PrinterCommands.MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK).coerceAtMost(builderCeiling)
 
 return ExtrudeVm(
     // ... existing fields ...
     sensors = sensors,
-    maxExtrudeVelocity = maxVel?.toInt()?.coerceAtLeast(1)
-        ?: PrinterCommands.MAX_EXTRUDE_ONLY_VELOCITY_FALLBACK,
+    maxExtrudeVelocity = velCap,
     pinnedMacros = pinnedRows,
     allMacros = visible,
     pinnedNames = pins,
 )
 ```
 
-> **Macro descriptions note:** `MacroHolder` reads descriptions from `PrinterStateStore.macroDescriptions` (grep `macroDescriptions` to confirm the accessor). Use that accessor; if it's a `StateFlow<Map<String,String>>`, read `.value[name]` here, or add it to the `combine`. If descriptions complicate the combine, ship rows with `description = null` for v1 (rows only need the name to run) and add descriptions in a follow-up — the bare-run path does not need them.
+> **Descriptions deferred (Codex):** `store.macroDescription(...)` does NOT exist — the accessor is `store.macroDescriptions: StateFlow<Map<String,String>>` (`PrinterStateStore.kt:142`). v1 ships `description = null` (the bare-run path doesn't need it), which keeps the `combine` at 5 typed flows. If descriptions are wanted later, add `store.macroDescriptions` as a 6th flow using the array-form `combine` (or nest), mirroring the typed 5-flow `combine` in `MacroHolder.kt:92`.
 
 - [ ] **Step 4: Add/extend the holder test.** Construct the holder against a `PrinterStateStore` seeded with a filament sensor + a couple macros + a pin flow, assert:
   - `vm.sensors` has one row with `sensorName == "Runout"`, `prettyName == "Runout"`, `enabled == true`.
@@ -636,6 +647,18 @@ private fun NozzleReadout(temp: Double, target: Double, modifier: Modifier = Mod
 
 Remove `NumericSettingReadout` and the IME `distanceText`/`speedText` machinery (no keyboard in printer controls — UI law). Keep `distance`/`speed` state in `ExtrudeContent`; `onDistanceChange`/`onSpeedChange` clamp as before.
 
+**Add a velocity re-clamp `LaunchedEffect` (Codex blocker — mirror the existing `maxExtrudeDistance` clamp).** In `ExtrudeContent`, beside the `LaunchedEffect(vm.maxExtrudeDistance)` distance clamp, add:
+
+```kotlin
+// If the printer's reported max velocity is below the current speed, pull speed down so Extrude
+// never dispatches over cap (the scrubber range also caps, but state seeded at DEFAULT_SPEED_MM_S
+// could exceed a low reported max before the user touches it).
+LaunchedEffect(vm.maxExtrudeVelocity) {
+    if (speed > vm.maxExtrudeVelocity) speed = vm.maxExtrudeVelocity
+}
+```
+Also update `MAX_SPEED_MM_S` usage: the speed scrubber's `range` top and `onSpeedChange` clamp must use `vm.maxExtrudeVelocity`, not the static `MAX_SPEED_MM_S`.
+
 - [ ] **Step 4: Build + run the existing Extrude tests** (preview/screen tests, if any). Expect compile success; fix references.
 
 Run: `... "E:\Android\gw.bat :app:compileDebugKotlin --no-daemon" | tr -d '\r'`
@@ -686,11 +709,12 @@ Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
             enabled = "set_filament_sensor_${s.sensorName}" !in inFlight,
         )
     }
-    // 2. Macros — Load/Unload auto-rows (presence-gated) + pins.
-    MacroActionRow(stringResource(R.string.extrude_load), DinghyIcons.ExpandCircleUp,
-        onClick = { if (vm.hasLoadMacro) onLoad() else infoText = noLoadMacro })
-    MacroActionRow(stringResource(R.string.extrude_unload), DinghyIcons.ExpandCircleDown,
-        onClick = { if (vm.hasUnloadMacro) onUnload() else infoText = noUnloadMacro })
+    // 2. Macros — Load/Unload auto-rows shown ONLY when those macros exist (design: "auto-included
+    //    at the top WHEN those macros exist"), then pins. No missing-macro toast for these rows.
+    if (vm.hasLoadMacro) MacroActionRow(stringResource(R.string.extrude_load),
+        DinghyIcons.ExpandCircleUp, onClick = onLoad)
+    if (vm.hasUnloadMacro) MacroActionRow(stringResource(R.string.extrude_unload),
+        DinghyIcons.ExpandCircleDown, onClick = onUnload)
     vm.pinnedMacros.forEach { m ->
         MacroActionRow(m.name, DinghyIcons.LauncherMacros,
             onClick = { onRunMacro(m.name) },
@@ -765,14 +789,18 @@ FootButtonBar(uDp = grid.uDp) {
     OutlinedControl(label = "", onClick = onBack, modifier = Modifier.weight(1f),
         intent = Intent.Accent, icon = DinghyIcons.Back)
     OutlinedControl(label = stringResource(R.string.extrude_cooldown), onClick = onCooldown,
-        modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.<COOLDOWN_ICON>)
+        modifier = Modifier.weight(1f), intent = Intent.Warn /* , icon = <owner decision> */)
     OutlinedControl(label = stringResource(R.string.extrude_macro_settings),
         onClick = onOpenMacroSettings, modifier = Modifier.weight(1f),
-        intent = Intent.Accent, icon = DinghyIcons.<SETTINGS_ICON>)
+        intent = Intent.Accent /* , icon = <owner decision> */)
 }
 ```
 
-> **ICON LAW — STOP AND ASK (do not guess):** Cooldown and Macro-settings foot buttons need glyphs. Check what `TemperatureScreen` uses for its Cooldown foot button (`grep -n "temp_cooldown" -A4 TemperatureScreen.kt`) and reuse that exact `DinghyIcons` token for Cooldown. For Macro-settings, ask the owner which registered glyph to use (candidates already in `DinghyIcons`: a settings/tune glyph or `LauncherMacros`). Do NOT register a new icon without owner sign-off.
+> **ICON LAW — STOP AND ASK before this task (Codex-corrected).** The Temperature screen's Cooldown foot button is **text-only** (no icon to reuse — `TemperatureScreen.kt:704`). So BOTH the Cooldown and Macro-settings foot buttons need an owner decision:
+> - **Cooldown:** text-only (matches Temperature, zero icon risk) OR a registered glyph the owner names.
+> - **Macro-settings:** text-only OR a registered glyph (candidates already in `DinghyIcons`: a settings/tune glyph, or `LauncherMacros`).
+>
+> Do NOT pick or register a glyph without owner sign-off. Default to **text-only** for both if the owner is unavailable at execution time — it's law-compliant and easily upgraded later. (`OutlinedControl` renders fine with a non-empty `label` and no `icon`.)
 
 - [ ] **Step 2:** Confirm the e-stop is NOT added here (FocusFrame already docks it via `isPrinting`/`onEmergencyStop`, unchanged).
 
@@ -836,7 +864,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `app/src/main/res/values/strings.xml`
-- Modify: `app/src/main/java/works/mees/dinghy/ui/extrude/ExtrudePreviews.kt`
+- Modify: `app/src/main/java/works/mees/dinghy/preview/ExtrudePreviews.kt`
 
 - [ ] **Step 1: Add all new string resources** referenced above: `extrude_cooldown`, `extrude_macro_settings`, `extrude_distance_dec`, `extrude_distance_inc`, `extrude_filament_present`, `extrude_filament_absent`, plus any others introduced. Reuse existing `extrude_load`/`extrude_unload`/`extrude_speed_readout` etc. (Grep each `R.string.extrude_*` you referenced; add the missing ones.)
 
@@ -880,4 +908,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 | Component-class + token conformance | 6–9, 11 |
 | Icon law (reuse Decrease/Increase; ASK for Cooldown/Settings glyphs) | 6, 9 |
 
-**Open item flagged for execution:** Task 9 Step 1 requires an owner icon decision for the Macro-settings foot glyph (Cooldown reuses Temperature screen's). This is intentionally NOT pre-chosen (icon law).
+**Open items flagged for execution:**
+1. Task 9 needs an owner icon decision for BOTH the Cooldown and Macro-settings foot buttons (Temperature's Cooldown is text-only — nothing to reuse). Default text-only if owner unavailable. Icon law — not pre-chosen.
+
+**Codex review (2026-06-16):** read-only review found 4 blockers + 5 should-fixes, ALL applied to this plan before execution — printer-matrix.json drift row (Task 2 Step 5b), AppContainer manual-wiring + test call-sites (Task 4 Step 5), `DeriveCapabilities` package `state` not `net` (Task 3), velocity re-clamp `LaunchedEffect` + builder-ceiling cap (Tasks 5/6), `setMaxExtrudeDistance(null)` non-existence (Task 1), `macroDescriptions` accessor → descriptions deferred (Task 5), preview path `preview/` (Task 11), Load/Unload presence-gated rows (Task 7), use existing `booleanOrNull` (Task 3). Verified-OK: StepperRow/Scrubber/ToggleRow/GcodeCommandPresent/gcode()/cooldown/extrude/setHeater/load/unload/raw-dispatch/buildRaw/scriptParams all exist as referenced; one `subset` feeds both query+subscribe.
