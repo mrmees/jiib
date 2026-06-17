@@ -198,7 +198,9 @@ fun AppShell(
         )
     }
     val moveHolder = remember(store) { MoveHolder(scope = scope, store = store) }
-    val extrudeHolder = remember(store) { ExtrudeHolder(scope = scope, store = store) }
+    val extrudeHolder = remember(store) {
+        ExtrudeHolder(scope = scope, store = store, pinnedExtrudeMacros = container.extrudeMacroPins)
+    }
     val filesHolder = remember(fileBrowser, printerStateFlow) {
         FileBrowserHolder(scope = scope, client = fileBrowser, printerState = printerStateFlow)
     }
