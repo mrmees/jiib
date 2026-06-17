@@ -454,6 +454,19 @@
     <string name="extrude_loaded_filament">Loaded filament</string>
     <string name="extrude_loaded_prefix">%1$s (loaded)</string>
 
+    <!-- ============== Extrude rework (2026-06-16) ============== -->
+    <!-- Foot bar -->
+    <string name="extrude_cooldown">Cooldown</string>
+    <string name="extrude_macro_settings">Macros</string>
+    <!-- Distance ±stepper a11y -->
+    <string name="extrude_distance_dec">Decrease distance</string>
+    <string name="extrude_distance_inc">Increase distance</string>
+    <!-- Runout-sensor toggle sub-labels -->
+    <string name="extrude_filament_present">Filament present</string>
+    <string name="extrude_filament_absent">No filament</string>
+    <!-- Macro-settings takeover empty state -->
+    <string name="extrude_no_macros">No macros found</string>
+
     <!-- ============== Phase 26 adjustment surfaces (26-rev WR-11) ============== -->
     <string name="common_apply">Apply</string>
     <string name="adjuster_reset">Reset</string>
