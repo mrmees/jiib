@@ -68,6 +68,8 @@ internal fun HomeField(
     onPause: () -> Unit = {},
     onResume: () -> Unit = {},
     onCancel: () -> Unit = {},
+    isComplete: Boolean = false,
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Pilot fix 2026-06-12: U is now PASSED from the SCREEN root, not derived here. Deriving it
@@ -101,7 +103,7 @@ internal fun HomeField(
                             ListRowIcon(
                                 icon = action.icon,
                                 uDp = uDp,
-                                tint = LocalTokens.current.text2,
+                                tint = LocalTokens.current.accent,
                             )
                         },
                     ) {
@@ -147,6 +149,22 @@ internal fun HomeField(
                     modifier = Modifier.weight(1f),
                     icon = DinghyIcons.FootCancel,
                     intent = Intent.Danger,
+                )
+            } else if (isComplete) {
+                // Complete → Dismiss (clears the finished job to standby) + System nav.
+                OutlinedControl(
+                    label = stringResource(R.string.printstatus_foot_dismiss),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootDismiss,
+                    intent = Intent.Go, // R5: the expected action on a finished print
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.home_foot_system),
+                    onClick = { onNavigate(NavDest.System) },
+                    modifier = Modifier.weight(1f),
+                    icon = DinghyIcons.FootSystem,
+                    intent = Intent.Accent, // R5: plain navigation = accent
                 )
             } else {
                 OutlinedControl(
@@ -229,7 +247,7 @@ private fun SpoolStatusRow(
             ListRowIcon(
                 icon = DinghyIcons.SpoolFilament,
                 uDp = uDp,
-                tint = spoolColor ?: t.text2,
+                tint = spoolColor ?: t.accent,
             )
         },
     ) {
