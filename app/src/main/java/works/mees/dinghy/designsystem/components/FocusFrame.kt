@@ -71,15 +71,20 @@ private fun DrawScope.drawFocusProgress(
     strokeWidthPx: Float,
     cornerRadiusPx: Float,
 ) {
-    val f = fraction.coerceIn(0f, 1f)
+    // Non-finite fraction (NaN/Inf from a degenerate progress value) → draw nothing, never crash.
+    val f = if (fraction.isFinite()) fraction.coerceIn(0f, 1f) else 0f
     if (f <= 0f) return
     val inset = strokeWidthPx / 2f
     val left = inset
     val top = inset
     val right = size.width - inset
     val bottom = size.height - inset
+    // Frame smaller than the stroke (transient 0-size layout pass) → the inset rect is degenerate and
+    // `coerceIn(0f, negative)` would throw; bail before drawing.
+    val maxR = minOf(right - left, bottom - top) / 2f
+    if (maxR <= 0f) return
     // Shrink the corner radius by the same inset so the arc stays CONCENTRIC with the frame corner.
-    val r = (cornerRadiusPx - inset).coerceIn(0f, minOf(right - left, bottom - top) / 2f)
+    val r = (cornerRadiusPx - inset).coerceIn(0f, maxR)
     val cx = (left + right) / 2f
     val path = Path().apply {
         moveTo(cx, top)

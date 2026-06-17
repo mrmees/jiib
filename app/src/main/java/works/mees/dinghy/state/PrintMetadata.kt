@@ -111,7 +111,7 @@ fun parseFilePreviewMetadata(filename: String, result: JsonObject): FilePreviewM
         sizeBytes = runCatching { result["size"]?.jsonPrimitive?.content?.toLongOrNull() }.getOrNull(),
         modifiedEpochSeconds = runCatching { result["modified"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
         estimatedTime = printMetadata.estimatedTime,
-        filamentTotal = runCatching { result["filament_total"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
+        filamentTotal = printMetadata.filamentTotal,
         filamentWeightTotal = runCatching { result["filament_weight_total"]?.jsonPrimitive?.doubleOrNull }.getOrNull(),
         layerCount = printMetadata.layerCount,
         objectHeight = printMetadata.objectHeight,

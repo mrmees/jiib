@@ -3,9 +3,9 @@ package works.mees.dinghy.ui.printstatus
 import kotlin.math.roundToInt
 import works.mees.dinghy.state.HeaterState
 
-/** Integer print-% for the header (`PRINTING · NN%`), clamped 0..100. */
+/** Integer print-% for the header (`PRINTING · NN%`), clamped 0..100. Non-finite → 0 (roundToInt throws on NaN). */
 fun progressPercent(progress: Double): Int =
-    (progress.coerceIn(0.0, 1.0) * 100).roundToInt()
+    if (!progress.isFinite()) 0 else (progress.coerceIn(0.0, 1.0) * 100).roundToInt()
 
 /**
  * Derive the current layer from the print height when the slicer didn't emit
@@ -79,7 +79,9 @@ fun formatZHeight(currentZ: Double?, objectHeight: Double?): String {
  */
 fun formatFilament(usedMm: Double, totalMm: Double?): String {
     fun m(v: Double): String = String.format(java.util.Locale.US, "%.1f", v / 1000.0)
-    return if (totalMm != null && totalMm > 0.0) "${m(usedMm)} / ${m(totalMm)} m" else "${m(usedMm)} m"
+    val used = if (usedMm.isFinite()) usedMm.coerceAtLeast(0.0) else 0.0
+    val total = totalMm?.takeIf { it.isFinite() && it > 0.0 }
+    return if (total != null) "${m(used)} / ${m(total)} m" else "${m(used)} m"
 }
 
 /** Layers line: `"5 / 220 layers"`, or null when either bound is missing/≤ 0 (caller drops the line). */

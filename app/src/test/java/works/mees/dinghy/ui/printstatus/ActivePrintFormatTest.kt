@@ -13,6 +13,8 @@ class ActivePrintFormatTest {
         assertEquals(100, progressPercent(1.0))
         assertEquals(100, progressPercent(1.5))   // clamps
         assertEquals(0, progressPercent(-0.2))    // clamps
+        assertEquals(0, progressPercent(Double.NaN))                  // non-finite → 0 (roundToInt throws on NaN)
+        assertEquals(0, progressPercent(Double.POSITIVE_INFINITY))    // non-finite → 0
     }
 
     @Test fun derive_current_layer_from_height() {
@@ -104,5 +106,8 @@ class ActivePrintFormatTest {
         assertEquals("5.2 m", formatFilament(5200.0, null))   // no total → used alone
         assertEquals("5.2 m", formatFilament(5200.0, 0.0))    // zero total → used alone
         assertEquals("0.0 / 12.3 m", formatFilament(0.0, 12345.0))   // job start (total present)
+        assertEquals("0.0 m", formatFilament(-50.0, null))           // negative used clamps to 0
+        assertEquals("5.2 m", formatFilament(5200.0, Double.NaN))    // non-finite total ignored
+        assertEquals("0.0 / 12.3 m", formatFilament(Double.NaN, 12345.0))   // non-finite used → 0 (total still shown)
     }
 }

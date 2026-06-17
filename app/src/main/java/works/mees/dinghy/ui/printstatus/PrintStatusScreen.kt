@@ -284,6 +284,7 @@ fun PrintStatusScreen(
         spoolmanPresent = spoolmanPresent,
         outputsPresent  = false,
         webcamEnabled   = false,
+        isPrinting      = state.printState == PrintState.Printing || state.printState == PrintState.Paused,
     ),
     onNavigate: (NavDest) -> Unit = {},
     modifier: Modifier = Modifier,

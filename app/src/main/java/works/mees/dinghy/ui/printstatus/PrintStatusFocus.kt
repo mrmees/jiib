@@ -135,8 +135,8 @@ internal fun HomeFocus(
 /**
  * The active-print Focus body (Printing/Paused): the file thumbnail filling the frame (Fit, centered)
  * under a uniform 50% surface scrim, with a single CENTERED 6-line data block reading as one list over
- * the image — filename (slightly larger, Geist UI), then all-heater current temps, job time, print/
- * estimate, Z height, and layers (Geist Mono tabular). Every line carries a surface-color drop shadow
+ * the image — filename (slightly larger), then all-heater current temps, job time, print/estimate,
+ * filament used/total, Z height, and layers (all normal Geist UI). Every line carries a surface-color drop shadow
  * so it pops on busy renders. The block uniformly shrinks (width AND height) to fit the focus, floor
  * 15sp. No thumbnail (null metadata / inspection mode) → the faint brand watermark. The clockwise
  * perimeter progress stroke is the FocusFrame edge (owned by the caller).
