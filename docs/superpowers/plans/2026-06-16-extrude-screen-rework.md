@@ -789,18 +789,14 @@ FootButtonBar(uDp = grid.uDp) {
     OutlinedControl(label = "", onClick = onBack, modifier = Modifier.weight(1f),
         intent = Intent.Accent, icon = DinghyIcons.Back)
     OutlinedControl(label = stringResource(R.string.extrude_cooldown), onClick = onCooldown,
-        modifier = Modifier.weight(1f), intent = Intent.Warn /* , icon = <owner decision> */)
+        modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.HideTemps)
     OutlinedControl(label = stringResource(R.string.extrude_macro_settings),
         onClick = onOpenMacroSettings, modifier = Modifier.weight(1f),
-        intent = Intent.Accent /* , icon = <owner decision> */)
+        intent = Intent.Accent, icon = DinghyIcons.ManageMacros)
 }
 ```
 
-> **ICON LAW — STOP AND ASK before this task (Codex-corrected).** The Temperature screen's Cooldown foot button is **text-only** (no icon to reuse — `TemperatureScreen.kt:704`). So BOTH the Cooldown and Macro-settings foot buttons need an owner decision:
-> - **Cooldown:** text-only (matches Temperature, zero icon risk) OR a registered glyph the owner names.
-> - **Macro-settings:** text-only OR a registered glyph (candidates already in `DinghyIcons`: a settings/tune glyph, or `LauncherMacros`).
->
-> Do NOT pick or register a glyph without owner sign-off. Default to **text-only** for both if the owner is unavailable at execution time — it's law-compliant and easily upgraded later. (`OutlinedControl` renders fine with a non-empty `label` and no `icon`.)
+> **ICONS — owner-decided 2026-06-16 (icon law satisfied, both already registered):** Cooldown = `DinghyIcons.HideTemps` (`mode_heat_off`); Macro-settings = `DinghyIcons.ManageMacros` (`bookmark_manager`). Do NOT substitute.
 
 - [ ] **Step 2:** Confirm the e-stop is NOT added here (FocusFrame already docks it via `isPrinting`/`onEmergencyStop`, unchanged).
 
@@ -908,7 +904,6 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 | Component-class + token conformance | 6–9, 11 |
 | Icon law (reuse Decrease/Increase; ASK for Cooldown/Settings glyphs) | 6, 9 |
 
-**Open items flagged for execution:**
-1. Task 9 needs an owner icon decision for BOTH the Cooldown and Macro-settings foot buttons (Temperature's Cooldown is text-only — nothing to reuse). Default text-only if owner unavailable. Icon law — not pre-chosen.
+**Open items flagged for execution:** None. (Foot-bar icons resolved by owner 2026-06-16 — Task 9: Cooldown=`HideTemps`, Macro-settings=`ManageMacros`.)
 
 **Codex review (2026-06-16):** read-only review found 4 blockers + 5 should-fixes, ALL applied to this plan before execution — printer-matrix.json drift row (Task 2 Step 5b), AppContainer manual-wiring + test call-sites (Task 4 Step 5), `DeriveCapabilities` package `state` not `net` (Task 3), velocity re-clamp `LaunchedEffect` + builder-ceiling cap (Tasks 5/6), `setMaxExtrudeDistance(null)` non-existence (Task 1), `macroDescriptions` accessor → descriptions deferred (Task 5), preview path `preview/` (Task 11), Load/Unload presence-gated rows (Task 7), use existing `booleanOrNull` (Task 3). Verified-OK: StepperRow/Scrubber/ToggleRow/GcodeCommandPresent/gcode()/cooldown/extrude/setHeater/load/unload/raw-dispatch/buildRaw/scriptParams all exist as referenced; one `subset` feeds both query+subscribe.
