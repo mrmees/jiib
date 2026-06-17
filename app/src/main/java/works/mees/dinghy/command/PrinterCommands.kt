@@ -266,6 +266,15 @@ object PrinterCommands {
     fun setHeater(heater: String, target: Int): String =
         "SET_HEATER_TEMPERATURE HEATER=$heater TARGET=${clampHeaterTarget(target)}"
 
+    /** `SET_FILAMENT_SENSOR SENSOR=<name> ENABLE=0|1`. [sensor] is the BARE Klipper section name
+     *  (from the discovered object list — never free-text). Blank/illegal names are rejected, not escaped. */
+    fun setFilamentSensor(sensor: String, enable: Boolean): String {
+        require(sensor.isNotBlank() && sensor.none { it.isWhitespace() || it == ';' || it == '"' }) {
+            "illegal filament sensor name"
+        }
+        return "SET_FILAMENT_SENSOR SENSOR=$sensor ENABLE=${if (enable) 1 else 0}"
+    }
+
     /** Two newline-joined SET_HEATER_TEMPERATURE lines for the PRIMARY `extruder` + `heater_bed`
      * (v1 scope; multi-tool per-preset targeting deferred). Both targets clamped. */
     fun applyPreset(nozzle: Int, bed: Int): String =

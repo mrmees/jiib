@@ -2052,6 +2052,32 @@
       ]
     },
     {
+      "catalog_id": "KGC-SET_FILAMENT_SENSOR",
+      "name": "SET_FILAMENT_SENSOR",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "gcode_command_present",
+        "name": "SET_FILAMENT_SENSOR"
+      },
+      "predicate_key": "gcode_command_present:SET_FILAMENT_SENSOR",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "SET_FILAMENT_SENSOR appeared in /printer/gcode/help positive evidence.",
+          "caveat": "gcode.help is positive evidence only; absence would not prove unsupported."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "SET_FILAMENT_SENSOR appeared in /printer/gcode/help positive evidence.",
+          "caveat": "gcode.help is positive evidence only; absence would not prove unsupported."
+        }
+      ]
+    },
+    {
       "catalog_id": "KGC-M84_DISABLE_STEPPERS",
       "name": "M84",
       "source_api": "klipper_gcode",

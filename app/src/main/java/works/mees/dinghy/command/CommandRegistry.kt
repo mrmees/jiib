@@ -17,6 +17,7 @@ data class IdentifyArgs(
 )
 
 data class SetHeaterArgs(val heater: String, val target: Int, val key: String? = null)
+data class SetFilamentSensorArgs(val sensor: String, val enable: Boolean)
 data class ApplyPresetArgs(val nozzle: Int, val bed: Int, val key: String = "apply_preset")
 typealias PresetArgs = ApplyPresetArgs
 data class JogArgs(val axis: String, val mm: Double, val feedMmMin: Int)
@@ -530,6 +531,13 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("extruder"),
     )
 
+    val setFilamentSensor: CommandSpec<SetFilamentSensorArgs> = gcode(
+        catalogId = "KGC-SET_FILAMENT_SENSOR",
+        key = { args -> "set_filament_sensor_${args.sensor}" },
+        gcode = { args -> PrinterCommands.setFilamentSensor(args.sensor, args.enable) },
+        availability = AvailabilityPredicate.GcodeCommandPresent("SET_FILAMENT_SENSOR"),
+    )
+
     val disableSteppers: CommandSpec<Unit> = gcode(
         catalogId = "KGC-M84_DISABLE_STEPPERS",
         key = { "disable_steppers" },
@@ -838,6 +846,7 @@ object CommandRegistry {
         loadFilament,
         unloadFilament,
         cooldown,
+        setFilamentSensor,
         disableSteppers,
         screwsTiltCalculate,
         zTiltAdjust,
