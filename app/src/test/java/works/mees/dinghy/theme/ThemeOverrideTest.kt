@@ -58,10 +58,11 @@ class ThemeOverrideTest {
             // SAVEDLOCATIONS (feat/move-hub-redesign, 9th store),
             // FONTSCALE (App/Printer Settings Split, 10th store),
             // EXTRUDE_MACROS (Extrude rework Task 4, 11th store),
-            // HEAT_PRESETS (Heat Presets Task 9, 12th store), then discovery (last).
+            // HEAT_PRESETS (Heat Presets Task 9, 12th store),
+            // INCREMENTS (Increment Values Task 4, 13th store), then discovery (last).
             MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
             MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(), MemDataStore(),
-            MemDataStore(),
+            MemDataStore(), MemDataStore(),
             lazyDiscovery(),
         )
 
