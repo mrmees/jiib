@@ -48,6 +48,9 @@ data class PersistedProfile(
     // 2026-06-15: set TRUE once a name has been locked (user-typed OR auto-seeded from hostname). Old blobs
     // without this key decode to false via kotlinx ignoreUnknownKeys — safe default: re-evaluates on connect.
     val nameAutoSeeded: Boolean = false,
+    // 2026-06-18: optional per-printer accent override ARGB (unsigned-32), null = seed-derived.
+    // Old blobs without this key decode to null via kotlinx ignoreUnknownKeys — safe default.
+    val accentOverrideArgb: Long? = null,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
     // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
@@ -88,6 +91,8 @@ data class Profile(
     // 2026-06-15: mirrors [PersistedProfile.nameAutoSeeded] — true once the name is locked (user-typed
     // or auto-seeded from hostname); prevents re-seeding on reconnect. Default false.
     val nameAutoSeeded: Boolean = false,
+    /** Optional per-printer accent override ARGB (unsigned-32), null = seed-derived. */
+    val accentOverrideArgb: Long? = null,
 ) {
     /**
      * The connection projection — host/port/apiKey/useSecure ONLY. This is the value
@@ -115,6 +120,7 @@ data class Profile(
             rawMode = paletteMode,
             rawShift = poolShift,
             rawOverrides = poolOverrides,
+            rawAccent = accentOverrideArgb,
         )
 
     /** The wire form — for re-encoding when [ProfileStore] writes the blob. */
@@ -133,6 +139,7 @@ data class Profile(
             fsChoice = "M", // runtime Profile no longer carries fsChoice; persist a stable default
             useSecure = useSecure,
             nameAutoSeeded = nameAutoSeeded,
+            accentOverrideArgb = accentOverrideArgb,
         )
 
     override fun toString(): String =
@@ -160,6 +167,7 @@ data class Profile(
                 poolOverrides = p.poolOverrides,
                 useSecure = p.useSecure,
                 nameAutoSeeded = p.nameAutoSeeded,
+                accentOverrideArgb = p.accentOverrideArgb,
             )
     }
 }

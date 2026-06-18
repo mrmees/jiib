@@ -24,4 +24,11 @@ class AccentOverrideTest {
     @Test fun `default tuple has no accent override`() {
         assertNull(ThemePrefs.TUPLE_DEFAULT.accentOverride)
     }
+
+    @Test fun `profile threads accent override through tuple and persistence`() {
+        val p = works.mees.dinghy.config.Profile(id = "x", host = "h", accentOverrideArgb = 0xFF445566L)
+        assertEquals(0xFF445566L, p.toThemeTuple().accentOverride)
+        val round = works.mees.dinghy.config.Profile.fromPersisted(p.toPersisted())
+        assertEquals(0xFF445566L, round.accentOverrideArgb)
+    }
 }
