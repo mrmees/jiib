@@ -3850,43 +3850,6 @@
       "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
     },
     {
-      "id": "KGC-SET_HEATER_TEMPERATURE_PRESET",
-      "catalog_id": "KGC-SET_HEATER_TEMPERATURE_PRESET",
-      "source_api": "klipper_gcode",
-      "transport": "gcode_script",
-      "name": "SET_HEATER_TEMPERATURE preset pair",
-      "category": "temperature",
-      "purpose": "Set primary extruder and bed targets from a Dinghy material preset.",
-      "params": [
-        "HEATER",
-        "TARGET"
-      ],
-      "key_params": [
-        "HEATER",
-        "TARGET"
-      ],
-      "semantics_tier": "full",
-      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
-      "rest_endpoint": null,
-      "http_method": null,
-      "availability": {
-        "type": "object_present",
-        "name": "heater_bed"
-      },
-      "predicate": {
-        "type": "object_present",
-        "name": "heater_bed"
-      },
-      "runtime_registry": {
-        "status": "registered",
-        "registered": true,
-        "notes": "Present in CommandRegistry for current Dinghy runtime sends."
-      },
-      "success_semantics": "Klipper accepts the G-Code script and reports follow-up state or response text when applicable.",
-      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
-      "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
-    },
-    {
       "id": "KGC-SET_TEMPERATURE_FAN_TARGET",
       "catalog_id": "KGC-SET_TEMPERATURE_FAN_TARGET",
       "source_api": "klipper_gcode",

@@ -30,15 +30,6 @@ class PrinterCommandsTest {
     }
 
     @Test
-    fun applyPreset_twoClampedLines() {
-        assertEquals(
-            "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=240\n" +
-                "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=80",
-            PrinterCommands.applyPreset(240, 80),
-        )
-    }
-
-    @Test
     fun jog_exactSaveRestoreBody() {
         assertEquals(
             "SAVE_GCODE_STATE NAME=dd_jog\nG91\nG1 X10.0 F3000\nRESTORE_GCODE_STATE NAME=dd_jog",
@@ -80,15 +71,6 @@ class PrinterCommandsTest {
         assertEquals("LOAD_FILAMENT", PrinterCommands.loadFilament())
         assertEquals("UNLOAD_FILAMENT", PrinterCommands.unloadFilament())
         assertEquals("T0", PrinterCommands.selectTool(0))
-    }
-
-    @Test
-    fun materialPresets_areFixedSet() {
-        val names = PrinterCommands.MATERIAL_PRESETS.map { it.name }
-        assertEquals(listOf("PLA", "PETG", "ABS", "TPU"), names)
-        val pla = PrinterCommands.MATERIAL_PRESETS.first { it.name == "PLA" }
-        assertEquals(200, pla.nozzle)
-        assertEquals(60, pla.bed)
     }
 
     // --- clamping (ASVS V5) -----------------------------------------------------------------------

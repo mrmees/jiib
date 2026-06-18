@@ -243,18 +243,6 @@ object PrinterCommands {
     // --- Fixed identifier sets --------------------------------------------------------------------
     private val MOTION_AXES = setOf("X", "Y", "Z")
 
-    // --- Material presets (D-02, RESEARCH §6) -----------------------------------------------------
-    /** A fixed preheat preset: primary `extruder` + `heater_bed` targets only (v1 scope). */
-    data class Preset(val name: String, val nozzle: Int, val bed: Int)
-
-    /** Built-in fixed preheat presets (D-02). Multi-tool per-preset targeting is deferred (v1 scope). */
-    val MATERIAL_PRESETS: List<Preset> = listOf(
-        Preset("PLA", 200, 60),
-        Preset("PETG", 240, 80),
-        Preset("ABS", 245, 100),
-        Preset("TPU", 220, 50),
-    )
-
     // --- Builders ---------------------------------------------------------------------------------
 
     /** Single-source clamp authority for a heater target (17-07): the value a markPending optimistic flip
@@ -274,14 +262,6 @@ object PrinterCommands {
         }
         return "SET_FILAMENT_SENSOR SENSOR=$sensor ENABLE=${if (enable) 1 else 0}"
     }
-
-    /** Two newline-joined SET_HEATER_TEMPERATURE lines for the PRIMARY `extruder` + `heater_bed`
-     * (v1 scope; multi-tool per-preset targeting deferred). Both targets clamped. */
-    fun applyPreset(nozzle: Int, bed: Int): String =
-        setHeater("extruder", nozzle) + "\n" + setHeater("heater_bed", bed)
-
-    /** Apply a fixed [Preset] (convenience over [applyPreset]). */
-    fun applyPreset(preset: Preset): String = applyPreset(preset.nozzle, preset.bed)
 
     // --- Heat Presets (per-printer sparse setpoint maps) ------------------------------------------
 
