@@ -283,6 +283,34 @@ object PrinterCommands {
     /** Apply a fixed [Preset] (convenience over [applyPreset]). */
     fun applyPreset(preset: Preset): String = applyPreset(preset.nozzle, preset.bed)
 
+    // --- Heat Presets (per-printer sparse setpoint maps) ------------------------------------------
+
+    /** `SET_TEMPERATURE_FAN_TARGET FAN=<fan> TARGET=<target>`. [target] clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
+    fun setTemperatureFanTarget(fan: String, target: Int): String =
+        "SET_TEMPERATURE_FAN_TARGET FAN=$fan TARGET=${clampHeaterTarget(target)}"
+
+    /**
+     * Build the newline-joined gcode for an arbitrary [setpoints] map (heater object name → °C):
+     * `temperature_fan <name>` → SET_TEMPERATURE_FAN_TARGET; everything else → SET_HEATER_TEMPERATURE
+     * (heater_generic uses the BARE name as HEATER=). Order is sorted by object name for determinism.
+     * Every value is clamped. An empty map yields "".
+     */
+    fun applyHeatPreset(setpoints: Map<String, Int>): String =
+        setpoints.entries
+            .sortedBy { it.key }
+            .joinToString("\n") { (obj, temp) -> heaterCommandLine(obj, temp) }
+
+    private fun heaterCommandLine(objectName: String, temp: Int): String =
+        if (objectName.startsWith("temperature_fan ")) {
+            setTemperatureFanTarget(objectName.removePrefix("temperature_fan "), temp)
+        } else {
+            setHeater(heaterArg(objectName), temp)
+        }
+
+    /** The `HEATER=` argument for SET_HEATER_TEMPERATURE: heater_generic uses its bare name. */
+    private fun heaterArg(objectName: String): String =
+        if (objectName.startsWith("heater_generic ")) objectName.removePrefix("heater_generic ") else objectName
+
     /**
      * Relative jog of one axis, mode-safe: `SAVE_GCODE_STATE → G91 → G1 <axis><mm> F<feed> → RESTORE`.
      * [axis] must be X/Y/Z; [mm] magnitude clamped to [MAX_JOG_MM] (sign preserved); [feedMmMin]
