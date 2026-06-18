@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -286,45 +287,51 @@ private fun SpoolContent(
         val focusTitle = selected?.let { spoolFocusTitle(it) }
             ?: stringResource(R.string.cd_launcher_spool)
 
-        // Sort options — SortOption with registered DinghyIcons tokens.
+        // Sort options — three options → icon-only (count rule); type-tile retired 2026-06-17.
         val sortOptions = persistentListOf(
             SortOption(
                 key = SpoolSortKey.NAME,
                 icon = DinghyIcons.MatchCase,
+                label = stringResource(R.string.spool_sort_name),
                 contentDescriptionRes = R.string.cd_spool_sort_name,
                 directionUp = if (state.sortKey == SpoolSortKey.NAME) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.DATE,
                 icon = DinghyIcons.CalendarClock,
+                label = stringResource(R.string.spool_sort_date),
                 contentDescriptionRes = R.string.cd_spool_sort_date,
                 directionUp = if (state.sortKey == SpoolSortKey.DATE) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.REMAINING,
                 icon = DinghyIcons.Scale,
+                label = stringResource(R.string.spool_sort_remaining),
                 contentDescriptionRes = R.string.cd_spool_sort_remaining,
                 directionUp = if (state.sortKey == SpoolSortKey.REMAINING) state.sortAscending else null,
             ),
         )
 
-        // Filter options — FilterOption with registered DinghyIcons tokens.
+        // Filter options — three options → icon-only (count rule); type-tile retired 2026-06-17.
         val filterOptions = persistentListOf(
             FilterOption(
                 key = SpoolFilterCategory.TYPE,
                 icon = DinghyIcons.Experiment,
+                label = stringResource(R.string.spool_filter_type),
                 contentDescriptionRes = R.string.cd_spool_filter_type,
                 isActive = state.filters.materialFamilies.isNotEmpty(),
             ),
             FilterOption(
                 key = SpoolFilterCategory.COLOR,
                 icon = DinghyIcons.Palette,
+                label = stringResource(R.string.spool_filter_color),
                 contentDescriptionRes = R.string.cd_spool_filter_color,
                 isActive = state.filters.colorSwatchHex != null,
             ),
             FilterOption(
                 key = SpoolFilterCategory.MFG,
                 icon = DinghyIcons.Storefront,
+                label = stringResource(R.string.spool_filter_mfg),
                 contentDescriptionRes = R.string.cd_spool_filter_mfg,
                 isActive = state.filters.vendors.isNotEmpty(),
             ),
@@ -412,19 +419,6 @@ private fun SpoolContent(
             },
         )
 
-        // DEBUG-ONLY uDp badge in the bottom-start corner (release-stripped via BuildConfig.DEBUG).
-        if (BuildConfig.DEBUG) {
-            Text(
-                text = "U=${grid.uDp}",
-                color = t.accent2,
-                style = DinghyType.dataMeta.toTextStyle(t),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(4.dp)
-                    .background(t.bg.copy(alpha = 0.8f))
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            )
-        }
     }
 }
 
@@ -824,13 +818,19 @@ private fun SpoolDetailContent(
         // The fill bar is the spool's weight visual (label shows remaining/original g · %) AND the
         // tap target to correct the measured weight (the old standalone weight row was removed).
         val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
+        val measureInteraction = remember { MutableInteractionSource() }
         FillMeter(
             fraction = fillFraction,
             fillColor = spoolColor ?: t.accent,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(t.rCtrl))
-                .clickable(onClick = onMeasure)
+                // Tap target to correct the weight — no rounded clip / indication frame so the
+                // weight line carries no rounded border (owner UAT 2026-06-17).
+                .clickable(
+                    interactionSource = measureInteraction,
+                    indication = null,
+                    onClick = onMeasure,
+                )
                 .semantics { contentDescription = editWeightCd },
             label = fillLabel,
         )

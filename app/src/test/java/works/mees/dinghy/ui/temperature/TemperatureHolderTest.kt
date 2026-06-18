@@ -51,11 +51,11 @@ class TemperatureHolderTest {
         val legend = holder.legend.value
         assertEquals("two drawn sensors (nozzle + bed)", 2, legend.size)
         assertEquals("extruder", legend[0].name)
-        assertEquals("NOZZLE", legend[0].label)
+        assertEquals("Nozzle", legend[0].label)
         assertEquals(200.0, legend[0].current, 0.001)
         assertEquals(210.0, legend[0].target!!, 0.001)
         assertEquals("heater_bed", legend[1].name)
-        assertEquals("BED", legend[1].label)
+        assertEquals("Bed", legend[1].label)
         assertEquals(58.0, legend[1].current, 0.001)
         assertEquals(60.0, legend[1].target!!, 0.001)
 
@@ -157,8 +157,8 @@ class TemperatureHolderTest {
             listOf("extruder", "heater_bed", "heater_generic chamber", "heater_generic exhaust"),
             legend.map { it.name },
         )
-        assertEquals("CHAMBER", legend.first { it.name == "heater_generic chamber" }.label)
-        assertEquals("EXHAUST", legend.first { it.name == "heater_generic exhaust" }.label)
+        assertEquals("Chamber", legend.first { it.name == "heater_generic chamber" }.label)
+        assertEquals("Exhaust", legend.first { it.name == "heater_generic exhaust" }.label)
         assertEquals(4, holder.series.value.size)
         assertEquals(4, holder.setpoints.value.size)
     }

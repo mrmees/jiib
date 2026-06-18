@@ -185,6 +185,11 @@ object DinghyIcons {
     val SmoothTime = DinghyIcon(IconRef.Ligature("avg_time"), alternate = "smooth_time")
     val Decrease = DinghyIcon(IconRef.Ligature("remove"), alternate = "decrease")
     val Increase = DinghyIcon(IconRef.Ligature("add"), alternate = "increase")
+    // Increment-SELECTION step −/+ (owner 2026-06-17). USE WHEREVER AN INCREMENT SELECTION IS
+    // ADJUSTED (the Move Microstep step-size cycler) — distinct from the generic value ± (Decrease/
+    // Increase = remove/add). Both ligatures verified present in the bundled v2.944 ttf.
+    val StatMinus1 = DinghyIcon(IconRef.Ligature("stat_minus_1"), alternate = "decrement_one")
+    val StatPlus1 = DinghyIcon(IconRef.Ligature("stat_1"), alternate = "increment_one")
     val InputCircle = DinghyIcon(IconRef.Ligature("input_circle"), alternate = "input_circle")
     // Revert-to-default header action (setting-adjustment compliance, 2026-06-13; owner-chosen
     // `refresh` ligature, img/material-icon-bucket.json). Bare end-aligned glyph in the Focus header.
@@ -363,7 +368,7 @@ object DinghyIcons {
         MatchCase, CalendarClock, Experiment, Home, QrCode,
         Print, Delete, LineWeight, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
-        Visibility, VisibilityOff, Warning,
+        Visibility, VisibilityOff, Warning, StatMinus1, StatPlus1,
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
         JogXPlus, HomeStateHomed, HomeStateUnhomed,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,

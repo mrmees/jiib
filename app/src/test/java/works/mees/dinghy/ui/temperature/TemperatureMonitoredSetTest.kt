@@ -90,7 +90,7 @@ class TemperatureMonitoredSetTest {
         assertFalse("sensor is not adjustable", chamber.isAdjustable)
         assertNull("sensor has no target", chamber.target)
         assertEquals("sensor current read from temperatureSensors", 30.5, chamber.current, 0.001)
-        assertEquals("CHAMBER", chamber.label)
+        assertEquals("Chamber", chamber.label)
 
         // setpoints: sensor index is null even though it is in the monitored set.
         val setpoints = holder.setpoints.value

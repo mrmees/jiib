@@ -104,14 +104,15 @@ internal data class SelectorOption<K>(
  * on [OutlinedControl], with an optional leading recessed TYPE tile. [SortRow], [FilterRow], and
  * [IncrementPicker] are thin presets over this one base.
  *
- * ## Anatomy (LOCKED for Sort/Filter — COMPONENTS.md §3)
- *  - **Leading type tile** ([leadingTypeTile] non-null): a recessed, NON-interactive `t.bg2` tile
- *    that identifies the row's function (Sort/Filter). No group-label text. Null = no leader
- *    (IncrementPicker).
+ * ## Anatomy (COMPONENTS.md §3)
+ *  - **Leading type tile** ([leadingTypeTile] non-null): an OPTIONAL general capability — a recessed,
+ *    NON-interactive `t.bg2` tile that identifies the row's function. RETIRED for the Sort/Filter
+ *    presets 2026-06-17 (they now pass it null and render text-label tiles, no leader). Null = no
+ *    leader (IncrementPicker, Sort/Filter).
  *  - **Option tiles**: filled [OutlinedControl]s, weight 1f. Active = [Intent.Accent] + accentSoft
  *    fill; inactive = [Intent.Neutral] + default fill (R18).
  *  - **Direction overlay** ([SelectorOption.directionIcon] non-null): a small registered glyph at
- *    `Alignment.TopEnd`, non-displacing (does not replace the tile's primary icon). Sort only.
+ *    `Alignment.TopEnd`, non-displacing (does not replace the tile's primary label). Sort only.
  *
  * ## Sizing
  *  - Row height = exactly 1U via [controlHeight] — the single shared control-height rule, identical
@@ -143,7 +144,8 @@ internal fun <K> SelectorRow(
             horizontalArrangement = Arrangement.spacedBy(gapS(uDp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // LEADING TYPE TILE — recessed, non-interactive (mandatory for Sort/Filter anatomy).
+            // LEADING TYPE TILE — recessed, non-interactive (optional general capability; retired
+            // from the Sort/Filter presets 2026-06-17 — they pass null).
             if (leadingTypeTile != null) {
                 Box(
                     modifier = Modifier

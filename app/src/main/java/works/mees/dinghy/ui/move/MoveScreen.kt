@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.floor
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -396,17 +397,19 @@ internal fun MoveHubContent(
                                 var workingZ by remember(mode) {
                                     mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
                                 }
-                                // Two equal-weight scrubber columns with numeric endpoint labels,
-                                // and the Z value vertically centered BETWEEN them (no top reading).
+                                // Five columns: [fine labels] [fine slider] [Z value] [full slider]
+                                // [full labels]. Range labels flank each slider as their own columns
+                                // (owner 2026-06-17). Center Z value matches the X/Y coordinate text.
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .weight(1f),
                                 ) {
-                                    // Fine: 0–50 mm at 0.1 mm resolution.
+                                    // Col 1 — Fine range labels: 50 (top) / 0 (bottom).
+                                    ZRangeLabels(top = "50", bottom = "0")
+                                    // Col 2 — Fine slider: 0–50 mm @ 0.1 mm.
                                     ZScrubberColumn(
                                         name = "Fine",
-                                        topLabel = "50",
                                         value = workingZ,
                                         range = 0f..50f,
                                         step = 0.1f,
@@ -418,23 +421,23 @@ internal fun MoveHubContent(
                                             onMoveTo(null, null, workingZ.toDouble())
                                         },
                                     )
-                                    // Middle: the Z value, vertically centered between the two sliders.
+                                    // Col 3 — Z value, centered; matches the X/Y coordinate readout
+                                    // (statValue, 26sp) on the Touch Move / XY focuses (owner 2026-06-17).
                                     Box(
                                         Modifier.fillMaxHeight().padding(horizontal = 4.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
-                                            style = DinghyType.dataInline.toTextStyle(t),
+                                            style = DinghyType.statValue.toTextStyle(t),
                                             color = t.text,
                                             maxLines = 1,
                                             softWrap = false,
                                         )
                                     }
-                                    // Full: 0–Zmax at 1 mm resolution.
+                                    // Col 4 — Full slider: 0–Zmax @ 1 mm.
                                     ZScrubberColumn(
                                         name = "Full",
-                                        topLabel = fmt1(zMax.toDouble()),
                                         value = workingZ,
                                         range = 0f..zMax,
                                         step = 1f,
@@ -446,6 +449,8 @@ internal fun MoveHubContent(
                                             onMoveTo(null, null, workingZ.toDouble())
                                         },
                                     )
+                                    // Col 5 — Full range labels: floor(Zmax) (top) / 0 (bottom).
+                                    ZRangeLabels(top = floor(zMax).toInt().toString(), bottom = "0")
                                 }
                             }
                         }
@@ -517,6 +522,8 @@ internal fun MoveHubContent(
                                         onIncrement = { stepIndex = (stepIndex + 1) % steps.size },
                                         uDp = grid.uDp,
                                         intent = Intent.Accent,
+                                        decrementIcon = DinghyIcons.StatMinus1,
+                                        incrementIcon = DinghyIcons.StatPlus1,
                                         center = {
                                             Text(
                                                 text = fmtStep(activeStep),
@@ -812,14 +819,13 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, DinghyIcon> = when (mod
 }
 
 /**
- * One vertical Z scrubber column for the Z sub-mode: a top endpoint label, a vertical [Scrubber]
- * filling the remaining height, and a "0" bottom endpoint label. Factored out so the Fine (0–50)
- * and Full (0–Zmax) columns share one body. Both are `weight(1f)`-equal via [modifier].
+ * One vertical Z scrubber column (Fine 0–50 / Full 0–Zmax). Bare — the endpoint range labels now
+ * live in their own flanking [ZRangeLabels] columns (owner 2026-06-17, five-column Z layout). Both
+ * sliders are `weight(1f)`-equal via [modifier].
  */
 @Composable
 private fun ZScrubberColumn(
     name: String,
-    topLabel: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     step: Float,
@@ -828,37 +834,39 @@ private fun ZScrubberColumn(
     onSettle: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    Box(
+        modifier = modifier.fillMaxHeight(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Scrubber(
+            name = name,
+            value = value,
+            range = range,
+            step = step,
+            uDp = uDp,
+            unit = "mm",
+            orientation = ScrubberOrientation.Vertical,
+            onValueChange = onValueChange,
+            onSettle = onSettle,
+        )
+    }
+}
+
+/**
+ * A range-label column flanking a Z scrubber: [top] pushed to the top of the height, [bottom] to the
+ * bottom. Sized at the Z value's CURRENT size (dataInline, 20sp — owner ruling 2026-06-17; NOT the
+ * 26sp the center readout grows to). Muted via `t.text2`.
+ */
+@Composable
+private fun ZRangeLabels(top: String, bottom: String) {
     val t = LocalTokens.current
     Column(
-        modifier = modifier.fillMaxHeight(),
+        modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = topLabel,
-            style = DinghyType.dataMeta.toTextStyle(t),
-            color = t.text2,
-        )
-        Box(
-            modifier = Modifier.fillMaxHeight().weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
-            Scrubber(
-                name = name,
-                value = value,
-                range = range,
-                step = step,
-                uDp = uDp,
-                unit = "mm",
-                orientation = ScrubberOrientation.Vertical,
-                onValueChange = onValueChange,
-                onSettle = onSettle,
-            )
-        }
-        Text(
-            text = "0",
-            style = DinghyType.dataMeta.toTextStyle(t),
-            color = t.text2,
-        )
+        Text(text = top, style = DinghyType.dataInline.toTextStyle(t), color = t.text2)
+        Spacer(Modifier.weight(1f))
+        Text(text = bottom, style = DinghyType.dataInline.toTextStyle(t), color = t.text2)
     }
 }
 

@@ -1498,6 +1498,42 @@
     },
     {
       "family": "Material Symbols Outlined",
+      "iconName": "stat_minus_1",
+      "label": "Stat Minus 1",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "increment-selection step − / + — use wherever an increment SELECTION is adjusted (Move Microstep step-size cycler)",
+      "createdAt": 1781000000000,
+      "updatedAt": 1781000000000,
+      "key": "Material Symbols Outlined::stat_minus_1",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Astat_minus_1%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "stat_1",
+      "label": "Stat 1",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "48"
+      },
+      "color": "#e3e3e3",
+      "size": "48",
+      "notes": "increment-selection step − / + — use wherever an increment SELECTION is adjusted (Move Microstep step-size cycler)",
+      "createdAt": 1781000000000,
+      "updatedAt": 1781000000000,
+      "key": "Material Symbols Outlined::stat_1",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Astat_1%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
       "iconName": "remove",
       "label": "Remove",
       "axes": {

@@ -523,7 +523,7 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                                contentInset = 0.dp, // graph fills to the rounded frame edge (owner 2026-06-17)
                             ) {
                                 GraphViewHost(
                                     tokens = t,
@@ -820,7 +820,7 @@ private fun SensorPickerFocus(
 }
 
 private fun sensorPickerLabel(objectName: String): String =
-    objectName.removePrefix("temperature_sensor ").uppercase()
+    titleCase(objectName.removePrefix("temperature_sensor "))
 
 /**
  * Monitoring-mode appearance popup (Task-10): 4×2 color grid + visibility toggle + Done.

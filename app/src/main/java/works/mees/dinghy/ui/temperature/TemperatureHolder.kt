@@ -306,17 +306,28 @@ class TemperatureHolder(
 }
 
 /**
- * Short uppercase label for a heater object name (mirrors PrintStatusScreen.label):
- * - `extruder` → "NOZZLE"; `extruder1`/`extruder2` → "NOZZLE 1"/… ; `heater_bed` → "BED";
- * - `heater_generic <name>` → uppercased name; anything else → uppercased verbatim.
+ * Title-cases a raw token: lowercases, splits on whitespace + underscore, capitalizes each word.
+ * e.g. `mcu_temp` → "Mcu Temp", `chamber` → "Chamber". Internal so the same-package
+ * TemperatureScreen sensor picker can reuse it (DRY).
+ */
+internal fun titleCase(raw: String): String =
+    raw.lowercase()
+        .split(Regex("[\\s_]+"))
+        .filter { it.isNotEmpty() }
+        .joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } }
+
+/**
+ * Short Title-Case label for a heater object name (owner 2026-06-17 — was UPPERCASE):
+ * - `extruder` → "Nozzle"; `extruder1`/`extruder2` → "Nozzle 1"/… ; `heater_bed` → "Bed";
+ * - `heater_generic <name>` / `temperature_sensor <name>` → title-cased name; else → title-cased.
  */
 private fun label(objectName: String): String = when {
-    objectName == "extruder" -> "NOZZLE"
-    objectName.startsWith("extruder") -> "NOZZLE ${objectName.removePrefix("extruder")}"
-    objectName == "heater_bed" -> "BED"
-    objectName.startsWith("heater_generic ") -> objectName.removePrefix("heater_generic ").uppercase()
-    objectName.startsWith("temperature_sensor ") -> objectName.removePrefix("temperature_sensor ").uppercase()
-    else -> objectName.uppercase()
+    objectName == "extruder" -> "Nozzle"
+    objectName.startsWith("extruder") -> "Nozzle ${objectName.removePrefix("extruder")}"
+    objectName == "heater_bed" -> "Bed"
+    objectName.startsWith("heater_generic ") -> titleCase(objectName.removePrefix("heater_generic "))
+    objectName.startsWith("temperature_sensor ") -> titleCase(objectName.removePrefix("temperature_sensor "))
+    else -> titleCase(objectName)
 }
 
 /**

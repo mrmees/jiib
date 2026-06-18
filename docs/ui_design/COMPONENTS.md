@@ -45,15 +45,16 @@ A load-bearing visual rule. Two categories of surface, visually distinct at a gl
 | **Content** | `Color.Transparent` | `t.outline` (1.5dp) | Scrollable list items (`ListRow`) |
 | **Content — selected / active** | `t.accentSoft` | `t.accentLine` (2dp) | A `ListRow` in its selected state |
 | **Controls** | `t.surface` shade | `t.outline` or intent-line if active | Buttons, tiles, action bars, detail cards |
-| **Recessed context markers** | `t.bg2` | — | Non-interactive type-icon tiles (`SortFilterControlRow`) |
+| **Recessed context markers** | `t.bg2` | — | Non-interactive type-icon tiles (general `SelectorRow` `leadingTypeTile` capability; RETIRED from the Sort/Filter presets 2026-06-17) |
 | **Danger controls** | `t.stopSoft` / transparent | `t.stop` | `FloatingEStop` |
 
 Selection and active states layer accent tint on top of the base category — they do not change
 the fundamental content-vs-control classification.
 
-**No group-label words.** Grouping is communicated by outline + fill shade + accent + leading
-type-icon alone. A text header above a group of controls is non-conformant in the jiib grammar.
-See `SortFilterControlRow` in §3 for the canonical compound-control example of label-free grouping.
+**No group-label words.** Grouping is communicated by outline + fill shade + accent alone. A
+text header above a group of controls is non-conformant in the jiib grammar. (The Sort/Filter
+rows are themselves text-LABEL tiles as of 2026-06-17, but those labels name each OPTION — they
+are not a group header.) See `SortFilterControlRow` in §3.
 
 Full fill-convention documentation also lives in `LAYOUT.md §"Content vs controls — fill
 convention"` — these two sections are intentionally in sync, with `LAYOUT.md` as the spatial
@@ -72,7 +73,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | `FillMeter` | Filled fill layer | `t.surface3` (track) + data fill | — | Read-only fraction bar (weight remaining, progress) | `designsystem/components/FillMeter.kt` |
 | `FootButtonBar` | — (container only) | — | — | Row of `OutlinedControl` buttons pinned to foot of list | `designsystem/components/FootButtonBar.kt` |
 | `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Shell-fallback e-stop (Webcam + Theme only — all other screens dock in FocusFrame header) | `designsystem/components/FloatingEStop.kt` |
-| `SortFilterControlRow` | Filled (control) | type-tile: `t.bg2`; option tile: `t.surface`; active: `t.accentSoft` | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
+| `SortFilterControlRow` | Filled (control) | icon option tiles (label shows if ≤2 options): `t.surface`; active: `t.accentSoft` (leading type-tile RETIRED 2026-06-17) | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
 | Control tile (general) | Filled | `t.surface` | `t.outline` / intent-line if active | Interactive grid tile (launcher, shortcut, jog pad cell) | `OutlinedControl.kt` (existing) |
 | `ListBlock` | — (scroll wrapper) | — | — | Edge-faded `LazyColumn` container | `designsystem/layout/ListBlock.kt` |
 | `RegisteredRegion` | — (frame owner) | — | — | 8dp edge-registration frame + inter-element gap owner for a screen region | `designsystem/layout/RegisteredRegion.kt` |
@@ -289,27 +290,24 @@ a sibling.
 Piloted on SpoolScreen (Phase 23), integrated app-wide (Phase 24); now superseded by the docked
 header morph on all `FocusFrame` screens.
 
-#### `SortFilterControlRow` — LOCKED compound anatomy
+#### `SortFilterControlRow` — icon tiles, count-driven labels (leading TYPE tile RETIRED 2026-06-17)
 
-**The sort/filter row is a COMPOUND component.** Its anatomy is non-negotiable:
+**The sort/filter row is a row of ICON option tiles.** The leading recessed TYPE tile is
+**RETIRED (owner 2026-06-17)** — there is no leading glyph. Each tile keeps its icon; its short
+text label shows BESIDE the icon only when the row has ≤2 options (the shared `FootButtonBar`
+count rule, `FOOT_BAR_ICON_ONLY_THRESHOLD` = 3), else the tile is icon-only:
 
 ```
-[ TYPE tile ]  [ option tile ]  [ option tile ]  …
-  (recessed,    (filled, t.surface; active = t.accentSoft)
-   non-tap,
-   t.bg2)
+[ icon (+ label if ≤2) ]  [ icon ]  [ icon ]  …
+  (filled, t.surface; active = t.accentSoft; e.g. Files 2-up → calendar+"Date"; Spool 3-up → icon-only)
 ```
 
-A **leading RECESSED, non-interactive TYPE tile** precedes all option tiles:
-- For a sort row: `DinghyIcons.Sort` (`sort` ligature), `t.bg2` background
-- For a filter row: `DinghyIcons.FilterList` (`filter_list` ligature), `t.bg2` background
+Each option tile ALWAYS carries a label (for the count-driven text + a11y); the fill shade +
+accent carry the active-state grouping. Files sort (2 options) shows icon+label; Spool sort and
+filter (3 options) are icon-only — same component, count decides.
 
-The type tile is **not tappable**. It is a visual context marker, not an option. Its recessed
-`bg2` background distinguishes it from the tappable option tiles.
-
-**NO group-label words anywhere on the row.** The type-tile icon + fill shade + accent carry
-the grouping information. A bare option-list row without the leading type tile is
-**NON-CONFORMANT** — do not implement one.
+The Sort row's active tile still overlays a small non-displacing direction glyph (the registered
+`SortAsc`/`SortDesc` arrow_drop pair) at `Alignment.TopEnd` — that overlay is unchanged.
 
 Active option tile: `t.accentSoft` fill, `t.accentLine` border, `t.accent2` foreground.
 Inactive option tile: `t.surface` fill, `t.outline` border.
@@ -467,20 +465,20 @@ canonical `FootButtonBar` usage.
 All icons on all screens come from `DinghyIcons.kt` or are requested via the owner. **Never
 auto-pick a Material Symbol or create a custom drawable independently.** See
 `docs/ui_design/CLAUDE.md §"Icons: never the same glyph twice…"` and the never-auto-pick law
-that follows it. This applies to SortFilterControlRow type-tiles, FocusFrame glyphs, and every
-other use.
+that follows it. This applies to the SortFilterControlRow Sort direction-overlay glyph
+(`SortAsc`/`SortDesc`; the leading type-tile is retired), FocusFrame glyphs, and every other use.
 
 ---
 
-## 6. SortFilterControlRow anatomy (LOCKED)
+## 6. SortFilterControlRow anatomy
 
-The sort/filter row compound component is documented fully in §3 above ("SortFilterControlRow —
-LOCKED compound anatomy"). Key invariants:
+The sort/filter row component is documented fully in §3 above ("SortFilterControlRow —
+icon tiles, count-driven labels"). Key invariants (leading TYPE tile RETIRED 2026-06-17):
 
-1. **Always a leading type tile** (`Sort` or `FilterList` icon, `t.bg2`, non-interactive).
-2. **No group-label text** anywhere on the row.
+1. **No leading type tile** — RETIRED 2026-06-17; the row is a bare list of option tiles, no leading glyph.
+2. **Option tiles are ICON tiles** that carry a label; the label TEXT shows beside the icon only when the row has ≤2 options (`FOOT_BAR_ICON_ONLY_THRESHOLD` count rule), else icon-only.
 3. **Option tiles are filled** (`t.surface`), not transparent — they are controls, not content.
-4. **A bare option-list row without the type tile is NON-CONFORMANT.**
+4. **Sort active tile keeps its non-displacing direction overlay** (`SortAsc`/`SortDesc` arrow_drop pair).
 
 ---
 
