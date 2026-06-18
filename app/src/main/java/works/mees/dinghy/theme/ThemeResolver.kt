@@ -39,6 +39,7 @@ class ThemeResolver(
     // The 3 status-slot overrides (D-03), keyed by [StatusSlot.key]. Applied MODE-GATED in
     // [TokenBridge.build] — honored in Colorful, IGNORED in Simple/High-Contrast (D-04).
     private var statusOverrides: Map<String, Color> = emptyMap(),
+    private var accentOverride: Color? = null,
     private var fs: Float = FontScale.M.multiplier,
 ) {
 
@@ -87,6 +88,12 @@ class ThemeResolver(
         recompute()
     }
 
+    /** Set (or clear, null) the accent override; recomputes + re-emits. Applies in ALL modes. */
+    fun setAccentOverride(argb: Color?) = synchronized(this) {
+        accentOverride = argb
+        recompute()
+    }
+
     /**
      * Edit ONE status-slot override (D-03 — Stop/Caution/Go). A non-null [argb] sets that status color;
      * `null` clears it back to the generated color. Applied MODE-GATED in [TokenBridge.build] (honored
@@ -121,6 +128,7 @@ class ThemeResolver(
         overrides: Map<Int, Color>,
         fs: Float,
         statusOverrides: Map<String, Color> = emptyMap(),
+        accentOverride: Color? = null,
     ) = synchronized(this) {
         this.seedHex = seedHex
         this.dark = dark
@@ -128,6 +136,7 @@ class ThemeResolver(
         this.poolShift = poolShift
         this.poolOverrides = overrides
         this.statusOverrides = statusOverrides
+        this.accentOverride = accentOverride
         this.fs = fs
         recompute()
     }
@@ -149,7 +158,7 @@ class ThemeResolver(
      * [computeFrom] so the live `apply()`/`set*()` path is byte-identical to a [bake] of the same inputs.
      */
     private fun compute(): ThemeTokens =
-        computeFrom(seedHex, dark, paletteMode, poolShift, poolOverrides, statusOverrides, fs)
+        computeFrom(seedHex, dark, paletteMode, poolShift, poolOverrides, statusOverrides, fs, accentOverride)
 
     /**
      * Bake an arbitrary theme TUPLE to a snapshot [ThemeTokens] PURELY (HIGH-2): it reads NO `var` field,
@@ -168,6 +177,7 @@ class ThemeResolver(
             poolOverrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
             statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
             fs = tuple.fs,
+            accentOverride = tuple.accentOverride?.toComposeColor(),
         )
 
     /**
@@ -186,6 +196,7 @@ class ThemeResolver(
         poolOverrides: Map<Int, Color>,
         statusOverrides: Map<String, Color>,
         fs: Float,
+        accentOverride: Color? = null,
     ): ThemeTokens {
         return try {
             val simple = paletteMode == MODE_SIMPLE
@@ -199,7 +210,7 @@ class ThemeResolver(
                 simple = simple,
                 highContrast = highContrast,
             )
-            TokenBridge.build(generated, poolOverrides, fs, statusOverrides)
+            TokenBridge.build(generated, poolOverrides, fs, statusOverrides, accentOverride)
         } catch (_: Throwable) {
             // Fail-safe: a complete, usable default theme — the load-bearing Phase-3 contract.
             (if (dark) TokensDark else TokensLight).copy(fs = fs)

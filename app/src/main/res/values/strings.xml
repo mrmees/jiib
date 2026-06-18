@@ -696,6 +696,24 @@
     <string name="theme_status_slot_stop">Stop</string>
     <string name="theme_status_slot_caution">Caution</string>
     <string name="theme_status_slot_go">Go</string>
+    <string name="theme_screen_title">Theme</string>
+    <string name="theme_intro">A theme is built from a seed color, a color style, and a set of pool colors.</string>
+    <string name="theme_row_dark_light">Dark / Light</string>
+    <string name="theme_row_palette_mode">Palette mode</string>
+    <string name="theme_row_seed">Seed color</string>
+    <string name="theme_row_colors">Theme colors</string>
+    <string name="theme_dark_light_focus">Dark and light flip primary surfaces to their contrast; generated colors shift to stay legible.</string>
+    <string name="theme_palette_mode_focus">Full color shows maximum color indicators throughout the app. High Contrast focuses on only the major theme color and intent colors. Simple is theme color only.</string>
+    <string name="theme_seed_focus">Pick a hue. The accent and pool are generated from it; lightness is set automatically for contrast.</string>
+    <string name="theme_colors_focus">Tap a swatch to set its color. Randomize re-rolls the pool from the seed.</string>
+    <string name="theme_revert">Revert</string>
+    <string name="theme_save">Save</string>
+    <string name="theme_cancel">Cancel</string>
+    <string name="theme_swatch_accent">Accent</string>
+    <string name="theme_swatch_pool">Pool %1$d</string>
+    <string name="cd_theme_saved_swatch">Saved color</string>
+    <string name="theme_indicator_custom">Custom</string>
+    <string name="theme_indicator_default">Default</string>
 
 
     <!-- Splash recovery surface (wide-pass string extraction, R14) -->
