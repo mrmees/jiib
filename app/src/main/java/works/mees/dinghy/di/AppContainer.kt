@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.shouldSeedName
@@ -692,6 +693,53 @@ class AppContainer(
         writeScope.launch { themePrefs.setDevEnable(on) }
     }
 
+    // ---- Live-preview draft overlay (Task 6) -------------------------------------------------------
+    //
+    // A DRAFT is the Theme editor's live-preview + Save/Revert contract: an in-memory-only ThemeTuple
+    // that takes HIGHEST precedence in effectiveTokens (ungated — no devCyclerEnabled gate). Setting
+    // the draft makes the live preview instant; committing persists then clears it; clearing discards.
+
+    /** The live edit DRAFT (in-memory ONLY, ungated) — the Theme editor's Save/Revert preview layer. */
+    private val _themeDraft = MutableStateFlow<works.mees.dinghy.theme.ThemePrefs.ThemeTuple?>(null)
+    val themeDraft: StateFlow<works.mees.dinghy.theme.ThemePrefs.ThemeTuple?> = _themeDraft.asStateFlow()
+
+    /** Begin/replace the draft (e.g. on entering an editor, seeded from the saved tuple). In-memory only. */
+    fun setThemeDraft(tuple: works.mees.dinghy.theme.ThemePrefs.ThemeTuple?) { _themeDraft.value = tuple }
+
+    /** Atomically mutate the active draft (rapid-edit-safe), e.g. `{ it?.copy(seedHex = next) }`. */
+    fun updateThemeDraft(
+        transform: (works.mees.dinghy.theme.ThemePrefs.ThemeTuple?) -> works.mees.dinghy.theme.ThemePrefs.ThemeTuple?,
+    ) { _themeDraft.update(transform) }
+
+    /** Discard the draft (Revert/Cancel/exit-without-save). Live preview snaps back to the saved tuple. */
+    fun clearThemeDraft() { _themeDraft.value = null }
+
+    /**
+     * Persist the current draft durably, then clear it once the persisted [activeThemeTuple] catches up.
+     * Do the write AND the bounded catch-up wait in ONE [writeScope] coroutine using the DIRECT suspend
+     * writers (NOT [mutateActiveProfile], which launches its own coroutine). The wait is bounded by
+     * [withTimeoutOrNull] so a no-op/failed write can never strand the draft forever; the final clear is
+     * guarded so a NEW draft started during the wait survives.
+     */
+    fun commitThemeDraft(active: Boolean) {
+        val d = _themeDraft.value ?: return
+        writeScope.launch {
+            if (active) {
+                profileStore.mutateActive {
+                    it.copy(
+                        seedHex = d.seedHex, dark = d.dark, paletteMode = d.paletteMode, poolShift = d.poolShift,
+                        poolOverrides = d.poolOverrides.mapKeys { e -> e.key.toString() } + d.statusOverrides,
+                        accentOverrideArgb = d.accentOverride,
+                    )
+                }
+            } else {
+                themePrefs.applyTuple(d)
+            }
+            withTimeoutOrNull(2_000) { activeThemeTuple.first { it.copy(fs = d.fs) == d } }
+            if (_themeDraft.value == d) clearThemeDraft()
+        }
+    }
+
     // ---- Spine publication (review #6) -------------------------------------------------------------
 
     private val _spine = MutableStateFlow<SpineHandle?>(null)
@@ -924,9 +972,8 @@ class AppContainer(
      * (PATTERNS FACT 2), so flipping this ONE collect re-themes the classic-Views surfaces too.
      */
     val effectiveTokens: Flow<works.mees.dinghy.theme.ThemeTokens> =
-        combine(activeThemeTuple, _themeOverride, devCyclerEnabled) { base, ov, devOn ->
-            val tuple = if (ov != null && devOn) ov.mergeOnto(base) else base
-            themeResolver.bake(tuple)
+        combine(activeThemeTuple, _themeDraft, _themeOverride, devCyclerEnabled) { base, draft, ov, devOn ->
+            themeResolver.bake(resolveThemeTuple(base, draft, ov, devOn))
         }
 
     /**
@@ -1097,3 +1144,16 @@ class AppContainer(
         }
     }
 }
+
+/**
+ * Pure theme-tuple precedence used by [AppContainer.effectiveTokens]: an active edit DRAFT wins
+ * unconditionally (live preview, ungated); else the dev-cycler override applies only while [devOn];
+ * else the persisted base.
+ */
+fun resolveThemeTuple(
+    base: works.mees.dinghy.theme.ThemePrefs.ThemeTuple,
+    draft: works.mees.dinghy.theme.ThemePrefs.ThemeTuple?,
+    override: works.mees.dinghy.theme.ThemeOverride?,
+    devOn: Boolean,
+): works.mees.dinghy.theme.ThemePrefs.ThemeTuple =
+    draft ?: if (override != null && devOn) override.mergeOnto(base) else base
