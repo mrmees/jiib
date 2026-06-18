@@ -29,8 +29,7 @@
 
 **Engine / persistence (Phase 1–2):**
 - `app/src/main/java/works/mees/dinghy/theme/ThemePrefs.kt` — add `accentOverride` to `ThemeTuple`, its DataStore key, reader, `setAccentOverride`, atomic `applyTuple`, reset.
-- `app/src/main/java/works/mees/dinghy/config/Profile.kt` — add `accentOverrideArgb`, thread `toThemeTuple`/`toPersisted`/`fromPersisted`.
-- `app/src/main/java/works/mees/dinghy/config/PersistedProfile.kt` — add `accentOverrideArgb` wire field.
+- `app/src/main/java/works/mees/dinghy/config/Profile.kt` — add `accentOverrideArgb`, thread `toThemeTuple`/`toPersisted`/`fromPersisted`. **`PersistedProfile` is declared INSIDE this same file (`Profile.kt:24`) — add its wire field here too; there is NO separate `PersistedProfile.kt`.**
 - `app/src/main/java/works/mees/dinghy/theme/TokenBridge.kt` — add `accentOverride: Color?` param; resolve accent before the family.
 - `app/src/main/java/works/mees/dinghy/theme/ThemeResolver.kt` — thread `accentOverride` through `apply`/`bake`/`computeFrom`/`compute`; add `setAccentOverride`.
 - `app/src/main/java/works/mees/dinghy/di/AppContainer.kt` — `setActiveAccentOverride`; `_themeDraft` + `setThemeDraft`/`updateThemeDraft`/`commitThemeDraft`/`clearThemeDraft`; fold draft into `effectiveTokens`; thread accent into `seedTheme`.
@@ -206,8 +205,7 @@ git commit -m "feat(theme): accent override field in ThemeTuple + ThemePrefs per
 ## Task 2: `Profile` + `PersistedProfile` accent field round-trip
 
 **Files:**
-- Modify: `app/src/main/java/works/mees/dinghy/config/Profile.kt`
-- Modify: `app/src/main/java/works/mees/dinghy/config/PersistedProfile.kt`
+- Modify: `app/src/main/java/works/mees/dinghy/config/Profile.kt` (contains BOTH `Profile` and `PersistedProfile`)
 - Test: `app/src/test/java/works/mees/dinghy/theme/AccentOverrideTest.kt` (append)
 
 - [ ] **Step 1: Add the failing test (append to `AccentOverrideTest`)**
@@ -249,8 +247,8 @@ git commit -m "feat(theme): accent override field in ThemeTuple + ThemePrefs per
 - `toPersisted()` — add `accentOverrideArgb = accentOverrideArgb,` to the `PersistedProfile(...)` call.
 - `fromPersisted()` — add `accentOverrideArgb = p.accentOverrideArgb,` to the `Profile(...)` call.
 
-`PersistedProfile.kt`:
-- Add the matching nullable field (after `nameAutoSeeded`, keep the `@Serializable` defaulting convention used by the rest of the class):
+`PersistedProfile` (the `@Serializable` class lower in the SAME `Profile.kt`):
+- Add the matching nullable field (after its `nameAutoSeeded`, keep the `@Serializable` defaulting convention used by the rest of the class):
 ```kotlin
     val accentOverrideArgb: Long? = null,
 ```
@@ -259,7 +257,7 @@ git commit -m "feat(theme): accent override field in ThemeTuple + ThemePrefs per
 
 - [ ] **Step 5: Commit**
 ```bash
-git add app/src/main/java/works/mees/dinghy/config/Profile.kt app/src/main/java/works/mees/dinghy/config/PersistedProfile.kt app/src/test/java/works/mees/dinghy/theme/AccentOverrideTest.kt
+git add app/src/main/java/works/mees/dinghy/config/Profile.kt app/src/test/java/works/mees/dinghy/theme/AccentOverrideTest.kt
 git commit -m "feat(theme): accent override on Profile/PersistedProfile with round-trip"
 ```
 
@@ -406,7 +404,7 @@ git commit -m "feat(theme): thread accent override through ThemeResolver apply/b
 
 - [ ] **Step 1: Implement** (no isolated unit test — covered by Task 6's draft test and on-device UAT; this mirrors the proven `setActiveOverride` shape exactly).
 
-Add near `setActiveStatusOverride`:
+(a) Add near `setActiveStatusOverride`:
 ```kotlin
     /** Persist (or clear, null) the accent override — active profile, else the global idle theme. */
     fun setActiveAccentOverride(active: Boolean, argb: Long?) {
@@ -414,6 +412,14 @@ Add near `setActiveStatusOverride`:
         else writeScope.launch { themePrefs.setAccentOverride(argb) }
     }
 ```
+
+(b) **Codex fix — `seedTheme()` must apply the persisted accent** so `themeResolver.tokens` consumers see it. In `seedTheme()`'s `themeResolver.apply(...)` call (`AppContainer.kt:~945`), add as a new argument:
+```kotlin
+                        accentOverride = tuple.accentOverride?.toComposeColor(),
+```
+(Ensure `works.mees.dinghy.theme.toComposeColor` resolves — it's a top-level fun in `StatusSlot.kt`; add the import if needed.)
+
+(c) **Codex fix — `resetActiveTheme()` must clear the accent field.** In the ACTIVE branch's `it.copy(...)` (`AppContainer.kt:~1055`), add `accentOverrideArgb = null,` after `poolOverrides = emptyMap(),`. (The idle branch already routes through `themePrefs.resetToDefaults()`, patched in Task 1 to remove the accent key.)
 
 - [ ] **Step 2: Build to verify it compiles**
 ```bash
@@ -424,7 +430,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 ```bash
 git add app/src/main/java/works/mees/dinghy/di/AppContainer.kt
-git commit -m "feat(theme): setActiveAccentOverride durable intent"
+git commit -m "feat(theme): accent override intent + seedTheme apply + reset clear"
 ```
 
 ---
@@ -506,24 +512,30 @@ fun resolveThemeTuple(
     /**
      * Persist the current draft durably, then clear it once the persisted [activeThemeTuple] catches up
      * (so the live preview never flashes back to the old theme between the async write and its emit).
+     *
+     * Codex fix: do the write AND the bounded catch-up wait in ONE [writeScope] coroutine using the DIRECT
+     * suspend writers (NOT [mutateActiveProfile], which launches its own coroutine and would race the wait).
+     * The wait is bounded by [withTimeoutOrNull] so a no-op/failed write (e.g. no active profile) can never
+     * strand the draft forever; the final clear is guarded so a NEW draft started during the wait survives.
      */
     fun commitThemeDraft(active: Boolean) {
         val d = _themeDraft.value ?: return
-        if (active) {
-            mutateActiveProfile {
-                it.copy(
-                    seedHex = d.seedHex, dark = d.dark, paletteMode = d.paletteMode, poolShift = d.poolShift,
-                    poolOverrides = d.poolOverrides.mapKeys { e -> e.key.toString() } + d.statusOverrides,
-                    accentOverrideArgb = d.accentOverride,
-                )
-            }
-        } else {
-            writeScope.launch { themePrefs.applyTuple(d) }
-        }
-        // Hold the draft as the live preview until the saved tuple matches it (ignore fs — app-global).
         writeScope.launch {
-            activeThemeTuple.first { it.copy(fs = d.fs) == d }
-            clearThemeDraft()
+            if (active) {
+                profileStore.mutateActive {
+                    it.copy(
+                        seedHex = d.seedHex, dark = d.dark, paletteMode = d.paletteMode, poolShift = d.poolShift,
+                        poolOverrides = d.poolOverrides.mapKeys { e -> e.key.toString() } + d.statusOverrides,
+                        accentOverrideArgb = d.accentOverride,
+                    )
+                }
+            } else {
+                themePrefs.applyTuple(d)
+            }
+            // Hold the draft as the live preview until the saved tuple matches it (ignore fs — app-global),
+            // but never block forever.
+            withTimeoutOrNull(2_000) { activeThemeTuple.first { it.copy(fs = d.fs) == d } }
+            if (_themeDraft.value == d) clearThemeDraft()
         }
     }
 ```
@@ -536,7 +548,7 @@ fun resolveThemeTuple(
         }
 ```
 
-(d) Ensure imports: `kotlinx.coroutines.flow.first`, `kotlinx.coroutines.flow.update` (the file already imports `combine`, `MutableStateFlow`, `asStateFlow`, `StateFlow` per Task-1 agent findings).
+(d) Ensure imports: `kotlinx.coroutines.flow.first`, `kotlinx.coroutines.flow.update`, `kotlinx.coroutines.withTimeoutOrNull` (the file already imports `combine`, `MutableStateFlow`, `asStateFlow`, `StateFlow` per Task-1 agent findings).
 
 - [ ] **Step 4: Run the draft test — PASS. Then full compile + theme tests:**
 ```bash
@@ -857,13 +869,35 @@ This task replaces the whole file with the host, the stateless seam, the Field l
 
 **Files:**
 - Modify (full rewrite): `app/src/main/java/works/mees/dinghy/ui/screen/ThemeScreen.kt`
+- Delete: `app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt` (ordering fix — see below)
+- Delete: `app/src/main/java/works/mees/dinghy/preview/ThemeEditorPreviews.kt` (it imports `ThemeEditorContent`)
 
-- [ ] **Step 1: Check who references the old helpers/`ThemeEditorContent`**
+> **⚠ CODEX PATCHES (apply while writing this file — the base code block below is updated for #1, #2; you MUST hand-apply #3–#6):**
+> 1. **Add the missing import** `import androidx.compose.ui.unit.dp` (used by `8.dp` here and more in Task 13).
+> 2. **Delete the old files in Step 1** (before compiling) — the migrated `hueToHex`/`hsvToArgbLong`/`seedHexToHue` top-level funcs collide with `ThemeEditorScreen.kt` otherwise.
+> 3. **Thread `saved: ThemePrefs.ThemeTuple`** as a new `ThemeContent` param (right after `working`), and pass it down into `ThemeFocus`. It is the discard/compare baseline (the draft is the live edit; `saved` is what Revert/Cancel restore to). The host already passes `saved = saved`.
+> 4. **Hoist `editingSwatch`** out of `ThemeFocus` into `ThemeContent` (so the foot Back can step back through it). Declare `var editingSwatch by remember { mutableStateOf<ThemeSwatch?>(null) }` — **`remember`, NOT `rememberSaveable`** (the sealed `ThemeSwatch` is not Parcelable/Serializable → `rememberSaveable` CRASHES). Route row taps through a `selectRow` lambda that also clears `editingSwatch`. Pass `editingSwatch` + a setter into `ThemeFocus`.
+> 5. **Contextual foot Back** (replace the `onClick` of the Back `FootAction`):
+>    ```kotlin
+>    onClick = {
+>        when {
+>            editingSwatch != null -> editingSwatch = null   // swatch editor → grid (staged edits kept)
+>            selected != null -> selected = null             // row detail → resting list
+>            else -> { container?.clearThemeDraft(); onBack() } // exit: discard the draft
+>        }
+>    }
+>    ```
+>    Keep `backIntent = if (hasDraft) Intent.Danger else Intent.Accent` (red = unsaved).
+> 6. The `ThemeFocus` signature gains `saved`, `editingSwatch`, and `onEditSwatch: (ThemeSwatch?) -> Unit`.
+
+- [ ] **Step 1: Delete the retired files FIRST (ordering fix), then check references**
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
-grep -rn "ThemeEditorContent\|hueToHex\|hsvToArgbLong\|seedHexToHue\b\|colorToHue\|parseHex\b" app/src/main app/src/test | grep -v "ThemeEditorScreen.kt"
+git rm app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt
+git rm app/src/main/java/works/mees/dinghy/preview/ThemeEditorPreviews.kt
+grep -rn "ThemeEditorContent\|hueToHex\|hsvToArgbLong\|seedHexToHue\b\|colorToHue\|parseHex\b" app/src/main app/src/test
 ```
-Record every hit — each must be repointed (the previews in Task 16; any test in this step). If a test references `hueToHex`/`hsvToArgbLong`, keep those helper names identical when migrating.
+Record every remaining hit — each must be repointed to the new `works.mees.dinghy.ui.screen` helpers (Task 15 adds the new previews). If a test references `hueToHex`/`hsvToArgbLong`, keep those helper names identical when migrating.
 
 - [ ] **Step 2: Write the new `ThemeScreen.kt`** (host + seam + rows + simple Focus states + migrated helpers). The Seed/Colors Focus bodies render a placeholder `Box` here:
 ```kotlin
@@ -880,12 +914,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
@@ -941,13 +977,16 @@ fun ThemeScreen(
 
     ThemeContent(
         working = working,
+        saved = saved,
         hasDraft = draft != null,
         isPrinting = isPrinting,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onBack = onBack,
         // immediate (no draft) controls:
-        onDarkToggle = { d -> container.themeResolver.setDark(d); container.setActiveDark(hasActive, d) },
-        onPaletteMode = { m -> container.themeResolver.setMode(m); container.setActiveMode(hasActive, m) },
+        // Codex fix: effectiveTokens NEVER reads themeResolver.tokens, and a live draft wins
+        // unconditionally — so update the draft too (if one is open) AND persist immediately.
+        onDarkToggle = { d -> container.updateThemeDraft { it?.copy(dark = d) }; container.setActiveDark(hasActive, d) },
+        onPaletteMode = { m -> container.updateThemeDraft { it?.copy(paletteMode = m) }; container.setActiveMode(hasActive, m) },
         // draft lifecycle (Seed/Colors editors call these — wired in Tasks 12/13):
         container = container,
         hasActive = hasActive,
@@ -958,6 +997,7 @@ fun ThemeScreen(
 @Composable
 internal fun ThemeContent(
     working: ThemePrefs.ThemeTuple,
+    saved: ThemePrefs.ThemeTuple,          // Codex fix #3: discard/compare baseline (Revert/Cancel restore to this)
     hasDraft: Boolean,
     isPrinting: Boolean,
     onEmergencyStop: (() -> Unit)?,
@@ -970,6 +1010,11 @@ internal fun ThemeContent(
     initialSelected: ThemeRow? = null,
 ) {
     var selected by rememberSaveable { mutableStateOf(initialSelected) }
+    // Codex fix #4: hoisted here (so the foot Back can step through it). `remember` NOT `rememberSaveable`
+    // — the sealed `ThemeSwatch` is not Parcelable/Serializable, so rememberSaveable would crash.
+    var editingSwatch by remember { mutableStateOf<ThemeSwatch?>(null) }
+    // Selecting a different row always closes any open swatch editor.
+    val selectRow: (ThemeRow?) -> Unit = { editingSwatch = null; selected = it }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -978,11 +1023,12 @@ internal fun ThemeContent(
         ScreenScaffold(
             focus = {
                 ThemeFocus(
-                    selected = selected, working = working, uDp = grid.uDp,
+                    selected = selected, working = working, saved = saved, uDp = grid.uDp,
                     isPrinting = isPrinting, onEmergencyStop = onEmergencyStop,
                     onDarkToggle = onDarkToggle, onPaletteMode = onPaletteMode,
                     container = container, hasActive = hasActive,
-                    onCloseEditor = { selected = null },
+                    editingSwatch = editingSwatch, onEditSwatch = { editingSwatch = it },
+                    onCloseEditor = { editingSwatch = null; selected = null },
                     modifier = Modifier.fillMaxSize(),
                 )
             },
@@ -998,13 +1044,13 @@ internal fun ThemeContent(
                         )
                     }
                     item { ThemeSelectorRow(ThemeRow.PaletteMode, selected, DinghyIcons.InvertColors,
-                        stringResource(R.string.theme_row_palette_mode), paletteModeLabel(working.paletteMode), grid.uDp) { selected = it } }
+                        stringResource(R.string.theme_row_palette_mode), paletteModeLabel(working.paletteMode), grid.uDp, selectRow) }
                     item { ThemeSelectorRow(ThemeRow.Seed, selected, DinghyIcons.Colors,
-                        stringResource(R.string.theme_row_seed), "", grid.uDp) { selected = it } }
+                        stringResource(R.string.theme_row_seed), "", grid.uDp, selectRow) }
                     item { ThemeSelectorRow(ThemeRow.Colors, selected, DinghyIcons.Palette,
                         stringResource(R.string.theme_row_colors),
                         if (hasCustomColors(working)) stringResource(R.string.theme_indicator_custom)
-                        else stringResource(R.string.theme_indicator_default), grid.uDp) { selected = it } }
+                        else stringResource(R.string.theme_indicator_default), grid.uDp, selectRow) }
                 }
                 FootButtonBar(
                     uDp = grid.uDp,
@@ -1013,9 +1059,12 @@ internal fun ThemeContent(
                             label = stringResource(R.string.common_back),
                             icon = DinghyIcons.Back,
                             onClick = {
-                                // Back discards any open draft (Revert semantics) then navigates.
-                                container?.clearThemeDraft()
-                                onBack()
+                                // Codex fix #5: contextual step-back (swatch → grid → list → exit-with-discard).
+                                when {
+                                    editingSwatch != null -> editingSwatch = null
+                                    selected != null -> selected = null
+                                    else -> { container?.clearThemeDraft(); onBack() }
+                                }
                             },
                             intent = backIntent,
                             contentDescription = stringResource(R.string.cd_back),
@@ -1046,10 +1095,11 @@ private fun ThemeSelectorRow(
 
 @Composable
 private fun ThemeFocus(
-    selected: ThemeRow?, working: ThemePrefs.ThemeTuple, uDp: Dp,
+    selected: ThemeRow?, working: ThemePrefs.ThemeTuple, saved: ThemePrefs.ThemeTuple, uDp: Dp,
     isPrinting: Boolean, onEmergencyStop: (() -> Unit)?,
     onDarkToggle: (Boolean) -> Unit, onPaletteMode: (String) -> Unit,
-    container: AppContainer?, hasActive: Boolean, onCloseEditor: () -> Unit,
+    container: AppContainer?, hasActive: Boolean,
+    editingSwatch: ThemeSwatch?, onEditSwatch: (ThemeSwatch?) -> Unit, onCloseEditor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -1145,12 +1195,12 @@ internal fun argbLongToHsv(argb: Long): FloatArray {
 
 > NOTE: `PaletteMode` import is retained for Task 13's status-mode gating note; if Kotlin flags it unused at this task, drop the import and re-add in Task 13.
 
-- [ ] **Step 3: Compile** (Task 8 Step 2 command). Fix any reference the Step-1 grep flagged (e.g. a test importing `hueToHex` from the old file — repoint the import to `works.mees.dinghy.ui.screen.hueToHex`). Expected: BUILD SUCCESSFUL once `ThemeEditorScreen.kt` still exists (it's deleted in Task 16) — to avoid a duplicate-symbol clash, **temporarily** comment out the old `ThemeEditorScreen`'s `hueToHex`/`hsvToArgbLong`/`seedHexToHue` `internal` funcs now, or proceed knowing Task 16 deletes the file. Simplest: do Step 4 of Task 16 (delete old file + old previews) BEFORE compiling here. If you compile before deleting, expect "conflicting declarations" — that is the signal to delete in Task 16.
+- [ ] **Step 3: Compile** (Task 8 Step 2 command). The old `ThemeEditorScreen.kt` + `ThemeEditorPreviews.kt` were already `git rm`'d in Step 1, so the migrated helpers no longer collide. Fix any reference the Step-1 grep flagged (e.g. a test importing `hueToHex` from the old file → repoint to `works.mees.dinghy.ui.screen.hueToHex`). Expected: BUILD SUCCESSFUL. (No previews exist until Task 15 — that's fine; previews aren't compiled into the app path the same way and their absence doesn't break the build.)
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit** (includes the two deletions from Step 1)
 ```bash
-git add app/src/main/java/works/mees/dinghy/ui/screen/ThemeScreen.kt
-git commit -m "feat(theme): lists-first ThemeScreen host + Field rows + simple Focus states"
+git add -A app/src/main/java/works/mees/dinghy/ui/screen app/src/main/java/works/mees/dinghy/preview
+git commit -m "feat(theme): lists-first ThemeScreen host + Field rows; retire ThemeEditorScreen"
 ```
 
 ---
@@ -1201,13 +1251,15 @@ git commit -m "feat(theme): Seed Color Focus — live hue slider + Save (draft)"
 **Files:**
 - Modify: `app/src/main/java/works/mees/dinghy/ui/screen/ThemeScreen.kt`
 
-- [ ] **Step 1: Add swatch-editor sub-state + the grid/editor composables.**
+> **⚠ CODEX PATCHES (already folded into the code below — do NOT re-add the old versions):**
+> - `editingSwatch` is the HOISTED `ThemeFocus` PARAM (Task 11 fix #4), not local state — use `editingSwatch`/`onEditSwatch(...)`, never a local `rememberSaveable`.
+> - Cancel restores from `saved` (the param), NOT `working` (which is the live draft).
+> - Status grid swatches render the LITERAL draft override (`statusFill`), because `t.stop/heat/go` are mode-gated and would hide an override in Simple/HighContrast.
+> - `swatchTitle` is `@Composable` (uses `stringResource`).
 
-(a) At the top of `ThemeFocus`, add an editing-slot state and route to the editor when a swatch is open:
-```kotlin
-    var editingSwatch by rememberSaveable { mutableStateOf<ThemeSwatch?>(null) }
-```
-Add `import androidx.compose.runtime.remember` if needed and define the swatch identity enum at file scope:
+- [ ] **Step 1: Add the grid/editor composables (state already hoisted in Task 11).**
+
+(a) Define the swatch identity type at file scope:
 ```kotlin
 /** The 8 editable grid slots: 4 pool indices + accent + 3 status. */
 sealed interface ThemeSwatch {
@@ -1224,7 +1276,7 @@ sealed interface ThemeSwatch {
             if (ed == null) {
                 frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
                     val tk = LocalTokens.current
-                    ThemeSwatchGrid(tk, onTap = { editingSwatch = it })
+                    ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedControl(stringResource(R.string.theme_randomize),
                             onClick = {
@@ -1248,14 +1300,14 @@ sealed interface ThemeSwatch {
                 }
             } else {
                 ThemeSwatchEditor(
-                    swatch = ed, working = working, uDp = uDp, modifier = modifier,
+                    swatch = ed, saved = saved, uDp = uDp, modifier = modifier,
                     isPrinting = isPrinting, onEmergencyStop = onEmergencyStop,
                     onMovePreview = { argb -> container?.updateThemeDraft { applySwatch(it ?: working, ed, argb) } },
-                    onSave = { editingSwatch = null },          // already staged into the draft live
+                    onSave = { onEditSwatch(null) },          // already staged into the draft live
                     onCancel = {
-                        // discard this swatch's edit: re-stage the saved value for this slot only
-                        container?.updateThemeDraft { restoreSwatch(it ?: working, ed, working) }
-                        editingSwatch = null
+                        // Codex fix: discard this swatch's edit by restoring the SAVED value (not `working`).
+                        container?.updateThemeDraft { restoreSwatch(it ?: working, ed, saved) }
+                        onEditSwatch(null)
                     },
                 )
             }
@@ -1265,8 +1317,12 @@ sealed interface ThemeSwatch {
 (c) Add the grid, editor, and staging helpers at file scope:
 ```kotlin
 @Composable
-private fun ColumnScope.ThemeSwatchGrid(t: works.mees.dinghy.theme.ThemeTokens, onTap: (ThemeSwatch) -> Unit) {
+private fun ColumnScope.ThemeSwatchGrid(
+    t: works.mees.dinghy.theme.ThemeTokens, working: ThemePrefs.ThemeTuple, onTap: (ThemeSwatch) -> Unit,
+) {
     // 1U-capped wide cells, 4 columns × 2 rows. Pool = number; intent = symbol. No captions.
+    // Pool + accent come from the baked tokens (overrides already applied in all modes); STATUS uses the
+    // literal draft override (statusFill) because t.stop/heat/go are mode-gated (Codex fix).
     val uDp = works.mees.dinghy.designsystem.layout.LocalUnitDp.current ?: 64.dp
     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1275,13 +1331,21 @@ private fun ColumnScope.ThemeSwatchGrid(t: works.mees.dinghy.theme.ThemeTokens, 
             }
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SwatchCell(t.accent, uDp, Modifier.weight(1f), symbol = DinghyIcons.Star) { onTap(ThemeSwatch.Accent) }
-                SwatchCell(t.stop, uDp, Modifier.weight(1f), symbol = DinghyIcons.StatusStop) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Stop)) }
-                SwatchCell(t.heat, uDp, Modifier.weight(1f), symbol = DinghyIcons.Warning) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Caution)) }
-                SwatchCell(t.go, uDp, Modifier.weight(1f), symbol = DinghyIcons.CheckCircle) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Go)) }
+                SwatchCell(statusFill(works.mees.dinghy.theme.StatusSlot.Stop, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.StatusStop) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Stop)) }
+                SwatchCell(statusFill(works.mees.dinghy.theme.StatusSlot.Caution, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.Warning) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Caution)) }
+                SwatchCell(statusFill(works.mees.dinghy.theme.StatusSlot.Go, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.CheckCircle) { onTap(ThemeSwatch.Status(works.mees.dinghy.theme.StatusSlot.Go)) }
             }
         }
     }
 }
+
+/** Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token. */
+private fun statusFill(slot: works.mees.dinghy.theme.StatusSlot, working: ThemePrefs.ThemeTuple, t: works.mees.dinghy.theme.ThemeTokens): androidx.compose.ui.graphics.Color =
+    working.statusOverrides[slot.key]?.toComposeColor() ?: when (slot) {
+        works.mees.dinghy.theme.StatusSlot.Stop -> t.stop
+        works.mees.dinghy.theme.StatusSlot.Caution -> t.heat
+        works.mees.dinghy.theme.StatusSlot.Go -> t.go
+    }
 
 @Composable
 private fun SwatchCell(
@@ -1302,12 +1366,15 @@ private fun SwatchCell(
 
 @Composable
 private fun ThemeSwatchEditor(
-    swatch: ThemeSwatch, working: ThemePrefs.ThemeTuple, uDp: Dp, modifier: Modifier,
+    swatch: ThemeSwatch, saved: ThemePrefs.ThemeTuple, uDp: Dp, modifier: Modifier,
     isPrinting: Boolean, onEmergencyStop: (() -> Unit)?,
     onMovePreview: (Long) -> Unit, onSave: () -> Unit, onCancel: () -> Unit,
 ) {
     val t = LocalTokens.current
-    val savedArgb = savedSwatchArgb(swatch, working, t)
+    // Codex fix: the header/compare baseline is the SAVED value — bake the saved tuple once (not `working`,
+    // which is the live draft). The live in-progress pick is shown by the whole-app preview.
+    val savedTokens = remember(saved) { works.mees.dinghy.theme.ThemeResolver().bake(saved) }
+    val savedArgb = savedSwatchArgb(swatch, saved, savedTokens)
     val hsv = argbLongToHsv(savedArgb)
     var h by rememberSaveable(swatch) { mutableStateOf(hsv[0]) }
     var s by rememberSaveable(swatch) { mutableStateOf(hsv[1]) }
@@ -1326,7 +1393,12 @@ private fun ThemeSwatchEditor(
             )
         }
         if (swatch is ThemeSwatch.Status && t.mode != PaletteMode.Colorful) {
-            Text(stringResource(R.string.theme_status_saved_for_colorful, paletteModeLabel(working.paletteMode)),
+            val modeLabel = stringResource(when (t.mode) {
+                PaletteMode.Simple -> R.string.theme_mode_simple
+                PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
+                else -> R.string.theme_mode_colorful
+            })
+            Text(stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
                 color = t.text3, style = DinghyType.caption.toTextStyle(t))
         }
         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1360,10 +1432,15 @@ private fun savedSwatchArgb(sw: ThemeSwatch, working: ThemePrefs.ThemeTuple, t: 
         ?: when (sw.slot) { works.mees.dinghy.theme.StatusSlot.Stop -> t.stop; works.mees.dinghy.theme.StatusSlot.Caution -> t.heat; works.mees.dinghy.theme.StatusSlot.Go -> t.go }.toArgb().toLong() and 0xFFFFFFFFL
 }
 
+@Composable
 private fun swatchTitle(sw: ThemeSwatch): String = when (sw) {
-    is ThemeSwatch.Pool -> "Pool ${sw.index + 1}"
-    ThemeSwatch.Accent -> "Accent"
-    is ThemeSwatch.Status -> sw.slot.name
+    is ThemeSwatch.Pool -> stringResource(R.string.theme_swatch_pool, sw.index + 1)
+    ThemeSwatch.Accent -> stringResource(R.string.theme_swatch_accent)
+    is ThemeSwatch.Status -> stringResource(when (sw.slot) {
+        works.mees.dinghy.theme.StatusSlot.Stop -> R.string.theme_status_slot_stop
+        works.mees.dinghy.theme.StatusSlot.Caution -> R.string.theme_status_slot_caution
+        works.mees.dinghy.theme.StatusSlot.Go -> R.string.theme_status_slot_go
+    })
 }
 private fun swatchIcon(sw: ThemeSwatch): DinghyIcon = when (sw) {
     is ThemeSwatch.Pool -> DinghyIcons.Palette
@@ -1376,9 +1453,9 @@ private fun swatchIcon(sw: ThemeSwatch): DinghyIcon = when (sw) {
 }
 ```
 
-(d) Add imports used above: `androidx.compose.foundation.background`, `androidx.compose.foundation.BorderStroke`, `androidx.compose.foundation.border`, `androidx.compose.foundation.clickable`, `androidx.compose.foundation.layout.height`, `androidx.compose.foundation.shape.RoundedCornerShape`, `androidx.compose.ui.draw.clip`, `androidx.compose.ui.graphics.luminance`, `androidx.compose.ui.graphics.toArgb`, `androidx.compose.runtime.remember`, `works.mees.dinghy.designsystem.layout.LocalUnitDp`, `works.mees.dinghy.designsystem.components.FocusEdge`, `androidx.compose.foundation.layout.fillMaxSize`.
+(d) Add imports used above: `androidx.compose.foundation.background`, `androidx.compose.foundation.BorderStroke`, `androidx.compose.foundation.border`, `androidx.compose.foundation.clickable`, `androidx.compose.foundation.layout.height`, `androidx.compose.foundation.shape.RoundedCornerShape`, `androidx.compose.ui.draw.clip`, `androidx.compose.ui.graphics.luminance`, `androidx.compose.ui.graphics.toArgb`, `works.mees.dinghy.designsystem.layout.LocalUnitDp`, `works.mees.dinghy.designsystem.components.FocusEdge`, `androidx.compose.foundation.layout.fillMaxSize`, `works.mees.dinghy.theme.ThemeResolver` (for `bake(saved)`). (`remember` was already added in Task 11; `toComposeColor` is a same-package top-level fun — no import.)
 
-> `swatchTitle`/`Pool %d` should use `stringResource(R.string.theme_swatch_pool, index+1)` inside a `@Composable`; since these helpers are non-composable, build the title in the composable call site instead, or convert `swatchTitle` to `@Composable` and use `stringResource`. Prefer the latter for i18n.
+> `swatchTitle` is `@Composable` and uses `stringResource` (Codex i18n note resolved). `statusFill` returns a fully-qualified `androidx.compose.ui.graphics.Color`.
 
 > The spec's "header swatch = saved value, outline = live pick": delivered via `FocusEdge.Data(savedColor)` for the saved value border PLUS the live full-app preview for the in-progress pick. If on-device the owner wants the saved swatch as a literal header glyph instead of the edge, switch to `FocusFrame`'s `trailingActionIcon` slot or a custom header swatch in a follow-up (flagged for UAT).
 
@@ -1422,73 +1499,88 @@ git commit -m "feat(theme): Theme owns its e-stop (FocusFrame) — drop shell Fl
 
 ---
 
-## Task 15: Delete old screen + replace the preview matrix
+## Task 15: New `@Preview` matrix (old screen + previews already deleted in Task 11)
 
 **Files:**
-- Delete: `app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt`
-- Replace: `app/src/main/java/works/mees/dinghy/preview/ThemeEditorPreviews.kt` → new `ThemePreviews.kt`
+- Create: `app/src/main/java/works/mees/dinghy/preview/ThemePreviews.kt`
 
-- [ ] **Step 1: Delete the old editor**
-```bash
-git rm app/src/main/java/works/mees/dinghy/ui/screen/ThemeEditorScreen.kt
-```
+> The old `ThemeEditorScreen.kt` + `ThemeEditorPreviews.kt` were `git rm`'d in Task 11 Step 1. This task only ADDS the new preview matrix targeting `ThemeContent`.
 
-- [ ] **Step 2: Replace the previews.** Delete the old file and create `app/src/main/java/works/mees/dinghy/preview/ThemePreviews.kt` driving the new `ThemeContent` seam across the required matrix (portrait + landscape × dark/light × palette modes × a font-scale + RTL spot check × each `ThemeRow`). Reuse the package's existing `PreviewBox`/`NEXUS7_PORTRAIT` helpers (grep them) and add a landscape device handle:
+- [ ] **Step 1: Confirm the preview helpers + landscape device constant**
 ```bash
-git rm app/src/main/java/works/mees/dinghy/preview/ThemeEditorPreviews.kt
-grep -rn "fun PreviewBox\|NEXUS7_PORTRAIT\|NEXUS7_LAND\|val colorfulDark\b" app/src/main/java/works/mees/dinghy/preview | head
+grep -rn "fun PreviewBox\|NEXUS7_PORTRAIT\|val NEXUS7\b\|val colorfulDark\b\|val colorfulLight\b" app/src/main/java/works/mees/dinghy/preview | head
 ```
+Codex confirms `PreviewBox`, `NEXUS7_PORTRAIT`, `colorfulDark`, `colorfulLight` are real; the LANDSCAPE constant is `NEXUS7` (NOT `NEXUS7_LAND`).
+
+- [ ] **Step 2: Create `ThemePreviews.kt`.** Note `ThemeContent` now requires BOTH `working` AND `saved` (pass the same tuple in previews; `container = null` makes every `container?.` callback no-op):
 ```kotlin
 package works.mees.dinghy.preview
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import works.mees.dinghy.theme.ThemePrefs
+import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.ui.screen.ThemeContent
 import works.mees.dinghy.ui.screen.ThemeRow
 
+private val DEFAULT = ThemePrefs.TUPLE_DEFAULT
+private val SIMPLE = ThemePrefs.TUPLE_DEFAULT.copy(paletteMode = ThemeResolver.MODE_SIMPLE)
+
 @Preview(name = "Theme · resting · dark", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable private fun ThemeRestingDark() = PreviewBox(colorfulDark) {
-    ThemeContent(working = ThemePrefs.TUPLE_DEFAULT, hasDraft = false, isPrinting = false,
+    ThemeContent(working = DEFAULT, saved = DEFAULT, hasDraft = false, isPrinting = false,
         onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
         container = null, hasActive = false, initialSelected = null)
 }
 
 @Preview(name = "Theme · palette · dark", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable private fun ThemePaletteDark() = PreviewBox(colorfulDark) {
-    ThemeContent(working = ThemePrefs.TUPLE_DEFAULT, hasDraft = false, isPrinting = false,
+    ThemeContent(working = DEFAULT, saved = DEFAULT, hasDraft = false, isPrinting = false,
         onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
         container = null, hasActive = false, initialSelected = ThemeRow.PaletteMode)
 }
 
 @Preview(name = "Theme · colors · light", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable private fun ThemeColorsLight() = PreviewBox(colorfulLight) {
-    ThemeContent(working = ThemePrefs.TUPLE_DEFAULT.copy(dark = false), hasDraft = false, isPrinting = false,
+    val t = DEFAULT.copy(dark = false)
+    ThemeContent(working = t, saved = t, hasDraft = false, isPrinting = false,
         onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
         container = null, hasActive = false, initialSelected = ThemeRow.Colors)
 }
 
-@Preview(name = "Theme · seed · dirty-back(red)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Preview(name = "Theme · colors · simple", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable private fun ThemeColorsSimple() = PreviewBox(colorfulDark) {
+    ThemeContent(working = SIMPLE, saved = SIMPLE, hasDraft = false, isPrinting = false,
+        onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
+        container = null, hasActive = false, initialSelected = ThemeRow.Colors)
+}
+
+@Preview(name = "Theme · seed · dirty(red back)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable private fun ThemeSeedDirty() = PreviewBox(colorfulDark) {
-    ThemeContent(working = ThemePrefs.TUPLE_DEFAULT, hasDraft = true, isPrinting = false,
+    ThemeContent(working = DEFAULT, saved = DEFAULT, hasDraft = true, isPrinting = false,
         onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
         container = null, hasActive = false, initialSelected = ThemeRow.Seed)
 }
+
+@Preview(name = "Theme · resting · landscape", device = NEXUS7, showBackground = true)
+@Composable private fun ThemeRestingLandscape() = PreviewBox(colorfulDark) {
+    ThemeContent(working = DEFAULT, saved = DEFAULT, hasDraft = false, isPrinting = false,
+        onEmergencyStop = null, onBack = {}, onDarkToggle = {}, onPaletteMode = {},
+        container = null, hasActive = false, initialSelected = ThemeRow.Colors)
+}
 ```
-Add Simple/HighContrast + landscape variants following the same shape (use the landscape device constant the grep finds, or `@Preview(widthDp = 900, heightDp = 500)`).
+> The grid/seed/swatch editor branches all guard with `container?.`, so `container = null` previews render statically (no live preview, no crash). If the grep shows different seed-tuple constant names, swap them in.
 
-> Because `container` is nullable in `ThemeContent`, previews pass `null` and the editor callbacks no-op safely (every `container?.` call is null-guarded). Confirm the grid/seed branches guard with `container?.` (they do in Tasks 12/13).
-
-- [ ] **Step 3: Compile + the full unit suite** (proves the deletion repointed every reference):
+- [ ] **Step 3: Compile + the full unit suite** (proves Task 11's deletion repointed every reference):
 ```bash
 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:compileDebugKotlin :app:testDebugUnitTest --no-daemon" 2>&1 | tr -d '\r' | tail -30
 ```
-Expected: BUILD SUCCESSFUL + tests PASS. Fix any lingering `ThemeEditorContent`/old-helper imports the compiler flags.
+Expected: BUILD SUCCESSFUL + tests PASS. Fix any lingering `ThemeEditorContent`/old-helper import the compiler flags.
 
 - [ ] **Step 4: Commit**
 ```bash
-git add -A app/src/main/java/works/mees/dinghy/ui/screen app/src/main/java/works/mees/dinghy/preview
-git commit -m "feat(theme): retire ThemeEditorScreen; new ThemeContent @Preview matrix"
+git add app/src/main/java/works/mees/dinghy/preview/ThemePreviews.kt
+git commit -m "feat(theme): new ThemeContent @Preview matrix (portrait + landscape + modes)"
 ```
 
 ---
