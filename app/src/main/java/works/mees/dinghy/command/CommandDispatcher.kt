@@ -184,6 +184,27 @@ class CommandDispatcher(
         }
     }
 
+    /**
+     * One-shot request/response READ (e.g. `printer.query_endstops/status`). Unlike [dispatch],
+     * this awaits and returns the raw result and does NOT register the call in [inFlight] — it is a
+     * poll/read, not a user action, so it must never flicker control-busy state. Throws on a
+     * non-JSON-RPC spec, a no-connection/send failure, or a per-request timeout (propagated from
+     * the underlying transport).
+     */
+    suspend fun <P> query(
+        command: CommandSpec<P>,
+        args: P,
+        requestTimeoutMs: Long = timeoutMs,
+    ): JsonElement {
+        require(command.transport == CommandTransport.JsonRpc) {
+            "CommandDispatcher.query requires a JSON-RPC command; ${command.catalogId} uses ${command.transport}"
+        }
+        val method = requireNotNull(command.method) {
+            "Command ${command.catalogId} does not define a JSON-RPC method"
+        }
+        return request(method, command.params(args), requestTimeoutMs)
+    }
+
     companion object {
         /** Default tap-debounce window (ms). */
         const val DEFAULT_DEBOUNCE_MS = 400L
