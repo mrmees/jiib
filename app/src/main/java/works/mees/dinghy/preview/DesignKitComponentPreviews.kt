@@ -76,45 +76,45 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-        // Sample sort options — registered DinghyIcon tokens, never raw ligature strings
+        // Sample sort options — text-label tiles (type-tile retired 2026-06-17)
         val sortOptions = persistentListOf(
             SortOption(
                 key = SampleSortKey.Name,
-                icon = DinghyIcons.Inventory,
+                label = "Name",
                 contentDescriptionRes = R.string.cd_sort_by_name,
                 directionUp = true,     // active + ascending
             ),
             SortOption(
                 key = SampleSortKey.Material,
-                icon = DinghyIcons.Palette,
+                label = "Material",
                 contentDescriptionRes = R.string.cd_sort_by_material,
                 directionUp = null,     // not active
             ),
             SortOption(
                 key = SampleSortKey.Weight,
-                icon = DinghyIcons.Scale,
+                label = "Weight",
                 contentDescriptionRes = R.string.cd_sort_by_weight,
                 directionUp = null,     // not active
             ),
         )
 
-        // Sample filter options — registered DinghyIcon tokens
+        // Sample filter options — text-label tiles (type-tile retired 2026-06-17)
         val filterOptions = persistentListOf(
             FilterOption(
                 key = SampleFilterKey.Material,
-                icon = DinghyIcons.Inventory,
+                label = "Material",
                 contentDescriptionRes = R.string.cd_filter_by_material,
                 isActive = true,
             ),
             FilterOption(
                 key = SampleFilterKey.Color,
-                icon = DinghyIcons.Palette,
+                label = "Color",
                 contentDescriptionRes = R.string.cd_filter_by_color,
                 isActive = false,
             ),
             FilterOption(
                 key = SampleFilterKey.Vendor,
-                icon = DinghyIcons.Storefront,
+                label = "Vendor",
                 contentDescriptionRes = R.string.cd_filter_by_vendor,
                 isActive = false,
             ),

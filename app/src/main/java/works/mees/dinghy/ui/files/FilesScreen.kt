@@ -368,18 +368,18 @@ private fun FilesContent(
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         val t = LocalTokens.current
 
-        // D-06 sort: date (CalendarClock) + size (LineWeight). One active at a time; the active
-        // tile shows its direction arrow (SortRow renders the arrow only on the active key).
+        // D-06 sort: date + size text labels. One active at a time; the active tile shows its
+        // direction arrow (SortRow renders the arrow only on the active key).
         val sortOptions = persistentListOf(
             SortOption(
                 key = FileSortField.Date,
-                icon = DinghyIcons.CalendarClock,
+                label = stringResource(R.string.files_sort_date),
                 contentDescriptionRes = R.string.cd_files_sort_date,
                 directionUp = if (state.sortField == FileSortField.Date) state.sortAscending else null,
             ),
             SortOption(
                 key = FileSortField.Size,
-                icon = DinghyIcons.LineWeight,
+                label = stringResource(R.string.files_sort_size),
                 contentDescriptionRes = R.string.cd_files_sort_size,
                 directionUp = if (state.sortField == FileSortField.Size) state.sortAscending else null,
             ),
