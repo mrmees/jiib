@@ -46,4 +46,18 @@ class AccentOverrideTest {
             (overridden.accent.toArgb() ushr 16 and 0xFF) > (overridden.accent.toArgb() and 0xFF),
         )
     }
+
+    @Test fun `resolver bake equals apply for an accent override`() {
+        val tuple = ThemePrefs.TUPLE_DEFAULT.copy(accentOverride = 0xFFFF0000L)
+        val r = ThemeResolver()
+        r.apply(
+            seedHex = tuple.seedHex, dark = tuple.dark, paletteMode = tuple.paletteMode,
+            poolShift = tuple.poolShift, overrides = emptyMap(), fs = tuple.fs,
+            statusOverrides = emptyMap(),
+            accentOverride = androidx.compose.ui.graphics.Color(0xFFFF0000),
+        )
+        val applied = r.tokens.value.accent
+        val baked = r.bake(tuple).accent
+        assertEquals(baked.value, applied.value)
+    }
 }
