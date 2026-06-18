@@ -113,7 +113,7 @@ sealed interface MoveMode {
  *
  * @param container service-locator (live `printerState`, session dispatcher, saved locations).
  * @param holder    toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating + bounds/feed).
- * @param onBack    invoked by the Back foot button from Touch Move.
+ * @param onBack    invoked by the Back foot button — leaves the hub from ANY sub-mode.
  */
 @Composable
 fun MoveScreen(
@@ -829,10 +829,12 @@ internal fun MoveHubContent(
                 FootButtonBar(
                     uDp = grid.uDp,
                     actions = listOf(
-                        // Back: sub-mode → Touch Move; Touch Move → onBack (accent, FIRST — R5/R8).
+                        // Back: ALWAYS leave the hub regardless of sub-mode (owner 2026-06-18 — no
+                        // mode→TouchMove ladder). Leaving disposes the screen, which cancels the
+                        // Endstops poll LaunchedEffect (composition-scoped) — no dangling listener.
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            onClick = { if (mode == MoveMode.TouchMove) onBack() else mode = MoveMode.TouchMove },
+                            onClick = onBack,
                             intent = Intent.Accent,
                             icon = DinghyIcons.Back,
                             contentDescription = "Back",
