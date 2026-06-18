@@ -7279,10 +7279,10 @@
       "transport": "json_rpc",
       "name": "printer.query_endstops.status",
       "category": "printer",
-      "purpose": "Moonraker `printer.query_endstops.status` operation from the official external API documentation.",
+      "purpose": "Read the current trigger state (open/TRIGGERED) of each configured endstop.",
       "params": [],
       "key_params": [],
-      "semantics_tier": "light",
+      "semantics_tier": "full",
       "upstream_url": "https://moonraker.readthedocs.io/en/latest/external_api/printer/",
       "rest_endpoint": null,
       "http_method": null,
@@ -7293,9 +7293,9 @@
         "type": "always"
       },
       "runtime_registry": {
-        "status": "reference_only",
-        "registered": false,
-        "notes": "Official command/API surface cataloged for reference only; Dinghy v1 does not send it yet."
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for the Move → Endstops live poll."
       },
       "success_semantics": "Moonraker returns a JSON-RPC result or HTTP result body for successful requests.",
       "error_semantics": "Moonraker returns JSON-RPC error or HTTP error response when unavailable, unauthorized, or invalid.",

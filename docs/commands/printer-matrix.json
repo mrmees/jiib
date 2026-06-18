@@ -3017,6 +3017,29 @@
           "evidence": "object toolhead listed in /printer/objects/list capture."
         }
       ]
+    },
+    {
+      "catalog_id": "MR-printer.query_endstops.status",
+      "name": "printer.query_endstops.status",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "printer.query_endstops/status is a core Klipper endpoint present on all Klipper printers."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "printer.query_endstops/status is a core Klipper endpoint present on all Klipper printers."
+        }
+      ]
     }
   ],
   "not_on_printers": [
