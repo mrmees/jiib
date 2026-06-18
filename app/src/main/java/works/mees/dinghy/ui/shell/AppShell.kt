@@ -68,6 +68,7 @@ import works.mees.dinghy.ui.extrude.ExtrudeScreen
 import works.mees.dinghy.ui.finetune.FineTuneHolder
 import works.mees.dinghy.ui.finetune.FineTuneScreen
 import works.mees.dinghy.ui.heatpresets.HeatPresetsScreen
+import works.mees.dinghy.ui.increments.IncrementValuesScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
@@ -756,6 +757,12 @@ fun AppShell(
             }
             composable<NavDest.HeatPresets> {
                 HeatPresetsScreen(
+                    container = container,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.IncrementValues> {
+                IncrementValuesScreen(
                     container = container,
                     onBack = { navController.popBackStack() },
                 )
