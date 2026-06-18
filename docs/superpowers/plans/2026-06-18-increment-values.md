@@ -185,6 +185,17 @@ git commit -m "feat(increments): pure parse/validate/format for increment value 
 
 Fine-Tune entries DERIVE from `ALL_FINE_TUNE_PARAMS` (icon/name/steps reused → zero drift). The three unlimited entries are listed explicitly; babystep's default references `PrinterCommands.BABYSTEP_STEPS` so it can't drift from the (deferred) consumer.
 
+- [ ] **Step 0: Add the `QuestionMark` placeholder icon FIRST (registry depends on it)**
+
+The registry references `DinghyIcons.QuestionMark`, which does not exist yet, so it must be added before this task's code compiles. In `app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt` (inside `object DinghyIcons`), add near the other utility glyphs:
+
+```kotlin
+    /** Placeholder for controls without a chosen icon yet — babystep increment row (UAT review). */
+    val QuestionMark = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "question_mark")
+```
+
+Then run `python tools/verify_ligatures.py` — expected PASS. If it reports `question_mark` missing from the font subset, STOP and flag to the owner (icon law: do not substitute a different glyph).
+
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
@@ -349,38 +360,48 @@ Stores `Map<controlKey, canonicalString>` JSON-encoded under `increments_<profil
 
 - [ ] **Step 1: Write the failing test** (adapt the HeatPresetPrefs test harness)
 
+All tests use an in-memory DataStore — back-to-back writes on a temp-file store are unreliable on
+Windows (atomic `.tmp`→rename race). This mirrors `HeatPresetPrefsTest.newMemPrefs()`.
+
 ```kotlin
 package works.mees.dinghy.config
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 
 class IncrementListPrefsTest {
-    @get:Rule val tmp = TemporaryFolder()
 
-    private fun store(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(produceFile = { tmp.newFile("inc_${System.nanoTime()}.preferences_pb") })
+    /** In-memory DataStore for multi-write tests (sidesteps the Windows .tmp→rename race). */
+    private fun newMemPrefs(): IncrementListPrefs {
+        val state = MutableStateFlow<Preferences>(emptyPreferences())
+        val mem = object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = state
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+                val next = transform(state.value); state.value = next; return next
+            }
+        }
+        return IncrementListPrefs(mem)
+    }
 
     @Test fun `absent key reads empty`() = runTest {
-        val prefs = IncrementListPrefs(store())
-        assertEquals(emptyMap<String, String>(), prefs.lists("p1").first())
+        assertEquals(emptyMap<String, String>(), newMemPrefs().lists("p1").first())
     }
 
     @Test fun `setList round-trips`() = runTest {
-        val prefs = IncrementListPrefs(store())
+        val prefs = newMemPrefs()
         prefs.setList("p1", "move_microstep", "0.1,1,10")
         assertEquals(mapOf("move_microstep" to "0.1,1,10"), prefs.lists("p1").first())
     }
 
     @Test fun `setList overwrites only its key`() = runTest {
-        val prefs = IncrementListPrefs(store())
+        val prefs = newMemPrefs()
         prefs.setList("p1", "SPEED", "1,5,10")
         prefs.setList("p1", "SPEED", "2,4,6")
         prefs.setList("p1", "FLOW", "1,5,10")
@@ -388,8 +409,7 @@ class IncrementListPrefsTest {
     }
 
     @Test fun `profiles are isolated`() = runTest {
-        val s = store()
-        val prefs = IncrementListPrefs(s)
+        val prefs = newMemPrefs()
         prefs.setList("p1", "SPEED", "1,5,10")
         prefs.setList("p2", "SPEED", "9,9,9")
         assertEquals(mapOf("SPEED" to "1,5,10"), prefs.lists("p1").first())
@@ -397,7 +417,7 @@ class IncrementListPrefsTest {
     }
 
     @Test fun `seedIfEmpty only seeds when empty`() = runTest {
-        val prefs = IncrementListPrefs(store())
+        val prefs = newMemPrefs()
         prefs.seedIfEmpty("p1", mapOf("SPEED" to "1,5,10"))
         prefs.setList("p1", "SPEED", "2,4,6")
         prefs.seedIfEmpty("p1", mapOf("SPEED" to "1,5,10")) // must NOT overwrite
@@ -539,8 +559,10 @@ After the Heat Presets block (`deleteHeatPreset`, ~line 478), add:
     val activeIncrementLists: Flow<Map<String, List<Double>>> =
         activeIncrementStrings.map { stored ->
             IncrementControls.ALL.associate { spec ->
+                // Defensive: validate against the control's own count rule; a malformed/wrong-length
+                // stored value falls back to the jiib default rather than feeding a bad list to a selector.
                 val parsed = stored[spec.key]?.let { raw ->
-                    (parseIncrementInput(raw, maxCount = null) as? IncrementParse.Ok)?.values
+                    (parseIncrementInput(raw, spec.maxCount) as? IncrementParse.Ok)?.values
                 }
                 spec.key to (parsed ?: spec.defaultValues)
             }
@@ -591,33 +613,11 @@ git commit -m "feat(increments): wire IncrementListPrefs + activeIncrementLists 
 
 ---
 
-## Task 5: Add the `QuestionMark` placeholder icon (babystep)
+## Task 5: (folded into Task 2) — QuestionMark icon already added
 
-**Files:**
-- Modify: `app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt`
-
-Babystep has no existing Focus icon; the owner directed a `question_mark` placeholder flagged for UAT.
-
-- [ ] **Step 1: Add the icon**
-
-In `DinghyIcons.kt` (inside `object DinghyIcons`), add near the other utility glyphs:
-
-```kotlin
-    /** Placeholder for controls without a chosen icon yet — babystep increment row (UAT review). */
-    val QuestionMark = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "question_mark")
-```
-
-- [ ] **Step 2: Verify the ligature exists in the bundled font**
-
-Run: `python tools/verify_ligatures.py`
-Expected: PASS. If it reports `question_mark` missing from the font subset, the glyph must be added to the icon font before this icon can render (same class of fix as the 3 glyphs caught in the footbar-conformance pass). If that happens, STOP and flag to the owner — do not substitute a different glyph (icon law).
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt
-git commit -m "feat(increments): add QuestionMark placeholder icon (babystep, UAT-flagged)"
-```
+The `QuestionMark` placeholder icon is added as **Task 2, Step 0** (the registry depends on it),
+including the `python tools/verify_ligatures.py` check. This task is intentionally a no-op —
+skip it. The babystep icon remains a UAT-review item (spec §Icons).
 
 ---
 
@@ -796,7 +796,7 @@ fun IncrementValuesScreen(
         printerState.printState == PrintState.Paused
     val estop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit); Unit }
 
-    var view by rememberSaveable { mutableStateOf<IncView>(IncView.TopList) }
+    var view by rememberSaveable(stateSaver = IncViewSaver) { mutableStateOf<IncView>(IncView.TopList) }
 
     /** The current canonical string for [spec]: stored, else its default. */
     fun currentString(spec: IncrementControlSpec): String =
@@ -859,6 +859,24 @@ private sealed interface IncView {
     data object FineTuneSubmenu : IncView
     data class Editing(val key: String) : IncView
 }
+
+/** Saver so the view state (incl. the edited key) survives rotation / process death. */
+private val IncViewSaver = androidx.compose.runtime.saveable.Saver<IncView, String>(
+    save = { v ->
+        when (v) {
+            IncView.TopList -> "T"
+            IncView.FineTuneSubmenu -> "F"
+            is IncView.Editing -> "E:${v.key}"
+        }
+    },
+    restore = { raw ->
+        when {
+            raw == "F" -> IncView.FineTuneSubmenu
+            raw.startsWith("E:") -> IncView.Editing(raw.removePrefix("E:"))
+            else -> IncView.TopList
+        }
+    },
+)
 
 /** Shared Focus/Field list shell for the top list + the Fine-Tune submenu. */
 @Composable
@@ -1071,25 +1089,23 @@ Add imports: `kotlinx.collections.immutable.toImmutableList`, `androidx.lifecycl
 
 Change `FineTuneContent` to take `params: List<FineTuneParam>` and replace the three internal `ALL_FINE_TUNE_PARAMS` reads (lines ~285, 288, 294) with `params`. At the call site pass `params = activeParams`. The live batcher reference at ~line 133 (`ALL_FINE_TUNE_PARAMS.first { it.tuner == tuner }`) also needs the active list — pass `activeParams` into that scope or look up from it (its `steps` aren't used in the batcher, but use `activeParams` for consistency).
 
-- [ ] **Step 3: Re-key the selected-step state (rebasing)**
+- [ ] **Step 3: Make `selectedParam` resolve from `params` (selection stays valid)**
 
-At line ~289, change:
-
-```kotlin
-    var activeStep by remember(selectedTuner) {
-        mutableStateOf(defaultStepFor(selectedParam))
-    }
-```
-
-to also re-init when the selected param's steps change (so a just-edited list yields a valid member):
+The existing `var activeStep by remember(selectedTuner) { mutableStateOf(defaultStepFor(selectedParam)) }`
+(line ~289) is LEFT AS-IS — do **not** key it on `steps`. Just ensure `selectedParam` now comes from the
+active `params` list:
 
 ```kotlin
-    var activeStep by remember(selectedTuner, selectedParam.steps) {
-        mutableStateOf(defaultStepFor(selectedParam))
-    }
+    val selectedParam = params.first { it.tuner == selectedTuner }   // was: ALL_FINE_TUNE_PARAMS.first {...}
 ```
 
-(`selectedParam` must now come from `params`, i.e. `params.first { it.tuner == selectedTuner }`.)
+Rationale (addresses the spec's rebasing rule for Fine-Tune): list edits happen on the **Increment
+Values** screen, never while Fine-Tune is open. The existing app already re-inits `activeStep` to
+`defaultStepFor(selectedParam)` every time a tuner is (re)selected — and `defaultStepFor` indexes the
+param's CURRENT `steps` (`defaultStepIndex` 0–2, always valid for a fixed-3 list). So on return from an
+edit, `activeStep` is always a member of the new list with no extra wiring. Keying on `steps` would only
+matter for a live on-screen change, which cannot occur — so it's omitted to avoid surprise resets.
+The reset path at line ~372 (`activeStep = defaultStepFor(param)`) likewise uses the active `param`.
 
 - [ ] **Step 4: Build + run FineTune tests**
 
@@ -1111,29 +1127,50 @@ git commit -m "feat(increments): Fine-Tune reads per-printer step lists (active 
 - Modify: `app/src/main/java/works/mees/dinghy/ui/move/MoveScreen.kt`
 - Modify: `app/src/main/java/works/mees/dinghy/ui/calibration/ProbeCalibrateScreen.kt`
 
-- [ ] **Step 1: Move microstep — read active list + clamp index**
+- [ ] **Step 1: Move microstep — thread the active list through `MoveHubContent`**
 
-In `MoveScreen.kt`, collect the lists near the top of the composable (where `container` is available):
+The microstep `steps` block lives inside the stateless `MoveHubContent` (~line 166), which has no
+increment-list parameter — so the list must be threaded in (a closed-over `incrementLists` from
+`MoveScreen` is NOT in scope there).
+
+(a) In the `MoveScreen` composable (where `container` is available), collect + resolve the list:
 
 ```kotlin
     val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val microstepSteps: ImmutableList<Double> = remember(incrementLists) {
+        (incrementLists["move_microstep"]
+            ?: IncrementControls.defaultValueMap().getValue("move_microstep")).toImmutableList()
+    }
 ```
 
-Replace the inline microstep `steps` (lines ~462-463):
+(b) Add a **default-valued** param to `MoveHubContent` (default keeps any preview/test call sites
+compiling without edits):
 
 ```kotlin
-                                val steps: ImmutableList<Double> = remember(incrementLists) {
-                                    (incrementLists["move_microstep"]
-                                        ?: IncrementControls.defaultValueMap().getValue("move_microstep"))
-                                        .toImmutableList()
-                                }
-                                var stepIndex by remember(mode, steps) {
-                                    mutableStateOf(steps.indexOf(0.1).coerceAtLeast(0).coerceAtMost(steps.lastIndex))
+private fun MoveHubContent(
+    /* ...existing params... */
+    microstepSteps: ImmutableList<Double> =
+        IncrementControls.defaultValueMap().getValue("move_microstep")
+            .toImmutableList(),
+)
+```
+
+and pass `microstepSteps = microstepSteps` from `MoveScreen`'s call to `MoveHubContent`.
+
+(c) Replace the inline microstep `steps`/`stepIndex` (lines ~462-468) with the param + a
+position-preserving clamp (do NOT re-key `stepIndex` on the list — that would reset the user's
+selected position; clamp at access instead, per spec §rebasing for index-tracked controls):
+
+```kotlin
+                                val steps: ImmutableList<Double> = microstepSteps
+                                var stepIndex by remember(mode) {
+                                    mutableStateOf(steps.indexOf(0.1).coerceAtLeast(0))
                                 }
                                 val activeStep = steps[stepIndex.coerceIn(0, steps.lastIndex)]
 ```
 
-Add imports: `kotlinx.collections.immutable.toImmutableList`, `works.mees.dinghy.ui.increments.IncrementControls`. The existing modulo increment/decrement (`% steps.size`) already stays in-range.
+The existing modulo increment/decrement (`% steps.size`) stays in range. Add imports:
+`kotlinx.collections.immutable.toImmutableList`, `works.mees.dinghy.ui.increments.IncrementControls`.
 
 - [ ] **Step 2: Probe Z-Test — read active list + value-rebase**
 
@@ -1158,7 +1195,20 @@ Replace the `step` state initialiser (line 115) and rebase if the active list ch
     }
 ```
 
-Pass `testzSteps` into `ProbeCalibrateContent` (line ~191) as a parameter and replace every `TESTZ_STEPS` usage inside it (lines 152, 153, 216, 298, 304) with the passed `steps`. Keep `TESTZ_STEPS` as the seed default used by the registry default (or delete it if unused after — but the registry already hardcodes the same list, so deleting it is fine; verify no other referent with `grep TESTZ_STEPS`).
+Add a **default-valued** `steps` param to `ProbeCalibrateContent` (~line 191) so the ~14 main-source
+preview call sites (e.g. `preview/CalibrationPreviews.kt`) keep compiling without edits:
+
+```kotlin
+fun ProbeCalibrateContent(
+    /* ...existing params... */
+    steps: List<Double> = IncrementControls.defaultValueMap().getValue("probe_testz"),
+)
+```
+
+Pass `steps = testzSteps` from `ProbeCalibrateScreen`. Then replace EVERY `TESTZ_STEPS` reference
+inside `ProbeCalibrateContent` (lines 152, 153, 216, 298, 304) with the passed `steps`. After that,
+`grep -n TESTZ_STEPS app/src/main/java/works/mees/dinghy/ui/calibration/ProbeCalibrateScreen.kt` should
+show only the line-80 private val (now unused) — delete it (the registry hardcodes the same default).
 
 Add imports: `androidx.compose.runtime.LaunchedEffect`, `works.mees.dinghy.ui.increments.IncrementControls`.
 
