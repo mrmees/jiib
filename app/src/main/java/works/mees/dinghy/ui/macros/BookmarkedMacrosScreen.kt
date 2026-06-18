@@ -308,9 +308,34 @@ private fun MacrosContent(
                     val t = LocalTokens.current
                     when {
                         state.unavailable -> MacrosUnavailable(modifier = Modifier.fillMaxWidth())
-                        fieldMode is MacroFieldMode.ManageMode || liveMacro == null -> {
-                            // Vertically centered prompt (owner UAT 2026-06-15) — a top-anchored text
-                            // body floats high under the header divider; center it for readability.
+                        fieldMode is MacroFieldMode.ManageMode -> {
+                            // Manage Focus = what bookmarking does + the relocated underscore note
+                            // (owner 2026-06-17 — moved here from the top of the manage list).
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.macros_bookmark_explainer),
+                                        color = t.text2,
+                                        style = DinghyType.body.toTextStyle(t),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.macros_helper_hint),
+                                        color = t.text2,
+                                        style = DinghyType.caption.toTextStyle(t),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        }
+                        liveMacro == null -> {
+                            // Launcher empty-state: nothing selected yet.
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text(
                                     text = stringResource(R.string.macros_focus_select_prompt),
@@ -632,14 +657,6 @@ private fun ColumnScope.MacroManageField(
     if (state.unavailable) {
         MacrosUnavailable(modifier = Modifier.weight(1f).padding(24.dp))
     } else {
-        Text(
-            text = stringResource(R.string.macros_helper_hint),
-            color = t.text2,
-            style = DinghyType.caption.toTextStyle(t),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-        )
         ListBlock(modifier = Modifier.weight(1f)) {
             items(state.visibleMacros, key = { it.name }) { macro ->
                 val isBookmarked = macro.isBookmarked
@@ -684,7 +701,9 @@ private fun ColumnScope.MacroManageField(
                 intent = Intent.Accent, // R5: Back = accent
             ),
             FootAction(
-                label = stringResource(R.string.macros_foot_show_hidden),
+                label = stringResource(
+                    if (state.revealHidden) R.string.macros_foot_hide else R.string.macros_foot_show,
+                ),
                 icon = if (state.revealHidden) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
                 onClick = { onSetRevealHidden(!state.revealHidden) },
                 intent = if (state.revealHidden) Intent.Accent else Intent.Neutral,

@@ -428,8 +428,10 @@
     <string name="macros_foot_back">Back</string>
     <string name="macros_foot_manage">Manage</string>
     <string name="macros_foot_execute">Execute</string>
-    <string name="macros_foot_show_hidden">Show hidden</string>
     <string name="macros_focus_select_prompt">Select a macro to run.</string>
+    <string name="macros_bookmark_explainer">Bookmarked macros show on the home screen for quick access. Pin the ones you use most.</string>
+    <string name="macros_foot_show">Show</string>
+    <string name="macros_foot_hide">Hide</string>
     <string name="macros_raw_args_label">Arguments</string>
     <string name="macros_raw_args_hint">Passed to the macro verbatim.</string>
 
