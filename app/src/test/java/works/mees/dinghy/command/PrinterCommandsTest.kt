@@ -30,15 +30,6 @@ class PrinterCommandsTest {
     }
 
     @Test
-    fun applyPreset_twoClampedLines() {
-        assertEquals(
-            "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=240\n" +
-                "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=80",
-            PrinterCommands.applyPreset(240, 80),
-        )
-    }
-
-    @Test
     fun jog_exactSaveRestoreBody() {
         assertEquals(
             "SAVE_GCODE_STATE NAME=dd_jog\nG91\nG1 X10.0 F3000\nRESTORE_GCODE_STATE NAME=dd_jog",
@@ -80,15 +71,6 @@ class PrinterCommandsTest {
         assertEquals("LOAD_FILAMENT", PrinterCommands.loadFilament())
         assertEquals("UNLOAD_FILAMENT", PrinterCommands.unloadFilament())
         assertEquals("T0", PrinterCommands.selectTool(0))
-    }
-
-    @Test
-    fun materialPresets_areFixedSet() {
-        val names = PrinterCommands.MATERIAL_PRESETS.map { it.name }
-        assertEquals(listOf("PLA", "PETG", "ABS", "TPU"), names)
-        val pla = PrinterCommands.MATERIAL_PRESETS.first { it.name == "PLA" }
-        assertEquals(200, pla.nozzle)
-        assertEquals(60, pla.bed)
     }
 
     // --- clamping (ASVS V5) -----------------------------------------------------------------------
@@ -404,5 +386,46 @@ class PrinterCommandsTest {
         val el = PrinterCommands.scriptParams("M84")
         assertEquals("{\"script\":\"M84\"}", MoonrakerJson.encodeToString(JsonObject.serializer(), el as JsonObject))
         assertEquals(JsonPrimitive("M84"), el["script"])
+    }
+
+    // --- Heat Presets: setTemperatureFanTarget + applyHeatPreset ----------------------------------
+
+    @Test
+    fun setTemperatureFanTarget_clampsAndFormats() {
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=45", PrinterCommands.setTemperatureFanTarget("exhaust", 45))
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=350", PrinterCommands.setTemperatureFanTarget("exhaust", 9999))
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=0", PrinterCommands.setTemperatureFanTarget("exhaust", -5))
+    }
+
+    @Test
+    fun applyHeatPreset_buildsClampedMultilineScript_byHeaterType() {
+        val script = PrinterCommands.applyHeatPreset(
+            mapOf(
+                "extruder" to 200,
+                "heater_bed" to 60,
+                "heater_generic chamber" to 50,
+                "temperature_fan exhaust" to 40,
+            ),
+        )
+        // Sorted by object name for determinism: extruder, heater_bed, heater_generic chamber, temperature_fan exhaust
+        assertEquals(
+            listOf(
+                "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=200",
+                "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60",
+                "SET_HEATER_TEMPERATURE HEATER=chamber TARGET=50",
+                "SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=40",
+            ).joinToString("\n"),
+            script,
+        )
+    }
+
+    @Test
+    fun applyHeatPreset_emptyMap_isEmptyString() {
+        assertEquals("", PrinterCommands.applyHeatPreset(emptyMap()))
+    }
+
+    @Test
+    fun applyHeatPreset_zeroIsARealTarget() {
+        assertEquals("SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0", PrinterCommands.applyHeatPreset(mapOf("extruder" to 0)))
     }
 }

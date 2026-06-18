@@ -67,6 +67,7 @@ import works.mees.dinghy.ui.extrude.ExtrudeHolder
 import works.mees.dinghy.ui.extrude.ExtrudeScreen
 import works.mees.dinghy.ui.finetune.FineTuneHolder
 import works.mees.dinghy.ui.finetune.FineTuneScreen
+import works.mees.dinghy.ui.heatpresets.HeatPresetsScreen
 import works.mees.dinghy.ui.files.FileBrowserClient
 import works.mees.dinghy.ui.files.FileBrowserHolder
 import works.mees.dinghy.ui.files.FilesScreen
@@ -750,6 +751,12 @@ fun AppShell(
                 PrinterSettingsScreen(
                     container = container,
                     onNavigate = { navController.navigate(it) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.HeatPresets> {
+                HeatPresetsScreen(
+                    container = container,
                     onBack = { navController.popBackStack() },
                 )
             }

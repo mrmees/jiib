@@ -46,6 +46,10 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_save">Save</string>
     <string name="common_done">Done</string>
+    <string name="common_add">Add</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_next">Next</string>
 
     <!-- contentDescription (cd_*) — TalkBack labels, never rendered as visible text -->
     <string name="cd_back">Back</string>
@@ -744,4 +748,17 @@
     <string name="cd_manage_printers">Manage printers</string>
     <string name="cd_text_size">Text size</string>
     <string name="cd_rename">Rename printer</string>
+
+    <!-- ============================ Heat Presets ============================ -->
+    <string name="heat_presets_title">Heat Presets</string>
+    <string name="heat_presets_wizard_title">Heat Preset</string>
+    <string name="heat_presets_name_label">Preset Name</string>
+    <string name="heat_presets_name_hint">Name</string>
+    <string name="heat_presets_value_hint">Target °C</string>
+    <string name="heat_presets_skip_hint">Leave blank to skip or 0 to turn off</string>
+    <string name="heat_presets_off">Off</string>
+    <string name="heat_presets_select_hint">Select a preset to view its setpoints</string>
+    <string name="heat_presets_empty_hint">No presets yet — tap Add to create one</string>
+    <string name="heat_presets_delete_title">Delete Preset</string>
+    <string name="heat_presets_delete_message">Delete “%1$s”?</string>
 </resources>

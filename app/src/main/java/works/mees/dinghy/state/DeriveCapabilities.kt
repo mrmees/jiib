@@ -29,6 +29,7 @@ fun deriveCapabilities(objects: List<String>, components: Set<String> = emptySet
     val heaters = objects.filter {
         it == "heater_bed" || isExtruder(it) || it.startsWith("heater_generic ")
     }
+    val temperatureFans = objects.filter { it.startsWith("temperature_fan ") }
     return Capabilities(
         objects = objects.toSet(),
         components = components,
@@ -39,6 +40,7 @@ fun deriveCapabilities(objects: List<String>, components: Set<String> = emptySet
         // A4: power devices are sourced from machine.device_power.devices later, NOT objects.list.
         powerDevices = emptyList(),
         heaters = heaters,
+        temperatureFans = temperatureFans,
     )
 }
 

@@ -42,6 +42,7 @@ import works.mees.dinghy.command.SelectToolArgs
 import works.mees.dinghy.command.SetFilamentSensorArgs
 import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.config.HeatPreset
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
@@ -140,6 +141,7 @@ fun ExtrudeScreen(
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
+    val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
@@ -162,6 +164,7 @@ fun ExtrudeScreen(
     ExtrudeContent(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
+        heatPresets = heatPresets,
         inFlight = inFlight,
         failureText = failureText,
         isPrinting = isPrinting,
@@ -231,6 +234,7 @@ fun ExtrudeScreen(
     ExtrudeContent(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
+        heatPresets = emptyList(),
         inFlight = emptySet(),
         failureText = null,
         onExtrude = { _, _ -> },
@@ -253,6 +257,8 @@ fun ExtrudeScreen(
 private fun ExtrudeContent(
     vm: ExtrudeVm,
     activeSpoolDetail: SpoolmanSpool?,
+    // Per-printer Heat Presets; only those carrying an extruder setpoint surface here (nozzle-only — D-17).
+    heatPresets: List<HeatPreset> = emptyList(),
     inFlight: Set<String>,
     failureText: String?,
     isPrinting: Boolean = false,
@@ -371,8 +377,8 @@ private fun ExtrudeContent(
                                     HeatPresetRow(loadedLabel, loadedTemp, { onSetExtruderTemp(loadedTemp) }, grid.uDp)
                                 }
                             }
-                            items(PrinterCommands.MATERIAL_PRESETS, key = { "mat_${it.name}" }) { preset ->
-                                HeatPresetRow(preset.name, preset.nozzle, { onSetExtruderTemp(preset.nozzle) }, grid.uDp)
+                            items(heatPresets.filter { it.extruderTemp != null }, key = { "preset_${it.id}" }) { preset ->
+                                HeatPresetRow(preset.name, preset.extruderTemp!!, { onSetExtruderTemp(preset.extruderTemp!!) }, grid.uDp)
                             }
                             // 4. Spool link.
                             item { SpoolLinkListRow(activeSpoolDetail, onOpenSpool, grid.uDp) }

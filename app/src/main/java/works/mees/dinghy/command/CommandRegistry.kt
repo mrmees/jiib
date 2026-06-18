@@ -18,8 +18,8 @@ data class IdentifyArgs(
 
 data class SetHeaterArgs(val heater: String, val target: Int, val key: String? = null)
 data class SetFilamentSensorArgs(val sensor: String, val enable: Boolean)
-data class ApplyPresetArgs(val nozzle: Int, val bed: Int, val key: String = "apply_preset")
-typealias PresetArgs = ApplyPresetArgs
+data class SetTemperatureFanArgs(val name: String, val target: Int, val key: String? = null)
+data class ApplyHeatPresetArgs(val setpoints: Map<String, Int>, val key: String = "apply_heat_preset")
 data class JogArgs(val axis: String, val mm: Double, val feedMmMin: Int)
 data class MoveToArgs(
     val x: Double?,
@@ -438,11 +438,18 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("extruder"),
     )
 
-    val applyPreset: CommandSpec<ApplyPresetArgs> = gcode(
-        catalogId = "KGC-SET_HEATER_TEMPERATURE_PRESET",
+    val setTemperatureFan: CommandSpec<SetTemperatureFanArgs> = gcode(
+        catalogId = "KGC-SET_TEMPERATURE_FAN_TARGET",
+        key = { args -> args.key ?: "set_tempfan_${args.name}" },
+        gcode = { args -> PrinterCommands.setTemperatureFanTarget(args.name, args.target) },
+        availability = AvailabilityPredicate.Always,
+    )
+
+    val applyHeatPreset: CommandSpec<ApplyHeatPresetArgs> = gcode(
+        catalogId = "KGC-APPLY_HEAT_PRESET",
         key = { args -> args.key },
-        gcode = { args -> PrinterCommands.applyPreset(args.nozzle, args.bed) },
-        availability = AvailabilityPredicate.ObjectPresent("heater_bed"),
+        gcode = { args -> PrinterCommands.applyHeatPreset(args.setpoints) },
+        availability = AvailabilityPredicate.ObjectPresent("extruder"),
     )
 
     val moveTo: CommandSpec<MoveToArgs> = gcode(
@@ -833,7 +840,8 @@ object CommandRegistry {
         firmwareRestart,
         restart,
         setHeater,
-        applyPreset,
+        applyHeatPreset,
+        setTemperatureFan,
         moveTo,
         jog,
         overrideJog,

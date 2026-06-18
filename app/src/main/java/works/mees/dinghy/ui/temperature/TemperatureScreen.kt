@@ -44,7 +44,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
-import works.mees.dinghy.command.ApplyPresetArgs
+import works.mees.dinghy.command.ApplyHeatPresetArgs
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
@@ -72,9 +72,11 @@ import works.mees.dinghy.designsystem.layout.ListFrameInset
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
+import works.mees.dinghy.config.HeatPreset
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.spool.SpoolmanSpool
+import works.mees.dinghy.ui.heatpresets.presetSummary
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.Palette
 import works.mees.dinghy.theme.ThemePrefs
@@ -123,7 +125,7 @@ private data class VisibleTraces(
  * Field:
  *  - **SensorList (default):** [ListRow] per sensor (icon tinted to the trace color, trailing
  *    current/target readout in GeistMono), foot = Back · Presets · Cooldown.
- *  - **PresetPicker (D-12):** Field-takeover list of [PrinterCommands.MATERIAL_PRESETS]; the old
+ *  - **PresetPicker (D-12):** Field-takeover list of the active printer's [HeatPreset]s; the old
  *    full-screen scrim is retired; foot = Back.
  *
  * Graph controls (visible in adjuster morph for every sensor):
@@ -169,6 +171,7 @@ fun TemperatureScreen(
         initialValue = ThemePrefs.TUPLE_DEFAULT,
     )
     val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())
     val heaterLimits by holder.heaterLimits.collectAsStateWithLifecycle()
     val selectedSensors by holder.selectedSensors.collectAsStateWithLifecycle()
     val availableSensors = remember(caps) {
@@ -254,14 +257,17 @@ fun TemperatureScreen(
     // AppShell's SpoolHolder — the SAME source the Extrude preset list uses (the in-screen
     // currentSpoolmanClient fetch hit the no-op client and never resolved). Shown only when a spool is
     // loaded and its filament reports a nozzle temp; bed falls back to 0 when the spool omits it.
-    val spoolPreset: PrinterCommands.Preset? = remember(activeSpoolDetail) {
+    val spoolPreset: HeatPreset? = remember(activeSpoolDetail) {
         val f = activeSpoolDetail?.filament
         val nozzle = f?.settingsExtruderTemp
         if (f != null && nozzle != null) {
-            PrinterCommands.Preset(
+            HeatPreset(
+                id = "__spool__",
                 name = f.name ?: f.material ?: "LOADED SPOOL",
-                nozzle = nozzle,
-                bed = f.settingsBedTemp ?: 0,
+                setpoints = buildMap {
+                    put("extruder", nozzle)
+                    f.settingsBedTemp?.let { put("heater_bed", it) }
+                },
             )
         } else {
             null
@@ -286,6 +292,7 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
+            heatPresets = heatPresets,
             spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
@@ -321,8 +328,8 @@ fun TemperatureScreen(
             },
             onApplyPreset = { preset ->
                 dispatcher?.dispatch(
-                    CommandRegistry.applyPreset,
-                    ApplyPresetArgs(nozzle = preset.nozzle, bed = preset.bed, key = "preset_${preset.name}"),
+                    CommandRegistry.applyHeatPreset,
+                    ApplyHeatPresetArgs(preset.setpoints, key = "preset_${preset.id}"),
                 )
             },
             onCooldown = {
@@ -364,14 +371,15 @@ fun TemperatureScreen(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
-    spoolPreset: PrinterCommands.Preset? = null,
+    heatPresets: List<HeatPreset> = emptyList(),
+    spoolPreset: HeatPreset? = null,
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     onNudgeHeater: (String, Int) -> Unit = { _, _ -> },
     onHeaterOff: (String) -> Unit = {},
-    onApplyPreset: (PrinterCommands.Preset) -> Unit = {},
+    onApplyPreset: (HeatPreset) -> Unit = {},
     onCooldown: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -390,6 +398,7 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
+            heatPresets = heatPresets,
             spoolPreset = spoolPreset,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
@@ -422,9 +431,11 @@ private fun TemperatureContent(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
+    // Per-printer Heat Presets (sorted) shown in the PresetPicker field-takeover.
+    heatPresets: List<HeatPreset> = emptyList(),
     // Loaded-spool preheat preset (nozzle/bed from the active Spoolman filament) — null when no spool
     // is loaded or it carries no temp settings. Prepended to the PresetPicker list when present.
-    spoolPreset: PrinterCommands.Preset? = null,
+    spoolPreset: HeatPreset? = null,
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
@@ -437,7 +448,7 @@ private fun TemperatureContent(
     onSetTraceVisibility: (String, Boolean) -> Unit,
     onNudgeHeater: (String, Int) -> Unit,
     onHeaterOff: (String) -> Unit = {},
-    onApplyPreset: (PrinterCommands.Preset) -> Unit,
+    onApplyPreset: (HeatPreset) -> Unit,
     onCooldown: () -> Unit,
     onEmergencyStop: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -736,7 +747,7 @@ private fun TemperatureContent(
                                     }
                                 }
                             }
-                            items(PrinterCommands.MATERIAL_PRESETS, key = { it.name }) { preset ->
+                            items(heatPresets, key = { it.id }) { preset ->
                                 PresetListRow(preset, grid.uDp) {
                                     onApplyPreset(preset)
                                     fieldMode = TempFieldMode.SensorList
@@ -1007,10 +1018,10 @@ private fun HeaterControlFocus(
     }
 }
 
-/** One preset row in the PresetPicker field-takeover (shared by the loaded-spool + material rows). */
+/** One preset row in the PresetPicker field-takeover (shared by the loaded-spool + preset rows). */
 @Composable
 private fun PresetListRow(
-    preset: PrinterCommands.Preset,
+    preset: HeatPreset,
     uDp: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
@@ -1021,7 +1032,7 @@ private fun PresetListRow(
         uDp = uDp,
         trailingContent = {
             Text(
-                text = "${preset.nozzle}° / ${preset.bed}°",
+                text = presetSummary(preset),
                 style = DinghyType.dataInline.toTextStyle(t),
                 color = t.text2,
             )
@@ -1062,18 +1073,18 @@ private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
 // ── PresetSelector (retained internal for PrintStatusScreen reuse — 16-06) ────────────────────
 
 /**
- * The fixed material-preset selector (TEMP-03) — a full-screen scrim of keyboard-free preset tiles
- * ([PrinterCommands.MATERIAL_PRESETS]) plus a Cancel. Each tile dispatches `applyPreset(nozzle,bed)`.
+ * The per-printer Heat Preset selector (TEMP-03) — a full-screen scrim of keyboard-free preset tiles
+ * (the active printer's [HeatPreset]s) plus a Cancel. Each tile dispatches `applyHeatPreset(setpoints)`.
  *
  * `internal` (not `private`) so the Print-Status Preheat OpenSelector fallback (16-06) reuses the SAME
  * keyboard-free preset chooser. On the Temperature screen itself this is superseded by the in-Field
  * PresetPicker takeover (D-12), but the internal scrim stays for Print-Status backward compatibility.
- * Signature/behavior unchanged from the pre-Phase-26 version.
  */
 @Composable
 internal fun PresetSelector(
     inFlight: Set<String>,
-    onPreset: (PrinterCommands.Preset) -> Unit,
+    presets: List<HeatPreset>,
+    onPreset: (HeatPreset) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val t = LocalTokens.current
@@ -1096,10 +1107,10 @@ internal fun PresetSelector(
                 color = t.text,
                 style = DinghyType.screenTitle.toTextStyle(t),
             )
-            for (p in PrinterCommands.MATERIAL_PRESETS) {
-                val key = "preset_${p.name}"
+            for (p in presets) {
+                val key = "preset_${p.id}"
                 OutlinedControl(
-                    label = "${p.name}   ${p.nozzle}° / ${p.bed}°",
+                    label = "${p.name}   ${presetSummary(p)}",
                     onClick = { if (key !in inFlight) onPreset(p) },
                     modifier = Modifier.fillMaxWidth(),
                     intent = Intent.Accent,

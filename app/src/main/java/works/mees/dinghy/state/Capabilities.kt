@@ -39,6 +39,9 @@ data class Capabilities(
 
     /** All heater object names: `heater_bed`, `extruder*`, `heater_generic *`. */
     val heaters: List<String> = emptyList(),
+
+    /** `temperature_fan` object names (e.g. `temperature_fan exhaust`). Used by Heat Presets wizard. */
+    val temperatureFans: List<String> = emptyList(),
 ) {
     /**
      * Case-insensitive macro presence (EXTR-02 / D-10). Moonraker reports macro object names

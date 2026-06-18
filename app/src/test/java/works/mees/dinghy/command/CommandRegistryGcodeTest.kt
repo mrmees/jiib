@@ -22,11 +22,6 @@ class CommandRegistryGcodeTest {
             PrinterCommands.setHeater("extruder", 9999),
         )
         assertRegistryScript(
-            CommandRegistry.applyPreset,
-            ApplyPresetArgs(nozzle = 240, bed = 80),
-            PrinterCommands.applyPreset(240, 80),
-        )
-        assertRegistryScript(
             CommandRegistry.jog,
             JogArgs(axis = "X", mm = 9999.0, feedMmMin = 99_999),
             PrinterCommands.jog("X", 9999.0, 99_999),
@@ -60,10 +55,6 @@ class CommandRegistryGcodeTest {
     fun registryDispatchKeysMatchExistingUiBusyKeys() {
         assertEquals("set_extruder", CommandRegistry.setHeater.dispatchKey(SetHeaterArgs("extruder", 215)))
         assertEquals("set_temp", CommandRegistry.setHeater.dispatchKey(SetHeaterArgs("extruder", 215, key = "set_temp")))
-        assertEquals(
-            "preset_PLA",
-            CommandRegistry.applyPreset.dispatchKey(ApplyPresetArgs(nozzle = 200, bed = 60, key = "preset_PLA")),
-        )
         assertEquals("cooldown", CommandRegistry.cooldown.dispatchKey(Unit))
 
         assertEquals("jog_X", CommandRegistry.jog.dispatchKey(JogArgs("X", 10.0, 3000)))
@@ -262,6 +253,25 @@ class CommandRegistryGcodeTest {
         assertEquals("set_output_led_chamber_light", CommandRegistry.setLed.dispatchKey(SetLedArgs("chamber_light", 0f, 0f, 0f)))
         assertEquals("set_output_servo_camera_servo", CommandRegistry.setServo.dispatchKey(SetServoArgs("camera_servo")))
         assertEquals("set_output_pin_mosfet2", CommandRegistry.setOutputPin.dispatchKey(SetOutputPinArgs("mosfet2", pwm = false)))
+    }
+
+    @Test
+    fun applyHeatPreset_wrapsPrinterCommandsByteIdentically() {
+        val setpoints = mapOf("extruder" to 200, "heater_bed" to 60, "temperature_fan exhaust" to 40)
+        assertRegistryScript(
+            CommandRegistry.applyHeatPreset,
+            ApplyHeatPresetArgs(setpoints, key = "preset_x"),
+            PrinterCommands.applyHeatPreset(setpoints),
+        )
+    }
+
+    @Test
+    fun setTemperatureFan_wrapsPrinterCommandsByteIdentically() {
+        assertRegistryScript(
+            CommandRegistry.setTemperatureFan,
+            SetTemperatureFanArgs("exhaust", 45),
+            PrinterCommands.setTemperatureFanTarget("exhaust", 45),
+        )
     }
 
     private fun <P> assertRegistryScript(

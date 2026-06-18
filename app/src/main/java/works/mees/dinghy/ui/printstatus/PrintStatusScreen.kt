@@ -112,6 +112,7 @@ fun PrintStatusScreen(
     // absent read leaves the card in its Loading variant, never crashes). The whole card / its Change
     // action route to the Spool screen; Clear dispatches post_spool_id {} (D-13).
     val spoolmanPresent by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
+    val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())
     val activeSpool by container.activeSpool.collectAsStateWithLifecycle(initialValue = null)
     var spoolDetail by remember { mutableStateOf<SpoolmanSpool?>(null) }
     val activeSpoolId = activeSpool?.activeSpoolId
@@ -258,10 +259,11 @@ fun PrintStatusScreen(
                 .collectAsStateWithLifecycle(initialValue = emptySet())
             works.mees.dinghy.ui.temperature.PresetSelector(
                 inFlight = inFlight,
+                presets = heatPresets,
                 onPreset = { p ->
                     dispatcher?.dispatch(
-                        CommandRegistry.applyPreset,
-                        works.mees.dinghy.command.ApplyPresetArgs(nozzle = p.nozzle, bed = p.bed, key = "preset_${p.name}"),
+                        CommandRegistry.applyHeatPreset,
+                        works.mees.dinghy.command.ApplyHeatPresetArgs(p.setpoints, key = "preset_${p.id}"),
                     )
                     showPresetSelector = false
                 },

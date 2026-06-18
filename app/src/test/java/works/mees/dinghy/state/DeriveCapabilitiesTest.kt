@@ -179,6 +179,21 @@ class DeriveCapabilitiesTest {
         assertTrue("filament_switch_sensor Runout" in subset)
     }
 
+    // --- Heat Presets: temperature_fan objects captured in Capabilities ---
+
+    @Test
+    fun temperatureFans_capturedFromObjectList() {
+        val caps = deriveCapabilities(
+            objects = listOf(
+                "extruder", "heater_bed", "temperature_fan exhaust", "temperature_fan chamber_fan", "fan",
+            ),
+        )
+        assertEquals(
+            listOf("temperature_fan chamber_fan", "temperature_fan exhaust"),
+            caps.temperatureFans.sorted(),
+        )
+    }
+
     @Test
     fun liveComponentsAreRetainedAndHasComponentWorks() {
         val caps = deriveCapabilities(
