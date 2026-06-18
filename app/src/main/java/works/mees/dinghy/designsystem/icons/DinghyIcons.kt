@@ -368,6 +368,8 @@ object DinghyIcons {
     val Colors       = DinghyIcon(IconRef.Ligature("colors"),        alternate = "colors")
     val Star         = DinghyIcon(IconRef.Ligature("star"),          alternate = "star")
     val Shuffle      = DinghyIcon(IconRef.Ligature("shuffle"),       alternate = "shuffle")
+    val HumidityHigh = DinghyIcon(IconRef.Ligature("humidity_high"), alternate = "humidity_high")
+    val WaterDrop    = DinghyIcon(IconRef.Ligature("water_drop"),    alternate = "water_drop")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -410,6 +412,6 @@ object DinghyIcons {
         TempPresets,
         HeatPresetAdd, HeatPresetEdit,
         Babystep,
-        Contrast, InvertColors, Colors, Star, Shuffle,
+        Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
     )
 }

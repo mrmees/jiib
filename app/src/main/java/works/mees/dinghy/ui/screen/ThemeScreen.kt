@@ -358,20 +358,26 @@ private fun PaletteModeSegment(current: String, onPick: (String) -> Unit, uDp: D
     Row(
         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for ((mode, labelRes) in PALETTE_MODES) {
+        for ((mode, labelRes, icon) in PALETTE_MODES) {
+            // Icon-only (owner UAT 2026-06-18): blank label + contentDescription = a11y label.
             OutlinedControl(
-                label = stringResource(labelRes), onClick = { onPick(mode) },
+                label = "", onClick = { onPick(mode) },
                 modifier = Modifier.weight(1f),
                 intent = if (current == mode) Intent.Accent else Intent.Neutral,
+                icon = icon,
+                contentDescription = stringResource(labelRes),
             )
         }
     }
 }
 
+/** A palette-mode chip: the mode key, its label (a11y), and its owner-chosen glyph. Order = display order. */
+private data class PaletteModeChip(val mode: String, val labelRes: Int, val icon: DinghyIcon)
+
 private val PALETTE_MODES = listOf(
-    ThemeResolver.MODE_COLORFUL to R.string.theme_mode_colorful,
-    ThemeResolver.MODE_SIMPLE to R.string.theme_mode_simple,
-    ThemeResolver.MODE_HIGH_CONTRAST to R.string.theme_mode_high_contrast,
+    PaletteModeChip(ThemeResolver.MODE_COLORFUL, R.string.theme_mode_colorful, DinghyIcons.HumidityHigh),
+    PaletteModeChip(ThemeResolver.MODE_HIGH_CONTRAST, R.string.theme_mode_high_contrast, DinghyIcons.InvertColors),
+    PaletteModeChip(ThemeResolver.MODE_SIMPLE, R.string.theme_mode_simple, DinghyIcons.WaterDrop),
 )
 
 @androidx.annotation.StringRes
