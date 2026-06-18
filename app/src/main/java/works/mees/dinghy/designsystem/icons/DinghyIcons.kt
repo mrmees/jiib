@@ -349,11 +349,13 @@ object DinghyIcons {
      *  `format_list_bulleted`=MonitorMode — all three co-render with this in Adjust mode). */
     val TempPresets      = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 
-    // --- Heat Presets (question_mark placeholders — owner-authorized 2026-06-17 until real glyphs chosen) ---
-    val HeatPresetAdd    = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_add")
-    val HeatPresetEdit   = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_edit")
-    val HeatPresetHeater = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_heater")
-    /** Heat-preset delete REUSES the real Files-delete `delete` glyph (no question_mark placeholder). */
+    // --- Heat Presets (owner-chosen glyphs 2026-06-17). Presets themselves use TempPresets
+    // (`thermostat_auto`) in lists/headers; these are the action glyphs. ---
+    /** Heat-preset Add foot action — owner-chosen `thermometer_gain`. */
+    val HeatPresetAdd    = DinghyIcon(IconRef.Ligature("thermometer_gain"), alternate = "heat_preset_add")
+    /** Heat-preset Edit Focus action — owner-chosen `edit_square`. */
+    val HeatPresetEdit   = DinghyIcon(IconRef.Ligature("edit_square"), alternate = "heat_preset_edit")
+    /** Heat-preset delete REUSES the real Files-delete `delete` glyph. */
     val HeatPresetDelete = Delete
 
     /**
@@ -395,6 +397,6 @@ object DinghyIcons {
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
         TempPresets,
-        HeatPresetAdd, HeatPresetEdit, HeatPresetHeater,
+        HeatPresetAdd, HeatPresetEdit,
     )
 }

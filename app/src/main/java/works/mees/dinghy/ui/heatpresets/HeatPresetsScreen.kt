@@ -325,13 +325,11 @@ private fun HeatPresetDetail(
 }
 
 /**
- * Trailing one-line summary of a preset's setpoints ("Nozzle 200° · Bed Off"); empty when none. A
- * value of 0 renders as "Off" to match the detail view (non-composable → literal, not a string res).
+ * Trailing one-line summary of a preset's setpoints — bare integer values joined by `/` (no labels,
+ * no degree symbol; the list trailing slot is a tight space), e.g. `150/50/0/0`. Ordered by object
+ * name (extruder → bed → generic → fan, the same order the wizard/detail use). Empty when no setpoints.
  */
 internal fun presetSummary(p: HeatPreset): String =
     p.setpoints.entries
         .sortedBy { it.key }
-        .joinToString(" · ") { (obj, v) ->
-            val value = if (v == 0) "Off" else "$v°"
-            "${heaterDisplayName(obj)} $value"
-        }
+        .joinToString("/") { it.value.toString() }

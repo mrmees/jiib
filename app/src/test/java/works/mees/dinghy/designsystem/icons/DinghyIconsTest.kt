@@ -84,12 +84,8 @@ class DinghyIconsTest {
         //     + FootCooldown (home idle foot bar — fires TURN_OFF_HEATERS) — Console, Temperature, and the
         //     home foot bar never co-render; the same "heat off" glyph is appropriate for all three and the
         //     owner has confirmed each assignment (foot-bar conformance 2026-06-17; Cooldown 2026-06-17).
-        //   - "question_mark": HeatPresetAdd + HeatPresetEdit + HeatPresetHeater — owner-authorized
-        //     placeholder glyphs (2026-06-17) for the Heat Presets screen until real glyphs are chosen;
-        //     Add (foot bar) / Edit (Focus action) / Heater (wizard field) are distinct roles and the
-        //     placeholder is intentionally identical for all three until replaced.
         val allowedSharedLigatures =
-            setOf("output_circle", "palette", "settings", "print", "mode_heat_off", "question_mark")
+            setOf("output_circle", "palette", "settings", "print", "mode_heat_off")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->
