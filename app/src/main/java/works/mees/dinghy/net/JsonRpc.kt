@@ -96,7 +96,10 @@ object JsonRpcMethods {
     const val OBJECTS_LIST = "printer.objects.list"
     const val OBJECTS_QUERY = "printer.objects.query"
     const val OBJECTS_SUBSCRIBE = "printer.objects.subscribe"
-    const val QUERY_ENDSTOPS_STATUS = "printer.query_endstops/status"
+    // Moonraker maps the REST path /printer/query_endstops/status to a JSON-RPC method with DOTS
+    // (the `query_endstops` segment keeps its underscore; only the path '/' becomes '.'). A slash
+    // here yields -32601 Method not found. Verified live 2026-06-18.
+    const val QUERY_ENDSTOPS_STATUS = "printer.query_endstops.status"
     const val ONESHOT_TOKEN = "access.oneshot_token"
 
     // Action requests (client → server) — the destructive/recovery set CommandDispatcher wraps

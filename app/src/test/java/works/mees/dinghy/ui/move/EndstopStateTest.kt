@@ -28,6 +28,27 @@ class EndstopStateTest {
     }
 
     @Test
+    fun `real Moonraker stepper_ keys parse, order, and trigger correctly`() {
+        // The shape the live server actually returns (verified 2026-06-18): keys are the owning
+        // stepper, not bare axes.
+        val result = parse("""{"stepper_z":"TRIGGERED","stepper_x":"open","stepper_y":"open"}""")
+        assertEquals(
+            listOf(
+                EndstopStatus("stepper_x", triggered = false),
+                EndstopStatus("stepper_y", triggered = false),
+                EndstopStatus("stepper_z", triggered = true),
+            ),
+            result,
+        )
+    }
+
+    @Test
+    fun `multi-z stepper keys sort by axis then numeric suffix`() {
+        val result = parse("""{"stepper_z1":"open","stepper_z":"open","stepper_x":"open"}""")
+        assertEquals(listOf("stepper_x", "stepper_z", "stepper_z1"), result.map { it.name })
+    }
+
+    @Test
     fun `empty object yields empty list`() {
         assertEquals(emptyList<EndstopStatus>(), parse("{}"))
     }
@@ -38,10 +59,16 @@ class EndstopStateTest {
     }
 
     @Test
-    fun `endstopLabel title-cases known axes and capitalizes others`() {
+    fun `endstopLabel strips stepper_ prefix and formats the axis`() {
+        // Real Moonraker keys.
+        assertEquals("X", endstopLabel("stepper_x"))
+        assertEquals("Y", endstopLabel("stepper_y"))
+        assertEquals("Z", endstopLabel("stepper_z"))
+        assertEquals("Z1", endstopLabel("stepper_z1"))
+        // Bare axes still work (defensive).
         assertEquals("X", endstopLabel("x"))
-        assertEquals("Y", endstopLabel("y"))
         assertEquals("Z", endstopLabel("z"))
+        // Non-stepper keys: capitalized word.
         assertEquals("Probe", endstopLabel("probe"))
         assertEquals("Manual_stepper", endstopLabel("manual_stepper"))
     }

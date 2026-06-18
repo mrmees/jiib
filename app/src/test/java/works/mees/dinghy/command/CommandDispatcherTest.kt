@@ -545,7 +545,7 @@ class CommandDispatcherTest {
 
             val result = dispatcher.query(CommandRegistry.queryEndstops, Unit)
 
-            assertEquals("printer.query_endstops/status", seen.single().first)
+            assertEquals("printer.query_endstops.status", seen.single().first)
             assertEquals(null, seen.single().second)
             assertEquals(
                 kotlinx.serialization.json.Json.parseToJsonElement("""{"x":"open","z":"TRIGGERED"}"""),
