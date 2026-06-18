@@ -346,9 +346,11 @@ and state survive and the description merges.
 **Enabled/disabled:** `enabled = false` dims the row to `alpha 0.38` and appends
 `semantics { disabled() }` (the StepperRow / WR-07 convention). The default is `enabled = true`.
 
-**Current consumers:** App Settings (Keep Screen Awake, Webcam), Printer Settings (Babystep),
-Extrude (runout-sensor rows, macro-pin rows), **Macros manage-mode** (`BookmarkedMacrosScreen`
-`MacroManageField` — migrated 2026-06-17 from `ListRow` + trailing icon).
+**Current consumers:** App Settings (Keep Screen Awake, Webcam, Babystep), Extrude (runout-sensor
+rows, macro-pin rows), Move (Include-Z), About (dev widgets), **Macros manage-mode**
+(`BookmarkedMacrosScreen` `MacroManageField` — migrated 2026-06-17 from `ListRow` + trailing icon).
+`SecureToggleRow` (Printers / `PrinterConnectionEditor`) remains the non-canonical straggler, not
+yet migrated.
 
 **Out-of-scope stragglers (NOT yet migrated):** `SecureToggleRow` (PrintersScreen +
 PrinterConnectionEditor) is a separate, non-canonical class that the owner explicitly scoped OUT
