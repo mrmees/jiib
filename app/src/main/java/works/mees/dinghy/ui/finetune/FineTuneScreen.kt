@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.command.CommandDispatcher
@@ -106,6 +107,17 @@ fun FineTuneScreen(
         printerState.printState == PrintState.Paused
     var failureText by remember { mutableStateOf<String?>(null) }
 
+    // Per-printer increment lists: resolve each Fine-Tune param's `steps` from the active printer's
+    // stored (or default) lists. The map is keyed by FineTuneTuner.name; an absent/empty entry keeps
+    // the param's own hardcoded default steps. Count stays at 3 so defaultStepIndex stays valid.
+    val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val activeParams = remember(incrementLists) {
+        ALL_FINE_TUNE_PARAMS.map { p ->
+            val steps = incrementLists[p.tuner.name]
+            if (steps != null && steps.isNotEmpty()) p.copy(steps = steps.toImmutableList()) else p
+        }
+    }
+
     LaunchedEffect(inFlight) { holder.setInFlight(inFlight) }
     val groupBusy = inFlight.isNotEmpty() || holder.pendingStateFlip != null || vm.groupBusy
 
@@ -130,7 +142,7 @@ fun FineTuneScreen(
                 // 19-09 stale-closure lesson: resolve holder.vm.value and the dispatcher AT FIRE
                 // TIME via the stable holder + delegated state read — never the composed snapshots.
                 val tuner = FineTuneTuner.valueOf(tunerName)
-                val param = ALL_FINE_TUNE_PARAMS.first { it.tuner == tuner }
+                val param = activeParams.first { it.tuner == tuner }
                 commitTunerValue(param, value, holder.vm.value, holder, dispatcher)
             },
         )
@@ -181,6 +193,7 @@ fun FineTuneScreen(
     Box(modifier.fillMaxSize()) {
         FineTuneContent(
             vm = vm,
+            params = activeParams,
             isPrinting = isPrinting,
             busy = groupBusy,
             working = working,
@@ -213,7 +226,7 @@ fun FineTuneScreen(
             onResetAll = {
                 // Reset all params that have a baseline back to their baseline value.
                 batcher.cancelAll()
-                ALL_FINE_TUNE_PARAMS.forEach { param ->
+                activeParams.forEach { param ->
                     val baseline = vm.baselineForTuner(param.tuner) ?: return@forEach
                     nudgeToBaseline(
                         param = param,
@@ -266,6 +279,7 @@ fun FineTuneScreen(
 @Composable
 private fun FineTuneContent(
     vm: FineTuneVm,
+    params: List<FineTuneParam> = ALL_FINE_TUNE_PARAMS,
     isPrinting: Boolean,
     busy: Boolean,
     failureText: String?,
@@ -282,16 +296,23 @@ private fun FineTuneContent(
 
     // D-04: session-remember the selected tuner; first param is the fresh-entry fallback.
     var selectedTuner by remember {
-        mutableStateOf(ALL_FINE_TUNE_PARAMS.first().tuner)
+        mutableStateOf(params.first().tuner)
     }
     // Active step index resets to the param's default when the selection changes.
-    val selectedParam = ALL_FINE_TUNE_PARAMS.first { it.tuner == selectedTuner }
+    val selectedParam = params.first { it.tuner == selectedTuner }
+    // Do NOT key this on `steps` — that would reset the user's selected position when the active
+    // list first resolves (empty → stored). Keyed on selectedTuner only.
     var activeStep by remember(selectedTuner) {
         mutableStateOf(defaultStepFor(selectedParam))
     }
+    // Member-safe read: the active list can change once under us (the first emit is emptyMap() →
+    // default steps, then the real stored map). If the remembered activeStep is no longer a member
+    // of the resolved steps, fall back to the param's default step (always a real member).
+    // IncrementPicker requires activeStep to be present in `steps`.
+    val safeActiveStep = if (activeStep in selectedParam.steps) activeStep else defaultStepFor(selectedParam)
 
     // D-08: hide-not-grey FW-retraction rows when the printer doesn't have the capability.
-    val visibleParams = ALL_FINE_TUNE_PARAMS.filter { param ->
+    val visibleParams = params.filter { param ->
         if (param.requiresFwRetraction) vm.hasFwRetraction else true
     }
 
@@ -332,10 +353,10 @@ private fun FineTuneContent(
                         baseline = baseline,
                         decimals = selectedParam.decimals,
                         onDecrement = {
-                            onNudge(selectedParam, value, -activeStep)
+                            onNudge(selectedParam, value, -safeActiveStep)
                         },
                         onIncrement = {
-                            onNudge(selectedParam, value, +activeStep)
+                            onNudge(selectedParam, value, +safeActiveStep)
                         },
                         // quick-rmr: never lock out during a tap burst — busy only DIMS the
                         // −/+ tiles (taps accumulate); Reset is disabled while busy.
@@ -344,7 +365,7 @@ private fun FineTuneContent(
                         incrementPicker = {
                             IncrementPicker(
                                 steps = selectedParam.steps,
-                                activeStep = activeStep,
+                                activeStep = safeActiveStep,
                                 onSelect = { activeStep = it },
                                 uDp = grid.uDp,
                             )
