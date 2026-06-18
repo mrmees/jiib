@@ -443,7 +443,9 @@ private fun ThemeSwatchEditor(
 }
 
 // ---- swatch staging helpers (pure) ----
-private fun nextShift(current: Int): Int = ((current + 137) % 360)   // deterministic re-roll; varied per tap via current
+/** A fresh random pool-hue shift, guaranteed to visibly differ from [current]. */
+private fun nextShift(current: Int): Int =
+    (current + kotlin.random.Random.nextInt(40, 320)) % 360
 
 private fun applySwatch(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch, argb: Long): ThemePrefs.ThemeTuple = when (sw) {
     is ThemeSwatch.Pool -> tuple.copy(poolOverrides = tuple.poolOverrides + (sw.index to argb))
