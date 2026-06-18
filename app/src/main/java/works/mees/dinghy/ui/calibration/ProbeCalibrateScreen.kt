@@ -72,12 +72,7 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
-
-/**
- * Fine TESTZ jog steps (mm), ascending — the +/- step selector walks this list. Selecting a step is a
- * setting, not a command. Spans coarse (10 mm) down to ultra-fine (0.005 mm) paper-test nudges.
- */
-private val TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0)
+import works.mees.dinghy.ui.increments.IncrementControls
 
 /**
  * Thin VM-reading wrapper for ProbeCalibrateScreen. Collects `holder.vm`, computes the `starting`
@@ -112,7 +107,18 @@ fun ProbeCalibrateScreen(
     // Pitfall 3: fresh-instance reset on entry — clears sawActive/captured from any prior session.
     LaunchedEffect(Unit) { holder.reset() }
 
+    val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val testzSteps = remember(incrementLists) {
+        incrementLists["probe_testz"] ?: IncrementControls.defaultValueMap().getValue("probe_testz")
+    }
+
     var step by remember { mutableStateOf(0.05) }
+    // Rebase: when the active list changes, snap `step` to the nearest present value (value-tracked control).
+    LaunchedEffect(testzSteps) {
+        if (step !in testzSteps) {
+            step = testzSteps.minByOrNull { kotlin.math.abs(it - step) } ?: testzSteps.first()
+        }
+    }
     var saveGuard by remember { mutableStateOf(false) }
 
     // Immediate "Starting…" feedback: Start gcode in flight but session not yet Active (the klicky
@@ -141,6 +147,7 @@ fun ProbeCalibrateScreen(
     ProbeCalibrateContent(
         vm = vm,
         step = step,
+        steps = testzSteps,
         starting = starting,
         saveGuard = saveGuard,
         toastError = toastError,
@@ -149,8 +156,8 @@ fun ProbeCalibrateScreen(
         enabled = vm.state == ProbePageState.Active && dispatcher != null && "testz" !in inFlight,
         onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
         onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
-        onStepUp = { step = TESTZ_STEPS[(TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it } + 1).coerceAtMost(TESTZ_STEPS.lastIndex)] },
-        onStepDown = { step = TESTZ_STEPS[(TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it } - 1).coerceAtLeast(0)] },
+        onStepUp = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } + 1).coerceAtMost(testzSteps.lastIndex)] },
+        onStepDown = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } - 1).coerceAtLeast(0)] },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
         onStart = {
             val d = dispatcher ?: return@ProbeCalibrateContent
@@ -191,6 +198,7 @@ fun ProbeCalibrateScreen(
 fun ProbeCalibrateContent(
     vm: ProbeCalibrateVm,
     step: Double,
+    steps: List<Double> = IncrementControls.defaultValueMap().getValue("probe_testz"),
     starting: Boolean,
     saveGuard: Boolean,
     toastError: String?,
@@ -213,7 +221,7 @@ fun ProbeCalibrateContent(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    val idx = TESTZ_STEPS.indexOf(step).let { if (it < 0) 0 else it }
+    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -295,13 +303,13 @@ fun ProbeCalibrateContent(
                                     .weight(1f)
                                     .fillMaxWidth()
                                     .then(
-                                        if (idx < TESTZ_STEPS.lastIndex) Modifier
+                                        if (idx < steps.lastIndex) Modifier
                                         else Modifier.alpha(0.38f).semantics { disabled() },
                                     ),
                                 intent = Intent.Neutral,
                                 icon = DinghyIcons.Increase,
                                 contentDescription = stringResource(R.string.probe_cd_step_larger),
-                                enabled = idx < TESTZ_STEPS.lastIndex,
+                                enabled = idx < steps.lastIndex,
                             )
                             StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
                             OutlinedControl(
