@@ -47,10 +47,10 @@ object IncrementControls {
             defaultValues = listOf(0.01, 0.025, 0.1, 0.25, 1.0, 2.5, 10.0),
         ),
         IncrementControlSpec(
-            // Babystep has NO existing Focus icon (no live selector yet) → question_mark placeholder,
-            // flagged for owner UAT (spec §Icons). Default mirrors PrinterCommands.BABYSTEP_STEPS.
+            // Babystep is setting-only this phase (no live selector yet). Owner-chosen `stacks` icon.
+            // Default mirrors PrinterCommands.BABYSTEP_STEPS.
             key = "babystep", group = "Print", controlTitle = null,
-            icon = DinghyIcons.QuestionMark, maxCount = null,
+            icon = DinghyIcons.Babystep, maxCount = null,
             defaultValues = PrinterCommands.BABYSTEP_STEPS.toList(),
         ),
         IncrementControlSpec(
