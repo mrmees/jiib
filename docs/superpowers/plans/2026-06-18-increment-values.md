@@ -194,6 +194,11 @@ The registry references `DinghyIcons.QuestionMark`, which does not exist yet, so
     val QuestionMark = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "question_mark")
 ```
 
+**Also add `QuestionMark` to the `DinghyIcons.all` list** (~line 366) — the registry's hand-rolled
+iteration source for `tools/subset-symbols` and the uniqueness test. Append `QuestionMark,` to any line
+of that `listOf(...)`. Omitting it means the new glyph is never subset into the font and `all`-based
+tests miss it.
+
 Then run `python tools/verify_ligatures.py` — expected PASS. If it reports `question_mark` missing from the font subset, STOP and flag to the owner (icon law: do not substitute a different glyph).
 
 - [ ] **Step 1: Write the failing test**
@@ -1091,21 +1096,26 @@ Change `FineTuneContent` to take `params: List<FineTuneParam>` and replace the t
 
 - [ ] **Step 3: Make `selectedParam` resolve from `params` (selection stays valid)**
 
-The existing `var activeStep by remember(selectedTuner) { mutableStateOf(defaultStepFor(selectedParam)) }`
-(line ~289) is LEFT AS-IS — do **not** key it on `steps`. Just ensure `selectedParam` now comes from the
-active `params` list:
+Keep `var activeStep by remember(selectedTuner) { mutableStateOf(defaultStepFor(selectedParam)) }`
+(line ~289) — do **not** key it on `steps` (that would reset the user's selected position). But the
+list CAN change once while Fine-Tune is open: the very first collection emits `emptyMap()` (→ default
+steps) and then the real stored map, so on initial load a stored list differing from the default could
+leave the remembered `activeStep` value off the new list — and `IncrementPicker` requires `activeStep`
+to be a member. Guard it with a member-safe derived value and USE THAT everywhere `activeStep` is read:
 
 ```kotlin
     val selectedParam = params.first { it.tuner == selectedTuner }   // was: ALL_FINE_TUNE_PARAMS.first {...}
+    var activeStep by remember(selectedTuner) { mutableStateOf(defaultStepFor(selectedParam)) }
+    // Member-safe: if the active list changed under us and activeStep is no longer present, fall back
+    // to the param's default step (always valid). Preserves position whenever activeStep IS still present.
+    val safeActiveStep = if (activeStep in selectedParam.steps) activeStep else defaultStepFor(selectedParam)
 ```
 
-Rationale (addresses the spec's rebasing rule for Fine-Tune): list edits happen on the **Increment
-Values** screen, never while Fine-Tune is open. The existing app already re-inits `activeStep` to
-`defaultStepFor(selectedParam)` every time a tuner is (re)selected — and `defaultStepFor` indexes the
-param's CURRENT `steps` (`defaultStepIndex` 0–2, always valid for a fixed-3 list). So on return from an
-edit, `activeStep` is always a member of the new list with no extra wiring. Keying on `steps` would only
-matter for a live on-screen change, which cannot occur — so it's omitted to avoid surprise resets.
-The reset path at line ~372 (`activeStep = defaultStepFor(param)`) likewise uses the active `param`.
+Replace the `activeStep` READS at the nudge handlers (lines ~335 `-activeStep`, ~338 `+activeStep`) and
+the `IncrementPicker(activeStep = activeStep, ...)` (line ~347) with `safeActiveStep`. Leave the WRITE
+`onSelect = { activeStep = it }` (line ~348) and the reset `activeStep = defaultStepFor(param)` (line
+~372) writing the raw `activeStep` var. `defaultStepFor` indexes the param's CURRENT `steps`
+(`defaultStepIndex` 0–2, valid for a fixed-3 list), so every fallback is a real member.
 
 - [ ] **Step 4: Build + run FineTune tests**
 
@@ -1205,10 +1215,13 @@ fun ProbeCalibrateContent(
 )
 ```
 
-Pass `steps = testzSteps` from `ProbeCalibrateScreen`. Then replace EVERY `TESTZ_STEPS` reference
-inside `ProbeCalibrateContent` (lines 152, 153, 216, 298, 304) with the passed `steps`. After that,
-`grep -n TESTZ_STEPS app/src/main/java/works/mees/dinghy/ui/calibration/ProbeCalibrateScreen.kt` should
-show only the line-80 private val (now unused) — delete it (the registry hardcodes the same default).
+Pass `steps = testzSteps` from `ProbeCalibrateScreen`. Then fix every `TESTZ_STEPS` reference by scope:
+- **Screen-level wrapper lambdas** (`onStepUp`/`onStepDown` at lines ~152-153, which live in
+  `ProbeCalibrateScreen`, NOT in the content) → use the screen-level `testzSteps` var.
+- **Inside `ProbeCalibrateContent`** (lines ~216, ~298, ~304) → use the passed `steps` param.
+
+After that, `grep -n TESTZ_STEPS app/src/main/java/works/mees/dinghy/ui/calibration/ProbeCalibrateScreen.kt`
+should show only the line-80 private val (now unused) — delete it (the registry hardcodes the same default).
 
 Add imports: `androidx.compose.runtime.LaunchedEffect`, `works.mees.dinghy.ui.increments.IncrementControls`.
 
