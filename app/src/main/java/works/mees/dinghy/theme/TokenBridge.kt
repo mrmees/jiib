@@ -1,6 +1,7 @@
 package works.mees.dinghy.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 
 /**
@@ -59,6 +60,10 @@ object TokenBridge {
      */
     private fun rgbaOf(hex: String, a: Double): Color = bake(hex).copy(alpha = a.toFloat())
 
+    /** Opaque Compose Color → "#RRGGBB" (Locale.US — never non-Latin digits, mirrors hueToHex). */
+    private fun hexOf(c: Color): String =
+        String.format(java.util.Locale.US, "#%06X", c.toArgb() and 0xFFFFFF)
+
     /**
      * Map a generated palette onto a complete [ThemeTokens], deriving the in-between surface/outline
      * tiers and the alpha variants, applying sparse pool [overrides] + the mode-gated status
@@ -81,6 +86,7 @@ object TokenBridge {
         overrides: Map<Int, Color>,
         fs: Float,
         statusOverrides: Map<String, Color> = emptyMap(),
+        accentOverride: Color? = null,
     ): ThemeTokens {
         val d = gen.dark
         val s = gen.surfaces
@@ -113,7 +119,8 @@ object TokenBridge {
         // temperature never collapses to text in Simple/HighContrast. Bed shares xy's pool[0], chamber
         // shares z's pool[1] (dual-tag preserved, shifted down one — never co-occur on screen).
         // Empty-pool guard (CR-02): pool[0]/pool[1] fall back to accent rather than index-crash. ---
-        val accent = bake(t.primary)
+        val accentHex: String = accentOverride?.let { hexOf(it) } ?: t.primary
+        val accent = bake(accentHex)
         val dirXy = pool.getOrElse(0) { accent }
         val dirZ = pool.getOrElse(1) { accent }
 
@@ -130,12 +137,12 @@ object TokenBridge {
             hair = rgbaOf(s.text, if (d) 0.08 else 0.11),
             outline = bake(s.divider),
             outline2 = lShift(s.divider, if (d) 0.11 else -0.12),
-            // --- theme accent = the seed primary (one identity hue). ---
+            // --- theme accent = the seed primary, or the user's accentOverride across ALL modes. ---
             accent = accent,
-            accent2 = lShift(t.primary, if (d) 0.08 else -0.05),
-            accentSoft = rgbaOf(t.primary, if (d) 0.16 else 0.12),
-            accentLine = rgbaOf(t.primary, if (d) 0.55 else 0.50),
-            accentGlow = rgbaOf(t.primary, if (d) 0.35 else 0.20),
+            accent2 = lShift(accentHex, if (d) 0.08 else -0.05),
+            accentSoft = rgbaOf(accentHex, if (d) 0.16 else 0.12),
+            accentLine = rgbaOf(accentHex, if (d) 0.55 else 0.50),
+            accentGlow = rgbaOf(accentHex, if (d) 0.35 else 0.20),
             // --- status = 3 dedicated pool slots, MODE-GATED user overrides applied above (D-03/D-04).
             // dinghy's `heat` IS the caution color (D-13). The soft/glow alpha variants derive from the
             // RESOLVED status color (so an override drives its halo too), not the raw generated hex. ---

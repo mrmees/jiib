@@ -1,5 +1,6 @@
 package works.mees.dinghy.theme
 
+import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -30,5 +31,19 @@ class AccentOverrideTest {
         assertEquals(0xFF445566L, p.toThemeTuple().accentOverride)
         val round = works.mees.dinghy.config.Profile.fromPersisted(p.toPersisted())
         assertEquals(0xFF445566L, round.accentOverrideArgb)
+    }
+
+    @Test fun `token bridge applies accent override to accent token`() {
+        val gen = Palette.generate(seedHex = "#3f78ff", dark = true, maxItems = 4)
+        val overridden = TokenBridge.build(
+            gen = gen, overrides = emptyMap(), fs = 1f,
+            statusOverrides = emptyMap(),
+            accentOverride = androidx.compose.ui.graphics.Color(0xFFFF0000),
+        )
+        assertEquals(0xFF, (overridden.accent.toArgb() ushr 24) and 0xFF) // opaque
+        org.junit.Assert.assertTrue(
+            "accent red channel should dominate after red override",
+            (overridden.accent.toArgb() ushr 16 and 0xFF) > (overridden.accent.toArgb() and 0xFF),
+        )
     }
 }
