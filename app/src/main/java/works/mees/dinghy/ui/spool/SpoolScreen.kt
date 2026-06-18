@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -418,19 +419,6 @@ private fun SpoolContent(
             },
         )
 
-        // DEBUG-ONLY uDp badge in the bottom-start corner (release-stripped via BuildConfig.DEBUG).
-        if (BuildConfig.DEBUG) {
-            Text(
-                text = "U=${grid.uDp}",
-                color = t.accent2,
-                style = DinghyType.dataMeta.toTextStyle(t),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(4.dp)
-                    .background(t.bg.copy(alpha = 0.8f))
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            )
-        }
     }
 }
 
@@ -830,13 +818,19 @@ private fun SpoolDetailContent(
         // The fill bar is the spool's weight visual (label shows remaining/original g · %) AND the
         // tap target to correct the measured weight (the old standalone weight row was removed).
         val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
+        val measureInteraction = remember { MutableInteractionSource() }
         FillMeter(
             fraction = fillFraction,
             fillColor = spoolColor ?: t.accent,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(t.rCtrl))
-                .clickable(onClick = onMeasure)
+                // Tap target to correct the weight — no rounded clip / indication frame so the
+                // weight line carries no rounded border (owner UAT 2026-06-17).
+                .clickable(
+                    interactionSource = measureInteraction,
+                    indication = null,
+                    onClick = onMeasure,
+                )
                 .semantics { contentDescription = editWeightCd },
             label = fillLabel,
         )
