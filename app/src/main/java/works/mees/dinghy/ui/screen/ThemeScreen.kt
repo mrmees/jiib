@@ -239,8 +239,23 @@ private fun ThemeFocus(
             PaletteModeSegment(working.paletteMode, onPaletteMode, uDp)
         }
         ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), DinghyIcons.Colors) {
-            // Wired in Task 12.
-            explainer(stringResource(R.string.theme_seed_focus))
+            val hue = seedHexToHue(working.seedHex)
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                works.mees.dinghy.designsystem.HueSlider(
+                    hue = hue,
+                    onHandleMove = { h ->
+                        container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
+                    },
+                    onSettle = { h ->
+                        container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
+                    },
+                )
+            }
+            OutlinedControl(
+                label = stringResource(R.string.theme_save),
+                onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
+                modifier = Modifier.fillMaxWidth(), intent = Intent.Go,
+            )
         }
         ThemeRow.Colors -> frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
             // Wired in Task 13.
