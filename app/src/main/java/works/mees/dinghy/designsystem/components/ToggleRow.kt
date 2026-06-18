@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -151,6 +152,9 @@ fun ToggleRow(
                 text = label,
                 color = t.text,
                 style = DinghyType.listLabel.toTextStyle(t),
+                // A long label (e.g. a verbose Klipper macro name) must not wrap past the 1U row floor.
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             if (subLabel != null) {
                 Text(
