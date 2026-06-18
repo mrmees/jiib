@@ -74,6 +74,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | `FootButtonBar` | — (container only) | — | — | Row of `OutlinedControl` buttons pinned to foot of list | `designsystem/components/FootButtonBar.kt` |
 | `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Shell-fallback e-stop (Webcam + Theme only — all other screens dock in FocusFrame header) | `designsystem/components/FloatingEStop.kt` |
 | `SortFilterControlRow` | Filled (control) | icon option tiles (label shows if ≤2 options): `t.surface`; active: `t.accentSoft` (leading type-tile RETIRED 2026-06-17) | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
+| `ToggleRow` | Transparent (content row) + filled switch affordance | `Color.Transparent` track (OFF) / `t.accentSoft` track (ON) | row: `t.outline` / `t.accentLine` if checked; switch track: `t.outline` / `t.accentLine` | Full-width labeled toggle with sliding-switch affordance | `designsystem/components/ToggleRow.kt` |
 | Control tile (general) | Filled | `t.surface` | `t.outline` / intent-line if active | Interactive grid tile (launcher, shortcut, jog pad cell) | `OutlinedControl.kt` (existing) |
 | `ListBlock` | — (scroll wrapper) | — | — | Edge-faded `LazyColumn` container | `designsystem/layout/ListBlock.kt` |
 | `RegisteredRegion` | — (frame owner) | — | — | 8dp edge-registration frame + inter-element gap owner for a screen region | `designsystem/layout/RegisteredRegion.kt` |
@@ -313,6 +314,47 @@ Active option tile: `t.accentSoft` fill, `t.accentLine` border, `t.accent2` fore
 Inactive option tile: `t.surface` fill, `t.outline` border.
 
 Tile height = `(uDp - 12.dp)` to preserve the inter-row gap rhythm.
+
+#### `ToggleRow`
+
+THE canonical full-width **labeled toggle row** (control baseline audit, Phase 5; switch restyle
+2026-06-17). A label (+ optional sub-label) on the left and a **`ToggleSwitch`** on the right.
+Extracted verbatim from the owner-shipped `DevEnableRow` anatomy — zero new look invented.
+
+**Anatomy:**
+
+- **Outer `Row`:** `fillMaxWidth().heightIn(min = uDp)` (the 1U floor), `clip(RoundedCornerShape(t.rCard))`,
+  `border(2.dp, accentLine if checked else outline)`. The row border flips `accentLine`↔`outline`
+  with the checked state — extra glanceability on a printer screen.
+- **Left `Column(weight(1f))`:** the row label (Geist SemiBold, `fsSp(17)`, `maxLines = 1` +
+  `TextOverflow.Ellipsis` — long macro names must not push past the 1U floor) + an optional
+  sub-label below it (Geist, `fsSp(15)`, `t.text3`; emitted only when non-null).
+- **Right: `ToggleSwitch`** — a tokenized rounded-capsule track + a sliding circular knob.
+  State is carried by knob **position** and **color** — there is no On/Off text:
+  - **ON:** `t.accentSoft` track fill · `t.accentLine` 2dp border · solid `t.accent` knob at the trailing edge.
+  - **OFF:** transparent track · `t.outline` 2dp border · faint `t.text3` knob at the leading edge.
+  The knob slides via a single one-shot `animateDpAsState` (cheap — respects the no-looping-animation
+  rule on the Adreno-320 floor). The switch is a control shape, not an icon/glyph — the
+  icon-registry-only law does not apply to it, but a trailing icon or text label replacing it would
+  be non-conformant.
+
+**a11y:** the row uses `Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch,
+onValueChange = onToggle)` so TalkBack announces the correct Switch role + checked state. The
+`toggleable` modifier is applied BEFORE the `semantics { contentDescription }` block so the role
+and state survive and the description merges.
+
+**Enabled/disabled:** `enabled = false` dims the row to `alpha 0.38` and appends
+`semantics { disabled() }` (the StepperRow / WR-07 convention). The default is `enabled = true`.
+
+**Current consumers:** App Settings (Keep Screen Awake, Webcam, Babystep), Extrude (runout-sensor
+rows, macro-pin rows), Move (Include-Z), About (dev widgets), **Macros manage-mode**
+(`BookmarkedMacrosScreen` `MacroManageField` — migrated 2026-06-17 from `ListRow` + trailing icon).
+`SecureToggleRow` (Printers / `PrinterConnectionEditor`) remains the non-canonical straggler, not
+yet migrated.
+
+**Out-of-scope stragglers (NOT yet migrated):** `SecureToggleRow` (PrintersScreen +
+PrinterConnectionEditor) is a separate, non-canonical class that the owner explicitly scoped OUT
+of the control-baseline audit pass. It should adopt `ToggleRow` when those areas are reworked.
 
 #### Control tile (general)
 

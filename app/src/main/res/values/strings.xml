@@ -141,6 +141,7 @@
     <!-- 28-01: Fine-Tune home idle-list row contentDescription (LauncherFineTune, D-21). -->
     <string name="cd_launcher_fine_tune">Fine-Tune</string>
     <string name="home_foot_preheat">Preheat</string>
+    <string name="home_foot_cooldown">Cooldown</string>
     <string name="home_foot_system">System</string>
     <string name="cd_tune">Tune</string>
 

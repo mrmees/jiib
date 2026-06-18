@@ -1,42 +1,19 @@
 package works.mees.dinghy.designsystem.components
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import works.mees.dinghy.R
 
 /**
- * Host tests for the pure helpers extracted from [ToggleRow] (control baseline audit, Phase 5).
+ * Host tests for the pure helper backing [ToggleRow] (control baseline audit, Phase 5; switch
+ * restyle 2026-06-17).
  *
- * These encode the ToggleRow contract independently of the Compose runtime (mirrors the
- * [StepperRow] / [SelectorRow] `internal fun` + `*Test` pattern):
- *  - the right-hand pill is a TEXT pill driven by the registered `common_on`/`common_off`
- *    string resources — checked → `common_on`, unchecked → `common_off` (NO glyph; icon law).
- *  - "wants accent" tracks the checked state: it drives BOTH the row/pill border (accentLine vs
- *    outline) AND the pill text color (accent vs text2).
+ * Post-restyle the trailing affordance is a SWITCH (sliding knob), not a text pill — the
+ * `toggleStateLabelRes` pill-text helper is gone. The surviving pure contract is "wants accent":
+ * the checked state drives BOTH the row border (accentLine vs outline) AND the switch colors
+ * (accent knob/accentSoft track vs text3 knob/outline track).
  */
 class ToggleRowTest {
-
-    // ── pill text resolves to the ON/OFF string resources ────────────────────
-
-    @Test
-    fun checked_usesCommonOnResource() {
-        assertEquals(R.string.common_on, toggleStateLabelRes(true))
-    }
-
-    @Test
-    fun unchecked_usesCommonOffResource() {
-        assertEquals(R.string.common_off, toggleStateLabelRes(false))
-    }
-
-    @Test
-    fun onAndOff_areDistinctResources() {
-        assertNotEquals(toggleStateLabelRes(true), toggleStateLabelRes(false))
-    }
-
-    // ── "wants accent" tracks the checked state ──────────────────────────────
 
     @Test
     fun wantsAccent_whenChecked() {

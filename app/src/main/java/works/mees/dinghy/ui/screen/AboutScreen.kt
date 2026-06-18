@@ -198,7 +198,7 @@ private fun DevEnableRow(
 ) {
     // Thin About-specific preset over the canonical [ToggleRow] (control baseline audit, Phase 5).
     // Owns the About-specific strings + the "OFF restores theme" sub-label semantics (D-08);
-    // the look (1U row, On/Off text pill) lives in ToggleRow. Persistence path UNCHANGED —
+    // the look (1U row, On/Off sliding switch) lives in ToggleRow. Persistence path UNCHANGED —
     // onToggle still routes to AppContainer.setDevCyclerEnabled via the writeScope intent helper.
     ToggleRow(
         label = stringResource(R.string.about_dev_widgets),

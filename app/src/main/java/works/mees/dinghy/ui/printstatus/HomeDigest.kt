@@ -63,6 +63,11 @@ internal fun orderedHeaterKeys(heaters: Map<String, HeaterState>): List<String> 
 internal fun activeHeaterKeys(heaters: Map<String, HeaterState>): List<String> =
     orderedHeaterKeys(heaters).filter { (heaters[it]?.target ?: 0.0) > 0.0 }
 
+/** True when ANY heater is actively heating (target > 0) — drives the idle foot bar's
+ *  Preheat→Cooldown swap. Pure (host-testable); reuses the canonical [activeHeaterKeys] "on" rule. */
+internal fun anyHeaterOn(heaters: Map<String, HeaterState>): Boolean =
+    activeHeaterKeys(heaters).isNotEmpty()
+
 /** `current/target`, both rounded to integers (no degree symbol). */
 internal fun heaterValueText(h: HeaterState): String =
     "${h.temperature.roundToInt()}/${h.target.roundToInt()}"

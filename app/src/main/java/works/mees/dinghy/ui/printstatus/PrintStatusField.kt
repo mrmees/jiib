@@ -43,8 +43,9 @@ import works.mees.dinghy.ui.route.NavDest
  * row calls [onNavigate] with the row's [NavDest]; the System foot button navigates to [NavDest.System]
  * (D-04/28-05 — formerly opened the App Drawer, now routes to the System page directly).
  *
- * The foot bar contains two [OutlinedControl]s — Preheat (warn) and System (accent) — placed
- * below the list per the foot-of-list pattern. The gutter region is retired app-wide (R1,
+ * The foot bar contains two [OutlinedControl]s placed below the list per the foot-of-list
+ * pattern. Idle → Preheat (warn — heats) OR Cooldown (accent, when any heater is on — fires
+ * TURN_OFF_HEATERS) + System (accent nav). The gutter region is retired app-wide (R1,
  * 2026-06-12): every Print-Status mode now carries its actions in a foot bar.
  *
  * This is the UNIVERSAL home Field — the data-driven idle action list + Preheat/System foot +
@@ -62,6 +63,8 @@ internal fun HomeField(
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
     onPreheat: () -> Unit,
+    anyHeaterOn: Boolean = false,
+    onCooldown: () -> Unit = {},
     uDp: Dp,
     isPrinting: Boolean = false,
     isPaused: Boolean = false,
@@ -141,8 +144,15 @@ internal fun HomeField(
                     add(FootAction(stringResource(R.string.home_foot_system),
                         DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 } else {
-                    add(FootAction(stringResource(R.string.home_foot_preheat),
-                        DinghyIcons.FootPreheat, onPreheat, Intent.Warn)) // R5: heats nozzle/bed — hazard-in-process class
+                    // Preheat ⇄ Cooldown: when any heater is on, offer Cooldown (TURN_OFF_HEATERS)
+                    // instead of Preheat. Flips back automatically once all targets reach 0.
+                    if (anyHeaterOn) {
+                        add(FootAction(stringResource(R.string.home_foot_cooldown),
+                            DinghyIcons.FootCooldown, onCooldown, Intent.Accent)) // R5: removes the heat hazard → neutral
+                    } else {
+                        add(FootAction(stringResource(R.string.home_foot_preheat),
+                            DinghyIcons.FootPreheat, onPreheat, Intent.Warn)) // R5: heats nozzle/bed — hazard-in-process
+                    }
                     add(FootAction(stringResource(R.string.home_foot_system),
                         DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 }

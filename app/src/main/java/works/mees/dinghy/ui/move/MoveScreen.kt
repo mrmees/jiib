@@ -636,7 +636,7 @@ internal fun MoveHubContent(
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardType = KeyboardType.Text,
                                 )
-                                // Include-Z toggle: the canonical full-width 1U On/Off ToggleRow
+                                // Include-Z toggle: the canonical full-width 1U switch ToggleRow
                                 // (control baseline audit, Phase 5 — kills the Material MUI tick-box
                                 // rogue). includeZ stays INTENTIONALLY ephemeral (reset per dialog
                                 // open) — render-only swap, no persistence.
