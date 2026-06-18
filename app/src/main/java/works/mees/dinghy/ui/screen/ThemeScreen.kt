@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
@@ -151,7 +152,7 @@ internal fun ThemeContent(
                         )
                     }
                     item { ThemeSelectorRow(ThemeRow.PaletteMode, selected, DinghyIcons.InvertColors,
-                        stringResource(R.string.theme_row_palette_mode), paletteModeLabel(working.paletteMode), grid.uDp, selectRow) }
+                        stringResource(R.string.theme_row_palette_mode), stringResource(paletteModeLabelRes(working.paletteMode)), grid.uDp, selectRow) }
                     item { ThemeSelectorRow(ThemeRow.Seed, selected, DinghyIcons.Colors,
                         stringResource(R.string.theme_row_seed), "", grid.uDp, selectRow) }
                     item { ThemeSelectorRow(ThemeRow.Colors, selected, DinghyIcons.Palette,
@@ -219,7 +220,7 @@ private fun ThemeFocus(
 
     @Composable
     fun explainer(text: String) {
-        Box(Modifier.fillMaxWidth().fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text, color = t.text2, style = DinghyType.body.toTextStyle(t))
         }
     }
@@ -251,7 +252,7 @@ private fun ThemeFocus(
 /** The 3-way palette-mode segment (lives in the Focus, applies live + persists immediately). */
 @Composable
 private fun PaletteModeSegment(current: String, onPick: (String) -> Unit, uDp: Dp) {
-    androidx.compose.foundation.layout.Row(
+    Row(
         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         for ((mode, labelRes) in PALETTE_MODES) {
@@ -270,10 +271,11 @@ private val PALETTE_MODES = listOf(
     ThemeResolver.MODE_HIGH_CONTRAST to R.string.theme_mode_high_contrast,
 )
 
-private fun paletteModeLabel(mode: String): String = when (mode) {
-    ThemeResolver.MODE_SIMPLE -> "Simple"
-    ThemeResolver.MODE_HIGH_CONTRAST -> "High contrast"
-    else -> "Colorful"
+@androidx.annotation.StringRes
+private fun paletteModeLabelRes(mode: String): Int = when (mode) {
+    ThemeResolver.MODE_SIMPLE -> R.string.theme_mode_simple
+    ThemeResolver.MODE_HIGH_CONTRAST -> R.string.theme_mode_high_contrast
+    else -> R.string.theme_mode_colorful
 }
 
 /** True if the working tuple carries any pool/status/accent override (drives the "Custom" indicator). */
