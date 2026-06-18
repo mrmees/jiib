@@ -169,7 +169,7 @@ undo-the-draft, NOT neutral; neutral is retired for action buttons per THEMING.m
 > **5U layout budget:** header 1U + grid 2U (two 1U swatch rows) + actions 1U = **4U**, leaving ~1U for
 > the inset/gaps so the Focus survives the 5U minimum without clipping or scrolling. The owner's earlier
 > mock had two action rows (Randomize on top; Revert+Save below) — collapsed to one row to honor the cap.
-> *(Owner: confirm the single action row is acceptable.)*
+> *(Owner-confirmed 2026-06-18.)*
 
 ## Color engine changes
 
@@ -269,5 +269,6 @@ one 1U row for the 5U budget, #8 fuller preview matrix.
    the draft on editor exit. Test a draft survives an unrelated state tick and Revert restores exactly.
 2. **Accent token family completeness** — ensure no accent-derived token (incl. `directional.temperature`)
    is missed when the override is applied; assert `bake == compute`.
-3. **Back-vs-dirty-draft** behavior and intent (red when discarding) — confirm at UAT.
-4. **Single action row** in Theme Colors — owner confirmation pending (was two rows in the mock).
+3. **Back-vs-dirty-draft** — owner-confirmed 2026-06-18: Back renders red while a draft is unsaved (it
+   doubles as the "you haven't saved" cue) and discards on exit. Verify the red↔accent transition at UAT.
+4. **Single action row** in Theme Colors — owner-confirmed 2026-06-18.
