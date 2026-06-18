@@ -3895,7 +3895,7 @@
       "params": [
         "HEATER",
         "TARGET",
-        "FAN"
+        "TEMPERATURE_FAN"
       ],
       "key_params": [
         "HEATER",

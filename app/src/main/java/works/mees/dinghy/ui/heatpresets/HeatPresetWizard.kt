@@ -70,7 +70,9 @@ fun reconcileWizardFields(saved: HeatPreset?, heaters: List<SettableHeater>): Li
  * Edit-safe ([saved]): on edit the wizard rebuilds against the CURRENT live [heaters], but a heater
  * may be TEMPORARILY ABSENT (printer disconnected → enumerate falls back to extruder+bed). Setpoints
  * in [saved] for object names NOT in the current [heaters] are PRESERVED (e.g. a chamber/fan setpoint
- * is not lost just because that heater isn't reporting right now). The parsed values OVERLAY preserved.
+ * is not lost just because that heater isn't reporting right now) — UNLESS that object also appears in
+ * [rawValues] (the user saw the field and edited/cleared it), in which case the rawValues input wins so
+ * an explicit blank still OMITS. The parsed values OVERLAY preserved.
  */
 fun buildPresetFromInput(
     id: String,
@@ -91,7 +93,9 @@ fun buildPresetFromInput(
         }
     }
     val heaterNames = heaters.map { it.objectName }.toSet()
-    val preserved = saved?.setpoints?.filterKeys { it !in heaterNames } ?: emptyMap()
+    // Preserve ONLY saved keys the user never saw this edit: not a current heater AND not in the input
+    // map. A key present in rawValues was on a wizard page, so an explicit blank there must still omit.
+    val preserved = saved?.setpoints?.filterKeys { it !in heaterNames && it !in rawValues.keys } ?: emptyMap()
     return HeatPreset(id = id, name = name.trim(), setpoints = preserved + parsedSetpoints)
 }
 
@@ -210,9 +214,14 @@ fun HeatPresetWizard(
         },
         field = {
             val nameValid = name.isNotBlank()
-            // A save needs a non-blank name AND at least one parseable setpoint (FIX 5) — a name-only
-            // preset would dispatch an empty gcode script. Next stays enabled on name validity alone.
-            val hasAnySetpoint = values.values.any { it.trim().toLongOrNull() != null }
+            // A save needs a non-blank name AND at least one setpoint in the preset that would actually
+            // be built (FIX 5) — a name-only preset would dispatch an empty gcode script. Gate on the SAME
+            // build path the Save uses so PRESERVED setpoints (absent saved heaters, see buildPresetFromInput)
+            // also count — a disconnected edit with only a saved chamber/fan setpoint is still saveable.
+            // Next stays enabled on name validity alone.
+            val hasAnySetpoint = buildPresetFromInput(
+                id = "", name = name, rawValues = values.toMap(), heaters = heaters, saved = saved,
+            ).setpoints.isNotEmpty()
             val primaryEnabled = if (onLastStep) nameValid && hasAnySetpoint else nameValid
             FootButtonBar(
                 uDp = uDp,

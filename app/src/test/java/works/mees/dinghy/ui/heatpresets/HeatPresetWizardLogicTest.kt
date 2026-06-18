@@ -56,6 +56,17 @@ class HeatPresetWizardLogicTest {
         )
     }
 
+    @Test fun build_explicitBlankInRawValues_overridesSavedPreservation() {
+        // The user SAW a heater's page and cleared it (key present in rawValues with blank), AND that
+        // heater is no longer in the current `heaters` list. The explicit clear must WIN → omit, not
+        // resurrect the saved value. (Guards the `it !in rawValues.keys` half of the preserve filter.)
+        val saved = HeatPreset("id", "Med", mapOf("extruder" to 200, "temperature_fan exhaust" to 40))
+        // `heaters` (the 3 fixtures) does NOT include temperature_fan exhaust, but rawValues carries it blank.
+        val raw = mapOf("extruder" to "210", "temperature_fan exhaust" to "")
+        val preset = buildPresetFromInput("id", "Med", raw, heaters, saved = saved)
+        assertEquals(mapOf("extruder" to 210), preset.setpoints) // exhaust omitted, NOT preserved as 40
+    }
+
     @Test fun build_hugeOverflowingInput_clampsToMaxNotOmitted() {
         // A digit string that overflows Int must clamp to the heater max, not silently omit (toLong).
         val preset = buildPresetFromInput("id", "P", mapOf("heater_generic chamber" to "999999999999"), heaters)
