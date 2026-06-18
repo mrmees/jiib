@@ -57,6 +57,7 @@ sealed interface NavDest {
     @Serializable data object AppSettings            : NavDest
     @Serializable data object PrinterSettings        : NavDest
     @Serializable data object ManagePrinters         : NavDest
+    @Serializable data object HeatPresets            : NavDest
 }
 
 /**
@@ -93,6 +94,7 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.AppSettings,
     NavDest.PrinterSettings,
     NavDest.ManagePrinters,
+    NavDest.HeatPresets,
 )
 
 // ---------------------------------------------------------------------------

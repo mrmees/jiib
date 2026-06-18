@@ -101,6 +101,7 @@ fun PrinterSettingsScreen(
         onConnection = { editingConnection = true },
         onTheme = { onNavigate(NavDest.Theme) },
         onSystemInfo = { onNavigate(NavDest.SystemInfo) },
+        onHeatPresets = { onNavigate(NavDest.HeatPresets) },
         onAdd = { editingConnection = true },
         onBack = onBack,
         modifier = modifier,
@@ -144,6 +145,7 @@ fun PrinterSettingsContent(
     onConnection: () -> Unit,
     onTheme: () -> Unit,
     onSystemInfo: () -> Unit,
+    onHeatPresets: () -> Unit = {},
     onAdd: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -262,7 +264,17 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 4: Power stub — inert, stop-tinted (D-08 parity with PowerStubRow)
+                        // Row 4: Heat Presets — per-printer preheat preset editor
+                        item {
+                            PrinterSettingsNavRow(
+                                icon = DinghyIcons.TempPresets,
+                                label = stringResource(R.string.heat_presets_title),
+                                onClick = onHeatPresets,
+                                uDp = grid.uDp,
+                            )
+                        }
+
+                        // Row 5: Power stub — inert, stop-tinted (D-08 parity with PowerStubRow)
                         item {
                             PrinterSettingsPowerStubRow(uDp = grid.uDp)
                         }
