@@ -71,8 +71,9 @@ data class HeatPreset(
   `enumerateSettableHeaters()` returning ordered `(objectName, displayName, limits?)`.
 - **Order:** extruder(s) → bed → `heater_generic` (alpha) → `temperature_fan` (alpha).
 - **Display names** via the existing Title-Case heater helper, extended:
-  `extruder`→"Extruder", `heater_bed`→"Bed", `heater_generic chamber`→"Chamber",
-  `temperature_fan exhaust`→"Exhaust".
+  `extruder`→"Nozzle", `heater_bed`→"Bed", `heater_generic chamber`→"Chamber",
+  `temperature_fan exhaust`→"Exhaust". (Reconciled 2026-06-17: "Nozzle" not "Extruder" — matches
+  the app's existing `TemperatureHolder.label` convention shown everywhere else in the UI.)
 - The create/edit wizard enumerates from the **live connected printer's** heater set. If the
   printer has never connected (no live config), it falls back to extruder + bed only.
 

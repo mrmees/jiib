@@ -158,7 +158,7 @@ git commit -m "feat(heatpresets): HeatPreset model, display sort, jiib defaults"
 - Create: `app/src/main/java/works/mees/dinghy/config/HeatPresetPrefs.kt`
 - Test: `app/src/test/java/works/mees/dinghy/config/HeatPresetPrefsTest.kt`
 
-Pattern source: `ui/move/SavedLocationPrefs.kt` (JSON-list serialization) + `ui/settings/TraceStylePrefs.kt` (per-profileId key scoping). Test harness: `config/ProfileStoreTest.kt` (real temp-file DataStore on an IO scope, `settle()` helper).
+Pattern source: `ui/move/SavedLocationPrefs.kt` (JSON-list serialization) + `ui/settings/TraceStylePrefs.kt` (per-profileId key scoping). **Test harness: mirror `ui/move/SavedLocationPrefsTest.kt` EXACTLY** (the closest analog — JSON-list store, add/remove) — one FRESH store per `@Test` via `newPrefs()`, real temp-file DataStore on an IO scope, `withContext(io.coroutineContext)`, and a `settle()` after every write before any read. (`ProfileStoreTest.kt` documents the same real-IO-scope requirement — the Windows `.tmp`→rename race forbids the `runTest` virtual-time dispatcher for the file actor.) Keep the interleaved seed/delete/reseed test minimal; if it proves flaky on the Windows runner, split it so each store sees a single write batch before reading.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -445,7 +445,7 @@ git commit -m "feat(heatpresets): applyHeatPreset + setTemperatureFanTarget gcod
 - Modify: `docs/commands/catalog.json`, `docs/commands/printer-matrix.json`
 - Test: `app/src/test/java/works/mees/dinghy/command/CommandRegistryGcodeTest.kt`
 
-`applyHeatPreset` reuses the existing `KGC-SET_HEATER_TEMPERATURE_PRESET` catalog id (already present → no new row). `setTemperatureFan` introduces `KGC-SET_TEMPERATURE_FAN_TARGET` (new rows required).
+**Catalog ids must stay UNIQUE** (`CommandCatalogDriftTest.registryCatalogIdsAreUnique`). The legacy `applyPreset` keeps `KGC-SET_HEATER_TEMPERATURE_PRESET` until Task 12, so `applyHeatPreset` gets its OWN new id `KGC-APPLY_HEAT_PRESET`. `setTemperatureFan` introduces `KGC-SET_TEMPERATURE_FAN_TARGET`. Both new ids need catalog.json + printer-matrix.json rows.
 
 - [ ] **Step 1: Write the failing tests** (append to `CommandRegistryGcodeTest`)
 
@@ -493,7 +493,7 @@ val setTemperatureFan: CommandSpec<SetTemperatureFanArgs> = gcode(
 )
 
 val applyHeatPreset: CommandSpec<ApplyHeatPresetArgs> = gcode(
-    catalogId = "KGC-SET_HEATER_TEMPERATURE_PRESET",
+    catalogId = "KGC-APPLY_HEAT_PRESET",
     key = { args -> args.key },
     gcode = { args -> PrinterCommands.applyHeatPreset(args.setpoints) },
     availability = AvailabilityPredicate.ObjectPresent("extruder"),
@@ -537,7 +537,37 @@ In `docs/commands/catalog.json`, add an entry modeled on `KGC-SET_HEATER_TEMPERA
   "acceptance_semantics": "Registry gcode commands are dispatched via gcode.script JSON-RPC; script params are produced byte-identically."
 }
 ```
-In `docs/commands/printer-matrix.json`, add a `command_availability` row modeled on an existing `KGC-*` gcode row, `catalog_id` = `"KGC-SET_TEMPERATURE_FAN_TARGET"`, `predicate` `{"type":"always"}`, with a `printer_status` entry per printer id present in the file (copy the shape of a neighboring gcode row; evidence note: "Registered for Heat Presets; not executed during read-only capture.").
+Also add a SECOND new catalog entry for `applyHeatPreset` (modeled on the existing `KGC-SET_HEATER_TEMPERATURE_PRESET` entry — find it ~line 3853):
+```json
+{
+  "id": "KGC-APPLY_HEAT_PRESET",
+  "catalog_id": "KGC-APPLY_HEAT_PRESET",
+  "source_api": "klipper_gcode",
+  "transport": "gcode_script",
+  "name": "APPLY_HEAT_PRESET",
+  "category": "temperature",
+  "purpose": "Apply a per-printer Heat Preset — one SET_HEATER_TEMPERATURE / SET_TEMPERATURE_FAN_TARGET line per heater in the preset's sparse setpoint map.",
+  "params": ["HEATER", "TARGET", "FAN"],
+  "key_params": ["HEATER", "TARGET"],
+  "semantics_tier": "full",
+  "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+  "rest_endpoint": null,
+  "http_method": null,
+  "availability": { "type": "object_present", "names": ["extruder"] },
+  "predicate": { "type": "object_present", "names": ["extruder"] },
+  "runtime_registry": {
+    "status": "registered",
+    "registered": true,
+    "notes": "Present in CommandRegistry for per-printer Heat Presets apply."
+  },
+  "success_semantics": "Klipper accepts the multi-line G-Code script and applies each heater target.",
+  "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+  "acceptance_semantics": "Registry gcode commands are dispatched via gcode.script JSON-RPC; script params are produced byte-identically."
+}
+```
+NOTE: match the EXACT key shape of the neighboring `KGC-SET_HEATER_TEMPERATURE_PRESET` entry (the `availability`/`predicate` representation in particular — if existing entries use `"type":"any_object_present"` with `"names":[...]`, use that form, not the example above). The drift test is the arbiter.
+
+In `docs/commands/printer-matrix.json`, add TWO `command_availability` rows modeled on existing `KGC-*` gcode rows: one `catalog_id` = `"KGC-SET_TEMPERATURE_FAN_TARGET"` (predicate `{"type":"always"}`) and one `catalog_id` = `"KGC-APPLY_HEAT_PRESET"` (predicate matching its `object_present` extruder availability). Each with a `printer_status` entry per printer id present in the file (copy the shape of a neighboring gcode row; evidence note: "Registered for Heat Presets; not executed during read-only capture.").
 
 - [ ] **Step 5: Run drift + gcode tests**
 
@@ -641,6 +671,13 @@ class HeaterNamingTest {
         assertEquals(300, out[0].maxTemp)            // from limits
         assertNull(out[3].maxTemp)                   // fan limits not parsed → null (global clamp applies)
     }
+
+    @Test fun enumerate_whenNothingKnown_fallsBackToExtruderAndBed() {
+        // Never-connected printer: no heaterLimits, no fans → design fallback is extruder + bed.
+        val out = enumerateSettableHeaters(emptyMap(), emptyList())
+        assertEquals(listOf("extruder", "heater_bed"), out.map { it.objectName })
+        assertEquals(listOf("Nozzle", "Bed"), out.map { it.displayName })
+    }
 }
 ```
 
@@ -704,7 +741,15 @@ fun enumerateSettableHeaters(
         }
     val fans = temperatureFans.sorted()
         .map { SettableHeater(it, heaterDisplayName(it), minTemp = null, maxTemp = null) }
-    return heaters + fans
+    val all = heaters + fans
+    // Fallback for a never-connected printer (no config reported yet): the design requires the wizard
+    // still offer the two universal heaters so a new printer can build a real preset, not name-only.
+    return all.ifEmpty {
+        listOf(
+            SettableHeater("extruder", heaterDisplayName("extruder"), null, null),
+            SettableHeater("heater_bed", heaterDisplayName("heater_bed"), null, null),
+        )
+    }
 }
 
 private fun titleCase(raw: String): String =
@@ -744,9 +789,9 @@ import org.junit.Test
 
 class HeatPresetWizardLogicTest {
     private val heaters = listOf(
-        SettableHeater("extruder", "Nozzle", 0, 300),
+        SettableHeater("extruder", "Nozzle", 10, 300),                  // min 10 — guards the 0=off escape
         SettableHeater("heater_bed", "Bed", 0, 130),
-        SettableHeater("heater_generic chamber", "Chamber", 0, 120), // NEW since the saved preset
+        SettableHeater("heater_generic chamber", "Chamber", 0, 120),    // NEW since the saved preset
     )
 
     @Test fun reconcile_prefillsSaved_newHeaterBlank() {
@@ -761,11 +806,20 @@ class HeatPresetWizardLogicTest {
         assertEquals(listOf("", "", ""), fields.map { it.initialValue })
     }
 
-    @Test fun build_blankOmitted_zeroKept_clampedToLimits() {
-        val raw = mapOf("extruder" to "9999", "heater_bed" to "", "heater_generic chamber" to "0")
+    @Test fun build_blankOmitted_zeroIsOffEvenBelowMin_positivesClamped() {
+        val raw = mapOf(
+            "extruder" to "0",                 // 0 = OFF — must stay 0 despite extruder minTemp=10
+            "heater_bed" to "",                // blank = omit
+            "heater_generic chamber" to "9999", // positive → clamp to chamber max 120
+        )
         val preset = buildPresetFromInput(id = "id", name = "  My Preset ", rawValues = raw, heaters = heaters)
         assertEquals("My Preset", preset.name)                 // trimmed
-        assertEquals(mapOf("extruder" to 300, "heater_generic chamber" to 0), preset.setpoints) // bed omitted (blank), extruder clamped to max, 0 kept
+        assertEquals(mapOf("extruder" to 0, "heater_generic chamber" to 120), preset.setpoints)
+    }
+
+    @Test fun build_positiveBelowMin_clampsUpToMin() {
+        val preset = buildPresetFromInput("id", "P", mapOf("extruder" to "5"), heaters) // min 10
+        assertEquals(mapOf("extruder" to 10), preset.setpoints)
     }
 }
 ```
@@ -823,7 +877,8 @@ fun buildPresetFromInput(
     val byName = heaters.associateBy { it.objectName }
     val setpoints = buildMap {
         for ((obj, raw) in rawValues) {
-            val parsed = raw.trim().toIntOrNull() ?: continue   // blank/garbage → skip
+            val parsed = raw.trim().toIntOrNull() ?: continue   // blank/garbage → skip (omit heater)
+            if (parsed == 0) { put(obj, 0); continue }          // 0 = explicit OFF — bypass the min clamp
             val h = byName[obj]
             val lo = h?.minTemp ?: PrinterCommands.MIN_TEMP_C
             val hi = h?.maxTemp ?: PrinterCommands.MAX_TEMP_C
@@ -1026,7 +1081,7 @@ val printerState by container.printerState.collectAsStateWithLifecycle(PrinterSt
 val dispatcher by container.dispatcher.collectAsStateWithLifecycle(null)
 val isPrinting = printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused
 ```
-Compute live heaters once for the wizard:
+Compute live heaters once for the wizard (`enumerateSettableHeaters` already falls back to extruder+bed when the printer hasn't reported config yet — Task 6 — so this is never empty):
 ```kotlin
 val liveHeaters = remember(heaterLimits, capabilities) {
     enumerateSettableHeaters(heaterLimits, capabilities.temperatureFans)
@@ -1116,6 +1171,9 @@ git commit -m "feat(heatpresets): Heat Presets screen + create/edit wizard + Pri
 
 **Files:** `ui/temperature/TemperatureScreen.kt`
 
+⚠ The preset rows live in a PRIVATE stateless content function (and there is a preview/stateless overload), so the collected `heatPresets` is out of scope there. You MUST thread it through.
+
+- [ ] **Step 0 (threading):** Add `heatPresets: List<HeatPreset> = emptyList()` and change `onApplyPreset` to `(HeatPreset) -> Unit` on the stateless content function signature AND any `@Preview`/stateless overload (default `emptyList()` / `{}`). Pass `heatPresets = heatPresets` from the stateful wrapper down to the content function. Confirm where the `PresetPicker`/`PresetListRow` code actually lives (the stateless content fn, ~line 425+) — that is where `heatPresets` must be in scope.
 - [ ] **Step 1:** Collect presets: add `val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())` in the stateful wrapper.
 - [ ] **Step 2:** Replace the loaded-spool `PrinterCommands.Preset` builder (lines ~253-269) with a `HeatPreset`:
 ```kotlin
@@ -1171,7 +1229,9 @@ works.mees.dinghy.ui.temperature.PresetSelector(
 
 **Files:** `ui/extrude/ExtrudeScreen.kt`
 
-- [ ] **Step 1:** Collect `val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())`.
+⚠ Same threading concern as 11a — the preset rows render inside a private stateless content function (~line 252+). Thread `heatPresets: List<HeatPreset> = emptyList()` through that function's signature (and any preview overload) and pass it from the stateful wrapper.
+
+- [ ] **Step 1:** Collect `val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())` in the wrapper; thread it into the stateless content fn (Step 0 pattern from 11a).
 - [ ] **Step 2:** Replace the `MATERIAL_PRESETS` rows (lines ~374-376) with presets that HAVE an extruder value, applying nozzle only:
 ```kotlin
 items(heatPresets.filter { it.extruderTemp != null }, key = { "preset_${it.id}" }) { preset ->
@@ -1190,9 +1250,9 @@ items(heatPresets.filter { it.extruderTemp != null }, key = { "preset_${it.id}" 
 
 - [ ] **Step 1:** Grep for remaining references: `git grep -n "MATERIAL_PRESETS\|ApplyPresetArgs\|PrinterCommands.Preset\|\\bapplyPreset\\b"`. Every main-source hit should now be gone except inside Task-3/4 code. If a consumer remains, finish migrating it before deleting.
 - [ ] **Step 2:** Delete `data class Preset`, `MATERIAL_PRESETS`, and both `applyPreset(...)` funcs from `PrinterCommands.kt`.
-- [ ] **Step 3:** Delete the `applyPreset` `CommandSpec` + `ApplyPresetArgs` from `CommandRegistry.kt` and remove `applyPreset,` from `CommandRegistry.all`. (Leave the `KGC-SET_HEATER_TEMPERATURE_PRESET` catalog entry — it is now the catalog id for `applyHeatPreset`.)
+- [ ] **Step 3:** Delete the `applyPreset` `CommandSpec` + `ApplyPresetArgs` from `CommandRegistry.kt` and remove `applyPreset,` from `CommandRegistry.all`. Then remove the now-orphaned `KGC-SET_HEATER_TEMPERATURE_PRESET` entry from `docs/commands/catalog.json` AND its `command_availability` row from `docs/commands/printer-matrix.json` (no registry entry references it anymore — leaving it risks a catalog→registry completeness check; `applyHeatPreset` lives on `KGC-APPLY_HEAT_PRESET`).
 - [ ] **Step 4:** Update/remove any test referencing the deleted symbols (e.g. `applyPreset` cases in `CommandRegistryGcodeTest` / `PrinterCommandsTest`). Keep the `applyHeatPreset` coverage.
-- [ ] **Step 5:** Run the full unit-test suite: `... "E:\Android\gw.bat :app:testDebugUnitTest"` → all green (esp. `CommandCatalogDriftTest`, `FontConformanceTest`).
+- [ ] **Step 5:** Run the full unit-test suite: `... "E:\Android\gw.bat :app:testDebugUnitTest"` → all green (esp. `CommandCatalogDriftTest` — verify uniqueness + both-direction existence pass, `FontConformanceTest`).
 - [ ] **Step 6:** Commit: `git commit -am "refactor(heatpresets): remove legacy MATERIAL_PRESETS/applyPreset"`
 
 ---
