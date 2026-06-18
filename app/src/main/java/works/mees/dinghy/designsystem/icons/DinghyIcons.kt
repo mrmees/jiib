@@ -361,6 +361,14 @@ object DinghyIcons {
     /** Z-babystep increment row — owner-chosen `stacks` glyph (layered-Z reading). */
     val Babystep = DinghyIcon(IconRef.Ligature("stacks"), alternate = "babystep")
 
+    // --- Theme screen glyphs (Task 7, OWNER-LOCKED — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]). All five ligatures selected by owner for the theme-screen rework.
+    val Contrast     = DinghyIcon(IconRef.Ligature("contrast"),      alternate = "contrast")
+    val InvertColors = DinghyIcon(IconRef.Ligature("invert_colors"), alternate = "invert_colors")
+    val Colors       = DinghyIcon(IconRef.Ligature("colors"),        alternate = "colors")
+    val Star         = DinghyIcon(IconRef.Ligature("star"),          alternate = "star")
+    val Shuffle      = DinghyIcon(IconRef.Ligature("shuffle"),       alternate = "shuffle")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -402,5 +410,6 @@ object DinghyIcons {
         TempPresets,
         HeatPresetAdd, HeatPresetEdit,
         Babystep,
+        Contrast, InvertColors, Colors, Star, Shuffle,
     )
 }
