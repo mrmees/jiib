@@ -349,6 +349,13 @@ object DinghyIcons {
      *  `format_list_bulleted`=MonitorMode — all three co-render with this in Adjust mode). */
     val TempPresets      = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 
+    // --- Heat Presets (question_mark placeholders — owner-authorized 2026-06-17 until real glyphs chosen) ---
+    val HeatPresetAdd    = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_add")
+    val HeatPresetEdit   = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_edit")
+    val HeatPresetHeater = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "heat_preset_heater")
+    /** Heat-preset delete REUSES the real Files-delete `delete` glyph (no question_mark placeholder). */
+    val HeatPresetDelete = Delete
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -388,5 +395,6 @@ object DinghyIcons {
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
         TempPresets,
+        HeatPresetAdd, HeatPresetEdit, HeatPresetHeater,
     )
 }
