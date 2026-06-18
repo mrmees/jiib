@@ -158,6 +158,18 @@ class ThemePrefs(
         }
     }
 
+    /** Persist ONLY the Theme-editor-drafted axes (seed, shift, overrides, accent) — NOT dark/mode,
+     *  which are immediate-write axes owned by their own setters. One edit → one tupleFlow re-emit. */
+    suspend fun applyEditorAxes(seedHex: String, poolShift: Int, wireOverrides: Map<String, Long>, accentOverride: Long?) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SEED] = seedHex
+            prefs[KEY_SHIFT] = poolShift
+            writeOverrides(prefs, wireOverrides)
+            if (accentOverride == null) prefs.remove(KEY_ACCENT_OVERRIDE)
+            else prefs[KEY_ACCENT_OVERRIDE] = accentOverride and 0xFFFFFFFFL
+        }
+    }
+
     /**
      * The complete, validated theme TUPLE (D-03/15-05) — the generate-and-cache inputs the
      * [ThemeResolver] applies. `poolOverrides` is Int-keyed/[Color]-valued here (the sanitized runtime

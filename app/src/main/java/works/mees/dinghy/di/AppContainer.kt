@@ -724,18 +724,24 @@ class AppContainer(
     fun commitThemeDraft(active: Boolean) {
         val d = _themeDraft.value ?: return
         writeScope.launch {
+            val wire = d.poolOverrides.mapKeys { e -> e.key.toString() } + d.statusOverrides
             if (active) {
                 profileStore.mutateActive {
                     it.copy(
-                        seedHex = d.seedHex, dark = d.dark, paletteMode = d.paletteMode, poolShift = d.poolShift,
-                        poolOverrides = d.poolOverrides.mapKeys { e -> e.key.toString() } + d.statusOverrides,
-                        accentOverrideArgb = d.accentOverride,
+                        seedHex = d.seedHex, poolShift = d.poolShift,
+                        poolOverrides = wire, accentOverrideArgb = d.accentOverride,
                     )
                 }
             } else {
-                themePrefs.applyTuple(d)
+                themePrefs.applyEditorAxes(d.seedHex, d.poolShift, wire, d.accentOverride)
             }
-            withTimeoutOrNull(2_000) { activeThemeTuple.first { it.copy(fs = d.fs) == d } }
+            withTimeoutOrNull(2_000) {
+                activeThemeTuple.first {
+                    it.seedHex == d.seedHex && it.poolShift == d.poolShift &&
+                        it.poolOverrides == d.poolOverrides && it.statusOverrides == d.statusOverrides &&
+                        it.accentOverride == d.accentOverride
+                }
+            }
             if (_themeDraft.value == d) clearThemeDraft()
         }
     }
