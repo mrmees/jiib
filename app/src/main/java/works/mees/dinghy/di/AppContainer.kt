@@ -27,10 +27,14 @@ import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.shouldSeedName
 import works.mees.dinghy.config.ConnectionStore
+import works.mees.dinghy.config.HeatPreset
+import works.mees.dinghy.config.HeatPresetPrefs
+import works.mees.dinghy.config.defaultHeatPresets
 import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.config.ProfileStore
 import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.state.HeaterLimits
 import works.mees.dinghy.state.ConnectionState
 import works.mees.dinghy.state.LastJob
 import works.mees.dinghy.state.PrintMetadata
@@ -151,6 +155,13 @@ class AppContainer(
      */
     extrudeMacroDataStore: DataStore<Preferences>,
     /**
+     * The TWELFTH, INDEPENDENT file: heat_presets.preferences_pb (Heat Presets). Backs the per-printer
+     * [HeatPresetPrefs] (a JSON list keyed `presets_<profileId>`). Carries no secrets, kept on its own
+     * connection-independent lifecycle per the separate-file discipline. Created ONCE in
+     * [works.mees.dinghy.DinghyApp] (the DataStore single-writer invariant) and injected here.
+     */
+    heatPresetDataStore: DataStore<Preferences>,
+    /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
      * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
@@ -204,9 +215,17 @@ class AppContainer(
         writeScope.launch { profileStore.setActive(id) }
     }
 
-    /** Insert/replace a profile (Settings save + theme persist), durably — survives navigation. */
+    /**
+     * Insert/replace a profile (Settings save + theme persist), durably — survives navigation. A NEW
+     * profile (id not already present) gets seeded with the default Heat Presets; an edit reuses the
+     * existing id → no seed (and deleting all presets later never re-seeds, since the id exists).
+     */
     fun saveProfile(profile: Profile) {
-        writeScope.launch { profileStore.upsert(profile) }
+        writeScope.launch {
+            val isNew = profileStore.profiles.first().none { it.id == profile.id }
+            profileStore.upsert(profile)
+            if (isNew) heatPresetPrefs.seedIfEmpty(profile.id, defaultHeatPresets())
+        }
     }
 
     /** Delete a profile (Settings delete; D-12 auto-pick lives in the writer), durably. */
@@ -433,6 +452,31 @@ class AppContainer(
      */
     val displayPrefs: DisplayPrefs = DisplayPrefs(displayDataStore)
 
+    /** Per-printer Heat Presets store (12th file, heat_presets.preferences_pb). */
+    val heatPresetPrefs: HeatPresetPrefs = HeatPresetPrefs(heatPresetDataStore)
+
+    /** The active printer's Heat Presets (sorted), or empty when no active profile. */
+    val activeHeatPresets: Flow<List<HeatPreset>> =
+        activeProfileId.flatMapLatest { id ->
+            if (id != null) heatPresetPrefs.presets(id) else flowOf(emptyList())
+        }
+
+    /** Insert/replace a Heat Preset for the active printer (durable; routes through writeScope). */
+    fun saveHeatPreset(preset: HeatPreset) {
+        writeScope.launch {
+            val id = activeProfileId.first() ?: return@launch
+            heatPresetPrefs.addOrUpdate(id, preset)
+        }
+    }
+
+    /** Delete a Heat Preset (by id) for the active printer (durable; routes through writeScope). */
+    fun deleteHeatPreset(presetId: String) {
+        writeScope.launch {
+            val id = activeProfileId.first() ?: return@launch
+            heatPresetPrefs.delete(id, presetId)
+        }
+    }
+
     /**
      * App-global font-scale persistence (Task 1.2, App/Printer Settings Split) — the SEPARATE
      * fontscale.preferences_pb-backed store holding the [FontScalePrefs.fontScale] S/M/L choice
@@ -645,6 +689,10 @@ class AppContainer(
     /** Live re-derived capabilities; empty when idle. */
     val capabilities: Flow<Capabilities> =
         spine.flatMapLatest { it?.capabilities ?: flowOf(Capabilities()) }
+
+    /** Per-heater configfile min/max (one-shot at handshake) for the active session; empty when idle. */
+    val heaterLimits: Flow<Map<String, HeaterLimits>> =
+        spine.flatMapLatest { it?.heaterLimits ?: flowOf(emptyMap()) }
 
     /** The current session's dispatcher, or null when idle. */
     val dispatcher: Flow<CommandDispatcher?> = spine.map { it?.dispatcher }

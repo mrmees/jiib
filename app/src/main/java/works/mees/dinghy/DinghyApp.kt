@@ -133,6 +133,13 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("extrude_macros.preferences_pb") },
         )
+        // A TWELFTH, INDEPENDENT file: heat_presets.preferences_pb (Heat Presets). Carries no secrets; kept
+        // on its own connection-independent lifecycle per the separate-file discipline — backs the per-printer
+        // HeatPresetPrefs (JSON list keyed presets_<profileId>). One instance per process (single-writer).
+        val heatPresetDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("heat_presets.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -146,6 +153,7 @@ class DinghyApp : Application() {
             savedLocationDataStore = savedLocationDataStore,
             fontScaleDataStore = fontScaleDataStore,
             extrudeMacroDataStore = extrudeMacroDataStore,
+            heatPresetDataStore = heatPresetDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.
