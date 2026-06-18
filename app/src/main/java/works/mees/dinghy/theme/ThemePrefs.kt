@@ -54,6 +54,7 @@ class ThemePrefs(
                     rawMode = prefs[KEY_MODE],
                     rawShift = prefs[KEY_SHIFT],
                     rawOverrides = readOverrides(prefs),
+                    rawAccent = prefs[KEY_ACCENT_OVERRIDE],
                 )
             }
 
@@ -71,6 +72,13 @@ class ThemePrefs(
 
     suspend fun setShift(shift: Int) {
         dataStore.edit { it[KEY_SHIFT] = shift }
+    }
+
+    /** Persist (or clear, null) the accent override ARGB. */
+    suspend fun setAccentOverride(argb: Long?) {
+        dataStore.edit {
+            if (argb == null) it.remove(KEY_ACCENT_OVERRIDE) else it[KEY_ACCENT_OVERRIDE] = argb and 0xFFFFFFFFL
+        }
     }
 
     /** Persist the sparse pool overrides: one ARGB long per pool-index-as-string. Replaces the whole set. */
@@ -131,6 +139,22 @@ class ThemePrefs(
             prefs[KEY_MODE] = DEFAULT_MODE
             prefs[KEY_SHIFT] = DEFAULT_SHIFT
             writeOverrides(prefs, emptyMap())
+            prefs.remove(KEY_ACCENT_OVERRIDE)
+        }
+    }
+
+    /** Atomically persist a whole tuple to the global idle theme (one edit → one tupleFlow re-emit). */
+    suspend fun applyTuple(tuple: ThemeTuple) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SEED] = tuple.seedHex
+            prefs[KEY_DARK] = tuple.dark
+            prefs[KEY_MODE] = tuple.paletteMode
+            prefs[KEY_SHIFT] = tuple.poolShift
+            // recombine the split runtime maps back into the single String→Long wire map
+            val wire = tuple.poolOverrides.mapKeys { it.key.toString() } + tuple.statusOverrides
+            writeOverrides(prefs, wire)
+            if (tuple.accentOverride == null) prefs.remove(KEY_ACCENT_OVERRIDE)
+            else prefs[KEY_ACCENT_OVERRIDE] = tuple.accentOverride and 0xFFFFFFFFL
         }
     }
 
@@ -151,6 +175,8 @@ class ThemePrefs(
         // [poolOverrides] (the Int-keyed map cannot hold "stop"/"caution"/"go"). Keyed by the canonical
         // [StatusSlot.key]; per-entry fail-safe sanitized exactly like the pool overrides.
         val statusOverrides: Map<String, Long> = emptyMap(),
+        /** Optional accent override (opaque unsigned-32 ARGB), null = seed-derived accent. */
+        val accentOverride: Long? = null,
         val fs: Float,
     )
 
@@ -160,6 +186,7 @@ class ThemePrefs(
         private val KEY_DARK = androidx.datastore.preferences.core.booleanPreferencesKey("theme_dark")
         private val KEY_MODE = stringPreferencesKey("theme_mode")
         private val KEY_SHIFT = androidx.datastore.preferences.core.intPreferencesKey("theme_shift")
+        private val KEY_ACCENT_OVERRIDE = longPreferencesKey("theme_accent_override")
         // D-17 (28-04): pool size hardcoded at ThemeResolver.DEFAULT_POOL_MAX_ITEMS=4; the old theme_max_items key is orphaned and ignored on read.
         private val KEY_OVERRIDE_KEYS = stringSetPreferencesKey("pool_override_keys")
         private fun overrideArgbKey(idxName: String) = "pool_override_argb_$idxName"
@@ -234,6 +261,7 @@ class ThemePrefs(
             rawMode: String?,
             rawShift: Int?,
             rawOverrides: Map<String, Long>?,
+            rawAccent: Long? = null,
         ): ThemeTuple {
             val seed = if (rawSeed != null && HEX_SEED.matches(rawSeed)) rawSeed else DEFAULT_SEED
             val dark = rawDark ?: true
@@ -254,6 +282,7 @@ class ThemePrefs(
                 if (idx < 0) continue                          // negative pool index → drop just this entry
                 overrides[idx] = argb
             }
+            val accent = if (rawAccent != null && rawAccent.isValidArgb()) rawAccent else null
             return ThemeTuple(
                 seedHex = seed,
                 dark = dark,
@@ -261,6 +290,7 @@ class ThemePrefs(
                 poolShift = shift,
                 poolOverrides = overrides,
                 statusOverrides = statusOverrides,
+                accentOverride = accent,
                 fs = fs,
             )
         }
