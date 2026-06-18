@@ -271,7 +271,10 @@ private fun IncrementEditFocus(
                             value = text,
                             onValueChange = { text = filterIncrementInput(it) },
                             label = stringResource(R.string.increment_values_input_label),
-                            keyboardType = KeyboardType.Number,
+                            // Text IME: the list needs ',' '.' and digits — numeric keyboards can't
+                            // reliably enter commas/decimals. filterIncrementInput is the enforcement layer
+                            // (only digits/./,/space survive); this is the sanctioned Settings keyboard exception.
+                            keyboardType = KeyboardType.Text,
                             isError = !valid,
                             modifier = Modifier.fillMaxWidth(),
                         )
