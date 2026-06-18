@@ -114,6 +114,11 @@ object DinghyIcons {
     // Complete-screen Dismiss foot button (owner 2026-06-16; clears the finished job → standby).
     val FootDismiss = DinghyIcon(IconRef.Ligature("clear_all"), alternate = "printstatus_foot_dismiss")
 
+    // Idle foot-bar Cooldown (owner-chosen 2026-06-17): shown in place of Preheat when any heater
+    // is on; fires TURN_OFF_HEATERS. `mode_heat_off` is shared with HideTemps/TempCooldown (none
+    // co-render with the home foot bar) → already allow-listed in DinghyIconsTest.
+    val FootCooldown = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "home_foot_cooldown")
+
     // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
     val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
     val BabystepExpand = DinghyIcon(IconRef.Ligature("expand"), alternate = "babystep_expand")
@@ -355,7 +360,7 @@ object DinghyIcons {
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
-        FootPreheat, FootSystem, FootResume, FootCancel, FootDismiss,
+        FootPreheat, FootCooldown, FootSystem, FootResume, FootCancel, FootDismiss,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle, Revert,
