@@ -358,6 +358,9 @@ object DinghyIcons {
     /** Heat-preset delete REUSES the real Files-delete `delete` glyph. */
     val HeatPresetDelete = Delete
 
+    /** Placeholder for controls without a chosen icon yet — babystep increment row (UAT review). */
+    val QuestionMark = DinghyIcon(IconRef.Ligature("question_mark"), alternate = "question_mark")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -398,5 +401,6 @@ object DinghyIcons {
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
         TempPresets,
         HeatPresetAdd, HeatPresetEdit,
+        QuestionMark,
     )
 }
