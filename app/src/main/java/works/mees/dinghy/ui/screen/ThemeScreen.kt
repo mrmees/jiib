@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,6 +96,13 @@ fun ThemeScreen(
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val isPrinting = printerState.printState == PrintState.Printing || printerState.printState == PrintState.Paused
+
+    // Safety: clear any uncommitted live-preview draft when leaving the screen by ANY path (system back,
+    // foot Back, or any pop) so a dirty draft never leaks app-wide. The Activity uses configChanges for
+    // rotation, so this does NOT fire on rotate — only on genuine route departure (no lost edits on rotate).
+    DisposableEffect(Unit) {
+        onDispose { container.clearThemeDraft() }
+    }
 
     // The tuple the editor edits: the live draft if one is open, else the saved tuple.
     val working = draft ?: saved
