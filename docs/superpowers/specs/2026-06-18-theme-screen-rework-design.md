@@ -57,9 +57,20 @@ requires it** (e.g. drilling into a swatch editor changes only the Focus, not th
 
 ### Foot bar
 
-Single **Back** action (`Back` icon, accent intent) in the Field foot bar, matching `AppSettingsScreen`.
-Back is a back-stack step: swatch-editor → grid → (clear selection) → exit screen. The docked-e-stop
-morph in `FocusFrame` is preserved on every Focus state.
+Single **Back** action in the Field foot bar, matching `AppSettingsScreen`. Back is a back-stack step:
+swatch-editor → grid → (clear selection) → exit screen.
+
+**Back intent is contextual (Codex #4, THEMING.md R5):** accent (pure nav) when no draft is dirty; when
+Back would **discard an uncommitted draft** it is a discarding control and renders **red (`Intent.Danger`)**
+— matching the law that a back/cancel discarding pending input is red. (Save is the explicit commit;
+Revert/Cancel are the explicit discards.) Confirm this Back-vs-dirty-draft behavior at UAT.
+
+**E-stop shell gate (Codex #5, `[[dinghy-focus-frame]]`):** Theme currently receives the shell-fallback
+`FloatingEStop` *because it has no `FocusFrame`* (`AppShell.kt:~941/978`). Adopting `FocusFrame` REQUIRES
+adding Theme to the `screenOwnsEstop` route set so it becomes a **screen-owned** e-stop destination —
+remove it from the shell fallback and pass `isPrinting` / `onEmergencyStop` / `onPanic` into **every**
+Theme `FocusFrame` state, or the docked e-stop and shell fallback both render (the known double-e-stop
+gap). The docked-e-stop morph is then preserved on every Focus state.
 
 ## Staging / persistence model
 
@@ -84,23 +95,32 @@ Two classes of control:
      generated set from the current seed (new `poolShift`). Revert still undoes it.
    - Changing the **Seed** does **not** wipe saved overrides — they persist on top of the new seed.
 
-### Draft-layer architecture (key implementation concern)
+### Draft-layer architecture (CORRECTED per Codex review — load-bearing)
 
-The whole app is themed by the single global `ThemeResolver` (the `StateFlow<ThemeTokens>` boundary).
-Live preview therefore must drive that global resolver, but **without persisting** until Save. Approach:
+**The app does NOT theme from `ThemeResolver.tokens` in production.** `MainActivity` collects
+`container.effectiveTokens` (`MainActivity.kt:~129`), which is `combine(activeThemeTuple, _themeOverride,
+devCyclerEnabled){ … themeResolver.bake(tuple) }` (`AppContainer.kt:~926`) — a **bake of the canonical
+`activeThemeTuple`** plus a transient **`_themeOverride`** overlay. The resolver's mutable `set*` state is
+NOT the production boundary (the resolver-based `DinghyTheme` overload is benchmark/test-only,
+`DinghyTheme.kt:~54`). So a "preview via `themeResolver.set*`" model would not preview anything in the
+real app. Live preview must flow through `effectiveTokens`.
 
-- Add **preview-only** mutators on `AppContainer` / resolver (e.g. `previewSeed`, `previewOverride`,
-  `previewAccent`, `previewShift`) that call `themeResolver.set*` but **skip** the durable
-  `mutateActiveProfile` write.
-- Add a **`commitThemeDraft(...)`** that performs the durable `setActive*` writes for the staged values
-  (process-lifetime `writeScope` — never a composition scope, per
-  `[[dinghy-compose-write-scope-cancellation]]`).
-- Add a **`revertThemeDraft()`** that re-applies the persisted active-profile tuple to the resolver
-  (`resolver.apply(savedTuple)`), discarding the preview.
-- **Risk:** the profile/connection collector (`seedTheme`) also drives the resolver; it must not clobber
-  an in-progress preview. Guard so the collector only re-applies on an actual profile/connection change,
-  not on every recomposition, and ensure entering/leaving the editor reconciles cleanly. Flag for the
-  plan; cover with a test that a preview survives an unrelated state tick and that Revert restores exactly.
+The draft layer therefore **reuses/extends the existing `_themeOverride` overlay** (the same mechanism the
+dev cycler already uses to feed `effectiveTokens` without persisting):
+
+- **Preview** = write a **draft `ThemeTuple`** into the override overlay (the editor builds the draft from
+  the saved tuple and mutates seed / overrides / accent / shift on it). `effectiveTokens` bakes it live —
+  **no DataStore write.**
+- **`commitThemeDraft()`** = perform the durable `setActive*` writes for the staged tuple via the
+  process-lifetime `writeScope` (never a composition scope, `[[dinghy-compose-write-scope-cancellation]]`),
+  then **clear the draft overlay** (the now-persisted `activeThemeTuple` carries the value).
+- **`revertThemeDraft()`** = **clear the draft overlay** — `effectiveTokens` falls back to the saved
+  `activeThemeTuple`. No resolver re-apply needed.
+- Because the draft lives in the same overlay slot the dev cycler uses, define a clear precedence (an
+  active edit draft supersedes the dev cycler) and ensure entering/leaving the editor sets/clears it.
+- **Test:** preview changes `effectiveTokens` WITHOUT a DataStore write; commit writes through
+  `writeScope` and clears the draft; revert clears the draft and `effectiveTokens` returns to the saved
+  tuple exactly; a profile/state tick does not clobber an active draft.
 
 ## The pickers
 
@@ -120,7 +140,8 @@ Three sliders **H / S / V** with minimal inline labels. The stored value is the 
 - **Focus outline = the live picked color** (compare target).
 - **Focus header = a small (≤1U) swatch of the currently saved value** + the slot **title**
   ("Pool 2" / "Accent" / "Stop" / "Caution" / "Go"), so saved-vs-in-progress is directly comparable.
-- **Save / Cancel.**
+- **Save** (`Intent.Go` green) **/ Cancel** (`Intent.Danger` red — Cancel discards the pending swatch
+  edit, and a control discarding pending input is red per THEMING.md R5, Codex #4).
 - **Status slots keep the existing mode-gating note:** a status override only takes visible effect in
   **Colorful** mode (Simple collapses status to text; High-Contrast forces fixed RYG). Accent and pool
   overrides apply in all modes.
@@ -140,9 +161,15 @@ A **4×2 grid of 8 swatches**, each rendering its literal draft color:
 - **Swatch height ≤ 1U** (the control cap, UAT-5) — swatches are wide cells, not squares.
 - Tapping any swatch opens its editor (above).
 
-**Buttons (docked in the Focus, below the grid):**
-- Row A: **Randomize** (`shuffle`, amber / `Intent.Warn`), full width.
-- Row B: **Revert** (`refresh`/`Revert`, neutral) + **Save** (`save`/`Save`, green / `Intent.Go`).
+**Buttons (docked in the Focus, below the grid) — ONE 1U row of three (Codex #7, 5U budget):**
+**Randomize** (`shuffle`, `Intent.Warn` amber) · **Revert** (`refresh`/`Revert`, `Intent.Warn` amber —
+undo-the-draft, NOT neutral; neutral is retired for action buttons per THEMING.md R5) · **Save**
+(`save`/`Save`, `Intent.Go` green).
+
+> **5U layout budget:** header 1U + grid 2U (two 1U swatch rows) + actions 1U = **4U**, leaving ~1U for
+> the inset/gaps so the Focus survives the 5U minimum without clipping or scrolling. The owner's earlier
+> mock had two action rows (Randomize on top; Revert+Save below) — collapsed to one row to honor the cap.
+> *(Owner: confirm the single action row is acceptable.)*
 
 ## Color engine changes
 
@@ -150,14 +177,21 @@ A **4×2 grid of 8 swatches**, each rendering its literal draft color:
 
 Today the accent is always derived from the seed and cannot be overridden; only pool slots and the 3
 status slots are overridable (stored in `Profile.poolOverrides`, with numeric keys for pool and
-`StatusSlot.key` for status). The grid's Accent swatch makes accent editable:
+`StatusSlot.key` for status). The grid's Accent swatch makes accent editable.
 
-- Store an accent override under a dedicated reserved key (e.g. `"accent"`) in the same override map,
-  or a dedicated field — chosen at plan time; must round-trip through `Profile` ↔ `ThemePrefs.ThemeTuple`
-  ↔ `ThemeResolver`/`TokenBridge` identically to pool/status overrides (`bake` == live `compute`).
-- `TokenBridge.build` applies the accent override **after** generation, replacing the `accent` token.
-  Unlike status, the accent override applies in **all** palette modes (accent is always shown).
-- Add the matching resolver mutator (`setAccentOverride` / preview variant) and `AppContainer` intent.
+**Storage — a dedicated field, NOT the shared map (Codex #2).** The override sanitizer drops any
+non-numeric, non-status key (`ThemePrefs.kt:~252`: `rawKey.toIntOrNull() ?: continue`), so an `"accent"`
+map key would be silently discarded. Add a dedicated **`accentOverrideArgb: Long?`** to `Profile`,
+`ThemePrefs.ThemeTuple`, and the global theme prefs, round-tripping identically to the other overrides
+(`bake` == live `compute`/`apply`).
+
+**Application — feed the whole accent family, not one token (Codex #3).** Accent is a *family*: `accent`,
+`accent2`, `accentSoft`, `accentLine`, `accentGlow`, and `directional.temperature` all derive from
+`primary` in `TokenBridge.build` (`TokenBridge.kt:~116/133/146`). The override must resolve the accent
+**before** the family is derived, so every accent-derived token (and `directional.temperature`) follows
+it. Unlike status, the accent override applies in **all** palette modes (accent is always shown).
+
+- Add the matching resolver/bridge plumbing + an `AppContainer` durable intent and a preview-draft path.
 
 ### Unchanged
 
@@ -184,6 +218,12 @@ Outlined font is bundled (no subsetting), so each renders without a font build s
 needs both the `val` and an entry in the `all` list** (per the increment-values lesson), and
 `verify_ligatures.py` must stay green.
 
+> **Documented exception — Go glyph (Codex #6, THEMING.md R-status-shape):** elsewhere in the app Go is
+> *shapeless* (only Stop=octagon and Caution=triangle carry status glyphs). The Theme Colors grid gives
+> every intent swatch an inner identifier (Accent=`star`, Stop, Caution, Go), so Go needs one here; the
+> **owner explicitly chose `check_circle`** over leaving it blank. This is a deliberate, owner-sanctioned
+> exception scoped to the grid swatch only — it does NOT change Go's shapeless treatment anywhere else.
+
 ## Architecture / components
 
 - **`ThemeScreen.kt`** — rewritten as the `ScreenScaffold` host (was a thin wrapper around
@@ -208,14 +248,26 @@ needs both the `val` and an entry in the `all` list** (per the increment-values 
   accent override; Randomize clears overrides + sets a new shift; Revert restores the saved tuple exactly.
 - Resolver: preview mutators change tokens without persisting; `revertThemeDraft` recomputes from the
   saved profile; a profile/state tick does not clobber an active preview.
-- Compose preview matrix renders all Focus states (resting, dark/light, palette, seed, grid, swatch
-  editor) across dark/light + palette modes.
+- Compose preview matrix (Codex #8, `PREVIEW_AND_TOKENS.md`) renders **every** Focus state (resting,
+  dark/light, palette, seed, grid, swatch editor) across **portrait AND landscape**, dark/light, all three
+  palette modes, the S/M/L font scales, and an RTL/pseudolocale pass — token-only chrome, no raw colors.
 - `FontConformanceTest`, `verify_ligatures.py`, and the icon `all`-list check stay green.
 - On-device UAT on flox + moto (both ABIs), per `[[dinghy-test-devices]]`.
 
+## Codex review
+
+Reviewed read-only against the design standards on 2026-06-18 (verdict: not compliant unchanged →
+revised). All 8 findings accepted and folded in above: #1 preview boundary (themes from `effectiveTokens`,
+not the resolver — draft reuses `_themeOverride`), #2 accent stored in a dedicated field, #3 accent feeds
+the whole token family, #4 intent corrections (Revert amber, Cancel/dirty-Back red, neutral retired),
+#5 AppShell `screenOwnsEstop` migration, #6 Go-glyph owner exception documented, #7 actions collapse to
+one 1U row for the 5U budget, #8 fuller preview matrix.
+
 ## Open risks
 
-1. **Draft vs profile collector race** (above) — the main integration risk. Test explicitly.
-2. **Accent override storage key** collision with pool numeric keys — use a clearly reserved,
-   non-numeric key and assert it can't be parsed as a pool index.
-3. Back-stack semantics from the swatch editor (step to grid vs exit) — confirm during build.
+1. **Draft overlay vs dev-cycler precedence** — both use `_themeOverride`; define which wins and clear
+   the draft on editor exit. Test a draft survives an unrelated state tick and Revert restores exactly.
+2. **Accent token family completeness** — ensure no accent-derived token (incl. `directional.temperature`)
+   is missed when the override is applied; assert `bake == compute`.
+3. **Back-vs-dirty-draft** behavior and intent (red when discarding) — confirm at UAT.
+4. **Single action row** in Theme Colors — owner confirmation pending (was two rows in the mock).
