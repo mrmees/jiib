@@ -102,6 +102,7 @@ fun PrinterSettingsScreen(
         onTheme = { onNavigate(NavDest.Theme) },
         onSystemInfo = { onNavigate(NavDest.SystemInfo) },
         onHeatPresets = { onNavigate(NavDest.HeatPresets) },
+        onIncrementValues = { onNavigate(NavDest.IncrementValues) },
         onAdd = { editingConnection = true },
         onBack = onBack,
         modifier = modifier,
@@ -146,6 +147,7 @@ fun PrinterSettingsContent(
     onTheme: () -> Unit,
     onSystemInfo: () -> Unit,
     onHeatPresets: () -> Unit = {},
+    onIncrementValues: () -> Unit = {},
     onAdd: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -270,6 +272,16 @@ fun PrinterSettingsContent(
                                 icon = DinghyIcons.TempPresets,
                                 label = stringResource(R.string.heat_presets_title),
                                 onClick = onHeatPresets,
+                                uDp = grid.uDp,
+                            )
+                        }
+
+                        // Row 4b: Increment Values — per-printer step-selector value lists
+                        item {
+                            PrinterSettingsNavRow(
+                                icon = DinghyIcons.FineTune,
+                                label = stringResource(R.string.increment_values_title),
+                                onClick = onIncrementValues,
                                 uDp = grid.uDp,
                             )
                         }

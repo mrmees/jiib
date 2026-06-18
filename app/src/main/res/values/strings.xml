@@ -761,4 +761,14 @@
     <string name="heat_presets_empty_hint">No presets yet — tap Add to create one</string>
     <string name="heat_presets_delete_title">Delete Preset</string>
     <string name="heat_presets_delete_message">Delete “%1$s”?</string>
+
+    <!-- Increment Values (per-printer step-selector value lists) -->
+    <string name="increment_values_title">Increment Values</string>
+    <string name="increment_values_finetune">Fine-Tune</string>
+    <string name="increment_values_microstep">Microstep</string>
+    <string name="increment_values_babystep">Babystep</string>
+    <string name="increment_values_probe_testz">Probe Z Test</string>
+    <string name="increment_values_select_hint">Select a control to edit its increment steps.</string>
+    <string name="increment_values_input_hint">Comma-separated values</string>
+    <string name="increment_values_input_label">Increment steps</string>
 </resources>

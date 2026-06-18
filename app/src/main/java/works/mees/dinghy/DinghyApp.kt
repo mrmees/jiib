@@ -140,6 +140,14 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("heat_presets.preferences_pb") },
         )
+        // A THIRTEENTH, INDEPENDENT file: increments.preferences_pb (per-printer increment value lists).
+        // Carries no secrets; kept on its own connection-independent lifecycle per the separate-file
+        // discipline — backs the per-printer IncrementListPrefs (JSON map keyed increments_<profileId>).
+        // One instance per process (the single-writer invariant DataStore needs).
+        val incrementDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("increments.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -154,6 +162,7 @@ class DinghyApp : Application() {
             fontScaleDataStore = fontScaleDataStore,
             extrudeMacroDataStore = extrudeMacroDataStore,
             heatPresetDataStore = heatPresetDataStore,
+            incrementDataStore = incrementDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

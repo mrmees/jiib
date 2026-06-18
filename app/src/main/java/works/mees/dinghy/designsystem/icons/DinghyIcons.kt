@@ -358,6 +358,9 @@ object DinghyIcons {
     /** Heat-preset delete REUSES the real Files-delete `delete` glyph. */
     val HeatPresetDelete = Delete
 
+    /** Z-babystep increment row — owner-chosen `stacks` glyph (layered-Z reading). */
+    val Babystep = DinghyIcon(IconRef.Ligature("stacks"), alternate = "babystep")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -398,5 +401,6 @@ object DinghyIcons {
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
         TempPresets,
         HeatPresetAdd, HeatPresetEdit,
+        Babystep,
     )
 }

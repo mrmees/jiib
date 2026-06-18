@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.floor
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
@@ -70,6 +70,7 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.increments.IncrementControls
 import works.mees.dinghy.ui.screen.TokenTextField
 
 /**
@@ -117,6 +118,11 @@ fun MoveScreen(
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
     val savedLocations by container.savedLocations.collectAsStateWithLifecycle()
+    val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val microstepSteps: ImmutableList<Double> = remember(incrementLists) {
+        (incrementLists["move_microstep"]
+            ?: IncrementControls.defaultValueMap().getValue("move_microstep")).toImmutableList()
+    }
 
     // One in-flight-guarded dispatch helper — every action funnels through the registry (no raw rpc).
     fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
@@ -143,6 +149,7 @@ fun MoveScreen(
         onSaveLocation = { container.saveLocation(it) },
         onDeleteLocation = { container.deleteLocation(it) },
         onBack = onBack,
+        microstepSteps = microstepSteps,
         modifier = modifier,
     )
 }
@@ -177,6 +184,9 @@ internal fun MoveHubContent(
     onSaveLocation: (SavedLocation) -> Unit,
     onDeleteLocation: (String) -> Unit,
     onBack: () -> Unit,
+    microstepSteps: ImmutableList<Double> =
+        IncrementControls.defaultValueMap().getValue("move_microstep")
+            .toImmutableList(),
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -459,13 +469,11 @@ internal fun MoveHubContent(
                             if (!anyHomed) {
                                 FocusHint("Home an axis to micro-step")
                             } else {
-                                val steps: ImmutableList<Double> = remember {
-                                    persistentListOf(0.01, 0.025, 0.1, 0.25, 1.0, 2.5, 10.0)
-                                }
+                                val steps: ImmutableList<Double> = microstepSteps
                                 var stepIndex by remember(mode) {
                                     mutableStateOf(steps.indexOf(0.1).coerceAtLeast(0))
                                 }
-                                val activeStep = steps[stepIndex]
+                                val activeStep = steps[stepIndex.coerceIn(0, steps.lastIndex)]
 
                                 // Selected axis — reset on mode entry; defaults to the first homed axis.
                                 var selectedAxis by remember(mode) {

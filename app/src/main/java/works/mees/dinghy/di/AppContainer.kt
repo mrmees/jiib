@@ -29,6 +29,9 @@ import works.mees.dinghy.config.shouldSeedName
 import works.mees.dinghy.config.ConnectionStore
 import works.mees.dinghy.config.HeatPreset
 import works.mees.dinghy.config.HeatPresetPrefs
+import works.mees.dinghy.config.IncrementListPrefs
+import works.mees.dinghy.config.IncrementParse
+import works.mees.dinghy.config.parseIncrementInput
 import works.mees.dinghy.config.defaultHeatPresets
 import works.mees.dinghy.config.MoonrakerDiscovery
 import works.mees.dinghy.config.Profile
@@ -48,6 +51,7 @@ import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.ui.extrude.ExtrudeMacroPrefs
 import works.mees.dinghy.ui.files.FileBrowserClient
+import works.mees.dinghy.ui.increments.IncrementControls
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.move.SavedLocation
 import works.mees.dinghy.ui.move.SavedLocationPrefs
@@ -162,6 +166,12 @@ class AppContainer(
      */
     heatPresetDataStore: DataStore<Preferences>,
     /**
+     * The THIRTEENTH, INDEPENDENT file: increments.preferences_pb (per-printer increment value lists).
+     * Backs [IncrementListPrefs] (JSON map keyed `increments_<profileId>`). Created once in
+     * [works.mees.dinghy.DinghyApp] and injected here (single-writer DataStore invariant).
+     */
+    incrementDataStore: DataStore<Preferences>,
+    /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
      * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
@@ -224,7 +234,10 @@ class AppContainer(
         writeScope.launch {
             val isNew = profileStore.profiles.first().none { it.id == profile.id }
             profileStore.upsert(profile)
-            if (isNew) heatPresetPrefs.seedIfEmpty(profile.id, defaultHeatPresets())
+            if (isNew) {
+                heatPresetPrefs.seedIfEmpty(profile.id, defaultHeatPresets())
+                incrementListPrefs.seedIfEmpty(profile.id, IncrementControls.defaultStringMap())
+            }
         }
     }
 
@@ -474,6 +487,39 @@ class AppContainer(
         writeScope.launch {
             val id = activeProfileId.first() ?: return@launch
             heatPresetPrefs.delete(id, presetId)
+        }
+    }
+
+    /** Per-printer increment value lists store (13th file, increments.preferences_pb). */
+    val incrementListPrefs: IncrementListPrefs = IncrementListPrefs(incrementDataStore)
+
+    /** The active printer's RAW stored increment strings (absent keys = default), or empty. */
+    val activeIncrementStrings: Flow<Map<String, String>> =
+        activeProfileId.flatMapLatest { id ->
+            if (id != null) incrementListPrefs.lists(id) else flowOf(emptyMap())
+        }
+
+    /**
+     * The active printer's RESOLVED increment lists: every registry key → parsed stored list, or the
+     * jiib default when absent/unparseable. Consuming selectors collect this and look up by key.
+     */
+    val activeIncrementLists: Flow<Map<String, List<Double>>> =
+        activeIncrementStrings.map { stored ->
+            IncrementControls.ALL.associate { spec ->
+                // Defensive: validate against the control's own count rule; a malformed/wrong-length
+                // stored value falls back to the jiib default rather than feeding a bad list to a selector.
+                val parsed = stored[spec.key]?.let { raw ->
+                    (parseIncrementInput(raw, spec.maxCount) as? IncrementParse.Ok)?.values
+                }
+                spec.key to (parsed ?: spec.defaultValues)
+            }
+        }
+
+    /** Set one control's increment string for the active printer (durable; routes through writeScope). */
+    fun saveIncrementList(controlKey: String, canonical: String) {
+        writeScope.launch {
+            val id = activeProfileId.first() ?: return@launch
+            incrementListPrefs.setList(id, controlKey, canonical)
         }
     }
 
