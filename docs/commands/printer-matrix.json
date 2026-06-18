@@ -1783,6 +1783,53 @@
       ]
     },
     {
+      "catalog_id": "KGC-SET_TEMPERATURE_FAN_TARGET",
+      "name": "SET_TEMPERATURE_FAN_TARGET",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "Registered for Heat Presets; not executed during read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Registered for Heat Presets; not executed during read-only capture."
+        }
+      ]
+    },
+    {
+      "catalog_id": "KGC-APPLY_HEAT_PRESET",
+      "name": "APPLY_HEAT_PRESET",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate_key": "object_present:extruder",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "Registered for Heat Presets; not executed during read-only capture."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Registered for Heat Presets; not executed during read-only capture."
+        }
+      ]
+    },
+    {
       "catalog_id": "KGC-G1_JOG",
       "name": "G1 relative jog",
       "source_api": "klipper_gcode",

@@ -3887,6 +3887,79 @@
       "acceptance_semantics": "Reference-only entries are not sent by Dinghy unless a later phase registers them."
     },
     {
+      "id": "KGC-SET_TEMPERATURE_FAN_TARGET",
+      "catalog_id": "KGC-SET_TEMPERATURE_FAN_TARGET",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "SET_TEMPERATURE_FAN_TARGET",
+      "category": "temperature",
+      "purpose": "Klipper `SET_TEMPERATURE_FAN_TARGET` command — set a temperature_fan's target temperature.",
+      "params": [
+        "FAN",
+        "TARGET"
+      ],
+      "key_params": [
+        "FAN",
+        "TARGET"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "always"
+      },
+      "predicate": {
+        "type": "always"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for Heat Presets temperature_fan setpoints."
+      },
+      "success_semantics": "Klipper accepts the G-Code script and adjusts the temperature_fan target.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registry gcode commands are dispatched via gcode.script JSON-RPC; script params are produced byte-identically."
+    },
+    {
+      "id": "KGC-APPLY_HEAT_PRESET",
+      "catalog_id": "KGC-APPLY_HEAT_PRESET",
+      "source_api": "klipper_gcode",
+      "transport": "gcode_script",
+      "name": "APPLY_HEAT_PRESET",
+      "category": "temperature",
+      "purpose": "Apply a per-printer Heat Preset — one SET_HEATER_TEMPERATURE / SET_TEMPERATURE_FAN_TARGET line per heater in the preset's sparse setpoint map.",
+      "params": [
+        "HEATER",
+        "TARGET",
+        "FAN"
+      ],
+      "key_params": [
+        "HEATER",
+        "TARGET"
+      ],
+      "semantics_tier": "full",
+      "upstream_url": "https://www.klipper3d.org/G-Codes.html",
+      "rest_endpoint": null,
+      "http_method": null,
+      "availability": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "predicate": {
+        "type": "object_present",
+        "name": "extruder"
+      },
+      "runtime_registry": {
+        "status": "registered",
+        "registered": true,
+        "notes": "Present in CommandRegistry for per-printer Heat Presets apply."
+      },
+      "success_semantics": "Klipper accepts the multi-line G-Code script and applies each heater target.",
+      "error_semantics": "Klipper rejects invalid or unsafe commands with gcode error text.",
+      "acceptance_semantics": "Registry gcode commands are dispatched via gcode.script JSON-RPC; script params are produced byte-identically."
+    },
+    {
       "id": "KGC-SET_IDLE_TIMEOUT",
       "catalog_id": "KGC-SET_IDLE_TIMEOUT",
       "source_api": "klipper_gcode",

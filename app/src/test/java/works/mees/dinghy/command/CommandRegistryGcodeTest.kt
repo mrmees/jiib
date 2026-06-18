@@ -264,6 +264,25 @@ class CommandRegistryGcodeTest {
         assertEquals("set_output_pin_mosfet2", CommandRegistry.setOutputPin.dispatchKey(SetOutputPinArgs("mosfet2", pwm = false)))
     }
 
+    @Test
+    fun applyHeatPreset_wrapsPrinterCommandsByteIdentically() {
+        val setpoints = mapOf("extruder" to 200, "heater_bed" to 60, "temperature_fan exhaust" to 40)
+        assertRegistryScript(
+            CommandRegistry.applyHeatPreset,
+            ApplyHeatPresetArgs(setpoints, key = "preset_x"),
+            PrinterCommands.applyHeatPreset(setpoints),
+        )
+    }
+
+    @Test
+    fun setTemperatureFan_wrapsPrinterCommandsByteIdentically() {
+        assertRegistryScript(
+            CommandRegistry.setTemperatureFan,
+            SetTemperatureFanArgs("exhaust", 45),
+            PrinterCommands.setTemperatureFanTarget("exhaust", 45),
+        )
+    }
+
     private fun <P> assertRegistryScript(
         spec: CommandSpec<P>,
         args: P,
