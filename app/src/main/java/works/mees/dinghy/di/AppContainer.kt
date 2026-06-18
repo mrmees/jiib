@@ -952,6 +952,7 @@ class AppContainer(
                         // TokenBridge (Colorful only), so this resolution path honors D-04 too.
                         overrides = tuple.poolOverrides.mapValues { it.value.toComposeColor() },
                         statusOverrides = tuple.statusOverrides.mapValues { it.value.toComposeColor() },
+                        accentOverride = tuple.accentOverride?.toComposeColor(),
                         fs = tuple.fs,
                     )
                 }
@@ -1045,6 +1046,12 @@ class AppContainer(
         }
     }
 
+    /** Persist (or clear, null) the accent override — active profile, else the global idle theme. */
+    fun setActiveAccentOverride(active: Boolean, argb: Long?) {
+        if (active) mutateActiveProfile { it.copy(accentOverrideArgb = argb?.let { v -> v and 0xFFFFFFFFL }) }
+        else writeScope.launch { themePrefs.setAccentOverride(argb) }
+    }
+
     /**
      * Reset the theme to the validated defaults (D-09) — clears seed/mode/shift/overrides back to
      * the out-of-box tuple. Active profile, else global. fsChoice is a SEPARATE setting and is NOT reset.
@@ -1059,6 +1066,7 @@ class AppContainer(
                     paletteMode = ThemePrefs.DEFAULT_MODE,
                     poolShift = ThemePrefs.DEFAULT_SHIFT,
                     poolOverrides = emptyMap(),
+                    accentOverrideArgb = null,
                 )
             }
         } else {
