@@ -945,9 +945,9 @@ fun AppShell(
         // UnitGrid for sizing: derive U from the minimum dimension (portrait- and landscape-safe).
         // Focus-header law (2026-06-13): the canonical e-stop is now the FocusFrame HEADER DOCK — every
         // FocusFrame's start-icon slot morphs into the e-stop while printing. So nearly every destination
-        // owns its e-stop (screenOwnsEstop below) and this shell-level float is the fallback for the few
-        // non-FocusFrame destinations only: Webcam (full-bleed, the header exemption) and Theme (outside
-        // the header migration scope). ONE owner per destination.
+        // owns its e-stop (screenOwnsEstop below) and this shell-level float is the fallback for the ONE
+        // non-FocusFrame destination: Webcam (full-bleed, the header exemption). Theme now owns its
+        // e-stop via FocusFrame (D-14 rework). ONE owner per destination.
         // The shell float is also fail-CLOSED: even if route matching ever misses a header-owning screen,
         // it still only appears on destinations explicitly known to lack a FocusFrame header.
         val estopDest = navBackStackEntry?.destination
@@ -973,11 +973,11 @@ fun AppShell(
             estopDest.isRoute<NavDest.SystemInfo>() ||
             estopDest.isRoute<NavDest.AppSettings>() ||
             estopDest.isRoute<NavDest.PrinterSettings>() ||
-            estopDest.isRoute<NavDest.ManagePrinters>()
+            estopDest.isRoute<NavDest.ManagePrinters>() ||
+            estopDest.isRoute<NavDest.Theme>()
         )
         val screenUsesShellEstop = estopDest != null && !screenOwnsEstop && (
-            estopDest.isRoute<NavDest.Webcam>() ||
-            estopDest.isRoute<NavDest.Theme>()
+            estopDest.isRoute<NavDest.Webcam>()
         )
         val estopGrid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         FloatingEStop(
