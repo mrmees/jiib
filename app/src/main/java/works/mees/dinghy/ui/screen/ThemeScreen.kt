@@ -310,21 +310,25 @@ private fun ThemeFocus(
                     val tk = LocalTokens.current
                     ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
                     // FIX B: ONE action row of three (5U budget) — Randomize · Revert · Save.
+                    // Icon-only (owner UAT 2026-06-18): blank label + contentDescription = a11y label.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedControl(stringResource(R.string.theme_randomize),
+                        OutlinedControl("",
                             onClick = {
                                 container?.updateThemeDraft {
                                     (it ?: working).copy(poolOverrides = emptyMap(), statusOverrides = emptyMap(),
                                         accentOverride = null, poolShift = nextShift(working.poolShift))
                                 }
                             },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Shuffle)
-                        OutlinedControl(stringResource(R.string.theme_revert),
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Shuffle,
+                            contentDescription = stringResource(R.string.theme_randomize))
+                        OutlinedControl("",
                             onClick = { container?.clearThemeDraft() },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert)
-                        OutlinedControl(stringResource(R.string.theme_save),
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert,
+                            contentDescription = stringResource(R.string.theme_revert))
+                        OutlinedControl("",
                             onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
-                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save)
+                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save,
+                            contentDescription = stringResource(R.string.theme_save))
                     }
                 }
             } else {
