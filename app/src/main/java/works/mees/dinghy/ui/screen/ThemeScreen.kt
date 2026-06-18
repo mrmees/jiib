@@ -1,5 +1,9 @@
 package works.mees.dinghy.ui.screen
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,6 +12,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.components.FocusEdge
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -34,8 +45,10 @@ import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
@@ -43,8 +56,11 @@ import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.PaletteMode
+import works.mees.dinghy.theme.StatusSlot
 import works.mees.dinghy.theme.ThemeResolver
 import works.mees.dinghy.theme.ThemePrefs
+import works.mees.dinghy.theme.ThemeTokens
+import works.mees.dinghy.theme.toComposeColor
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
@@ -257,9 +273,46 @@ private fun ThemeFocus(
                 modifier = Modifier.fillMaxWidth(), intent = Intent.Go,
             )
         }
-        ThemeRow.Colors -> frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
-            // Wired in Task 13.
-            explainer(stringResource(R.string.theme_colors_focus))
+        ThemeRow.Colors -> {
+            val ed = editingSwatch
+            if (ed == null) {
+                frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
+                    val tk = LocalTokens.current
+                    ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedControl(stringResource(R.string.theme_randomize),
+                            onClick = {
+                                container?.updateThemeDraft {
+                                    (it ?: working).copy(poolOverrides = emptyMap(), statusOverrides = emptyMap(),
+                                        accentOverride = null, poolShift = nextShift(working.poolShift))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(), intent = Intent.Warn,
+                            icon = DinghyIcons.Shuffle)
+                        Row(Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedControl(stringResource(R.string.theme_revert),
+                                onClick = { container?.clearThemeDraft() },
+                                modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert)
+                            OutlinedControl(stringResource(R.string.theme_save),
+                                onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
+                                modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save)
+                        }
+                    }
+                }
+            } else {
+                ThemeSwatchEditor(
+                    swatch = ed, saved = saved, uDp = uDp, modifier = modifier,
+                    isPrinting = isPrinting, onEmergencyStop = onEmergencyStop,
+                    onMovePreview = { argb -> container?.updateThemeDraft { applySwatch(it ?: working, ed, argb) } },
+                    onSave = { onEditSwatch(null) },          // already staged into the draft live
+                    onCancel = {
+                        // Codex fix: discard this swatch's edit by restoring the SAVED value (not `working`).
+                        container?.updateThemeDraft { restoreSwatch(it ?: working, ed, saved) }
+                        onEditSwatch(null)
+                    },
+                )
+            }
         }
     }
 }
@@ -296,6 +349,142 @@ private fun paletteModeLabelRes(mode: String): Int = when (mode) {
 /** True if the working tuple carries any pool/status/accent override (drives the "Custom" indicator). */
 internal fun hasCustomColors(t: ThemePrefs.ThemeTuple): Boolean =
     t.poolOverrides.isNotEmpty() || t.statusOverrides.isNotEmpty() || t.accentOverride != null
+
+@Composable
+private fun ColumnScope.ThemeSwatchGrid(
+    t: ThemeTokens, working: ThemePrefs.ThemeTuple, onTap: (ThemeSwatch) -> Unit,
+) {
+    // 1U-capped wide cells, 4 columns × 2 rows. Pool = number; intent = symbol. No captions.
+    // Pool + accent come from the baked tokens (overrides already applied in all modes); STATUS uses the
+    // literal draft override (statusFill) because t.stop/heat/go are mode-gated (Codex fix).
+    val uDp = LocalUnitDp.current ?: 64.dp
+    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                t.pool.take(4).forEachIndexed { i, c -> SwatchCell(c, uDp, Modifier.weight(1f), number = i + 1) { onTap(ThemeSwatch.Pool(i)) } }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SwatchCell(t.accent, uDp, Modifier.weight(1f), symbol = DinghyIcons.Star) { onTap(ThemeSwatch.Accent) }
+                SwatchCell(statusFill(StatusSlot.Stop, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.StatusStop) { onTap(ThemeSwatch.Status(StatusSlot.Stop)) }
+                SwatchCell(statusFill(StatusSlot.Caution, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.Warning) { onTap(ThemeSwatch.Status(StatusSlot.Caution)) }
+                SwatchCell(statusFill(StatusSlot.Go, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.CheckCircle) { onTap(ThemeSwatch.Status(StatusSlot.Go)) }
+            }
+        }
+    }
+}
+
+/** Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token. */
+private fun statusFill(slot: StatusSlot, working: ThemePrefs.ThemeTuple, t: ThemeTokens): Color =
+    working.statusOverrides[slot.key]?.toComposeColor() ?: when (slot) {
+        StatusSlot.Stop -> t.stop
+        StatusSlot.Caution -> t.heat
+        StatusSlot.Go -> t.go
+    }
+
+@Composable
+private fun SwatchCell(
+    fill: Color, uDp: Dp, modifier: Modifier,
+    number: Int? = null, symbol: DinghyIcon? = null, onClick: () -> Unit,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val ink = if (fill.luminance() > 0.5f) Color(0xFF101010) else Color(0xFFF5F5F5)
+    Box(modifier.height(uDp).clip(shape).background(fill)
+        .border(BorderStroke(2.dp, t.outline), shape)
+        .clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        if (number != null) Text(number.toString(), color = ink, style = DinghyType.dataInline.toTextStyle(t))
+        if (symbol != null) DinghyIconView(icon = symbol, tint = ink,
+            sizeDp = (uDp * 0.45f), contentDescription = null)
+    }
+}
+
+@Composable
+private fun ThemeSwatchEditor(
+    swatch: ThemeSwatch, saved: ThemePrefs.ThemeTuple, uDp: Dp, modifier: Modifier,
+    isPrinting: Boolean, onEmergencyStop: (() -> Unit)?,
+    onMovePreview: (Long) -> Unit, onSave: () -> Unit, onCancel: () -> Unit,
+) {
+    val t = LocalTokens.current
+    // Codex fix: the header/compare baseline is the SAVED value — bake the saved tuple once (not `working`,
+    // which is the live draft). The live in-progress pick is shown by the whole-app preview.
+    val savedTokens = remember(saved) { ThemeResolver().bake(saved) }
+    val savedArgb = savedSwatchArgb(swatch, saved, savedTokens)
+    val hsv = argbLongToHsv(savedArgb)
+    var h by rememberSaveable(swatch) { mutableStateOf(hsv[0]) }
+    var s by rememberSaveable(swatch) { mutableStateOf(hsv[1]) }
+    var v by rememberSaveable(swatch) { mutableStateOf(hsv[2]) }
+    FocusFrame(
+        title = swatchTitle(swatch), icon = swatchIcon(swatch), uDp = uDp, modifier = modifier,
+        isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        // header shows the SAVED value as a trailing swatch glyph substitute — rendered via edge color:
+        edge = FocusEdge.Data(Color(savedArgb.toInt())),
+    ) {
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            works.mees.dinghy.designsystem.HsvSliders(
+                hue = h, sat = s, value = v,
+                onMove = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
+                onSettle = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
+            )
+        }
+        if (swatch is ThemeSwatch.Status && t.mode != PaletteMode.Colorful) {
+            val modeLabel = stringResource(when (t.mode) {
+                PaletteMode.Simple -> R.string.theme_mode_simple
+                PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
+                else -> R.string.theme_mode_colorful
+            })
+            Text(stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
+                color = t.text3, style = DinghyType.caption.toTextStyle(t))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)
+            OutlinedControl(stringResource(R.string.theme_save), onClick = onSave, modifier = Modifier.weight(1f), intent = Intent.Go)
+        }
+    }
+}
+
+// ---- swatch staging helpers (pure) ----
+private fun nextShift(current: Int): Int = ((current + 137) % 360)   // deterministic re-roll; varied per tap via current
+
+private fun applySwatch(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch, argb: Long): ThemePrefs.ThemeTuple = when (sw) {
+    is ThemeSwatch.Pool -> tuple.copy(poolOverrides = tuple.poolOverrides + (sw.index to argb))
+    ThemeSwatch.Accent -> tuple.copy(accentOverride = argb)
+    is ThemeSwatch.Status -> tuple.copy(statusOverrides = tuple.statusOverrides + (sw.slot.key to argb))
+}
+
+private fun restoreSwatch(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch, saved: ThemePrefs.ThemeTuple): ThemePrefs.ThemeTuple = when (sw) {
+    is ThemeSwatch.Pool -> tuple.copy(poolOverrides = saved.poolOverrides[sw.index]
+        ?.let { tuple.poolOverrides + (sw.index to it) } ?: (tuple.poolOverrides - sw.index))
+    ThemeSwatch.Accent -> tuple.copy(accentOverride = saved.accentOverride)
+    is ThemeSwatch.Status -> tuple.copy(statusOverrides = saved.statusOverrides[sw.slot.key]
+        ?.let { tuple.statusOverrides + (sw.slot.key to it) } ?: (tuple.statusOverrides - sw.slot.key))
+}
+
+private fun savedSwatchArgb(sw: ThemeSwatch, working: ThemePrefs.ThemeTuple, t: ThemeTokens): Long = when (sw) {
+    is ThemeSwatch.Pool -> working.poolOverrides[sw.index] ?: (t.pool.getOrNull(sw.index) ?: t.accent).toArgb().toLong() and 0xFFFFFFFFL
+    ThemeSwatch.Accent -> working.accentOverride ?: t.accent.toArgb().toLong() and 0xFFFFFFFFL
+    is ThemeSwatch.Status -> working.statusOverrides[sw.slot.key]
+        ?: when (sw.slot) { StatusSlot.Stop -> t.stop; StatusSlot.Caution -> t.heat; StatusSlot.Go -> t.go }.toArgb().toLong() and 0xFFFFFFFFL
+}
+
+@Composable
+private fun swatchTitle(sw: ThemeSwatch): String = when (sw) {
+    is ThemeSwatch.Pool -> stringResource(R.string.theme_swatch_pool, sw.index + 1)
+    ThemeSwatch.Accent -> stringResource(R.string.theme_swatch_accent)
+    is ThemeSwatch.Status -> stringResource(when (sw.slot) {
+        StatusSlot.Stop -> R.string.theme_status_slot_stop
+        StatusSlot.Caution -> R.string.theme_status_slot_caution
+        StatusSlot.Go -> R.string.theme_status_slot_go
+    })
+}
+private fun swatchIcon(sw: ThemeSwatch): DinghyIcon = when (sw) {
+    is ThemeSwatch.Pool -> DinghyIcons.Palette
+    ThemeSwatch.Accent -> DinghyIcons.Star
+    is ThemeSwatch.Status -> when (sw.slot) {
+        StatusSlot.Stop -> DinghyIcons.StatusStop
+        StatusSlot.Caution -> DinghyIcons.Warning
+        StatusSlot.Go -> DinghyIcons.CheckCircle
+    }
+}
 
 // ---- migrated color-math helpers (from the retired ThemeEditorScreen) ----
 internal fun hueToHex(hue: Float): String {
