@@ -96,9 +96,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 ```
-(Keep all existing imports — `Text` is still used for the label/subLabel, `RoundedCornerShape`/`border`/`padding`/`clip` all stay.)
+(`getValue` is REQUIRED for the `val knobX by animateDpAsState(...)` property delegate — without it the `by` won't compile. Keep all existing imports — `Text` is still used for the label/subLabel, `RoundedCornerShape`/`border`/`padding`/`clip` all stay.)
 
 (c) **Replace the trailing pill** — the `val pillShape = ...` + `Box(... ) { Text(...) }` block at the end of the `Row` (lines ~155–170) — with a single call:
 ```kotlin
@@ -440,6 +441,8 @@ In `MacroManageField`, replace the `items(state.visibleMacros, ...) { macro -> .
             }
 ```
 (`onToggle` hands back the new Boolean, which we ignore — `onToggleBookmark` just flips the macro's bookmark state by name. The `DinghyIconView` + CheckCircle/UnbookmarkedMacro trailing content is gone — the switch now shows state.)
+
+Then **remove the now-unused imports** `import works.mees.dinghy.designsystem.icons.DinghyIconView` and `import works.mees.dinghy.theme.fsSp` (Codex review confirmed both were used ONLY by this manage row). If a later build still references either elsewhere, keep that one — the build/`assembleDebug` in Step 3 is the authority.
 
 - [ ] **Step 3: Build — expect SUCCESS**
 
