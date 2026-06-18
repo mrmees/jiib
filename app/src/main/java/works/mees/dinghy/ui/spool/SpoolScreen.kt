@@ -286,44 +286,50 @@ private fun SpoolContent(
         val focusTitle = selected?.let { spoolFocusTitle(it) }
             ?: stringResource(R.string.cd_launcher_spool)
 
-        // Sort options — text-label tiles (type-tile retired 2026-06-17).
+        // Sort options — three options → icon-only (count rule); type-tile retired 2026-06-17.
         val sortOptions = persistentListOf(
             SortOption(
                 key = SpoolSortKey.NAME,
+                icon = DinghyIcons.MatchCase,
                 label = stringResource(R.string.spool_sort_name),
                 contentDescriptionRes = R.string.cd_spool_sort_name,
                 directionUp = if (state.sortKey == SpoolSortKey.NAME) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.DATE,
+                icon = DinghyIcons.CalendarClock,
                 label = stringResource(R.string.spool_sort_date),
                 contentDescriptionRes = R.string.cd_spool_sort_date,
                 directionUp = if (state.sortKey == SpoolSortKey.DATE) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.REMAINING,
+                icon = DinghyIcons.Scale,
                 label = stringResource(R.string.spool_sort_remaining),
                 contentDescriptionRes = R.string.cd_spool_sort_remaining,
                 directionUp = if (state.sortKey == SpoolSortKey.REMAINING) state.sortAscending else null,
             ),
         )
 
-        // Filter options — text-label tiles (type-tile retired 2026-06-17).
+        // Filter options — three options → icon-only (count rule); type-tile retired 2026-06-17.
         val filterOptions = persistentListOf(
             FilterOption(
                 key = SpoolFilterCategory.TYPE,
+                icon = DinghyIcons.Experiment,
                 label = stringResource(R.string.spool_filter_type),
                 contentDescriptionRes = R.string.cd_spool_filter_type,
                 isActive = state.filters.materialFamilies.isNotEmpty(),
             ),
             FilterOption(
                 key = SpoolFilterCategory.COLOR,
+                icon = DinghyIcons.Palette,
                 label = stringResource(R.string.spool_filter_color),
                 contentDescriptionRes = R.string.cd_spool_filter_color,
                 isActive = state.filters.colorSwatchHex != null,
             ),
             FilterOption(
                 key = SpoolFilterCategory.MFG,
+                icon = DinghyIcons.Storefront,
                 label = stringResource(R.string.spool_filter_mfg),
                 contentDescriptionRes = R.string.cd_spool_filter_mfg,
                 isActive = state.filters.vendors.isNotEmpty(),

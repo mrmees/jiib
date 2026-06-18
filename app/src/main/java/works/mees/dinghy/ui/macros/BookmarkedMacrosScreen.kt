@@ -327,7 +327,8 @@ private fun MacrosContent(
                                     Text(
                                         text = stringResource(R.string.macros_helper_hint),
                                         color = t.text2,
-                                        style = DinghyType.caption.toTextStyle(t),
+                                        // Match the bookmarking explainer's size (owner 2026-06-17).
+                                        style = DinghyType.body.toTextStyle(t),
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth(),
                                     )

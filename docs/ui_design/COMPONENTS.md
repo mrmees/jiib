@@ -73,7 +73,7 @@ One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/
 | `FillMeter` | Filled fill layer | `t.surface3` (track) + data fill | — | Read-only fraction bar (weight remaining, progress) | `designsystem/components/FillMeter.kt` |
 | `FootButtonBar` | — (container only) | — | — | Row of `OutlinedControl` buttons pinned to foot of list | `designsystem/components/FootButtonBar.kt` |
 | `FloatingEStop` | Filled (danger) | `t.stopSoft` / transparent | `t.stop` | Shell-fallback e-stop (Webcam + Theme only — all other screens dock in FocusFrame header) | `designsystem/components/FloatingEStop.kt` |
-| `SortFilterControlRow` | Filled (control) | text-label option tiles: `t.surface`; active: `t.accentSoft` (leading type-tile RETIRED 2026-06-17) | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
+| `SortFilterControlRow` | Filled (control) | icon option tiles (label shows if ≤2 options): `t.surface`; active: `t.accentSoft` (leading type-tile RETIRED 2026-06-17) | `t.outline` / `t.accentLine` if active | Sort/filter surface for a list | `designsystem/components/SortFilterControlRow.kt` |
 | Control tile (general) | Filled | `t.surface` | `t.outline` / intent-line if active | Interactive grid tile (launcher, shortcut, jog pad cell) | `OutlinedControl.kt` (existing) |
 | `ListBlock` | — (scroll wrapper) | — | — | Edge-faded `LazyColumn` container | `designsystem/layout/ListBlock.kt` |
 | `RegisteredRegion` | — (frame owner) | — | — | 8dp edge-registration frame + inter-element gap owner for a screen region | `designsystem/layout/RegisteredRegion.kt` |
@@ -290,18 +290,21 @@ a sibling.
 Piloted on SpoolScreen (Phase 23), integrated app-wide (Phase 24); now superseded by the docked
 header morph on all `FocusFrame` screens.
 
-#### `SortFilterControlRow` — text-label tiles (leading TYPE tile RETIRED 2026-06-17)
+#### `SortFilterControlRow` — icon tiles, count-driven labels (leading TYPE tile RETIRED 2026-06-17)
 
-**The sort/filter row is a row of TEXT-LABEL option tiles.** The leading recessed TYPE tile is
-**RETIRED (owner 2026-06-17)** — there is no leading glyph; each tile is a TEXT label:
+**The sort/filter row is a row of ICON option tiles.** The leading recessed TYPE tile is
+**RETIRED (owner 2026-06-17)** — there is no leading glyph. Each tile keeps its icon; its short
+text label shows BESIDE the icon only when the row has ≤2 options (the shared `FootButtonBar`
+count rule, `FOOT_BAR_ICON_ONLY_THRESHOLD` = 3), else the tile is icon-only:
 
 ```
-[ option tile ]  [ option tile ]  [ option tile ]  …
-  (filled, t.surface; active = t.accentSoft; label = text, e.g. "Date" / "Material")
+[ icon (+ label if ≤2) ]  [ icon ]  [ icon ]  …
+  (filled, t.surface; active = t.accentSoft; e.g. Files 2-up → calendar+"Date"; Spool 3-up → icon-only)
 ```
 
-Each option tile shows a short TEXT label (e.g. sort: "Date"/"Size"/"Name"; filter:
-"Material"/"Color"/"Brand"). The fill shade + accent carry the active-state grouping.
+Each option tile ALWAYS carries a label (for the count-driven text + a11y); the fill shade +
+accent carry the active-state grouping. Files sort (2 options) shows icon+label; Spool sort and
+filter (3 options) are icon-only — same component, count decides.
 
 The Sort row's active tile still overlays a small non-displacing direction glyph (the registered
 `SortAsc`/`SortDesc` arrow_drop pair) at `Alignment.TopEnd` — that overlay is unchanged.
@@ -470,10 +473,10 @@ that follows it. This applies to the SortFilterControlRow Sort direction-overlay
 ## 6. SortFilterControlRow anatomy
 
 The sort/filter row component is documented fully in §3 above ("SortFilterControlRow —
-text-label tiles"). Key invariants (leading TYPE tile RETIRED 2026-06-17):
+icon tiles, count-driven labels"). Key invariants (leading TYPE tile RETIRED 2026-06-17):
 
 1. **No leading type tile** — RETIRED 2026-06-17; the row is a bare list of option tiles, no leading glyph.
-2. **Option tiles are TEXT labels** (e.g. "Date"/"Material"), not icons.
+2. **Option tiles are ICON tiles** that carry a label; the label TEXT shows beside the icon only when the row has ≤2 options (`FOOT_BAR_ICON_ONLY_THRESHOLD` count rule), else icon-only.
 3. **Option tiles are filled** (`t.surface`), not transparent — they are controls, not content.
 4. **Sort active tile keeps its non-displacing direction overlay** (`SortAsc`/`SortDesc` arrow_drop pair).
 
