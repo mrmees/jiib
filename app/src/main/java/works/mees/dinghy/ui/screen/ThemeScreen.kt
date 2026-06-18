@@ -42,7 +42,6 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
-import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
@@ -148,6 +147,12 @@ internal fun ThemeContent(
     // Selecting a different row always closes any open swatch editor.
     val selectRow: (ThemeRow?) -> Unit = { editingSwatch = null; selected = it }
 
+    // FIX D: system back follows the same contextual ladder as foot-Back (swatch → grid → list).
+    // Disabled when neither is set, so system back exits normally (the DisposableEffect clears the draft).
+    androidx.activity.compose.BackHandler(enabled = editingSwatch != null || selected != null) {
+        if (editingSwatch != null) editingSwatch = null else selected = null
+    }
+
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
         // Back is RED while a draft is unsaved (the "you haven't saved" cue, R5); accent otherwise.
@@ -167,13 +172,30 @@ internal fun ThemeContent(
             field = {
                 ListBlock(Modifier.weight(1f)) {
                     item {
-                        // Dark/Light is the ONE row with an inline control (owner law).
-                        ToggleRow(
-                            label = stringResource(R.string.theme_row_dark_light),
-                            checked = working.dark,
-                            onToggle = onDarkToggle,
+                        // FIX C: Dark/Light is selectable (opens its explainer Focus) AND carries an inline
+                        // switch that toggles WITHOUT selecting. Leading Contrast icon. The switch's
+                        // onCheckedChange must NOT call selectRow.
+                        val t = LocalTokens.current
+                        ListRow(
+                            selected = selected == ThemeRow.DarkLight,
+                            onClick = { selectRow(ThemeRow.DarkLight) },
                             uDp = grid.uDp,
-                        )
+                            leadingContent = { ListRowIcon(icon = DinghyIcons.Contrast, uDp = grid.uDp, tint = t.text) },
+                            trailingContent = {
+                                androidx.compose.material3.Switch(
+                                    checked = working.dark,
+                                    onCheckedChange = onDarkToggle,
+                                    colors = androidx.compose.material3.SwitchDefaults.colors(
+                                        checkedThumbColor = t.bg,
+                                        checkedTrackColor = t.accent,
+                                        uncheckedThumbColor = t.text3,
+                                        uncheckedTrackColor = t.outline,
+                                        uncheckedBorderColor = t.outline,
+                                        checkedBorderColor = t.accent,
+                                    ),
+                                )
+                            },
+                        ) { ListRowLabel(stringResource(R.string.theme_row_dark_light)) }
                     }
                     item { ThemeSelectorRow(ThemeRow.PaletteMode, selected, DinghyIcons.InvertColors,
                         stringResource(R.string.theme_row_palette_mode), stringResource(paletteModeLabelRes(working.paletteMode)), grid.uDp, selectRow) }
@@ -287,7 +309,8 @@ private fun ThemeFocus(
                 frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
                     val tk = LocalTokens.current
                     ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // FIX B: ONE action row of three (5U budget) — Randomize · Revert · Save.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedControl(stringResource(R.string.theme_randomize),
                             onClick = {
                                 container?.updateThemeDraft {
@@ -295,28 +318,28 @@ private fun ThemeFocus(
                                         accentOverride = null, poolShift = nextShift(working.poolShift))
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(), intent = Intent.Warn,
-                            icon = DinghyIcons.Shuffle)
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedControl(stringResource(R.string.theme_revert),
-                                onClick = { container?.clearThemeDraft() },
-                                modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert)
-                            OutlinedControl(stringResource(R.string.theme_save),
-                                onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
-                                modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save)
-                        }
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Shuffle)
+                        OutlinedControl(stringResource(R.string.theme_revert),
+                            onClick = { container?.clearThemeDraft() },
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert)
+                        OutlinedControl(stringResource(R.string.theme_save),
+                            onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
+                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save)
                     }
                 }
             } else {
+                // FIX A: snapshot the swatch's override AS IT WAS when the editor opened. Cancel restores
+                // exactly this (set-or-clear), undoing only THIS editor session's edit — not all the way
+                // back to SAVED. The editor independently snapshots the same open-time working value for
+                // its HSV init.
+                val entryOverride = remember(ed) { swatchOverride(working, ed) }
                 ThemeSwatchEditor(
-                    swatch = ed, saved = saved, uDp = uDp, modifier = modifier,
+                    swatch = ed, working = working, uDp = uDp, modifier = modifier,
                     isPrinting = isPrinting, onEmergencyStop = onEmergencyStop,
                     onMovePreview = { argb -> container?.updateThemeDraft { applySwatch(it ?: working, ed, argb) } },
                     onSave = { onEditSwatch(null) },          // already staged into the draft live
                     onCancel = {
-                        // Codex fix: discard this swatch's edit by restoring the SAVED value (not `working`).
-                        container?.updateThemeDraft { restoreSwatch(it ?: working, ed, saved) }
+                        container?.updateThemeDraft { setOrClearSwatch(it ?: working, ed, entryOverride) }
                         onEditSwatch(null)
                     },
                 )
@@ -408,24 +431,26 @@ private fun SwatchCell(
 
 @Composable
 private fun ThemeSwatchEditor(
-    swatch: ThemeSwatch, saved: ThemePrefs.ThemeTuple, uDp: Dp, modifier: Modifier,
+    swatch: ThemeSwatch, working: ThemePrefs.ThemeTuple, uDp: Dp, modifier: Modifier,
     isPrinting: Boolean, onEmergencyStop: (() -> Unit)?,
     onMovePreview: (Long) -> Unit, onSave: () -> Unit, onCancel: () -> Unit,
 ) {
+    // FIX A: edit the WORKING value (not SAVED). t = LocalTokens.current is the live working-baked
+    // tokens, so savedSwatchArgb(swatch, working, t) reads the swatch's CURRENT WORKING displayed
+    // color (override first, else the live token) — the correct HSV start after Randomize / a prior
+    // staged edit. The edge tracks the LIVE pick below.
     val t = LocalTokens.current
-    // Codex fix: the header/compare baseline is the SAVED value — bake the saved tuple once (not `working`,
-    // which is the live draft). The live in-progress pick is shown by the whole-app preview.
-    val savedTokens = remember(saved) { ThemeResolver().bake(saved) }
-    val savedArgb = savedSwatchArgb(swatch, saved, savedTokens)
-    val hsv = argbLongToHsv(savedArgb)
+    // TODO(uat): saved-value compare swatch in header (no FocusFrame slot yet)
+    val startArgb = remember(swatch) { savedSwatchArgb(swatch, working, t) }
+    val hsv = remember(swatch) { argbLongToHsv(startArgb) }
     var h by rememberSaveable(swatch) { mutableStateOf(hsv[0]) }
     var s by rememberSaveable(swatch) { mutableStateOf(hsv[1]) }
     var v by rememberSaveable(swatch) { mutableStateOf(hsv[2]) }
     FocusFrame(
         title = swatchTitle(swatch), icon = swatchIcon(swatch), uDp = uDp, modifier = modifier,
         isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
-        // header shows the SAVED value as a trailing swatch glyph substitute — rendered via edge color:
-        edge = FocusEdge.Data(Color(savedArgb.toInt())),
+        // FIX A: the header edge reads out the LIVE picked color (recomputes as the sliders move).
+        edge = FocusEdge.Data(Color(hsvToArgbLong(h, s, v).toInt())),
     ) {
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
             works.mees.dinghy.designsystem.HsvSliders(
@@ -468,6 +493,21 @@ private fun restoreSwatch(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch, saved: 
     is ThemeSwatch.Status -> tuple.copy(statusOverrides = saved.statusOverrides[sw.slot.key]
         ?.let { tuple.statusOverrides + (sw.slot.key to it) } ?: (tuple.statusOverrides - sw.slot.key))
 }
+
+/** The override Long? for a swatch in [tuple] (null = no override → generated color). */
+private fun swatchOverride(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch): Long? = when (sw) {
+    is ThemeSwatch.Pool -> tuple.poolOverrides[sw.index]
+    ThemeSwatch.Accent -> tuple.accentOverride
+    is ThemeSwatch.Status -> tuple.statusOverrides[sw.slot.key]
+}
+
+/** Set ([argb] non-null) or CLEAR ([argb] null) a swatch's override in [tuple]. */
+private fun setOrClearSwatch(tuple: ThemePrefs.ThemeTuple, sw: ThemeSwatch, argb: Long?): ThemePrefs.ThemeTuple =
+    if (argb == null) when (sw) {
+        is ThemeSwatch.Pool -> tuple.copy(poolOverrides = tuple.poolOverrides - sw.index)
+        ThemeSwatch.Accent -> tuple.copy(accentOverride = null)
+        is ThemeSwatch.Status -> tuple.copy(statusOverrides = tuple.statusOverrides - sw.slot.key)
+    } else applySwatch(tuple, sw, argb)
 
 private fun savedSwatchArgb(sw: ThemeSwatch, working: ThemePrefs.ThemeTuple, t: ThemeTokens): Long = when (sw) {
     is ThemeSwatch.Pool -> working.poolOverrides[sw.index] ?: (t.pool.getOrNull(sw.index) ?: t.accent).toArgb().toLong() and 0xFFFFFFFFL
