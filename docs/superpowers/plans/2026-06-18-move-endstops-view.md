@@ -83,41 +83,27 @@ In `CommandRegistry.kt`, in the `val all: List<CommandSpec<*>> = listOf(` block,
         objectsSubscribe,
 ```
 
-- [ ] **Step 4: Add the catalog row**
+- [ ] **Step 4: Update the EXISTING catalog row (do NOT append — it already exists as reference-only)**
 
-In `docs/commands/catalog.json`, add this object to the commands array (place it near the other `MR-printer.objects.*` entries):
+`docs/commands/catalog.json` ALREADY contains an `MR-printer.query_endstops.status` entry marked
+`reference_only` / `registered: false`. Appending a second row would duplicate the id. Instead,
+FIND that existing object and change its `runtime_registry`, `semantics_tier`, and `purpose` so it
+reflects that the command is now actually registered/sent. Specifically:
 
-```json
-{
-  "id": "MR-printer.query_endstops.status",
-  "catalog_id": "MR-printer.query_endstops.status",
-  "source_api": "moonraker",
-  "transport": "json_rpc",
-  "name": "printer.query_endstops.status",
-  "category": "state",
-  "purpose": "Read the current trigger state (open/TRIGGERED) of each configured endstop.",
-  "params": [],
-  "key_params": [],
-  "semantics_tier": "full",
-  "upstream_url": "https://moonraker.readthedocs.io/en/latest/external_api/printer/",
-  "rest_endpoint": null,
-  "http_method": null,
-  "availability": {
-    "type": "always"
-  },
-  "predicate": {
-    "type": "always"
-  },
+- `"semantics_tier": "light"` → `"semantics_tier": "full"`
+- `"purpose": "Moonraker \`printer.query_endstops.status\` operation from the official external API documentation."`
+  → `"purpose": "Read the current trigger state (open/TRIGGERED) of each configured endstop."`
+- the whole `"runtime_registry"` object →
+  ```json
   "runtime_registry": {
     "status": "registered",
     "registered": true,
     "notes": "Present in CommandRegistry for the Move → Endstops live poll."
-  },
-  "success_semantics": "Moonraker returns a JSON-RPC result mapping each endstop name to \"open\" or \"TRIGGERED\".",
-  "error_semantics": "Moonraker returns JSON-RPC error when Klippy is not ready or the query fails.",
-  "acceptance_semantics": "Polled on demand only while the Move Endstops view is open."
-}
-```
+  }
+  ```
+
+Leave `id`, `catalog_id`, `source_api`, `transport`, `category`, `params`, `key_params`,
+`availability`, `predicate`, and the `*_semantics` fields untouched. Do NOT add a second object.
 
 - [ ] **Step 5: Add the printer-matrix row**
 
@@ -493,33 +479,40 @@ In the Focus `when (mode) { ... }`, add the branch. Place it with the other bran
                             // null = no result yet (Querying). errored = last poll threw before any data.
                             var endstops by remember { mutableStateOf<List<EndstopStatus>?>(null) }
                             var errored by remember { mutableStateOf(false) }
-
-                            // Live poll, scoped to this branch: LaunchedEffect launches when the
-                            // Endstops Focus enters composition and cancels the instant the user
-                            // leaves the sub-mode or the screen leaves composition (background).
-                            LaunchedEffect(Unit) {
-                                while (true) {
-                                    try {
-                                        endstops = queryEndstops()
-                                        errored = false
-                                    } catch (_: CancellationException) {
-                                        throw // never swallow structured cancellation
-                                    } catch (_: Throwable) {
-                                        // Disconnected / Klippy not ready / timeout: keep last good
-                                        // data if we have it; otherwise surface the unavailable hint.
-                                        if (endstops == null) errored = true
+                            // rememberUpdatedState so the long-lived poll loop always calls the LATEST
+                            // lambda (which reads the live dispatcher) — guards against a stale capture
+                            // never recovering after reconnect.
+                            val query by rememberUpdatedState(queryEndstops)
+                            // Lifecycle-scoped poll (mirrors TemperatureScreen.kt:245-254): the
+                            // LaunchedEffect cancels when this branch leaves composition (mode change),
+                            // and repeatOnLifecycle(STARTED) suspends the loop while the screen is
+                            // backgrounded — both required stop conditions per the spec.
+                            val lifecycleOwner = LocalLifecycleOwner.current
+                            LaunchedEffect(lifecycleOwner) {
+                                lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                                    while (true) {
+                                        try {
+                                            endstops = query()
+                                            errored = false
+                                        } catch (e: CancellationException) {
+                                            throw e // never swallow structured cancellation
+                                        } catch (e: Throwable) {
+                                            // Disconnected / Klippy not ready / timeout: keep last good
+                                            // data if we have it; otherwise surface the unavailable hint.
+                                            if (endstops == null) errored = true
+                                        }
+                                        delay(500)
                                     }
-                                    delay(500)
                                 }
                             }
 
                             val current = endstops
                             when {
+                                // No .padding() here — FocusFrame already insets its content by
+                                // FocusInset (FocusFrame.kt:269); adding it again would double-inset.
                                 current != null -> {
                                     Column(
-                                        Modifier
-                                            .fillMaxSize()
-                                            .padding(FocusInset),
+                                        Modifier.fillMaxSize(),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         current.forEach { es ->
@@ -527,17 +520,14 @@ In the Focus `when (mode) { ... }`, add the branch. Place it with the other bran
                                         }
                                     }
                                 }
-                                errored -> {
-                                    FocusCenteredHint("Endstops unavailable", grid.uDp)
-                                }
-                                else -> {
-                                    FocusCenteredHint("Querying…", grid.uDp)
-                                }
+                                errored -> FocusCenteredHint("Endstops unavailable")
+                                else -> FocusCenteredHint("Querying…")
                             }
                         }
 ```
 
-> `FocusInset` is already imported/used in this file (the FocusFrame body inset). If `FocusCenteredHint` does not already exist in this file/package, implement the minimal helper in Step 4. If a homing-hint/centered-message composable already exists in `MoveScreen.kt` (the TouchMove "needs homing" hint), reuse THAT instead of adding `FocusCenteredHint`.
+> If a homing-hint/centered-message composable already exists in `MoveScreen.kt` (the TouchMove
+> "needs homing" hint), reuse THAT instead of adding `FocusCenteredHint` in Step 4.
 
 - [ ] **Step 4: Add the row + hint composables (reuse existing if present)**
 
@@ -557,43 +547,54 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
             .heightIn(min = uDp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // DinghyIconView sizes the glyph via sizeDp (NOT Modifier.size); decorative (cd=null) —
+        // the row's text label already conveys the state to TalkBack.
         DinghyIconView(
             icon = glyph,
-            contentDescription = null,
             tint = color,
-            modifier = Modifier.size(uDp * 0.6f),
+            sizeDp = uDp * 0.6f,
+            contentDescription = null,
         )
         Spacer(Modifier.width(12.dp))
         Text(
             text = endstopLabel(status.name),
-            style = TextRole.ListLabel.toTextStyle(t),
+            style = DinghyType.listLabel.toTextStyle(t),
             color = t.text,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = if (status.triggered) "TRIGGERED" else "OPEN",
-            style = TextRole.StatValue.toTextStyle(t),
+            style = DinghyType.statValue.toTextStyle(t),
             color = color,
         )
     }
 }
 
 @Composable
-private fun FocusCenteredHint(text: String, uDp: Dp) {
+private fun FocusCenteredHint(text: String) {
     val t = LocalTokens.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = TextRole.Body.toTextStyle(t), color = t.text3)
+        Text(text, style = DinghyType.body.toTextStyle(t), color = t.text3)
     }
 }
 ```
 
-> **Type/icon API check before writing:** confirm the exact names by grepping this file's existing usages:
-> - icon renderer: `grep -n "DinghyIconView\|fun.*DinghyIcon.*Composable\|Icon(" MoveScreen.kt` — use whatever the file already uses to render a `DinghyIcon` (it renders MoveRow icons today; mirror that call exactly, including its tint/size params).
-> - text roles: `grep -n "TextRole\.\|toTextStyle\|fsSp\|FocusHeroText" MoveScreen.kt` — use the role helper the file already uses (font conformance FORBIDS inline `fontSize=`/`fontFamily=`; the build fails otherwise). Pick the closest existing roles to "list label" and "tabular value"; do not invent role names.
+> These use the EXISTING type roles + helper already imported in `MoveScreen.kt`
+> (`DinghyType.listLabel/statValue/body` via `works.mees.dinghy.theme.compose.toTextStyle`, used at
+> e.g. MoveScreen.kt:244). Font conformance FORBIDS inline `fontSize=`/`fontFamily=` — the build
+> fails otherwise; only role styles are allowed.
 
 - [ ] **Step 5: Add any missing imports**
 
-Ensure these are imported in `MoveScreen.kt` (add only the missing ones): `androidx.compose.runtime.getValue`, `setValue`, `mutableStateOf`, `remember`, `LaunchedEffect`, `kotlinx.coroutines.delay`, `kotlinx.coroutines.CancellationException`, `androidx.compose.foundation.layout.Arrangement`, `Column`, `Box`, `Spacer`, `width`, `size`, `padding`, `heightIn`, and `CommandRegistry`. Most are already present.
+Ensure these are imported in `MoveScreen.kt` (add only the missing ones):
+
+- `androidx.compose.runtime.getValue`, `setValue`, `mutableStateOf`, `remember`, `LaunchedEffect`, `rememberUpdatedState`
+- `kotlinx.coroutines.delay`, `kotlinx.coroutines.CancellationException`
+- `androidx.lifecycle.Lifecycle`, `androidx.lifecycle.repeatOnLifecycle`, `androidx.lifecycle.compose.LocalLifecycleOwner` (exact paths used at `TemperatureScreen.kt:37-39`)
+- `androidx.compose.foundation.layout.Arrangement`, `Column`, `Box`, `Spacer`, `width`, `heightIn`
+- `works.mees.dinghy.command.CommandRegistry`
+
+Do NOT import `FocusInset` for the Endstops branch (FocusFrame already insets its content; the branch adds no padding). Most layout imports are already present from the other Move sub-modes.
 
 - [ ] **Step 6: Compile**
 
