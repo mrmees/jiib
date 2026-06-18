@@ -392,9 +392,9 @@ class PrinterCommandsTest {
 
     @Test
     fun setTemperatureFanTarget_clampsAndFormats() {
-        assertEquals("SET_TEMPERATURE_FAN_TARGET FAN=exhaust TARGET=45", PrinterCommands.setTemperatureFanTarget("exhaust", 45))
-        assertEquals("SET_TEMPERATURE_FAN_TARGET FAN=exhaust TARGET=350", PrinterCommands.setTemperatureFanTarget("exhaust", 9999))
-        assertEquals("SET_TEMPERATURE_FAN_TARGET FAN=exhaust TARGET=0", PrinterCommands.setTemperatureFanTarget("exhaust", -5))
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=45", PrinterCommands.setTemperatureFanTarget("exhaust", 45))
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=350", PrinterCommands.setTemperatureFanTarget("exhaust", 9999))
+        assertEquals("SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=0", PrinterCommands.setTemperatureFanTarget("exhaust", -5))
     }
 
     @Test
@@ -413,7 +413,7 @@ class PrinterCommandsTest {
                 "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=200",
                 "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60",
                 "SET_HEATER_TEMPERATURE HEATER=chamber TARGET=50",
-                "SET_TEMPERATURE_FAN_TARGET FAN=exhaust TARGET=40",
+                "SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=exhaust TARGET=40",
             ).joinToString("\n"),
             script,
         )

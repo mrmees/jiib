@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -62,25 +63,36 @@ fun reconcileWizardFields(saved: HeatPreset?, heaters: List<SettableHeater>): Li
  *
  * Special case: a parsed value of `0` bypasses the minimum clamp — it is an explicit "turn off"
  * command and must not be clamped up to [SettableHeater.minTemp].
+ *
+ * Overflow-safe: values are parsed with [String.toLongOrNull] so a very long digit string does NOT
+ * overflow Int → null → silently omit; positives clamp on Long bounds then narrow to Int.
+ *
+ * Edit-safe ([saved]): on edit the wizard rebuilds against the CURRENT live [heaters], but a heater
+ * may be TEMPORARILY ABSENT (printer disconnected → enumerate falls back to extruder+bed). Setpoints
+ * in [saved] for object names NOT in the current [heaters] are PRESERVED (e.g. a chamber/fan setpoint
+ * is not lost just because that heater isn't reporting right now). The parsed values OVERLAY preserved.
  */
 fun buildPresetFromInput(
     id: String,
     name: String,
     rawValues: Map<String, String>,
     heaters: List<SettableHeater>,
+    saved: HeatPreset? = null,
 ): HeatPreset {
     val byName = heaters.associateBy { it.objectName }
-    val setpoints = buildMap {
+    val parsedSetpoints = buildMap {
         for ((obj, raw) in rawValues) {
-            val parsed = raw.trim().toIntOrNull() ?: continue   // blank/garbage → skip (omit heater)
-            if (parsed == 0) { put(obj, 0); continue }          // 0 = explicit OFF — bypass the min clamp
+            val parsed = raw.trim().toLongOrNull() ?: continue  // blank/garbage/overflow → skip (omit heater)
+            if (parsed == 0L) { put(obj, 0); continue }         // 0 = explicit OFF — bypass the min clamp
             val h = byName[obj]
             val lo = h?.minTemp ?: PrinterCommands.MIN_TEMP_C
             val hi = h?.maxTemp ?: PrinterCommands.MAX_TEMP_C
-            put(obj, parsed.coerceIn(lo, hi))
+            put(obj, parsed.coerceIn(lo.toLong(), hi.toLong()).toInt())
         }
     }
-    return HeatPreset(id = id, name = name.trim(), setpoints = setpoints)
+    val heaterNames = heaters.map { it.objectName }.toSet()
+    val preserved = saved?.setpoints?.filterKeys { it !in heaterNames } ?: emptyMap()
+    return HeatPreset(id = id, name = name.trim(), setpoints = preserved + parsedSetpoints)
 }
 
 // ===========================================================================
@@ -121,15 +133,28 @@ fun HeatPresetWizard(
     // Step 0 = name; steps 1..fields.size = heater fields.
     var step by rememberSaveable { mutableStateOf(0) }
     var name by rememberSaveable { mutableStateOf(saved?.name ?: "") }
-    // Per-object text values, seeded from the reconciled initial values. mutableStateMapOf survives
-    // recomposition; rotation re-seeds from the same reconciled fields (acceptable for an in-flight wizard).
-    val values = remember(fields) {
+    // Per-object text values. rememberSaveable so in-progress entries survive rotation (FIX 7); the
+    // listSaver flattens to an alternating key,value List<String> and restores into a stateMap. Seeded
+    // from the reconciled fields only on FIRST composition — the saver restores it after rotation.
+    val values = rememberSaveable(
+        saver = listSaver(
+            save = { map -> map.flatMap { (k, v) -> listOf(k, v) } },
+            restore = { flat ->
+                mutableStateMapOf<String, String>().apply {
+                    flat.chunked(2).forEach { pair -> if (pair.size == 2) put(pair[0], pair[1]) }
+                }
+            },
+        ),
+    ) {
         mutableStateMapOf<String, String>().apply {
             fields.forEach { put(it.objectName, it.initialValue) }
         }
     }
 
-    val onLastStep = step >= fields.size
+    // `fields` can SHRINK (config change / disconnect / profile switch) while `step` is restored from a
+    // larger range, so clamp before indexing (FIX 1). safeStep == fields.size is the Save step.
+    val safeStep = step.coerceIn(0, fields.size)
+    val onLastStep = safeStep >= fields.size
 
     ScreenScaffold(
         modifier = modifier,
@@ -143,7 +168,8 @@ fun HeatPresetWizard(
                 onEmergencyStop = onEmergencyStop,
                 onPanic = onEmergencyStop,
             ) {
-                if (step == 0) {
+                val field = fields.getOrNull(safeStep - 1)
+                if (safeStep == 0 || field == null) {
                     Text(
                         text = stringResource(R.string.heat_presets_name_label),
                         color = t.text,
@@ -159,16 +185,16 @@ fun HeatPresetWizard(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    val f = fields[step - 1]
                     Text(
-                        text = f.displayName,
+                        text = field.displayName,
                         color = t.text,
                         style = DinghyType.focusHeader.toTextStyle(t),
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     TokenTextField(
-                        value = values[f.objectName] ?: "",
-                        onValueChange = { raw -> values[f.objectName] = raw.filter(Char::isDigit) },
+                        value = values[field.objectName] ?: "",
+                        // Cap to 3 digits — max heater temp is 350 (FIX 4).
+                        onValueChange = { raw -> values[field.objectName] = raw.filter(Char::isDigit).take(3) },
                         label = stringResource(R.string.heat_presets_value_hint),
                         keyboardType = KeyboardType.Number,
                         modifier = Modifier.fillMaxWidth(),
@@ -184,6 +210,10 @@ fun HeatPresetWizard(
         },
         field = {
             val nameValid = name.isNotBlank()
+            // A save needs a non-blank name AND at least one parseable setpoint (FIX 5) — a name-only
+            // preset would dispatch an empty gcode script. Next stays enabled on name validity alone.
+            val hasAnySetpoint = values.values.any { it.trim().toLongOrNull() != null }
+            val primaryEnabled = if (onLastStep) nameValid && hasAnySetpoint else nameValid
             FootButtonBar(
                 uDp = uDp,
                 actions = listOf(
@@ -202,7 +232,7 @@ fun HeatPresetWizard(
                         icon = DinghyIcons.CheckCircle,
                         onClick = {
                             if (!onLastStep) {
-                                step++
+                                step = safeStep + 1
                             } else {
                                 onSave(
                                     buildPresetFromInput(
@@ -210,13 +240,13 @@ fun HeatPresetWizard(
                                         name = name,
                                         rawValues = values.toMap(),
                                         heaters = heaters,
+                                        saved = saved,
                                     ),
                                 )
                             }
                         },
                         intent = Intent.Go,
-                        // Name step requires a non-blank name to advance; Save requires it too.
-                        enabled = nameValid,
+                        enabled = primaryEnabled,
                     ),
                 ),
             )

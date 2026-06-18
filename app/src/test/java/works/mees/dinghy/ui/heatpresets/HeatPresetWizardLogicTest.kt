@@ -39,4 +39,26 @@ class HeatPresetWizardLogicTest {
         val preset = buildPresetFromInput("id", "P", mapOf("extruder" to "5"), heaters) // min 10
         assertEquals(mapOf("extruder" to 10), preset.setpoints)
     }
+
+    @Test fun build_preservesSavedSetpointsForHeatersNotCurrentlyPresent() {
+        // saved has a temperature_fan the CURRENT heaters list lacks (printer temporarily absent) →
+        // its setpoint must be PRESERVED, not dropped, alongside the edited shown heaters.
+        val saved = HeatPreset(
+            "id",
+            "Med",
+            mapOf("extruder" to 200, "temperature_fan exhaust" to 40),
+        )
+        val raw = mapOf("extruder" to "210", "heater_bed" to "60")
+        val preset = buildPresetFromInput("id", "Med", raw, heaters, saved = saved)
+        assertEquals(
+            mapOf("extruder" to 210, "heater_bed" to 60, "temperature_fan exhaust" to 40),
+            preset.setpoints,
+        )
+    }
+
+    @Test fun build_hugeOverflowingInput_clampsToMaxNotOmitted() {
+        // A digit string that overflows Int must clamp to the heater max, not silently omit (toLong).
+        val preset = buildPresetFromInput("id", "P", mapOf("heater_generic chamber" to "999999999999"), heaters)
+        assertEquals(mapOf("heater_generic chamber" to 120), preset.setpoints) // chamber max 120
+    }
 }

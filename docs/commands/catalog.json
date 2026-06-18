@@ -3858,11 +3858,11 @@
       "category": "temperature",
       "purpose": "Klipper `SET_TEMPERATURE_FAN_TARGET` command — set a temperature_fan's target temperature.",
       "params": [
-        "FAN",
+        "TEMPERATURE_FAN",
         "TARGET"
       ],
       "key_params": [
-        "FAN",
+        "TEMPERATURE_FAN",
         "TARGET"
       ],
       "semantics_tier": "full",

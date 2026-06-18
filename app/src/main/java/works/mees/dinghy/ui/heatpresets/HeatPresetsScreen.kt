@@ -324,8 +324,14 @@ private fun HeatPresetDetail(
     }
 }
 
-/** Trailing one-line summary of a preset's setpoints ("Nozzle 200° · Bed 60°"); empty when none. */
+/**
+ * Trailing one-line summary of a preset's setpoints ("Nozzle 200° · Bed Off"); empty when none. A
+ * value of 0 renders as "Off" to match the detail view (non-composable → literal, not a string res).
+ */
 internal fun presetSummary(p: HeatPreset): String =
     p.setpoints.entries
         .sortedBy { it.key }
-        .joinToString(" · ") { "${heaterDisplayName(it.key)} ${it.value}°" }
+        .joinToString(" · ") { (obj, v) ->
+            val value = if (v == 0) "Off" else "$v°"
+            "${heaterDisplayName(obj)} $value"
+        }

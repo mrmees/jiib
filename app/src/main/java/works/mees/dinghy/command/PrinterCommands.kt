@@ -265,9 +265,9 @@ object PrinterCommands {
 
     // --- Heat Presets (per-printer sparse setpoint maps) ------------------------------------------
 
-    /** `SET_TEMPERATURE_FAN_TARGET FAN=<fan> TARGET=<target>`. [target] clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
+    /** `SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=<fan> TARGET=<target>`. [target] clamped to [MIN_TEMP_C]..[MAX_TEMP_C]. */
     fun setTemperatureFanTarget(fan: String, target: Int): String =
-        "SET_TEMPERATURE_FAN_TARGET FAN=$fan TARGET=${clampHeaterTarget(target)}"
+        "SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=$fan TARGET=${clampHeaterTarget(target)}"
 
     /**
      * Build the newline-joined gcode for an arbitrary [setpoints] map (heater object name → °C):
