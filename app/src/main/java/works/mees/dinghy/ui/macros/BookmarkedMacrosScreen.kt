@@ -642,7 +642,7 @@ private fun MacroNumericParamField(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MacroManageField — System manage-visibility list (unchanged)
+// MacroManageField — System manage-visibility list (rows are canonical ToggleRow switches)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -658,15 +658,14 @@ private fun ColumnScope.MacroManageField(
     } else {
         ListBlock(modifier = Modifier.weight(1f)) {
             items(state.visibleMacros, key = { it.name }) { macro ->
+                // No explicit contentDescription: ToggleRow defaults it to the label (the macro name),
+                // and its Role.Switch announces the on/off (bookmarked) state — so TalkBack reads
+                // "<macro name>, switch, checked/not checked" instead of dropping the name.
                 ToggleRow(
                     label = macro.name,
                     checked = macro.isBookmarked,
                     onToggle = { onToggleBookmark(macro.name) },
                     uDp = uDp,
-                    contentDescription = stringResource(
-                        if (macro.isBookmarked) R.string.cd_macros_bookmarked
-                        else R.string.cd_macros_unbookmarked,
-                    ),
                 )
             }
         }
