@@ -57,8 +57,8 @@ import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowLabel
+import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -67,7 +67,6 @@ import works.mees.dinghy.net.JsonRpcMethods
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
-import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.screen.TokenTextField
 
 /**
@@ -654,40 +653,21 @@ private fun ColumnScope.MacroManageField(
     onSetRevealHidden: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
-    val t = LocalTokens.current
     if (state.unavailable) {
         MacrosUnavailable(modifier = Modifier.weight(1f).padding(24.dp))
     } else {
         ListBlock(modifier = Modifier.weight(1f)) {
             items(state.visibleMacros, key = { it.name }) { macro ->
-                val isBookmarked = macro.isBookmarked
-                ListRow(
-                    selected = isBookmarked,
-                    onClick = { onToggleBookmark(macro.name) },
+                ToggleRow(
+                    label = macro.name,
+                    checked = macro.isBookmarked,
+                    onToggle = { onToggleBookmark(macro.name) },
                     uDp = uDp,
-                    trailingContent = {
-                        DinghyIconView(
-                            icon = if (isBookmarked) DinghyIcons.CheckCircle else DinghyIcons.UnbookmarkedMacro,
-                            tint = if (isBookmarked) t.accent else t.text3,
-                            sizeDp = fsSp(24f, t.fs).dp,
-                            modifier = Modifier.padding(start = 8.dp),
-                            contentDescription = stringResource(
-                                if (isBookmarked) R.string.cd_macros_bookmarked else R.string.cd_macros_unbookmarked,
-                            ),
-                        )
-                    },
-                ) {
-                    Text(
-                        text = macro.name,
-                        color = t.text,
-                        style = DinghyType.listLabel.toTextStyle(t),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 4.dp),
-                    )
-                }
+                    contentDescription = stringResource(
+                        if (macro.isBookmarked) R.string.cd_macros_bookmarked
+                        else R.string.cd_macros_unbookmarked,
+                    ),
+                )
             }
         }
     }
