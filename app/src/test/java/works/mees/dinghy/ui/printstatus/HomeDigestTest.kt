@@ -2,13 +2,46 @@ package works.mees.dinghy.ui.printstatus
 
 import kotlinx.collections.immutable.persistentMapOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.state.HeaterState
 import works.mees.dinghy.ui.spool.ActiveSpoolCardState
 
 class HomeDigestTest {
+
+    // ----- anyHeaterOn -----
+
+    @Test
+    fun noHeaters_isOff() {
+        assertFalse(anyHeaterOn(emptyMap()))
+    }
+
+    @Test
+    fun allTargetsZero_isOff() {
+        assertFalse(
+            anyHeaterOn(
+                mapOf(
+                    "extruder" to HeaterState(temperature = 25.0, target = 0.0),
+                    "heater_bed" to HeaterState(temperature = 24.0, target = 0.0),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun anyTargetAboveZero_isOn() {
+        assertTrue(
+            anyHeaterOn(
+                mapOf(
+                    "extruder" to HeaterState(temperature = 25.0, target = 0.0),
+                    "heater_bed" to HeaterState(temperature = 24.0, target = 60.0),
+                ),
+            ),
+        )
+    }
 
     @Test
     fun prettyHeaterLabelStripsPrefixAndCapitalizes() {
