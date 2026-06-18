@@ -217,6 +217,15 @@ object CommandRegistry {
         params = { args -> objectsParam(args.objects) },
     )
 
+    /** One-shot read of every configured endstop's trigger state (`{"x":"open","z":"TRIGGERED"}`).
+     *  NOT subscribable — must be polled via request/response (Move → Endstops view). */
+    val queryEndstops: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-printer.query_endstops.status",
+        method = JsonRpcMethods.QUERY_ENDSTOPS_STATUS,
+        key = { "query_endstops" },
+        params = { null },
+    )
+
     val temperatureStore: CommandSpec<Unit> = jsonRpc(
         catalogId = "MR-server.temperature_store",
         method = JsonRpcMethods.TEMPERATURE_STORE,
@@ -816,6 +825,7 @@ object CommandRegistry {
         serverInfo,
         objectsList,
         objectsQuery,
+        queryEndstops,
         objectsSubscribe,
         temperatureStore,
         gcodeStore,

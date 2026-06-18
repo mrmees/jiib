@@ -289,6 +289,12 @@ object DinghyIcons {
     val MoveHomeAll = DinghyIcon(IconRef.Ligature("home_app_logo"), alternate = "move_home_all")
     val MoveDisableMotors = DinghyIcon(IconRef.Ligature("stack_off"), alternate = "move_disable_motors")
 
+    /** Move → Endstops: inactive/open endstop state (owner-assigned 2026-06-18). */
+    val CropFree = DinghyIcon(IconRef.Ligature("crop_free"), alternate = "crop_free")
+    /** Move → Endstops: triggered/active endstop state AND the Endstops list-row icon
+     *  (owner-assigned 2026-06-18). */
+    val CenterFocusStrong = DinghyIcon(IconRef.Ligature("center_focus_strong"), alternate = "center_focus_strong")
+
     // --- Phase-28 System/Settings cluster glyphs (28-01, OWNER-LOCKED D-21).
     // All ligatures verified resolvable in the bundled v2.944 Material Symbols ttf.
     // `settings` / `info` / `power_settings_new` are new-to-NEEDED (not yet in verify_ligatures.py).
@@ -397,7 +403,7 @@ object DinghyIcons {
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
         Visibility, VisibilityOff, Warning, StatMinus1, StatPlus1,
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
-        JogXPlus, HomeStateHomed, HomeStateUnhomed,
+        JogXPlus, HomeStateHomed, HomeStateUnhomed, CropFree, CenterFocusStrong,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
         MeshEmpty,
         LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,

@@ -528,6 +528,32 @@ class CommandDispatcherTest {
         collectJob.cancel()
     }
 
+    // --- query(): read-only sibling that bypasses inFlight ---
+
+    @Test
+    fun `query routes spec method and params and returns the result without touching inFlight`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val seen = mutableListOf<Pair<String, JsonElement?>>()
+            val dispatcher = CommandDispatcher(
+                request = { method, params, _ ->
+                    seen += method to params
+                    kotlinx.serialization.json.Json.parseToJsonElement("""{"x":"open","z":"TRIGGERED"}""")
+                },
+                scope = this,
+                timeSource = { testScheduler.currentTime },
+            )
+
+            val result = dispatcher.query(CommandRegistry.queryEndstops, Unit)
+
+            assertEquals("printer.query_endstops.status", seen.single().first)
+            assertEquals(null, seen.single().second)
+            assertEquals(
+                kotlinx.serialization.json.Json.parseToJsonElement("""{"x":"open","z":"TRIGGERED"}"""),
+                result,
+            )
+            assertTrue(dispatcher.inFlight.value.isEmpty())
+        }
+
     @Test
     fun acceptedDispatches_emitNothingOnRejectedKey() = runTest(UnconfinedTestDispatcher()) {
         val rpc = FakeRpc()

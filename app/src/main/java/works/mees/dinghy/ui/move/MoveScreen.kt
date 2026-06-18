@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,23 +19,31 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import kotlin.math.floor
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
@@ -59,6 +68,7 @@ import works.mees.dinghy.designsystem.components.ToggleRow
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -86,6 +96,9 @@ sealed interface MoveMode {
     data object Microstep : MoveMode
     data class Bookmark(val name: String) : MoveMode
     data object SaveDialog : MoveMode
+
+    /** Read-only live view of each configured endstop's trigger state. */
+    data object Endstops : MoveMode
 }
 
 /**
@@ -100,7 +113,7 @@ sealed interface MoveMode {
  *
  * @param container service-locator (live `printerState`, session dispatcher, saved locations).
  * @param holder    toolkit-agnostic [MoveHolder] (live X/Y/Z + per-axis homed gating + bounds/feed).
- * @param onBack    invoked by the Back foot button from Touch Move.
+ * @param onBack    invoked by the Back foot button — leaves the hub from ANY sub-mode.
  */
 @Composable
 fun MoveScreen(
@@ -148,6 +161,10 @@ fun MoveScreen(
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSaveLocation = { container.saveLocation(it) },
         onDeleteLocation = { container.deleteLocation(it) },
+        queryEndstops = {
+            val d = dispatcher ?: error("no active session")
+            parseEndstops(d.query(CommandRegistry.queryEndstops, Unit))
+        },
         onBack = onBack,
         microstepSteps = microstepSteps,
         modifier = modifier,
@@ -183,6 +200,7 @@ internal fun MoveHubContent(
     onEmergencyStop: () -> Unit,
     onSaveLocation: (SavedLocation) -> Unit,
     onDeleteLocation: (String) -> Unit,
+    queryEndstops: suspend () -> List<EndstopStatus>,
     onBack: () -> Unit,
     microstepSteps: ImmutableList<Double> =
         IncrementControls.defaultValueMap().getValue("move_microstep")
@@ -695,7 +713,49 @@ internal fun MoveHubContent(
                                 }
                             }
                         }
-                        // All six MoveMode cases (TouchMove/XY/Z/Microstep/Bookmark/SaveDialog) handled — no else needed.
+                        MoveMode.Endstops -> {
+                            // null = no result yet (Querying). errored = last poll threw before any data.
+                            var endstops by remember { mutableStateOf<List<EndstopStatus>?>(null) }
+                            var errored by remember { mutableStateOf(false) }
+                            // rememberUpdatedState so the long-lived poll loop always calls the LATEST
+                            // lambda (which reads the live dispatcher) — guards against a stale capture
+                            // never recovering after reconnect.
+                            val query by rememberUpdatedState(queryEndstops)
+                            // Lifecycle-scoped poll (mirrors TemperatureScreen.kt): the LaunchedEffect
+                            // cancels when this branch leaves composition (mode change), and
+                            // repeatOnLifecycle(STARTED) suspends the loop while backgrounded.
+                            val lifecycleOwner = LocalLifecycleOwner.current
+                            LaunchedEffect(lifecycleOwner) {
+                                lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                                    while (true) {
+                                        try {
+                                            endstops = query()
+                                            errored = false
+                                        } catch (e: CancellationException) {
+                                            throw e // never swallow structured cancellation
+                                        } catch (e: Throwable) {
+                                            if (endstops == null) errored = true
+                                        }
+                                        delay(500)
+                                    }
+                                }
+                            }
+
+                            val current = endstops
+                            when {
+                                current != null -> {
+                                    Column(
+                                        Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        current.forEach { es -> EndstopRow(es, grid.uDp) }
+                                    }
+                                }
+                                errored -> FocusCenteredHint("Endstops unavailable")
+                                else -> FocusCenteredHint("Querying…")
+                            }
+                        }
+                        // All seven MoveMode cases (TouchMove/XY/Z/Microstep/Bookmark/SaveDialog/Endstops) handled — no else needed.
                     }
                 }
             },
@@ -754,15 +814,27 @@ internal fun MoveHubContent(
                             t.accent,
                         ) { mode = MoveMode.Bookmark(loc.name) }
                     }
+                    // Endstops view — always available; last row in the list (owner: after bookmarks).
+                    item("endstops") {
+                        MoveRow(
+                            "Endstops",
+                            DinghyIcons.CenterFocusStrong,
+                            mode == MoveMode.Endstops,
+                            grid.uDp,
+                            t.accent,
+                        ) { mode = MoveMode.Endstops }
+                    }
                 }
 
                 FootButtonBar(
                     uDp = grid.uDp,
                     actions = listOf(
-                        // Back: sub-mode → Touch Move; Touch Move → onBack (accent, FIRST — R5/R8).
+                        // Back: ALWAYS leave the hub regardless of sub-mode (owner 2026-06-18 — no
+                        // mode→TouchMove ladder). Leaving disposes the screen, which cancels the
+                        // Endstops poll LaunchedEffect (composition-scoped) — no dangling listener.
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            onClick = { if (mode == MoveMode.TouchMove) onBack() else mode = MoveMode.TouchMove },
+                            onClick = onBack,
                             intent = Intent.Accent,
                             icon = DinghyIcons.Back,
                             contentDescription = "Back",
@@ -824,6 +896,7 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, DinghyIcon> = when (mod
     MoveMode.Microstep -> "Microstep" to DinghyIcons.FineTune
     is MoveMode.Bookmark -> mode.name to DinghyIcons.SavedLocation
     MoveMode.SaveDialog -> "Save Location" to DinghyIcons.SaveLocation
+    MoveMode.Endstops -> "Endstops" to DinghyIcons.CenterFocusStrong
 }
 
 /**
@@ -895,6 +968,48 @@ private fun MoveRow(
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = tint) },
     ) {
         ListRowLabel(label)
+    }
+}
+
+/** One endstop status row: state glyph + axis label + OPEN/TRIGGERED readout.
+ *  Color + shape both encode state (crop_free/center_focus_strong) for high-contrast/colorblind palettes. */
+@Composable
+private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
+    val t = LocalTokens.current
+    val color = if (status.triggered) t.accent else t.text3
+    val glyph = if (status.triggered) DinghyIcons.CenterFocusStrong else DinghyIcons.CropFree
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = uDp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DinghyIconView(
+            icon = glyph,
+            tint = color,
+            sizeDp = uDp * 0.6f,
+            contentDescription = null,
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = endstopLabel(status.name),
+            style = DinghyType.listLabel.toTextStyle(t),
+            color = t.text,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = if (status.triggered) "TRIGGERED" else "OPEN",
+            style = DinghyType.statValue.toTextStyle(t),
+            color = color,
+        )
+    }
+}
+
+@Composable
+private fun FocusCenteredHint(text: String) {
+    val t = LocalTokens.current
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text, style = DinghyType.body.toTextStyle(t), color = t.text3)
     }
 }
 
