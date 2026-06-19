@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,12 +30,14 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
- * The fixed color-palette swatches (D-06; docs/view_specific_notes/spoolman.md §Spool Picker). Tapping
- * one fires the SLOW color-similarity two-step (ONLY on tap). A canonical normalized hex backs each.
+ * The fixed color-palette swatches (D-06). Single source of truth for both the picker grid AND the
+ * seed-hint family lookup (SpoolHolder.seedPrefilter) — they must NOT drift. Tapping one buckets the
+ * library by [colorFamily]; each hex self-classifies to its own name (ColorFamilyTest).
  */
-private val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
+internal val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
     "Black" to "#000000",
     "White" to "#FFFFFF",
+    "Natural" to "#EDE6D6",
     "Gray" to "#808080",
     "Red" to "#FF0000",
     "Orange" to "#FF8000",
@@ -62,74 +63,54 @@ enum class SpoolFilterCategory(val label: String, val icon: String) {
     MFG("MFG", "storefront"),
 }
 
-/** A choice in the Color grid: a named palette swatch or the Multi-color option. */
-private sealed interface ColorChoice {
-    data class Named(val name: String, val hex: String) : ColorChoice
-    data object Multi : ColorChoice
-}
-
-/** The "multi-color" tile's rainbow swatch — a sweep gradient (data swatch, not a theme role token). */
-private val MULTICOLOR_BRUSH: Brush = Brush.sweepGradient(
-    listOf(
-        Color(0xFFFF0000), Color(0xFFFF8000), Color(0xFFFFFF00), Color(0xFF00C000),
-        Color(0xFF0050FF), Color(0xFF8000FF), Color(0xFFFF0000),
-    ),
-)
-
 /**
  * The Color selector as a FILL-TO-FIT grid (Matthew, 2026-06-04 — every swatch on ONE screen, no scroll).
- * 3 columns × the 11 named palette + Multi-color = 12 tiles = 4 full rows (no gaps); rows share the height
- * via `weight` so the grid always fits in any orientation. Per-tile layout is orientation-aware: portrait
- * = swatch over title; landscape = title to the LEFT of the swatch. Clearing color is the gutter Clear.
+ * 3 columns × the 12 named palette = 12 tiles = 4 full rows (no gaps); rows share the height via `weight`
+ * so the grid always fits in any orientation. Per-tile layout is orientation-aware: portrait = swatch over
+ * title; landscape = title to the LEFT of the swatch. Clearing color is the gutter Clear.
  */
 @Composable
 internal fun ColorSwatchGrid(
     selectedHex: String?,
     onTapSwatch: (String) -> Unit,
-    onMultiColor: () -> Unit,
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
     val columns = 3
-    val choices: List<ColorChoice> = buildList {
-        PALETTE_SWATCHES.forEach { (name, hex) -> add(ColorChoice.Named(name, hex)) }
-        add(ColorChoice.Multi)
-    }
     BoxWithConstraints(modifier) {
         val landscape = maxWidth > maxHeight
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            choices.chunked(columns).forEach { rowChoices ->
+            PALETTE_SWATCHES.chunked(columns).forEach { rowSwatches ->
                 Row(
                     Modifier.fillMaxWidth().weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    rowChoices.forEach { choice ->
+                    rowSwatches.forEach { (name, hex) ->
                         ColorTile(
-                            choice = choice,
+                            name = name,
+                            hex = hex,
                             selectedHex = selectedHex,
                             onTapSwatch = onTapSwatch,
-                            onMultiColor = onMultiColor,
                             landscape = landscape,
                             t = t,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                     }
-                    // Pad a short final row so its tiles keep the same width as the full rows.
-                    repeat(columns - rowChoices.size) { Box(Modifier.weight(1f)) }
+                    repeat(columns - rowSwatches.size) { Box(Modifier.weight(1f)) }
                 }
             }
         }
     }
 }
 
-/** The swatch circle for a [ColorChoice] (named solid color or the multi-color sweep). */
+/** The swatch circle for a named palette color. */
 @Composable
-private fun ColorSwatchCircle(choice: ColorChoice, t: ThemeTokens, modifier: Modifier) {
-    val base = modifier.aspectRatio(1f).clip(CircleShape).border(BorderStroke(2.dp, t.hair), CircleShape)
-    when (choice) {
-        is ColorChoice.Named -> Box(base.background(parseNormalizedHex(choice.hex) ?: t.surface2))
-        ColorChoice.Multi -> Box(base.background(MULTICOLOR_BRUSH))
-    }
+private fun ColorSwatchCircle(hex: String, t: ThemeTokens, modifier: Modifier) {
+    Box(
+        modifier.aspectRatio(1f).clip(CircleShape)
+            .border(BorderStroke(2.dp, t.hair), CircleShape)
+            .background(parseNormalizedHex(hex) ?: t.surface2),
+    )
 }
 
 /**
@@ -138,39 +119,27 @@ private fun ColorSwatchCircle(choice: ColorChoice, t: ThemeTokens, modifier: Mod
  */
 @Composable
 private fun ColorTile(
-    choice: ColorChoice,
+    name: String,
+    hex: String,
     selectedHex: String?,
     onTapSwatch: (String) -> Unit,
-    onMultiColor: () -> Unit,
     landscape: Boolean,
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
-    val selected = when (choice) {
-        is ColorChoice.Named -> selectedHex.equals(choice.hex, ignoreCase = true)
-        ColorChoice.Multi -> selectedHex == SpoolFilters.MULTICOLOR
-    }
-    val label = when (choice) {
-        is ColorChoice.Named -> choice.name
-        ColorChoice.Multi -> "Multi"
-    }
+    val selected = selectedHex.equals(hex, ignoreCase = true)
     val shape = RoundedCornerShape(t.rCtrl)
     val tileMod = modifier
         .clip(shape)
         .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
         .background(if (selected) t.accentSoft else Color.Transparent)
-        .clickable {
-            when (choice) {
-                is ColorChoice.Named -> onTapSwatch(choice.hex)
-                ColorChoice.Multi -> onMultiColor()
-            }
-        }
+        .clickable { onTapSwatch(hex) }
         .padding(8.dp)
     val labelColor = if (selected) t.accent2 else t.text
 
     @Composable
     fun TileLabel(mod: Modifier) = Text(
-        text = label,
+        text = name,
         color = labelColor,
         style = DinghyType.caption.toTextStyle(t),
         maxLines = 1,
@@ -179,23 +148,21 @@ private fun ColorTile(
     )
 
     if (landscape) {
-        // Title to the LEFT of the swatch.
         Row(
             tileMod,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TileLabel(Modifier.weight(1f))
-            ColorSwatchCircle(choice, t, Modifier.fillMaxHeight(0.7f))
+            ColorSwatchCircle(hex, t, Modifier.fillMaxHeight(0.7f))
         }
     } else {
-        // Swatch over the title.
         Column(
             tileMod,
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
         ) {
-            ColorSwatchCircle(choice, t, Modifier.fillMaxHeight(0.6f))
+            ColorSwatchCircle(hex, t, Modifier.fillMaxHeight(0.6f))
             TileLabel(Modifier)
         }
     }

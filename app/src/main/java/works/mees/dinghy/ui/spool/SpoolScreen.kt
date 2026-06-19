@@ -146,7 +146,6 @@ fun SpoolScreen(
             onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
             onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
             onTapSwatch = { scope.launch { holder.applyColorSwatch(it); holder.closeFilterPicker() } },
-            onMultiColor = { scope.launch { holder.applyMultiColor(); holder.closeFilterPicker() } },
             onClearFilter = {
                 val mode = state.fieldMode
                 if (mode is FieldMode.FilterPicker) {
@@ -197,7 +196,6 @@ fun SpoolScreen(
     onToggleMaterial: (String) -> Unit = {},
     onToggleVendor: (String) -> Unit = {},
     onTapSwatch: (String) -> Unit = {},
-    onMultiColor: () -> Unit = {},
     onClearFilter: () -> Unit = {},
     onRowClick: (SpoolmanSpool) -> Unit = {},
     onMeasure: () -> Unit = {},
@@ -224,7 +222,6 @@ fun SpoolScreen(
             onToggleMaterial = onToggleMaterial,
             onToggleVendor = onToggleVendor,
             onTapSwatch = onTapSwatch,
-            onMultiColor = onMultiColor,
             onClearFilter = onClearFilter,
             onRowClick = onRowClick,
             onMeasure = onMeasure,
@@ -259,7 +256,6 @@ private fun SpoolContent(
     onToggleMaterial: (String) -> Unit,
     onToggleVendor: (String) -> Unit,
     onTapSwatch: (String) -> Unit,
-    onMultiColor: () -> Unit,
     onClearFilter: () -> Unit,
     onRowClick: (SpoolmanSpool) -> Unit,
     onMeasure: () -> Unit,
@@ -399,7 +395,6 @@ private fun SpoolContent(
                             onToggleMaterial = onToggleMaterial,
                             onToggleVendor = onToggleVendor,
                             onTapSwatch = onTapSwatch,
-                            onMultiColor = onMultiColor,
                             onClear = onClearFilter,
                             onDone = onCloseFilter,
                             t = t,
@@ -502,7 +497,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
     onToggleMaterial: (String) -> Unit,
     onToggleVendor: (String) -> Unit,
     onTapSwatch: (String) -> Unit,
-    onMultiColor: () -> Unit,
     onClear: () -> Unit,
     onDone: () -> Unit,
     t: ThemeTokens,
@@ -541,7 +535,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                 ColorSwatchGrid(
                     selectedHex = state.filters.colorSwatchHex,
                     onTapSwatch = onTapSwatch,
-                    onMultiColor = onMultiColor,
                     t = t,
                     modifier = Modifier.fillMaxSize(),
                 )
