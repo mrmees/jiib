@@ -40,10 +40,16 @@ import works.mees.dinghy.command.MacroInvocation
 import works.mees.dinghy.command.PrinterCommands
 import works.mees.dinghy.command.SelectToolArgs
 import works.mees.dinghy.command.SetFilamentSensorArgs
-import works.mees.dinghy.command.SetHeaterArgs
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.config.HeatPreset
 import works.mees.dinghy.designsystem.Severity
+import works.mees.dinghy.state.Capabilities
+import works.mees.dinghy.ui.heaters.HeatDispatch
+import works.mees.dinghy.ui.heaters.HeatersRow
+import works.mees.dinghy.ui.heaters.HeatersList
+import works.mees.dinghy.ui.heaters.HeatScope
+import works.mees.dinghy.ui.heaters.buildHeatersRows
+import works.mees.dinghy.ui.heaters.dispatchHeat
+import works.mees.dinghy.ui.heaters.loadedSpoolTemps
 import works.mees.dinghy.designsystem.SeverityToast
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
@@ -72,7 +78,6 @@ import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
-import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.ui.spool.parseNormalizedHex
 
 /** Default highlighted length (mm). */
@@ -97,11 +102,14 @@ private const val COLD_SYMBOL = "thermostat_arrow_down"
  * user curates this screen's pinned filament macros ([ExtrudeMacroPrefs]).
  */
 sealed class ExtrudeFieldMode {
-    /** Main Extrude action list — runout toggles + macros + thermal chips + spool link. */
+    /** Main Extrude action list — runout toggles + macros + spool link. */
     data object Main : ExtrudeFieldMode()
 
     /** Macro-settings takeover — toggle which discovered macros are pinned to the Field. */
     data object MacroSettings : ExtrudeFieldMode()
+
+    /** Heaters takeover — extruder-only preset list (OFF row + spool + presets). */
+    data object Heaters : ExtrudeFieldMode()
 }
 
 /**
@@ -120,11 +128,10 @@ sealed class ExtrudeFieldMode {
  * ## Field (scrolling action list)
  *  - Live runout-sensor toggles (hidden when none discovered).
  *  - Load / Unload macro rows (presence-gated) + the user's screen-scoped pinned macros (run bare).
- *  - Inline nozzle-only thermal preset chips (loaded-spool + PLA/PETG/ABS/TPU).
  *  - A spool link row → the Spoolman library.
  *
- * ## FootButtonBar — Back / Cooldown / Macros
- * Back (accent/nav), Cooldown (warn — heat-off, no confirm), Macros (opens the macro-settings takeover).
+ * ## FootButtonBar — Back / Heaters / Macros
+ * Back (accent/nav), Heaters (accent — opens the extruder-only heaters takeover), Macros (opens the macro-settings takeover).
  * E-stop is NOT in the foot bar — [FocusFrame] docks it in the header when a print is active.
  */
 @Composable
@@ -142,6 +149,7 @@ fun ExtrudeScreen(
     }.collectAsStateWithLifecycle(initialValue = emptySet())
     val vm by holder.vm.collectAsStateWithLifecycle()
     val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())
+    val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
@@ -161,13 +169,22 @@ fun ExtrudeScreen(
         if (failureText != null) { delay(4_000); failureText = null }
     }
 
+    val loadedFilamentLabel = stringResource(R.string.extrude_loaded_filament)
+    val heatersRows = buildHeatersRows(
+        presets = heatPresets,
+        loadedSpool = loadedSpoolTemps(activeSpoolDetail, loadedFilamentLabel),
+        scope = HeatScope.ExtruderOnly,
+        extruderObject = vm.activeHeater,
+        capabilities = caps,
+    )
+
     ExtrudeContent(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
-        heatPresets = heatPresets,
         inFlight = inFlight,
         failureText = failureText,
         isPrinting = isPrinting,
+        heatersRows = heatersRows,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onExtrude = { dist, speed ->
             val key = CommandRegistry.extrude.dispatchKey(ExtrudeArgs(dist, speed * 60))
@@ -191,10 +208,7 @@ fun ExtrudeScreen(
             if (vm.hasUnloadMacro) dispatcher?.dispatch(CommandRegistry.unloadFilament, Unit)
             else null
         },
-        onSetExtruderTemp = { temp ->
-            val clamped = PrinterCommands.clampHeaterTarget(temp)
-            dispatcher?.dispatch(CommandRegistry.setHeater, SetHeaterArgs(vm.activeHeater, clamped, key = "set_temp"))
-        },
+        onHeatApply = { dispatchHeat(dispatcher, it) },
         onToggleSensor = { _, sensorName, enable ->
             val key = "set_filament_sensor_$sensorName"
             if (key !in inFlight) {
@@ -212,7 +226,6 @@ fun ExtrudeScreen(
             }
         },
         onToggleMacroPin = { name -> container.toggleExtrudeMacroPin(name) },
-        onCooldown = { dispatcher?.dispatch(CommandRegistry.cooldown, Unit) },
         onBack = onBack,
         onOpenSpool = onOpenSpool,
         modifier = modifier,
@@ -234,7 +247,6 @@ fun ExtrudeScreen(
     ExtrudeContent(
         vm = vm,
         activeSpoolDetail = activeSpoolDetail,
-        heatPresets = emptyList(),
         inFlight = emptySet(),
         failureText = null,
         onExtrude = { _, _ -> },
@@ -242,11 +254,9 @@ fun ExtrudeScreen(
         onSelectTool = {},
         onLoad = {},
         onUnload = {},
-        onSetExtruderTemp = {},
         onToggleSensor = { _, _, _ -> },
         onRunMacro = {},
         onToggleMacroPin = {},
-        onCooldown = {},
         onBack = onBack,
         onOpenSpool = onOpenSpool,
         modifier = modifier,
@@ -257,22 +267,20 @@ fun ExtrudeScreen(
 private fun ExtrudeContent(
     vm: ExtrudeVm,
     activeSpoolDetail: SpoolmanSpool?,
-    // Per-printer Heat Presets; only those carrying an extruder setpoint surface here (nozzle-only — D-17).
-    heatPresets: List<HeatPreset> = emptyList(),
     inFlight: Set<String>,
     failureText: String?,
     isPrinting: Boolean = false,
+    heatersRows: List<HeatersRow> = emptyList(),
     onEmergencyStop: (() -> Unit)? = null,
     onExtrude: (distance: Double, speed: Int) -> Unit,
     onRetract: (distance: Double, speed: Int) -> Unit,
     onSelectTool: (Int) -> Unit,
     onLoad: () -> Unit,
     onUnload: () -> Unit,
-    onSetExtruderTemp: (Int) -> Unit,
+    onHeatApply: (HeatDispatch) -> Unit = {},
     onToggleSensor: (objectKey: String, sensorName: String, enable: Boolean) -> Unit,
     onRunMacro: (name: String) -> Unit,
     onToggleMacroPin: (name: String) -> Unit,
-    onCooldown: () -> Unit,
     onBack: () -> Unit,
     onOpenSpool: () -> Unit,
     modifier: Modifier = Modifier,
@@ -329,13 +337,7 @@ private fun ExtrudeContent(
                     is ExtrudeFieldMode.Main -> {
                         // Canonical scrolling list (ListBlock = LazyColumn + gradient fade-edges +
                         // owned 8dp spacing); rows are the canonical ListRow class (translucent, 1U,
-                        // 0.6U leading icons). The loaded-spool preheat temp is captured outside the
-                        // LazyListScope (stringResource isn't callable inside `item {}` lambdas cleanly).
-                        val loadedTemp = activeSpoolDetail?.filament?.settingsExtruderTemp
-                        val loadedName = activeSpoolDetail?.filament?.name
-                            ?: activeSpoolDetail?.filament?.material
-                            ?: stringResource(R.string.extrude_loaded_filament)
-                        val loadedLabel = stringResource(R.string.extrude_loaded_prefix, loadedName)
+                        // 0.6U leading icons).
                         val loadLabel = stringResource(R.string.extrude_load)
                         val unloadLabel = stringResource(R.string.extrude_unload)
                         ListBlock(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -371,16 +373,7 @@ private fun ExtrudeContent(
                                     busy = "macro_${m.name}" in inFlight,
                                 )
                             }
-                            // 3. Inline nozzle-only thermal presets (loaded-spool preheat first).
-                            if (loadedTemp != null) {
-                                item {
-                                    HeatPresetRow(loadedLabel, loadedTemp, { onSetExtruderTemp(loadedTemp) }, grid.uDp)
-                                }
-                            }
-                            items(heatPresets.filter { it.extruderTemp != null }, key = { "preset_${it.id}" }) { preset ->
-                                HeatPresetRow(preset.name, preset.extruderTemp!!, { onSetExtruderTemp(preset.extruderTemp!!) }, grid.uDp)
-                            }
-                            // 4. Spool link.
+                            // 3. Spool link.
                             item { SpoolLinkListRow(activeSpoolDetail, onOpenSpool, grid.uDp) }
                         }
                         failureText?.let { msg ->
@@ -396,11 +389,11 @@ private fun ExtrudeContent(
                                     icon = DinghyIcons.Back,
                                 ),
                                 FootAction(
-                                    label = stringResource(R.string.extrude_cooldown),
-                                    onClick = onCooldown,
-                                    intent = Intent.Warn, // hazardous-but-deliberate (heat off)
-                                    icon = DinghyIcons.HideTemps,
-                                    contentDescription = stringResource(R.string.extrude_cooldown),
+                                    label = stringResource(R.string.home_foot_heaters),
+                                    onClick = { fieldMode = ExtrudeFieldMode.Heaters },
+                                    intent = Intent.Accent,
+                                    icon = DinghyIcons.OutputHeater,
+                                    contentDescription = stringResource(R.string.home_foot_heaters),
                                 ),
                                 FootAction(
                                     label = stringResource(R.string.extrude_macro_settings),
@@ -448,6 +441,16 @@ private fun ExtrudeContent(
                                     icon = DinghyIcons.Back,
                                 ),
                             ),
+                        )
+                    }
+
+                    is ExtrudeFieldMode.Heaters -> {
+                        HeatersList(
+                            rows = heatersRows,
+                            onApply = onHeatApply,
+                            onApplied = { fieldMode = ExtrudeFieldMode.Main },
+                            onBack = { fieldMode = ExtrudeFieldMode.Main },
+                            uDp = grid.uDp,
                         )
                     }
                 }
@@ -684,33 +687,6 @@ private fun MacroListRow(
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = t.accent) },
     ) {
         ListRowLabel(label)
-    }
-}
-
-/**
- * A heat-preset list row — canonical [ListRow] with the accent thermostat leading glyph (owner,
- * 2026-06-17) and the nozzle temp as the trailing value. Selecting dispatches the extruder
- * temperature ONLY (never the bed — D-17).
- */
-@Composable
-private fun HeatPresetRow(name: String, temp: Int, onClick: () -> Unit, uDp: Dp) {
-    val t = LocalTokens.current
-    ListRow(
-        selected = false,
-        onClick = onClick,
-        uDp = uDp,
-        leadingContent = {
-            ListRowIcon(icon = DinghyIcons.LauncherTemperature, uDp = uDp, tint = t.accent)
-        },
-        trailingContent = {
-            Text(
-                text = "${temp}°C",
-                color = t.text2,
-                style = DinghyType.dataInline.toTextStyle(t),
-            )
-        },
-    ) {
-        ListRowLabel(name)
     }
 }
 
