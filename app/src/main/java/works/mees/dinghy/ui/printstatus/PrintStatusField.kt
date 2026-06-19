@@ -4,6 +4,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,11 @@ internal fun HomeField(
     // — both LAYOUT.md §"The unit U" violations. One screen = one U, derived at the root.
     RegisteredRegion(modifier.fillMaxSize()) {
         var heatersOpen by remember { mutableStateOf(false) }
+        // Drop the takeover if the printer leaves idle (print starts / completes) so it can't
+        // silently reopen when standby returns — the Heaters button is idle-only.
+        if (isPrinting || isComplete) {
+            LaunchedEffect(isPrinting, isComplete) { heatersOpen = false }
+        }
         if (heatersOpen && !isPrinting && !isComplete) {
             works.mees.dinghy.ui.heaters.HeatersList(
                 rows = heatersRows,

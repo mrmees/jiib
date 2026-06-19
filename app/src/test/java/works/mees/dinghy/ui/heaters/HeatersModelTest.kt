@@ -100,4 +100,12 @@ class HeatersModelTest {
         val ext = buildHeatersRows(emptyList(), bedOnly, HeatScope.ExtruderOnly, "extruder", caps)
         assertNull(ext.firstOrNull { it.key == "heat_spool" })
     }
+
+    @Test fun `Full spool drops bed on a bedless printer`() {
+        val spool = LoadedSpoolTemps(210, 60, null, "Galaxy")
+        val rows = buildHeatersRows(emptyList(), spool, HeatScope.Full, "extruder", noBed)
+        // No heater_bed in capabilities → bed setpoint dropped, nozzle kept (no invalid bed gcode).
+        val spoolDispatch = rows.first { it.key == "heat_spool" }.dispatch as HeatDispatch.ApplyPreset
+        assertEquals(mapOf("extruder" to 210), spoolDispatch.setpoints)
+    }
 }
