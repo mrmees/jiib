@@ -44,7 +44,6 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
-import works.mees.dinghy.command.ApplyHeatPresetArgs
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.CommandSpec
@@ -253,26 +252,20 @@ fun TemperatureScreen(
         }
     }
 
-    // Loaded-spool preheat preset, built from the active Spoolman spool detail resolved UPSTREAM by
-    // AppShell's SpoolHolder — the SAME source the Extrude preset list uses (the in-screen
-    // currentSpoolmanClient fetch hit the no-op client and never resolved). Shown only when a spool is
-    // loaded and its filament reports a nozzle temp; bed falls back to 0 when the spool omits it.
-    val spoolPreset: HeatPreset? = remember(activeSpoolDetail) {
-        val f = activeSpoolDetail?.filament
-        val nozzle = f?.settingsExtruderTemp
-        if (f != null && nozzle != null) {
-            HeatPreset(
-                id = "__spool__",
-                name = f.name ?: f.material ?: "LOADED SPOOL",
-                setpoints = buildMap {
-                    put("extruder", nozzle)
-                    f.settingsBedTemp?.let { put("heater_bed", it) }
-                },
-            )
-        } else {
-            null
-        }
+    // Loaded-spool temps from the active Spoolman spool — used to build the unified Heaters list.
+    val loadedFilamentLabel = stringResource(R.string.extrude_loaded_filament)
+    val loadedSpool = remember(activeSpoolDetail, loadedFilamentLabel) {
+        works.mees.dinghy.ui.heaters.loadedSpoolTemps(activeSpoolDetail, loadedFilamentLabel)
     }
+    // Build the unified Heaters rows (OFF + spool + presets, capability-filtered for Full scope).
+    // No remember — cheap pure call over small lists; avoids stale-key bugs.
+    val heatersRows = works.mees.dinghy.ui.heaters.buildHeatersRows(
+        presets = heatPresets,
+        loadedSpool = loadedSpool,
+        scope = works.mees.dinghy.ui.heaters.HeatScope.Full,
+        extruderObject = "extruder",
+        capabilities = caps,
+    )
 
     Box(modifier.fillMaxSize()) {
         TemperatureContent(
@@ -292,8 +285,7 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
-            heatPresets = heatPresets,
-            spoolPreset = spoolPreset,
+            heatersRows = heatersRows,
             onBack = onBack,
             onSetTraceColor = { sensorName, color ->
                 holder.setTraceColor(sensorName, color)
@@ -326,14 +318,8 @@ fun TemperatureScreen(
                 // always lands, exactly once, after the key clears.
                 batcher.tap(sensorName, 0.0)
             },
-            onApplyPreset = { preset ->
-                dispatcher?.dispatch(
-                    CommandRegistry.applyHeatPreset,
-                    ApplyHeatPresetArgs(preset.setpoints, key = "preset_${preset.id}"),
-                )
-            },
-            onCooldown = {
-                dispatcher?.dispatch(CommandRegistry.cooldown, Unit)
+            onHeatApply = { dispatch ->
+                works.mees.dinghy.ui.heaters.dispatchHeat(dispatcher, dispatch)
             },
             onEmergencyStop = {
                 dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
@@ -371,16 +357,14 @@ fun TemperatureScreen(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
-    heatPresets: List<HeatPreset> = emptyList(),
-    spoolPreset: HeatPreset? = null,
+    heatersRows: List<works.mees.dinghy.ui.heaters.HeatersRow> = emptyList(),
     onBack: () -> Unit = {},
     onSetTraceColor: (String, Color) -> Unit = { _, _ -> },
     onSetTraceVisibility: (String, Boolean) -> Unit = { _, _ -> },
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     onNudgeHeater: (String, Int) -> Unit = { _, _ -> },
     onHeaterOff: (String) -> Unit = {},
-    onApplyPreset: (HeatPreset) -> Unit = {},
-    onCooldown: () -> Unit = {},
+    onHeatApply: (works.mees.dinghy.ui.heaters.HeatDispatch) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize()) {
@@ -398,16 +382,14 @@ fun TemperatureScreen(
             availableSensors = availableSensors,
             selectedSensors = selectedSensors,
             heaterLimits = heaterLimits,
-            heatPresets = heatPresets,
-            spoolPreset = spoolPreset,
+            heatersRows = heatersRows,
             onBack = onBack,
             onSetTraceColor = onSetTraceColor,
             onSetTraceVisibility = onSetTraceVisibility,
             onToggleSensor = onToggleSensor,
             onNudgeHeater = onNudgeHeater,
             onHeaterOff = onHeaterOff,
-            onApplyPreset = onApplyPreset,
-            onCooldown = onCooldown,
+            onHeatApply = onHeatApply,
         )
     }
 }
@@ -431,11 +413,8 @@ private fun TemperatureContent(
     availableSensors: List<String> = emptyList(),
     selectedSensors: Set<String> = emptySet(),
     heaterLimits: Map<String, HeaterLimits> = emptyMap(),
-    // Per-printer Heat Presets (sorted) shown in the PresetPicker field-takeover.
-    heatPresets: List<HeatPreset> = emptyList(),
-    // Loaded-spool preheat preset (nozzle/bed from the active Spoolman filament) — null when no spool
-    // is loaded or it carries no temp settings. Prepended to the PresetPicker list when present.
-    spoolPreset: HeatPreset? = null,
+    // Unified Heaters list rows (OFF + spool + presets, capability-filtered) for the PresetPicker takeover.
+    heatersRows: List<works.mees.dinghy.ui.heaters.HeatersRow> = emptyList(),
     onToggleSensor: (String, Boolean) -> Unit = { _, _ -> },
     rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
     // quick-rmr: pending (batched) heater working targets keyed by sensor name — wins over the
@@ -448,8 +427,7 @@ private fun TemperatureContent(
     onSetTraceVisibility: (String, Boolean) -> Unit,
     onNudgeHeater: (String, Int) -> Unit,
     onHeaterOff: (String) -> Unit = {},
-    onApplyPreset: (HeatPreset) -> Unit,
-    onCooldown: () -> Unit,
+    onHeatApply: (works.mees.dinghy.ui.heaters.HeatDispatch) -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -685,7 +663,7 @@ private fun TemperatureContent(
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.cd_temp_enter_adjust),
-                                        icon = DinghyIcons.OutputHeater,
+                                        icon = DinghyIcons.FireCheck,
                                         onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_temp_enter_adjust),
@@ -693,20 +671,8 @@ private fun TemperatureContent(
                                 ),
                             )
                         } else {
-                            // Adjust footer — two rows (owner 2026-06-14): Presets spans the top row;
-                            // Back · Cooldown · Monitor on the bottom. Back exits the screen so the user
-                            // can leave without first switching back to Monitoring mode.
-                            FootButtonBar(
-                                uDp = grid.uDp,
-                                actions = listOf(
-                                    FootAction(
-                                        label = stringResource(R.string.temp_presets),
-                                        icon = DinghyIcons.TempPresets,
-                                        onClick = { fieldMode = TempFieldMode.PresetPicker },
-                                        intent = Intent.Accent,
-                                    ),
-                                ),
-                            )
+                            // Adjust footer (one row): Back exits the screen · Heaters opens the
+                            // takeover · Monitor returns to monitoring mode.
                             FootButtonBar(
                                 uDp = grid.uDp,
                                 actions = listOf(
@@ -718,10 +684,11 @@ private fun TemperatureContent(
                                         contentDescription = stringResource(R.string.cd_back),
                                     ),
                                     FootAction(
-                                        label = stringResource(R.string.temp_cooldown),
-                                        icon = DinghyIcons.TempCooldown,
-                                        onClick = onCooldown,
-                                        intent = Intent.Warn,
+                                        label = stringResource(R.string.home_foot_heaters),
+                                        icon = DinghyIcons.OutputHeater,
+                                        onClick = { fieldMode = TempFieldMode.PresetPicker },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.home_foot_heaters),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.cd_temp_enter_monitor),
@@ -736,35 +703,13 @@ private fun TemperatureContent(
                     }
 
                     TempFieldMode.PresetPicker -> {
-                        // D-12: Field-takeover preset picker (the old full-screen scrim is retired).
-                        ListBlock(modifier = Modifier.weight(1f)) {
-                            // Loaded-spool preset FIRST when available (heat to the active filament's temps).
-                            spoolPreset?.let { sp ->
-                                item(key = "__spool_preset__") {
-                                    PresetListRow(sp, grid.uDp) {
-                                        onApplyPreset(sp)
-                                        fieldMode = TempFieldMode.SensorList
-                                    }
-                                }
-                            }
-                            items(heatPresets, key = { it.id }) { preset ->
-                                PresetListRow(preset, grid.uDp) {
-                                    onApplyPreset(preset)
-                                    fieldMode = TempFieldMode.SensorList
-                                }
-                            }
-                        }
-                        FootButtonBar(
+                        // Unified Heaters list (OFF + spool + presets), capability-filtered.
+                        works.mees.dinghy.ui.heaters.HeatersList(
+                            rows = heatersRows,
+                            onApply = onHeatApply,
+                            onApplied = { fieldMode = TempFieldMode.SensorList },
+                            onBack = { fieldMode = TempFieldMode.SensorList },
                             uDp = grid.uDp,
-                            actions = listOf(
-                                FootAction(
-                                    label = stringResource(R.string.cd_back),
-                                    icon = DinghyIcons.Back,
-                                    onClick = { fieldMode = TempFieldMode.SensorList },
-                                    intent = Intent.Accent, // R5: Back = accent
-                                    contentDescription = stringResource(R.string.cd_back),
-                                ),
-                            ),
                         )
                     }
                 }
