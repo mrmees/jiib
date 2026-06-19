@@ -62,9 +62,8 @@ internal fun HomeField(
     activeSpoolCardState: works.mees.dinghy.ui.spool.ActiveSpoolCardState,
     failureText: String?,
     onNavigate: (NavDest) -> Unit,
-    onPreheat: () -> Unit,
-    anyHeaterOn: Boolean = false,
-    onCooldown: () -> Unit = {},
+    heatersRows: List<works.mees.dinghy.ui.heaters.HeatersRow> = emptyList(),
+    onHeatApply: (works.mees.dinghy.ui.heaters.HeatDispatch) -> Unit = {},
     uDp: Dp,
     isPrinting: Boolean = false,
     isPaused: Boolean = false,
@@ -80,6 +79,18 @@ internal fun HomeField(
     // box ≠ the screen short edge, esp. in landscape's 50% column) and made U vary with rotation
     // — both LAYOUT.md §"The unit U" violations. One screen = one U, derived at the root.
     RegisteredRegion(modifier.fillMaxSize()) {
+        var heatersOpen by remember { mutableStateOf(false) }
+        if (heatersOpen && !isPrinting && !isComplete) {
+            works.mees.dinghy.ui.heaters.HeatersList(
+                rows = heatersRows,
+                onApply = onHeatApply,
+                onApplied = { heatersOpen = false },
+                onBack = { heatersOpen = false },
+                uDp = uDp,
+            )
+            return@RegisteredRegion
+        }
+
         // Data-driven idle action list (D-05/D-06) — scrollable, edge-faded, no scrollbar.
         // Each Destination row navigates; capability-absent rows are absent (D-08 HIDE, not grey).
         val loadedSpool = (activeSpoolCardState as? works.mees.dinghy.ui.spool.ActiveSpoolCardState.Loaded)?.spool
@@ -144,17 +155,11 @@ internal fun HomeField(
                     add(FootAction(stringResource(R.string.home_foot_system),
                         DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 } else {
-                    // Preheat ⇄ Cooldown: when any heater is on, offer Cooldown (TURN_OFF_HEATERS)
-                    // instead of Preheat. Flips back automatically once all targets reach 0.
-                    if (anyHeaterOn) {
-                        add(FootAction(stringResource(R.string.home_foot_cooldown),
-                            DinghyIcons.FootCooldown, onCooldown, Intent.Accent)) // R5: removes the heat hazard → neutral
-                    } else {
-                        add(FootAction(stringResource(R.string.home_foot_preheat),
-                            DinghyIcons.FootPreheat, onPreheat, Intent.Warn)) // R5: heats nozzle/bed — hazard-in-process
-                    }
+                    // Standby: single Heaters button opens the unified Heaters takeover.
+                    add(FootAction(stringResource(R.string.home_foot_heaters),
+                        DinghyIcons.OutputHeater, { heatersOpen = true }, Intent.Accent))
                     add(FootAction(stringResource(R.string.home_foot_system),
-                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
+                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent))
                 }
             },
         )

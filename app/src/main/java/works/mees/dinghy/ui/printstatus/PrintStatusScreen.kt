@@ -51,7 +51,7 @@ import works.mees.dinghy.ui.route.buildIdleActions
  * (Standby / Printing / Paused / Terminal) classifier, per-state UI model, and per-state foot/control
  * sets are GONE; the home is the root for idle/printing/paused/terminal alike. The Focus owns the home
  * title (print-state OR Klipper host-fault via [homeStateLabelRes]) and the docked e-stop; the Field
- * carries the idle action list + the spool-aware [runPreheat] (gated by [selectPreheatPath]). E-stop:
+ * carries the idle action list + the standby Heaters foot button (opens the unified HeatersList). E-stop:
  * WaterfallHome is in AppShell `screenOwnsEstop`, so the FocusFrame header (via [HomeFocus] passing
  * `isPrinting`/`onEmergencyStop`) owns it — NOT the shell FloatingEStop, which is gated off here.
  *
@@ -168,41 +168,17 @@ fun PrintStatusScreen(
         state.klippyState != KlippyState.Shutdown && state.klippyState != KlippyState.Error
     val onDismiss: () -> Unit = { dispatcher?.dispatch(CommandRegistry.dismissPrint, Unit); Unit }
 
-    var showPresetSelector by remember { mutableStateOf(false) }
     var failureText by remember { mutableStateOf<String?>(null) }
 
-    // Spool-aware Preheat (D-01): fire whichever heaters the active spool provides, EACH gated on its
-    // capability, else fall through to the PresetSelector. Decision owned by the pure selectPreheatPath.
-    fun runPreheat() {
-        val path = selectPreheatPath(
-            spoolmanPresent = spoolmanPresent,
-            nozzleTemp = spoolDetail?.filament?.settingsExtruderTemp,
-            bedTemp = spoolDetail?.filament?.settingsBedTemp,
-        )
-        when (path) {
-            is PreheatPath.DirectTemps -> {
-                // Per-temp setHeater for each NON-NULL temp the result carries, EACH capability-gated:
-                // nozzle on `extruder`, bed on `heater_bed`. A null temp fires nothing (never 0).
-                path.nozzle?.let { noz ->
-                    if (capabilities.hasObject("extruder")) {
-                        dispatcher?.dispatch(
-                            CommandRegistry.setHeater,
-                            works.mees.dinghy.command.SetHeaterArgs(heater = "extruder", target = noz),
-                        )
-                    }
-                }
-                path.bed?.let { bed ->
-                    if (capabilities.hasObject("heater_bed")) {
-                        dispatcher?.dispatch(
-                            CommandRegistry.setHeater,
-                            works.mees.dinghy.command.SetHeaterArgs(heater = "heater_bed", target = bed),
-                        )
-                    }
-                }
-            }
-            PreheatPath.OpenSelector -> showPresetSelector = true
-        }
-    }
+    // Build the unified Heaters list for the standby foot-bar takeover.
+    val loadedFilamentLabel = androidx.compose.ui.res.stringResource(R.string.extrude_loaded_filament)
+    val heatersRows = works.mees.dinghy.ui.heaters.buildHeatersRows(
+        presets = heatPresets,
+        loadedSpool = works.mees.dinghy.ui.heaters.loadedSpoolTemps(spoolDetail, loadedFilamentLabel),
+        scope = works.mees.dinghy.ui.heaters.HeatScope.Full,
+        extruderObject = "extruder",
+        capabilities = capabilities,
+    )
 
     LaunchedEffect(dispatcher) {
         failureText = null
@@ -225,8 +201,7 @@ fun PrintStatusScreen(
         // composable resolves all flow values + action lambdas above and passes them in; the
         // `PrintStatusScreen(state = …)` preview overload calls the SAME body with fixture state and
         // no-op callbacks (no Moonraker). Keeps this entry as the single layout source the previews and
-        // the running app share — drift is impossible. The dispatcher-driven guards/PresetSelector stay
-        // OUTSIDE the content (they're live-only modals, not part of the previewable scaffold).
+        // the running app share — drift is impossible.
         PrintStatusContent(
             state = state,
             printerName = printerName,
@@ -244,32 +219,12 @@ fun PrintStatusScreen(
             failureText = failureText,
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onNavigate = onNavigate,
-            onPreheat = ::runPreheat,
-            anyHeaterOn = anyHeaterOn(state.heaters),
-            onCooldown = { dispatcher?.dispatch(CommandRegistry.cooldown, Unit); Unit },
+            heatersRows = heatersRows,
+            onHeatApply = { works.mees.dinghy.ui.heaters.dispatchHeat(dispatcher, it) },
             onPause = onPause,
             onResume = onResume,
             onCancel = onCancel,
         )
-
-        // Spool-aware Preheat fallback (D-01): the now-internal Phase-5 PresetSelector (fixed
-        // PLA/PETG/ABS/TPU, keyboard-free) — opened when selectPreheatPath returns OpenSelector.
-        if (showPresetSelector) {
-            val inFlight by (dispatcher?.inFlight ?: remember { kotlinx.coroutines.flow.MutableStateFlow(emptySet<String>()) })
-                .collectAsStateWithLifecycle(initialValue = emptySet())
-            works.mees.dinghy.ui.temperature.PresetSelector(
-                inFlight = inFlight,
-                presets = heatPresets,
-                onPreset = { p ->
-                    dispatcher?.dispatch(
-                        CommandRegistry.applyHeatPreset,
-                        works.mees.dinghy.command.ApplyHeatPresetArgs(p.setpoints, key = "preset_${p.id}"),
-                    )
-                    showPresetSelector = false
-                },
-                onDismiss = { showPresetSelector = false },
-            )
-        }
     }
 }
 
@@ -319,9 +274,6 @@ fun PrintStatusScreen(
             failureText = null,
             onEmergencyStop = null,
             onNavigate = onNavigate,
-            onPreheat = {},
-            anyHeaterOn = anyHeaterOn(state.heaters),
-            onCooldown = {},
             onPause = {},
             onResume = {},
             onCancel = {},
@@ -358,9 +310,8 @@ private fun PrintStatusContent(
     failureText: String?,
     onEmergencyStop: (() -> Unit)?,
     onNavigate: (NavDest) -> Unit,
-    onPreheat: () -> Unit,
-    anyHeaterOn: Boolean,
-    onCooldown: () -> Unit,
+    heatersRows: List<works.mees.dinghy.ui.heaters.HeatersRow> = emptyList(),
+    onHeatApply: (works.mees.dinghy.ui.heaters.HeatDispatch) -> Unit = {},
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
@@ -395,9 +346,8 @@ private fun PrintStatusContent(
                 activeSpoolCardState = activeSpoolCardState,
                 failureText = failureText,
                 onNavigate = onNavigate,
-                onPreheat = onPreheat,
-                anyHeaterOn = anyHeaterOn,
-                onCooldown = onCooldown,
+                heatersRows = heatersRows,
+                onHeatApply = onHeatApply,
                 uDp = grid.uDp,
                 isPrinting = isPrinting,
                 isPaused = isPaused,
