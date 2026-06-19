@@ -485,9 +485,12 @@ has a distinct verb and a distinct visual affordance.
 - The active filter tile in `FilterRow` (Focus foot) highlights whenever ≥1 option is selected
   in that facet (`isActive = set.isNotEmpty()`).
 
-Note: the Color facet retains **single-select** behavior (one swatch at a time) because the
-color-similarity two-step (`applyColorSwatch`) closes the picker on tap — a multi-swatch
-color-OR is not supported by the current Spoolman similarity endpoint.
+Note: the Color facet retains **single-select** behavior (one swatch at a time) — one color
+family is selected, the client-side `colorFamily` classifier runs over the pre-fetched
+`limit=1000` filament library (no per-tap similarity round-trip), and `applyColorSwatch`
+closes the picker on tap. The swatch grid has **12 pure-color families** (Black, White,
+Natural, Gray, Red, Orange, Yellow, Green, Blue, Purple, Pink, Brown); there is NO
+Multi-color tile — multicolor spools are matched via their sub-color classification.
 
 ### Conditional Load / Unload
 

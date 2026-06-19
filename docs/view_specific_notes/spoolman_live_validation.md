@@ -383,6 +383,10 @@ raw dots in query names.
 
 ## Moonraker Proxy Color Flow
 
+**HISTORICAL (pre-2026-06-18):** color filtering moved from Spoolman's server-side
+`color_similarity_threshold` to client-side hue-family classification — see
+`docs/superpowers/specs/2026-06-18-spool-color-family-filter-design.md`.
+
 Validated against Ender 5 with the red palette swatch:
 
 ```bash

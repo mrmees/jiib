@@ -262,40 +262,45 @@ Multiple material terms:
 GET /api/v1/spool?allow_archived=false&filament.material=PLA,PETG
 ```
 
-Close-enough color filter:
+Color family filter (client-side classification):
 
 ```http
-GET /api/v1/filament?color_hex=ff0000&color_similarity_threshold=20&limit=50
+GET /api/v1/filament?limit=1000
 GET /api/v1/spool?allow_archived=false&filament.id=5,6,12&sort=filament.name:asc&limit=50
 ```
 
-Spool list does not expose a direct color-similarity filter. Let Spoolman match
-nearby filament colors, then fetch spools by the returned filament ids. Through
-Moonraker proxy, use the same two requests with proxy paths `/v1/filament` and
-`/v1/spool`.
+Spool list does not expose a direct color-family filter. Fetch the full filament
+library once (`GET /api/v1/filament?limit=1000`, via Moonraker proxy path
+`/v1/filament`), classify each filament's color(s) into one of 12 fixed palette
+families CLIENT-SIDE using a pure `colorFamily(hex)` function, then fetch spools
+by the matching `filament.id=<csv>` (the second step is unchanged). A multicolor
+filament (`multi_color_hexes`) matches a family if ANY of its sub-colors
+classifies to it.
 
-OpenAPI marks color matching as a slow operation, so Dinghy should trigger it
-only when a user taps a swatch. Start with fixed palette swatches:
+This replaced Spoolman's server-side `color_similarity_threshold` (CIE76)
+matching, which could not reliably find muted or dark colors (e.g. olive green)
+because perceptual nearness to a saturated swatch does not equal color family.
+See `docs/superpowers/specs/2026-06-18-spool-color-family-filter-design.md` for
+the full classification algorithm.
 
-- black
-- white
-- gray
-- clear/natural
-- red
-- orange
-- yellow
-- green
-- blue
-- purple
-- pink
-- brown
-- metallic/silk
-- multi-color
-- other
+The 12 fixed palette families (the swatch names):
 
-The picker should show the selected swatch as a filter chip and let material
-chips combine with it. Treat `multi-color` as a display/filter affordance over
-`multi_color_hexes` when possible, not as a single `color_hex` query.
+- Black
+- White
+- Natural
+- Gray
+- Red
+- Orange
+- Yellow
+- Green
+- Blue
+- Purple
+- Pink
+- Brown
+
+The picker shows the selected swatch as a filter chip and lets material chips
+combine with it. There is no Multi-color swatch tile — multicolor spools are
+matched via their sub-colors classifying to a family.
 
 Dynamic chip data:
 
