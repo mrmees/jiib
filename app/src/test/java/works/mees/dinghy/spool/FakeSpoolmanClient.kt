@@ -48,8 +48,8 @@ class FakeSpoolmanClient {
         ProxyKey("GET", "/v1/location", null) to "spoolman-live-ender5-proxy-locations.json",
         // GET /v1/filament?filament.material=ABS → the ABS/ASA spool list capture.
         ProxyKey("GET", "/v1/spool", "filament.material=ABS") to "spoolman-live-ender5-proxy-abs-asa.json",
-        // GET /v1/filament (color red) → the red-filament list capture (X-Total-Count "7").
-        ProxyKey("GET", "/v1/filament", "color_hex=ff0000") to "spoolman-live-ender5-proxy-color-red-filaments.json",
+        // GET /v1/filament?limit=1000 → the filament list capture (client-side color-family classify).
+        ProxyKey("GET", "/v1/filament", "limit=1000") to "spoolman-live-ender5-proxy-color-red-filaments.json",
     )
 
     /** GET /v1/spool/{id} → the detail envelope, or the empty envelope when not seeded. */
