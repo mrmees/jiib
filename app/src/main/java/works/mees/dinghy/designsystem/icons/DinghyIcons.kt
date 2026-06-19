@@ -103,8 +103,7 @@ object DinghyIcons {
 
     // --- Morphing-root idle foot-bar glyphs (24-02, OWNER-LOCKED — never invent/substitute, icon law).
     // D-09: the third foot button opens the App Drawer (interim System hub); glyph reads NEUTRAL (not Power/red).
-    // Both ligatures owner-confirmed 2026-06-10 and verified present in the bundled v2.944 Material Symbols ttf.
-    val FootPreheat = DinghyIcon(IconRef.Ligature("chair_fireplace"), alternate = "home_foot_preheat")
+    // Ligature owner-confirmed 2026-06-10 and verified present in the bundled v2.944 Material Symbols ttf.
     val FootSystem = DinghyIcon(IconRef.Ligature("bottom_panel_open"), alternate = "home_foot_system")
 
     // Active-print foot-bar glyphs (owner-confirmed 2026-06-16; icon-never-invent law). Pause reuses
@@ -113,11 +112,6 @@ object DinghyIcons {
     val FootCancel = DinghyIcon(IconRef.Ligature("cancel"), alternate = "printstatus_foot_cancel")
     // Complete-screen Dismiss foot button (owner 2026-06-16; clears the finished job → standby).
     val FootDismiss = DinghyIcon(IconRef.Ligature("clear_all"), alternate = "printstatus_foot_dismiss")
-
-    // Idle foot-bar Cooldown (owner-chosen 2026-06-17): shown in place of Preheat when any heater
-    // is on; fires TURN_OFF_HEATERS. `mode_heat_off` is shared with HideTemps/TempCooldown (none
-    // co-render with the home foot bar) → already allow-listed in DinghyIconsTest.
-    val FootCooldown = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "home_foot_cooldown")
 
     // --- Ligature-backed (Material Symbols), formerly drawable-backed (18.1 flip, D-09/D-15) ---
     val BabystepCompress = DinghyIcon(IconRef.Ligature("compress"), alternate = "babystep_compress")
@@ -349,10 +343,9 @@ object DinghyIcons {
     val PrinterAdd       = DinghyIcon(IconRef.Ligature("print_add"),     alternate = "printer_add")
     val Save             = DinghyIcon(IconRef.Ligature("save"),          alternate = "save")
     val DialogClose      = DinghyIcon(IconRef.Ligature("tab_close"),     alternate = "dialog_close")
-    val TempCooldown     = DinghyIcon(IconRef.Ligature("mode_heat_off"), alternate = "temp_cooldown")
     /** Temperature: Presets — owner-chosen ligature `thermostat_auto` (2026-06-17; pre-verified in
-     *  bundled v2.944 font; distinct from `thermostat`=LauncherTemperature, `mode_heat_off`=TempCooldown,
-     *  `format_list_bulleted`=MonitorMode — all three co-render with this in Adjust mode). */
+     *  bundled v2.944 font; distinct from `thermostat`=LauncherTemperature,
+     *  `format_list_bulleted`=MonitorMode). */
     val TempPresets      = DinghyIcon(IconRef.Ligature("thermostat_auto"), alternate = "temp_presets")
 
     // --- Heat Presets (owner-chosen glyphs 2026-06-17). Presets themselves use TempPresets
@@ -393,7 +386,7 @@ object DinghyIcons {
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
-        FootPreheat, FootCooldown, FootSystem, FootResume, FootCancel, FootDismiss,
+        FootSystem, FootResume, FootCancel, FootDismiss,
         BabystepCompress, BabystepExpand, StatusStop, Nozzle, HeatBed, FanMode, Speed,
         KeyboardReturn, OutputCircle, MaxVelocity, MaxAccel, MinCruise, SquareCornerVelocity,
         PressureAdvance, SmoothTime, Decrease, Increase, InputCircle, Revert,
@@ -419,7 +412,7 @@ object DinghyIcons {
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
-        CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
+        CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose,
         TempPresets,
         HeatPresetAdd, HeatPresetEdit, FireCheck, HeatersOff,
         Babystep,

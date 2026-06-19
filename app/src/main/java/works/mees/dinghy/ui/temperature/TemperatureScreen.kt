@@ -75,7 +75,6 @@ import works.mees.dinghy.config.HeatPreset
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.render.GraphViewHost
 import works.mees.dinghy.spool.SpoolmanSpool
-import works.mees.dinghy.ui.heatpresets.presetSummary
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.Palette
 import works.mees.dinghy.theme.ThemePrefs
@@ -963,34 +962,6 @@ private fun HeaterControlFocus(
     }
 }
 
-/** One preset row in the PresetPicker field-takeover (shared by the loaded-spool + preset rows). */
-@Composable
-private fun PresetListRow(
-    preset: HeatPreset,
-    uDp: androidx.compose.ui.unit.Dp,
-    onClick: () -> Unit,
-) {
-    val t = LocalTokens.current
-    ListRow(
-        selected = false,
-        onClick = onClick,
-        uDp = uDp,
-        trailingContent = {
-            Text(
-                text = presetSummary(preset),
-                style = DinghyType.dataInline.toTextStyle(t),
-                color = t.text2,
-            )
-        },
-    ) {
-        Text(
-            text = preset.name,
-            style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
-            color = t.text,
-        )
-    }
-}
-
 // ── Icon lookup ────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1015,58 +986,3 @@ private fun heaterDispatchKey(sensorName: String): String = "set_heater_$sensorN
 /** Tabular-friendly one-decimal temperature formatting (rounded, not truncated). */
 private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
 
-// ── PresetSelector (retained internal for PrintStatusScreen reuse — 16-06) ────────────────────
-
-/**
- * The per-printer Heat Preset selector (TEMP-03) — a full-screen scrim of keyboard-free preset tiles
- * (the active printer's [HeatPreset]s) plus a Cancel. Each tile dispatches `applyHeatPreset(setpoints)`.
- *
- * `internal` (not `private`) so the Print-Status Preheat OpenSelector fallback (16-06) reuses the SAME
- * keyboard-free preset chooser. On the Temperature screen itself this is superseded by the in-Field
- * PresetPicker takeover (D-12), but the internal scrim stays for Print-Status backward compatibility.
- */
-@Composable
-internal fun PresetSelector(
-    inFlight: Set<String>,
-    presets: List<HeatPreset>,
-    onPreset: (HeatPreset) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val t = LocalTokens.current
-    // Opaque full-screen scrim (mirrors ConfirmGuard's 03-08 opaque-scrim fix) so the graph behind
-    // it doesn't bleed through the keyboard-free preset tiles.
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(t.bg)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.temp_preheat_preset),
-                color = t.text,
-                style = DinghyType.screenTitle.toTextStyle(t),
-            )
-            for (p in presets) {
-                val key = "preset_${p.id}"
-                OutlinedControl(
-                    label = "${p.name}   ${presetSummary(p)}",
-                    onClick = { if (key !in inFlight) onPreset(p) },
-                    modifier = Modifier.fillMaxWidth(),
-                    intent = Intent.Accent,
-                )
-            }
-            OutlinedControl(
-                label = stringResource(R.string.common_cancel),
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Accent, // R5: dismiss-without-loss = plain nav
-            )
-        }
-    }
-}
