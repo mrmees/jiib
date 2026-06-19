@@ -119,8 +119,9 @@ fun buildHeatersRows(
 
 private fun spoolSetpoints(sp: LoadedSpoolTemps, scope: HeatScope, extruderObject: String, caps: Capabilities): Map<String, Int> =
     when (scope) {
+        // ExtruderOnly: the active heater is already validated by the screen/VM; skip capability gating.
         HeatScope.ExtruderOnly ->
-            if (sp.nozzle != null && caps.hasObject(extruderObject)) mapOf(extruderObject to sp.nozzle) else emptyMap()
+            if (sp.nozzle != null) mapOf(extruderObject to sp.nozzle) else emptyMap()
         HeatScope.Full -> buildMap {
             if (sp.nozzle != null && caps.hasObject("extruder")) put("extruder", sp.nozzle)
             if (sp.bed != null && caps.hasObject("heater_bed")) put("heater_bed", sp.bed)
@@ -129,7 +130,8 @@ private fun spoolSetpoints(sp: LoadedSpoolTemps, scope: HeatScope, extruderObjec
 
 private fun presetSetpoints(preset: HeatPreset, scope: HeatScope, extruderObject: String, caps: Capabilities): Map<String, Int> =
     when (scope) {
+        // ExtruderOnly: the active heater is already validated by the screen/VM; skip capability gating.
         HeatScope.ExtruderOnly ->
-            preset.extruderTemp?.takeIf { caps.hasObject(extruderObject) }?.let { mapOf(extruderObject to it) } ?: emptyMap()
+            preset.extruderTemp?.let { mapOf(extruderObject to it) } ?: emptyMap()
         HeatScope.Full -> preset.setpoints.filterKeys { caps.hasObject(it) }
     }
