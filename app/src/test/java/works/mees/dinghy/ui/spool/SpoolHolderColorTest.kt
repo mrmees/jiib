@@ -85,4 +85,20 @@ class SpoolHolderColorTest {
             assertNull("fetch failure must not collapse the list", h.state.value.filters.colorFilamentIds)
             assertNull(h.state.value.filters.colorSwatchHex)
         }
+
+    @Test fun `seedPrefilter maps an olive file color to the GREEN hint swatch (not Gray)`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.seedPrefilter(SpoolPrefilterSeed(filamentColors = listOf("#64794b")))
+            assertEquals("#00C000", h.state.value.filters.colorSwatchHex)
+            assertNull(h.state.value.filters.colorFilamentIds)
+        }
+
+    @Test fun `tapping a seed-highlighted swatch APPLIES the filter (does not clear)`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.seedPrefilter(SpoolPrefilterSeed(filamentColors = listOf("#64794b")))
+            h.applyColorSwatch("#00C000")
+            assertEquals(listOf(1, 3), h.state.value.filters.colorFilamentIds)
+        }
 }

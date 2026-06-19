@@ -478,12 +478,13 @@ class SpoolHolder(
         val families = seed.filamentType
             .mapNotNull { materialFamilyLabel(it) ?: it.trim().ifEmpty { null } }
             .distinctBy { it.uppercase() }
-        // Color is a HINT (D-04/D-06): map the file's first valid color to the nearest palette swatch for
-        // a pre-selected display chip, but do NOT fold it into a hard filament.id filter (colorFilamentIds
-        // stays null → no rows are filtered out by color).
+        // Color is a HINT (D-04/D-06): map the file's first valid color to its palette FAMILY (the same
+        // classifier the filter uses), then to that family's canonical swatch hex — so the pre-selected
+        // highlight AGREES with what the filter would match. NOT folded into a hard filament.id filter.
         val colorHint = seed.filamentColors
             .firstNotNullOfOrNull { normalizeColorHex(it) }
-            ?.let { nearestPaletteSwatch(it) }
+            ?.let { colorFamily(it) }
+            ?.let { fam -> PALETTE_SWATCHES.firstOrNull { it.first == fam }?.second }
         _state.update {
             it.copy(
                 filters = SpoolFilters(
@@ -609,50 +610,3 @@ fun buildSpoolQuery(filters: SpoolFilters, sortKey: SpoolSortKey, ascending: Boo
     return parts.joinToString("&")
 }
 
-/**
- * The fixed color palette the picker's swatch chips render (must mirror [SpoolPicker]'s `PALETTE_SWATCHES`
- * hexes so a seeded hint highlights the matching chip). D-06.
- */
-private val PREFILTER_PALETTE: List<String> = listOf(
-    "#000000", // Black
-    "#FFFFFF", // White
-    "#808080", // Gray
-    "#FF0000", // Red
-    "#FF8000", // Orange
-    "#FFFF00", // Yellow
-    "#00C000", // Green
-    "#0050FF", // Blue
-    "#8000FF", // Purple
-    "#FF60C0", // Pink
-    "#7A4A20", // Brown
-)
-
-/**
- * Map a normalized `#RRGGBB`(`AA`) hex to the NEAREST fixed-palette swatch (D-06 color HINT, NOT strict):
- * the file's exact slicer color rarely equals a palette swatch, so the seed pre-selects the closest one as
- * a visual hint. Nearest = smallest squared RGB distance (alpha ignored). Returns null only if the input
- * cannot be parsed (never throws).
- */
-internal fun nearestPaletteSwatch(normalizedHex: String): String? {
-    val rgb = parseRgb(normalizedHex) ?: return null
-    return PREFILTER_PALETTE.minByOrNull { swatch ->
-        val s = parseRgb(swatch) ?: return@minByOrNull Int.MAX_VALUE
-        val dr = rgb[0] - s[0]
-        val dg = rgb[1] - s[1]
-        val db = rgb[2] - s[2]
-        dr * dr + dg * dg + db * db
-    }
-}
-
-/** Parse the RGB triple from a normalized `#RRGGBB` / `#RRGGBBAA` hex; null if unparseable. */
-private fun parseRgb(normalizedHex: String): IntArray? {
-    val h = normalizedHex.removePrefix("#")
-    if (h.length != 6 && h.length != 8) return null
-    return runCatching {
-        intArrayOf(
-            h.substring(0, 2).toInt(16),
-            h.substring(2, 4).toInt(16),
-            h.substring(4, 6).toInt(16),
-        )
-    }.getOrNull()
-}
