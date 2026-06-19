@@ -388,26 +388,34 @@ class SpoolHolder(
     }
 
     /**
-     * D-06: apply a color SWATCH filter — the two-step "slow operation, only on swatch tap". Step 1: ask
-     * the color-similarity filament endpoint (`/v1/filament?color_hex=…&color_similarity_threshold=…`) for
-     * nearby filament ids. Step 2: fold those ids into the spool list (`filament.id=<csv>`). A re-tap of
-     * the SAME swatch clears the color filter. Best-effort — a failed similarity read clears the color
-     * filter rather than poisoning the list.
+     * D-06: apply a color-FAMILY filter. The tapped swatch declares a family (via [colorFamily] on its own
+     * hex); fetch the whole filament library, keep ids whose color(s) classify to that family, and fold
+     * them into the spool list as `filament.id=<csv>`. A multicolor filament matches if ANY of its
+     * sub-colors fits. A re-tap of the ACTIVE swatch (a real hard filter) clears; a tap on a hint-only
+     * highlight (colorSwatchHex set with no ids — a gcode seed) APPLIES. A failed fetch leaves the color
+     * filter UNAPPLIED rather than collapsing the list to nothing.
      */
     suspend fun applyColorSwatch(swatchHex: String) {
         val current = _state.value
-        if (current.filters.colorSwatchHex.equals(swatchHex, ignoreCase = true)) {
-            // Re-tap clears.
-            _state.update {
-                it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null))
-            }
+        // Re-tap clears only an ACTIVE hard filter; a hint-only highlight is not a re-tap (it applies).
+        if (current.filters.colorFilamentIds != null &&
+            current.filters.colorSwatchHex.equals(swatchHex, ignoreCase = true)
+        ) {
+            _state.update { it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null)) }
             refresh()
             return
         }
-        val hex = swatchHex.removePrefix("#")
-        val query = "color_hex=$hex&color_similarity_threshold=$COLOR_SIMILARITY_THRESHOLD&limit=$FILAMENT_LIMIT"
-        val envelope = runCatching { client.listFilaments(query) }.getOrNull()
-        val ids = parseSpoolmanFilaments(envelope).rows.mapNotNull(SpoolmanFilament::id)
+        val targetFamily = colorFamily(swatchHex)
+        val envelope = runCatching { client.listFilaments("limit=$FILAMENT_LIMIT") }.getOrNull()
+        if (envelope == null) {
+            // Fetch FAILED: leave the filter unapplied (distinct from a successful zero-match result).
+            _state.update { it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null)) }
+            refresh()
+            return
+        }
+        val ids = parseSpoolmanFilaments(envelope).rows
+            .filter { f -> f.colorSwatches.any { colorFamily(it) == targetFamily } }
+            .mapNotNull(SpoolmanFilament::id)
         _state.update {
             it.copy(filters = it.filters.copy(colorFilamentIds = ids, colorSwatchHex = swatchHex))
         }
@@ -540,14 +548,11 @@ class SpoolHolder(
     }
 
     private companion object {
-        /** D-06 color-similarity threshold (Spoolman default-ish "close enough"); only fired on swatch-tap. */
-        const val COLOR_SIMILARITY_THRESHOLD = 20
-
         /** The picker page size (docs/view_specific_notes/spoolman.md — limit=50). */
         const val SPOOL_LIMIT = 50
 
-        /** The color-similarity filament fetch cap (the two-step step 1). */
-        const val FILAMENT_LIMIT = 50
+        /** The whole-library classification fetch cap (see spec Fetch cap). */
+        const val FILAMENT_LIMIT = 1000
     }
 }
 
