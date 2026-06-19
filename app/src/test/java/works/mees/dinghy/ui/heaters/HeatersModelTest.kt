@@ -16,7 +16,7 @@ class HeatersModelTest {
         assertNull(loadedSpoolTemps(spool, "Loaded filament"))
     }
 
-    @Test fun `loadedSpoolTemps maps nozzle bed color label`() {
+    @Test fun `loadedSpoolTemps maps nozzle bed color, label is the material type`() {
         val spool = SpoolmanSpool(
             id = 1,
             filament = SpoolmanFilament(
@@ -28,12 +28,12 @@ class HeatersModelTest {
         assertEquals(210, r.nozzle)
         assertEquals(60, r.bed)
         assertEquals("#112233", r.colorHex)
-        assertEquals("Galaxy Black", r.label)
+        assertEquals("PLA", r.label) // material (type), not the color name
     }
 
-    @Test fun `loadedSpoolTemps label falls back to material then default`() {
-        val matOnly = SpoolmanSpool(id = 1, filament = SpoolmanFilament(material = "PETG", settingsExtruderTemp = 240))
-        assertEquals("PETG", loadedSpoolTemps(matOnly, "Loaded filament")!!.label)
+    @Test fun `loadedSpoolTemps label falls back to name then default when no material`() {
+        val nameOnly = SpoolmanSpool(id = 1, filament = SpoolmanFilament(name = "Galaxy Black", settingsExtruderTemp = 240))
+        assertEquals("Galaxy Black", loadedSpoolTemps(nameOnly, "Loaded filament")!!.label)
         val neither = SpoolmanSpool(id = 1, filament = SpoolmanFilament(settingsBedTemp = 60))
         assertEquals("Loaded filament", loadedSpoolTemps(neither, "Loaded filament")!!.label)
     }

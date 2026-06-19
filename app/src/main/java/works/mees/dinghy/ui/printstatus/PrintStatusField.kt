@@ -33,6 +33,7 @@ import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.route.HomeAction
 import works.mees.dinghy.ui.route.NavDest
+import works.mees.dinghy.ui.spool.SpoolStatusRow
 
 /**
  * The Standby Field — the data-driven idle action list + the neutral Preheat/System foot bar
@@ -191,58 +192,3 @@ internal fun HomeField(
     }
 }
 
-/**
- * The home Spool row's identity text: the loaded filament's `name / material / vendor` (color /
- * type / mfg), non-null/non-blank fields joined with " / ". Null when no usable field exists
- * (the caller then shows "No Spool Loaded" or the generic "Spool" label). Pure — unit-tested.
- */
-internal fun spoolRowText(filament: works.mees.dinghy.spool.SpoolmanFilament?): String? =
-    listOfNotNull(filament?.name, filament?.material, filament?.vendor?.name)
-        .filter { it.isNotBlank() }
-        .joinToString(" / ")
-        .ifBlank { null }
-
-/**
- * The home Spool row (data-rich, 2026-06-16): leading [DinghyIcons.SpoolFilament] (ev_shadow) tinted
- * to the loaded filament's color (THEME-01 data carve-out — same derivation as the Spool screen
- * header), and the `name / material / vendor` identity text scrolling on overflow. Uncolored icon +
- * "No Spool Loaded" when nothing is loaded; "Spool" when a spool is loaded but carries none of the
- * identity fields. Taps through to [NavDest.Spool] in every state.
- */
-@Composable
-private fun SpoolStatusRow(
-    spool: works.mees.dinghy.spool.SpoolmanSpool?,
-    uDp: Dp,
-    onClick: () -> Unit,
-) {
-    val t = LocalTokens.current
-    val spoolColor = spool?.filament?.colorSwatches?.firstNotNullOfOrNull {
-        works.mees.dinghy.ui.spool.parseNormalizedHex(it)
-    }
-    val text = spoolRowText(spool?.filament)
-    val label = when {
-        text != null -> text
-        spool != null -> stringResource(R.string.cd_launcher_spool) // loaded but no identity fields
-        else -> stringResource(R.string.printstatus_spool_none)     // nothing loaded
-    }
-    ListRow(
-        selected = false,
-        onClick = onClick,
-        uDp = uDp,
-        leadingContent = {
-            ListRowIcon(
-                icon = DinghyIcons.SpoolFilament,
-                uDp = uDp,
-                tint = spoolColor ?: t.accent,
-            )
-        },
-    ) {
-        androidx.compose.material3.Text(
-            text = label,
-            color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
-            maxLines = 1,
-            modifier = Modifier.basicMarquee(),
-        )
-    }
-}

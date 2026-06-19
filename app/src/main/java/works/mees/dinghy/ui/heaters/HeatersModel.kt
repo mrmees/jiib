@@ -46,7 +46,8 @@ fun loadedSpoolTemps(spool: SpoolmanSpool?, fallbackLabel: String): LoadedSpoolT
         nozzle = f.settingsExtruderTemp,
         bed = f.settingsBedTemp,
         colorHex = f.colorSwatches.firstOrNull(),
-        label = f.name ?: f.material ?: fallbackLabel,
+        // Show the TYPE (material), not the color name — the icon's color tint already conveys color.
+        label = f.material ?: f.name ?: fallbackLabel,
     )
 }
 

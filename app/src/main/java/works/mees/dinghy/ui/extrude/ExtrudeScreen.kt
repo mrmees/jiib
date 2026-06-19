@@ -63,7 +63,6 @@ import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.icons.SpoolGlyph
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -78,7 +77,7 @@ import works.mees.dinghy.spool.SpoolmanSpool
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
-import works.mees.dinghy.ui.spool.parseNormalizedHex
+import works.mees.dinghy.ui.spool.SpoolStatusRow
 
 /** Default highlighted length (mm). */
 private const val DEFAULT_DISTANCE = 5.0
@@ -374,7 +373,7 @@ private fun ExtrudeContent(
                                 )
                             }
                             // 3. Spool link.
-                            item { SpoolLinkListRow(activeSpoolDetail, onOpenSpool, grid.uDp) }
+                            item { SpoolStatusRow(activeSpoolDetail, grid.uDp, onOpenSpool) }
                         }
                         failureText?.let { msg ->
                             SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
@@ -687,34 +686,6 @@ private fun MacroListRow(
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = t.accent) },
     ) {
         ListRowLabel(label)
-    }
-}
-
-/**
- * The spool-link list row — canonical [ListRow] with the reactive [SpoolGlyph] (accent body) as the
- * 0.6U leading slot; navigates to the Spoolman library.
- */
-@Composable
-private fun SpoolLinkListRow(activeSpoolDetail: SpoolmanSpool?, onOpenSpool: () -> Unit, uDp: Dp) {
-    val t = LocalTokens.current
-    val spoolSwatches = remember(activeSpoolDetail) {
-        activeSpoolDetail?.filament?.colorSwatches.orEmpty().mapNotNull(::parseNormalizedHex)
-    }
-    ListRow(
-        selected = false,
-        onClick = onOpenSpool,
-        uDp = uDp,
-        leadingContent = {
-            SpoolGlyph(
-                swatches = spoolSwatches,
-                bodyTint = t.accent,
-                keyline = t.hair,
-                sizeDp = uDp * 0.6f,
-                contentDescription = null,
-            )
-        },
-    ) {
-        ListRowLabel(stringResource(R.string.cd_launcher_spool))
     }
 }
 

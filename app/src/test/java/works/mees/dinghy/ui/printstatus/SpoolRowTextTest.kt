@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import works.mees.dinghy.spool.SpoolmanFilament
 import works.mees.dinghy.spool.SpoolmanVendor
+import works.mees.dinghy.ui.spool.spoolRowText
 
 class SpoolRowTextTest {
 
