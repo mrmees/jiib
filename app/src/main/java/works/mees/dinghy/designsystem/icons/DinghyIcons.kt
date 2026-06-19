@@ -364,6 +364,11 @@ object DinghyIcons {
     /** Heat-preset delete REUSES the real Files-delete `delete` glyph. */
     val HeatPresetDelete = Delete
 
+    /** Temperature screen Monitor→Adjust toggle — owner-chosen `fire_check`. */
+    val FireCheck  = DinghyIcon(IconRef.Ligature("fire_check"),  alternate = "temp_enter_adjust")
+    /** The built-in "OFF" row in the Heaters list — owner-chosen `thermometer`. */
+    val HeatersOff = DinghyIcon(IconRef.Ligature("thermometer"), alternate = "heaters_off")
+
     /** Z-babystep increment row — owner-chosen `stacks` glyph (layered-Z reading). */
     val Babystep = DinghyIcon(IconRef.Ligature("stacks"), alternate = "babystep")
 
@@ -416,7 +421,7 @@ object DinghyIcons {
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose, TempCooldown,
         TempPresets,
-        HeatPresetAdd, HeatPresetEdit,
+        HeatPresetAdd, HeatPresetEdit, FireCheck, HeatersOff,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
     )
