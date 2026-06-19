@@ -89,12 +89,6 @@ data class SpoolFilters(
         /** The "No location" sentinel (D-04) — distinct from null ("any location"). */
         const val LOCATION_NONE: String = "__no_location__"
 
-        /**
-         * The "Multi-color" color-filter marker (Matthew, 2026-06-04) — stored in [colorSwatchHex] so the
-         * grid highlights the Multi-color tile; [colorFilamentIds] carries the actual multi-color filament
-         * ids. Distinct from any real `#hex`.
-         */
-        const val MULTICOLOR: String = "__multicolor__"
     }
 }
 
@@ -416,28 +410,6 @@ class SpoolHolder(
         val ids = parseSpoolmanFilaments(envelope).rows.mapNotNull(SpoolmanFilament::id)
         _state.update {
             it.copy(filters = it.filters.copy(colorFilamentIds = ids, colorSwatchHex = swatchHex))
-        }
-        refresh()
-    }
-
-    /**
-     * D-06 "Multi-color": filter to spools whose filament carries `multi_color_hexes` (Matthew, 2026-06-04).
-     * Spoolman's spool list has no direct "is multi-color" filter, so reuse the color two-step: fetch the
-     * filaments, keep client-side those with a non-blank `multiColorHexes`, then fold their ids into the
-     * spool read (`filament.id=<csv>`). The [SpoolFilters.MULTICOLOR] marker drives the tile highlight. A
-     * re-tap clears. Best-effort — a failed read clears the color filter rather than poisoning the list.
-     */
-    suspend fun applyMultiColor() {
-        if (_state.value.filters.colorSwatchHex == SpoolFilters.MULTICOLOR) {
-            clearColor()
-            return
-        }
-        val envelope = runCatching { client.listFilaments("limit=$FILAMENT_LIMIT") }.getOrNull()
-        val ids = parseSpoolmanFilaments(envelope).rows
-            .filter { !it.multiColorHexes.isNullOrBlank() }
-            .mapNotNull(SpoolmanFilament::id)
-        _state.update {
-            it.copy(filters = it.filters.copy(colorFilamentIds = ids, colorSwatchHex = SpoolFilters.MULTICOLOR))
         }
         refresh()
     }
