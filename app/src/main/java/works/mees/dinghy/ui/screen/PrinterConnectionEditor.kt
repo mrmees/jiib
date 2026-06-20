@@ -67,6 +67,57 @@ fun resolveEditorKeyOnSave(storedKey: String?, keyCleared: Boolean, fieldInput: 
     )
 
 /**
+ * Pure save-time profile builder for the connection editor (Task 7 — called by Task 8's UI).
+ *
+ * Centralises all field-resolution logic so the editor UI and tests share one code path:
+ *  - trims and blanks-to-null the name and advancedUrl;
+ *  - resolves the API key via [resolveEditorKeyOnSave] (CR-01 stale-snapshot guard);
+ *  - ALWAYS writes [Profile.useSecure] = false (the toggle is retired — TLS lives in advancedUrl);
+ *  - delegates [Profile.nameAutoSeeded] to [resolveAutoSeededOnSave].
+ *
+ * Pure + package-internal so [works.mees.dinghy.ui.screen] host tests can cover it without Compose.
+ */
+internal fun buildProfileFromConnectionEditorSave(
+    existing: Profile?,
+    nameInput: String,
+    host: String,
+    port: Int,
+    apiKeyInput: String,
+    keyCleared: Boolean,
+    advancedUrlInput: String,
+): Profile {
+    val cleanName = nameInput.trim().ifBlank { null }
+    val resolvedKey = resolveEditorKeyOnSave(
+        storedKey = existing?.apiKey,
+        keyCleared = keyCleared,
+        fieldInput = apiKeyInput,
+    )
+    val cleanAdvancedUrl = advancedUrlInput.trim().ifBlank { null }
+    return if (existing != null) {
+        existing.copy(
+            name = cleanName,
+            host = host.trim(),
+            port = port,
+            apiKey = resolvedKey,
+            useSecure = false,
+            advancedUrl = cleanAdvancedUrl,
+            nameAutoSeeded = resolveAutoSeededOnSave(cleanName, existing.nameAutoSeeded, existing.name),
+        )
+    } else {
+        Profile(
+            id = Profile.newId(),
+            name = cleanName,
+            host = host.trim(),
+            port = port,
+            apiKey = resolvedKey,
+            useSecure = false,
+            advancedUrl = cleanAdvancedUrl,
+            nameAutoSeeded = resolveAutoSeededOnSave(cleanName, prior = false, priorName = null),
+        )
+    }
+}
+
+/**
  * The inline densified connection editor (28-06, D-12/D-15).
  *
  * Fields: Host (text) / Port (numeric keyboard) / API key (masked). Persists through
