@@ -22,8 +22,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import works.mees.dinghy.net.ConnectionProbe
+import works.mees.dinghy.net.ProbeResult
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.shouldSeedName
@@ -206,6 +210,12 @@ class AppContainer(
      * [saveProfile] / [deleteProfile] from the UI — NEVER `rememberCoroutineScope().launch { profileStore… }`.
      */
     private val writeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Process-lifetime scope for one-shot connection probes launched by [runConnectionProbe].
+     * Isolated from [writeScope] so a probe in flight never starves or delays persistence writes.
+     */
+    private val probeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
      * Process-lifetime scope for PROCESS-SCOPED derived [StateFlow]s (D-01, 22-07). Separate from
@@ -635,6 +645,26 @@ class AppContainer(
      */
     val webcamHttpClient: okhttp3.OkHttpClient by lazy {
         works.mees.dinghy.net.MoonrakerSocket.defaultClient()
+    }
+
+    /**
+     * Launch a one-shot dual HTTP + WebSocket connection probe for [config] on the process-lifetime
+     * [probeScope]. When the probe finishes (success or classified failure), [onResult] is invoked on
+     * [kotlinx.coroutines.Dispatchers.Main.immediate] so the caller can update Compose state safely.
+     *
+     * [ConnectionProbe.real] derives a finite REST read/call timeout from [webcamHttpClient] (which
+     * has `readTimeout(0)`) so the HTTP leg cannot hang indefinitely.
+     *
+     * @return the launched [kotlinx.coroutines.Job], which the caller may cancel if the UI goes away.
+     */
+    fun runConnectionProbe(
+        config: ConnectionConfig,
+        onResult: (ProbeResult) -> Unit,
+    ): Job = probeScope.launch {
+        val result = ConnectionProbe.real(webcamHttpClient).probe(config)
+        withContext(Dispatchers.Main.immediate) {
+            onResult(result)
+        }
     }
 
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */
