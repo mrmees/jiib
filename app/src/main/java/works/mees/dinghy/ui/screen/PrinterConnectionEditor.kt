@@ -331,10 +331,12 @@ internal fun PrinterConnectionEditor(
                     apiKey = apiKey,
                     advancedUrl = advancedUrl,
                     hostError = hostError,
+                    portError = portError,
                     keyAlreadySaved = keyAlreadySaved,
                     keyCleared = keyCleared,
                     discovered = discovered,
                     scanning = scanning,
+                    scanned = scanned,
                     uDp = uDp,
                     isPrinting = isPrinting,
                     estop = estop,
@@ -467,10 +469,12 @@ private fun ConnFocus(
     apiKey: String,
     advancedUrl: String,
     hostError: String?,
+    portError: Boolean,
     keyAlreadySaved: Boolean,
     keyCleared: Boolean,
     discovered: List<DiscoveredPrinter>,
     scanning: Boolean,
+    scanned: Boolean,
     uDp: Dp,
     isPrinting: Boolean,
     estop: () -> Unit,
@@ -518,6 +522,8 @@ private fun ConnFocus(
                 onChange = onPort,
                 label = stringResource(R.string.conn_row_port),
                 keyboard = KeyboardType.Number,
+                isError = portError,
+                warning = if (portError) stringResource(R.string.printers_error_port_range) else null,
                 onDone = onDone,
             )
             ConnRow.ApiKey -> ConnTextEditor(
@@ -544,6 +550,7 @@ private fun ConnFocus(
             ConnRow.Find -> ConnFindPanel(
                 discovered = discovered,
                 scanning = scanning,
+                scanned = scanned,
                 uDp = uDp,
                 onScan = onScan,
                 onPick = onPick,
@@ -605,6 +612,7 @@ private fun ConnTextEditor(
 private fun ConnFindPanel(
     discovered: List<DiscoveredPrinter>,
     scanning: Boolean,
+    scanned: Boolean,
     uDp: Dp,
     onScan: () -> Unit,
     onPick: (DiscoveredPrinter) -> Unit,
@@ -619,7 +627,7 @@ private fun ConnFindPanel(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
-        if (discovered.isEmpty()) {
+        if (scanned && !scanning && discovered.isEmpty()) {
             Text(
                 text = stringResource(R.string.conn_scan_empty),
                 color = LocalTokens.current.text2,
