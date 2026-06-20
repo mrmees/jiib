@@ -94,7 +94,6 @@ import works.mees.dinghy.ui.spool.parseNormalizedHex
 import works.mees.dinghy.ui.spool.scan.ScanSurface
 import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
 import works.mees.dinghy.ui.outputs.OutputsScreen
-import works.mees.dinghy.ui.screen.AboutScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.AppSettingsScreen
 import works.mees.dinghy.ui.screen.PrinterSettingsScreen
@@ -787,16 +786,9 @@ fun AppShell(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable<NavDest.About> {
-                // NavDest.About (15.2-04 D-05): app-global remainder + dev-enable toggle. Gutter Back pops.
-                AboutScreen(
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
             composable<NavDest.System> {
                 // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
-                // D-03 direct-tap dense rows (Printers/Settings/Theme/SystemInfo/About) + inert Power stub.
+                // D-03 direct-tap dense rows (App Settings / Printer Settings / Manage Printers).
                 // E-stop: System now docks it in its FocusFrame header (Focus-header law 2026-06-13) —
                 // the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
                 // the else -> null path in shouldPopToRoot covers System (pop-to-root never fires from here).
@@ -968,7 +960,6 @@ fun AppShell(
             estopDest.isRoute<NavDest.CalibrationScrewsTilt>() ||
             estopDest.isRoute<NavDest.CalibrationZTilt>() ||
             estopDest.isRoute<NavDest.CalibrationQgl>() ||
-            estopDest.isRoute<NavDest.About>() ||
             estopDest.isRoute<NavDest.System>() ||
             estopDest.isRoute<NavDest.SystemInfo>() ||
             estopDest.isRoute<NavDest.AppSettings>() ||

@@ -103,17 +103,6 @@
     </issue>
 
     <issue
-        id="VectorRaster"
-        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
-        errorLine1="    android:width=&quot;433dp&quot; android:height=&quot;289dp&quot;"
-        errorLine2="                   ~~~~~">
-        <location
-            file="src/main/res/drawable/jiib_wordmark.xml"
-            line="8"
-            column="20"/>
-    </issue>
-
-    <issue
         id="AndroidGradlePluginVersion"
         message="A newer version of com.android.application than 8.7.0 is available: 9.2.1. (There is also a newer version of 8.7.𝑥 available, if upgrading to 9.2.1 is difficult: 8.7.3)"
         errorLine1="agp = &quot;8.7.0&quot;               # requires Gradle 8.9 + JDK 17+, build-tools 34; accepts compileSdk 36 (warn-only)"

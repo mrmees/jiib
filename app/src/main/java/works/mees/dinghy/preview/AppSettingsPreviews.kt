@@ -36,6 +36,8 @@ private fun appSettingsAllOn() {
         onKeepScreenOnToggle = {},
         webcamEnabled = true,
         onWebcamToggle = {},
+        devEnabled = true,
+        onDevToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
@@ -55,6 +57,8 @@ private fun appSettingsAllOff() {
         onKeepScreenOnToggle = {},
         webcamEnabled = false,
         onWebcamToggle = {},
+        devEnabled = true,
+        onDevToggle = {},
         babystepOn = false,
         onBabystepToggle = {},
         babystepLayers = 3,
@@ -139,6 +143,8 @@ private fun AppSettingsFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
         onKeepScreenOnToggle = {},
         webcamEnabled = true,
         onWebcamToggle = {},
+        devEnabled = true,
+        onDevToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
@@ -163,6 +169,8 @@ private fun AppSettingsFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
         onKeepScreenOnToggle = {},
         webcamEnabled = true,
         onWebcamToggle = {},
+        devEnabled = true,
+        onDevToggle = {},
         babystepOn = true,
         onBabystepToggle = {},
         babystepLayers = 5,
@@ -211,6 +219,7 @@ private fun AppSettingsFocusTextSize() = PreviewBox(colorfulDark) {
         fontScale = FontScale.M, onFontScale = {},
         keepScreenOn = true, onKeepScreenOnToggle = {},
         webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
         babystepOn = true, onBabystepToggle = {},
         babystepLayers = 5, onBabystepLayers = {},
         isExempt = false, onRequestExempt = {}, onBack = {},
@@ -225,6 +234,7 @@ private fun AppSettingsFocusKeepAwake() = PreviewBox(colorfulDark) {
         fontScale = FontScale.M, onFontScale = {},
         keepScreenOn = true, onKeepScreenOnToggle = {},
         webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
         babystepOn = true, onBabystepToggle = {},
         babystepLayers = 5, onBabystepLayers = {},
         isExempt = false, onRequestExempt = {}, onBack = {},
@@ -239,6 +249,7 @@ private fun AppSettingsFocusWebcam() = PreviewBox(colorfulDark) {
         fontScale = FontScale.M, onFontScale = {},
         keepScreenOn = true, onKeepScreenOnToggle = {},
         webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
         babystepOn = true, onBabystepToggle = {},
         babystepLayers = 5, onBabystepLayers = {},
         isExempt = false, onRequestExempt = {}, onBack = {},
@@ -253,6 +264,7 @@ private fun AppSettingsFocusBabystep() = PreviewBox(colorfulDark) {
         fontScale = FontScale.M, onFontScale = {},
         keepScreenOn = true, onKeepScreenOnToggle = {},
         webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
         babystepOn = true, onBabystepToggle = {},
         babystepLayers = 5, onBabystepLayers = {},
         isExempt = false, onRequestExempt = {}, onBack = {},
@@ -267,9 +279,25 @@ private fun AppSettingsFocusBattery() = PreviewBox(colorfulDark) {
         fontScale = FontScale.M, onFontScale = {},
         keepScreenOn = true, onKeepScreenOnToggle = {},
         webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
         babystepOn = true, onBabystepToggle = {},
         babystepLayers = 5, onBabystepLayers = {},
         isExempt = false, onRequestExempt = {}, onBack = {},
         initialSelected = AppSetting.Battery,
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun AppSettingsFocusDevWidgets() = PreviewBox(colorfulDark) {
+    AppSettingsContent(
+        fontScale = FontScale.M, onFontScale = {},
+        keepScreenOn = true, onKeepScreenOnToggle = {},
+        webcamEnabled = true, onWebcamToggle = {},
+        devEnabled = true, onDevToggle = {},
+        babystepOn = true, onBabystepToggle = {},
+        babystepLayers = 5, onBabystepLayers = {},
+        isExempt = false, onRequestExempt = {}, onBack = {},
+        initialSelected = AppSetting.DevWidgets,
     )
 }

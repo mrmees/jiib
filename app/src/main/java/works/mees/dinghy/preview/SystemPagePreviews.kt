@@ -37,7 +37,6 @@ import works.mees.dinghy.ui.screen.SystemPageContent
 @Composable
 private fun SystemPagePrinterPresent() = PreviewBox(colorfulDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -52,7 +51,6 @@ private fun SystemPagePrinterPresent() = PreviewBox(colorfulDark) {
 @Composable
 private fun SystemPageNoPrinter() = PreviewBox(colorfulDark) {
     SystemPageContent(
-        activePrinterName = "",
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -67,7 +65,6 @@ private fun SystemPageNoPrinter() = PreviewBox(colorfulDark) {
 @Composable
 private fun SystemPageThemeColorfulDark() = PreviewBox(colorfulDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -78,7 +75,6 @@ private fun SystemPageThemeColorfulDark() = PreviewBox(colorfulDark) {
 @Composable
 private fun SystemPageThemeColorfulLight() = PreviewBox(colorfulLight) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -89,7 +85,6 @@ private fun SystemPageThemeColorfulLight() = PreviewBox(colorfulLight) {
 @Composable
 private fun SystemPageThemeSimpleDark() = PreviewBox(simpleDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -100,7 +95,6 @@ private fun SystemPageThemeSimpleDark() = PreviewBox(simpleDark) {
 @Composable
 private fun SystemPageThemeSimpleLight() = PreviewBox(simpleLight) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -111,7 +105,6 @@ private fun SystemPageThemeSimpleLight() = PreviewBox(simpleLight) {
 @Composable
 private fun SystemPageThemeHighContrastDark() = PreviewBox(highContrastDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -122,7 +115,6 @@ private fun SystemPageThemeHighContrastDark() = PreviewBox(highContrastDark) {
 @Composable
 private fun SystemPageThemeHighContrastLight() = PreviewBox(highContrastLight) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -141,7 +133,6 @@ private fun SystemPageThemeHighContrastLight() = PreviewBox(highContrastLight) {
 @Composable
 private fun SystemPageFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -156,7 +147,6 @@ private fun SystemPageFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
 @Composable
 private fun SystemPageFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -176,7 +166,6 @@ private fun SystemPageFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
 private fun SystemPageRtlSpotCheck() = PreviewBox(colorfulDark) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         SystemPageContent(
-            activePrinterName = SampleFixtures.systemPageActivePrinter,
             versionName = SampleFixtures.systemPageVersion,
             onNavigate = {},
             onBack = {},
@@ -197,7 +186,6 @@ private fun SystemPageRtlSpotCheck() = PreviewBox(colorfulDark) {
 @Composable
 private fun SystemPagePseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},
@@ -216,7 +204,6 @@ private fun SystemPagePseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
 @Composable
 private fun SystemPageLandscape() = PreviewBox(colorfulDark) {
     SystemPageContent(
-        activePrinterName = SampleFixtures.systemPageActivePrinter,
         versionName = SampleFixtures.systemPageVersion,
         onNavigate = {},
         onBack = {},

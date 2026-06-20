@@ -51,7 +51,6 @@ sealed interface NavDest {
     @Serializable data object Outputs                : NavDest
     @Serializable data object SystemInfo             : NavDest
     @Serializable data object Theme                  : NavDest
-    @Serializable data object About                  : NavDest
     @Serializable data object System                 : NavDest   // System page hub (D-01, Phase 28)
     // Settings split (app-printer split task 2.1)
     @Serializable data object AppSettings            : NavDest
@@ -62,9 +61,10 @@ sealed interface NavDest {
 }
 
 /**
- * All 25 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
+ * All 24 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
  * + 1 System page hub D-01/Phase 28 + 3 settings-split routes AppSettings/PrinterSettings/ManagePrinters
- * − 2 retired routes Settings/Devices removed in task 7.1 + HeatPresets + IncrementValues).
+ * − 2 retired routes Settings/Devices removed in task 7.1 − About retired 2026-06-19
+ * + HeatPresets + IncrementValues).
  *
  * Sealed interfaces have no `.entries` — use this list for round-trip testing ([parseStartDest]),
  * verification coverage, and any place that previously iterated [Dest.entries].
@@ -89,9 +89,8 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.Outputs,
     NavDest.SystemInfo,
     NavDest.Theme,
-    NavDest.About,
     NavDest.System,           // Phase 28 D-01: System page hub
-    // Settings split (task 2.1); count = 25 (Settings + Devices retired in task 7.1)
+    // Settings split (task 2.1); count = 24 (Settings + Devices + About retired)
     NavDest.AppSettings,
     NavDest.PrinterSettings,
     NavDest.ManagePrinters,

@@ -1,22 +1,30 @@
 package works.mees.dinghy.ui.screen
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.dinghy.BuildConfig
 import works.mees.dinghy.R
@@ -38,7 +46,7 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
-import works.mees.dinghy.theme.brandTint
+import works.mees.dinghy.theme.fsSp
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.route.NavDest
@@ -62,14 +70,12 @@ fun SystemPageScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val activeName by container.activeName.collectAsStateWithLifecycle(initialValue = null)
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
 
     SystemPageContent(
-        activePrinterName = activeName ?: "",
         versionName = BuildConfig.VERSION_NAME,
         isPrinting = isPrinting,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
@@ -82,26 +88,23 @@ fun SystemPageScreen(
 /**
  * Stateless System page layout — the @Preview matrix targets this composable (WARNING-5 preview seam).
  *
- * Layout (D-02):
- *  - Portrait:  Focus strip at 20% of screen HEIGHT (focusGrow=0.2f, fieldGrow=0.8f).
- *  - Landscape: Focus column at 40% of content WIDTH (focusGrow=0.4f, fieldGrow=0.6f).
+ * Layout: the canonical [ScreenScaffold] split (portrait stacks ~50/50; landscape Focus | Field 50/50).
  *
- * Focus is STATIC brand identity (jiib lockup + version + active printer name) — no connection
- * state, no live telemetry.
+ * Focus is STATIC brand identity: the full jiib lockup as a bottom-right watermark (same treatment as
+ * the standby Focus mark) over the app version + the jib/jiib brand explainer — no connection state,
+ * no live telemetry.
  *
  * Field rows (direct-tap nav; no selection state — tap = navigate immediately):
- *   App Settings → Printer Settings → About.
+ *   App Settings → Printer Settings → Manage Printers.
  *
  * Shell-level FloatingEStop applies (this screen does NOT render its own e-stop; D-06 / Pitfall 6).
  *
- * @param activePrinterName  display name of the active printer profile (user-set label).
  * @param versionName        [BuildConfig.VERSION_NAME] — static at build time.
  * @param onNavigate         direct-tap navigation lambda.
  * @param onBack             Back foot button exit.
  */
 @Composable
 fun SystemPageContent(
-    activePrinterName: String,
     versionName: String,
     onNavigate: (NavDest) -> Unit,
     onBack: () -> Unit,
@@ -113,73 +116,61 @@ fun SystemPageContent(
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-        val landscape = maxWidth > maxHeight
 
-        // D-02 Focus ratio cap: 40% of WIDTH in landscape, 20% of HEIGHT in portrait.
-        val focusGrow = if (landscape) 0.4f else 0.2f
-        val fieldGrow = if (landscape) 0.6f else 0.8f
-
-        Box(Modifier.fillMaxSize()) {
-            ScreenScaffold(
-                focusGrow = focusGrow,
-                fieldGrow = fieldGrow,
-                focus = {
-                    // STATIC brand strip wrapped in FocusFrame (Focus-header law, 2026-06-13).
-                    // Brand identity content lives in the FocusFrame body; no live telemetry.
-                    FocusFrame(
-                        title = stringResource(R.string.home_foot_system),
-                        icon = DinghyIcons.FootSystem,
-                        uDp = grid.uDp,
-                        modifier = Modifier.fillMaxSize(),
-                        isPrinting = isPrinting,
-                        onEmergencyStop = onEmergencyStop,
-                        onPanic = onEmergencyStop,
-                    ) {
-                        SystemFocusContent(
-                            activePrinterName = activePrinterName,
-                            versionName = versionName,
-                        )
-                    }
-                },
-                field = {
-                    // Field: dense ListBlock of direct-tap nav rows in D-03 order.
-                    ListBlock(modifier = Modifier.weight(1f)) {
-                        // 3 rows: direct-tap (onClick navigates immediately; no selection state).
-                        items(systemNavRows()) { row ->
-                            ListRow(
-                                selected = false,   // nav, not a picker — never selected
-                                onClick = { onNavigate(row.dest) },
-                                uDp = grid.uDp,
-                                leadingContent = {
-                                    // R23: canonical 0.6U list-row icon.
-                                    ListRowIcon(
-                                        icon = row.icon,
-                                        uDp = grid.uDp,
-                                        tint = t.text,
-                                    )
-                                },
-                            ) {
-                                // Canonical list label (R22/R11).
-                                ListRowLabel(stringResource(row.labelRes))
-                            }
+        ScreenScaffold(
+            focus = {
+                // STATIC brand strip wrapped in FocusFrame (Focus-header law, 2026-06-13).
+                // Brand identity content lives in the FocusFrame body; no live telemetry.
+                FocusFrame(
+                    // Title carries the brand + app version (e.g. "jiib 0.1.0").
+                    title = "${stringResource(R.string.app_name)} $versionName",
+                    icon = DinghyIcons.FootSystem,
+                    uDp = grid.uDp,
+                    modifier = Modifier.fillMaxSize(),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                ) {
+                    SystemFocusContent()
+                }
+            },
+            field = {
+                // Field: dense ListBlock of direct-tap nav rows in D-03 order.
+                ListBlock(modifier = Modifier.weight(1f)) {
+                    // direct-tap rows (onClick navigates immediately; no selection state).
+                    items(systemNavRows()) { row ->
+                        ListRow(
+                            selected = false,   // nav, not a picker — never selected
+                            onClick = { onNavigate(row.dest) },
+                            uDp = grid.uDp,
+                            leadingContent = {
+                                // R23: canonical 0.6U list-row icon.
+                                ListRowIcon(
+                                    icon = row.icon,
+                                    uDp = grid.uDp,
+                                    tint = t.text,
+                                )
+                            },
+                        ) {
+                            // Canonical list label (R22/R11).
+                            ListRowLabel(stringResource(row.labelRes))
                         }
-
                     }
+                }
 
-                    FootButtonBar(
-                        uDp = grid.uDp,
-                        actions = listOf(
-                            FootAction(
-                                label = stringResource(R.string.common_back),
-                                icon = DinghyIcons.Back,
-                                onClick = onBack,
-                                intent = Intent.Accent, // R5: Back = accent
-                            ),
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    actions = listOf(
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            icon = DinghyIcons.Back,
+                            onClick = onBack,
+                            intent = Intent.Accent, // R5: Back = accent
                         ),
-                    )
-                },
-            )
-        }
+                    ),
+                )
+            },
+        )
     }
 }
 
@@ -188,49 +179,66 @@ fun SystemPageContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SystemFocusContent(
-    activePrinterName: String,
-    versionName: String,
-) {
+private fun SystemFocusContent() {
     val t = LocalTokens.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        // jiib wordmark — accent-tinted via brandTint (same pattern as AboutWordmark in AboutScreen).
-        Icon(
-            painter = painterResource(R.drawable.jiib_wordmark),
-            contentDescription = stringResource(R.string.cd_jiib_logo),
-            tint = brandTint(t.accent, t.bg, t.text),
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .padding(bottom = 8.dp),
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Brand watermark: the full jiib lockup (icon + wordmark), bottom-end, faint accent2 tint —
+        // the same treatment as the standby Focus mark (PrintStatusFocus). The readable text rides
+        // over it, top-start.
+        val markSize = minOf(maxWidth, maxHeight) * 0.5f
+        Image(
+            painter = painterResource(R.drawable.jiib_lockup),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(t.accent2),
+            alpha = 0.45f,
+            modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
         )
 
-        // App version string (Mono metadata — static BuildConfig.VERSION_NAME, not live data).
-        Text(
-            text = versionName,
-            color = t.text2,
-            style = DinghyType.dataMeta.toTextStyle(t),
-        )
+        // Both paragraphs as ONE block so they share a single fitted size (same font style for both);
+        // the word "jiib" is bold + italic in the second paragraph.
+        val jibNote = stringResource(R.string.system_focus_jib_note)
+        val jiibNote = stringResource(R.string.system_focus_jiib_note)
+        val block = remember(jibNote, jiibNote) {
+            buildAnnotatedString {
+                append(jibNote)
+                append("\n\n")
+                val jiibStart = length
+                append(jiibNote)
+                val idx = jiibNote.indexOf("jiib")
+                if (idx >= 0) {
+                    addStyle(
+                        SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
+                        jiibStart + idx,
+                        jiibStart + idx + "jiib".length,
+                    )
+                }
+            }
+        }
 
-        // Active printer name (user-set display label; no host/IP shown).
-        if (activePrinterName.isNotBlank()) {
-            Text(
-                text = activePrinterName,
-                color = t.text,
-                style = DinghyType.listLabel.toTextStyle(t),
+        // Sized to fit: one BasicText autosizes the whole block to fill the focus body (grows on big
+        // screens, shrinks to the 15sp floor on the Nexus 7), centered — the CalibrationHub pattern.
+        Box(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText(
+                text = block,
+                style = DinghyType.body.toTextStyle(t).copy(color = t.text),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = fsSp(15f, t.fs).sp,
+                    maxFontSize = fsSp(34f, t.fs).sp,
+                    stepSize = 1.sp,
+                ),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Nav row model (App Settings → Printer Settings → About)
+// Nav row model (App Settings → Printer Settings → Manage Printers)
 // ─────────────────────────────────────────────────────────────────────────────
 
 private data class SystemNavRow(
@@ -243,5 +251,4 @@ private fun systemNavRows(): List<SystemNavRow> = listOf(
     SystemNavRow(NavDest.AppSettings,     DinghyIcons.AppSettings,     R.string.system_row_app_settings),
     SystemNavRow(NavDest.PrinterSettings, DinghyIcons.PrinterSettings, R.string.system_row_printer_settings),
     SystemNavRow(NavDest.ManagePrinters,  DinghyIcons.ManagePrinters,  R.string.printer_settings_manage),
-    SystemNavRow(NavDest.About,           DinghyIcons.SystemRowAbout,  R.string.system_row_about),
 )

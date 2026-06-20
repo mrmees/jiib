@@ -58,7 +58,7 @@ import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.ui.settings.TextSizeSelector
 
 /** Which App Settings row is selected; null = no selection (Focus shows the overview placeholder). */
-enum class AppSetting { TextSize, KeepAwake, Webcam, Babystep, Battery }
+enum class AppSetting { TextSize, KeepAwake, Webcam, Babystep, Battery, DevWidgets }
 
 /**
  * The **App Settings** screen (APP-SETTINGS-01) — app-global preferences that apply
@@ -102,6 +102,10 @@ fun AppSettingsScreen(
     // App-global webcam toggle (moved from per-printer, 2026-06-15) — process-scoped, durable.
     val webcamEnabled by container.webcamEnabled.collectAsStateWithLifecycle(true)
 
+    // Theme dev-widget cyclers (moved here from the retired About screen, 2026-06-19) — process-scoped,
+    // durable writeScope intent (never a composition scope, T-28-07-02).
+    val devEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
+
     // Battery-optimization exemption state — re-checked on ON_RESUME.
     val context = LocalContext.current
     val powerManager = remember(context) { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
@@ -126,6 +130,8 @@ fun AppSettingsScreen(
         onKeepScreenOnToggle = { container.setKeepScreenOn(it) },
         webcamEnabled = webcamEnabled,
         onWebcamToggle = { container.setWebcamEnabled(it) },
+        devEnabled = devEnabled,
+        onDevToggle = { container.setDevCyclerEnabled(it) },
         babystepOn = babystepOn,
         onBabystepToggle = { container.setBabystepEnabled(it) },
         babystepLayers = babystepLayers,
@@ -165,6 +171,8 @@ fun AppSettingsContent(
     onKeepScreenOnToggle: (Boolean) -> Unit,
     webcamEnabled: Boolean,
     onWebcamToggle: (Boolean) -> Unit,
+    devEnabled: Boolean,
+    onDevToggle: (Boolean) -> Unit,
     babystepOn: Boolean,
     onBabystepToggle: (Boolean) -> Unit,
     babystepLayers: Int,
@@ -193,6 +201,8 @@ fun AppSettingsContent(
                     onKeepScreenOnToggle = onKeepScreenOnToggle,
                     webcamEnabled = webcamEnabled,
                     onWebcamToggle = onWebcamToggle,
+                    devEnabled = devEnabled,
+                    onDevToggle = onDevToggle,
                     babystepOn = babystepOn,
                     onBabystepToggle = onBabystepToggle,
                     babystepLayers = babystepLayers,
@@ -262,6 +272,16 @@ fun AppSettingsContent(
                                 else R.string.settings_battery_optimized_short,
                             ),
                             indicatorColor = if (isExempt) t.go else t.text2,
+                            uDp = grid.uDp,
+                        )
+                    }
+                    item {
+                        AppSettingRow(
+                            selected = selected == AppSetting.DevWidgets,
+                            onClick = { selected = if (selected == AppSetting.DevWidgets) null else AppSetting.DevWidgets },
+                            icon = DinghyIcons.Experiment,
+                            label = stringResource(R.string.about_dev_widgets),
+                            indicator = stringResource(onOffRes(devEnabled)),
                             uDp = grid.uDp,
                         )
                     }
@@ -338,6 +358,8 @@ private fun AppSettingsFocus(
     onKeepScreenOnToggle: (Boolean) -> Unit,
     webcamEnabled: Boolean,
     onWebcamToggle: (Boolean) -> Unit,
+    devEnabled: Boolean,
+    onDevToggle: (Boolean) -> Unit,
     babystepOn: Boolean,
     onBabystepToggle: (Boolean) -> Unit,
     babystepLayers: Int,
@@ -460,6 +482,18 @@ private fun AppSettingsFocus(
                 enabled = !isExempt,
                 modifier = Modifier.fillMaxWidth(),
                 intent = Intent.Accent,
+            )
+        }
+        AppSetting.DevWidgets -> frame(
+            stringResource(R.string.about_dev_widgets),
+            DinghyIcons.Experiment,
+            stringResource(R.string.settings_dev_widgets_focus),
+        ) {
+            ToggleRow(
+                label = stringResource(R.string.about_dev_widgets),
+                checked = devEnabled,
+                onToggle = onDevToggle,
+                uDp = uDp,
             )
         }
     }

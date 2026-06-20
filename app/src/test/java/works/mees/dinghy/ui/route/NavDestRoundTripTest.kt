@@ -35,7 +35,6 @@ class NavDestRoundTripTest {
     @Test fun outputs_roundTrips()       { assertRoundTrip(NavDest.Outputs) }
     @Test fun systemInfo_roundTrips()    { assertRoundTrip(NavDest.SystemInfo) }
     @Test fun theme_roundTrips()         { assertRoundTrip(NavDest.Theme) }
-    @Test fun about_roundTrips()         { assertRoundTrip(NavDest.About) }
 
     // ---------------------------------------------------------------------------
     // Six calibration sub-routes (Phase 27, D-07) — explicit coverage

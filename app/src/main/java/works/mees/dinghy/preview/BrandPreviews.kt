@@ -8,18 +8,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import works.mees.dinghy.ui.screen.AboutWordmark
 import works.mees.dinghy.ui.screen.SplashBrandLockup
 
 /**
- * Brand-surface previews (18.2-04 / D-04, D-05, D-06) — the theme matrix for the two rebranded in-app
- * marks: the splash jiib **lockup** and the About jiib **wordmark**.
+ * Brand-surface previews (18.2-04 / D-04, D-06) — the theme matrix for the splash jiib **lockup**.
  *
- * ## Preview the STATELESS seams, NOT the screens (PREVIEW_AND_TOKENS / D-03)
- * `SplashScreen` and `AboutScreen` both take a required `container: AppContainer`, and there is NO fake
- * AppContainer in main source — instantiating one in a `@Preview` pulls the live service-locator graph
- * and violates preview-safety. So this file drives the small AppContainer-FREE stateless seams that
- * Task 2/Task 3 factored out — [SplashBrandLockup] and [AboutWordmark] — which read only `LocalTokens`.
+ * ## Preview the STATELESS seam, NOT the screen (PREVIEW_AND_TOKENS / D-03)
+ * `SplashScreen` takes a required `container: AppContainer`, and there is NO fake AppContainer in main
+ * source — instantiating one in a `@Preview` pulls the live service-locator graph and violates
+ * preview-safety. So this file drives the small AppContainer-FREE stateless seam [SplashBrandLockup],
+ * which reads only `LocalTokens`.
  *
  * ## Why the six-combo matrix (D-06 visual gate)
  * Both marks tint via `brandTint(t.accent, t.bg, t.text)`, which falls back to `t.text` when the accent
@@ -71,9 +69,8 @@ private fun BrandMatrixCell(tuple: works.mees.dinghy.theme.ThemePrefs.ThemeTuple
             verticalArrangement = Arrangement.spacedBy(32.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Splash front-door lockup (D-04) and About wordmark (D-05), both brandTint-guarded (D-06).
+            // Splash front-door lockup (D-04), brandTint-guarded (D-06).
             SplashBrandLockup()
-            AboutWordmark()
         }
     }
 }

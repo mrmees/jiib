@@ -18,21 +18,21 @@ import works.mees.dinghy.ui.shell.ShellNavState
  *   - [ShellNavState.applyEntryReset] clears per-dest sub-nav on entry
  *   - [ShellNavState.resetTransient] clears camera/scan/prefilter transient state
  *   - [ShellNavState.startDest] seed is stored and readable
- *   - The three IA destinations (AppSettings/PrinterSettings/About) are distinct [NavDest] members
+ *   - The IA destinations (AppSettings/PrinterSettings) are distinct [NavDest] members
  *     (task 7.1: old Settings + Devices routes retired; replaced by AppSettings + PrinterSettings)
  */
 class ShellNavStateTest {
 
     /**
-     * The three post-split IA destinations (AppSettings, PrinterSettings, About) are DISTINCT
-     * [NavDest] values in [knownNavDests]. Old Settings + Devices were removed in task 7.1.
+     * The post-split IA destinations (AppSettings, PrinterSettings) are DISTINCT [NavDest] values in
+     * [knownNavDests]. Old Settings + Devices were removed in task 7.1; About retired 2026-06-19.
      */
     @Test
     fun ia_destinations_are_distinct_known_dests() {
-        val ia = listOf(NavDest.AppSettings, NavDest.PrinterSettings, NavDest.About)
+        val ia = listOf(NavDest.AppSettings, NavDest.PrinterSettings)
 
-        // They are three DISTINCT values (no two tiles collide on one dest).
-        assertEquals("the IA dests must be distinct", 3, ia.toSet().size)
+        // They are DISTINCT values (no two tiles collide on one dest).
+        assertEquals("the IA dests must be distinct", 2, ia.toSet().size)
 
         // All three are in knownNavDests after the task-7.1 cleanup.
         for (dest in ia) {

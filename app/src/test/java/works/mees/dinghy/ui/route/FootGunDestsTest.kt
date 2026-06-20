@@ -46,7 +46,6 @@ class FootGunDestsTest {
             NavDest.Outputs,
             NavDest.SystemInfo,
             NavDest.Theme,
-            NavDest.About,
             // Phase 28 D-01/D-06: System cluster is mid-print reachable — never foot-gun
             NavDest.System,
             // Settings-split routes (task 7.1): all mid-print reachable via System hub

@@ -27,17 +27,6 @@
     -->
     <string name="app_name">jiib</string>
 
-    <!-- About functional tagline (D-10) — was a hardcoded literal at AboutScreen; now a resource. -->
-    <string name="about_tagline">A direct Moonraker touchscreen for Klipper.</string>
-
-    <!--
-      About jib-explainer note (D-11, EXACT locked copy — leads with the "it's a sail" definition,
-      attributes the quote to Wikipedia, lands the "So is this." parallel). Wrapped in CDATA so the
-      embedded double-quote AND the jib's apostrophe need no per-character escaping; the ellipsis is
-      the literal … character (NOT three periods) per Android string rules.
-    -->
-    <string name="about_jib_note"><![CDATA[jiib — "a triangular sail that sets ahead of the foremast … a jib's most crucial function is increasing performance and overall stability" (Wikipedia). So is this.]]></string>
-
     <!-- contentDescription for the brand Icon on splash / about (used by 18.2-04). -->
     <string name="cd_jiib_logo">jiib</string>
 
@@ -156,7 +145,6 @@
     <string name="system_row_settings">Settings</string>
     <string name="system_row_theme">Theme</string>
     <string name="system_row_sysinfo">System Info</string>
-    <string name="system_row_about">About</string>
     <!-- Power stub — greyed/inert per D-08; "Coming soon" sublabel proposed, owner judges at UAT. -->
     <string name="system_row_power">Power</string>
     <string name="system_row_power_sub">Coming soon</string>
@@ -604,11 +592,13 @@
     <string name="tilt_done_body">Gantry leveled.</string>
     <string name="tilt_adjustments_applied">Z adjustments applied:</string>
 
-    <!-- ============== about — 28-07 dense restyle strings ============== -->
-    <string name="about_version">Version</string>
+    <!-- ============== theme dev widgets — App Settings row (moved from retired About) ============== -->
     <string name="about_dev_widgets">Theme dev widgets</string>
-    <string name="about_dev_widgets_on">Floating Style/Size cyclers shown. Turn off to hide them and restore your theme.</string>
-    <string name="about_dev_widgets_off">Show the floating Style/Size theme cyclers over every screen.</string>
+    <string name="settings_dev_widgets_focus">Show the floating Style/Size theme cyclers over every screen for live theme tweaking. Turn off to hide them and restore your theme.</string>
+
+    <!-- ============== system page focus — jib/jiib brand explainer ============== -->
+    <string name="system_focus_jib_note">A jib is a triangular headsail set on the bow that improves airflow over the mast sails and adds driving power, especially when sailing upwind.</string>
+    <string name="system_focus_jiib_note">A jiib is a lightweight frontend set on Android that improves Klipper interactivity over alternatives and adds functionality, especially on older devices.</string>
 
     <!-- ============== settings — 28-07 dense restyle feature toggles ============== -->
     <string name="settings_webcam">Webcam</string>
