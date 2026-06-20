@@ -38,28 +38,6 @@
 
     <issue
         id="NewApi"
-        message="Call requires API level 24 (current min is 23): `java.util.HashMap#putIfAbsent`"
-        errorLine1="            out.putIfAbsent(name, MacroParam(name, type, default))"
-        errorLine2="                ~~~~~~~~~~~">
-        <location
-            file="src/main/java/works/mees/dinghy/ui/macros/MacroParamParser.kt"
-            line="54"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 24 (current min is 23): `java.util.HashMap#putIfAbsent`"
-        errorLine1="            out.putIfAbsent(m.groupValues[1], MacroParam(m.groupValues[1], null, null))"
-        errorLine2="                ~~~~~~~~~~~">
-        <location
-            file="src/main/java/works/mees/dinghy/ui/macros/MacroParamParser.kt"
-            line="57"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="NewApi"
         message="Call requires API level 26 (current min is 23): `android.content.ContextWrapper#startForegroundService`"
         errorLine1="        startForegroundService(Intent(this, MoonrakerService::class.java))"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">

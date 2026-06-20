@@ -54,13 +54,14 @@ object MacroParamParser {
     /**
      * Scan a macro `.gcode` body for declared parameters. Total function: garbage input yields
      * whatever could be detected (possibly empty), never an exception. First-seen order is preserved
-     * and a name is recorded only ONCE (dedup) via [LinkedHashMap.putIfAbsent].
+     * and a name is recorded only ONCE (dedup) — first-seen wins (floor-safe `if (key !in map)` insert,
+     * since `Map.putIfAbsent` is API 24 and minSdk is 23).
      */
     fun parseMacroParams(gcodeBody: String): List<MacroParam> {
         val out = linkedMapOf<String, MacroParam>() // first-seen order, dedup by name
         // BLOCK-2 fix: collect membership-guarded names FIRST. `{% if 'X' in params %}` means the macro
         // checks presence before use → X is optional even though a later `{params.X}` (dot-access, runs
-        // before the guard pass under putIfAbsent) would otherwise mark it required.
+        // before the first-seen dedup insert) would otherwise mark it required.
         val optionalByGuard = PARAM_IN_REGEX.findAll(gcodeBody).map { it.groupValues[1] }.toSet()
         for (m in PARAM_REGEX.findAll(gcodeBody)) {
             val name = m.groupValues[1]
@@ -69,16 +70,17 @@ object MacroParamParser {
             val default = m.groupValues[3].ifEmpty { null }
             // required heuristic (Codex doc): a param referenced WITHOUT |default(...) is required,
             // unless a membership guard proves it optional.
-            out.putIfAbsent(name, MacroParam(name, type, default, required = default == null && name !in optionalByGuard))
+            // floor-safe first-seen dedup (Map.putIfAbsent is API 24; minSdk is 23).
+            if (name !in out) out[name] = MacroParam(name, type, default, required = default == null && name !in optionalByGuard)
         }
         for (m in PARAM_BRACKET_REGEX.findAll(gcodeBody)) {
             val name = m.groupValues[1]
             val default = m.groupValues[2].ifEmpty { null }
-            out.putIfAbsent(name, MacroParam(name, null, default, required = default == null && name !in optionalByGuard))
+            if (name !in out) out[name] = MacroParam(name, null, default, required = default == null && name !in optionalByGuard)
         }
         // Any guarded param NOT already discovered by dot/bracket access is added as optional.
         for (name in optionalByGuard) {
-            out.putIfAbsent(name, MacroParam(name, null, null, required = false))
+            if (name !in out) out[name] = MacroParam(name, null, null, required = false)
         }
         return out.values.toList()
     }
