@@ -8,6 +8,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
@@ -209,9 +210,11 @@ class ConnectionProbe(
                 rpc.request(CommandRegistry.serverInfo, Unit, timeoutMs = DEFAULT_TIMEOUT_MS)
                 TransportResult(ok = true)
             } finally {
-                liveConnection?.close()
-                rpc.close(ConnectionError.NetworkUnavailable)
-                collector.cancelAndJoin()
+                withContext(NonCancellable) {
+                    liveConnection?.close()
+                    rpc.close(ConnectionError.NetworkUnavailable)
+                    collector.cancelAndJoin()
+                }
             }
         }
     }
