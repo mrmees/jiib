@@ -33,6 +33,14 @@ class ProfileSecureMigrationTest {
         assertEquals("wss://secure.local:7130/websocket", p.toConnectionConfig().wsUrl)
     }
 
+    @Test fun fromPersistedDoesNotOverwriteExistingAdvancedUrl() {
+        val p = Profile.fromPersisted(
+            PersistedProfile(id = "x", host = "h", port = 7125, useSecure = true,
+                advancedUrl = "https://proxy.example.com/printer"),
+        )
+        assertEquals("https://proxy.example.com/printer", p.advancedUrl)
+    }
+
     @Test fun toPersistedWritesAdvancedUrlNotUseSecure() {
         val opened = Profile.fromPersisted(
             PersistedProfile(id = "legacy", host = "secure.local", port = 7130, useSecure = true),

@@ -307,11 +307,12 @@ class AppContainer(
         }
 
     /**
-     * The active profile's connection projection (host/port/apiKey ONLY) — the value the service rebind
-     * seam consumes. The [distinctUntilChanged] is LOAD-BEARING (RESEARCH Pitfall 1 / T-14-04): a
+     * The active profile's connection projection (host/port/apiKey/advancedUrl) — the value the service
+     * rebind seam consumes. The [distinctUntilChanged] is LOAD-BEARING (RESEARCH Pitfall 1 / T-14-04): a
      * name-only or theme-only edit on the active profile yields a STRUCTURALLY-EQUAL [ConnectionConfig]
-     * (data-class equality over host/port/apiKey), so it is suppressed and does NOT churn the spine — no
-     * spurious reconnect Splash. A host/port/key change DOES re-emit, driving exactly one rebind.
+     * (data-class equality over host/port/apiKey/advancedUrl — note: useSecure is always false
+     * post-migration and does not vary), so it is suppressed and does NOT churn the spine — no spurious
+     * reconnect Splash. A host/port/key/advancedUrl change DOES re-emit, driving exactly one rebind.
      */
     val activeConfig: Flow<ConnectionConfig?> =
         activeProfile.map { it?.toConnectionConfig() }.distinctUntilChanged()
