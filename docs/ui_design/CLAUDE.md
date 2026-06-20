@@ -118,13 +118,12 @@
   not distortion) — `brandTint` stays for brand chrome only. The Phase-21 conformance audit treats BOTH
   as sanctioned, not a violation.
   See THEMING.md → "Carve-out: macro-authored PromptMarkup author-hex". (2026-06-04; 12-05 · 2026-06-07; 18.3-03.)
-- **Keyboard carve-out: Save-name fields.** The alphanumeric keyboard is barred from *printer
-  controls*, but a **pre-filled, optional-override name field for SAVING a named artifact** (the
-  bed-mesh **Save-name** dialog, pre-filled `YY.MM.DD_HH.MM`) is a Settings-class text entry, NOT a
-  hot-path control — the system keyboard is permitted there. The input is allowlist-validated
-  (`[A-Za-z0-9_.-]+`, no whitespace/control/`;`/newline) before it can be saved. Future keyboard
-  requests reference THIS established rule instead of reopening the debate. (Owner decision,
-  2026-06-02; 09-05.)
+- **Keyboard carve-out: text-entry fields.** The keyboard is used **sparingly, where text entry is
+  the honest input** — the connection editor (host, name, API key, Advanced URL), Settings, and Save-name
+  fields (e.g., bed-mesh **Save-name** dialog, pre-filled `YY.MM.DD_HH.MM`). These are text-first entries,
+  not hot-path controls. The input is allowlist-validated (`[A-Za-z0-9_.-]+` for filenames; relaxed for
+  hostname/URL). Numeric controls and adjusters still prefer stepper/scrubber; keyboard is not used for
+  numeric-only inputs. (Owner decision, 2026-06-02 · relaxed 2026-06-xx for connection editor redesign.)
 - **Delete is scoped to the active print file, not idle-only.** This **supersedes** the original
   "Delete is idle-only" rule. During a print, ONLY the currently-printing file
   (`print_stats.filename`) is undeletable; every other file stays deletable, even mid-print. When the

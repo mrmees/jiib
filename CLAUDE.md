@@ -210,7 +210,7 @@ per-phase UI-SPEC. North star of record = the as-built Spoolman screen + the ske
 **Load-bearing rules (post-redesign):**
 - **Focus / Field** (Gutter RETIRED as a region — `FootButtonBar` is its successor, optional per page); portrait stacks, landscape 50/50. Unit grid **U**: integer-U heights, 1U control cap (UAT-5), must survive 5U. No persistent status bar; no App Drawer (deleted Phase 28) — the morphing waterfall home is the root, Back = FIRST foot-bar button.
 - **Buttons FILLED, list rows translucent.** **Intent (R5): red = could destroy · amber = hazardous-but-in-process · green = the EXPECTED action · accent = neutral/nav (Back, Home).** Neutral-outline button intent retired.
-- **No alphanumeric keyboard in printer controls** (Settings screen + Save-name fields are the sanctioned exceptions). Numeric adjust = stepper (preferred) or the 004 ringed-thumb scrubber.
+- **The keyboard is used sparingly, where text entry is the honest input** (host/name/API key/Advanced URL, Settings, Save-name). Numeric adjust = stepper (preferred) or the 004 ringed-thumb scrubber.
 - **Type:** Geist + Geist Mono (tabular for live data); ramp floor 15sp, list/button default 20sp (`fsSp`). **Theming:** dark + light + custom via role tokens; S/M/L (`--fs`).
 - **Motion:** static treatments only; **no continuous "breathing"/looping animation** (Adreno-320 budget). One-shot transitions OK if cheap.
 - **Target/floor:** v1 = phones→tablets, portrait + landscape; the **Nexus 7 2013 (Adreno 320) is the perf floor**, not the only target.
