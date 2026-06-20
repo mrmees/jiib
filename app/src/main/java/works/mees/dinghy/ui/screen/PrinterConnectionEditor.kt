@@ -1,49 +1,71 @@
 package works.mees.dinghy.ui.screen
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.config.ConnectionConfig
+import works.mees.dinghy.config.ConnectionUrls
 import works.mees.dinghy.config.DiscoveredPrinter
+import works.mees.dinghy.config.HostResult
 import works.mees.dinghy.config.Profile
+import works.mees.dinghy.config.buildConnectionUrls
+import works.mees.dinghy.config.normalizeHost
 import works.mees.dinghy.config.resolveAutoSeededOnSave
+import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.components.FootAction
+import works.mees.dinghy.designsystem.components.FootButtonBar
+import works.mees.dinghy.designsystem.components.ListRow
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
+import works.mees.dinghy.designsystem.icons.DinghyIcon
+import works.mees.dinghy.designsystem.icons.DinghyIconView
+import works.mees.dinghy.designsystem.icons.DinghyIcons
+import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.net.ProbeFailure
+import works.mees.dinghy.net.ProbeResult
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /** Bounded settle window for mDNS scan. */
 private const val SCAN_WINDOW_MS = 6000L
+
+/** The tappable Field rows; selecting one swaps the Focus into that field's editor. */
+private enum class ConnRow { Name, Host, Port, ApiKey, Find, Advanced }
 
 /**
  * Save-time API-key resolution for the connection editor (CR-01).
@@ -118,12 +140,17 @@ internal fun buildProfileFromConnectionEditorSave(
 }
 
 /**
- * The inline densified connection editor (28-06, D-12/D-15).
+ * The connection editor, rebuilt into the Focus/Field tap-row-to-edit grammar (Connection Editor
+ * Redesign, Task 8).
  *
- * Fields: Host (text) / Port (numeric keyboard) / API key (masked). Persists through
- * [AppContainer] writeScope intent helpers only (process-lifetime scope — no composition scope writes).
- * API key semantics (T-28-06-01): never pre-fills raw key; blank = preserve stored key;
- * "Clear key" button = write null via [AppContainer.resolveApiKeyEdit].
+ * The Field lists every connection field as a selectable [ListRow]; tapping one swaps the Focus from
+ * a live endpoint/Test summary into that field's inline editor. The foot bar carries Back (contextual:
+ * leaves the editor or returns to the row list), Test (runs a dual HTTP+WS probe — [container.runConnectionProbe]),
+ * and Save (always enabled; relabels to "Save anyway" after a failed probe).
+ *
+ * API key semantics (CR-01): never pre-fills the raw key; blank = preserve stored key; "Clear key"
+ * writes null. Save routes through [buildProfileFromConnectionEditorSave] so the UI and host tests
+ * share one resolution path. The legacy useSecure toggle is RETIRED — TLS lives in the advanced URL.
  */
 @Composable
 internal fun PrinterConnectionEditor(
@@ -132,25 +159,48 @@ internal fun PrinterConnectionEditor(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
+    val printerState by container.printerState.collectAsStateWithLifecycle(PrinterState())
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(null)
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
+    val estop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit); Unit }
+    val back = stringResource(R.string.common_back)
 
     var name by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("7125") }
     var apiKey by remember { mutableStateOf("") }
-    var useSecure by remember { mutableStateOf(false) }
+    var advancedUrl by remember { mutableStateOf("") }
     var keyAlreadySaved by remember { mutableStateOf(false) }
-    // CR-01: an explicit "Clear key" must survive until Save — the `profile` param is a STALE
-    // snapshot whose old key would otherwise resurrect through resolveApiKeyEdit's preserve path.
     var keyCleared by remember { mutableStateOf(false) }
-    var hostError by remember { mutableStateOf(false) }
+    var hostError by remember { mutableStateOf<String?>(null) }
     var portError by remember { mutableStateOf(false) }
-
-    // mDNS scan state — LaunchedEffect(scanRequest) triggered by button tap (write-scope law).
-    var scanRequest by remember { mutableStateOf(0) }  // incremented to trigger a scan
+    var selected by rememberSaveable { mutableStateOf<ConnRow?>(null) }
+    var probe by remember { mutableStateOf<ProbeResult?>(null) }
+    var probing by remember { mutableStateOf(false) }
+    var probeJob by remember { mutableStateOf<Job?>(null) }
+    var scanRequest by remember { mutableStateOf(0) }
     var scanning by remember { mutableStateOf(false) }
     var scanned by remember { mutableStateOf(false) }
     var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
+
+    // Seed from profile on open — NEVER pre-fill raw API key (T-28-06-01 / MEDIUM-5 / V7).
+    LaunchedEffect(profile?.id) {
+        name = profile?.name ?: ""
+        host = profile?.host ?: ""
+        port = profile?.port?.toString() ?: "7125"
+        apiKey = ""
+        advancedUrl = profile?.advancedUrl.orEmpty()
+        keyAlreadySaved = profile?.apiKey != null
+        keyCleared = false
+        hostError = null
+        portError = false
+        selected = null
+        probe = null
+        probing = false
+        scanned = false
+        discovered = emptyList()
+    }
 
     // mDNS scan — bounded LaunchedEffect(scanRequest); no persistence, safe to cancel on nav.
     LaunchedEffect(scanRequest) {
@@ -172,305 +222,485 @@ internal fun PrinterConnectionEditor(
         }
     }
 
-    // Seed from profile on open — NEVER pre-fill raw API key (T-28-06-01 / MEDIUM-5 / V7).
-    LaunchedEffect(profile?.id) {
-        name = profile?.name ?: ""
-        host = profile?.host ?: ""
-        port = profile?.port?.toString() ?: "7125"
-        apiKey = ""
-        useSecure = profile?.useSecure ?: false
-        keyAlreadySaved = profile?.apiKey != null
-        keyCleared = false
-        hostError = false
-        portError = false
-        scanned = false
-        discovered = emptyList()
+    DisposableEffect(Unit) {
+        onDispose { probeJob?.cancel() }
     }
 
-    // WR-08 (GAP-A 'All 1U' ruling): the editor is a plain Column with no grid, so derive the
-    // unit here — the tappable rows below need the 1U heightIn floor like every sibling surface.
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = if (profile != null) stringResource(R.string.printers_edit) else stringResource(R.string.printers_add),
-                color = t.text,
-                style = DinghyType.focusHeader.toTextStyle(t),
+        val uDp = grid.uDp
+        val previewPort = port.trim().toIntOrNull()?.takeIf { it in 1..65535 } ?: 7125
+        val urls = runCatching {
+            buildConnectionUrls(
+                host = host.trim().ifBlank { "host" },
+                port = previewPort,
+                advancedUrl = advancedUrl.ifBlank { null },
+                useSecure = false,
             )
+        }.getOrElse { ConnectionUrls(httpBase = "", wsUrl = "") }
 
-            TokenTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = stringResource(R.string.printers_edit_name),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Text,
-            )
-
-            TokenTextField(
-                value = host,
-                onValueChange = { host = it; hostError = false },
-                label = stringResource(R.string.printers_edit_host),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Text,
-                isError = hostError,
-            )
-            if (hostError) {
-                Text(
-                    text = stringResource(R.string.printers_error_host_required),
-                    color = t.stop,
-                    style = DinghyType.caption.toTextStyle(t),
-                )
-            }
-
-            TokenTextField(
-                value = port,
-                onValueChange = { port = it; portError = false },
-                label = stringResource(R.string.printers_edit_port),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Number,
-                isError = portError,
-            )
-            if (portError) {
-                Text(
-                    text = stringResource(R.string.printers_error_port_range),
-                    color = t.stop,
-                    style = DinghyType.caption.toTextStyle(t),
-                )
-            }
-
-            TokenTextField(
-                value = apiKey,
-                onValueChange = { apiKey = it },
-                label = if (keyAlreadySaved) {
-                    stringResource(R.string.printers_edit_key_keep_saved)
-                } else {
-                    stringResource(R.string.printers_edit_key)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Password,
-                isPassword = true,
-            )
-            if (keyAlreadySaved && apiKey.isBlank()) {
-                Text(
-                    text = stringResource(R.string.printers_key_saved),
-                    color = t.go,
-                    style = DinghyType.caption.toTextStyle(t),
-                )
-            }
-
-            // R7 (26.5-07): per-printer wss/https toggle.
-            SecureToggleRow(
-                uDp = grid.uDp,
-                label = stringResource(R.string.printers_use_secure),
-                subLabel = if (useSecure) {
-                    stringResource(R.string.printers_use_secure_sub_on)
-                } else {
-                    stringResource(R.string.printers_use_secure_sub_off)
-                },
-                checked = useSecure,
-                onToggle = { useSecure = it },
-            )
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedControl(
-                    label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.printers_scan_mdns),
-                    onClick = {
-                        if (!scanning) {
-                            scanRequest++ // triggers LaunchedEffect(scanRequest)
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    intent = Intent.Accent,
-                )
-                if (keyAlreadySaved) {
-                    OutlinedControl(
-                        label = stringResource(R.string.printers_clear_key),
-                        onClick = {
-                            profile?.let { p ->
-                                container.saveProfile(
-                                    p.copy(apiKey = AppContainer.resolveApiKeyEdit(p.apiKey, apiKey, cleared = true)),
-                                )
-                            }
-                            apiKey = ""
-                            keyAlreadySaved = false
-                            // CR-01: remember the clear locally — the stale `profile` snapshot still
-                            // carries the old key, and Save must NOT resurrect it.
-                            keyCleared = true
-                        },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Danger,
-                    )
-                }
-            }
-
-            if (scanned && discovered.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.printers_scan_none_found),
-                    color = t.text2,
-                    style = DinghyType.caption.toTextStyle(t),
-                )
-            }
-            for (printer in discovered) {
-                DiscoveredPrinterRow(
-                    uDp = grid.uDp,
-                    printer = printer,
-                    onClick = {
-                        host = printer.host
-                        port = printer.port.toString()
-                        hostError = false
-                        portError = false
-                    },
-                )
-            }
-
-            OutlinedControl(
-                label = stringResource(R.string.common_save),
+        // Foot actions — Back (contextual) · Test · Save.
+        val failedProbe = probe?.let { !it.http.ok || !it.ws.ok } == true
+        val saveLabel = if (failedProbe) stringResource(R.string.conn_save_anyway) else stringResource(R.string.common_save)
+        val footActions = listOf(
+            FootAction(
+                label = back,
+                icon = DinghyIcons.Back,
                 onClick = {
-                    val portInt = port.trim().toIntOrNull()
-                    val blankHost = host.isBlank()
-                    val badPort = portInt == null || portInt !in 1..65535
-                    hostError = blankHost
-                    portError = badPort
-                    if (!blankHost && !badPort) {
-                        // CR-01: Save-time resolution honors a prior "Clear key" — the stale snapshot's
-                        // old key must never resurrect through the blank-field preserve path.
-                        val resolvedKey = resolveEditorKeyOnSave(
-                            storedKey = profile?.apiKey,
-                            keyCleared = keyCleared,
-                            fieldInput = apiKey,
-                        )
-                        val cleanName = name.trim().ifBlank { null }
-                        val next = if (profile != null) {
-                            profile.copy(
-                                name = cleanName,
-                                host = host.trim(),
-                                port = portInt!!,
-                                apiKey = resolvedKey,
-                                useSecure = useSecure,
-                                nameAutoSeeded = resolveAutoSeededOnSave(cleanName, profile.nameAutoSeeded, profile.name),
-                            )
-                        } else {
-                            Profile(
-                                id = Profile.newId(),
-                                name = cleanName,
-                                host = host.trim(),
-                                port = portInt!!,
-                                apiKey = resolvedKey,
-                                useSecure = useSecure,
-                                nameAutoSeeded = resolveAutoSeededOnSave(cleanName, prior = false, priorName = null),
-                            )
-                        }
-                        container.saveProfile(next)
-                        apiKey = ""
-                        onDone()
+                    when {
+                        selected != null -> selected = null
+                        else -> onDone()
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Accent,
+                contentDescription = stringResource(R.string.cd_back),
+            ),
+            FootAction(
+                label = stringResource(R.string.conn_test),
+                icon = DinghyIcons.NetworkPing,
+                onClick = {
+                    val portInt = port.trim().toIntOrNull()?.takeIf { it in 1..65535 }
+                    portError = portInt == null
+                    when (val normalized = normalizeHost(host)) {
+                        is HostResult.Rejected -> hostError = normalized.reason
+                        is HostResult.Clean -> if (portInt != null) {
+                            host = normalized.host
+                            normalized.portOverride?.let { port = it.toString() }
+                            hostError = null
+                            probing = true
+                            probeJob?.cancel()
+                            val config = ConnectionConfig(
+                                host = normalized.host,
+                                port = normalized.portOverride ?: portInt,
+                                apiKey = resolveEditorKeyOnSave(profile?.apiKey, keyCleared, apiKey),
+                                useSecure = false,
+                                advancedUrl = advancedUrl.ifBlank { null },
+                            )
+                            probeJob = container.runConnectionProbe(config) { result ->
+                                probe = result
+                                probing = false
+                                probeJob = null
+                            }
+                        }
+                    }
+                },
+                intent = Intent.Accent,
+                enabled = host.isNotBlank() && !probing,
+            ),
+            FootAction(
+                label = saveLabel,
+                icon = DinghyIcons.CheckCircle,
+                onClick = {
+                    val portInt = port.trim().toIntOrNull()?.takeIf { it in 1..65535 }
+                    portError = portInt == null
+                    when (val normalized = normalizeHost(host)) {
+                        is HostResult.Rejected -> hostError = normalized.reason
+                        is HostResult.Clean -> if (portInt != null) {
+                            host = normalized.host
+                            normalized.portOverride?.let { port = it.toString() }
+                            val saved = buildProfileFromConnectionEditorSave(
+                                existing = profile,
+                                nameInput = name,
+                                host = normalized.host,
+                                port = normalized.portOverride ?: portInt,
+                                apiKeyInput = apiKey,
+                                keyCleared = keyCleared,
+                                advancedUrlInput = advancedUrl,
+                            )
+                            container.saveProfile(saved)
+                            apiKey = ""
+                            onDone()
+                        }
+                    }
+                },
                 intent = Intent.Go,
-            )
+            ),
+        )
 
-            OutlinedControl(
-                label = stringResource(R.string.common_back),
-                onClick = onDone,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Neutral,
-            )
-        }
-    }
-}
-
-/**
- * The R7 (26.5-07) useSecure toggle row — preserved from the original PrintersScreen.
- */
-@Composable
-private fun SecureToggleRow(
-    uDp: Dp,
-    label: String,
-    subLabel: String?,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
-    val outline = if (checked) t.accentLine else t.outline
-    Row(
-        Modifier
-            .fillMaxWidth()
-            // WR-08: 1U touch floor (GAP-A "All 1U" ruling) — fixed vertical padding alone fell
-            // below the floor at S text size.
-            .heightIn(min = uDp)
-            .clip(shape)
-            .border(BorderStroke(2.dp, outline), shape)
-            .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = label,
-                color = t.text,
-                style = DinghyType.listLabel.toTextStyle(t),
-            )
-            if (subLabel != null) {
-                Text(
-                    text = subLabel,
-                    color = t.text2,
-                    style = DinghyType.caption.toTextStyle(t),
+        ScreenScaffold(
+            focus = {
+                ConnFocus(
+                    profile = profile,
+                    selected = selected,
+                    urls = urls,
+                    probe = probe,
+                    probing = probing,
+                    name = name,
+                    host = host,
+                    port = port,
+                    apiKey = apiKey,
+                    advancedUrl = advancedUrl,
+                    hostError = hostError,
+                    keyAlreadySaved = keyAlreadySaved,
+                    keyCleared = keyCleared,
+                    discovered = discovered,
+                    scanning = scanning,
+                    uDp = uDp,
+                    isPrinting = isPrinting,
+                    estop = estop,
+                    onName = { name = it },
+                    onHost = { host = it; hostError = null },
+                    onPort = { port = it.filter(Char::isDigit); portError = false },
+                    onApiKey = { apiKey = it },
+                    onAdvancedUrl = { advancedUrl = it },
+                    onClearKey = {
+                        apiKey = ""
+                        keyAlreadySaved = false
+                        keyCleared = true
+                    },
+                    onScan = { if (!scanning) scanRequest++ },
+                    onPick = {
+                        host = it.host
+                        port = it.port.toString()
+                        hostError = null
+                        portError = false
+                        selected = null
+                    },
+                    onCommitHost = {
+                        when (val normalized = normalizeHost(host)) {
+                            is HostResult.Clean -> {
+                                host = normalized.host
+                                normalized.portOverride?.let { port = it.toString() }
+                                hostError = null
+                                selected = null
+                            }
+                            is HostResult.Rejected -> hostError = normalized.reason
+                        }
+                    },
+                    onDone = { selected = null },
                 )
-            }
-        }
-        val pillShape = RoundedCornerShape(t.rPill)
-        Box(
-            Modifier
-                .clip(pillShape)
-                .border(BorderStroke(2.dp, if (checked) t.accentLine else t.outline), pillShape)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-        ) {
-            Text(
-                text = if (checked) stringResource(R.string.common_on) else stringResource(R.string.common_off),
-                color = if (checked) t.accent else t.text2,
-                style = DinghyType.buttonLabel.toTextStyle(t),
-            )
-        }
+            },
+            field = {
+                ListBlock(modifier = Modifier.weight(1f)) {
+                    item {
+                        ConnListRow(ConnRow.Name, DinghyIcons.TextFields, stringResource(R.string.conn_row_name), name.ifBlank { stringResource(R.string.conn_row_name) }, selected, uDp) {
+                            selected = ConnRow.Name
+                        }
+                    }
+                    item {
+                        ConnListRow(ConnRow.Host, DinghyIcons.SysInfoCpu, stringResource(R.string.conn_row_host), host.ifBlank { "-" }, selected, uDp) {
+                            selected = ConnRow.Host
+                        }
+                    }
+                    item {
+                        ConnListRow(ConnRow.Port, DinghyIcons.Numbers, stringResource(R.string.conn_row_port), port, selected, uDp) {
+                            selected = ConnRow.Port
+                        }
+                    }
+                    item {
+                        ConnListRow(
+                            ConnRow.ApiKey,
+                            DinghyIcons.VpnKey,
+                            stringResource(R.string.conn_row_apikey),
+                            if (keyAlreadySaved && !keyCleared) stringResource(R.string.conn_apikey_set) else stringResource(R.string.conn_apikey_unset),
+                            selected,
+                            uDp,
+                        ) {
+                            selected = ConnRow.ApiKey
+                        }
+                    }
+                    item {
+                        ConnListRow(ConnRow.Find, DinghyIcons.Search, stringResource(R.string.conn_row_find), "", selected, uDp) {
+                            selected = ConnRow.Find
+                        }
+                    }
+                    item {
+                        ConnListRow(ConnRow.Advanced, DinghyIcons.LauncherCalibration, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
+                            selected = ConnRow.Advanced
+                        }
+                    }
+                }
+                FootButtonBar(uDp = grid.uDp, actions = footActions)
+            },
+        )
     }
 }
 
-/** A discovered-printer row (mDNS), local to the connection editor. */
+/** A selectable Field row that surfaces a connection field + its current value. */
 @Composable
-private fun DiscoveredPrinterRow(
+private fun ConnListRow(
+    row: ConnRow,
+    icon: DinghyIcon,
+    label: String,
+    value: String,
+    selected: ConnRow?,
     uDp: Dp,
-    printer: DiscoveredPrinter,
     onClick: () -> Unit,
 ) {
     val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            // WR-08: 1U touch floor (GAP-A "All 1U" ruling).
-            .heightIn(min = uDp)
-            .clip(shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    ListRow(
+        selected = selected == row,
+        onClick = onClick,
+        uDp = uDp,
+        leadingContent = { ListRowIcon(icon, uDp, t.text) },
+        trailingContent = {
+            Text(
+                text = value,
+                color = t.text2,
+                style = DinghyType.caption.toTextStyle(t),
+                maxLines = 1,
+                modifier = Modifier.basicMarquee(),
+            )
+        },
     ) {
         Text(
-            text = printer.name,
+            text = label,
             color = t.text,
             style = DinghyType.listLabel.toTextStyle(t),
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "${printer.host}:${printer.port}",
-            color = t.text2,
-            style = DinghyType.dataMeta.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth().basicMarquee(),
         )
     }
+}
+
+/** The Focus: an endpoint/Test summary at rest, or the selected field's inline editor. */
+@Composable
+private fun ConnFocus(
+    profile: Profile?,
+    selected: ConnRow?,
+    urls: ConnectionUrls,
+    probe: ProbeResult?,
+    probing: Boolean,
+    name: String,
+    host: String,
+    port: String,
+    apiKey: String,
+    advancedUrl: String,
+    hostError: String?,
+    keyAlreadySaved: Boolean,
+    keyCleared: Boolean,
+    discovered: List<DiscoveredPrinter>,
+    scanning: Boolean,
+    uDp: Dp,
+    isPrinting: Boolean,
+    estop: () -> Unit,
+    onName: (String) -> Unit,
+    onHost: (String) -> Unit,
+    onPort: (String) -> Unit,
+    onApiKey: (String) -> Unit,
+    onAdvancedUrl: (String) -> Unit,
+    onClearKey: () -> Unit,
+    onScan: () -> Unit,
+    onPick: (DiscoveredPrinter) -> Unit,
+    onCommitHost: () -> Unit,
+    onDone: () -> Unit,
+) {
+    FocusFrame(
+        title = profile?.let { stringResource(R.string.conn_title_edit, it.displayName()) }
+            ?: stringResource(R.string.conn_title_add),
+        icon = DinghyIcons.SystemRowPrinters,
+        uDp = uDp,
+        modifier = Modifier.fillMaxSize(),
+        isPrinting = isPrinting,
+        onEmergencyStop = estop,
+        onPanic = estop,
+    ) {
+        when (selected) {
+            null -> ConnSummary(urls = urls, probe = probe, probing = probing, uDp = uDp)
+            ConnRow.Name -> ConnTextEditor(
+                value = name,
+                onChange = onName,
+                label = stringResource(R.string.conn_row_name),
+                keyboard = KeyboardType.Text,
+                onDone = onDone,
+            )
+            ConnRow.Host -> ConnTextEditor(
+                value = host,
+                onChange = onHost,
+                label = stringResource(R.string.conn_row_host),
+                keyboard = KeyboardType.Text,
+                warning = hostError ?: if (host.trim().endsWith(".local")) stringResource(R.string.conn_local_warning) else null,
+                isError = hostError != null,
+                onDone = onCommitHost,
+            )
+            ConnRow.Port -> ConnTextEditor(
+                value = port,
+                onChange = onPort,
+                label = stringResource(R.string.conn_row_port),
+                keyboard = KeyboardType.Number,
+                onDone = onDone,
+            )
+            ConnRow.ApiKey -> ConnTextEditor(
+                value = apiKey,
+                onChange = onApiKey,
+                label = stringResource(R.string.conn_row_apikey),
+                keyboard = KeyboardType.Password,
+                isPassword = true,
+                warning = if (keyAlreadySaved && !keyCleared && apiKey.isBlank()) stringResource(R.string.conn_apikey_set) else stringResource(R.string.conn_apikey_hint),
+                secondaryAction = if (keyAlreadySaved && !keyCleared) {
+                    { OutlinedControl(label = stringResource(R.string.printers_clear_key), onClick = onClearKey, icon = null, intent = Intent.Danger, modifier = Modifier.fillMaxWidth()) }
+                } else {
+                    null
+                },
+                onDone = onDone,
+            )
+            ConnRow.Advanced -> ConnTextEditor(
+                value = advancedUrl,
+                onChange = onAdvancedUrl,
+                label = stringResource(R.string.conn_row_advanced),
+                keyboard = KeyboardType.Uri,
+                onDone = onDone,
+            )
+            ConnRow.Find -> ConnFindPanel(
+                discovered = discovered,
+                scanning = scanning,
+                uDp = uDp,
+                onScan = onScan,
+                onPick = onPick,
+            )
+        }
+    }
+}
+
+/** A single-field inline editor: a [TokenTextField], an optional warning + secondary action, a Done button. */
+@Composable
+private fun ConnTextEditor(
+    value: String,
+    onChange: (String) -> Unit,
+    label: String,
+    keyboard: KeyboardType,
+    modifier: Modifier = Modifier,
+    isPassword: Boolean = false,
+    warning: String? = null,
+    isError: Boolean = false,
+    secondaryAction: (@Composable () -> Unit)? = null,
+    onDone: () -> Unit,
+) {
+    val t = LocalTokens.current
+    Column(modifier.fillMaxSize()) {
+        TokenTextField(
+            value = value,
+            onValueChange = onChange,
+            label = label,
+            keyboardType = keyboard,
+            isPassword = isPassword,
+            isError = isError,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (warning != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = warning,
+                color = if (isError) t.stop else t.text2,
+                style = DinghyType.caption.toTextStyle(t),
+            )
+        }
+        secondaryAction?.let {
+            Spacer(Modifier.height(8.dp))
+            it()
+        }
+        Spacer(Modifier.weight(1f))
+        OutlinedControl(
+            label = stringResource(R.string.common_done),
+            onClick = onDone,
+            icon = DinghyIcons.CheckCircle,
+            intent = Intent.Go,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** The Find panel: a Scan button + a list of discovered printers (tap to fill host/port). */
+@Composable
+private fun ConnFindPanel(
+    discovered: List<DiscoveredPrinter>,
+    scanning: Boolean,
+    uDp: Dp,
+    onScan: () -> Unit,
+    onPick: (DiscoveredPrinter) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        OutlinedControl(
+            label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.conn_scan),
+            onClick = onScan,
+            icon = null,
+            intent = Intent.Accent,
+            enabled = !scanning,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        if (discovered.isEmpty()) {
+            Text(
+                text = stringResource(R.string.conn_scan_empty),
+                color = LocalTokens.current.text2,
+                style = DinghyType.caption.toTextStyle(LocalTokens.current),
+            )
+        } else {
+            ListBlock(modifier = Modifier.weight(1f)) {
+                items(discovered, key = { "${it.host}:${it.port}" }) { printer ->
+                    ConnListRow(
+                        row = ConnRow.Find,
+                        icon = DinghyIcons.SysInfoCpu,
+                        label = printer.host,
+                        value = printer.port.toString(),
+                        selected = null,
+                        uDp = uDp,
+                    ) {
+                        onPick(printer)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The at-rest Focus: the live endpoint preview + the most recent Test (probe) result. */
+@Composable
+private fun ConnSummary(
+    urls: ConnectionUrls,
+    probe: ProbeResult?,
+    probing: Boolean,
+    uDp: Dp,
+) {
+    val t = LocalTokens.current
+    Column(Modifier.fillMaxSize()) {
+        Text(
+            text = urls.wsUrl.ifBlank { "-" },
+            color = t.text,
+            style = DinghyType.dataMeta.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth().basicMarquee(),
+        )
+        Spacer(Modifier.height(12.dp))
+        when {
+            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = DinghyType.caption.toTextStyle(t))
+            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = DinghyType.caption.toTextStyle(t))
+            else -> {
+                ProbeLine(stringResource(R.string.conn_test_http), probe.http.ok, probe.http.failure, uDp)
+                ProbeLine(stringResource(R.string.conn_test_ws), probe.ws.ok, probe.ws.failure, uDp)
+            }
+        }
+    }
+}
+
+/** One transport's probe result line: a pass/fail glyph + a labelled outcome. */
+@Composable
+private fun ProbeLine(label: String, ok: Boolean, failure: ProbeFailure?, uDp: Dp) {
+    val t = LocalTokens.current
+    Row(
+        modifier = Modifier.fillMaxWidth().height(uDp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DinghyIconView(
+            icon = if (ok) DinghyIcons.CheckCircle else DinghyIcons.XCircle,
+            tint = if (ok) t.go else t.stop,
+            sizeDp = uDp * 0.5f,
+            contentDescription = label,
+        )
+        Text(
+            text = if (ok) label else "$label: ${stringResource(failure.toMessageRes())}",
+            color = if (ok) t.text else t.stop,
+            style = DinghyType.caption.toTextStyle(t),
+            maxLines = 1,
+            modifier = Modifier.padding(start = 8.dp).basicMarquee(),
+        )
+    }
+}
+
+private fun ProbeFailure?.toMessageRes(): Int = when (this) {
+    ProbeFailure.Timeout -> R.string.conn_fail_timeout
+    ProbeFailure.Refused -> R.string.conn_fail_refused
+    ProbeFailure.Unauthorized -> R.string.conn_fail_unauthorized
+    ProbeFailure.Certificate -> R.string.conn_fail_cert
+    ProbeFailure.Unknown, null -> R.string.conn_fail_unknown
 }
