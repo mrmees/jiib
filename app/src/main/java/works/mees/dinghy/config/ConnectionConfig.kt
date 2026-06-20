@@ -18,6 +18,9 @@ data class ConnectionConfig(
     // R7 (26.5-07, option B): switch the URL getters between ws/http and wss/https. Defaults FALSE
     // so every pre-R7 persisted config keeps today's plain-LAN posture unchanged (migration safety).
     val useSecure: Boolean = false,
+    // 2026-06-19: optional full URL override for proxied/reverse-proxied Moonraker installs.
+    // When non-null, consumers should prefer this over building URLs from host/port/useSecure.
+    val advancedUrl: String? = null,
 ) {
     /**
      * REST base, e.g. `http://192.168.1.50:7125` — or `https://…` when [useSecure] is set (R7,
