@@ -357,6 +357,30 @@ object DinghyIcons {
     /** Heat-preset delete REUSES the real Files-delete `delete` glyph. */
     val HeatPresetDelete = Delete
 
+    // --- Connection Editor glyphs (feat/connection-editor-redesign, OWNER-LOCKED — never
+    // invent/substitute, icon law [[dinghy-never-pick-icons-ask]]). All verified resolvable in the
+    // bundled v2.944 Material Symbols ttf (verify_ligatures.py gate). NOTE: the Port row glyph
+    // (`123`) is NOT in the bundled v2.944 font — owner must assign an alternate or provide a
+    // custom drawable; that token is intentionally absent here until resolved.
+    /** Connection editor Focus header / screen identity glyph. Reuses SystemRowPrinters. */
+    // Focus header → android_wifi_3_bar_plus → DinghyIcons.SystemRowPrinters (existing)
+    /** Name row label glyph — owner-chosen `text_fields`. */
+    val TextFields   = DinghyIcon(IconRef.Ligature("text_fields"),  alternate = "conn_name_row")
+    /** Host row + Discovered-printer row glyph. Reuses SysInfoCpu (developer_board). */
+    // Host/Discovered row → developer_board → DinghyIcons.SysInfoCpu (existing)
+    /** API key row glyph — owner-chosen `vpn_key`. */
+    val VpnKey       = DinghyIcon(IconRef.Ligature("vpn_key"),      alternate = "conn_api_key_row")
+    /** Find-on-network row glyph — owner-chosen `search`. */
+    val Search       = DinghyIcon(IconRef.Ligature("search"),       alternate = "conn_find_row")
+    /** Advanced row glyph. Reuses LauncherCalibration (tune). */
+    // Advanced row → tune → DinghyIcons.LauncherCalibration (existing)
+    /** Test connection foot action glyph — owner-chosen `network_ping`. */
+    val NetworkPing  = DinghyIcon(IconRef.Ligature("network_ping"), alternate = "conn_test_action")
+    /** Probe pass indicator glyph. Reuses CheckCircle (check_circle). */
+    // Probe pass → check_circle → DinghyIcons.CheckCircle (existing)
+    /** Probe fail indicator glyph — owner-chosen `x_circle`. */
+    val XCircle      = DinghyIcon(IconRef.Ligature("x_circle"),     alternate = "conn_probe_fail")
+
     /** Temperature screen Monitor→Adjust toggle — owner-chosen `fire_check`. */
     val FireCheck  = DinghyIcon(IconRef.Ligature("fire_check"),  alternate = "temp_enter_adjust")
     /** The built-in "OFF" row in the Heaters list — owner-chosen `thermometer`. */
@@ -415,6 +439,7 @@ object DinghyIcons {
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose,
         TempPresets,
         HeatPresetAdd, HeatPresetEdit, FireCheck, HeatersOff,
+        TextFields, VpnKey, Search, NetworkPing, XCircle,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
     )
