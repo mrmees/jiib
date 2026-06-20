@@ -359,9 +359,8 @@ object DinghyIcons {
 
     // --- Connection Editor glyphs (feat/connection-editor-redesign, OWNER-LOCKED — never
     // invent/substitute, icon law [[dinghy-never-pick-icons-ask]]). All verified resolvable in the
-    // bundled v2.944 Material Symbols ttf (verify_ligatures.py gate). NOTE: the Port row glyph
-    // (`123`) is NOT in the bundled v2.944 font — owner must assign an alternate or provide a
-    // custom drawable; that token is intentionally absent here until resolved.
+    // refreshed Material Symbols ttf (verify_ligatures.py gate). Font refreshed on this branch to
+    // include the `123` glyph for the Port row (glyph name `_123` in the GSUB output set).
     /** Connection editor Focus header / screen identity glyph. Reuses SystemRowPrinters. */
     // Focus header → android_wifi_3_bar_plus → DinghyIcons.SystemRowPrinters (existing)
     /** Name row label glyph — owner-chosen `text_fields`. */
@@ -380,6 +379,9 @@ object DinghyIcons {
     // Probe pass → check_circle → DinghyIcons.CheckCircle (existing)
     /** Probe fail indicator glyph — owner-chosen `x_circle`. */
     val XCircle      = DinghyIcon(IconRef.Ligature("x_circle"),     alternate = "conn_probe_fail")
+    /** Port row label glyph — owner-chosen `123` (GSUB output glyph `_123`). Font was refreshed
+     *  on this branch (feat/connection-editor-redesign) to include this glyph. */
+    val Numbers      = DinghyIcon(IconRef.Ligature("123"),          alternate = "123")
 
     /** Temperature screen Monitor→Adjust toggle — owner-chosen `fire_check`. */
     val FireCheck  = DinghyIcon(IconRef.Ligature("fire_check"),  alternate = "temp_enter_adjust")
@@ -439,7 +441,7 @@ object DinghyIcons {
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose,
         TempPresets,
         HeatPresetAdd, HeatPresetEdit, FireCheck, HeatersOff,
-        TextFields, VpnKey, Search, NetworkPing, XCircle,
+        TextFields, VpnKey, Search, NetworkPing, XCircle, Numbers,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
     )

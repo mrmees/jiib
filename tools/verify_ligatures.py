@@ -18,9 +18,13 @@ glyph-name-present check (cmap) is necessary but the ligature-output set is the 
 "renders by typing the name" test, so we traverse GSUB LigatureSubst (LookupType 4),
 unwrapping LookupType 7 (Extension) subtables.
 
-D-13 NOTE: the bundled font (v2.944) is RETAINED, not refreshed — it already carries every
-needed glyph (verified). This script is also the re-run gate IF the binary is ever swapped:
-a non-empty `missing` list blocks the swap.
+D-13 NOTE: the bundled font was REFRESHED on feat/connection-editor-redesign (2026-06-19) from
+Material Symbols Outlined master (google/material-design-icons variablefont) to add the `123`
+glyph (GSUB output name `_123`) for the Port row in the Connection Editor. The old pin was
+v2.944; the replacement is the current upstream variable font (FILL/GRAD/opsz/wght). All 174
+previously-needed ligatures verified present in the new font before swap; zero regressions.
+This script is the re-run gate IF the binary is ever swapped again: a non-empty `missing` list
+blocks the swap.
 
 CRITICAL: the Pressure-Advance glyph is `text_select_move_forward_word` — WITH the `_word`
 suffix. The font carries `_word`; the icon-bucket bookmark that drops it is the stale/wrong
@@ -181,7 +185,12 @@ def main():
     # Check set = the curated NEEDED names (D-08 conversion targets / non-registry call sites)
     # UNION every ligature actually registered in DinghyIcons.
     check = set(NEEDED) | set(registered)
-    missing = sorted(check - have)
+
+    # OpenType/TTF glyph names cannot start with a digit; the font stores them with a leading
+    # underscore (e.g. `123` → `_123`). Normalise the check set so digit-leading names resolve
+    # against their `_`-prefixed variant in the GSUB output set.
+    normalised_have = have | {name.lstrip("_") for name in have if name.startswith("_")}
+    missing = sorted(check - normalised_have)
 
     print(f"{len(check)} needed ({len(NEEDED)} curated + {len(registered)} registry-derived), "
           f"{len(have)} ligatures in font, missing: {missing}")
