@@ -1,6 +1,7 @@
 // GREEN (Plan 20-02) — live assertions against the both-SBC system_info fixtures.
 package works.mees.dinghy.systeminfo
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import works.mees.dinghy.net.MoonrakerJson
@@ -60,5 +61,15 @@ class SystemInfoParseTest {
         assertTrue("kernel_version is NOT a top-level system_info key", !sysInfo.containsKey("kernel_version"))
         val info = SystemInfo.from(systemInfoE5())
         assertEquals("6.12.87+rpt-rpi-v8", info.kernel)
+    }
+
+    @Test
+    fun parsesProviderAndAvailableServices() {
+        val result = Json.parseToJsonElement(
+            """{"system_info":{"provider":"systemd_dbus","available_services":["klipper","moonraker"]}}""",
+        ).jsonObject
+        val info = SystemInfo.from(result)
+        assertEquals("systemd_dbus", info.provider)
+        assertEquals(listOf("klipper", "moonraker"), info.availableServices)
     }
 }

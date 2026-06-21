@@ -41,6 +41,7 @@ data class PrintStartArgs(val filename: String)
 data class HistoryListArgs(val limit: Int = 1, val order: String = "desc")
 data class GcodeStoreArgs(val count: Int = 1000)
 data class ObjectSubsetArgs(val objects: Set<String>)
+data class ServiceRestartArgs(val service: String)
 class ServerInfoArgs private constructor()
 
 /**
@@ -438,6 +439,30 @@ object CommandRegistry {
         method = JsonRpcMethods.RESTART,
         key = { "host_restart" },
         params = { null },
+    )
+
+    /** `machine.reboot` — reboot the host SBC. Destructive; the websocket WILL drop. */
+    val machineReboot: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-machine.reboot",
+        method = JsonRpcMethods.MACHINE_REBOOT,
+        key = { "machine_reboot" },
+        params = { null },
+    )
+
+    /** `machine.shutdown` — power off the host SBC. Destructive; the websocket WILL drop. */
+    val machineShutdown: CommandSpec<Unit> = jsonRpc(
+        catalogId = "MR-machine.shutdown",
+        method = JsonRpcMethods.MACHINE_SHUTDOWN,
+        key = { "machine_shutdown" },
+        params = { null },
+    )
+
+    /** `machine.services.restart` — restart a host service (we use it for `moonraker`). */
+    val restartService: CommandSpec<ServiceRestartArgs> = jsonRpc(
+        catalogId = "MR-machine.services.restart",
+        method = JsonRpcMethods.MACHINE_SERVICES_RESTART,
+        key = { args -> "services_restart_${args.service}" },
+        params = { args -> buildJsonObject { put("service", args.service) } },
     )
 
     val setHeater: CommandSpec<SetHeaterArgs> = gcode(
@@ -849,6 +874,9 @@ object CommandRegistry {
         emergencyStop,
         firmwareRestart,
         restart,
+        machineReboot,
+        machineShutdown,
+        restartService,
         setHeater,
         applyHeatPreset,
         setTemperatureFan,

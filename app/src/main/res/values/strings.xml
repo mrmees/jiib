@@ -283,38 +283,33 @@
 
     <!-- ============================ system information (Phase 20) ============================ -->
     <string name="sysinfo_title">System Information</string>
-    <!-- Focus health-summary rows. -->
-    <string name="sysinfo_host">Host</string>
-    <string name="sysinfo_cpu_temp">CPU temp</string>
-    <string name="sysinfo_health">Health</string>
-    <string name="sysinfo_uptime">Uptime</string>
-    <!-- Field section headers. -->
-    <string name="sysinfo_section_host">Host</string>
-    <string name="sysinfo_section_live">Live load</string>
-    <!-- Field Host rows. -->
-    <string name="sysinfo_cpu">CPU</string>
-    <string name="sysinfo_ram">Total RAM</string>
-    <string name="sysinfo_distro">Distro</string>
-    <string name="sysinfo_kernel">Kernel</string>
-    <!-- Field Live-load rows. -->
-    <string name="sysinfo_cpu_load">CPU load</string>
-    <string name="sysinfo_memory">Memory</string>
-    <!-- The three shape-coded health-chip states (the visible label; the shape carries safety). -->
-    <string name="sysinfo_health_healthy">Healthy</string>
-    <string name="sysinfo_health_warn">Warning</string>
-    <string name="sysinfo_health_caution">Caution</string>
-    <!-- contentDescriptions for the leading per-row glyphs (icon law D-02..D-10). -->
+    <!-- contentDescription for the host row icon (DeviceRow in the Field list). -->
     <string name="cd_sysinfo_host">Host</string>
-    <string name="cd_sysinfo_cpu_temp">CPU temperature</string>
-    <string name="cd_sysinfo_uptime">Uptime</string>
-    <string name="cd_sysinfo_cpu">Processor</string>
-    <string name="cd_sysinfo_ram">Memory</string>
-    <string name="cd_sysinfo_distro">Distribution</string>
-    <string name="cd_sysinfo_kernel">Kernel</string>
-    <string name="cd_sysinfo_cpu_load">CPU load</string>
-    <string name="cd_sysinfo_mem_usage">Memory usage</string>
-    <!-- contentDescription for the shape-coded health chip glyph. -->
-    <string name="cd_sysinfo_health">Host health</string>
+
+    <!-- ===================== system info device browser (Part 2) ===================== -->
+    <string name="sysinfo_device_host">Host</string>
+    <string name="sysinfo_mcu_mainboard">Mainboard</string>
+    <string name="sysinfo_mcu_host">Host MCU</string>
+    <!-- Actions -->
+    <string name="sysinfo_action_reboot">Reboot</string>
+    <string name="sysinfo_action_shutdown">Shutdown</string>
+    <string name="sysinfo_action_restart_moonraker">Restart Moonraker</string>
+    <string name="sysinfo_action_firmware_restart">Firmware Restart</string>
+    <string name="sysinfo_action_restart_klipper">Restart Klipper</string>
+    <!-- Confirm copy -->
+    <string name="sysinfo_confirm_reboot_title">Reboot host?</string>
+    <string name="sysinfo_confirm_reboot_msg">The printer host will reboot. The connection will drop while it restarts.</string>
+    <string name="sysinfo_confirm_shutdown_title">Shut down host?</string>
+    <string name="sysinfo_confirm_shutdown_msg">The printer host will power off and the connection will drop. You\'ll need to power it back on physically.</string>
+    <string name="sysinfo_confirm_restart_moonraker_title">Restart Moonraker?</string>
+    <string name="sysinfo_confirm_restart_moonraker_msg">Moonraker will restart. The connection will drop briefly and reconnect on its own.</string>
+    <string name="sysinfo_confirm_firmware_restart_title">Firmware restart?</string>
+    <string name="sysinfo_confirm_firmware_restart_msg">Restarts Klipper firmware on ALL connected boards, not just this one. The printer will be unavailable for a few seconds while it reconnects.</string>
+    <string name="sysinfo_confirm_restart_klipper_title">Restart Klipper?</string>
+    <string name="sysinfo_confirm_restart_klipper_msg">Klipper will soft-restart on all boards and the printer will be briefly unavailable. Any active print will be lost.</string>
+    <string name="sysinfo_confirm_common">Confirm</string>
+    <!-- contentDescriptions -->
+    <string name="cd_sysinfo_device_mcu">MCU board</string>
 
     <!-- Design Kit layout primitives (Phase 23) — preview strings. -->
     <string name="cd_unit_grid_demo">Unit grid demonstration</string>
@@ -724,7 +719,11 @@
     <string name="printer_settings_connection">Connection</string>
     <string name="printer_settings_theme">Theme &amp; colors</string>
     <string name="printer_settings_system_info">System Info</string>
-    <string name="printer_settings_power">Power</string>
+    <string name="printer_settings_power">Power / Reset</string>
+
+    <!-- ============== Power / Reset screen (Task A) ============== -->
+    <string name="power_reset_title">Power / Reset</string>
+    <string name="power_reset_blurb">Host reboot and shutdown require a compatible service manager. Klipper and Moonraker restarts work on any setup.</string>
 
     <!-- ============== app settings screen — text size (Phase 29) ============== -->
     <string name="settings_text_size">Text size</string>

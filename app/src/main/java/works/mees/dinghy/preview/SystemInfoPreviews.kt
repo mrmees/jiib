@@ -21,6 +21,9 @@ import works.mees.dinghy.ui.systeminfo.SystemInformationContent
  * A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette MODE; the themes MUST be
  * explicit [PreviewBox] seed wrappers, and `fs = L` is injected via [fsLargeSeed] (NOT `@Preview(fontScale)`,
  * a verified NO-OP — the #1 copy-paste trap).
+ *
+ * NOTE: This file was the Phase-20 era preview. The newer per-axis matrix lives in [SysInfoPreviews].
+ * These cells call the rebuilt [SystemInformationContent] (Task 9) — mcus=null, versions=null, no-op actions.
  */
 
 // --- Sample states ----------------------------------------------------------------------------------
@@ -87,13 +90,16 @@ private val cautionLive = ProcStatLive(
     memAvailableKb = 607_452L,
 )
 
-// --- Stateless cells --------------------------------------------------------------------------------
+// --- Stateless cells (updated for Task-9 signature: mcus=null, no-op actions) ---------------------
 
 @Composable
 private fun HealthyRpi4Cell() = SystemInformationContent(
     identity = rpi4Identity,
     procStats = rpi4ProcStats,
     live = rpi4Live,
+    mcus = null,
+    klipperVersion = null,
+    moonrakerVersion = null,
     onBack = {},
 )
 
@@ -102,6 +108,9 @@ private fun TempFallbackRockProCell() = SystemInformationContent(
     identity = rockProIdentity,
     procStats = rockProProcStats,
     live = rockProLive,
+    mcus = null,
+    klipperVersion = null,
+    moonrakerVersion = null,
     onBack = {},
 )
 
@@ -111,6 +120,9 @@ private fun DegradedCell() = SystemInformationContent(
     identity = SystemInfo(),
     procStats = ProcStatQuery(),
     live = null,
+    mcus = null,
+    klipperVersion = null,
+    moonrakerVersion = null,
     onBack = {},
 )
 
@@ -119,6 +131,9 @@ private fun CautionCell() = SystemInformationContent(
     identity = rpi4Identity,
     procStats = cautionProcStats,
     live = cautionLive,
+    mcus = null,
+    klipperVersion = null,
+    moonrakerVersion = null,
     onBack = {},
 )
 

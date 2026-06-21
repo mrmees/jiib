@@ -4,11 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +35,6 @@ import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
@@ -103,6 +99,7 @@ fun PrinterSettingsScreen(
         onSystemInfo = { onNavigate(NavDest.SystemInfo) },
         onHeatPresets = { onNavigate(NavDest.HeatPresets) },
         onIncrementValues = { onNavigate(NavDest.IncrementValues) },
+        onPower = { onNavigate(NavDest.Power) },
         onAdd = { editingConnection = true },
         onBack = onBack,
         modifier = modifier,
@@ -148,6 +145,7 @@ fun PrinterSettingsContent(
     onSystemInfo: () -> Unit,
     onHeatPresets: () -> Unit = {},
     onIncrementValues: () -> Unit = {},
+    onPower: () -> Unit = {},
     onAdd: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -256,17 +254,7 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 3: System Info
-                        item {
-                            PrinterSettingsNavRow(
-                                icon = DinghyIcons.SysInfoTile,
-                                label = stringResource(R.string.printer_settings_system_info),
-                                onClick = onSystemInfo,
-                                uDp = grid.uDp,
-                            )
-                        }
-
-                        // Row 4: Heat Presets — per-printer preheat preset editor
+                        // Row 3: Heat Presets — per-printer preheat preset editor
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.TempPresets,
@@ -276,7 +264,7 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 4b: Increment Values — per-printer step-selector value lists
+                        // Row 4: Increment Values — per-printer step-selector value lists
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.FineTune,
@@ -286,9 +274,24 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 5: Power stub — inert, stop-tinted (D-08 parity with PowerStubRow)
+                        // Row 5: System Info — sits just above Power / Reset (owner UAT)
                         item {
-                            PrinterSettingsPowerStubRow(uDp = grid.uDp)
+                            PrinterSettingsNavRow(
+                                icon = DinghyIcons.SysInfoTile,
+                                label = stringResource(R.string.printer_settings_system_info),
+                                onClick = onSystemInfo,
+                                uDp = grid.uDp,
+                            )
+                        }
+
+                        // Row 6: Power / Reset — navigates to the Power/Reset page (Task A)
+                        item {
+                            PrinterSettingsNavRow(
+                                icon = DinghyIcons.SystemRowPower,
+                                label = stringResource(R.string.printer_settings_power),
+                                onClick = onPower,
+                                uDp = grid.uDp,
+                            )
                         }
 
                     }
@@ -359,36 +362,6 @@ private fun PrinterSettingsNavRow(
     }
 }
 
-/**
- * Power stub row — inert, stop-tinted at 0.38f (D-08 parity with [PowerStubRow] in
- * [SystemPageScreen]). No onClick; no leading [ListRowIcon] wrapper — uses [DinghyIconView]
- * directly like the SystemPage counterpart.
- */
-@Composable
-private fun PrinterSettingsPowerStubRow(uDp: Dp) {
-    val t = LocalTokens.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = uDp)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DinghyIconView(
-            icon = DinghyIcons.SystemRowPower,
-            contentDescription = null,
-            tint = t.stop.copy(alpha = 0.38f),
-            sizeDp = uDp * 0.6f,
-            modifier = Modifier.padding(end = 12.dp),
-        )
-        Text(
-            text = stringResource(R.string.printer_settings_power),
-            color = t.stop.copy(alpha = 0.38f),
-            style = DinghyType.listLabel.toTextStyle(t),
-        )
-        Spacer(Modifier.weight(1f))
-    }
-}
 
 // =============================================================================
 // Connection-state label resource (private to this file)

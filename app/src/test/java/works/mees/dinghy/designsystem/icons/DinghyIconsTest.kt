@@ -83,8 +83,12 @@ class DinghyIconsTest {
         // Note: "mode_heat_off" was previously shared by HideTemps + TempCooldown + FootCooldown;
         //     TempCooldown and FootCooldown were removed in the Heaters cleanup (2026-06-18), leaving
         //     HideTemps as the sole user — no longer a duplicate, removed from the allow-list.
+        //   - "memory": SysInfoRam (host RAM detail) + McuFirmwareRestart (MCU action) — host detail
+        //     and MCU action buttons never co-occur; owner-chosen intentional reuse (Part 2, 2026-06-21).
+        //   - "refresh": Revert (adjuster revert glyph) + RestartKlipper (MCU action) — adjuster Focus
+        //     and device-browser MCU actions never co-occur; owner-chosen intentional reuse (Part 2, 2026-06-21).
         val allowedSharedLigatures =
-            setOf("output_circle", "palette", "settings", "print")
+            setOf("output_circle", "palette", "settings", "print", "memory", "refresh")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->

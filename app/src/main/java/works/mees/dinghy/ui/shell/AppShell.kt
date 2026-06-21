@@ -96,6 +96,7 @@ import works.mees.dinghy.ui.systeminfo.SystemInformationScreen
 import works.mees.dinghy.ui.outputs.OutputsScreen
 import works.mees.dinghy.ui.screen.PrintersScreen
 import works.mees.dinghy.ui.screen.AppSettingsScreen
+import works.mees.dinghy.ui.screen.PowerResetScreen
 import works.mees.dinghy.ui.screen.PrinterSettingsScreen
 import works.mees.dinghy.ui.screen.SystemPageScreen
 import works.mees.dinghy.ui.screen.ThemeScreen
@@ -747,6 +748,19 @@ fun AppShell(
                     onBack = { navController.popBackStack() },
                 )
             }
+            composable<NavDest.Power> {
+                // NavDest.Power (Task A): Power / Reset page reached from Printer Settings.
+                // Mirrors SystemInfo wiring — reuses the systemInfoHolder's identity flow for
+                // host-action availability. FocusFrame docks the e-stop (page reachable mid-print).
+                PowerResetScreen(
+                    holder = systemInfoHolder,
+                    dispatcher = dispatcher,
+                    isPrinting = printerState.printState == PrintState.Printing ||
+                        printerState.printState == PrintState.Paused,
+                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable<NavDest.PrinterSettings> {
                 PrinterSettingsScreen(
                     container = container,
@@ -964,6 +978,7 @@ fun AppShell(
             estopDest.isRoute<NavDest.SystemInfo>() ||
             estopDest.isRoute<NavDest.AppSettings>() ||
             estopDest.isRoute<NavDest.PrinterSettings>() ||
+            estopDest.isRoute<NavDest.Power>() ||
             estopDest.isRoute<NavDest.ManagePrinters>() ||
             estopDest.isRoute<NavDest.Theme>()
         )

@@ -165,6 +165,21 @@ object DinghyIcons {
     val SysInfoKernel = DinghyIcon(IconRef.Ligature("code_blocks"), alternate = "sysinfo_kernel")     // D-08 kernel
     val SysInfoMemUsage = DinghyIcon(IconRef.Ligature("data_usage"), alternate = "sysinfo_mem_usage") // D-10 memory used/total
 
+    // ── System Info device browser (Part 2, 2026-06-21; owner-selected glyphs) ──────────────
+    /** MCU/mainboard device row + Focus header. Owner pick: a distinct chip glyph (NOT developer_board,
+     *  which is the host CPU detail row shown simultaneously). */
+    val McuDevice = DinghyIcon(IconRef.Ligature("memory_alt"), alternate = "mcu_device")
+    /** Host Reboot action (machine.reboot, destructive). */
+    val HostReboot = DinghyIcon(IconRef.Ligature("restart_alt"), alternate = "host_reboot")
+    /** Restart Moonraker service action (machine.services.restart, hazardous-in-process). */
+    val RestartService = DinghyIcon(IconRef.Ligature("sync_alt"), alternate = "restart_service")
+    /** MCU Firmware Restart (printer.firmware_restart, "restarts all boards"). Shares the `memory`
+     *  ligature with SysInfoRam by owner choice — see DinghyIconsTest allow-list. */
+    val McuFirmwareRestart = DinghyIcon(IconRef.Ligature("memory"), alternate = "mcu_firmware_restart")
+    /** Restart Klipper (printer.restart soft restart). Shares the `refresh` ligature with Revert by
+     *  owner choice — see DinghyIconsTest allow-list. */
+    val RestartKlipper = DinghyIcon(IconRef.Ligature("refresh"), alternate = "restart_klipper")
+
     // --- FineTune exemplar glyphs (18-06) ---
     // MaxVelocity/MaxAccel render the OFFICIAL Material Symbols glyph via the bundled font (Ligature) —
     // NOT a hand-traced local vector. The font is already a shipped dependency used app-wide (PrintStatus
@@ -419,6 +434,7 @@ object DinghyIcons {
         OutputHeater, OutputFan, OutputLed, OutputServo, OutputPin, OutputPwmTool, OutputSection,
         SysInfoTile, SysInfoHost, SysInfoUptime, SysInfoCpu, SysInfoRam, SysInfoDistro,
         SysInfoKernel, SysInfoMemUsage,
+        McuDevice, HostReboot, RestartService, McuFirmwareRestart, RestartKlipper,
         Sort, FilterList, ExpandCircleUp, ExpandCircleDown, ResetWrench, ResetSettings, QrCodeScanner, DeleteSweep,
         SpoolChange, SpoolClear, SpoolLocation, SpoolUsageStale, SpoolChangedExternally, SpoolFilament,
         ScanNoPermission, ScanNoCamera, ScanCameraBusy, ScanCameraFlip, ScanUsePicker,
