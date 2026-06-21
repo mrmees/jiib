@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.Composable
@@ -89,24 +90,30 @@ val FocusInset: Dp = 16.dp
  * every state change (jank on Adreno 320 — see 23-PATTERNS anti-pattern 2).
  *
  * @param modifier Applied to the outer `Box` container.
+ * @param state Optional `LazyListState` for callers that need to drive scroll position (e.g. jump
+ *   to the top when a sort order changes). Defaults to an internally-remembered state, so existing
+ *   call sites that don't care keep working unchanged.
  * @param content The `LazyListScope` lambda; the caller builds `items(...)` blocks here.
  */
 @Composable
 fun ListBlock(
     modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
     content: LazyListScope.() -> Unit,
 ) {
     val t = LocalTokens.current
-    val listState = rememberLazyListState()
+    val listState = state
 
     // Derive scroll edge signals in derivedStateOf to avoid recomposing the whole tree on every
     // scroll event — only the fade visibility changes, not the list content.
-    val showTopFade by remember {
+    // Key on listState: it is now caller-suppliable, so a swapped instance must rebind these
+    // derivations (otherwise the fades keep observing the original state).
+    val showTopFade by remember(listState) {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
         }
     }
-    val showBottomFade by remember {
+    val showBottomFade by remember(listState) {
         derivedStateOf { listState.canScrollForward }
     }
 

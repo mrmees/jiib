@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,13 +28,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -499,37 +501,101 @@ private fun FilesDetailContent(
             )
         }
 
-        // FOREGROUND — future-print stats, top-aligned, left-aligned. Top-anchored (not centered)
-        // so the stats sit directly under the header; with the filename removed, centering left a
-        // large gap below the title bar.
-        // Filename is now shown in the FocusFrame header title; no need to repeat it here.
-        Column(
-            Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                // top=0 so the stats sit flush under the header (the FocusFrame top inset is already
-                // 0); 8dp side/bottom only. Was padding(8.dp) all-round, which re-added a top gap.
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        // FOREGROUND — future-print stats as a fill-to-fit, vertically-centered data block. The
+        // filename lives in the FocusFrame header; these rows grow into spare room (and shrink when
+        // cramped) so the block always reads at the largest size that fits — same treatment as the
+        // active-print Focus data block.
+        val lines: List<FileStat> = buildList {
             preview?.let { p ->
-                p.estimatedTime?.let { FileStatRow(DinghyIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it), t) }
+                p.estimatedTime?.let { add(FileStat(DinghyIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it))) }
                 p.filamentTotal?.let { ft ->
                     val w = p.filamentWeightTotal?.let { g -> " · ${"%.1f".format(Locale.US, g)} g" }.orEmpty()
-                    FileStatRow(DinghyIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w", t)
+                    add(FileStat(DinghyIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w"))
                 }
-                p.layerCount?.let { FileStatRow(DinghyIcons.Layers, stringResource(R.string.files_stat_layers), it.toString(), t) }
-                p.objectHeight?.let { FileStatRow(DinghyIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm", t) }
+                p.layerCount?.let { add(FileStat(DinghyIcons.Layers, stringResource(R.string.files_stat_layers), it.toString())) }
+                p.objectHeight?.let { add(FileStat(DinghyIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm")) }
             }
             (preview?.sizeBytes ?: selected.sizeBytes)?.let {
-                FileStatRow(DinghyIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it), t)
+                add(FileStat(DinghyIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it)))
             }
             (preview?.modifiedEpochSeconds ?: selected.modifiedEpochSeconds)?.let {
-                FileStatRow(DinghyIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it), t)
+                add(FileStat(DinghyIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it)))
             }
             if (preview == null) {
-                FileStatRow(DinghyIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading), t)
+                add(FileStat(DinghyIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading)))
             }
+        }
+
+        FilesFocusStats(
+            lines = lines,
+            t = t,
+            modifier = Modifier
+                .matchParentSize()
+                .padding(8.dp),
+        )
+    }
+}
+
+/** One future-print stat line: icon + dim label + GeistMono value. */
+private data class FileStat(
+    val icon: works.mees.dinghy.designsystem.icons.DinghyIcon,
+    val label: String,
+    val value: String,
+)
+
+/** Inter-row spacing in the fill-to-fit focus stat block (fixed — does NOT scale with the text). */
+private val StatRowGap: Dp = 4.dp
+
+/**
+ * The future-print stat block: vertically centered and uniformly scaled to fill the focus area.
+ *
+ * One scale fits the WIDEST row to the available width AND all rows (+ fixed gaps) to the available
+ * height — growing into spare room as well as shrinking when cramped (mirrors the active-print Focus
+ * data block). The scale is keyed on line LENGTHS, not contents, so live-value churn never re-sizes
+ * the block (no jitter). Clamped so text never runs away or drops below a readable floor.
+ */
+@Composable
+private fun FilesFocusStats(
+    lines: List<FileStat>,
+    t: ThemeTokens,
+    modifier: Modifier = Modifier,
+) {
+    if (lines.isEmpty()) return
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier) {
+        val labelStyle = DinghyType.caption.toTextStyle(t, fsSp(15f, t.fs))
+        val valueStyle = DinghyType.dataInline.toTextStyle(t, fsSp(20f, t.fs))
+        val availW = with(density) { maxWidth.toPx() }
+        val availH = with(density) { maxHeight.toPx() }
+        val iconRefPx = with(density) { fsSp(18f, t.fs).dp.toPx() }
+        val innerGapPx = with(density) { 8.dp.toPx() }   // intra-row icon/label/value gaps (×2)
+        val rowGapPx = with(density) { StatRowGap.toPx() }
+
+        val key = lines.joinToString("¦") { "${it.label.length},${it.value.length}" } + "|$availW|$availH|${t.fs}"
+        val scale = remember(key) {
+            var widest = 0f
+            var textH = 0f
+            lines.forEach { ln ->
+                val l = measurer.measure(ln.label, labelStyle, maxLines = 1, softWrap = false)
+                val v = measurer.measure(ln.value, valueStyle, maxLines = 1, softWrap = false)
+                widest = maxOf(widest, iconRefPx + innerGapPx + l.size.width + innerGapPx + v.size.width)
+                textH += maxOf(iconRefPx, l.size.height.toFloat(), v.size.height.toFloat())
+            }
+            val gaps = rowGapPx * (lines.size - 1)
+            val wFrac = if (widest > 0f && availW > 0f) (availW * 0.96f) / widest else 1f
+            val hFrac = if (textH > 0f && availH > 0f) (availH - gaps).coerceAtLeast(0f) / textH else 1f
+            minOf(wFrac, hFrac).coerceIn(0.7f, 2.4f)
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            verticalArrangement = Arrangement.spacedBy(StatRowGap),
+        ) {
+            lines.forEach { FileStatRow(it.icon, it.label, it.value, t, scale) }
         }
     }
 }
@@ -541,18 +607,29 @@ private fun FileStatRow(
     label: String,
     value: String,
     t: ThemeTokens,
+    scale: Float = 1f,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp, contentDescription = null)
-        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        DinghyIconView(icon, tint = t.text2, sizeDp = (fsSp(18f, t.fs) * scale).dp, contentDescription = null)
+        // Single-line / no-wrap matches how FilesFocusStats MEASURES these rows (softWrap = false). A
+        // wrapping label would blow past the measured height and overflow the fill-to-fit block.
+        Text(
+            label,
+            color = t.text2,
+            style = DinghyType.caption.toTextStyle(t, fsSp(15f, t.fs) * scale),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
         Text(
             value,
             color = t.text,
-            style = DinghyType.dataInline.toTextStyle(t),
+            style = DinghyType.dataInline.toTextStyle(t, fsSp(20f, t.fs) * scale),
             maxLines = 1,
+            softWrap = false,
             overflow = TextOverflow.Ellipsis,
         )
     }
@@ -580,6 +657,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
     onDelete: () -> Unit,
     t: ThemeTokens,
 ) {
+    val listState = rememberLazyListState()
+    // Re-sorting jumps the list back to the top so the new ordering is read from the first row
+    // (owner: selecting a new sort order should reset scroll position). Instant, not animated.
+    LaunchedEffect(state.sortField, state.sortAscending) {
+        listState.scrollToItem(0)
+    }
+
     if (state.fileRows.isEmpty()) {
         Box(
             Modifier
@@ -601,7 +685,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             )
         }
     } else {
-        ListBlock(modifier = Modifier.weight(1f)) {
+        ListBlock(modifier = Modifier.weight(1f), state = listState) {
             items(state.fileRows, key = { it.stableId }) { row ->
                 FilesListRow(
                     row = row,
