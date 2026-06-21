@@ -138,3 +138,112 @@ internal fun distroValue(identity: SystemInfo?): String {
 
 /** A nullable/blank String → its value or the degrade dash (SYS-04). */
 internal fun String?.orDash(): String = this?.takeIf { it.isNotBlank() } ?: DASH
+
+// ── Scrollable plain-text detail line-builders (Task 9 UAT) ──────────────────────────────────────
+//
+// Pure functions — no Compose, no I/O — host-unit-testable.
+// Each builder emits one String per conceptual "line"; blank lines are omitted.
+// Per-field degrade: a null/missing segment is dropped from its line; if a whole line has no
+// data it is either omitted or rendered as "—".
+
+/**
+ * Returns the ordered plain-text lines for the **host SBC** Focus detail block.
+ *
+ * Line contract (owner UAT spec):
+ *  1. `<cpu desc/processor> · <N> cores · <total RAM>`  (each segment independently optional)
+ *  2. `<distroName [version]> · kernel <kernel>`         (omit "kernel …" if null)
+ *  3. `Up <uptime>`                                      (omitted if null)
+ *  4. `CPU <load> · <temp> · mem <used / total>`         (each segment dropped if null)
+ *  5. `Klipper <ver> · Moonraker <ver>`                  (whole line omitted if both null)
+ *  6+ Each throttle condition string on its own line     (omitted when [throttle] is empty)
+ *
+ * @param host     The host device data.
+ * @param throttle Decoded throttle condition labels (empty = off-Pi / nothing to show).
+ */
+fun hostDetailLines(host: HostDevice, throttle: List<String>): List<String> {
+    val id = host.identity
+    val lines = mutableListOf<String>()
+
+    // Line 1: cpu · cores · total RAM
+    val cpuSeg = id?.let { info ->
+        val model = info.cpuDesc?.takeIf { it.isNotBlank() } ?: info.processor?.takeIf { it.isNotBlank() }
+        val cores = info.cpuCount
+        when {
+            model != null && cores != null -> "$model · ${formatCores(cores)} cores"
+            model != null -> model
+            cores != null -> "${formatCores(cores)} cores"
+            else -> null
+        }
+    }
+    val ramSeg = id?.totalMemoryKb?.let { formatGb(it) }
+    val cpuLine = listOfNotNull(cpuSeg, ramSeg).joinToString(" · ")
+    if (cpuLine.isNotBlank()) lines += cpuLine
+
+    // Line 2: distro · kernel <ver>
+    val distro = distroValue(id).takeIf { it != DASH }
+    val kernelSeg = id?.kernel?.takeIf { it.isNotBlank() }?.let { "kernel $it" }
+    val distroLine = listOfNotNull(distro, kernelSeg).joinToString(" · ")
+    if (distroLine.isNotBlank()) lines += distroLine else lines += DASH
+
+    // Line 3: uptime
+    val uptime = formatUptime(host.procStats?.systemUptimeSeconds).takeIf { it != DASH }
+    if (uptime != null) lines += "Up $uptime"
+
+    // Line 4: CPU load · temp · mem used/total
+    val loadSeg = formatCpuLoad(host.live?.cpuLoadPercent).takeIf { it != DASH }?.let { "CPU $it" }
+    val tempSeg = formatTemp(host.live?.cpuTemp ?: host.procStats?.cpuTemp).takeIf { it != DASH }
+    val memSeg = formatMemoryUsedOverTotal(host.live?.memUsedKb, host.live?.memTotalKb).takeIf { it != DASH }?.let { "mem $it" }
+    val liveLine = listOfNotNull(loadSeg, tempSeg, memSeg).joinToString(" · ")
+    if (liveLine.isNotBlank()) lines += liveLine
+
+    // Line 5: Klipper/Moonraker versions
+    val klipperSeg = host.klipperVersion?.takeIf { it.isNotBlank() }?.let { "Klipper $it" }
+    val moonrakerSeg = host.moonrakerVersion?.takeIf { it.isNotBlank() }?.let { "Moonraker $it" }
+    val versionLine = listOfNotNull(klipperSeg, moonrakerSeg).joinToString(" · ")
+    if (versionLine.isNotBlank()) lines += versionLine
+
+    // Lines 6+: throttle conditions (Pi only; empty = omitted)
+    lines += throttle
+
+    return lines
+}
+
+/**
+ * Returns the ordered plain-text lines for a **MCU** Focus detail block.
+ *
+ * Line contract (owner UAT spec):
+ *  1. `Firmware <firmwareVersion>`   (omit if null)
+ *  2. `<chip> · <clock MHz>`         (each segment dropped if null; "—" if both absent)
+ *  3. `<interfaceDesc>`              (omit if null)
+ *  4. `Load <mcuAwake%>`             (omit if null)
+ *  5. `<↑write KB ↓read KB> · <retransmits> retransmits`  (each part degrades independently)
+ */
+fun mcuDetailLines(mcu: McuDevice): List<String> {
+    val lines = mutableListOf<String>()
+
+    // Line 1: firmware
+    val fw = mcu.firmwareVersion?.takeIf { it.isNotBlank() }
+    if (fw != null) lines += "Firmware $fw"
+
+    // Line 2: chip · clock
+    val chipSeg = mcu.chip?.takeIf { it.isNotBlank() }
+    val clockSeg = formatClock(mcu.clockHz).takeIf { it != DASH }
+    val chipLine = listOfNotNull(chipSeg, clockSeg).joinToString(" · ")
+    if (chipLine.isNotBlank()) lines += chipLine else lines += DASH
+
+    // Line 3: interface
+    val iface = mcu.interfaceDesc?.takeIf { it.isNotBlank() }
+    if (iface != null) lines += iface
+
+    // Line 4: load
+    val load = formatLoad(mcu.mcuAwake).takeIf { it != DASH }
+    if (load != null) lines += "Load $load"
+
+    // Line 5: bandwidth · retransmits
+    val bwSeg = formatBytes(mcu.bytesWrite, mcu.bytesRead).takeIf { it != DASH }
+    val retranSeg = mcu.bytesRetransmit?.let { "${it} retransmits" }
+    val bwLine = listOfNotNull(bwSeg, retranSeg).joinToString(" · ")
+    if (bwLine.isNotBlank()) lines += bwLine
+
+    return lines
+}

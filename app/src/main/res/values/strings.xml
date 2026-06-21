@@ -283,48 +283,13 @@
 
     <!-- ============================ system information (Phase 20) ============================ -->
     <string name="sysinfo_title">System Information</string>
-    <!-- Focus summary rows. -->
-    <string name="sysinfo_host">Host</string>
-    <string name="sysinfo_cpu_temp">CPU temp</string>
-    <string name="sysinfo_uptime">Uptime</string>
-    <!-- Field section headers. -->
-    <string name="sysinfo_section_host">Host</string>
-    <string name="sysinfo_section_live">Live load</string>
-    <!-- Field Host rows. -->
-    <string name="sysinfo_cpu">CPU</string>
-    <string name="sysinfo_ram">Total RAM</string>
-    <string name="sysinfo_distro">Distro</string>
-    <string name="sysinfo_kernel">Kernel</string>
-    <!-- Field Live-load rows. -->
-    <string name="sysinfo_cpu_load">CPU load</string>
-    <string name="sysinfo_memory">Memory</string>
-    <!-- contentDescriptions for the leading per-row glyphs (icon law D-02..D-10). -->
+    <!-- contentDescription for the host row icon (DeviceRow in the Field list). -->
     <string name="cd_sysinfo_host">Host</string>
-    <string name="cd_sysinfo_cpu_temp">CPU temperature</string>
-    <string name="cd_sysinfo_uptime">Uptime</string>
-    <string name="cd_sysinfo_cpu">Processor</string>
-    <string name="cd_sysinfo_ram">Memory</string>
-    <string name="cd_sysinfo_distro">Distribution</string>
-    <string name="cd_sysinfo_kernel">Kernel</string>
-    <string name="cd_sysinfo_cpu_load">CPU load</string>
-    <string name="cd_sysinfo_mem_usage">Memory usage</string>
 
     <!-- ===================== system info device browser (Part 2) ===================== -->
     <string name="sysinfo_device_host">Host</string>
     <string name="sysinfo_mcu_mainboard">Mainboard</string>
     <string name="sysinfo_mcu_host">Host MCU</string>
-    <!-- Host detail extra rows -->
-    <string name="sysinfo_klipper_version">Klipper</string>
-    <string name="sysinfo_moonraker_version">Moonraker</string>
-    <string name="sysinfo_throttle">Health conditions</string>
-    <!-- MCU detail rows -->
-    <string name="sysinfo_mcu_firmware">Firmware</string>
-    <string name="sysinfo_mcu_chip">Chip</string>
-    <string name="sysinfo_mcu_clock">Clock</string>
-    <string name="sysinfo_mcu_interface">Interface</string>
-    <string name="sysinfo_mcu_load">MCU load</string>
-    <string name="sysinfo_mcu_bandwidth">Bandwidth</string>
-    <string name="sysinfo_mcu_retransmits">Retransmits</string>
     <!-- Actions -->
     <string name="sysinfo_action_reboot">Reboot</string>
     <string name="sysinfo_action_shutdown">Shutdown</string>
@@ -345,14 +310,6 @@
     <string name="sysinfo_confirm_common">Confirm</string>
     <!-- contentDescriptions -->
     <string name="cd_sysinfo_device_mcu">MCU board</string>
-    <string name="cd_sysinfo_firmware">Firmware version</string>
-    <string name="cd_sysinfo_interface">Interface</string>
-    <string name="cd_sysinfo_clock">Clock</string>
-    <string name="cd_sysinfo_bandwidth">Bandwidth</string>
-    <string name="cd_sysinfo_retransmits">Retransmits</string>
-    <string name="cd_sysinfo_klipper">Klipper version</string>
-    <string name="cd_sysinfo_moonraker">Moonraker version</string>
-    <string name="cd_sysinfo_throttle">Health conditions</string>
 
     <!-- Design Kit layout primitives (Phase 23) — preview strings. -->
     <string name="cd_unit_grid_demo">Unit grid demonstration</string>

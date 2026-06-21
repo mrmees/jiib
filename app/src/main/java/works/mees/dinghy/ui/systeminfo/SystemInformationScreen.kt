@@ -198,16 +198,20 @@ fun SystemInformationContent(
                     onPanic = onEmergencyStop,
                 ) {
                     when (val d = selected) {
-                        is HostDevice -> {
-                            HostDetail(d, throttle, grid.uDp)
-                            Spacer(Modifier.weight(1f))
-                            HostActionButtons(avail, inFlightKeys, { pendingHost = it }, grid.uDp)
-                        }
-                        is McuDevice -> {
-                            McuDetail(d, grid.uDp)
-                            Spacer(Modifier.weight(1f))
-                            McuActionButtons(inFlightKeys, { pendingMcu = it }, grid.uDp)
-                        }
+                        is HostDevice -> HostDetail(
+                            host = d,
+                            throttle = throttle,
+                            avail = avail,
+                            inFlightKeys = inFlightKeys,
+                            onAction = { pendingHost = it },
+                            uDp = grid.uDp,
+                        )
+                        is McuDevice -> McuDetail(
+                            mcu = d,
+                            inFlightKeys = inFlightKeys,
+                            onAction = { pendingMcu = it },
+                            uDp = grid.uDp,
+                        )
                     }
                 }
             },
