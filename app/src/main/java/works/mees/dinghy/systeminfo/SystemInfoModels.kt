@@ -30,6 +30,10 @@ data class SystemInfo(
     val distroName: String? = null,
     val distroVersion: String? = null,
     val kernel: String? = null,
+    /** Moonraker machine `provider` (e.g. "systemd_dbus", "supervisord", "none"). Gates host power. */
+    val provider: String? = null,
+    /** Controllable services (e.g. ["klipper","moonraker"]). Gates Restart-Moonraker. */
+    val availableServices: List<String> = emptyList(),
 ) {
     companion object
 }
