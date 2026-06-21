@@ -150,6 +150,10 @@ internal fun buildDeviceList(
  *
  * Owns selection state + confirm dialog state. Selection defaults to [HostDevice.HOST_KEY] and
  * is restored across recompositions via [rememberSaveable].
+ *
+ * @param initialSelectedKey the key that should be selected on first composition. Defaults to
+ *   [HostDevice.HOST_KEY] (no change to runtime behavior). Pass a real MCU key in `@Preview`
+ *   fixtures so MCU-selected previews render [McuDetail]/[McuActionButtons] rather than the host.
  */
 @Composable
 fun SystemInformationContent(
@@ -166,12 +170,13 @@ fun SystemInformationContent(
     modifier: Modifier = Modifier,
     isPrinting: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
+    initialSelectedKey: String = HostDevice.HOST_KEY,
 ) {
     val hostName = identity?.model ?: identity?.distroName ?: stringResource(R.string.sysinfo_device_host)
     val host = HostDevice(hostName, identity, procStats, live, klipperVersion, moonrakerVersion)
     val devices = buildDeviceList(host, mcus)
 
-    var selectedKey by rememberSaveable { mutableStateOf(HostDevice.HOST_KEY) }
+    var selectedKey by rememberSaveable { mutableStateOf(initialSelectedKey) }
     val selected = devices.firstOrNull { it.key == selectedKey } ?: host
     var pendingHost by remember { mutableStateOf<HostAction?>(null) }
     var pendingMcu by remember { mutableStateOf<McuAction?>(null) }

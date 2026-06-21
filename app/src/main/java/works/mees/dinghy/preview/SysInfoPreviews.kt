@@ -161,7 +161,7 @@ private fun sysInfoHostSparse() {
     )
 }
 
-/** (c) MCU selected — multi-board fixture, CAN interface. Exercised by navigating to EBBCan. */
+/** (c) MCU selected — multi-board fixture, CAN interface. Renders EBBCan (key="mcu EBBCan"). */
 @Composable
 private fun sysInfoMcuSelected() {
     SystemInformationContent(
@@ -175,10 +175,11 @@ private fun sysInfoMcuSelected() {
         onHostAction = {},
         onMcuAction = {},
         onBack = {},
+        initialSelectedKey = "mcu EBBCan",
     )
 }
 
-/** (d) MCU sparse degrade — all optional fields null (Linux-process MCU). */
+/** (d) MCU sparse degrade — all optional fields null (Linux-process MCU, key="mcu host"). */
 @Composable
 private fun sysInfoMcuSparse() {
     SystemInformationContent(
@@ -192,6 +193,7 @@ private fun sysInfoMcuSparse() {
         onHostAction = {},
         onMcuAction = {},
         onBack = {},
+        initialSelectedKey = "mcu host",
     )
 }
 

@@ -109,12 +109,11 @@ fun formatBytes(write: Long?, read: Long?): String {
     return "$up $down"
 }
 
-// ── Shared helpers (also private-copied in SystemInformationScreen.kt until Task 9 removes them) ─
+// ── Shared helpers used by DeviceFocus.kt (HostDetail) ──────────────────────────────────────────
 
 /**
  * "CPU model · N cores" — degrades each side independently; "—" when neither is present.
- * Shared internal copy: [works.mees.dinghy.ui.systeminfo.SystemInformationScreen] keeps a private
- * duplicate of this function until Task 9 deletes the old screen. Transient duplication is intentional.
+ * Shared implementation used by [works.mees.dinghy.ui.systeminfo.DeviceFocus] (HostDetail).
  */
 internal fun cpuValue(identity: SystemInfo?): String {
     val model = identity?.cpuDesc?.takeIf { it.isNotBlank() } ?: identity?.processor?.takeIf { it.isNotBlank() }
@@ -129,8 +128,7 @@ internal fun cpuValue(identity: SystemInfo?): String {
 
 /**
  * "Debian GNU/Linux 12 (bookworm)" — name + version; "—" when the name is absent.
- * Shared internal copy: [works.mees.dinghy.ui.systeminfo.SystemInformationScreen] keeps a private
- * duplicate of this function until Task 9 deletes the old screen. Transient duplication is intentional.
+ * Shared implementation used by [works.mees.dinghy.ui.systeminfo.DeviceFocus] (HostDetail).
  */
 internal fun distroValue(identity: SystemInfo?): String {
     val name = identity?.distroName?.takeIf { it.isNotBlank() } ?: return DASH
