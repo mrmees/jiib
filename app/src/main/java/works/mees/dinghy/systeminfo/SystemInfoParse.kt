@@ -4,9 +4,11 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 /**
@@ -39,6 +41,8 @@ fun SystemInfo.Companion.from(result: JsonObject?): SystemInfo = runCatching {
         distroName = distro?.blankStringOrNull("name"),
         distroVersion = distro?.blankStringOrNull("version"),
         kernel = distro?.blankStringOrNull("kernel_version"),
+        provider = sys.blankStringOrNull("provider"),
+        availableServices = sys.stringListOrEmpty("available_services"),
     )
 }.getOrDefault(SystemInfo())
 
@@ -80,26 +84,32 @@ fun ProcStatQuery.Companion.from(result: JsonObject?): ProcStatQuery = runCatchi
 
 // ---- tolerant JsonObject walk helpers (local, mirroring the calibration/state parsers) ----
 
-private fun JsonObject.objectOrNull(key: String): JsonObject? = this[key] as? JsonObject
+internal fun JsonObject.objectOrNull(key: String): JsonObject? = this[key] as? JsonObject
 
 /** String value, with the empty string "" treated as missing (→ null) — the blank-as-missing trap. */
-private fun JsonObject.blankStringOrNull(key: String): String? {
+internal fun JsonObject.blankStringOrNull(key: String): String? {
     val primitive = this[key] as? JsonPrimitive ?: return null
     if (!primitive.isString) return null
     return primitive.content.takeIf { it.isNotBlank() }
 }
 
-private fun JsonObject.intOrNullAt(key: String): Int? =
+internal fun JsonObject.intOrNullAt(key: String): Int? =
     runCatching { (this[key] as? JsonPrimitive)?.intOrNull }.getOrNull()
 
-private fun JsonObject.longOrNullAt(key: String): Long? =
+internal fun JsonObject.longOrNullAt(key: String): Long? =
     runCatching { (this[key] as? JsonPrimitive)?.longOrNull }.getOrNull()
 
-private fun JsonObject.floatOrNullAt(key: String): Float? =
+internal fun JsonObject.floatOrNullAt(key: String): Float? =
     runCatching { (this[key] as? JsonPrimitive)?.floatOrNull }.getOrNull()
 
 private fun JsonObject.doubleOrNullAt(key: String): Double? =
     runCatching { (this[key] as? JsonPrimitive)?.doubleOrNull }.getOrNull()
+
+internal fun JsonObject.stringListOrEmpty(key: String): List<String> = runCatching {
+    (this[key] as? JsonArray)
+        ?.mapNotNull { it.jsonPrimitive.contentOrNull?.takeIf { s -> s.isNotBlank() } }
+        ?: emptyList()
+}.getOrDefault(emptyList())
 
 /**
  * `throttled_state` → [ThrottledState], tolerant of JsonNull / absent (→ null = "no throttle data").
