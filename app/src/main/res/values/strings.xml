@@ -356,6 +356,7 @@
     <string name="cd_sysinfo_interface">Interface</string>
     <string name="cd_sysinfo_clock">Clock</string>
     <string name="cd_sysinfo_bandwidth">Bandwidth</string>
+    <string name="cd_sysinfo_retransmits">Retransmits</string>
     <string name="cd_sysinfo_klipper">Klipper version</string>
     <string name="cd_sysinfo_moonraker">Moonraker version</string>
     <string name="cd_sysinfo_throttle">Health conditions</string>

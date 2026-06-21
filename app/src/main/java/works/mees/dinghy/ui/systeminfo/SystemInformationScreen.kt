@@ -1,17 +1,29 @@
 package works.mees.dinghy.ui.systeminfo
 
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandDispatcher
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.ServiceRestartArgs
+import works.mees.dinghy.command.dispatch
+import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -19,67 +31,86 @@ import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.icons.DinghyIcon
-import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
-import works.mees.dinghy.systeminfo.HealthState
+import works.mees.dinghy.systeminfo.Device
+import works.mees.dinghy.systeminfo.HostDevice
+import works.mees.dinghy.systeminfo.McuDevice
 import works.mees.dinghy.systeminfo.ProcStatLive
 import works.mees.dinghy.systeminfo.ProcStatQuery
 import works.mees.dinghy.systeminfo.SystemInfo
 import works.mees.dinghy.systeminfo.SystemInfoHolder
-import works.mees.dinghy.systeminfo.formatCores
+import works.mees.dinghy.systeminfo.decodeThrottleConditions
 import works.mees.dinghy.systeminfo.formatCpuLoad
-import works.mees.dinghy.systeminfo.formatGb
-import works.mees.dinghy.systeminfo.formatMemoryUsedOverTotal
-import works.mees.dinghy.systeminfo.formatTemp
-import works.mees.dinghy.systeminfo.formatUptime
-import works.mees.dinghy.systeminfo.healthState
+import works.mees.dinghy.systeminfo.formatLoad
+import works.mees.dinghy.systeminfo.hostActionAvailability
 import works.mees.dinghy.theme.DinghyType
-import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
- * The **System Information** drawer destination (Phase 20, SYS-01..05) — dense C6-exempt restyle
- * (28-07, D-11). Restyled to `ListRow` rows inside a `ListBlock`; scrolls freely
- * (no fit-one-page requirement for SysInfo). Nothing on this page dispatches a command.
+ * The **System Information** screen rebuilt as a device browser (Part 2, Task 9).
  *
- * ## Layout (28-07 dense restyle)
- * `ScreenScaffold` with field-only layout. The `ListBlock` holds all info rows;
- * a `FootButtonBar` at the bottom of the field column holds the Back button. Health chip stays
- * as a dedicated labeled row. The SYS-01..SYS-05 content is unchanged — restyle only.
+ * ## Layout
+ * Focus = selected device detail + ConfirmGuard'd action buttons.
+ * Field = device list (host first, then enumerated MCUs).
+ * Foot = Back.
  *
- * ## Graceful degradation (SYS-04)
- * Every value flows through the Wave-2 formatters that return "—" on null. The labeled row + its
- * leading icon STAY present (stable layout across both SBCs).
+ * ## State
+ * Stateful entry [SystemInformationScreen] collects holder flows, runs a LaunchedEffect retry loop
+ * calling [SystemInfoHolder.ensureLoaded] while MCUs haven't loaded yet (capabilities may not have
+ * populated on first call), and a screen-scoped ~2 s MCU stats poll while boards are non-empty.
  *
- * @param holder the per-session read-only [SystemInfoHolder] off `AppContainer.systemInfoHolder`.
- *   Null while idle — the page then renders the all-"—" degraded state.
+ * @param holder the per-session [SystemInfoHolder] off AppContainer. Null while idle — the page
+ *   then renders the all-"—" degraded host-only state.
+ * @param dispatcher the session [CommandDispatcher] for host/MCU actions. Null while idle.
  * @param onBack the neutral Back exit.
+ * @param isPrinting whether a print is currently active (drives FocusFrame e-stop morph).
+ * @param onEmergencyStop the e-stop callback forwarded into FocusFrame.
  */
 @Composable
 fun SystemInformationScreen(
     holder: SystemInfoHolder?,
+    dispatcher: CommandDispatcher?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isPrinting: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
 ) {
-    // Null holder (idle) → the degraded all-"—" state via empty fallback flows.
     val identity by (holder?.identity ?: nullStateFlow()).collectAsStateWithLifecycle()
     val procStats by (holder?.procStats ?: nullStateFlow()).collectAsStateWithLifecycle()
     val live by (holder?.live ?: nullStateFlow()).collectAsStateWithLifecycle()
+    val mcus by (holder?.mcuDevices ?: nullStateFlow()).collectAsStateWithLifecycle()
+    val klipperVersion by (holder?.klipperVersion ?: nullStateFlow()).collectAsStateWithLifecycle()
+    val moonrakerVersion by (holder?.moonrakerVersion ?: nullStateFlow()).collectAsStateWithLifecycle()
+    val inFlight by (dispatcher?.inFlight ?: remember { MutableStateFlow(emptySet<String>()) })
+        .collectAsStateWithLifecycle()
+
+    // Lazy load + retry while MCUs haven't loaded (capabilities may not have populated on first call).
+    LaunchedEffect(holder) {
+        val h = holder ?: return@LaunchedEffect
+        repeat(10) {
+            h.ensureLoaded()
+            if (h.mcuDevices.value != null) return@LaunchedEffect
+            delay(500)
+        }
+    }
+    // Screen-scoped live poll of MCU stats (~2 s) — stops when the screen leaves the composition.
+    LaunchedEffect(holder, mcus?.isNotEmpty()) {
+        if (holder != null && !mcus.isNullOrEmpty()) {
+            while (true) { delay(2000); holder.refreshMcuStats() }
+        }
+    }
 
     SystemInformationContent(
-        identity = identity,
-        procStats = procStats,
-        live = live,
-        isPrinting = isPrinting,
-        onEmergencyStop = onEmergencyStop,
-        onBack = onBack,
-        modifier = modifier,
+        identity = identity, procStats = procStats, live = live, mcus = mcus,
+        klipperVersion = klipperVersion, moonrakerVersion = moonrakerVersion,
+        isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, inFlightKeys = inFlight,
+        onHostAction = { a -> dispatcher?.let { d -> dispatchHostAction(d, a) } },
+        onMcuAction = { a -> dispatcher?.let { d -> dispatchMcuAction(d, a) } },
+        onBack = onBack, modifier = modifier,
     )
 }
 
@@ -87,176 +118,105 @@ fun SystemInformationScreen(
 private fun <T> nullStateFlow(): kotlinx.coroutines.flow.StateFlow<T?> =
     kotlinx.coroutines.flow.MutableStateFlow(null)
 
+private fun dispatchHostAction(d: CommandDispatcher, action: HostAction) = when (action) {
+    HostAction.Reboot -> d.dispatch(CommandRegistry.machineReboot, Unit)
+    HostAction.Shutdown -> d.dispatch(CommandRegistry.machineShutdown, Unit)
+    HostAction.RestartMoonraker -> d.dispatch(CommandRegistry.restartService, ServiceRestartArgs("moonraker"))
+}
+
+private fun dispatchMcuAction(d: CommandDispatcher, action: McuAction) = when (action) {
+    McuAction.FirmwareRestart -> d.dispatch(CommandRegistry.firmwareRestart, Unit)
+    McuAction.RestartKlipper -> d.dispatch(CommandRegistry.restart, Unit)
+}
+
+/**
+ * Builds the ordered device list: host first, then MCUs (if loaded).
+ *
+ * The host entry is always present. MCUs are omitted when [mcus] is null (not yet loaded) — the
+ * Field will show only the host row until [SystemInfoHolder.ensureLoaded] populates them.
+ */
+internal fun buildDeviceList(
+    host: HostDevice,
+    mcus: List<McuDevice>?,
+): List<Device> = buildList {
+    add(host)
+    if (mcus != null) addAll(mcus)
+}
+
 /**
  * The STATELESS content seam (PREVIEW_AND_TOKENS preview-first LAW) — pure inputs, no holder/
  * Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.SysInfoPreviews] drives every
  * theme + degrade state without a live session.
+ *
+ * Owns selection state + confirm dialog state. Selection defaults to [HostDevice.HOST_KEY] and
+ * is restored across recompositions via [rememberSaveable].
  */
 @Composable
 fun SystemInformationContent(
     identity: SystemInfo?,
     procStats: ProcStatQuery?,
     live: ProcStatLive?,
+    mcus: List<McuDevice>?,
+    klipperVersion: String?,
+    moonrakerVersion: String?,
+    inFlightKeys: Set<String>,
+    onHostAction: (HostAction) -> Unit,
+    onMcuAction: (McuAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isPrinting: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
 ) {
-    val t = LocalTokens.current
-    // Open Q1 host-label fallback: model when present, else the distro name (RockPro64 case).
-    val hostLabel = identity?.model ?: identity?.distroName
-    // The 1 Hz push omits throttle+uptime → those come from the one-shot procStats query.
-    val chipTemp = live?.cpuTemp ?: procStats?.cpuTemp
-    val health = healthState(procStats?.throttledState, chipTemp)
+    val hostName = identity?.model ?: identity?.distroName ?: stringResource(R.string.sysinfo_device_host)
+    val host = HostDevice(hostName, identity, procStats, live, klipperVersion, moonrakerVersion)
+    val devices = buildDeviceList(host, mcus)
+
+    var selectedKey by rememberSaveable { mutableStateOf(HostDevice.HOST_KEY) }
+    val selected = devices.firstOrNull { it.key == selectedKey } ?: host
+    var pendingHost by remember { mutableStateOf<HostAction?>(null) }
+    var pendingMcu by remember { mutableStateOf<McuAction?>(null) }
+
+    val throttle = decodeThrottleConditions(procStats?.throttledState)
+    val avail = hostActionAvailability(identity)
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-
         ScreenScaffold(
             focus = {
                 FocusFrame(
-                    title = stringResource(R.string.system_row_sysinfo),
-                    icon = DinghyIcons.SysInfoTile,
+                    title = selected.displayName,
+                    icon = deviceIcon(selected),
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                ) {}
+                ) {
+                    when (val d = selected) {
+                        is HostDevice -> {
+                            HostDetail(d, throttle, grid.uDp)
+                            Spacer(Modifier.weight(1f))
+                            HostActionButtons(avail, inFlightKeys, { pendingHost = it }, grid.uDp)
+                        }
+                        is McuDevice -> {
+                            McuDetail(d, grid.uDp)
+                            Spacer(Modifier.weight(1f))
+                            McuActionButtons(inFlightKeys, { pendingMcu = it }, grid.uDp)
+                        }
+                    }
+                }
             },
             field = {
                 ListBlock(modifier = Modifier.weight(1f)) {
-                    // ── SYS-01: Health chip ──────────────────────────────────────────────────
-                    item(key = "health") {
-                        val (icon, tint, labelRes) = healthChipVisual(health, t)
-                        ListRow(
-                            selected = false,
-                            onClick = {},
-                            uDp = grid.uDp,
-                            leadingContent = {
-                                // R23: canonical 0.6U list-row icon.
-                                ListRowIcon(
-                                    icon = icon,
-                                    uDp = grid.uDp,
-                                    tint = tint,
-                                    contentDescription = stringResource(R.string.cd_sysinfo_health),
-                                )
-                            },
-                        ) {
-                            Text(
-                                text = stringResource(R.string.sysinfo_health),
-                                color = t.text,
-                                style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
-                            )
-                            Spacer(Modifier.weight(1f))
-                            Text(
-                                text = stringResource(labelRes),
-                                color = tint,
-                                style = DinghyType.caption.toTextStyle(t),
-                            )
-                        }
-                    }
-
-                    // ── SYS-01: Host / model ────────────────────────────────────────────────
-                    item(key = "host") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoHost,
-                            cd = stringResource(R.string.cd_sysinfo_host),
-                            label = stringResource(R.string.sysinfo_host),
-                            value = hostLabel.orDash(),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-02: CPU temp ────────────────────────────────────────────────────
-                    item(key = "cpu_temp") {
-                        InfoListRow(
-                            icon = DinghyIcons.LauncherTemperature,
-                            cd = stringResource(R.string.cd_sysinfo_cpu_temp),
-                            label = stringResource(R.string.sysinfo_cpu_temp),
-                            value = formatTemp(chipTemp),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-03: Uptime ──────────────────────────────────────────────────────
-                    item(key = "uptime") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoUptime,
-                            cd = stringResource(R.string.cd_sysinfo_uptime),
-                            label = stringResource(R.string.sysinfo_uptime),
-                            value = formatUptime(procStats?.systemUptimeSeconds),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-04: CPU model + cores ───────────────────────────────────────────
-                    item(key = "cpu") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoCpu,
-                            cd = stringResource(R.string.cd_sysinfo_cpu),
-                            label = stringResource(R.string.sysinfo_cpu),
-                            value = cpuValue(identity),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-04: Total RAM ───────────────────────────────────────────────────
-                    item(key = "ram") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoRam,
-                            cd = stringResource(R.string.cd_sysinfo_ram),
-                            label = stringResource(R.string.sysinfo_ram),
-                            value = formatGb(identity?.totalMemoryKb),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-05: Distro ──────────────────────────────────────────────────────
-                    item(key = "distro") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoDistro,
-                            cd = stringResource(R.string.cd_sysinfo_distro),
-                            label = stringResource(R.string.sysinfo_distro),
-                            value = distroValue(identity),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── SYS-05: Kernel ──────────────────────────────────────────────────────
-                    item(key = "kernel") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoKernel,
-                            cd = stringResource(R.string.cd_sysinfo_kernel),
-                            label = stringResource(R.string.sysinfo_kernel),
-                            value = identity?.kernel.orDash(),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── Live: CPU load % (1 Hz push) ────────────────────────────────────────
-                    item(key = "cpu_load") {
-                        InfoListRow(
-                            icon = DinghyIcons.Speed,
-                            cd = stringResource(R.string.cd_sysinfo_cpu_load),
-                            label = stringResource(R.string.sysinfo_cpu_load),
-                            value = formatCpuLoad(live?.cpuLoadPercent),
-                            uDp = grid.uDp,
-                        )
-                    }
-
-                    // ── Live: Memory used / total (1 Hz push) ────────────────────────────────
-                    item(key = "mem_usage") {
-                        InfoListRow(
-                            icon = DinghyIcons.SysInfoMemUsage,
-                            cd = stringResource(R.string.cd_sysinfo_mem_usage),
-                            label = stringResource(R.string.sysinfo_memory),
-                            value = formatMemoryUsedOverTotal(live?.memUsedKb, live?.memTotalKb),
+                    items(devices, key = { it.key }) { device ->
+                        DeviceRow(
+                            device = device,
+                            selected = device.key == selectedKey,
+                            onClick = { selectedKey = device.key },
                             uDp = grid.uDp,
                         )
                     }
                 }
-
                 FootButtonBar(
                     uDp = grid.uDp,
                     actions = listOf(
@@ -264,88 +224,83 @@ fun SystemInformationContent(
                             label = stringResource(R.string.common_back),
                             icon = DinghyIcons.Back,
                             onClick = onBack,
-                            intent = Intent.Accent, // R5: Back = accent
+                            intent = Intent.Accent,
                         ),
                     ),
                 )
             },
         )
+
+        // Confirm overlays (full-bleed ConfirmGuard).
+        pendingHost?.let { action ->
+            val (titleRes, msgRes, destructive) = hostConfirmCopy(action)
+            ConfirmGuard(
+                title = stringResource(titleRes),
+                message = stringResource(msgRes),
+                confirmLabel = stringResource(R.string.sysinfo_confirm_common),
+                onConfirm = { onHostAction(action); pendingHost = null },
+                onCancel = { pendingHost = null },
+                destructive = destructive,
+                warn = !destructive,
+            )
+        }
+        pendingMcu?.let { action ->
+            val (titleRes, msgRes) = mcuConfirmCopy(action)
+            ConfirmGuard(
+                title = stringResource(titleRes),
+                message = stringResource(msgRes),
+                confirmLabel = stringResource(R.string.sysinfo_confirm_common),
+                onConfirm = { onMcuAction(action); pendingMcu = null },
+                onCancel = { pendingMcu = null },
+                destructive = false,
+                warn = true,   // amber: hazardous-but-in-process
+            )
+        }
     }
 }
 
-/**
- * A dense icon-label-value `ListRow` — `[icon] label + Spacer + value(GeistMono)`.
- * The row stays present even when value is "—" (stable layout, SYS-04).
- */
+private fun deviceIcon(device: Device): DinghyIcon = when (device) {
+    is HostDevice -> DinghyIcons.SysInfoHost
+    is McuDevice -> DinghyIcons.McuDevice
+}
+
 @Composable
-private fun InfoListRow(
-    icon: DinghyIcon,
-    cd: String,
-    label: String,
-    value: String,
-    uDp: androidx.compose.ui.unit.Dp,
-) {
+private fun DeviceRow(device: Device, selected: Boolean, onClick: () -> Unit, uDp: Dp) {
     val t = LocalTokens.current
     ListRow(
-        selected = false,
-        onClick = {},
+        selected = selected,
+        onClick = onClick,
         uDp = uDp,
         leadingContent = {
-            // R23: canonical 0.6U list-row icon.
             ListRowIcon(
-                icon = icon,
+                icon = deviceIcon(device),
                 uDp = uDp,
-                tint = t.text2,
-                contentDescription = cd,
+                tint = if (selected) t.accent else t.text2,
+                contentDescription = when (device) {
+                    is HostDevice -> stringResource(R.string.cd_sysinfo_host)
+                    is McuDevice -> stringResource(R.string.cd_sysinfo_device_mcu)
+                },
             )
         },
     ) {
-        Text(
-            text = label,
-            color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t), // R11 list-label default
-        )
+        Text(device.displayName, color = t.text, style = DinghyType.listLabel.toTextStyle(t))
         Spacer(Modifier.weight(1f))
-        Text(
-            text = value,
-            color = t.text2,
-            style = DinghyType.dataMeta.toTextStyle(t),
-        )
+        Text(deviceGlance(device), color = t.text2, style = DinghyType.dataMeta.toTextStyle(t))
     }
 }
 
-/** "CPU model · N cores" — degrades each side independently; "—" when neither is present. */
-private fun cpuValue(identity: SystemInfo?): String {
-    val model = identity?.cpuDesc?.takeIf { it.isNotBlank() } ?: identity?.processor?.takeIf { it.isNotBlank() }
-    val cores = identity?.cpuCount
-    return when {
-        model != null && cores != null -> "$model · ${formatCores(cores)} cores"
-        model != null -> model
-        cores != null -> "${formatCores(cores)} cores"
-        else -> DASH_UI
-    }
+private fun deviceGlance(device: Device): String = when (device) {
+    is HostDevice -> formatCpuLoad(device.live?.cpuLoadPercent)
+    is McuDevice -> formatLoad(device.mcuAwake)
 }
 
-/** "Debian GNU/Linux 12 (bookworm)" — name + version; "—" when the name is absent. */
-private fun distroValue(identity: SystemInfo?): String {
-    val name = identity?.distroName?.takeIf { it.isNotBlank() } ?: return DASH_UI
-    val version = identity?.distroVersion?.takeIf { it.isNotBlank() }
-    return if (version != null && version !in name) "$name $version" else name
+private fun hostConfirmCopy(a: HostAction): Triple<Int, Int, Boolean> = when (a) {
+    HostAction.Reboot -> Triple(R.string.sysinfo_confirm_reboot_title, R.string.sysinfo_confirm_reboot_msg, true)
+    HostAction.Shutdown -> Triple(R.string.sysinfo_confirm_shutdown_title, R.string.sysinfo_confirm_shutdown_msg, true)
+    HostAction.RestartMoonraker -> Triple(R.string.sysinfo_confirm_restart_moonraker_title, R.string.sysinfo_confirm_restart_moonraker_msg, false)
 }
 
-private const val DASH_UI = "—"
-
-/** A nullable/blank string → its value or the degrade dash (SYS-04). */
-private fun String?.orDash(): String = this?.takeIf { it.isNotBlank() } ?: DASH_UI
-
-/** The shape-coded (icon, tint, labelRes) triple for each [HealthState] (shape carries safety). */
-private fun healthChipVisual(
-    health: HealthState,
-    t: ThemeTokens,
-): Triple<DinghyIcon, androidx.compose.ui.graphics.Color, Int> = when (health) {
-    HealthState.Caution -> Triple(DinghyIcons.StatusStop, t.stop, R.string.sysinfo_health_caution)
-    // WR-06 (icon-registry-only LAW): use the REGISTERED Warning token — an inline DinghyIcon(
-    // IconRef.Ligature(...)) bypasses DinghyIconsTest's drift guards and the subset-tool registry walk.
-    HealthState.Warn -> Triple(DinghyIcons.Warning, t.heat, R.string.sysinfo_health_warn)
-    HealthState.Healthy -> Triple(DinghyIcons.CheckCircle, t.go, R.string.sysinfo_health_healthy)
+private fun mcuConfirmCopy(a: McuAction): Pair<Int, Int> = when (a) {
+    McuAction.FirmwareRestart -> R.string.sysinfo_confirm_firmware_restart_title to R.string.sysinfo_confirm_firmware_restart_msg
+    McuAction.RestartKlipper -> R.string.sysinfo_confirm_restart_klipper_title to R.string.sysinfo_confirm_restart_klipper_msg
 }

@@ -228,7 +228,7 @@ fun McuDetail(mcu: McuDevice, uDp: Dp) {
     )
     DetailRow(
         icon = DinghyIcons.Warning,
-        cd = stringResource(R.string.cd_sysinfo_bandwidth),
+        cd = stringResource(R.string.cd_sysinfo_retransmits),
         label = stringResource(R.string.sysinfo_mcu_retransmits),
         value = mcu.bytesRetransmit?.toString() ?: DASH,
         uDp = uDp,
