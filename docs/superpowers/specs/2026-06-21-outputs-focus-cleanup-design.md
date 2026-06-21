@@ -1,7 +1,7 @@
 # Outputs Focus pages — cleanup & RGB rework
 
 **Date:** 2026-06-21
-**Status:** approved (owner, 2026-06-21)
+**Status:** approved (owner, 2026-06-21); Codex-reviewed 2026-06-21 (NEEDS CHANGES → folded in below)
 **Type:** UI cleanup + small feature (RGB/RGBW slider rework)
 
 ## Problem
@@ -51,12 +51,26 @@ frames the bar; no extra horizontal padding is added at the call site.
 
 | Surface | Body (fills space) | Foot bar |
 |---|---|---|
-| **Switch** (digital on/off, interactive) | Big **current-state readout** (On/Off, color-coded by state) | `[On]` (Go) · `[Off]` (`ControlSpecs.outputOff`) |
+| **Switch** (digital on/off, interactive) | Big **current-state readout** (On/Off, color-coded by state) | `[On]` (power, Go) · `[Off]` (power_off, Warn) |
 | **Switch, read-only** (static_value) | On/Off hero + "Read-only" caption | *(none — exit via Field Back)* |
-| **Fan / Servo / Heater / Plain light (PWM/pwm_tool)** | `Scrubber` (name-less) with **centered value** | `[Off]` |
+| **Fan / Servo / Heater / Plain light (PWM/pwm_tool)** | `Scrubber` (name-less) with **centered value** | `[Off]` (power_off, Warn) |
 | **RGB light** | `HsvSliders` (H/S/V) | `[Off]` |
 | **RGBW light** | `HsvSliders` (H/S/V + **White**) | `[Off]` |
 | **White-only light** | brightness `Scrubber` (centered value) | `[Off]` |
+
+The foot bar is the **real `FootButtonBar`** (owner decision — supersedes the earlier
+label-only Row). `FootButtonBar`/`FootAction` mandate a ligature icon per button, so:
+- **On** = ligature **`power`**, `Intent.Go`.
+- **Off** = ligature **`power_off`**, `Intent.Warn` (matches the existing `ControlSpecs.outputOff`
+  intent, which is `Warn`, not Danger).
+
+**Icon law (register, don't invent):** `power` and `power_off` are owner-chosen Material Symbols
+**not yet in the registry** (only `power_settings_new` exists, as `SystemRowPower`). The plan adds
+both to `DinghyIcons.kt` (the `val` **and** the `all` list) and runs `tools/verify_ligatures.py`
+to confirm the bundled font carries them; if the font lacks either, fall back to the official
+Google vector drawable (path data verbatim) per the icon law. No same-glyph-twice conflict: the
+FocusFrame header carries the output-family glyph (OutputPin/OutputLed/…), distinct from
+power/power_off.
 
 Capability gating reuses the existing `descriptor.ledHasRgb` / `descriptor.ledHasWhite` flags
 (GAP-B hide-not-grey):
@@ -80,9 +94,12 @@ RGBW white emitter cannot be synthesized from H/S/V.
 ### Shared-component changes (one edit each → fixes everywhere)
 
 1. **`Scrubber.kt`** — when `name` is blank, **center** the value in the header row instead of
-   the `[name] … value]` space-between layout. Named scrubbers (Fine-Tune / Temperature / Move)
-   are unchanged (name still start-aligned, value end-aligned). Blast radius is limited to the
-   `name == ""` call sites (Outputs scrubber surfaces, white-only LED brightness).
+   the `[name] … value]` space-between layout. **Scope the change strictly to the non-`bare`
+   horizontal header branch** (`bare = true` callers skip the header entirely). Named scrubbers
+   (Fine-Tune / Move) keep name-left/value-right. Codex confirmed the full blank-name blast radius
+   = Outputs scrubber, Outputs LED brightness, **Temperature target scrubber, Extrude labeled
+   sliders** — but Temperature/Extrude pass `bare = true`, so they are unaffected as long as the
+   edit lives only in the non-bare header branch. (Verify each call site's `bare` value.)
 
 2. **`HsvSliders.kt`** — add an **optional White track** (4th `Track`, black→white gradient).
    Surface it via an optional `white: Float?` + `onWhiteMove`/`onWhiteSettle` (null = 3 tracks,
@@ -91,8 +108,10 @@ RGBW white emitter cannot be synthesized from H/S/V.
 3. **`OutputToggleControl.kt`** — rewrite:
    - Drop the nested `ScreenScaffold` → plain `Column` (host is the FocusFrame body).
    - Drop the duplicate `prettyName` `Text` (FocusFrame header carries identity).
+   - **Drop the explicit `ListFrameInset` padding** on the foot bar (the FocusFrame `contentInset`
+     now owns the frame — keeping it would double-inset). [Codex NIT]
    - Body (`weight(1f)`) = current-state readout for **both** interactive and read-only pins.
-   - Foot = `FootButtonBar` → interactive: `[On][Off]`; read-only: no foot bar.
+   - Foot = `FootButtonBar` → interactive: `[On][Off]` (power/power_off); read-only: no foot bar.
    - Remove `onBack` (and its usage).
 
 4. **`OutputFocusControl.kt`** —
@@ -105,12 +124,24 @@ RGBW white emitter cannot be synthesized from H/S/V.
 
 5. **`ColorWheel.kt`** — **deleted** (sole consumer was the LED surface). Remove its references.
 
-6. **Command layer (LED dispatch)** — the LED settle must send the **full R/G/B/W state** in one
-   `SET_LED` (Klipper zeroes any channel not specified), and convert from full **HSV (incl.
-   saturation)**, not hue-only. Update `dispatchColor`/`dispatchWhite` (or fold into a single
-   full-state dispatch) accordingly. Verify the catalog command builds `RED= GREEN= BLUE= WHITE=`.
+6. **Command layer (LED dispatch) — [Codex BLOCKER 1].** Klipper's `SET_LED` defaults any
+   unspecified color param to `0.0` (confirmed in `klippy/extras/led.py`). Today `dispatchColor()`
+   sends RGB + `WHITE=0` and `dispatchWhite()` sends RGB=0 + W — so on an **RGBW** strip each
+   adjust blanks the other side. Fixes:
+   - `PrinterCommands.setLed()` / `SetLedArgs` **already carry r/g/b/w** — no new catalog signature
+     needed.
+   - Replace the `onColorSettle(hue, brightness)` / `onWhiteSettle(brightness)` seam with a single
+     **full-state** path carrying H/S/V (+ W) → converted to r/g/b/w and sent in one `setLed`.
+   - **Seed the sliders from the real current state, including white:** add the raw LED channels
+     from `color_data[0]` to `OutputRowVm` (today `swatchColor` packs only RGB and drops W).
+     See `OutputsHolder.kt`, `PrinterState.kt` (LED `color_data`).
 
-7. **Docs** — retire the UAT-5 ">1U ColorWheel is the sole sanctioned exception in Outputs" note
+7. **Optimistic pending/reached — [Codex SHOULD-FIX 3].** `OutputsHolder`'s LED pending/reached
+   currently compares **max brightness** (`maxOrNull()`); a saturation- or white-only change can
+   keep the same max and clear pending incorrectly. Compare the **full r/g/b/w tuple** instead (or
+   drop optimistic-pending for LEDs).
+
+8. **Docs** — retire the UAT-5 ">1U ColorWheel is the sole sanctioned exception in Outputs" note
    in `docs/ui_design/LAYOUT.md` and `docs/ui_design/COMPONENTS.md`, and in the sketch-findings
    skill's `design_direction` UAT-5 line. The sliders are ≤1U each, so Outputs has no >1U
    control anymore.
