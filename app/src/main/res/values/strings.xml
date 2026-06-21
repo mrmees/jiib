@@ -243,6 +243,7 @@
     <string name="spool_row_badge_loaded">Loaded</string>
     <string name="spool_row_badge_archived">Archived</string>
     <string name="spool_mfg_empty">No manufacturers found.</string>
+    <string name="spool_type_empty">No material types found.</string>
 
     <!-- D-08 measured-weight Field-takeover (26-07): numeric IME entry for gross spool weight correction. -->
     <string name="spool_measure_placeholder">0 g</string>

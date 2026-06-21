@@ -505,24 +505,41 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 ) {
     when (category) {
         SpoolFilterCategory.TYPE -> {
-            DesignListBlock(modifier = Modifier.weight(1f)) {
-                items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
-                    val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
-                    ListRow(
-                        selected = selected,
-                        onClick = { onToggleMaterial(label) },
-                        uDp = uDp,
-                    ) {
-                        Text(
-                            text = label,
-                            color = if (selected) t.accent2 else t.text,
-                            style = DinghyType.listLabel.toTextStyle(t),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 4.dp),
-                        )
+            if (state.availableMaterialFamilies.isEmpty()) {
+                // Mirror the MFG empty-state Box EXACTLY (SpoolScreen.kt:545-557).
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.spool_type_empty),
+                        color = t.text2,
+                        style = DinghyType.body.toTextStyle(t),
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            } else {
+                DesignListBlock(modifier = Modifier.weight(1f)) {
+                    items(state.availableMaterialFamilies, key = { it }) { label ->
+                        val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
+                        ListRow(
+                            selected = selected,
+                            onClick = { onToggleMaterial(label) },
+                            uDp = uDp,
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (selected) t.accent2 else t.text,
+                                style = DinghyType.listLabel.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp),
+                            )
+                        }
                     }
                 }
             }

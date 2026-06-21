@@ -170,6 +170,7 @@ object SampleFixtures {
         spools = spoolList,
         selected = spoolList.first(),
         fieldMode = FieldMode.FilterPicker(SpoolFilterCategory.TYPE),
+        availableMaterialFamilies = listOf("PLA", "PETG", "ABS/ASA"),
     )
 
     /**
