@@ -145,7 +145,7 @@ fun SpoolScreen(
             onCloseFilter = { holder.closeFilterPicker() },
             onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
             onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
-            onTapSwatch = { scope.launch { holder.applyColorSwatch(it); holder.closeFilterPicker() } },
+            onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
             onClearFilter = {
                 val mode = state.fieldMode
                 if (mode is FieldMode.FilterPicker) {
@@ -322,7 +322,7 @@ private fun SpoolContent(
                 icon = DinghyIcons.Palette,
                 label = stringResource(R.string.spool_filter_color),
                 contentDescriptionRes = R.string.cd_spool_filter_color,
-                isActive = state.filters.colorSwatchHex != null,
+                isActive = state.filters.colorSwatchHexes.isNotEmpty() || state.filters.colorSeedHex != null,
             ),
             FilterOption(
                 key = SpoolFilterCategory.MFG,
@@ -552,7 +552,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     .weight(1f),
             ) {
                 ColorSwatchGrid(
-                    selectedHex = state.filters.colorSwatchHex,
+                    selectedHexes = (state.filters.colorSwatchHexes + listOfNotNull(state.filters.colorSeedHex))
+                        .mapNotNull { normalizeColorHex(it) }
+                        .toSet(),
                     onTapSwatch = onTapSwatch,
                     t = t,
                     modifier = Modifier.fillMaxSize(),
