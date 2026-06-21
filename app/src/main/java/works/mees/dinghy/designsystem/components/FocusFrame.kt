@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +33,10 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,6 +59,29 @@ import works.mees.dinghy.theme.compose.toTextStyle
  * full slot as its tap target). < 1.0 so edge-heavy Material Symbols clear the 1U bar / card corner.
  */
 private const val IDENTITY_ICON_RATIO = 0.82f
+
+/** The resolved title padding for the Focus header, in whole icon-slot units (Task 1). */
+internal data class HeaderTitleLayout(val startSlots: Int, val endSlots: Int, val marquee: Boolean)
+
+/**
+ * Decide the Focus-header title padding. The title stays TRULY centered (both slots reserved) whenever
+ * it fits within the symmetric budget `available - 2*slot`; only an OVERFLOWING title reclaims the
+ * trailing slot — and only when no end glyph occupies it — and marquees. Pure for unit testing.
+ */
+internal fun resolveHeaderTitleLayout(
+    availableWidthPx: Float,
+    titleWidthPx: Float,
+    slotPx: Float,
+    endSlotOccupied: Boolean,
+): HeaderTitleLayout {
+    val symmetricBudget = (availableWidthPx - 2f * slotPx).coerceAtLeast(0f)
+    val fits = titleWidthPx <= symmetricBudget
+    return if (fits) {
+        HeaderTitleLayout(startSlots = 1, endSlots = 1, marquee = false)
+    } else {
+        HeaderTitleLayout(startSlots = 1, endSlots = if (endSlotOccupied) 1 else 0, marquee = true)
+    }
+}
 
 /** Perimeter progress-bar stroke weight — heavier than the 3dp Data edge so the bar reads as a gauge. */
 private const val PROGRESS_STROKE_DP = 4f
@@ -213,6 +240,9 @@ fun FocusFrame(
     trailingActionIcon: DinghyIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
+    trailingStatusIcon: DinghyIcon? = null,
+    trailingStatusTint: Color? = null,
+    trailingStatusContentDescription: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
@@ -249,6 +279,9 @@ fun FocusFrame(
             trailingActionIcon = trailingActionIcon,
             onTrailingAction = onTrailingAction,
             trailingActionContentDescription = trailingActionContentDescription,
+            trailingStatusIcon = trailingStatusIcon,
+            trailingStatusTint = trailingStatusTint,
+            trailingStatusContentDescription = trailingStatusContentDescription,
         )
         // Header/content divider (owner UAT 2026-06-15): a full-width hairline landmark under the
         // title so centered content reads against a clear top boundary instead of floating in the
@@ -292,29 +325,50 @@ private fun FocusHeader(
     trailingActionIcon: DinghyIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
+    trailingStatusIcon: DinghyIcon? = null,
+    trailingStatusTint: Color? = null,
+    trailingStatusContentDescription: String? = null,
 ) {
     val t = LocalTokens.current
     var showGuard by remember { mutableStateOf(false) }
     // e-stop / icon size — matches the retired float; uDp is rotation-stable so memoize.
     val slot = remember(uDp) { (uDp * 0.7f).coerceAtLeast(64.dp) }
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .height(uDp)
             .padding(horizontal = FocusInset),
         contentAlignment = Alignment.Center,
     ) {
-        // Centered title (full-width track; the start icon overlaps its left end, app-bar style).
+        val density = LocalDensity.current
+        val titleStyle = DinghyType.focusHeader.toTextStyle(t)
+        val measurer = rememberTextMeasurer()
+        val slotPx = with(density) { slot.toPx() }
+        val availPx = with(density) { maxWidth.toPx() }
+        // Memoize the single-line intrinsic width; re-measure only when the text, width, or scale changes.
+        val titleWidthPx = remember(title, maxWidth, t.fs, density.density, density.fontScale) {
+            measurer.measure(
+                text = AnnotatedString(title),
+                style = titleStyle,
+                maxLines = 1,
+                softWrap = false,
+            ).size.width.toFloat()
+        }
+        val endSlotOccupied =
+            (trailingActionIcon != null && onTrailingAction != null) || trailingStatusIcon != null
+        val layout = resolveHeaderTitleLayout(availPx, titleWidthPx, slotPx, endSlotOccupied)
+        // Centered title: symmetric padding when it fits (true center); reclaim the trailing slot only
+        // when it overflows AND no end glyph occupies it; marquee only on the overflow path.
         Text(
             text = title,
             color = t.text,
-            style = DinghyType.focusHeader.toTextStyle(t),
+            style = titleStyle,
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = slot) // keep the centered text clear of the start icon
-                .basicMarquee(), // overflow-only scroll (motion-law exception)
+                .padding(start = slot * layout.startSlots, end = slot * layout.endSlots)
+                .then(if (layout.marquee) Modifier.basicMarquee() else Modifier),
         )
         // Start icon slot: e-stop while printing, else the inert identity glyph. BOTH render as a bare
         // glyph centered in the slot at the same IDENTITY_ICON_RATIO size — so the e-stop CLEANLY
@@ -373,6 +427,23 @@ private fun FocusHeader(
                     tint = t.text2,
                     sizeDp = slot * IDENTITY_ICON_RATIO,
                     contentDescription = trailingActionContentDescription,
+                )
+            }
+        }
+        // End slot, status variant: a NON-interactive indicator glyph (e.g. the loaded check). Mutually
+        // exclusive with the tappable trailing action above — the action wins the slot if both are set.
+        if (trailingStatusIcon != null && !(trailingActionIcon != null && onTrailingAction != null)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(slot),
+                contentAlignment = Alignment.Center,
+            ) {
+                DinghyIconView(
+                    icon = trailingStatusIcon,
+                    tint = trailingStatusTint ?: t.text2,
+                    sizeDp = slot * IDENTITY_ICON_RATIO,
+                    contentDescription = trailingStatusContentDescription,
                 )
             }
         }
