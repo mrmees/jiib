@@ -764,11 +764,26 @@ internal fun MoveHubContent(
                             val current = endstops
                             when {
                                 current != null -> {
-                                    Column(
-                                        Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        current.forEach { es -> EndstopRow(es, grid.uDp) }
+                                    Column(Modifier.fillMaxSize()) {
+                                        // Polling cadence note — the poll loop above is literally delay(500).
+                                        Text(
+                                            text = "Polls Every 500ms",
+                                            style = DinghyType.caption.toTextStyle(t),
+                                            color = t.text3,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp),
+                                        )
+                                        // Endstop rows centered vertically in the remaining space.
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                                        ) {
+                                            current.forEach { es -> EndstopRow(es, grid.uDp) }
+                                        }
                                     }
                                 }
                                 errored -> FocusCenteredHint("Endstops unavailable")
