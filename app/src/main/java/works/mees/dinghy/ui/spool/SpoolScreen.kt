@@ -145,7 +145,7 @@ fun SpoolScreen(
             onCloseFilter = { holder.closeFilterPicker() },
             onToggleMaterial = { scope.launch { holder.toggleMaterialFamily(it) } },
             onToggleVendor = { scope.launch { holder.toggleVendor(it) } },
-            onTapSwatch = { scope.launch { holder.applyColorSwatch(it); holder.closeFilterPicker() } },
+            onTapSwatch = { scope.launch { holder.applyColorSwatch(it) } },
             onClearFilter = {
                 val mode = state.fieldMode
                 if (mode is FieldMode.FilterPicker) {
@@ -322,7 +322,7 @@ private fun SpoolContent(
                 icon = DinghyIcons.Palette,
                 label = stringResource(R.string.spool_filter_color),
                 contentDescriptionRes = R.string.cd_spool_filter_color,
-                isActive = state.filters.colorSwatchHex != null,
+                isActive = state.filters.colorSwatchHexes.isNotEmpty() || state.filters.colorSeedHex != null,
             ),
             FilterOption(
                 key = SpoolFilterCategory.MFG,
@@ -348,10 +348,12 @@ private fun SpoolContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    trailingStatusIcon = if (isSelectedLoaded) DinghyIcons.CheckCircle else null,
+                    trailingStatusTint = t.go,
+                    trailingStatusContentDescription = stringResource(R.string.cd_spool_loaded),
                 ) {
                     SpoolDetailContent(
                         spool = selected,
-                        isActive = isSelectedLoaded,
                         spoolColor = spoolColor,
                         onMeasure = onMeasure,
                         t = t,
@@ -503,24 +505,41 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
 ) {
     when (category) {
         SpoolFilterCategory.TYPE -> {
-            DesignListBlock(modifier = Modifier.weight(1f)) {
-                items(MATERIAL_FAMILIES, key = { it.first }) { (label, _) ->
-                    val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
-                    ListRow(
-                        selected = selected,
-                        onClick = { onToggleMaterial(label) },
-                        uDp = uDp,
-                    ) {
-                        Text(
-                            text = label,
-                            color = if (selected) t.accent2 else t.text,
-                            style = DinghyType.listLabel.toTextStyle(t),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 4.dp),
-                        )
+            if (state.availableMaterialFamilies.isEmpty()) {
+                // Mirror the MFG empty-state Box EXACTLY (SpoolScreen.kt:545-557).
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.spool_type_empty),
+                        color = t.text2,
+                        style = DinghyType.body.toTextStyle(t),
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            } else {
+                DesignListBlock(modifier = Modifier.weight(1f)) {
+                    items(state.availableMaterialFamilies, key = { it }) { label ->
+                        val selected = state.filters.materialFamilies.any { it.equals(label, ignoreCase = true) }
+                        ListRow(
+                            selected = selected,
+                            onClick = { onToggleMaterial(label) },
+                            uDp = uDp,
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (selected) t.accent2 else t.text,
+                                style = DinghyType.listLabel.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -533,7 +552,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     .weight(1f),
             ) {
                 ColorSwatchGrid(
-                    selectedHex = state.filters.colorSwatchHex,
+                    selectedHexes = (state.filters.colorSwatchHexes + listOfNotNull(state.filters.colorSeedHex))
+                        .mapNotNull { normalizeColorHex(it) }
+                        .toSet(),
                     onTapSwatch = onTapSwatch,
                     t = t,
                     modifier = Modifier.fillMaxSize(),
@@ -775,7 +796,6 @@ private fun spoolFocusTitle(spool: SpoolmanSpool): String =
 @Composable
 private fun SpoolDetailContent(
     spool: SpoolmanSpool?,
-    isActive: Boolean,
     spoolColor: Color?,
     onMeasure: () -> Unit,
     t: ThemeTokens,
@@ -850,9 +870,6 @@ private fun SpoolDetailContent(
                 style = DinghyType.dataInline.toTextStyle(t),
                 maxLines = 1,
             )
-        }
-        if (isActive) {
-            DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), t, iconSp, t.go)
         }
         if (spool.archived) {
             DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)

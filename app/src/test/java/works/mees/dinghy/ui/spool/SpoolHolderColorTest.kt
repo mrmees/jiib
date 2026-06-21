@@ -8,15 +8,15 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.net.MoonrakerJson
 import works.mees.dinghy.spool.SpoolmanClient
 import works.mees.dinghy.spool.SpoolmanStatus
 
 /**
- * Holder-level tests for the client-side color-family filter ([SpoolHolder.applyColorSwatch]).
- * Replaces the old Spoolman CIE76 similarity fetch. See
- * docs/superpowers/specs/2026-06-18-spool-color-family-filter-design.md.
+ * Holder-level tests for the multi-select client-side color-family filter
+ * ([SpoolHolder.applyColorSwatch]). See docs/superpowers/specs/2026-06-21-spool-screen-cleanups-design.md.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpoolHolderColorTest {
@@ -28,7 +28,7 @@ class SpoolHolderColorTest {
             """{"response":$rowsJson,"error":null,"response_headers":{"X-Total-Count":"99"}}""",
         )
 
-    /** A library: olive(Green), pure red(Red), a multicolor with red+green, sky blue(Blue). */
+    /** A library: olive(Green id1), pure red(Red id2), multicolor red+green(id3), sky blue(Blue id4). */
     private val colorClient: SpoolmanClient = object : SpoolmanClient {
         override suspend fun listFilaments(query: String?): JsonElement = proxyEnvelope(
             """[
@@ -51,30 +51,52 @@ class SpoolHolderColorTest {
             val h = holder(colorClient)
             h.applyColorSwatch("#00C000")
             assertEquals(listOf(1, 3), h.state.value.filters.colorFilamentIds)
-            assertEquals("#00C000", h.state.value.filters.colorSwatchHex)
+            assertEquals(listOf("#00C000"), h.state.value.filters.colorSwatchHexes)
         }
 
-    @Test fun `tapping Red selects the red and the multicolor`() =
+    @Test fun `tapping a lowercase hex normalizes the stored swatch`() =
         runTest(UnconfinedTestDispatcher()) {
             val h = holder(colorClient)
+            h.applyColorSwatch("#00c000")
+            assertEquals(listOf("#00C000"), h.state.value.filters.colorSwatchHexes)
+        }
+
+    @Test fun `selecting Green then Red UNIONS both families' ids and keeps both swatches`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.applyColorSwatch("#00C000")
             h.applyColorSwatch("#FF0000")
-            assertEquals(listOf(2, 3), h.state.value.filters.colorFilamentIds)
+            // Green→{1,3}, Red→{2,3}; union (in filament order) = {1,2,3}.
+            assertEquals(listOf(1, 2, 3), h.state.value.filters.colorFilamentIds)
+            assertTrue(h.state.value.filters.colorSwatchHexes.containsAll(listOf("#00C000", "#FF0000")))
+            assertEquals(2, h.state.value.filters.colorSwatchHexes.size)
+        }
+
+    @Test fun `re-tapping one of two colors removes only its contribution`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.applyColorSwatch("#00C000")
+            h.applyColorSwatch("#FF0000")
+            h.applyColorSwatch("#FF0000") // toggle Red off
+            assertEquals(listOf("#00C000"), h.state.value.filters.colorSwatchHexes)
+            assertEquals(listOf(1, 3), h.state.value.filters.colorFilamentIds)
+        }
+
+    @Test fun `re-tapping the last color clears the whole color filter`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.applyColorSwatch("#00C000")
+            h.applyColorSwatch("#00C000")
+            assertTrue(h.state.value.filters.colorSwatchHexes.isEmpty())
+            assertNull(h.state.value.filters.colorFilamentIds)
         }
 
     @Test fun `a family with no matches yields an empty (unmatchable) id list`() =
         runTest(UnconfinedTestDispatcher()) {
             val h = holder(colorClient)
-            h.applyColorSwatch("#FFFF00")
+            h.applyColorSwatch("#FFFF00") // Yellow — no filament classifies Yellow
             assertEquals(emptyList<Int>(), h.state.value.filters.colorFilamentIds)
-        }
-
-    @Test fun `re-tapping an active swatch clears the color filter`() =
-        runTest(UnconfinedTestDispatcher()) {
-            val h = holder(colorClient)
-            h.applyColorSwatch("#00C000")
-            h.applyColorSwatch("#00C000")
-            assertNull(h.state.value.filters.colorFilamentIds)
-            assertNull(h.state.value.filters.colorSwatchHex)
+            assertEquals(listOf("#FFFF00"), h.state.value.filters.colorSwatchHexes)
         }
 
     @Test fun `a failed fetch leaves the filter UNAPPLIED, not an empty list`() =
@@ -83,22 +105,35 @@ class SpoolHolderColorTest {
             val h = holder(failing)
             h.applyColorSwatch("#00C000")
             assertNull("fetch failure must not collapse the list", h.state.value.filters.colorFilamentIds)
-            assertNull(h.state.value.filters.colorSwatchHex)
+            assertTrue(h.state.value.filters.colorSwatchHexes.isEmpty())
         }
 
-    @Test fun `seedPrefilter maps an olive file color to the GREEN hint swatch (not Gray)`() =
+    @Test fun `seedPrefilter maps an olive file color to the GREEN hint, not a hard filter`() =
         runTest(UnconfinedTestDispatcher()) {
             val h = holder(colorClient)
             h.seedPrefilter(SpoolPrefilterSeed(filamentColors = listOf("#64794b")))
-            assertEquals("#00C000", h.state.value.filters.colorSwatchHex)
+            assertEquals("#00C000", h.state.value.filters.colorSeedHex)
+            assertTrue(h.state.value.filters.colorSwatchHexes.isEmpty())
             assertNull(h.state.value.filters.colorFilamentIds)
         }
 
-    @Test fun `tapping a seed-highlighted swatch APPLIES the filter (does not clear)`() =
+    @Test fun `tapping the seeded swatch consumes the seed and applies a hard filter`() =
         runTest(UnconfinedTestDispatcher()) {
             val h = holder(colorClient)
             h.seedPrefilter(SpoolPrefilterSeed(filamentColors = listOf("#64794b")))
             h.applyColorSwatch("#00C000")
+            assertNull("seed must be consumed on the first hard tap", h.state.value.filters.colorSeedHex)
+            assertEquals(listOf("#00C000"), h.state.value.filters.colorSwatchHexes)
             assertEquals(listOf(1, 3), h.state.value.filters.colorFilamentIds)
+        }
+
+    @Test fun `clearColor empties hexes, ids, and seed`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = holder(colorClient)
+            h.applyColorSwatch("#00C000")
+            h.clearColor()
+            assertTrue(h.state.value.filters.colorSwatchHexes.isEmpty())
+            assertNull(h.state.value.filters.colorFilamentIds)
+            assertNull(h.state.value.filters.colorSeedHex)
         }
 }

@@ -18,12 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -53,9 +55,9 @@ internal val PALETTE_SWATCHES: List<Pair<String, String>> = listOf(
  * The three filter CATEGORIES surfaced in the Field-takeover picker (23-06 redesign). Tapping a filter
  * tile in the [FilterRow] swaps the Field in-place to show the option list for the selected category — no
  * separate screen push. See [works.mees.dinghy.ui.spool.FieldMode.FilterPicker].
- *  - [TYPE] — fuzzy material families (D-05; multi-select).
- *  - [COLOR] — the palette swatches (D-06; single-select, slow two-step on tap).
- *  - [MFG] — manufacturer / vendor (single-select).
+ *  - [TYPE] — fuzzy material families (D-05; multi-select; OR within facet).
+ *  - [COLOR] — the palette swatches (D-06; multi-select; OR within facet).
+ *  - [MFG] — manufacturer / vendor (multi-select; OR within facet).
  */
 enum class SpoolFilterCategory(val label: String, val icon: String) {
     TYPE("Type", "experiment"),
@@ -71,11 +73,12 @@ enum class SpoolFilterCategory(val label: String, val icon: String) {
  */
 @Composable
 internal fun ColorSwatchGrid(
-    selectedHex: String?,
+    selectedHexes: Set<String>,
     onTapSwatch: (String) -> Unit,
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
+    val normalizedSelected = remember(selectedHexes) { selectedHexes.mapNotNull { normalizeColorHex(it) }.toSet() }
     val columns = 3
     BoxWithConstraints(modifier) {
         val landscape = maxWidth > maxHeight
@@ -89,7 +92,7 @@ internal fun ColorSwatchGrid(
                         ColorTile(
                             name = name,
                             hex = hex,
-                            selectedHex = selectedHex,
+                            selectedHexes = normalizedSelected,
                             onTapSwatch = onTapSwatch,
                             landscape = landscape,
                             t = t,
@@ -121,13 +124,13 @@ private fun ColorSwatchCircle(hex: String, t: ThemeTokens, modifier: Modifier) {
 private fun ColorTile(
     name: String,
     hex: String,
-    selectedHex: String?,
+    selectedHexes: Set<String>,
     onTapSwatch: (String) -> Unit,
     landscape: Boolean,
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
-    val selected = selectedHex.equals(hex, ignoreCase = true)
+    val selected = normalizeColorHex(hex)?.let { it in selectedHexes } ?: false
     val shape = RoundedCornerShape(t.rCtrl)
     val tileMod = modifier
         .clip(shape)

@@ -19,7 +19,6 @@ import works.mees.dinghy.spool.SpoolmanStatus
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.spool.parseSpoolmanFilaments
 import works.mees.dinghy.spool.parseSpoolmanLocations
-import works.mees.dinghy.spool.parseSpoolmanMaterials
 import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
 import works.mees.dinghy.spool.parseSpoolmanSpools
 
@@ -66,6 +65,20 @@ internal fun materialFamilyLabel(raw: String): String? {
 }
 
 /**
+ * The [MATERIAL_FAMILIES] (in declared order) that have at least one matching material among
+ * [ownedMaterials] (the physical spools' filament materials). A family is available if ANY of its
+ * terms is a substring of ANY owned material (uppercased) — mirroring Spoolman's `filament.material`
+ * substring query. This is per-family (NOT [materialFamilyLabel], which returns only the first match),
+ * so a hybrid material like `PC-ABS` correctly marks BOTH `PC` and `ABS/ASA` available.
+ */
+internal fun availableMaterialFamilies(ownedMaterials: List<String>): List<String> {
+    val up = ownedMaterials.mapNotNull { it.trim().uppercase().ifEmpty { null } }
+    return MATERIAL_FAMILIES
+        .filter { (_, terms) -> terms.any { term -> up.any { it.contains(term.uppercase()) } } }
+        .map { it.first }
+}
+
+/**
  * The applied picker filters (D-04/D-05/D-06). All optional — an empty/absent filter is "no constraint".
  *  - [materialFamilies] — D-05 material FAMILY chips, comma-joined into one `filament.material=A,B`
  *    UNQUOTED term so `PLA` catches `PLA+`; multi-family is a comma list, NOT a fuzzy combined term.
@@ -74,16 +87,18 @@ internal fun materialFamilyLabel(raw: String): String? {
  *    Empty list = no vendor constraint.
  *  - [location] — D-04 location shortcut. [LOCATION_NONE] is the sentinel for the "No location" chip
  *    (`location=` empty), distinct from null = "any location".
- *  - [colorFilamentIds] — D-06 result of a swatch-tap two-step: the filament ids the color-similarity
- *    endpoint returned (the spool list has no direct color filter), folded into `filament.id=<csv>`.
- *  - [colorSwatchHex] — the swatch the user tapped (for the active filter chip display only).
+ *  - [colorFilamentIds] — D-06 result of swatch taps: the union of filament ids whose color(s)
+ *    classify into ANY selected family, folded into `filament.id=<csv>`.
+ *  - [colorSwatchHexes] — the (normalized) swatches the user tapped (multi-select; OR within facet).
+ *  - [colorSeedHex] — a gcode-seed HINT swatch (display-only highlight; NOT a hard filter).
  */
 data class SpoolFilters(
     val materialFamilies: List<String> = emptyList(),
     val vendors: List<String> = emptyList(),
     val location: String? = null,
     val colorFilamentIds: List<Int>? = null,
-    val colorSwatchHex: String? = null,
+    val colorSwatchHexes: List<String> = emptyList(),
+    val colorSeedHex: String? = null,
 ) {
     companion object {
         /** The "No location" sentinel (D-04) — distinct from null ("any location"). */
@@ -138,7 +153,7 @@ sealed class FieldMode {
  * @property spools the current picker result rows.
  * @property selected the row whose detail fills the Focus (null = nothing selected → portrait stays Field).
  * @property fieldMode controls whether the Field shows the spool list or an in-place filter picker (23-06).
- * @property materials/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
+ * @property availableMaterialFamilies/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
  * @property activeStatus the live active-spool status (D-10 reconciled) — drives "this is loaded" marks
  *   and the active-spool reconcile; null when unavailable/idle.
  */
@@ -149,7 +164,7 @@ data class SpoolPickerState(
     val filters: SpoolFilters = SpoolFilters(),
     val sortKey: SpoolSortKey = SpoolSortKey.NAME,
     val sortAscending: Boolean = SpoolSortKey.NAME.defaultAscending,
-    val materials: List<String> = emptyList(),
+    val availableMaterialFamilies: List<String> = emptyList(),
     val vendors: List<String> = emptyList(),
     val locations: List<String> = emptyList(),
     val activeStatus: SpoolmanStatus? = null,
@@ -388,36 +403,37 @@ class SpoolHolder(
     }
 
     /**
-     * D-06: apply a color-FAMILY filter. The tapped swatch declares a family (via [colorFamily] on its own
-     * hex); fetch the whole filament library, keep ids whose color(s) classify to that family, and fold
-     * them into the spool list as `filament.id=<csv>`. A multicolor filament matches if ANY of its
-     * sub-colors fits. A re-tap of the ACTIVE swatch (a real hard filter) clears; a tap on a hint-only
-     * highlight (colorSwatchHex set with no ids — a gcode seed) APPLIES. A failed fetch leaves the color
-     * filter UNAPPLIED rather than collapsing the list to nothing.
+     * D-06 (multi-select): toggle [swatchHex] in the color filter. Each selected swatch declares a
+     * family (via [colorFamily]); the matching ids are the UNION across all selected families — a
+     * filament matches if ANY of its sub-colors classifies into ANY selected family. Re-tapping a
+     * selected swatch removes it; emptying the set clears the filter. A tap consumes any gcode seed
+     * hint. A failed library fetch aborts the toggle (leaves filters unchanged) rather than collapsing
+     * the list to nothing.
      */
     suspend fun applyColorSwatch(swatchHex: String) {
-        val current = _state.value
-        // Re-tap clears only an ACTIVE hard filter; a hint-only highlight is not a re-tap (it applies).
-        if (current.filters.colorFilamentIds != null &&
-            current.filters.colorSwatchHex.equals(swatchHex, ignoreCase = true)
-        ) {
-            _state.update { it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null)) }
+        val norm = normalizeColorHex(swatchHex) ?: return
+        val current = _state.value.filters
+        val present = current.colorSwatchHexes.any { it.equals(norm, ignoreCase = true) }
+        val nextHexes = if (present) {
+            current.colorSwatchHexes.filterNot { it.equals(norm, ignoreCase = true) }
+        } else {
+            current.colorSwatchHexes + norm
+        }
+        if (nextHexes.isEmpty()) {
+            _state.update {
+                it.copy(filters = it.filters.copy(colorSwatchHexes = emptyList(), colorFilamentIds = null, colorSeedHex = null))
+            }
             refresh()
             return
         }
-        val targetFamily = colorFamily(swatchHex)
+        val targetFamilies = nextHexes.mapNotNull { colorFamily(it) }.toSet()
         val envelope = runCatching { client.listFilaments("limit=$FILAMENT_LIMIT") }.getOrNull()
-        if (envelope == null) {
-            // Fetch FAILED: leave the filter unapplied (distinct from a successful zero-match result).
-            _state.update { it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null)) }
-            refresh()
-            return
-        }
+            ?: return // fetch failed: abort the toggle, leave filters unchanged (don't collapse the list).
         val ids = parseSpoolmanFilaments(envelope).rows
-            .filter { f -> f.colorSwatches.any { colorFamily(it) == targetFamily } }
+            .filter { f -> f.colorSwatches.any { colorFamily(it) in targetFamilies } }
             .mapNotNull(SpoolmanFilament::id)
         _state.update {
-            it.copy(filters = it.filters.copy(colorFilamentIds = ids, colorSwatchHex = swatchHex))
+            it.copy(filters = it.filters.copy(colorSwatchHexes = nextHexes, colorFilamentIds = ids, colorSeedHex = null))
         }
         refresh()
     }
@@ -458,7 +474,9 @@ class SpoolHolder(
 
     /** Clear just the color filter (the Color selector's Clear); re-issues the read. */
     suspend fun clearColor() {
-        _state.update { it.copy(filters = it.filters.copy(colorFilamentIds = null, colorSwatchHex = null)) }
+        _state.update {
+            it.copy(filters = it.filters.copy(colorSwatchHexes = emptyList(), colorFilamentIds = null, colorSeedHex = null))
+        }
         refresh()
     }
 
@@ -467,7 +485,7 @@ class SpoolHolder(
      * carried from a Files spool-warning "Pick spool"). The material chip(s) come from [SpoolPrefilterSeed.filamentType]
      * (D-05 multi-family — each family becomes a `filament.material` term); the file's first valid color
      * is surfaced as a color-similarity HINT — the nearest palette swatch is pre-selected for display
-     * ([SpoolFilters.colorSwatchHex]) WITHOUT firing the D-06 hard `filament.id` two-step (D-04/D-06:
+     * ([SpoolFilters.colorSeedHex]) WITHOUT firing the D-06 hard `filament.id` two-step (D-04/D-06:
      * color is a hint, NOT a strict filter — non-matching colors are NOT filtered out). The seed is a
      * clearable one-time default: it REPLACES the current filters (the user can then clear/refine via the
      * chips). An empty seed applies no prefilter (T-11-08-03). Re-issues the list read.
@@ -489,7 +507,7 @@ class SpoolHolder(
             it.copy(
                 filters = SpoolFilters(
                     materialFamilies = families,
-                    colorSwatchHex = colorHint,
+                    colorSeedHex = colorHint,
                     colorFilamentIds = null, // hint, not a hard filter (D-04/D-06).
                 ),
             )
@@ -523,29 +541,24 @@ class SpoolHolder(
 
     /** Load the dynamic chip universes (D-04) once; each degrades to empty independently. */
     private suspend fun loadChips() {
-        val materials = parseSpoolmanMaterials(runCatching { client.listMaterials() }.getOrNull()).rows
-        // Vendor options are derived from the SPOOL list, walking each physical spool back to its
-        // filament's vendor (spool → filament → vendor.name). Spoolman classification is
-        // mfg → filament → spool: an owner can have FILAMENT definitions for a manufacturer they own
-        // ZERO physical spools of, and the raw /v1/vendor manufacturers table (and even the /v1/filament
-        // list) include those spool-less manufacturers — they would appear as filter options that can
-        // never match a listed spool (the corrected on-device defect, owner 2026-06-10). Deriving the
-        // universe from the SPOOLS yields only manufacturers actually represented by a physical spool.
-        //
-        // Use the screen's own base read shape (allow_archived=false, no facet filters) so the universe
-        // matches the spool set the list shows AND stays stable regardless of the currently-applied
-        // vendor/material filters. The /v1/spool list already carries the full nested filament.vendor
-        // object inline (live golden spoolman-live-ender5-proxy-pla.json), so no extra endpoint or model
-        // change is needed beyond this one facet-unfiltered spool read.
-        val vendors = parseSpoolmanSpools(
+        // ONE base spool read (allow_archived=false, no facet filters) feeds BOTH the vendor universe
+        // AND the available material families — so both reflect only manufacturers/materials actually
+        // represented by a PHYSICAL spool (Spoolman classification is mfg→filament→spool; the raw
+        // /v1/vendor and /v1/material tables include spool-less definitions that could never match a
+        // listed spool — the corrected on-device defect, owner 2026-06-10).
+        val baseSpools = parseSpoolmanSpools(
             runCatching { client.listSpools("allow_archived=false&limit=$SPOOL_LIMIT") }.getOrNull(),
-        )
-            .rows
+        ).rows
+        val vendors = baseSpools
             .mapNotNull { it.filament?.vendor?.name?.trim()?.ifEmpty { null } }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
+        val ownedMaterials = baseSpools.mapNotNull { it.filament?.material?.trim()?.ifEmpty { null } }
+        val families = availableMaterialFamilies(ownedMaterials)
         val locations = parseSpoolmanLocations(runCatching { client.listLocations() }.getOrNull()).rows
-        _state.update { it.copy(materials = materials, vendors = vendors, locations = locations) }
+        _state.update {
+            it.copy(availableMaterialFamilies = families, vendors = vendors, locations = locations)
+        }
     }
 
     private companion object {
