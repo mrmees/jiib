@@ -19,7 +19,6 @@ import works.mees.dinghy.spool.SpoolmanStatus
 import works.mees.dinghy.spool.normalizeColorHex
 import works.mees.dinghy.spool.parseSpoolmanFilaments
 import works.mees.dinghy.spool.parseSpoolmanLocations
-import works.mees.dinghy.spool.parseSpoolmanMaterials
 import works.mees.dinghy.spool.parseSpoolmanSpoolDetail
 import works.mees.dinghy.spool.parseSpoolmanSpools
 
@@ -63,6 +62,20 @@ internal fun materialFamilyLabel(raw: String): String? {
     return MATERIAL_FAMILIES.firstOrNull { (_, terms) ->
         terms.any { up.startsWith(it.uppercase()) || up.contains(it.uppercase()) }
     }?.first
+}
+
+/**
+ * The [MATERIAL_FAMILIES] (in declared order) that have at least one matching material among
+ * [ownedMaterials] (the physical spools' filament materials). A family is available if ANY of its
+ * terms is a substring of ANY owned material (uppercased) — mirroring Spoolman's `filament.material`
+ * substring query. This is per-family (NOT [materialFamilyLabel], which returns only the first match),
+ * so a hybrid material like `PC-ABS` correctly marks BOTH `PC` and `ABS/ASA` available.
+ */
+internal fun availableMaterialFamilies(ownedMaterials: List<String>): List<String> {
+    val up = ownedMaterials.mapNotNull { it.trim().uppercase().ifEmpty { null } }
+    return MATERIAL_FAMILIES
+        .filter { (_, terms) -> terms.any { term -> up.any { it.contains(term.uppercase()) } } }
+        .map { it.first }
 }
 
 /**
@@ -138,7 +151,7 @@ sealed class FieldMode {
  * @property spools the current picker result rows.
  * @property selected the row whose detail fills the Focus (null = nothing selected → portrait stays Field).
  * @property fieldMode controls whether the Field shows the spool list or an in-place filter picker (23-06).
- * @property materials/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
+ * @property availableMaterialFamilies/[vendors]/[locations] the dynamic chip universes (D-04) — empty when unread/idle.
  * @property activeStatus the live active-spool status (D-10 reconciled) — drives "this is loaded" marks
  *   and the active-spool reconcile; null when unavailable/idle.
  */
@@ -149,7 +162,7 @@ data class SpoolPickerState(
     val filters: SpoolFilters = SpoolFilters(),
     val sortKey: SpoolSortKey = SpoolSortKey.NAME,
     val sortAscending: Boolean = SpoolSortKey.NAME.defaultAscending,
-    val materials: List<String> = emptyList(),
+    val availableMaterialFamilies: List<String> = emptyList(),
     val vendors: List<String> = emptyList(),
     val locations: List<String> = emptyList(),
     val activeStatus: SpoolmanStatus? = null,
@@ -523,29 +536,24 @@ class SpoolHolder(
 
     /** Load the dynamic chip universes (D-04) once; each degrades to empty independently. */
     private suspend fun loadChips() {
-        val materials = parseSpoolmanMaterials(runCatching { client.listMaterials() }.getOrNull()).rows
-        // Vendor options are derived from the SPOOL list, walking each physical spool back to its
-        // filament's vendor (spool → filament → vendor.name). Spoolman classification is
-        // mfg → filament → spool: an owner can have FILAMENT definitions for a manufacturer they own
-        // ZERO physical spools of, and the raw /v1/vendor manufacturers table (and even the /v1/filament
-        // list) include those spool-less manufacturers — they would appear as filter options that can
-        // never match a listed spool (the corrected on-device defect, owner 2026-06-10). Deriving the
-        // universe from the SPOOLS yields only manufacturers actually represented by a physical spool.
-        //
-        // Use the screen's own base read shape (allow_archived=false, no facet filters) so the universe
-        // matches the spool set the list shows AND stays stable regardless of the currently-applied
-        // vendor/material filters. The /v1/spool list already carries the full nested filament.vendor
-        // object inline (live golden spoolman-live-ender5-proxy-pla.json), so no extra endpoint or model
-        // change is needed beyond this one facet-unfiltered spool read.
-        val vendors = parseSpoolmanSpools(
+        // ONE base spool read (allow_archived=false, no facet filters) feeds BOTH the vendor universe
+        // AND the available material families — so both reflect only manufacturers/materials actually
+        // represented by a PHYSICAL spool (Spoolman classification is mfg→filament→spool; the raw
+        // /v1/vendor and /v1/material tables include spool-less definitions that could never match a
+        // listed spool — the corrected on-device defect, owner 2026-06-10).
+        val baseSpools = parseSpoolmanSpools(
             runCatching { client.listSpools("allow_archived=false&limit=$SPOOL_LIMIT") }.getOrNull(),
-        )
-            .rows
+        ).rows
+        val vendors = baseSpools
             .mapNotNull { it.filament?.vendor?.name?.trim()?.ifEmpty { null } }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
+        val ownedMaterials = baseSpools.mapNotNull { it.filament?.material?.trim()?.ifEmpty { null } }
+        val families = availableMaterialFamilies(ownedMaterials)
         val locations = parseSpoolmanLocations(runCatching { client.listLocations() }.getOrNull()).rows
-        _state.update { it.copy(materials = materials, vendors = vendors, locations = locations) }
+        _state.update {
+            it.copy(availableMaterialFamilies = families, vendors = vendors, locations = locations)
+        }
     }
 
     private companion object {
