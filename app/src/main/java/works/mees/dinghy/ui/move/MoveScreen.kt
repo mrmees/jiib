@@ -764,26 +764,21 @@ internal fun MoveHubContent(
                             val current = endstops
                             when {
                                 current != null -> {
-                                    Column(Modifier.fillMaxSize()) {
+                                    // Note + rows as ONE vertically-centered block: the cadence note is a
+                                    // line directly above the switch statuses (not pinned to the top).
+                                    Column(
+                                        Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                                    ) {
                                         // Polling cadence note — the poll loop above is literally delay(500).
                                         Text(
                                             text = "Polls Every 500ms",
                                             style = DinghyType.caption.toTextStyle(t),
                                             color = t.text3,
                                             textAlign = TextAlign.Center,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(bottom = 8.dp),
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
-                                        // Endstop rows centered vertically in the remaining space.
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                                        ) {
-                                            current.forEach { es -> EndstopRow(es, grid.uDp) }
-                                        }
+                                        current.forEach { es -> EndstopRow(es, grid.uDp) }
                                     }
                                 }
                                 errored -> FocusCenteredHint("Endstops unavailable")
