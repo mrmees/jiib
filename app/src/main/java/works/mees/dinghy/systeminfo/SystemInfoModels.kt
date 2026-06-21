@@ -4,8 +4,8 @@ package works.mees.dinghy.systeminfo
  * Pure data models for the System Information page (Phase 20, SYS-01..04). NO I/O, NO coroutines,
  * NO Compose — host-unit-testable plain Kotlin. The tolerant parsers that build these from the
  * loose Moonraker `machine.system_info` / `machine.proc_stats` / `notify_proc_stat_update` payloads
- * live in [SystemInfoParse]; the pure health-chip decision fn + formatters live in [healthState]
- * and [works.mees.dinghy.systeminfo.formatGb] etc.
+ * live in [SystemInfoParse]; throttle-condition decoding lives in [decodeThrottleConditions];
+ * formatters live in [works.mees.dinghy.systeminfo.formatGb] etc.
  *
  * Every numeric/string field is NULLABLE: a sparse, older, or non-Pi Moonraker omits, blanks, or
  * nulls fields, and the SYS-04 degrade contract maps any absent value to "—" at the UI. The parsers
@@ -74,8 +74,8 @@ data class ProcStatQuery(
 
 /**
  * The Raspberry Pi `vcgencmd get_throttled` view as surfaced by Moonraker's `throttled_state`:
- * a raw [bits] mask plus the decoded [flags] string list. Consumed by the pure [healthState] fn
- * (throttle-authoritative path). Absent / JsonNull on non-Pi hosts (→ temp fallback).
+ * a raw [bits] mask plus the decoded [flags] string list. Consumed by [decodeThrottleConditions]
+ * to produce the per-device throttle-condition list. Absent / JsonNull on non-Pi hosts (→ empty).
  */
 data class ThrottledState(
     val bits: Int = 0,

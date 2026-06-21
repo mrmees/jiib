@@ -283,10 +283,9 @@
 
     <!-- ============================ system information (Phase 20) ============================ -->
     <string name="sysinfo_title">System Information</string>
-    <!-- Focus health-summary rows. -->
+    <!-- Focus summary rows. -->
     <string name="sysinfo_host">Host</string>
     <string name="sysinfo_cpu_temp">CPU temp</string>
-    <string name="sysinfo_health">Health</string>
     <string name="sysinfo_uptime">Uptime</string>
     <!-- Field section headers. -->
     <string name="sysinfo_section_host">Host</string>
@@ -299,10 +298,6 @@
     <!-- Field Live-load rows. -->
     <string name="sysinfo_cpu_load">CPU load</string>
     <string name="sysinfo_memory">Memory</string>
-    <!-- The three shape-coded health-chip states (the visible label; the shape carries safety). -->
-    <string name="sysinfo_health_healthy">Healthy</string>
-    <string name="sysinfo_health_warn">Warning</string>
-    <string name="sysinfo_health_caution">Caution</string>
     <!-- contentDescriptions for the leading per-row glyphs (icon law D-02..D-10). -->
     <string name="cd_sysinfo_host">Host</string>
     <string name="cd_sysinfo_cpu_temp">CPU temperature</string>
@@ -313,8 +308,6 @@
     <string name="cd_sysinfo_kernel">Kernel</string>
     <string name="cd_sysinfo_cpu_load">CPU load</string>
     <string name="cd_sysinfo_mem_usage">Memory usage</string>
-    <!-- contentDescription for the shape-coded health chip glyph. -->
-    <string name="cd_sysinfo_health">Host health</string>
 
     <!-- ===================== system info device browser (Part 2) ===================== -->
     <string name="sysinfo_device_host">Host</string>
