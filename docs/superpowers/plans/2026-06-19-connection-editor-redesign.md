@@ -1438,7 +1438,7 @@ ScreenScaffold(
                 }
             }
             item {
-                ConnListRow(ConnRow.Host, DinghyIcons.DeveloperBoard, stringResource(R.string.conn_row_host), host.ifBlank { "-" }, selected, uDp) {
+                ConnListRow(ConnRow.Host, DinghyIcons.SysInfoCpu, stringResource(R.string.conn_row_host), host.ifBlank { "-" }, selected, uDp) {
                     selected = ConnRow.Host
                 }
             }
@@ -1465,7 +1465,7 @@ ScreenScaffold(
                 }
             }
             item {
-                ConnListRow(ConnRow.Advanced, DinghyIcons.Tune, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
+                ConnListRow(ConnRow.Advanced, DinghyIcons.LauncherCalibration, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
                     selected = ConnRow.Advanced
                 }
             }
@@ -1552,7 +1552,7 @@ private fun ConnFocus(
     FocusFrame(
         title = profile?.let { stringResource(R.string.conn_title_edit, it.displayName()) }
             ?: stringResource(R.string.conn_title_add),
-        icon = DinghyIcons.AndroidWifi3BarPlus,
+        icon = DinghyIcons.SystemRowPrinters, // android_wifi_3_bar_plus (existing val)
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
         isPrinting = isPrinting,
@@ -1695,7 +1695,7 @@ private fun ConnFindPanel(
                 items(discovered, key = { "${it.host}:${it.port}" }) { printer ->
                     ConnListRow(
                         row = ConnRow.Find,
-                        icon = DinghyIcons.DeveloperBoard,
+                        icon = DinghyIcons.SysInfoCpu, // developer_board (existing val)
                         label = printer.host,
                         value = printer.port.toString(),
                         selected = null,
