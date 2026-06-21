@@ -348,10 +348,12 @@ private fun SpoolContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    trailingStatusIcon = if (isSelectedLoaded) DinghyIcons.CheckCircle else null,
+                    trailingStatusTint = t.go,
+                    trailingStatusContentDescription = stringResource(R.string.cd_spool_loaded),
                 ) {
                     SpoolDetailContent(
                         spool = selected,
-                        isActive = isSelectedLoaded,
                         spoolColor = spoolColor,
                         onMeasure = onMeasure,
                         t = t,
@@ -775,7 +777,6 @@ private fun spoolFocusTitle(spool: SpoolmanSpool): String =
 @Composable
 private fun SpoolDetailContent(
     spool: SpoolmanSpool?,
-    isActive: Boolean,
     spoolColor: Color?,
     onMeasure: () -> Unit,
     t: ThemeTokens,
@@ -850,9 +851,6 @@ private fun SpoolDetailContent(
                 style = DinghyType.dataInline.toTextStyle(t),
                 maxLines = 1,
             )
-        }
-        if (isActive) {
-            DetailBadge(DinghyIcons.CheckCircle, stringResource(R.string.spool_badge_loaded), stringResource(R.string.cd_spool_loaded), t, iconSp, t.go)
         }
         if (spool.archived) {
             DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)

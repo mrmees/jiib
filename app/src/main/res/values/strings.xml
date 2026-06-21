@@ -187,7 +187,6 @@
     <!-- Detail-pane fallbacks + badges (the visible labels the exemplar tokenizes). -->
     <string name="spool_value_unset">—</string>
     <string name="spool_unnamed">Spool %1$d</string>
-    <string name="spool_badge_loaded">Loaded on this printer</string>
     <string name="spool_badge_archived">Archived — verify before loading</string>
 
     <!-- Line-5 recommended temperature (°C). -->
