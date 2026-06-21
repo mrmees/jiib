@@ -724,7 +724,6 @@
     <!-- ============== Power / Reset screen (Task A) ============== -->
     <string name="power_reset_title">Power / Reset</string>
     <string name="power_reset_blurb">Host reboot and shutdown require a compatible service manager. Klipper and Moonraker restarts work on any setup.</string>
-    <string name="cd_power_reset">Power and reset actions</string>
 
     <!-- ============== app settings screen — text size (Phase 29) ============== -->
     <string name="settings_text_size">Text size</string>
