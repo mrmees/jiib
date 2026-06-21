@@ -7,7 +7,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.ObjectSubsetArgs
 import works.mees.dinghy.di.SpineHandle
 
 /**
@@ -35,7 +39,7 @@ import works.mees.dinghy.di.SpineHandle
  */
 class SystemInfoHolder(
     scope: CoroutineScope,
-    spine: SpineHandle,
+    private val spine: SpineHandle,
     procStatUpdates: SharedFlow<JsonObject>,
 ) {
     /** Static host identity (off the one-shot `machine.system_info` query). Null until the read lands. */
@@ -47,6 +51,57 @@ class SystemInfoHolder(
     private val _live = MutableStateFlow<ProcStatLive?>(null)
     /** The latest ~1 Hz live resource sample (cpu%/mem/temp), parsed from the push. Null until the first frame. */
     val live: StateFlow<ProcStatLive?> = _live.asStateFlow()
+
+    private val loader = SystemInfoLoader(
+        queryObjects = { names -> spine.dispatcher.query(CommandRegistry.objectsQuery, ObjectSubsetArgs(names)) },
+        queryPrinterInfo = { spine.dispatcher.query(CommandRegistry.printerInfo, Unit) },
+        queryServerInfo = { spine.dispatcher.query(CommandRegistry.serverInfo, Unit) },
+    )
+
+    private val _mcuDevices = MutableStateFlow<List<McuDevice>?>(null)
+    /** Enumerated MCUs + per-MCU detail. Null until [ensureLoaded] runs (lazy — screen-mount only). */
+    val mcuDevices: StateFlow<List<McuDevice>?> = _mcuDevices.asStateFlow()
+
+    private val _klipperVersion = MutableStateFlow<String?>(null)
+    val klipperVersion: StateFlow<String?> = _klipperVersion.asStateFlow()
+
+    private val _moonrakerVersion = MutableStateFlow<String?>(null)
+    val moonrakerVersion: StateFlow<String?> = _moonrakerVersion.asStateFlow()
+
+    private val loadMutex = Mutex()
+    private var versionsLoaded = false
+
+    /**
+     * Idempotent + retry-safe: fetch versions ONCE; load MCUs whenever they aren't loaded yet AND
+     * capabilities have populated. An early call (before the handshake fills `capabilities.objects`)
+     * must NOT permanently cache an empty list — so the MCU load is gated on non-empty caps and only
+     * sets [_mcuDevices] on a non-null result, leaving null (= "retry me") otherwise (Codex). The
+     * screen retries while [mcuDevices] is null (Task 9).
+     */
+    suspend fun ensureLoaded() {
+        loadMutex.withLock {
+            if (!versionsLoaded) {
+                versionsLoaded = true
+                runCatching {
+                    val v = loader.loadVersions()
+                    _klipperVersion.value = v.klipper
+                    _moonrakerVersion.value = v.moonraker
+                }
+            }
+            if (_mcuDevices.value == null) {
+                val objs = spine.capabilities.value.objects
+                if (objs.isNotEmpty()) {
+                    runCatching { _mcuDevices.value = loader.loadMcuDevices(objs) }
+                }
+            }
+        }
+    }
+
+    /** Re-query MCU last_stats (screen-scoped poll). No-op until [ensureLoaded] has populated devices. */
+    suspend fun refreshMcuStats() {
+        val current = _mcuDevices.value ?: return
+        runCatching { _mcuDevices.value = loader.refreshStats(spine.capabilities.value.objects, current) }
+    }
 
     // The 1 Hz push collector runs on the process-lifetime serviceScope, so unlike the other
     // serviceScope holders it is rebuilt on every reconnect/profile-switch — without a cancel handle
