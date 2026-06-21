@@ -18,19 +18,25 @@ data class ConnectionConfig(
     // R7 (26.5-07, option B): switch the URL getters between ws/http and wss/https. Defaults FALSE
     // so every pre-R7 persisted config keeps today's plain-LAN posture unchanged (migration safety).
     val useSecure: Boolean = false,
+    // 2026-06-19: optional full URL override for proxied/reverse-proxied Moonraker installs.
+    // When non-null, consumers should prefer this over building URLs from host/port/useSecure.
+    val advancedUrl: String? = null,
 ) {
     /**
      * REST base, e.g. `http://192.168.1.50:7125` — or `https://…` when [useSecure] is set (R7,
-     * 26.5-07). The default-cleartext posture is D-10/D-11 (mirrors DevConfig.kt:34); the [useSecure]
-     * toggle in the connection editor is the per-printer hardening mechanism for TLS-fronted Moonraker.
+     * 26.5-07). When [advancedUrl] is set, delegates to [buildConnectionUrls] which parses and
+     * normalizes the advanced URL (collapsing default ports, stripping `/websocket`, mapping ws↔http).
+     * The default-cleartext posture is D-10/D-11 (mirrors DevConfig.kt:34); the [useSecure] toggle
+     * in the connection editor is the per-printer hardening mechanism for TLS-fronted Moonraker.
      */
-    val httpBase: String get() = "${if (useSecure) "https" else "http"}://$host:$port"
+    val httpBase: String get() = buildConnectionUrls(host, port, advancedUrl, useSecure).httpBase
 
     /**
      * WebSocket URL, e.g. `ws://192.168.1.50:7125/websocket` — or `wss://…` when [useSecure] is set
-     * (R7, 26.5-07). Same posture note as [httpBase]; mirrors DevConfig.kt:37.
+     * (R7, 26.5-07). When [advancedUrl] is set, delegates to [buildConnectionUrls]. Same posture note
+     * as [httpBase]; mirrors DevConfig.kt:37.
      */
-    val wsUrl: String get() = "${if (useSecure) "wss" else "ws"}://$host:$port/websocket"
+    val wsUrl: String get() = buildConnectionUrls(host, port, advancedUrl, useSecure).wsUrl
 
     /** Redacts the API key (T-04-01-I) — never let the key reach a log line. [useSecure] is non-secret. */
     override fun toString(): String =

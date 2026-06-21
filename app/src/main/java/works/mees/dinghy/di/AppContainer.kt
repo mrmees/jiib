@@ -22,8 +22,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import works.mees.dinghy.net.ConnectionProbe
+import works.mees.dinghy.net.ProbeResult
 import works.mees.dinghy.command.CommandDispatcher
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.shouldSeedName
@@ -208,6 +212,12 @@ class AppContainer(
     private val writeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
+     * Process-lifetime scope for one-shot connection probes launched by [runConnectionProbe].
+     * Isolated from [writeScope] so a probe in flight never starves or delays persistence writes.
+     */
+    private val probeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
      * Process-lifetime scope for PROCESS-SCOPED derived [StateFlow]s (D-01, 22-07). Separate from
      * [writeScope] (IO dispatcher) — these flows live on [Dispatchers.Default] because they are pure
      * in-memory transformations with no disk I/O. Only PROCESS-SCOPE flows belong here: flows keyed on
@@ -297,11 +307,12 @@ class AppContainer(
         }
 
     /**
-     * The active profile's connection projection (host/port/apiKey ONLY) — the value the service rebind
-     * seam consumes. The [distinctUntilChanged] is LOAD-BEARING (RESEARCH Pitfall 1 / T-14-04): a
+     * The active profile's connection projection (host/port/apiKey/advancedUrl) — the value the service
+     * rebind seam consumes. The [distinctUntilChanged] is LOAD-BEARING (RESEARCH Pitfall 1 / T-14-04): a
      * name-only or theme-only edit on the active profile yields a STRUCTURALLY-EQUAL [ConnectionConfig]
-     * (data-class equality over host/port/apiKey), so it is suppressed and does NOT churn the spine — no
-     * spurious reconnect Splash. A host/port/key change DOES re-emit, driving exactly one rebind.
+     * (data-class equality over host/port/apiKey/advancedUrl — note: useSecure is always false
+     * post-migration and does not vary), so it is suppressed and does NOT churn the spine — no spurious
+     * reconnect Splash. A host/port/key/advancedUrl change DOES re-emit, driving exactly one rebind.
      */
     val activeConfig: Flow<ConnectionConfig?> =
         activeProfile.map { it?.toConnectionConfig() }.distinctUntilChanged()
@@ -635,6 +646,26 @@ class AppContainer(
      */
     val webcamHttpClient: okhttp3.OkHttpClient by lazy {
         works.mees.dinghy.net.MoonrakerSocket.defaultClient()
+    }
+
+    /**
+     * Launch a one-shot dual HTTP + WebSocket connection probe for [config] on the process-lifetime
+     * [probeScope]. When the probe finishes (success or classified failure), [onResult] is invoked on
+     * [kotlinx.coroutines.Dispatchers.Main.immediate] so the caller can update Compose state safely.
+     *
+     * [ConnectionProbe.real] derives a finite REST read/call timeout from [webcamHttpClient] (which
+     * has `readTimeout(0)`) so the HTTP leg cannot hang indefinitely.
+     *
+     * @return the launched [kotlinx.coroutines.Job], which the caller may cancel if the UI goes away.
+     */
+    fun runConnectionProbe(
+        config: ConnectionConfig,
+        onResult: (ProbeResult) -> Unit,
+    ): Job = probeScope.launch {
+        val result = ConnectionProbe.real(webcamHttpClient).probe(config)
+        withContext(Dispatchers.Main.immediate) {
+            onResult(result)
+        }
     }
 
     /** The single active-theme source of truth (D-05); seeded below from [themePrefs]. */

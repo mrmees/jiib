@@ -776,4 +776,30 @@
     <string name="increment_values_select_hint">Select a control to edit its increment steps.</string>
     <string name="increment_values_input_hint">Comma-separated values</string>
     <string name="increment_values_input_label">Increment steps</string>
+
+    <!-- Connection editor (feat/connection-editor-redesign) -->
+    <string name="conn_title_add">Add a printer</string>
+    <string name="conn_title_edit">Edit %1$s</string>
+    <string name="conn_row_name">Name</string>
+    <string name="conn_row_host">Host</string>
+    <string name="conn_row_port">Port</string>
+    <string name="conn_row_apikey">API key</string>
+    <string name="conn_row_find">Find on network</string>
+    <string name="conn_row_advanced">Advanced</string>
+    <string name="conn_apikey_hint">Only needed if your install requires it</string>
+    <string name="conn_apikey_set">Set</string>
+    <string name="conn_apikey_unset">Not set</string>
+    <string name="conn_local_warning">.local names can be unreliable — prefer the numeric IP</string>
+    <string name="conn_test">Test</string>
+    <string name="conn_test_untested">Not tested yet</string>
+    <string name="conn_test_http">HTTP</string>
+    <string name="conn_test_ws">Websocket</string>
+    <string name="conn_fail_timeout">Connection timeout — printer off or not on this network</string>
+    <string name="conn_fail_refused">Connection refused — wrong port?</string>
+    <string name="conn_fail_unauthorized">Unauthorized — add this device\'s IP to Moonraker trusted_clients, or enter an API key</string>
+    <string name="conn_fail_cert">Certificate error</string>
+    <string name="conn_fail_unknown">Could not connect</string>
+    <string name="conn_save_anyway">Save anyway</string>
+    <string name="conn_scan">Scan</string>
+    <string name="conn_scan_empty">Tap Scan to search your network</string>
 </resources>

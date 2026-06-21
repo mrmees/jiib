@@ -1,8 +1,11 @@
 package works.mees.dinghy.ui.screen
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
+import works.mees.dinghy.config.PersistedProfile
+import works.mees.dinghy.config.Profile
 
 /**
  * Pure JVM host test for the [PrinterMode] state machine (28-06, D-13).
@@ -177,5 +180,30 @@ class PrintersModeToggleTest {
             "new-secret",
             resolveEditorKeyOnSave(storedKey = "old-secret", keyCleared = false, fieldInput = "new-secret"),
         )
+    }
+
+    // -------------------------------------------------------------------------
+    // Task 7: migrated secure profile round-trips through the editor save helper
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun connectionEditorSave_migratedSecureProfileStillProducesWss() {
+        val opened = Profile.fromPersisted(
+            PersistedProfile(id = "legacy", host = "secure.local", port = 7130, useSecure = true),
+        )
+
+        val saved = buildProfileFromConnectionEditorSave(
+            existing = opened,
+            nameInput = "Secure Printer",
+            host = opened.host,
+            port = opened.port,
+            apiKeyInput = "",
+            keyCleared = false,
+            advancedUrlInput = opened.advancedUrl.orEmpty(),
+        )
+
+        assertEquals("https://secure.local:7130", saved.advancedUrl)
+        assertFalse(saved.useSecure)
+        assertEquals("wss://secure.local:7130/websocket", saved.toConnectionConfig().wsUrl)
     }
 }

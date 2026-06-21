@@ -51,6 +51,10 @@ data class PersistedProfile(
     // 2026-06-18: optional per-printer accent override ARGB (unsigned-32), null = seed-derived.
     // Old blobs without this key decode to null via kotlinx ignoreUnknownKeys — safe default.
     val accentOverrideArgb: Long? = null,
+    // 2026-06-19: optional full URL override for proxied/reverse-proxied Moonraker installs.
+    // When set, the connection editor uses this URL instead of building from host/port/useSecure.
+    // Old blobs without this key decode to null via kotlinx ignoreUnknownKeys — safe default.
+    val advancedUrl: String? = null,
     // NOTE (D-05 fresh-start, no migration): old blobs carrying the retired `themeBase`/`themeDeltaArgb`
     // keys still decode cleanly — kotlinx `ignoreUnknownKeys` skips them. The runtime tuple above is the
     // sole source of truth; those old keys are simply ignored (the fields were deleted in 15-06).
@@ -93,6 +97,8 @@ data class Profile(
     val nameAutoSeeded: Boolean = false,
     /** Optional per-printer accent override ARGB (unsigned-32), null = seed-derived. */
     val accentOverrideArgb: Long? = null,
+    /** Optional full URL override for proxied/reverse-proxied Moonraker installs. null = build from host/port/useSecure. */
+    val advancedUrl: String? = null,
 ) {
     /**
      * The connection projection — host/port/apiKey/useSecure ONLY. This is the value
@@ -102,7 +108,7 @@ data class Profile(
      * spine must rebind to pick up the new ws↔wss scheme (R7, 26.5-07).
      */
     fun toConnectionConfig(): ConnectionConfig =
-        ConnectionConfig(host = host, port = port, apiKey = apiKey, useSecure = useSecure)
+        ConnectionConfig(host = host, port = port, apiKey = apiKey, useSecure = useSecure, advancedUrl = advancedUrl)
 
     /** The display name (D-10): the optional [name], falling back to the host. */
     fun displayName(): String = name ?: host
@@ -123,7 +129,13 @@ data class Profile(
             rawAccent = accentOverrideArgb,
         )
 
-    /** The wire form — for re-encoding when [ProfileStore] writes the blob. */
+    /**
+     * The wire form — for re-encoding when [ProfileStore] writes the blob.
+     *
+     * Migration (Task 7): always writes [useSecure] = false. The toggle is retired; TLS is signalled
+     * via [advancedUrl] (https://…). A Save must not re-persist the old toggle even if the runtime
+     * value were somehow non-false, ensuring no round-trip can resurrect a useSecure=true blob.
+     */
     fun toPersisted(): PersistedProfile =
         PersistedProfile(
             id = id,
@@ -137,9 +149,10 @@ data class Profile(
             poolShift = poolShift,
             poolOverrides = poolOverrides,
             fsChoice = "M", // runtime Profile no longer carries fsChoice; persist a stable default
-            useSecure = useSecure,
+            useSecure = false, // retired toggle — TLS is signalled via advancedUrl (Task 7)
             nameAutoSeeded = nameAutoSeeded,
             accentOverrideArgb = accentOverrideArgb,
+            advancedUrl = advancedUrl,
         )
 
     override fun toString(): String =
@@ -152,9 +165,20 @@ data class Profile(
         /** A stable, collision-safe profile identity (D-05). UUID is available since API 1. */
         fun newId(): String = UUID.randomUUID().toString()
 
-        /** Lift a sanitized [PersistedProfile] into its runtime [Profile]. */
-        fun fromPersisted(p: PersistedProfile): Profile =
-            Profile(
+        /**
+         * Lift a sanitized [PersistedProfile] into its runtime [Profile].
+         *
+         * Migration (Task 7): legacy profiles that used [PersistedProfile.useSecure] = true to signal
+         * TLS are transparently upgraded to [advancedUrl] = "https://<host>:<port>" so removing the
+         * toggle cannot silently downgrade an existing TLS connection. The runtime [useSecure] is always
+         * false after migration — the toggle is retired; [ConnectionUrls] derives wss/https from the
+         * advancedUrl instead.
+         */
+        fun fromPersisted(p: PersistedProfile): Profile {
+            val migratedAdvancedUrl =
+                p.advancedUrl?.trim()?.ifBlank { null }
+                    ?: if (p.useSecure) "https://${p.host}:${p.port}" else null
+            return Profile(
                 id = p.id,
                 name = p.name,
                 host = p.host,
@@ -165,9 +189,11 @@ data class Profile(
                 paletteMode = p.paletteMode,
                 poolShift = p.poolShift,
                 poolOverrides = p.poolOverrides,
-                useSecure = p.useSecure,
+                useSecure = false,
                 nameAutoSeeded = p.nameAutoSeeded,
                 accentOverrideArgb = p.accentOverrideArgb,
+                advancedUrl = migratedAdvancedUrl,
             )
+        }
     }
 }
