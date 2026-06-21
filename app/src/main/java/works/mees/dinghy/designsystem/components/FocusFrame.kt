@@ -333,6 +333,7 @@ private fun FocusHeader(
     var showGuard by remember { mutableStateOf(false) }
     // e-stop / icon size — matches the retired float; uDp is rotation-stable so memoize.
     val slot = remember(uDp) { (uDp * 0.7f).coerceAtLeast(64.dp) }
+    val measurer = rememberTextMeasurer()
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
@@ -341,8 +342,7 @@ private fun FocusHeader(
         contentAlignment = Alignment.Center,
     ) {
         val density = LocalDensity.current
-        val titleStyle = DinghyType.focusHeader.toTextStyle(t)
-        val measurer = rememberTextMeasurer()
+        val titleStyle = remember(t.fs, density.fontScale) { DinghyType.focusHeader.toTextStyle(t) }
         val slotPx = with(density) { slot.toPx() }
         val availPx = with(density) { maxWidth.toPx() }
         // Memoize the single-line intrinsic width; re-measure only when the text, width, or scale changes.
