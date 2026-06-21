@@ -9,7 +9,6 @@ data class MoveRowAvailability(
     val xy: Boolean,
     val z: Boolean,
     val microstep: Boolean,
-    val saveLocation: Boolean,
 )
 
 fun moveRowAvailability(xHomed: Boolean, yHomed: Boolean, zHomed: Boolean): MoveRowAvailability {
@@ -24,6 +23,5 @@ fun moveRowAvailability(xHomed: Boolean, yHomed: Boolean, zHomed: Boolean): Move
         xy = xy,
         z = zHomed,
         microstep = any,
-        saveLocation = all,
     )
 }
