@@ -57,6 +57,7 @@ import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.AxisOption
 import works.mees.dinghy.designsystem.components.AxisSelectorRow
 import works.mees.dinghy.designsystem.components.FocusFrame
+import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
@@ -259,6 +260,7 @@ internal fun MoveHubContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    contentInset = FocusInset / 2, // match FineTuneScreen's focus rhythm (8dp, not 16dp)
                 ) {
                     when (mode) {
                         MoveMode.TouchMove -> {
