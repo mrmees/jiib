@@ -76,3 +76,67 @@ fun formatTemp(c: Float?): String {
 
 /** Integer core count, "—" on null. */
 fun formatCores(count: Int?): String = count?.toString() ?: DASH
+
+// ── New formatters for the device-browser Focus detail (Task 8) ───────────────────────────────────
+
+/**
+ * MCU clock Hz → "168 MHz" (÷1_000_000, integer). "—" on null or zero.
+ * Klipper `mcu_freq` is reported as a Long Hz.
+ */
+fun formatClock(hz: Long?): String {
+    val v = hz ?: return DASH
+    return "${v / 1_000_000} MHz"
+}
+
+/**
+ * MCU load fraction → integer percent, e.g. 0.0731 → "7%".
+ * Klipper `mcu_awake` is a fraction of the stat interval (0..1+). "—" on null.
+ */
+fun formatLoad(awake: Float?): String {
+    val v = awake ?: return DASH
+    return "%.0f%%".format(v * 100)
+}
+
+/**
+ * MCU bandwidth → "↑1.0 KB ↓2.0 KB" style (one decimal each).
+ * "—" if both sides are null; each side independently degrades to "—" if null.
+ * Klipper reports bytes (not kB) for write/read counters.
+ */
+fun formatBytes(write: Long?, read: Long?): String {
+    if (write == null && read == null) return DASH
+    val up = if (write != null) "↑${"%.1f".format(write / 1024.0)} KB" else "↑$DASH"
+    val down = if (read != null) "↓${"%.1f".format(read / 1024.0)} KB" else "↓$DASH"
+    return "$up $down"
+}
+
+// ── Shared helpers (also private-copied in SystemInformationScreen.kt until Task 9 removes them) ─
+
+/**
+ * "CPU model · N cores" — degrades each side independently; "—" when neither is present.
+ * Shared internal copy: [works.mees.dinghy.ui.systeminfo.SystemInformationScreen] keeps a private
+ * duplicate of this function until Task 9 deletes the old screen. Transient duplication is intentional.
+ */
+internal fun cpuValue(identity: SystemInfo?): String {
+    val model = identity?.cpuDesc?.takeIf { it.isNotBlank() } ?: identity?.processor?.takeIf { it.isNotBlank() }
+    val cores = identity?.cpuCount
+    return when {
+        model != null && cores != null -> "$model · ${formatCores(cores)} cores"
+        model != null -> model
+        cores != null -> "${formatCores(cores)} cores"
+        else -> DASH
+    }
+}
+
+/**
+ * "Debian GNU/Linux 12 (bookworm)" — name + version; "—" when the name is absent.
+ * Shared internal copy: [works.mees.dinghy.ui.systeminfo.SystemInformationScreen] keeps a private
+ * duplicate of this function until Task 9 deletes the old screen. Transient duplication is intentional.
+ */
+internal fun distroValue(identity: SystemInfo?): String {
+    val name = identity?.distroName?.takeIf { it.isNotBlank() } ?: return DASH
+    val version = identity?.distroVersion?.takeIf { it.isNotBlank() }
+    return if (version != null && version !in name) "$name $version" else name
+}
+
+/** A nullable/blank String → its value or the degrade dash (SYS-04). */
+internal fun String?.orDash(): String = this?.takeIf { it.isNotBlank() } ?: DASH

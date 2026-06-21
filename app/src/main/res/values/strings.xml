@@ -316,6 +316,50 @@
     <!-- contentDescription for the shape-coded health chip glyph. -->
     <string name="cd_sysinfo_health">Host health</string>
 
+    <!-- ===================== system info device browser (Part 2) ===================== -->
+    <string name="sysinfo_device_host">Host</string>
+    <string name="sysinfo_mcu_mainboard">Mainboard</string>
+    <string name="sysinfo_mcu_host">Host MCU</string>
+    <!-- Host detail extra rows -->
+    <string name="sysinfo_klipper_version">Klipper</string>
+    <string name="sysinfo_moonraker_version">Moonraker</string>
+    <string name="sysinfo_throttle">Health conditions</string>
+    <!-- MCU detail rows -->
+    <string name="sysinfo_mcu_firmware">Firmware</string>
+    <string name="sysinfo_mcu_chip">Chip</string>
+    <string name="sysinfo_mcu_clock">Clock</string>
+    <string name="sysinfo_mcu_interface">Interface</string>
+    <string name="sysinfo_mcu_load">MCU load</string>
+    <string name="sysinfo_mcu_bandwidth">Bandwidth</string>
+    <string name="sysinfo_mcu_retransmits">Retransmits</string>
+    <!-- Actions -->
+    <string name="sysinfo_action_reboot">Reboot</string>
+    <string name="sysinfo_action_shutdown">Shutdown</string>
+    <string name="sysinfo_action_restart_moonraker">Restart Moonraker</string>
+    <string name="sysinfo_action_firmware_restart">Firmware Restart</string>
+    <string name="sysinfo_action_restart_klipper">Restart Klipper</string>
+    <!-- Confirm copy -->
+    <string name="sysinfo_confirm_reboot_title">Reboot host?</string>
+    <string name="sysinfo_confirm_reboot_msg">The printer host will reboot. The connection will drop while it restarts.</string>
+    <string name="sysinfo_confirm_shutdown_title">Shut down host?</string>
+    <string name="sysinfo_confirm_shutdown_msg">The printer host will power off and the connection will drop. You\'ll need to power it back on physically.</string>
+    <string name="sysinfo_confirm_restart_moonraker_title">Restart Moonraker?</string>
+    <string name="sysinfo_confirm_restart_moonraker_msg">Moonraker will restart. The connection will drop briefly and reconnect on its own.</string>
+    <string name="sysinfo_confirm_firmware_restart_title">Firmware restart?</string>
+    <string name="sysinfo_confirm_firmware_restart_msg">Restarts Klipper firmware on ALL connected boards, not just this one. The printer will be unavailable for a few seconds while it reconnects.</string>
+    <string name="sysinfo_confirm_restart_klipper_title">Restart Klipper?</string>
+    <string name="sysinfo_confirm_restart_klipper_msg">Klipper will soft-restart on all boards and the printer will be briefly unavailable. Any active print will be lost.</string>
+    <string name="sysinfo_confirm_common">Confirm</string>
+    <!-- contentDescriptions -->
+    <string name="cd_sysinfo_device_mcu">MCU board</string>
+    <string name="cd_sysinfo_firmware">Firmware version</string>
+    <string name="cd_sysinfo_interface">Interface</string>
+    <string name="cd_sysinfo_clock">Clock</string>
+    <string name="cd_sysinfo_bandwidth">Bandwidth</string>
+    <string name="cd_sysinfo_klipper">Klipper version</string>
+    <string name="cd_sysinfo_moonraker">Moonraker version</string>
+    <string name="cd_sysinfo_throttle">Health conditions</string>
+
     <!-- Design Kit layout primitives (Phase 23) — preview strings. -->
     <string name="cd_unit_grid_demo">Unit grid demonstration</string>
     <string name="layout_preview_row_1">Row 1</string>
