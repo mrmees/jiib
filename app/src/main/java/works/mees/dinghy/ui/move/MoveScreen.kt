@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -71,7 +72,10 @@ import works.mees.dinghy.designsystem.icons.DinghyIcon
 import works.mees.dinghy.designsystem.icons.DinghyIconView
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
+import works.mees.dinghy.designsystem.layout.controlHeight
+import works.mees.dinghy.designsystem.layout.gapS
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
@@ -595,16 +599,22 @@ internal fun MoveHubContent(
                                 FocusHint("Bookmark not found")
                             } else {
                                 Column(Modifier.fillMaxSize()) {
-                                    // TOP: centered destination coordinate readout — matches the
-                                    // other focus modes' top readout (GeistMono ~22sp, centered).
-                                    Text(
+                                    // TOP: centered destination coordinate readout — shrink-to-fit
+                                    // via TextAutoSize so the full X/Y/Z line fits on narrow screens.
+                                    BasicText(
                                         text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
                                             if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
-                                        style = DinghyType.statValue.toTextStyle(t),
-                                        color = t.text,
-                                        textAlign = TextAlign.Center,
+                                        style = DinghyType.focusHero.toTextStyle(t).copy(
+                                            color = t.text,
+                                            textAlign = TextAlign.Center,
+                                        ),
                                         maxLines = 1,
                                         softWrap = false,
+                                        autoSize = TextAutoSize.StepBased(
+                                            minFontSize = fsSp(15f, t.fs).sp,
+                                            maxFontSize = fsSp(40f, t.fs).sp,
+                                            stepSize = 1.sp,
+                                        ),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(bottom = 8.dp),
@@ -629,23 +639,27 @@ internal fun MoveHubContent(
                                     }
                                     // Breathing room so the bed map doesn't crowd the action row.
                                     Spacer(Modifier.height(12.dp))
-                                    // Move / Delete action row.
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        OutlinedControl(
-                                            label = "Move",
-                                            onClick = { onMoveTo(loc.x, loc.y, loc.z) },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Go,
-                                        )
-                                        OutlinedControl(
-                                            label = "Delete",
-                                            onClick = { deleteConfirm = loc.name },
-                                            modifier = Modifier.weight(1f),
-                                            intent = Intent.Danger,
-                                        )
+                                    // Move / Delete action row — canonical 1U button pattern.
+                                    CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .controlHeight(grid.uDp),
+                                            horizontalArrangement = Arrangement.spacedBy(gapS(grid.uDp)),
+                                        ) {
+                                            OutlinedControl(
+                                                label = "Move",
+                                                onClick = { onMoveTo(loc.x, loc.y, loc.z) },
+                                                modifier = Modifier.weight(1f),
+                                                intent = Intent.Go,
+                                            )
+                                            OutlinedControl(
+                                                label = "Delete",
+                                                onClick = { deleteConfirm = loc.name },
+                                                modifier = Modifier.weight(1f),
+                                                intent = Intent.Danger,
+                                            )
+                                        }
                                     }
                                 }
                             }
