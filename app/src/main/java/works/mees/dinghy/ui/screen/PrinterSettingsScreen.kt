@@ -254,17 +254,7 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 3: System Info
-                        item {
-                            PrinterSettingsNavRow(
-                                icon = DinghyIcons.SysInfoTile,
-                                label = stringResource(R.string.printer_settings_system_info),
-                                onClick = onSystemInfo,
-                                uDp = grid.uDp,
-                            )
-                        }
-
-                        // Row 4: Heat Presets — per-printer preheat preset editor
+                        // Row 3: Heat Presets — per-printer preheat preset editor
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.TempPresets,
@@ -274,7 +264,7 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 4b: Increment Values — per-printer step-selector value lists
+                        // Row 4: Increment Values — per-printer step-selector value lists
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.FineTune,
@@ -284,7 +274,17 @@ fun PrinterSettingsContent(
                             )
                         }
 
-                        // Row 5: Power / Reset — navigates to the Power/Reset page (Task A)
+                        // Row 5: System Info — sits just above Power / Reset (owner UAT)
+                        item {
+                            PrinterSettingsNavRow(
+                                icon = DinghyIcons.SysInfoTile,
+                                label = stringResource(R.string.printer_settings_system_info),
+                                onClick = onSystemInfo,
+                                uDp = grid.uDp,
+                            )
+                        }
+
+                        // Row 6: Power / Reset — navigates to the Power/Reset page (Task A)
                         item {
                             PrinterSettingsNavRow(
                                 icon = DinghyIcons.SystemRowPower,
