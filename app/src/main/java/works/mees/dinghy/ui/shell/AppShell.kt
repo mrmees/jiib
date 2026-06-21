@@ -742,7 +742,6 @@ fun AppShell(
                 // the drawer is suppressed on-screen (swipe-suppress set above).
                 SystemInformationScreen(
                     holder = systemInfoHolder,
-                    dispatcher = dispatcher,
                     isPrinting = printerState.printState == PrintState.Printing ||
                         printerState.printState == PrintState.Paused,
                     onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },

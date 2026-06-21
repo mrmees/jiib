@@ -100,9 +100,6 @@ private fun HealthyRpi4Cell() = SystemInformationContent(
     mcus = null,
     klipperVersion = null,
     moonrakerVersion = null,
-    inFlightKeys = emptySet(),
-    onHostAction = {},
-    onMcuAction = {},
     onBack = {},
 )
 
@@ -114,9 +111,6 @@ private fun TempFallbackRockProCell() = SystemInformationContent(
     mcus = null,
     klipperVersion = null,
     moonrakerVersion = null,
-    inFlightKeys = emptySet(),
-    onHostAction = {},
-    onMcuAction = {},
     onBack = {},
 )
 
@@ -129,9 +123,6 @@ private fun DegradedCell() = SystemInformationContent(
     mcus = null,
     klipperVersion = null,
     moonrakerVersion = null,
-    inFlightKeys = emptySet(),
-    onHostAction = {},
-    onMcuAction = {},
     onBack = {},
 )
 
@@ -143,9 +134,6 @@ private fun CautionCell() = SystemInformationContent(
     mcus = null,
     klipperVersion = null,
     moonrakerVersion = null,
-    inFlightKeys = emptySet(),
-    onHostAction = {},
-    onMcuAction = {},
     onBack = {},
 )
 

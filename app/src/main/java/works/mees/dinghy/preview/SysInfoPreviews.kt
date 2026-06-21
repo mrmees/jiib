@@ -10,8 +10,6 @@ import works.mees.dinghy.systeminfo.ProcStatLive
 import works.mees.dinghy.systeminfo.ProcStatQuery
 import works.mees.dinghy.systeminfo.SystemInfo
 import works.mees.dinghy.systeminfo.ThrottledState
-import works.mees.dinghy.ui.systeminfo.HostAction
-import works.mees.dinghy.ui.systeminfo.McuAction
 import works.mees.dinghy.ui.systeminfo.SystemInformationContent
 
 /**
@@ -137,9 +135,6 @@ private fun sysInfoHostFull() {
         mcus = multiMcus,
         klipperVersion = "v0.12.0-123-gabcdef",
         moonrakerVersion = "v0.8.0",
-        inFlightKeys = emptySet(),
-        onHostAction = {},
-        onMcuAction = {},
         onBack = {},
     )
 }
@@ -154,9 +149,6 @@ private fun sysInfoHostSparse() {
         mcus = null,
         klipperVersion = null,
         moonrakerVersion = null,
-        inFlightKeys = emptySet(),
-        onHostAction = {},
-        onMcuAction = {},
         onBack = {},
     )
 }
@@ -171,9 +163,6 @@ private fun sysInfoMcuSelected() {
         mcus = multiMcus,
         klipperVersion = "v0.12.0-123-gabcdef",
         moonrakerVersion = "v0.8.0",
-        inFlightKeys = emptySet(),
-        onHostAction = {},
-        onMcuAction = {},
         onBack = {},
         initialSelectedKey = "mcu EBBCan",
     )
@@ -189,9 +178,6 @@ private fun sysInfoMcuSparse() {
         mcus = listOf(mcuSparse),
         klipperVersion = null,
         moonrakerVersion = null,
-        inFlightKeys = emptySet(),
-        onHostAction = {},
-        onMcuAction = {},
         onBack = {},
         initialSelectedKey = "mcu host",
     )

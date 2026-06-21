@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -17,13 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.dinghy.R
-import works.mees.dinghy.command.CommandDispatcher
-import works.mees.dinghy.command.CommandRegistry
-import works.mees.dinghy.command.ServiceRestartArgs
-import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -45,18 +38,20 @@ import works.mees.dinghy.systeminfo.SystemInfoHolder
 import works.mees.dinghy.systeminfo.decodeThrottleConditions
 import works.mees.dinghy.systeminfo.formatCpuLoad
 import works.mees.dinghy.systeminfo.formatLoad
-import works.mees.dinghy.systeminfo.hostActionAvailability
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
- * The **System Information** screen rebuilt as a device browser (Part 2, Task 9).
+ * The **System Information** screen rebuilt as a read-only device browser.
  *
  * ## Layout
- * Focus = selected device detail + ConfirmGuard'd action buttons.
+ * Focus = selected device detail (scrollable text block only — no action buttons).
  * Field = device list (host first, then enumerated MCUs).
  * Foot = Back.
+ *
+ * Actions (reboot / shutdown / service restarts) have moved to the Power / Reset page
+ * ([works.mees.dinghy.ui.screen.PowerResetScreen]), reached from Printer Settings.
  *
  * ## State
  * Stateful entry [SystemInformationScreen] collects holder flows, runs a LaunchedEffect retry loop
@@ -65,7 +60,6 @@ import works.mees.dinghy.theme.compose.toTextStyle
  *
  * @param holder the per-session [SystemInfoHolder] off AppContainer. Null while idle — the page
  *   then renders the all-"—" degraded host-only state.
- * @param dispatcher the session [CommandDispatcher] for host/MCU actions. Null while idle.
  * @param onBack the neutral Back exit.
  * @param isPrinting whether a print is currently active (drives FocusFrame e-stop morph).
  * @param onEmergencyStop the e-stop callback forwarded into FocusFrame.
@@ -73,7 +67,6 @@ import works.mees.dinghy.theme.compose.toTextStyle
 @Composable
 fun SystemInformationScreen(
     holder: SystemInfoHolder?,
-    dispatcher: CommandDispatcher?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isPrinting: Boolean = false,
@@ -85,8 +78,6 @@ fun SystemInformationScreen(
     val mcus by (holder?.mcuDevices ?: nullStateFlow()).collectAsStateWithLifecycle()
     val klipperVersion by (holder?.klipperVersion ?: nullStateFlow()).collectAsStateWithLifecycle()
     val moonrakerVersion by (holder?.moonrakerVersion ?: nullStateFlow()).collectAsStateWithLifecycle()
-    val inFlight by (dispatcher?.inFlight ?: remember { MutableStateFlow(emptySet<String>()) })
-        .collectAsStateWithLifecycle()
 
     // Lazy load + retry while MCUs haven't loaded (capabilities may not have populated on first call).
     LaunchedEffect(holder) {
@@ -107,9 +98,7 @@ fun SystemInformationScreen(
     SystemInformationContent(
         identity = identity, procStats = procStats, live = live, mcus = mcus,
         klipperVersion = klipperVersion, moonrakerVersion = moonrakerVersion,
-        isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, inFlightKeys = inFlight,
-        onHostAction = { a -> dispatcher?.let { d -> dispatchHostAction(d, a) } },
-        onMcuAction = { a -> dispatcher?.let { d -> dispatchMcuAction(d, a) } },
+        isPrinting = isPrinting, onEmergencyStop = onEmergencyStop,
         onBack = onBack, modifier = modifier,
     )
 }
@@ -117,17 +106,6 @@ fun SystemInformationScreen(
 /** A reusable null StateFlow for the idle/no-holder path (no allocation per row). */
 private fun <T> nullStateFlow(): kotlinx.coroutines.flow.StateFlow<T?> =
     kotlinx.coroutines.flow.MutableStateFlow(null)
-
-private fun dispatchHostAction(d: CommandDispatcher, action: HostAction) = when (action) {
-    HostAction.Reboot -> d.dispatch(CommandRegistry.machineReboot, Unit)
-    HostAction.Shutdown -> d.dispatch(CommandRegistry.machineShutdown, Unit)
-    HostAction.RestartMoonraker -> d.dispatch(CommandRegistry.restartService, ServiceRestartArgs("moonraker"))
-}
-
-private fun dispatchMcuAction(d: CommandDispatcher, action: McuAction) = when (action) {
-    McuAction.FirmwareRestart -> d.dispatch(CommandRegistry.firmwareRestart, Unit)
-    McuAction.RestartKlipper -> d.dispatch(CommandRegistry.restart, Unit)
-}
 
 /**
  * Builds the ordered device list: host first, then MCUs (if loaded).
@@ -148,12 +126,12 @@ internal fun buildDeviceList(
  * Moonraker, so the `@Preview` matrix in [works.mees.dinghy.preview.SysInfoPreviews] drives every
  * theme + degrade state without a live session.
  *
- * Owns selection state + confirm dialog state. Selection defaults to [HostDevice.HOST_KEY] and
- * is restored across recompositions via [rememberSaveable].
+ * Owns selection state. Selection defaults to [HostDevice.HOST_KEY] and is restored across
+ * recompositions via [rememberSaveable].
  *
  * @param initialSelectedKey the key that should be selected on first composition. Defaults to
  *   [HostDevice.HOST_KEY] (no change to runtime behavior). Pass a real MCU key in `@Preview`
- *   fixtures so MCU-selected previews render [McuDetail]/[McuActionButtons] rather than the host.
+ *   fixtures so MCU-selected previews render [McuDetail] rather than the host.
  */
 @Composable
 fun SystemInformationContent(
@@ -163,9 +141,6 @@ fun SystemInformationContent(
     mcus: List<McuDevice>?,
     klipperVersion: String?,
     moonrakerVersion: String?,
-    inFlightKeys: Set<String>,
-    onHostAction: (HostAction) -> Unit,
-    onMcuAction: (McuAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isPrinting: Boolean = false,
@@ -178,11 +153,8 @@ fun SystemInformationContent(
 
     var selectedKey by rememberSaveable { mutableStateOf(initialSelectedKey) }
     val selected = devices.firstOrNull { it.key == selectedKey } ?: host
-    var pendingHost by remember { mutableStateOf<HostAction?>(null) }
-    var pendingMcu by remember { mutableStateOf<McuAction?>(null) }
 
     val throttle = decodeThrottleConditions(procStats?.throttledState)
-    val avail = hostActionAvailability(identity)
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -201,15 +173,10 @@ fun SystemInformationContent(
                         is HostDevice -> HostDetail(
                             host = d,
                             throttle = throttle,
-                            avail = avail,
-                            inFlightKeys = inFlightKeys,
-                            onAction = { pendingHost = it },
                             uDp = grid.uDp,
                         )
                         is McuDevice -> McuDetail(
                             mcu = d,
-                            inFlightKeys = inFlightKeys,
-                            onAction = { pendingMcu = it },
                             uDp = grid.uDp,
                         )
                     }
@@ -239,32 +206,6 @@ fun SystemInformationContent(
                 )
             },
         )
-
-        // Confirm overlays (full-bleed ConfirmGuard).
-        pendingHost?.let { action ->
-            val (titleRes, msgRes, destructive) = hostConfirmCopy(action)
-            ConfirmGuard(
-                title = stringResource(titleRes),
-                message = stringResource(msgRes),
-                confirmLabel = stringResource(R.string.sysinfo_confirm_common),
-                onConfirm = { onHostAction(action); pendingHost = null },
-                onCancel = { pendingHost = null },
-                destructive = destructive,
-                warn = !destructive,
-            )
-        }
-        pendingMcu?.let { action ->
-            val (titleRes, msgRes) = mcuConfirmCopy(action)
-            ConfirmGuard(
-                title = stringResource(titleRes),
-                message = stringResource(msgRes),
-                confirmLabel = stringResource(R.string.sysinfo_confirm_common),
-                onConfirm = { onMcuAction(action); pendingMcu = null },
-                onCancel = { pendingMcu = null },
-                destructive = false,
-                warn = true,   // amber: hazardous-but-in-process
-            )
-        }
     }
 }
 
@@ -301,15 +242,4 @@ private fun DeviceRow(device: Device, selected: Boolean, onClick: () -> Unit, uD
 private fun deviceGlance(device: Device): String = when (device) {
     is HostDevice -> formatCpuLoad(device.live?.cpuLoadPercent)
     is McuDevice -> formatLoad(device.mcuAwake)
-}
-
-private fun hostConfirmCopy(a: HostAction): Triple<Int, Int, Boolean> = when (a) {
-    HostAction.Reboot -> Triple(R.string.sysinfo_confirm_reboot_title, R.string.sysinfo_confirm_reboot_msg, true)
-    HostAction.Shutdown -> Triple(R.string.sysinfo_confirm_shutdown_title, R.string.sysinfo_confirm_shutdown_msg, true)
-    HostAction.RestartMoonraker -> Triple(R.string.sysinfo_confirm_restart_moonraker_title, R.string.sysinfo_confirm_restart_moonraker_msg, false)
-}
-
-private fun mcuConfirmCopy(a: McuAction): Pair<Int, Int> = when (a) {
-    McuAction.FirmwareRestart -> R.string.sysinfo_confirm_firmware_restart_title to R.string.sysinfo_confirm_firmware_restart_msg
-    McuAction.RestartKlipper -> R.string.sysinfo_confirm_restart_klipper_title to R.string.sysinfo_confirm_restart_klipper_msg
 }
