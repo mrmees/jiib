@@ -108,6 +108,9 @@ object JsonRpcMethods {
     const val EMERGENCY_STOP = "printer.emergency_stop"
     const val FIRMWARE_RESTART = "printer.firmware_restart"
     const val RESTART = "printer.restart"
+    const val MACHINE_REBOOT = "machine.reboot"
+    const val MACHINE_SHUTDOWN = "machine.shutdown"
+    const val MACHINE_SERVICES_RESTART = "machine.services.restart"
 
     // Runs ALL action gcodes (Move jog, temp set, extrude, macros) — Phase-5 action surface (RESEARCH §5).
     const val GCODE_SCRIPT = "printer.gcode.script"

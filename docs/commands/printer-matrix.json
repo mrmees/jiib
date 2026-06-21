@@ -2995,6 +2995,75 @@
       ]
     },
     {
+      "catalog_id": "MR-machine.reboot",
+      "name": "machine.reboot",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "Moonraker machine.reboot is always available on Moonraker hosts; no conditional predicate required."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Moonraker machine.reboot is always available on Moonraker hosts; no conditional predicate required."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-machine.shutdown",
+      "name": "machine.shutdown",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "Moonraker machine.shutdown is always available on Moonraker hosts; no conditional predicate required."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Moonraker machine.shutdown is always available on Moonraker hosts; no conditional predicate required."
+        }
+      ]
+    },
+    {
+      "catalog_id": "MR-machine.services.restart",
+      "name": "machine.services.restart",
+      "source_api": "moonraker",
+      "transport": "json_rpc",
+      "registry_status": "registered",
+      "predicate": {
+        "type": "always"
+      },
+      "predicate_key": "always",
+      "printer_status": [
+        {
+          "printer_id": "ender5plus",
+          "status": "present",
+          "evidence": "Moonraker machine.services.restart is always available on Moonraker hosts; no conditional predicate required."
+        },
+        {
+          "printer_id": "ender3",
+          "status": "present",
+          "evidence": "Moonraker machine.services.restart is always available on Moonraker hosts; no conditional predicate required."
+        }
+      ]
+    },
+    {
       "catalog_id": "KGC-G1_MOVE_TO",
       "name": "G1 absolute move",
       "source_api": "klipper_gcode",
