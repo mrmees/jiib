@@ -220,6 +220,12 @@ internal fun MoveHubContent(
 
     val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
 
+    // When the printer un-homes, drop out of any homed-only transient Focus (Bookmark/SaveDialog)
+    // so we don't strand the user on a Focus whose menu row just disappeared (see Task 1 helper).
+    LaunchedEffect(vm.allHomed) {
+        mode = moveModeAfterHomedChange(mode, vm.allHomed)
+    }
+
     // Bed extent from toolhead.axis_minimum/axis_maximum X/Y (indices 0,1). Null until first
     // snapshot (or if either bounds list is too short) — TouchMove shows a homing hint then.
     val bed: BedExtent? = run {
@@ -804,15 +810,23 @@ internal fun MoveHubContent(
                             }
                         }
                     }
-                    // Saved-location rows.
-                    items(savedLocations, key = { "bookmark_${it.name}" }) { loc ->
-                        MoveRow(
-                            loc.name,
-                            DinghyIcons.SavedLocation,
-                            mode == MoveMode.Bookmark(loc.name),
-                            grid.uDp,
-                            t.accent,
-                        ) { mode = MoveMode.Bookmark(loc.name) }
+                    // Bookmark group: only meaningful once all axes are homed (a bookmark Move needs a
+                    // known coordinate frame). Hidden entirely otherwise. Add Bookmark leads the group.
+                    if (vm.allHomed) {
+                        item("add_bookmark") {
+                            MoveRow("Add Bookmark", DinghyIcons.SaveLocation, false, grid.uDp, t.accent) {
+                                mode = MoveMode.SaveDialog
+                            }
+                        }
+                        items(savedLocations, key = { "bookmark_${it.name}" }) { loc ->
+                            MoveRow(
+                                loc.name,
+                                DinghyIcons.SavedLocation,
+                                mode == MoveMode.Bookmark(loc.name),
+                                grid.uDp,
+                                t.accent,
+                            ) { mode = MoveMode.Bookmark(loc.name) }
+                        }
                     }
                     // Endstops view — always available; last row in the list (owner: after bookmarks).
                     item("endstops") {
@@ -824,28 +838,26 @@ internal fun MoveHubContent(
                             t.accent,
                         ) { mode = MoveMode.Endstops }
                     }
+                    // Disable Motors — destructive utility, pinned at the bottom. Fires immediately on
+                    // tap (owner: one tap, no confirm); does NOT swap the Focus. Red icon (t.stop) reads
+                    // destructive on a translucent row. Un-homes the printer → the LaunchedEffect above
+                    // drops any transient Focus and the bookmark group + motion rows collapse.
+                    item("disable_motors") {
+                        MoveRow("Disable Motors", DinghyIcons.MoveDisableMotors, false, grid.uDp, t.stop) {
+                            onDisableSteppers()
+                        }
+                    }
                 }
 
                 FootButtonBar(
                     uDp = grid.uDp,
                     actions = listOf(
-                        // Back: ALWAYS leave the hub regardless of sub-mode (owner 2026-06-18 — no
-                        // mode→TouchMove ladder). Leaving disposes the screen, which cancels the
-                        // Endstops poll LaunchedEffect (composition-scoped) — no dangling listener.
                         FootAction(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             intent = Intent.Accent,
                             icon = DinghyIcons.Back,
                             contentDescription = "Back",
-                        ),
-                        // Disable Motors (danger) — drops stepper hold.
-                        FootAction(
-                            label = stringResource(R.string.move_disable_steppers),
-                            onClick = { onDisableSteppers() },
-                            intent = Intent.Danger,
-                            icon = DinghyIcons.MoveDisableMotors,
-                            contentDescription = "Disable motors",
                         ),
                         // Home All (go) — the expected homing action.
                         FootAction(
@@ -854,15 +866,6 @@ internal fun MoveHubContent(
                             intent = Intent.Go,
                             icon = DinghyIcons.MoveHomeAll,
                             contentDescription = "Home all",
-                        ),
-                        // Save Location (accent) — only when all XYZ known.
-                        FootAction(
-                            label = stringResource(R.string.move_save_location),
-                            onClick = { mode = MoveMode.SaveDialog },
-                            intent = Intent.Accent,
-                            icon = DinghyIcons.SaveLocation,
-                            enabled = avail.saveLocation,
-                            contentDescription = "Save location",
                         ),
                     ),
                 )
