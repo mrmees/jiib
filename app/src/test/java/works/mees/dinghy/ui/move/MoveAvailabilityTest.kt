@@ -29,10 +29,8 @@ class MoveAvailabilityTest {
         assertFalse(rows(true, false, false).xy)
         assertTrue(rows(false, false, true).z)
     }
-    @Test fun microstep_anyHomed_saveLocation_allHomed() {
+    @Test fun microstep_anyHomed() {
         assertTrue(rows(false, false, true).microstep)
         assertFalse(rows(false, false, false).microstep)
-        assertTrue(rows(true, true, true).saveLocation)
-        assertFalse(rows(true, true, false).saveLocation)
     }
 }

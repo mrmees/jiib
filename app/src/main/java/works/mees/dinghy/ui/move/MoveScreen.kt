@@ -840,7 +840,7 @@ internal fun MoveHubContent(
                     // known coordinate frame). Hidden entirely otherwise. Add Bookmark leads the group.
                     if (vm.allHomed) {
                         item("add_bookmark") {
-                            MoveRow("Add Bookmark", DinghyIcons.SaveLocation, false, grid.uDp, t.accent) {
+                            MoveRow("Add Bookmark", DinghyIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent) {
                                 mode = MoveMode.SaveDialog
                             }
                         }
