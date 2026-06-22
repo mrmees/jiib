@@ -67,7 +67,7 @@ val PowerOff = DinghyIcon(IconRef.Ligature("power_off"), alternate = "power_off"
 - [ ] **Step 3: Verify the bundled font carries both ligatures.**
 
 Run: `python tools/verify_ligatures.py`
-Expected: PASS with `power` and `power_off` resolved. If EITHER is reported missing, STOP — per icon law fall back to the official Google Material Symbols vector drawable for that glyph (path data verbatim) instead of the ligature, and register it as a `Drawable` IconRef. Do not substitute a different glyph.
+Expected: PASS with `power` and `power_off` resolved (both are standard Material Symbols; the bundled font was un-frozen recently so they are expected present). **If EITHER is missing, STOP and ASK the owner** — do NOT fall back to a `Drawable` IconRef: `FootAction` hard-requires `IconRef.Ligature` (`require(icon.primary is IconRef.Ligature)`), so a drawable cannot drive `FootButtonBar`. The owner must pick a different ligature or approve a `FootAction` API change. Do not substitute a glyph yourself. [Codex BLOCKER 2]
 
 - [ ] **Step 4: Add `outputOn` + give `outputOff` an icon.** In `ControlSpecs.kt`, change `outputOff` (line 91-97) `icon = null` → `icon = DinghyIcons.PowerOff`, and add a sibling spec:
 
@@ -85,8 +85,8 @@ Add `outputOn,` to the `ControlSpecs` `all`/registry list (next to `outputOff,`)
 
 - [ ] **Step 5: Run the icon + control-spec tests.**
 
-Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:testDebugUnitTest --tests 'works.mees.dinghy.designsystem.icons.DinghyIconsTest' --rerun-tasks --no-daemon" | tr -d '\r'`
-Expected: PASS (no duplicate-ligature / unregistered-glyph failures). If a control-baseline test asserts `outputOff.icon == null`, update that assertion to expect `DinghyIcons.PowerOff` and re-run.
+Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:testDebugUnitTest --tests 'works.mees.dinghy.designsystem.icons.DinghyIconsTest' --tests 'works.mees.dinghy.control.ControlCatalogDriftTest' --rerun-tasks --no-daemon" | tr -d '\r'`
+Expected: PASS. `ControlCatalogDriftTest` requires every referenced control icon to be registered — it must stay green after adding `outputOn` + giving `outputOff` an icon. [Codex SHOULD-FIX 8] (No existing test asserts `outputOff.icon == null`, per Codex — but if one surfaces, update it to expect `DinghyIcons.PowerOff`.)
 
 - [ ] **Step 6: Commit.**
 
@@ -118,9 +118,9 @@ This is a pure-layout change; verification is build + preview + on-device (no ho
 Row(
     Modifier.fillMaxWidth(),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = if (name.isEmpty()) Arrangement.Center else Arrangement.Start,
+    horizontalArrangement = if (name.isBlank()) Arrangement.Center else Arrangement.Start,
 ) {
-    if (name.isNotEmpty()) {
+    if (name.isNotBlank()) {
         Text(
             text = name,
             color = t.text,
@@ -233,14 +233,29 @@ git -c core.filemode=false commit -m "feat(hsvsliders): optional White track for
   - `markPending(objectKey, clampedWireTarget, targetChannels: List<Double>? = null)`.
 - Consumes (in Task 5): `OutputRowVm.ledChannels`, `markPending(..., targetChannels = …)`.
 
-- [ ] **Step 1: Write failing tests.** In `OutputsHolderTest.kt` add (reuse the existing `rgbLed`/`whiteOnlyLed` descriptor helpers and the test's existing store/state-emit harness — mirror the pattern of the nearest existing LED test in the file):
+- [ ] **Step 1: Write failing tests.** Use the file's REAL fixture style (per Codex SHOULD-FIX 6 — there is no `holderWith`/`rgbwLed`; the harness is `PrinterStateStore(backgroundScope)` + `OutputsHolder(backgroundScope, store)` + `store.setOutputDescriptors(...)` + `store.seed(PrinterState(outputs = …))`). First add an `rgbwLed()` descriptor helper next to `whiteOnlyLed()`:
+
+```kotlin
+private fun rgbwLed(key: String = "led strip", name: String = "strip") = OutputDescriptor(
+    objectKey = key, family = "led", commandName = name, prettyName = name,
+    pwm = false, servoAngleMax = 180f, readOnly = false,
+    ledHasRgb = true, ledHasWhite = true,
+)
+```
+(Match `whiteOnlyLed()`'s actual parameter list — copy it and flip `ledHasRgb`/`ledHasWhite` to true. Verify the exact `OutputDescriptor` LED-capability field names in the file before writing.)
+
+Then add the two tests, building state the same way the existing LED tests in this file do:
 
 ```kotlin
 @Test
 fun ledRow_exposesRawChannelsIncludingWhite() = runTest {
-    val led = rgbwLed() // r,g,b,w descriptor with ledHasRgb && ledHasWhite
-    // emit color_data[0] = [1.0, 0.0, 0.0, 0.5]
-    val holder = holderWith(led, colorData0 = listOf(1.0, 0.0, 0.0, 0.5))
+    val store = PrinterStateStore(backgroundScope)
+    val holder = OutputsHolder(backgroundScope, store)
+    val led = rgbwLed()
+    store.setOutputDescriptors(listOf(led))
+    store.seed(PrinterState(outputs = mapOf(
+        led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 0.0, 0.0, 0.5).toImmutableList()).toImmutableList())
+    ).toImmutableMap()))
     runCurrent()
     val row = holder.rows.value.first { it.descriptor.objectKey == led.objectKey }
     assertEquals(listOf(1f, 0f, 0f, 0.5f), row.ledChannels)
@@ -248,19 +263,24 @@ fun ledRow_exposesRawChannelsIncludingWhite() = runTest {
 
 @Test
 fun ledPending_holdsWhenOnlySaturationChanges_sameMaxBrightness() = runTest {
+    val store = PrinterStateStore(backgroundScope)
+    val holder = OutputsHolder(backgroundScope, store)
     val led = rgbwLed()
-    val holder = holderWith(led, colorData0 = listOf(1.0, 1.0, 1.0, 0.0)) // white-ish, max=1.0
+    store.setOutputDescriptors(listOf(led))
+    // Live = white-ish [1,1,1,0], max brightness 1.0.
+    store.seed(PrinterState(outputs = mapOf(
+        led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 1.0, 1.0, 0.0).toImmutableList()).toImmutableList())
+    ).toImmutableMap()))
     runCurrent()
-    // Command a fully-saturated red at the SAME max brightness (1.0): max stays 1.0.
+    // Command fully-saturated red at the SAME max brightness (1.0): with the old maxOrNull() compare
+    // this would wrongly clear; the full-tuple compare must keep it pending.
     holder.markPending(led.objectKey, clampedWireTarget = 1.0, targetChannels = listOf(1.0, 0.0, 0.0, 0.0))
     runCurrent()
-    // Live value has NOT yet changed (still [1,1,1,0]); with the old maxOrNull() compare this would
-    // wrongly clear. The full-tuple compare must keep it pending.
     assertTrue(holder.rows.value.first { it.descriptor.objectKey == led.objectKey }.busy)
 }
 ```
 
-Add a `rgbwLed()` descriptor helper (copy `whiteOnlyLed()` but `ledHasRgb = true, ledHasWhite = true`) and, if not already present, a small `holderWith(descriptor, colorData0)` helper that emits one `PrinterState` with `outputs[key] = OutputLiveValue(colorData = persistentListOf(colorData0.toImmutableList()))`. Match the existing fixture style in the file.
+(Confirm the exact store API names — `setOutputDescriptors` / `seed` / `outputDescriptors` — against the real `PrinterStateStore` and copy whatever the existing tests in this file call.)
 
 - [ ] **Step 2: Run to confirm failure.**
 
@@ -280,7 +300,7 @@ data class OutputRowVm(
 )
 ```
 
-In `buildRow`, inside the `descriptor.family in LED_FAMILIES` branch, after computing `rgbw`, capture the raw channels:
+In `buildRow`, declare the val at **`buildRow` scope** (NOT inside the LED `when` branch — the constructor at the end must see it; Codex SHOULD-FIX 4). Put it right before the `return OutputRowVm(...)`:
 
 ```kotlin
 val ledChannels: List<Float>? = if (descriptor.family in LED_FAMILIES) {
@@ -288,7 +308,7 @@ val ledChannels: List<Float>? = if (descriptor.family in LED_FAMILIES) {
 } else null
 ```
 
-and pass `ledChannels = ledChannels` to the `OutputRowVm(...)` constructor at the end of `buildRow`.
+and pass `ledChannels = ledChannels` to the `OutputRowVm(...)` constructor.
 
 - [ ] **Step 4: Add `targetChannels` to pending + full-tuple `reached`.**
 
@@ -359,7 +379,7 @@ git -c core.filemode=false commit -m "feat(outputs): raw LED channels on the row
 - Consumes: `HsvSliders(white=…)` (Task 3), `OutputRowVm.ledChannels` + `markPending(targetChannels=)` (Task 4), `ControlSpecs.outputOff` w/ icon (Task 1), `hsvToRgb`/`rgbToHsv` (existing, `Triple<Float,Float,Float>`).
 - Produces: a pure helper `ledChannelsFromHsv(h, s, v, white: Float?): SetLedArgs` for the LED `commandName`, unit-testable; `FocusLedSurface` rendered from `HsvSliders` (no `ColorWheel`, no brightness `Scrubber`), foot = `FootButtonBar [Off]`, no in-Focus Back.
 
-- [ ] **Step 1: Write a failing test for the conversion + full-state dispatch.** In `OutputLedCommandTest.kt` add (match the file's existing dispatch-capture harness):
+- [ ] **Step 1: Write a failing test for the conversion + full-state dispatch.** `OutputLedCommandTest` is pure command/helper testing (no dispatch-capture harness — Codex SHOULD-FIX 7); add `import org.junit.Assert.assertNull`. **Also update/remove the existing "every color dispatch carries `WHITE=0`" RGB assertions** in this file — RGB now OMITS `WHITE=` (w = null) and only RGBW sends it. Add:
 
 ```kotlin
 @Test
@@ -402,14 +422,20 @@ internal fun ledChannelsFromHsv(name: String, h: Float, s: Float, v: Float, whit
 
 ```kotlin
 // Full-state dispatch: SET_LED zeroes any channel not sent (klippy/extras/led.py), so we always
-// send the complete r/g/b/w computed from H/S/V (+ white when the strip has a white channel).
+// send the complete r/g/b/w. RGB/RGBW → from H/S/V (+ white); a WHITE-ONLY strip must send RGB=0
+// (NOT hsvToRgb(0,0,v), which is grey (v,v,v)) + the white channel. [Codex BLOCKER 1]
 fun dispatchLed(h: Float, s: Float, v: Float, whitePct: Float) {
     val white = if (descriptor.ledHasWhite) (whitePct / 100f).coerceIn(0f, 1f) else null
-    val args = ledChannelsFromHsv(descriptor.commandName, h, s, v, white)
+    val args = if (descriptor.ledHasRgb) {
+        ledChannelsFromHsv(descriptor.commandName, h, s, v, white)
+    } else {
+        SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = white)
+    }
+    val targetChannels = listOf(args.r, args.g, args.b, args.w ?: 0f).map { it.toDouble() }
     holder.markPending(
         descriptor.objectKey,
-        clampedWireTarget = maxOf(args.r, args.g, args.b, args.w ?: 0f).toDouble(),
-        targetChannels = listOf(args.r, args.g, args.b, args.w ?: 0f).map { it.toDouble() },
+        clampedWireTarget = targetChannels.maxOrNull() ?: 0.0,
+        targetChannels = targetChannels,
     )
     dispatchCommand(CommandRegistry.setLed, args)
 }
@@ -650,7 +676,7 @@ private fun FocusScrubberSurface(
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         FootButtonBar(
             uDp = uDp,
-            actions = listOf(footAction(ControlSpecs.outputOff, onClick = { if (!busy) onOff() })),
+            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
         )
     }
 }
@@ -710,7 +736,11 @@ git rm app/src/main/java/works/mees/dinghy/designsystem/ColorWheel.kt
 
 - [ ] **Step 3: Clean the stale KDoc** in `OutputFocusControl.kt` — drop the `ColorWheel` mentions in the file/`FocusLedSurface` KDoc and the deleted UAT-5 exception comment, replacing with a one-line "H/S/V(+W) HsvSliders" description.
 
-- [ ] **Step 4: Retire the design-law exception.** In `docs/ui_design/LAYOUT.md` (UAT-5) and `docs/ui_design/COMPONENTS.md`, change the "LED `ColorWheel` is the sole sanctioned >1U exception in Outputs" wording to: Outputs uses H/S/V(+W) sliders (each ≤1U); there is no >1U control in Outputs; `ColorWheel` is retired. In `.claude/skills/sketch-findings-dinghy-display/SKILL.md`, update the UAT-5 line the same way (drop the LED `ColorWheel` >1U carve-out).
+- [ ] **Step 4: Retire the design-law exception.** Update ALL of these (Codex SHOULD-FIX 10 added the last two):
+  - `docs/ui_design/LAYOUT.md` (UAT-5) and `docs/ui_design/COMPONENTS.md`: change "LED `ColorWheel` is the sole sanctioned >1U exception in Outputs" → Outputs uses H/S/V(+W) sliders (each ≤1U); no >1U control in Outputs; `ColorWheel` retired.
+  - `.claude/skills/sketch-findings-dinghy-display/SKILL.md`: same edit to the UAT-5 line (drop the LED `ColorWheel` >1U carve-out).
+  - `docs/ui_design/CLAUDE.md`: drop/replace the `basicMarquee`-exceptions LED `ColorWheel` mention.
+  - `app/src/main/java/works/mees/dinghy/designsystem/HsvToRgb.kt`: fix the KDoc that describes "fixed saturation / hue-only ColorWheel" (saturation is now user-controlled; the wheel is gone).
 
 - [ ] **Step 5: Full compile to prove the deletion is clean.**
 
