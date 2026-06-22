@@ -336,17 +336,21 @@ fun Scrubber(
             Box(modifier) { gestureBox() }
         } else {
             Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Header: name start · live value + dim unit end (sketch .row1).
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    if (name.isNotEmpty()) {
+                // Header: name start · live value + dim unit end (sketch .row1). When name is BLANK
+                // (Outputs scrubber surfaces, white-only LED brightness) the value+unit is CENTERED instead
+                // of orphaned right-aligned. `bare = true` callers (Temperature/Extrude) skip this header.
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = if (name.isBlank()) Arrangement.Center else Arrangement.Start,
+                ) {
+                    if (name.isNotBlank()) {
                         Text(
                             text = name,
                             color = t.text,
                             style = DinghyType.listLabel.toTextStyle(t),
                             modifier = Modifier.weight(1f),
                         )
-                    } else {
-                        Box(Modifier.weight(1f))
                     }
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
