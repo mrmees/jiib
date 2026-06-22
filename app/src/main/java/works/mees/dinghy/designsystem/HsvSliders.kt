@@ -42,6 +42,9 @@ fun HsvSliders(
     onMove: (Float, Float, Float) -> Unit,
     onSettle: (Float, Float, Float) -> Unit,
     modifier: Modifier = Modifier,
+    white: Float? = null,
+    onWhiteMove: (Float) -> Unit = {},
+    onWhiteSettle: (Float) -> Unit = {},
 ) {
     val pure = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f)
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -54,6 +57,12 @@ fun HsvSliders(
         Track("V", value,
             Brush.horizontalGradient(listOf(Color.Black, pure)),
             onMove = { onMove(hue, sat, it) }, onSettle = { onSettle(hue, sat, it) })
+        if (white != null) {
+            // RGBW: independent White channel (black→white). Renders only when supplied.
+            Track("W", white,
+                Brush.horizontalGradient(listOf(Color.Black, Color.White)),
+                onMove = onWhiteMove, onSettle = onWhiteSettle)
+        }
     }
 }
 
