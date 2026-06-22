@@ -386,7 +386,15 @@ fun AppShell(
             dispatchKey = CommandRegistry.quadGantryLevel.dispatchKey(Unit),
         )
     }
-    val bedMeshHolder = remember(store) { BedMeshHolder(scope = scope, store = store, events = calibEvents) }
+    val bedMeshHolder = remember(store) {
+        BedMeshHolder(
+            scope = scope,
+            store = store,
+            events = calibEvents,
+            renderPrefs = container.bedMeshRenderPrefs,
+            activeProfileId = container.activeProfileId,
+        )
+    }
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }

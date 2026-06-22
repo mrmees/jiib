@@ -1,10 +1,17 @@
 package works.mees.dinghy.calibration
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -17,6 +24,7 @@ import works.mees.dinghy.render.BedMeshHeatmapView.ScaleMode
 import works.mees.dinghy.state.BedMeshObject
 import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.state.PrinterStateStore
+import works.mees.dinghy.ui.settings.BedMeshRenderPrefs
 
 /**
  * Toolkit-agnostic holder for the Bed-Mesh page (CALIB-04 / D-07/09). Mirrors the
@@ -42,14 +50,25 @@ import works.mees.dinghy.state.PrinterStateStore
  * @param store  the already-assembled Phase-2/9 spine; the holder CONSUMES it, never opens a session.
  * @param events the live session's dispatcher event stream (Failure → [BedMeshVm.errorText]).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class BedMeshHolder(
     scope: CoroutineScope,
     private val store: PrinterStateStore,
     events: SharedFlow<DispatchEvent>? = null,
+    renderPrefs: BedMeshRenderPrefs? = null,
+    activeProfileId: Flow<String?>? = null,
 ) {
     private val _vm = MutableStateFlow(BedMeshVm())
-    /** The resolved Bed-Mesh page view-model (heatmap model + scale mode + profiles + latest error). */
-    val vm: StateFlow<BedMeshVm> = _vm.asStateFlow()
+    private val baseVm: StateFlow<BedMeshVm> = _vm.asStateFlow()
+
+    private val _viewType = MutableStateFlow(BedMeshViewType.HEATMAP)
+    private val _highSel = MutableStateFlow(BedMeshRenderPrefs.DEFAULT_HIGH)
+    private val _lowSel = MutableStateFlow(BedMeshRenderPrefs.DEFAULT_LOW)
+
+    /** The resolved Bed-Mesh page view-model (heatmap model + scale mode + profiles + latest error + render prefs). */
+    val vm: StateFlow<BedMeshVm> = combine(baseVm, _viewType, _highSel, _lowSel) { base, vt, hi, lo ->
+        base.copy(viewType = vt, highColorSel = hi, lowColorSel = lo)
+    }.stateIn(scope, SharingStarted.Eagerly, baseVm.value)
 
     @Volatile
     private var scaleMode: ScaleMode = ScaleMode.RELATIVE
@@ -58,6 +77,24 @@ class BedMeshHolder(
     private var latestError: String? = null
 
     init {
+        if (renderPrefs != null && activeProfileId != null) {
+            scope.launch {
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(BedMeshViewType.HEATMAP) else renderPrefs.viewType(pid)
+                }.collect { _viewType.value = it }
+            }
+            scope.launch {
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(BedMeshRenderPrefs.DEFAULT_HIGH) else renderPrefs.highColorSel(pid)
+                }.collect { _highSel.value = it }
+            }
+            scope.launch {
+                activeProfileId.flatMapLatest { pid ->
+                    if (pid == null) flowOf(BedMeshRenderPrefs.DEFAULT_LOW) else renderPrefs.lowColorSel(pid)
+                }.collect { _lowSel.value = it }
+            }
+        }
+
         // The printerState edge MAY clear a stale error when a clean populated mesh arrives (a
         // successful re-calibrate shouldn't keep showing the old rejection).
         scope.launch {
@@ -168,6 +205,9 @@ data class BedMeshVm(
     val scaleMode: ScaleMode = ScaleMode.RELATIVE,
     val errorText: String? = null,
     val homed: Boolean = false,
+    val viewType: BedMeshViewType = BedMeshViewType.HEATMAP,
+    val highColorSel: Int = BedMeshRenderPrefs.DEFAULT_HIGH,
+    val lowColorSel: Int = BedMeshRenderPrefs.DEFAULT_LOW,
 ) {
     /** Convenience: the saved-profile names (the Load selector list). */
     val profileNames: List<String> get() = model.profileNames
