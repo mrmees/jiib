@@ -52,10 +52,11 @@ class AppContainerTest {
             // FONTSCALE (App/Printer Settings Split, 10th store),
             // EXTRUDE_MACROS (Extrude rework Task 4, 11th store),
             // HEAT_PRESETS (Heat Presets Task 9, 12th store),
-            // INCREMENTS (Increment Values Task 4, 13th store), discovery (last).
+            // INCREMENTS (Increment Values Task 4, 13th store),
+            // BEDMESH_RENDER (Bed Mesh redesign Task 4, 14th store), discovery (last).
             FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
             FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
-            FakeDataStore(), FakeDataStore(), FakeDataStore(),
+            FakeDataStore(), FakeDataStore(), FakeDataStore(), FakeDataStore(),
             lazyDiscovery(),
         )
 
