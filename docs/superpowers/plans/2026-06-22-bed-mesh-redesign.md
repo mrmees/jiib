@@ -78,6 +78,14 @@ class BedMeshClearCommandTest {
         assertFalse(PrinterCommands.isValidProfileName("default"))
         assertTrue(PrinterCommands.isValidProfileName("bed_cold"))
     }
+
+    @Test fun renameEmitsSaveNewThenRemoveOldAsOneScript() {
+        val spec = CommandRegistry.bedMeshProfileRename
+        val gcode = (spec.params(BedMeshRenameArgs(old = "cold", new = "cool"))["script"]
+            as kotlinx.serialization.json.JsonPrimitive).content
+        // ONE script, newline-joined -> Klipper executes SAVE before REMOVE (ordering guaranteed).
+        assertEquals("BED_MESH_PROFILE SAVE=cool\nBED_MESH_PROFILE REMOVE=cold", gcode)
+    }
 }
 ```
 
@@ -92,14 +100,25 @@ In `PrinterCommands.kt`, next to `const val BED_MESH_CALIBRATE = "BED_MESH_CALIB
 ```kotlin
 /** `BED_MESH_CLEAR` — unloads the active mesh (runtime only; saved profiles untouched; no SAVE_CONFIG). */
 const val BED_MESH_CLEAR = "BED_MESH_CLEAR"
+
+/**
+ * Rename: SAVE under [new] then REMOVE [old] as ONE newline-joined script — Klipper runs the two
+ * commands sequentially, so SAVE is guaranteed to land before REMOVE (a two-dispatch version races,
+ * because CommandDispatcher.dispatch launches asynchronously). Caller must ensure old != new.
+ */
+fun bedMeshProfileRename(old: String, new: String): String =
+    "BED_MESH_PROFILE SAVE=${sanitizeProfileName(new)}\nBED_MESH_PROFILE REMOVE=${sanitizeProfileName(old)}"
 ```
-Change `isValidProfileName` (line ~527) to reject the reserved name:
+Change `isValidProfileName` (line ~527) to reject the reserved name AND add the same guard to `sanitizeProfileName` (the builder path used by `bedMeshProfileSave`, lines ~530-542 — otherwise the gcode builder still accepts `default`):
 ```kotlin
 fun isValidProfileName(name: String): Boolean =
     name.isNotEmpty() &&
         !name.equals("default", ignoreCase = true) && // "default" is reserved: Klipper rejects SAVE=default
         name.length <= MAX_PROFILE_NAME_LEN &&
         name.matches(PROFILE_NAME_ALLOWLIST)
+
+// In sanitizeProfileName(name), add this require alongside the existing ones:
+require(!name.equals("default", ignoreCase = true)) { "bed-mesh profile name 'default' is reserved" }
 ```
 
 - [ ] **Step 4: Add the CommandSpec**
@@ -110,6 +129,18 @@ val bedMeshClear: CommandSpec<Unit> = gcode(
     catalogId = "KGC-BED_MESH_CLEAR",
     key = { "bed_mesh_clear" },
     gcode = { PrinterCommands.BED_MESH_CLEAR },
+    availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+)
+```
+Also add the rename args + spec (near `BedMeshProfileArgs`, line ~64, and the other bed-mesh specs):
+```kotlin
+/** Rename a bed-mesh profile (SAVE new + REMOVE old in one ordered script). */
+data class BedMeshRenameArgs(val old: String, val new: String)
+
+val bedMeshProfileRename: CommandSpec<BedMeshRenameArgs> = gcode(
+    catalogId = "KGC-BED_MESH_PROFILE_RENAME",
+    key = { "bed_mesh_profile_rename" },
+    gcode = { args -> PrinterCommands.bedMeshProfileRename(args.old, args.new) },
     availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
 )
 ```
@@ -244,10 +275,10 @@ val parsedProfiles = profilesObj?.let { obj ->
         val mp = pj.objectOrNull("mesh_params")
         name to BedMeshProfilePayload(
             points = pts,
-            minX = mp?.doubleOrNull("min_x") ?: 0.0,
-            maxX = mp?.doubleOrNull("max_x") ?: 0.0,
-            minY = mp?.doubleOrNull("min_y") ?: 0.0,
-            maxY = mp?.doubleOrNull("max_y") ?: 0.0,
+            minX = mp?.doubleOrNullAt("min_x") ?: 0.0,
+            maxX = mp?.doubleOrNullAt("max_x") ?: 0.0,
+            minY = mp?.doubleOrNullAt("min_y") ?: 0.0,
+            maxY = mp?.doubleOrNullAt("max_y") ?: 0.0,
         )
     }.toMap().toImmutableMap()
 }
@@ -263,7 +294,7 @@ s = s.copy(
     ),
 )
 ```
-> **Implementer note:** confirm the helper names actually present in this file (`objectOrNull`, `stringOrNull`, `doubleListOrNull`, `double2dListOrNull`, `toImmutable2d`). If a scalar `doubleOrNull(key)` helper does not exist on `JsonObject`, add a tiny private one mirroring `stringOrNull`, or read `pj["min_x"]?.jsonPrimitive?.doubleOrNull`.
+> **Implementer note (verified against `PrinterStateReducer.kt`):** the helpers `objectOrNull`, `stringOrNull`, `doubleListOrNull`, `double2dListOrNull`, `toImmutable2d` exist (lines ~381-423), and the scalar accessor is **`doubleOrNullAt(key)`** (line ~386), NOT `doubleOrNull`. Use `mp?.doubleOrNullAt("min_x")` as above.
 
 - [ ] **Step 5: Run reducer test to verify it passes**
 
@@ -619,7 +650,7 @@ fun setBedMeshLowColorSel(sel: Int) {
 
 - [ ] **Step 7: Build to verify wiring compiles**
 
-Run: `… "E:\Android\gw.bat :app:assembleDebug --no-daemon"` → BUILD SUCCESSFUL. (No new positional test fixtures should break — but if any `AppContainer` test constructor is positional, update it; the new param is the trap from prior phases.)
+Run: `… "E:\Android\gw.bat :app:assembleDebug --no-daemon"` then `… ":app:compileDebugUnitTestKotlin"` → BUILD SUCCESSFUL. **`DinghyApp` constructs `AppContainer` by NAMED args (fine), but these test files build it POSITIONALLY and WILL break — update them to pass the new `bedMeshRenderDataStore` arg (the recurring positional-ctor trap):** `app/src/test/java/works/mees/dinghy/di/AppContainerTest.kt:48-60` and `app/src/test/java/works/mees/dinghy/theme/ThemeOverrideTest.kt:54-67`. Grep for other `AppContainer(` call sites in the test sourceset to be sure.
 
 - [ ] **Step 8: Commit**
 
@@ -673,18 +704,18 @@ class BedMeshHolderRenderPrefsTest {
         val pid = MutableStateFlow<String?>("printerA")
         val holder = BedMeshHolder(
             scope = backgroundScope,
-            store = PrinterStateStore(),
+            store = PrinterStateStore(backgroundScope), // ctor REQUIRES scope (see BedMeshHolderTest.kt)
             events = null,
             renderPrefs = prefs,
             activeProfileId = pid,
         )
-        val vm = holder.state.first { it.viewType == BedMeshViewType.PROBE_POINTS }
+        val vm = holder.vm.first { it.viewType == BedMeshViewType.PROBE_POINTS } // public flow is `vm`
         assertEquals(BedMeshViewType.PROBE_POINTS, vm.viewType)
         assertEquals(3, vm.highColorSel)
     }
 }
 ```
-> **Implementer note:** confirm the holder's public StateFlow name (the Explore report shows `BedMeshVm` is the VM type; verify whether it is exposed as `holder.state`, `holder.vm`, or similar, and adapt). Also confirm `PrinterStateStore()` no-arg construction exists in tests (the existing `BedMeshHolder` tests will show the right construction).
+> **Implementer note (verified):** the holder exposes its VM as **`holder.vm: StateFlow<BedMeshVm>`** (NOT `state`), and `PrinterStateStore` requires a `scope` arg — existing `BedMeshHolderTest.kt:54-56` constructs `PrinterStateStore(backgroundScope)`. Copy that construction.
 
 - [ ] **Step 2: Run to verify it fails** — FAIL (`renderPrefs`/`activeProfileId` params + `viewType` on VM unresolved).
 
@@ -732,7 +763,13 @@ class BedMeshHolder(
     }
 }
 ```
-Fold `_viewType/_highSel/_lowSel` into the VM emission. The existing VM is built from a `combine`/`map` on `store.printerState` (+ error/scale). Add these three flows to that `combine` so the VM carries them. (If the existing builder uses `combine(a, b, c) { … }`, extend to include the three new flows; `combine` supports up to 5 typed args, else use the list/vararg form.)
+Fold `_viewType/_highSel/_lowSel` into the VM emission **without rewriting the internal builder**. The holder builds its VM via direct collectors (not a `combine`) and exposes it as `val vm: StateFlow<BedMeshVm>` (BedMeshHolder.kt ~95-115). Minimal-touch approach: rename the existing exposed flow to `private val baseVm`, then layer the three pref flows on top and expose the result as `vm`:
+```kotlin
+val vm: StateFlow<BedMeshVm> = combine(baseVm, _viewType, _highSel, _lowSel) { base, vt, hi, lo ->
+    base.copy(viewType = vt, highColorSel = hi, lowColorSel = lo)
+}.stateIn(scope, SharingStarted.Eagerly, baseVm.value)
+```
+(The internal builder stays untouched and leaves the three new VM fields at their defaults; the `combine` overlays the persisted values. Add imports `kotlinx.coroutines.flow.combine`, `stateIn`, `SharingStarted`.)
 
 - [ ] **Step 4: Update `AppShell.kt` construction** (line ~389)
 
@@ -790,18 +827,18 @@ import org.junit.Test
 import works.mees.dinghy.theme.ThemeTokens
 
 class BedMeshColorResolveTest {
-    // Build a minimal ThemeTokens with a known accent + 4-slot pool. Use the existing test factory if
-    // present (search test sources for a ThemeTokens fixture); else construct via its default ctor and copy.
+    // Build ThemeTokens from the real dark token set with a known accent + 4-slot pool (the pattern
+    // existing tests use, e.g. SeriesColorTest.kt:22-34 -> `TokensDark.copy(...)`).
     private val accent = Color(0xFF112233)
     private val pool = listOf(Color(0xFF0A0A0A), Color(0xFF0B0B0B), Color(0xFF0C0C0C), Color(0xFF0D0D0D))
-    private val t = testThemeTokens(accent = accent, pool = pool)
+    private val t = works.mees.dinghy.theme.TokensDark.copy(accent = accent, pool = pool)
 
     @Test fun negativeSelIsAccent() = assertEquals(accent, resolveMeshColor(t, -1))
     @Test fun slotSelIsPool() = assertEquals(pool[2], resolveMeshColor(t, 2))
     @Test fun outOfRangeSelFallsBackToAccent() = assertEquals(accent, resolveMeshColor(t, 9))
 }
 ```
-> **Implementer note:** find how other tests build a `ThemeTokens` (grep test sources for `ThemeTokens(` or a `*Preview`/`*Fixture`). Reuse that. `testThemeTokens(...)` above is a placeholder for whatever the real fixture is; do not invent a new production factory.
+> **Implementer note (verified):** there is no `testThemeTokens` factory — existing tests build tokens via **`TokensDark.copy(...)`** (`SeriesColorTest.kt:22-34`). Confirm `ThemeTokens` has `accent` and `pool` as `copy`-able fields (it does — `ThemeTokens.kt:52-79`).
 
 - [ ] **Step 2: Run to verify it fails** — FAIL (`resolveMeshColor` unresolved).
 
@@ -933,12 +970,14 @@ Extend `MeshFieldModeSaver` save/restore with `"MeshConfig"` and `"MeshConfigEdi
 
 - [ ] **Step 2: Focus renders live OR preview based on `selectedProfile`**
 
-In `BedMeshFocusRegion` (or where the Host is invoked), compute the model to render and resolve colors:
+In `BedMeshFocusRegion` (or where the Host is invoked), compute the model to render and resolve colors. **Critical (Codex blocker):** the current region shows the empty-state when `vm.isEmpty` *before* reaching the Host (`BedMeshScreen.kt:570-602`) — that would swallow a preview when no live mesh is loaded but saved profiles exist. Change the empty-state guard to key off `renderModel.isEmpty`, not `vm.isEmpty`:
 ```kotlin
 val renderModel = remember(vm.model, selectedProfile) {
     val sel = selectedProfile
     if (sel != null && sel != vm.model.profileName) vm.model.previewOf(sel) ?: vm.model else vm.model
 }
+// Empty-state ONLY when the model we're about to render is itself empty (a preview is never empty):
+if (renderModel.isEmpty) { /* existing faint empty-state */ return }
 val lowArgb = resolveMeshColor(t, vm.lowColorSel).toArgb()
 val highArgb = resolveMeshColor(t, vm.highColorSel).toArgb()
 BedMeshHeatmapHost(
@@ -960,10 +999,10 @@ BedMeshHeatmapHost(
 In the `MeshFieldMode.ProfileList` branch, wrap the existing profile `ListBlock` with a conditional Clear Mesh row first and a Mesh Config row last. Clear Mesh shows only when a mesh is loaded (`!vm.isEmpty`):
 ```kotlin
 ListBlock(modifier = Modifier.weight(1f)) {
-    if (!vm.isEmpty) {
+    if (!vm.isEmpty && !isPrinting) { // Clear is inert while printing (spec: mid-print gating)
         item(key = "__clear__") {
             ListRow(onClick = onClearMesh, uDp = grid.uDp,
-                leadingIcon = /* owner-picked Clear glyph */) { ListRowLabel("Clear Mesh") }
+                leadingContent = { ListRowIcon(/* owner-picked Clear glyph */) }) { ListRowLabel("Clear Mesh") }
         }
     }
     items(vm.profileNames, key = { it }) { name ->
@@ -975,11 +1014,11 @@ ListBlock(modifier = Modifier.weight(1f)) {
     }
     item(key = "__config__") {
         ListRow(onClick = onOpenMeshConfig, uDp = grid.uDp,
-            leadingIcon = /* owner-picked Mesh Config glyph */) { ListRowLabel("Mesh Config") }
+            leadingContent = { ListRowIcon(/* owner-picked Mesh Config glyph */) }) { ListRowLabel("Mesh Config") }
     }
 }
 ```
-> **Implementer note:** confirm `ListRow`'s real leading-icon parameter name (the Explore report shows `ListRow(selected, onClick, uDp, trailingContent) { … }`; check for a `leadingIcon`/`leading` slot — if rows elsewhere render a leading glyph, copy that exact API). Do not draw any glyph until the owner has picked it.
+> **Implementer note (verified):** `ListRow`'s leading slot is **`leadingContent: @Composable (() -> Unit)?`**, typically filled with **`ListRowIcon(...)`** (`ListRow.kt:100-107, 190-201`) — NOT a `leadingIcon` param. Do not draw any glyph until the owner has picked it.
 
 - [ ] **Step 4: Simplify the footer to Back + (Home All | Calibrate)**
 
@@ -987,14 +1026,17 @@ Replace the three-branch `FootButtonBar.actions` (Unhomed / Selected / Homed) wi
 ```kotlin
 FootButtonBar(uDp = grid.uDp, actions = buildList {
     add(FootAction(label = "Back", icon = /* existing Back glyph */, intent = Intent.Accent, onClick = onBack))
-    if (!vm.homed) {
-        add(FootAction(label = "Home All", icon = /* existing */, intent = Intent.Go, onClick = onHomeAll))
-    } else {
-        add(FootAction(label = "Calibrate", icon = /* existing CalibrationRun */, intent = Intent.Go, onClick = onCalibrate))
+    // Home/Calibrate are inert while printing (spec: mid-print gating) — Back only during a print.
+    if (!isPrinting) {
+        if (!vm.homed) {
+            add(FootAction(label = "Home All", icon = /* existing */, intent = Intent.Go, onClick = onHomeAll))
+        } else {
+            add(FootAction(label = "Calibrate", icon = /* existing CalibrationRun */, intent = Intent.Go, onClick = onCalibrate))
+        }
     }
 })
 ```
-> The FootButtonBar count-driven rule (≤2 = icon+text) already yields icon+text for these two.
+> The FootButtonBar count-driven rule (≤2 = icon+text) already yields icon+text for these.
 
 - [ ] **Step 5: Wire `onClearMesh` in the `BedMeshScreen` wrapper**
 
@@ -1169,12 +1211,15 @@ onEditApply = { name -> dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad,
 onEditSave = { newName ->
     val d = dispatcher
     val active = vm.model.profileName
+    val kind = classifyMeshEdit(active, vm.isEmpty, selectedProfile, vm.profileNames.toSet())
     if (d != null) {
-        d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(newName))
-        // ACTIVE_SAVED rename: also remove the old profile so it's a rename, not a copy.
-        if (classifyMeshEdit(active, vm.isEmpty, selectedProfile, vm.profileNames.toSet()) == MeshEditKind.ACTIVE_SAVED
-            && newName != active) {
-            d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(active))
+        if (kind == MeshEditKind.ACTIVE_SAVED && newName != active) {
+            // Rename = ONE ordered script (SAVE new -> REMOVE old). Two separate dispatches race
+            // (CommandDispatcher launches async), so use the single bedMeshProfileRename command.
+            d.dispatch(CommandRegistry.bedMeshProfileRename, BedMeshRenameArgs(old = active, new = newName))
+        } else {
+            // Active-unsaved save (or active-saved with unchanged name): plain SAVE.
+            d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(newName))
         }
         showSaveConfigGuard = true
     }
@@ -1226,13 +1271,13 @@ Render the config rows; each opens its own editor via `MeshConfigEditor(item)`. 
 is MeshFieldMode.MeshConfig -> {
     ListBlock(modifier = Modifier.weight(1f)) {
         item(key="vt") { ListRow(onClick={onOpenConfigEditor(MeshConfigItem.VIEW_TYPE)}, uDp=grid.uDp,
-            leadingIcon=/*owner*/) { ListRowLabel("View Type") } }
+            leadingContent={ ListRowIcon(/*owner glyph*/) }) { ListRowLabel("View Type") } }
         item(key="hi") { ListRow(onClick={onOpenConfigEditor(MeshConfigItem.HIGH_COLOR)}, uDp=grid.uDp,
-            leadingIcon=/*owner*/) { ListRowLabel("High Color") } }
+            leadingContent={ ListRowIcon(/*owner glyph*/) }) { ListRowLabel("High Color") } }
         item(key="lo") { ListRow(onClick={onOpenConfigEditor(MeshConfigItem.LOW_COLOR)}, uDp=grid.uDp,
-            leadingIcon=/*owner*/) { ListRowLabel("Low Color") } }
+            leadingContent={ ListRowIcon(/*owner glyph*/) }) { ListRowLabel("Low Color") } }
         item(key="pv") { ListRow(onClick={onOpenConfigEditor(MeshConfigItem.PREVIEW)}, uDp=grid.uDp,
-            leadingIcon=/*owner*/) { ListRowLabel("Preview") } }
+            leadingContent={ ListRowIcon(/*owner glyph*/) }) { ListRowLabel("Preview") } }
     }
     FootButtonBar(uDp=grid.uDp, actions=listOf(
         FootAction(label="Back", icon=/*existing*/, intent=Intent.Accent, onClick=onBackToProfileList)))
