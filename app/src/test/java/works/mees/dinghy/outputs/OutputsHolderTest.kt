@@ -59,6 +59,15 @@ class OutputsHolderTest {
         ledHasRgb = false, ledHasWhite = true,
     )
 
+    private fun rgbwLed(
+        key: String = "led strip",
+        name: String = "strip",
+    ) = OutputDescriptor(
+        objectKey = key, family = "led", commandName = name, prettyName = name,
+        pwm = false, servoAngleMax = 180f, readOnly = false,
+        ledHasRgb = true, ledHasWhite = true,
+    )
+
     private fun rowFor(rows: List<OutputRowVm>, key: String): OutputRowVm =
         rows.first { it.descriptor.objectKey == key }
 
@@ -202,5 +211,63 @@ class OutputsHolderTest {
         runCurrent()
 
         assertEquals("rows alpha-sorted by prettyName", listOf("Aux", "Zephyr"), holder.rows.value.map { it.descriptor.prettyName })
+    }
+
+    @Test
+    fun ledRow_exposesRawChannelsIncludingWhite() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = OutputsHolder(backgroundScope, store)
+        val led = rgbwLed()
+        store.setOutputDescriptors(listOf(led))
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 0.0, 0.0, 0.5).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+
+        // The raw [r,g,b,w] channels (incl. white) are surfaced so the slider UI can seed H/S/V + White.
+        assertEquals(listOf(1f, 0f, 0f, 0.5f), rowFor(holder.rows.value, led.objectKey).ledChannels)
+    }
+
+    @Test
+    fun ledPending_holdsWhenOnlySaturationChanges_sameMaxBrightness() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = OutputsHolder(backgroundScope, store)
+        val led = rgbwLed()
+        store.setOutputDescriptors(listOf(led))
+        // Live = white-ish [1,1,1,0], max brightness 1.0.
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 1.0, 1.0, 0.0).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+
+        // Command fully-saturated red at the SAME max brightness (1.0). With the old maxOrNull() compare
+        // (1.0 == 1.0) this would wrongly clear; the full-tuple compare must keep it pending.
+        holder.markPending(led.objectKey, clampedWireTarget = 1.0, targetChannels = listOf(1.0, 0.0, 0.0, 0.0))
+        runCurrent()
+        assertTrue("LED pending holds when only hue/saturation changes at equal max brightness",
+            rowFor(holder.rows.value, led.objectKey).busy)
+    }
+
+    @Test
+    fun ledPending_clearsWhenLiveReachesFullTuple() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = OutputsHolder(backgroundScope, store)
+        val led = rgbwLed()
+        store.setOutputDescriptors(listOf(led))
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 1.0, 1.0, 0.0).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+        holder.markPending(led.objectKey, clampedWireTarget = 1.0, targetChannels = listOf(1.0, 0.0, 0.0, 0.0))
+        runCurrent()
+        assertTrue("armed busy", rowFor(holder.rows.value, led.objectKey).busy)
+
+        // Live flips to the EXACT commanded tuple → reached() confirms, busy clears (not via timeout).
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 0.0, 0.0, 0.0).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+        assertFalse("LED busy clears the instant live channels reach the full target tuple",
+            rowFor(holder.rows.value, led.objectKey).busy)
     }
 }

@@ -49,8 +49,8 @@ Sketch session wrapped: 2026-06-09 (sketches 001–003).
     `Spacer(weight(1f))` carries the gap.
   - UAT-3: current-style scrubber track + thumb ≤ 1U (`heightIn(max = uDp)`).
   - UAT-4: Focus top-left corner reserved for `FloatingEStop`; keep important content clear of it.
-  - UAT-5: controls cap at 1U unless deliberately named otherwise; LED `ColorWheel` is the sole
-    sanctioned >1U exception in Outputs.
+  - UAT-5: controls cap at 1U unless deliberately named otherwise. (The LED `ColorWheel` >1U
+    exception was retired 2026-06-21 — Outputs LEDs use H/S/V(+W) slider tracks, each ≤1U.)
   Full rule text: `docs/ui_design/LAYOUT.md §"Post-Phase-26 UAT formatting rules"`.
 </design_direction>
 

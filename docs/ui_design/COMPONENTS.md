@@ -534,8 +534,9 @@ icon tiles, count-driven labels"). Key invariants (leading TYPE tile RETIRED 202
 >
 > **UAT-5 (controls ≤ 1U):** All in-Focus controls cap at 1U (`height(uDp)`). Enforced sites:
 > **AdjusterPanel ± stepper row**, **Scrubber ± row**, **IncrementPicker** (was floor-only before
-> the 2026-06-13 compliance pass — now capped). The LED `ColorWheel` is the **sole sanctioned
-> >1U exception**. For the tiles to actually FILL the 1U row (not just floor at 64dp),
+> the 2026-06-13 compliance pass — now capped). **No >1U exceptions remain** — the LED `ColorWheel`
+> was retired 2026-06-21 (Outputs LEDs use H/S/V(+W) slider tracks, each ≤1U). For the tiles to
+> actually FILL the 1U row (not just floor at 64dp),
 > `LocalUnitDp` must be PROVIDED at the adjuster layer — see "LocalUnitDp provision" in the
 > AdjusterPanel section below. See `LAYOUT.md UAT-5`.
 >

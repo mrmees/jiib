@@ -334,6 +334,12 @@ object DinghyIcons {
     val SortDesc = DinghyIcon(IconRef.Ligature("arrow_drop_down"), alternate = "sort_desc")
     val Close = DinghyIcon(IconRef.Ligature("close"), alternate = "close")
 
+    // --- Outputs foot-bar actions (owner-chosen 2026-06-21; icon law). On = power, Off = power_off.
+    /** Outputs switch/scrubber/LED foot: turn the output ON. */
+    val Power = DinghyIcon(IconRef.Ligature("power"), alternate = "power")
+    /** Outputs switch/scrubber/LED foot: turn the output OFF. */
+    val PowerOff = DinghyIcon(IconRef.Ligature("power_off"), alternate = "power_off")
+
     // --- App/Printer Settings split glyphs (Task 0.1, OWNER-LOCKED — never invent/substitute, icon law
     // [[dinghy-never-pick-icons-ask]]). All five ligatures verified resolvable in the bundled Material
     // Symbols ttf (verify_ligatures.py gate). Groundwork for the Settings split feature.
@@ -453,6 +459,7 @@ object DinghyIcons {
         MoveHomeAll, MoveDisableMotors,
         MonitorMode, TempSettings,
         SortAsc, SortDesc, Close,
+        Power, PowerOff,
         AppSettings, PrinterSettings, ManagePrinters, TextSize, Rename, Fluorescent, ShieldLock,
         CalibrationRun, CalibrationWait, CalibrationAbort, PrinterAdd, Save, DialogClose,
         TempPresets,

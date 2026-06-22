@@ -88,10 +88,18 @@ object ControlSpecs {
         type = ControlType.Button,
     )
 
+    val outputOn = ControlSpec(
+        key = ControlKey("output.on"),
+        labelRes = R.string.output_on,
+        icon = DinghyIcons.Power,
+        intent = Intent.Go, // R5: the expected "turn it on" action
+        type = ControlType.Button,
+    )
+
     val outputOff = ControlSpec(
         key = ControlKey("output.off"),
         labelRes = R.string.output_off, // LABELED → no contentDescriptionRes required
-        icon = null,
+        icon = DinghyIcons.PowerOff,
         intent = Intent.Warn, // §f#3 — Warn app-wide (Outputs Off Danger→Warn)
         type = ControlType.Button,
     )
@@ -161,6 +169,7 @@ object ControlSpecs {
         macrosExecute,
         macrosManage,
         outputOff,
+        outputOn,
         printerEstop,
         spoolLoad,
         spoolScan,

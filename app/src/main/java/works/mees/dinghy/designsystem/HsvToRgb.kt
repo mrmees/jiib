@@ -7,11 +7,10 @@ package works.mees.dinghy.designsystem
  * so it is host-unit-testable WITHOUT Robolectric, and its three outputs feed
  * [works.mees.dinghy.command.PrinterCommands.setLed] RED/GREEN/BLUE directly.
  *
- * ## v1 fixed-saturation decision (RESEARCH Open Q1 / A4)
- * v1 LED control is **hue + brightness** with saturation FIXED at 1.0 — it reuses the existing
- * hue-only [ColorWheel] verbatim and matches the staging "simple RGB color picker" intent. The
- * [saturation] parameter defaults to `1f` so a future saturation control can be added without a
- * signature break; the Wave-2 LED page passes saturation = 1f.
+ * ## Saturation is user-controlled (2026-06-21 Outputs slider rework)
+ * The LED Focus surface now drives FULL H/S/V via `HsvSliders` (the prior hue-only color ring +
+ * fixed-saturation-1.0 model is retired), so callers pass a real [saturation]. It still defaults to
+ * `1f` for any caller that wants a pure hue.
  *
  * All inputs are clamped to their valid ranges (hue wraps 0..360, saturation/value to 0f..1f) and all
  * three returned channels are guaranteed within 0f..1f so they feed `setLed` safely.

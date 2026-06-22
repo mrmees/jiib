@@ -2,137 +2,89 @@ package works.mees.dinghy.ui.outputs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.dinghy.R
+import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
-import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
-import works.mees.dinghy.designsystem.icons.DinghyIcons
-import works.mees.dinghy.designsystem.layout.ListFrameInset
-import works.mees.dinghy.designsystem.layout.ScreenScaffold
-import works.mees.dinghy.designsystem.layout.rememberUnitGrid
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.FocusHeroText
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
- * The digital On/Off toggle page (SC-2) — the ONE new small control this plan adds, for a non-PWM
- * `output_pin`. Keyboard-free, immediate-dispatch: tapping On or Off dispatches SET_PIN VALUE=1/0 through the
- * catalog ([works.mees.dinghy.command.CommandRegistry.setOutputPin]) ONCE, with NO Apply flow and NO
- * confirm-guard step. A dispatch failure → [SeverityToast] and the user STAYS on the page. The currently
- * active state's button wears the accent ([Intent.Accent]); the other is neutral. A read-only (static_value)
- * pin renders value-only with the toggle disabled (SC-3).
+ * The digital On/Off toggle surface for a non-PWM `output_pin`, hosted inline in the Outputs
+ * `FocusFrame` body. Keyboard-free, immediate-dispatch: tapping On or Off dispatches SET_PIN
+ * VALUE=1/0 ONCE (no Apply flow, no confirm-guard). A dispatch failure → [SeverityToast] and the
+ * user stays on the surface.
  *
- * Stateless content seam (no `remember`/dispatcher) — the live wiring lives in [OutputFocusControl], which feeds
- * [onOn]/[onOff] the catalog dispatch.
+ * Layout (Outputs Focus cleanup, 2026-06-21): the body is the BIG current-state readout (On = `go`,
+ * else dim) filling the space; the actions live in a foot [FootButtonBar] `[On][Off]` (power/power_off,
+ * On = Go / Off = Warn). There is NO in-Focus Back (the Field list + its Back own navigation). A
+ * read-only (static_value) pin shows the state readout + "Read-only" caption and NO foot bar.
  *
- * @param prettyName the output's display name.
- * @param isOn       the live On/Off state (null = absent value — both buttons available, SC-3).
- * @param readOnly   value-only when true (static pin).
+ * Stateless content seam (no `remember`/dispatcher) — the live wiring lives in [OutputFocusControl].
+ * Identity is carried by the FocusFrame header, so this surface takes no name.
+ *
+ * @param isOn       the live On/Off state (null = absent — rendered as Off, both actions available).
+ * @param readOnly   value-only when true (static pin): state readout + caption, no foot bar.
  * @param enabled    false while a dispatch to this pin is in-flight (per-objectKey busy).
  * @param failureText a dispatch failure message to surface, or null.
  * @param onOn        dispatch SET_PIN VALUE=1 (immediate).
- * @param onOff       dispatch SET_PIN VALUE=0 (immediate — the page's Off action).
- * @param onBack      the Back exit (accent, FIRST in the foot bar — R5/R8).
+ * @param onOff       dispatch SET_PIN VALUE=0 (immediate).
+ * @param uDp         one unit U, for the foot bar height.
  */
 @Composable
 fun OutputToggleControl(
-    prettyName: String,
     isOn: Boolean?,
     readOnly: Boolean,
     enabled: Boolean,
     failureText: String?,
     onOn: () -> Unit,
     onOff: () -> Unit,
-    onBack: () -> Unit,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
-        ScreenScaffold(
-            fieldFramed = false,
-            field = {
-                Column(
-                    Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text = prettyName,
-                        color = t.text2,
-                        style = DinghyType.dataInline.toTextStyle(t),
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                    if (readOnly) {
-                        // SC-3: value-only, no control.
-                        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                            FocusHeroText(
-                                text = if (isOn == true) {
-                                    stringResource(R.string.output_on)
-                                } else {
-                                    stringResource(R.string.output_off)
-                                },
-                                role = DinghyType.focusHero,
-                                t = t,
-                                color = t.text3,
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.output_read_only),
-                            color = t.text3,
-                            style = DinghyType.caption.toTextStyle(t),
-                        )
-                    } else {
-                        Row(
-                            Modifier.fillMaxWidth().weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            OutlinedControl(
-                                label = stringResource(R.string.output_on),
-                                onClick = { if (enabled) onOn() },
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                                intent = if (isOn == true) Intent.Accent else Intent.Neutral,
-                            )
-                            OutlinedControl(
-                                label = stringResource(R.string.output_off),
-                                onClick = { if (enabled) onOff() },
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                                intent = if (isOn == false) Intent.Accent else Intent.Neutral,
-                            )
-                        }
-                    }
-                    failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-                    // Foot-of-list Back (R1 gutter retirement): FIRST + accent per R5/R8.
-                    FootButtonBar(
-                        uDp = grid.uDp,
-                        modifier = Modifier.padding(horizontal = ListFrameInset, vertical = 8.dp),
-                        actions = listOf(
-                            FootAction(
-                                label = stringResource(R.string.common_back),
-                                icon = DinghyIcons.Back,
-                                onClick = onBack,
-                                intent = Intent.Accent,
-                            ),
-                        ),
-                    )
-                }
-            },
-        )
+    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Body: the current On/Off state, color-coded, filling the space (no duplicate name — the
+        // FocusFrame header carries identity).
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            FocusHeroText(
+                text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
+                role = DinghyType.focusHero,
+                t = t,
+                color = if (isOn == true) t.go else t.text3,
+            )
+        }
+        if (readOnly) {
+            Text(
+                text = stringResource(R.string.output_read_only),
+                color = t.text3,
+                style = DinghyType.caption.toTextStyle(t),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
+        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+        if (!readOnly) {
+            FootButtonBar(
+                uDp = uDp,
+                actions = listOf(
+                    footAction(ControlSpecs.outputOn, onClick = onOn, enabled = enabled),
+                    footAction(ControlSpecs.outputOff, onClick = onOff, enabled = enabled),
+                ),
+            )
+        }
     }
 }
