@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import works.mees.dinghy.render.resolveMeshColor
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
@@ -119,14 +120,20 @@ private fun PoolColorTile(
     )
 
     @Composable
-    fun Swatch(mod: Modifier) {
-        androidx.compose.foundation.layout.Box(
-            mod
-                .aspectRatio(1f)
-                .clip(CircleShape)
-                .border(BorderStroke(2.dp, t.hair), CircleShape)
-                .background(color),
-        )
+    fun Swatch(heightFrac: Float) {
+        // Cap the swatch so it never exceeds the tile's width in portrait.
+        // BoxWithConstraints gives us the tile's inner dimensions after padding;
+        // the diameter is min(tileWidth, tileHeight*frac, 80.dp).
+        BoxWithConstraints {
+            val diameter = min(maxWidth, min(maxHeight * heightFrac, 80.dp))
+            androidx.compose.foundation.layout.Box(
+                Modifier
+                    .size(diameter)
+                    .clip(CircleShape)
+                    .border(BorderStroke(2.dp, t.hair), CircleShape)
+                    .background(color),
+            )
+        }
     }
 
     if (landscape) {
@@ -136,7 +143,7 @@ private fun PoolColorTile(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TileLabel(Modifier.weight(1f))
-            Swatch(Modifier.fillMaxHeight(0.7f))
+            Swatch(0.7f)
         }
     } else {
         Column(
@@ -144,7 +151,7 @@ private fun PoolColorTile(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
         ) {
-            Swatch(Modifier.fillMaxHeight(0.6f))
+            Swatch(0.6f)
             TileLabel(Modifier)
         }
     }
