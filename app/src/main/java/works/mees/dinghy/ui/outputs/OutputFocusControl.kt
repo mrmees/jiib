@@ -394,7 +394,7 @@ private fun OutputFocusControlInner(
                     failureText = failureText,
                     onOn = { setDigital(true) },
                     onOff = { setDigital(false) },
-                    onBack = onBack,
+                    uDp = uDp,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
