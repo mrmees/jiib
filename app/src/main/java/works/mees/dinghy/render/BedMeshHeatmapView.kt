@@ -66,6 +66,21 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
         PM_100,
     }
 
+    /** The two render modes: interpolated heatmap fill (default) vs. colored probe dots only. */
+    enum class ViewMode { HEATMAP, PROBE_POINTS }
+
+    private var viewMode: ViewMode = ViewMode.HEATMAP
+
+    fun setViewMode(mode: ViewMode) {
+        if (viewMode != mode) { viewMode = mode; invalidate() }
+    }
+
+    /** Override ramp endpoints (resolved from the per-printer selectors). Re-bakes the OKLCH ramp. */
+    fun setRampColors(lowArgb: Int, highArgb: Int) {
+        rampStops = OklchRamp.themedRampStops(lowArgb = lowArgb, highArgb = highArgb)
+        invalidate()
+    }
+
     /** Pre-allocated cell paint — its color is RE-SET (no allocation) per cell in onDraw. */
     private val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
 
@@ -133,6 +148,30 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
+
+        // PROBE_POINTS mode: no fill — draw each probed point as a filled circle colored by the ramp.
+        if (viewMode == ViewMode.PROBE_POINTS) {
+            val probed = model.probedMatrix
+            if (probed.isEmpty() || probed[0].isEmpty()) {
+                canvas.drawRect(0.5f, 0.5f, w - 0.5f, h - 0.5f, emptyPaint)
+                return
+            }
+            val (loZ, hiZ) = endpoints(probed, scaleMode)
+            val span = hiZ - loZ
+            val pRows = probed.size; val pCols = probed[0].size
+            val r = (max(w / pCols, h / pRows) * DOT_RADIUS_FRAC / 2f).coerceAtLeast(MIN_DOT_PX)
+            for (row in 0 until pRows) {
+                val cy = (pRows - 1 - row + 0.5f) * (h / pRows)
+                for (c in 0 until pCols) {
+                    val z = probed[row].getOrElse(c) { loZ }
+                    val frac = if (span <= 0.0) 0.5 else ((z - loZ) / span).coerceIn(0.0, 1.0)
+                    cellPaint.color = rampColor(frac.toFloat())
+                    canvas.drawCircle((c + 0.5f) * (w / pCols), cy, r, cellPaint)
+                }
+            }
+            return
+        }
+
         val grid = model.meshMatrix
 
         // Empty-state (Pitfall 4): no interpolated mesh → faint outline only (the screen overlays copy).

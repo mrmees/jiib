@@ -65,8 +65,10 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
+import androidx.compose.ui.graphics.toArgb
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.render.BedMeshHeatmapView
+import works.mees.dinghy.theme.seriesColor
 import works.mees.dinghy.ui.screen.TokenTextField
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
@@ -599,10 +601,14 @@ private fun BedMeshFocusRegion(
             } else {
                 // Live heatmap — P22 equality guard preserved (factory inside BedMeshHeatmapHost,
                 // recomposition only triggers update, never recreates the AndroidView).
+                // TODO(Task 7): replace shim args with real per-printer viewMode + color selectors.
                 BedMeshHeatmapHost(
                     tokens = tokens,
                     model = vm.model,
                     scaleMode = vm.scaleMode,
+                    viewMode = BedMeshHeatmapView.ViewMode.HEATMAP,
+                    lowColorArgb = tokens.seriesColor(1).toArgb(),
+                    highColorArgb = tokens.seriesColor(0).toArgb(),
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(t.rCard))
