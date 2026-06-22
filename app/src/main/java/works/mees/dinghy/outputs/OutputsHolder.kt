@@ -33,6 +33,7 @@ data class OutputRowVm(
     val swatchColor: Long?,
     val isSettable: Boolean,
     val busy: Boolean,
+    val ledChannels: List<Float>? = null,
 )
 
 /**
@@ -43,7 +44,12 @@ data class OutputRowVm(
  * [seq] is a monotonic arm id so a `MutableStateFlow` always re-emits an equal-content re-arm and the
  * seq-guarded timeout backstop has a stable token to match on (mirrors FineTune's PendingStateFlip).
  */
-data class OutputPending(val objectKey: String, val target: Double, val seq: Long = 0L)
+data class OutputPending(
+    val objectKey: String,
+    val target: Double,
+    val targetChannels: List<Double>? = null,
+    val seq: Long = 0L,
+)
 
 /**
  * Toolkit-agnostic holder for the Outputs list (SC-1/SC-3). It COMBINEs the store's
@@ -127,9 +133,9 @@ class OutputsHolder(
      * a mismatch is exactly what wedged the Fine-Tune busy lock. Schedules a seq-guarded bounded self-clear
      * so an unreachable flip (notably a servo, which can never confirm) always releases.
      */
-    fun markPending(objectKey: String, clampedWireTarget: Double) {
+    fun markPending(objectKey: String, clampedWireTarget: Double, targetChannels: List<Double>? = null) {
         timeoutJobs.remove(objectKey)?.cancel()
-        val armed = OutputPending(objectKey, clampedWireTarget, seq = ++pendingSeq)
+        val armed = OutputPending(objectKey, clampedWireTarget, targetChannels, seq = ++pendingSeq)
         _pending.value = _pending.value + (objectKey to armed)
         timeoutJobs[objectKey] = scope.launch {
             delay(PENDING_TIMEOUT_MS)
@@ -157,10 +163,23 @@ class OutputsHolder(
      */
     private fun reached(descriptor: OutputDescriptor, state: PrinterState, pending: OutputPending): Boolean {
         if (descriptor.family == FAMILY_SERVO) return false // timeout-only (value is PWM, not angle).
+        if (descriptor.family in LED_FAMILIES) {
+            val live = state.outputs[descriptor.objectKey]?.colorData?.getOrNull(0) ?: return false
+            val tgt = pending.targetChannels
+            return if (tgt != null) {
+                // Full r/g/b/w compare: a hue/saturation/white change can keep the same MAX brightness,
+                // so comparing only maxOrNull() would clear the optimistic flip prematurely.
+                (0 until maxOf(tgt.size, live.size)).all { i ->
+                    abs((live.getOrNull(i) ?: 0.0) - (tgt.getOrNull(i) ?: 0.0)) < REACHED_EPSILON
+                }
+            } else {
+                val cur = live.maxOrNull() ?: return false
+                abs(cur - pending.target) < REACHED_EPSILON
+            }
+        }
         val current: Double? = when (descriptor.family) {
             FAMILY_FAN -> state.outputs[descriptor.objectKey]?.speed
             FAMILY_HEATER -> state.heaters[descriptor.objectKey]?.target
-            in LED_FAMILIES -> state.outputs[descriptor.objectKey]?.colorData?.getOrNull(0)?.maxOrNull()
             else -> state.outputs[descriptor.objectKey]?.value // output_pin / pwm_tool
         }
         return current != null && abs(current - pending.target) < REACHED_EPSILON
@@ -208,12 +227,18 @@ class OutputsHolder(
                 live?.value?.let { "${pct(it)}%" }
         }
 
+        // Raw LED channels (r,g,b,w 0..1) for the slider UI to seed H/S/V + White from real state;
+        // null for non-LED families. Declared at buildRow scope so the constructor below can see it.
+        val ledChannels: List<Float>? = if (descriptor.family in LED_FAMILIES) {
+            live?.colorData?.getOrNull(0)?.map { it.toFloat() }
+        } else null
         return OutputRowVm(
             descriptor = descriptor,
             displayValue = displayValue,
             swatchColor = swatch,
             isSettable = !descriptor.readOnly,
             busy = busy,
+            ledChannels = ledChannels,
         )
     }
 
