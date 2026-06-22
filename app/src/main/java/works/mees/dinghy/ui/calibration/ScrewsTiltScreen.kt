@@ -411,6 +411,14 @@ private fun BoxWithPoints(
     }
 }
 
+/**
+ * Aspect ratio (width / height) of the padded screw bounding box, clamped so a
+ * near-collinear screw layout can't collapse the drawn frame to a sliver. Callers pass
+ * already-positive spans (bounds use `max(..., 1.0)` + padding), so no divide-by-zero.
+ */
+internal fun screwBoxAspect(spanX: Double, spanY: Double): Float =
+    (spanX / spanY).toFloat().coerceIn(0.25f, 4f)
+
 /** Trim a trailing " screw" so corner labels stay short on the bed. */
 private fun shortScrewName(name: String): String =
     name.trim().removeSuffix("screw").trim().ifEmpty { name.trim() }
