@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,8 +42,6 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.Scrubber
 import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
-import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.hsvToRgb
 import works.mees.dinghy.designsystem.rgbToHsv
 import works.mees.dinghy.di.AppContainer
@@ -82,14 +78,12 @@ import works.mees.dinghy.outputs.OutputsHolder
  * @param output    the live row VM (descriptor + display values for seeding).
  * @param holder    the [OutputsHolder] owning per-output busy lock + `markPending`/`clearPending`.
  * @param container the service-locator (live dispatcher + in-flight set for busy lock).
- * @param onBack    exit — called when the Back foot button is tapped; the caller sets selectedKey = null.
  */
 @Composable
 fun OutputFocusControl(
     output: OutputRowVm,
     holder: OutputsHolder,
     container: AppContainer,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Derive unit U here so FocusScrubberSurface / FocusLedSurface can cap controls at ≤1U (UAT-5).
@@ -101,7 +95,6 @@ fun OutputFocusControl(
             output = output,
             holder = holder,
             container = container,
-            onBack = onBack,
             uDp = grid.uDp,
         )
     }
@@ -112,7 +105,6 @@ private fun OutputFocusControlInner(
     output: OutputRowVm,
     holder: OutputsHolder,
     container: AppContainer,
-    onBack: () -> Unit,
     uDp: Dp,
 ) {
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
@@ -172,7 +164,6 @@ private fun OutputFocusControlInner(
                 failureText = failureText,
                 onSettle = { v -> if (!busy) dispatchFan(v.roundToInt()) },
                 onOff = { dispatchFan(0) },
-                onBack = onBack,
                 uDp = uDp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -218,7 +209,6 @@ private fun OutputFocusControlInner(
                 failureText = failureText,
                 onSettle = { v -> if (!busy) dispatchServo(v.roundToInt()) },
                 onOff = { dispatchServoOff() },
-                onBack = onBack,
                 uDp = uDp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -252,7 +242,6 @@ private fun OutputFocusControlInner(
                 failureText = failureText,
                 onSettle = { v -> if (!busy) dispatchHeater(v.roundToInt()) },
                 onOff = { dispatchHeater(0) },
-                onBack = onBack,
                 uDp = uDp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -283,7 +272,6 @@ private fun OutputFocusControlInner(
                 failureText = failureText,
                 onSettle = { v -> if (!busy) dispatchPwmTool(v.roundToInt()) },
                 onOff = { dispatchPwmTool(0) },
-                onBack = onBack,
                 uDp = uDp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -364,8 +352,7 @@ private fun OutputFocusControlInner(
                     failureText = failureText,
                     onSettle = { v -> if (!busy) dispatchPwmPin(v.roundToInt()) },
                     onOff = { dispatchPwmPin(0) },
-                    onBack = onBack,
-                    uDp = uDp,
+                        uDp = uDp,
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -433,16 +420,14 @@ private fun FocusScrubberSurface(
     failureText: String?,
     onSettle: (Float) -> Unit,
     onOff: () -> Unit,
-    onBack: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
         // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
-        // 004 ringed-thumb style (R9). Name-less: the FocusFrame header now carries the output's
-        // identity (selected-output title, 2026-06-13), so the Scrubber header shows the live value
-        // only — no duplicated name in the body.
+        // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
+        // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
         Scrubber(
             name = "",
             value = value.coerceIn(range.start, range.endInclusive),
@@ -456,24 +441,12 @@ private fun FocusScrubberSurface(
             modifier = Modifier.fillMaxWidth(),
         )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        // Foot row: Back (accent, FIRST — R5/R8) + Off (stop-red).
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Back FIRST (accent — R5/R8); Off stays stop-red.
-            OutlinedControl(
-                label = stringResource(R.string.common_back),
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
-            )
-            OutlinedControl(
-                spec = ControlSpecs.outputOff,
-                onClick = { if (!busy) onOff() },
-                modifier = Modifier.weight(1f),
-            )
-        }
+        // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
+        // own navigation; you switch outputs by tapping list rows.
+        FootButtonBar(
+            uDp = uDp,
+            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+        )
     }
 }
 

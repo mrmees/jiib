@@ -178,7 +178,6 @@ private fun OutputsContent(
                                     output = selectedRow,
                                     holder = holder,
                                     container = container,
-                                    onBack = { onSelect(null) },
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
