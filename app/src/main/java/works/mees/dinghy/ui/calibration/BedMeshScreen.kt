@@ -31,7 +31,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,10 +65,12 @@ import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
 import androidx.compose.ui.graphics.toArgb
+import works.mees.dinghy.calibration.BedMeshViewType
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.render.BedMeshHeatmapView
-import works.mees.dinghy.theme.seriesColor
+import works.mees.dinghy.render.resolveMeshColor
 import works.mees.dinghy.ui.screen.TokenTextField
+import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
@@ -158,6 +159,12 @@ fun BedMeshScreen(
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onCycleScaleMode = { holder.cycleScaleMode() },
         onSelectProfile = { name -> selectedProfile = name },
+        onClearMesh = {
+            dispatcher?.dispatch(CommandRegistry.bedMeshClear, Unit)
+            selectedProfile = null
+            // BED_MESH_CLEAR is runtime-only; saved profiles untouched; no SAVE_CONFIG guard.
+        },
+        onOpenMeshConfig = { fieldMode = MeshFieldMode.MeshConfig },
         onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
         onSaveNameConfirm = { name ->
             val d = dispatcher
@@ -209,11 +216,18 @@ fun BedMeshScreen(
  *   [FootButtonBar] (D-14).
  * - [SaveName]: the Field-takeover showing the alphanumeric keyboard input for the save-profile
  *   name (D-13 sanctioned carve-out), pre-filled with [prefill].
+ * - [MeshConfig]: the Mesh Config subpage list (Task 9 fills the body; stub for now).
+ * - [MeshConfigEditor]: a config item's editor in the Focus (Task 9).
  */
 internal sealed class MeshFieldMode {
     data object ProfileList : MeshFieldMode()
     data class SaveName(val prefill: String) : MeshFieldMode()
+    data object MeshConfig : MeshFieldMode()                                  // NEW: Mesh Config subpage list
+    data class MeshConfigEditor(val item: MeshConfigItem) : MeshFieldMode()  // NEW: a config row's editor
 }
+
+/** Identifies which config item is being edited in the Mesh Config subpage. */
+internal enum class MeshConfigItem { VIEW_TYPE, HIGH_COLOR, LOW_COLOR, PREVIEW }
 
 /** Saver so [MeshFieldMode] state survives process death / rotation (only [prefill] needs persisting). */
 internal val MeshFieldModeSaver = androidx.compose.runtime.saveable.Saver<MeshFieldMode, Any>(
@@ -221,6 +235,8 @@ internal val MeshFieldModeSaver = androidx.compose.runtime.saveable.Saver<MeshFi
         when (mode) {
             is MeshFieldMode.ProfileList -> "ProfileList"
             is MeshFieldMode.SaveName -> "SaveName:${mode.prefill}"
+            is MeshFieldMode.MeshConfig -> "MeshConfig"
+            is MeshFieldMode.MeshConfigEditor -> "MeshConfigEditor:${mode.item.name}"
         }
     },
     restore = { raw ->
@@ -228,6 +244,12 @@ internal val MeshFieldModeSaver = androidx.compose.runtime.saveable.Saver<MeshFi
         when {
             s == "ProfileList" -> MeshFieldMode.ProfileList
             s.startsWith("SaveName:") -> MeshFieldMode.SaveName(s.removePrefix("SaveName:"))
+            s == "MeshConfig" -> MeshFieldMode.MeshConfig
+            s.startsWith("MeshConfigEditor:") -> {
+                val itemName = s.removePrefix("MeshConfigEditor:")
+                runCatching { MeshFieldMode.MeshConfigEditor(MeshConfigItem.valueOf(itemName)) }
+                    .getOrDefault(MeshFieldMode.ProfileList)
+            }
             else -> MeshFieldMode.ProfileList
         }
     },
@@ -263,6 +285,8 @@ internal fun BedMeshContent(
     onEmergencyStop: () -> Unit,
     onCycleScaleMode: () -> Unit,
     onSelectProfile: (String) -> Unit,
+    onClearMesh: () -> Unit,
+    onOpenMeshConfig: () -> Unit,
     onShowSaveName: () -> Unit,
     onSaveNameConfirm: (String) -> Unit,
     onSaveNameCancel: () -> Unit,
@@ -297,6 +321,7 @@ internal fun BedMeshContent(
                     ) {
                         BedMeshFocusRegion(
                             vm = vm,
+                            selectedProfile = selectedProfile,
                             tokens = t,
                             onCycleScaleMode = onCycleScaleMode,
                             uDp = grid.uDp,
@@ -307,137 +332,95 @@ internal fun BedMeshContent(
                 field = {
                     when (fieldMode) {
                         is MeshFieldMode.ProfileList -> {
-                            // Profile list (D-11/D-12)
-                            if (vm.profileNames.isEmpty()) {
-                                // Empty-state: no saved profiles
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.mesh_empty_state),
-                                            color = t.text2,
-                                            style = DinghyType.body.toTextStyle(t),
-                                            textAlign = TextAlign.Center,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.mesh_empty_state_hint),
-                                            color = t.text3,
-                                            style = DinghyType.caption.toTextStyle(t),
-                                            textAlign = TextAlign.Center,
-                                        )
+                            // Profile list: Clear Mesh (conditional top) + profiles + Mesh Config (bottom)
+                            ListBlock(modifier = Modifier.weight(1f)) {
+                                // Clear Mesh row — only when a live mesh is loaded and not printing
+                                if (!vm.isEmpty && !isPrinting) {
+                                    item(key = "__clear__") {
+                                        ListRow(
+                                            selected = false,
+                                            onClick = onClearMesh,
+                                            uDp = grid.uDp,
+                                            leadingContent = {
+                                                ListRowIcon(
+                                                    icon = DinghyIcons.BlurOff,
+                                                    uDp = grid.uDp,
+                                                    tint = t.text2,
+                                                    contentDescription = "Clear Mesh",
+                                                )
+                                            },
+                                        ) { ListRowLabel("Clear Mesh") }
                                     }
                                 }
-                            } else {
-                                ListBlock(modifier = Modifier.weight(1f)) {
-                                    items(vm.profileNames, key = { it }) { name ->
-                                        val isActive = name == vm.model.profileName && !vm.isEmpty
-                                        ListRow(
-                                            selected = name == selectedProfile,
-                                            onClick = { onSelectProfile(name) },
-                                            uDp = grid.uDp,
-                                            trailingContent = if (isActive) {
-                                                {
-                                                    Text(
-                                                        text = stringResource(R.string.mesh_profile_active),
-                                                        color = t.accent2,
-                                                        style = DinghyType.caption.toTextStyle(t),
-                                                    )
-                                                }
-                                            } else null,
-                                        ) {
-                                            // Canonical list-label look (Geist SemiBold 20) — the
-                                            // profile NAME is the row label; mono stays for VALUES.
-                                            ListRowLabel(name)
-                                        }
+
+                                // Saved profile rows (may be empty — ListBlock handles that gracefully
+                                // since Clear Mesh + Mesh Config rows are always present anchors)
+                                items(vm.profileNames, key = { it }) { name ->
+                                    val isActive = name == vm.model.profileName && !vm.isEmpty
+                                    ListRow(
+                                        selected = name == selectedProfile,
+                                        onClick = { onSelectProfile(name) },
+                                        uDp = grid.uDp,
+                                        trailingContent = if (isActive) {
+                                            {
+                                                Text(
+                                                    text = stringResource(R.string.mesh_profile_active),
+                                                    color = t.accent2,
+                                                    style = DinghyType.caption.toTextStyle(t),
+                                                )
+                                            }
+                                        } else null,
+                                    ) {
+                                        // Canonical list-label look (Geist SemiBold 20) — the
+                                        // profile NAME is the row label; mono stays for VALUES.
+                                        ListRowLabel(name)
                                     }
+                                }
+
+                                // Mesh Config row — always at bottom
+                                item(key = "__config__") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = onOpenMeshConfig,
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.Palette,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Mesh Config",
+                                            )
+                                        },
+                                    ) { ListRowLabel("Mesh Config") }
                                 }
                             }
 
-                            // D-14 state-adaptive FootButtonBar
+                            // Simplified footer: Back + (Home All | Calibrate), gated by !isPrinting
                             FootButtonBar(
                                 uDp = grid.uDp,
                                 actions = buildList {
-                                    when {
-                                        !vm.homed -> {
-                                            // Unhomed branch: Back (accent, FIRST — R5/R8) + Home All
-                                            // (go — homing is this state's expected action, R19).
-                                            add(FootAction(
-                                                label = stringResource(R.string.common_back),
-                                                icon = DinghyIcons.Back,
-                                                onClick = onBack,
-                                                intent = Intent.Accent,
-                                                contentDescription = stringResource(R.string.common_back),
-                                            ))
+                                    add(FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = onBack,
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
+                                    ))
+                                    if (!isPrinting) {
+                                        if (!vm.homed) {
                                             add(footAction(
                                                 ControlSpecs.calibrationHomeAll,
                                                 onClick = onHomeAll,
                                                 enabled = dispatcherPresent,
                                             ))
-                                        }
-                                        selectedProfile != null -> {
-                                            // Profile selected: Back (accent, FIRST) + Apply (go —
-                                            // the selection state's expected action, R5) + Remove (stop).
+                                        } else {
                                             add(FootAction(
-                                                label = stringResource(R.string.common_back),
-                                                icon = DinghyIcons.Back,
-                                                onClick = onBack,
-                                                intent = Intent.Accent,
-                                                contentDescription = stringResource(R.string.common_back),
-                                            ))
-                                            add(FootAction(
-                                                label = stringResource(R.string.mesh_apply),
-                                                icon = DinghyIcons.CheckCircle,
-                                                onClick = { selectedProfile?.let { onApplyProfile(it) } },
-                                                intent = Intent.Go,
-                                                enabled = dispatcherPresent,
-                                            ))
-                                            add(FootAction(
-                                                label = stringResource(R.string.mesh_remove),
-                                                icon = DinghyIcons.Delete,
-                                                onClick = onShowRemoveGuard,
-                                                intent = Intent.Danger,
-                                                enabled = dispatcherPresent,
-                                            ))
-                                        }
-                                        else -> {
-                                            // Homed, no selection: Back (accent, FIRST) + Calibrate
-                                            // (go — the screen's expected action, R5/R19) + Save
-                                            // (go — accept/commit class, R5).
-                                            add(FootAction(
-                                                label = stringResource(R.string.common_back),
-                                                icon = DinghyIcons.Back,
-                                                onClick = onBack,
-                                                intent = Intent.Accent,
-                                                contentDescription = stringResource(R.string.common_back),
-                                            ))
-                                            add(FootAction(
-                                                // owner 2026-06-17: play_circle (CalibrationRun), NOT
-                                                // RoutineBedMesh/blur_linear — the Focus header already
-                                                // shows blur_linear (routineIconToken(BED_MESH)); a foot
-                                                // button reusing it = same-glyph-twice-on-one-screen.
+                                                // owner 2026-06-17: play_circle (CalibrationRun)
                                                 label = stringResource(R.string.mesh_calibrate),
                                                 icon = DinghyIcons.CalibrationRun,
                                                 onClick = onCalibrate,
                                                 intent = Intent.Go,
                                                 enabled = dispatcherPresent,
-                                            ))
-                                            // WR-05 (27-review): with no active mesh, BED_MESH_PROFILE SAVE
-                                            // errors in Klipper — Save is gated on a mesh being loaded (the
-                                            // empty-state Focus already tells the user to calibrate first).
-                                            add(FootAction(
-                                                label = stringResource(R.string.mesh_save),
-                                                icon = DinghyIcons.Save,
-                                                onClick = onShowSaveName,
-                                                intent = Intent.Go,
-                                                enabled = dispatcherPresent && !vm.isEmpty,
                                             ))
                                         }
                                     }
@@ -497,6 +480,67 @@ internal fun BedMeshContent(
                                         icon = DinghyIcons.DialogClose,
                                         onClick = onSaveNameCancel,
                                         intent = Intent.Danger,
+                                    ),
+                                ),
+                            )
+                        }
+
+                        // MeshConfig and MeshConfigEditor — stubs for Task 9 to fill
+                        is MeshFieldMode.MeshConfig -> {
+                            // Task 9: Mesh Config subpage list (View Type / High Color / Low Color / Preview rows)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Mesh Config — coming in Task 9",
+                                    color = t.text3,
+                                    style = DinghyType.caption.toTextStyle(t),
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                            FootButtonBar(
+                                uDp = grid.uDp,
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = { /* Task 9 wires onBackToProfileList */ },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
+                                    ),
+                                ),
+                            )
+                        }
+
+                        is MeshFieldMode.MeshConfigEditor -> {
+                            // Task 9: per-item editor (VIEW_TYPE selector / PoolColorPicker / Preview)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Config editor — coming in Task 9",
+                                    color = t.text3,
+                                    style = DinghyType.caption.toTextStyle(t),
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                            FootButtonBar(
+                                uDp = grid.uDp,
+                                actions = listOf(
+                                    FootAction(
+                                        label = stringResource(R.string.common_back),
+                                        icon = DinghyIcons.Back,
+                                        onClick = { /* Task 9 wires onBackToConfigList */ },
+                                        intent = Intent.Accent,
+                                        contentDescription = stringResource(R.string.common_back),
                                     ),
                                 ),
                             )
@@ -561,16 +605,26 @@ internal fun BedMeshContent(
 @Composable
 private fun BedMeshFocusRegion(
     vm: BedMeshVm,
+    selectedProfile: String?,
     tokens: ThemeTokens,
     onCycleScaleMode: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
+    // Resolve the model to render: if a saved profile is selected AND it differs from the active
+    // mesh, preview that profile. Otherwise render the live model.
+    val renderModel = remember(vm.model, selectedProfile) {
+        val sel = selectedProfile
+        if (sel != null && sel != vm.model.profileName) vm.model.previewOf(sel) ?: vm.model
+        else vm.model
+    }
     Box(modifier, contentAlignment = Alignment.Center) {
         Box(Modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
-            if (vm.isEmpty) {
-                // Empty-state Focus: no active mesh loaded
+            // Gate on renderModel.isEmpty — a previewed saved profile must render even when no live
+            // mesh is loaded (Codex correctness: renderModel != vm.model when previewing).
+            if (renderModel.isEmpty) {
+                // Empty-state Focus: no active mesh loaded (and no previewable selection)
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -599,16 +653,21 @@ private fun BedMeshFocusRegion(
                     )
                 }
             } else {
-                // Live heatmap — P22 equality guard preserved (factory inside BedMeshHeatmapHost,
-                // recomposition only triggers update, never recreates the AndroidView).
-                // TODO(Task 7): replace shim args with real per-printer viewMode + color selectors.
+                // Live heatmap OR saved-profile preview — P22 equality guard preserved (factory
+                // inside BedMeshHeatmapHost, recomposition only triggers update, never recreates).
+                // Real per-printer viewMode + color selectors wired from vm (replaces Task-6 shim).
+                val lowArgb = resolveMeshColor(tokens, vm.lowColorSel).toArgb()
+                val highArgb = resolveMeshColor(tokens, vm.highColorSel).toArgb()
                 BedMeshHeatmapHost(
                     tokens = tokens,
-                    model = vm.model,
+                    model = renderModel,
                     scaleMode = vm.scaleMode,
-                    viewMode = BedMeshHeatmapView.ViewMode.HEATMAP,
-                    lowColorArgb = tokens.seriesColor(1).toArgb(),
-                    highColorArgb = tokens.seriesColor(0).toArgb(),
+                    viewMode = when (vm.viewType) {
+                        BedMeshViewType.HEATMAP -> BedMeshHeatmapView.ViewMode.HEATMAP
+                        BedMeshViewType.PROBE_POINTS -> BedMeshHeatmapView.ViewMode.PROBE_POINTS
+                    },
+                    lowColorArgb = lowArgb,
+                    highColorArgb = highArgb,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(t.rCard))
@@ -634,7 +693,7 @@ private fun ScaleToggle(label: String, onClick: () -> Unit, uDp: Dp) {
             .heightIn(min = uDp) // 1U (owner All-1U; was a pinned 64dp touch-floor)
             .clip(shape)
             .border(BorderStroke(2.dp, t.outline), shape)
-            .background(t.surface2)
+            .background(t.surface2.copy(alpha = 0.45f)) // see-through so the mesh shows behind
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

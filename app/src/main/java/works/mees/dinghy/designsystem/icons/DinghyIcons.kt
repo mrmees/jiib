@@ -282,6 +282,8 @@ object DinghyIcons {
     val ScrewTurnCcw = DinghyIcon(IconRef.Ligature("rotate_left"), alternate = "screw_turn_ccw")        // ScrewsTilt: turn counter-clockwise
     val ScrewTurnCw = DinghyIcon(IconRef.Ligature("rotate_right"), alternate = "screw_turn_cw")         // ScrewsTilt: turn clockwise
     val MeshEmpty = DinghyIcon(IconRef.Ligature("grid_off"), alternate = "mesh_empty")                  // BedMesh: empty-state Focus
+    /** BedMesh Field — Clear Mesh row leading glyph (owner-assigned 2026-06-22). */
+    val BlurOff = DinghyIcon(IconRef.Ligature("blur_off"), alternate = "blur_off")
 
     // PrintStatus standby-home identity (header law, 2026-06-13). Owner-named "mode_standby".
     // Swapped to the e-stop while printing. Confirmed resolvable in the bundled v2.944 ttf.
@@ -451,7 +453,7 @@ object DinghyIcons {
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
         JogXPlus, HomeStateHomed, HomeStateUnhomed, CropFree, CenterFocusStrong,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
-        MeshEmpty,
+        MeshEmpty, BlurOff,
         LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,
         SystemRowAbout, SystemRowPower,
         PrintStatusStandby,

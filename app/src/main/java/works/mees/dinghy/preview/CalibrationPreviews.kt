@@ -505,6 +505,8 @@ private fun bedMeshPreview(
         onEmergencyStop = {},
         onCycleScaleMode = {},
         onSelectProfile = {},
+        onClearMesh = {},
+        onOpenMeshConfig = {},
         onShowSaveName = {},
         onSaveNameConfirm = {},
         onSaveNameCancel = {},
