@@ -432,9 +432,9 @@ All in-Focus controls obey the 1U height limit (`height(uDp)`). An oversized con
 - **Scrubber ± row** — height = `uDp`
 - **IncrementPicker** — was floor-only (could grow); now capped at `heightIn(max = uDp)`
 
-**Sole sanctioned >1U exception:** the LED `ColorWheel` (the large color-ring control in the
-Outputs Focus). Its visual function requires a taller tap surface; every other Outputs control
-(fan/servo/heater/pin scrubbers, LED brightness bar) respects the 1U cap.
+**No >1U exceptions remain.** The LED `ColorWheel` (the former large color-ring) was **retired
+2026-06-21** — Outputs LEDs now use H/S/V(+W) slider tracks (each ≤1U). Every Outputs control
+(fan/servo/heater/pin scrubbers, LED sliders) respects the 1U cap.
 
 When adding a control that deliberately exceeds 1U in any future phase, document the name and
 reason here and in the relevant `COMPONENTS.md` cross-reference.

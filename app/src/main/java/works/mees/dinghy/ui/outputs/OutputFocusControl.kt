@@ -61,8 +61,9 @@ import works.mees.dinghy.outputs.OutputsHolder
  *  - **heater_generic** — the 004 [Scrubber] (0..MAX_TEMP_C °C), settle-on-gesture-end; `clampHeaterTarget`.
  *  - **output_pin (digital)** — On/Off toggle via [OutputToggleControl] dispatch logic.
  *  - **output_pin (PWM)** — the 004 [Scrubber] 0..100%, settle-on-gesture-end.
- *  - **led/neopixel/dotstar/pca9533/pca9632** — brightness 004 [Scrubber] + P19 GAP-B capability-gated
- *    hue `ColorWheel` + Off. Channel gating (hide-not-grey) preserved verbatim from OutputLedDetail.
+ *  - **led/neopixel/dotstar/pca9533/pca9632** — theme-style H/S/V sliders (+ an independent White
+ *    track for RGBW) via [HsvSliders], or a single brightness [Scrubber] for a white-only LED; foot
+ *    `[Off]`. Channel gating (hide-not-grey) by `ledHasRgb`/`ledHasWhite`. Full-state SET_LED dispatch.
  *
  * ## Build-once scrubber rule (SC-3 / P19)
  * `Scrubber` is hosted WITHOUT a `key(output.currentPct)` wrapper — the P19 build-once rule.
