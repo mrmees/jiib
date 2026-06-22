@@ -46,15 +46,16 @@ The Focus header's **trailing slot** carries an **edit pencil** (`FocusFrame` al
 
 Tapping the pencil swaps the Focus from mesh-render → a **docked-action edit form** (consistent with other adjusters): a name text box (honest keyboard entry; reuse `isValidProfileName` allowlist) + contextual buttons keyed to **what is in Focus**:
 
-| What's shown | Name box | Row 1 | Row 2 |
+| What's in Focus | Name box | Row 1 | Row 2 |
 |---|---|---|---|
-| **Unsaved fresh-calibrate mesh** (active) | editable, prefill `"default"` | **Save** (`BED_MESH_PROFILE SAVE=name` → SAVE_CONFIG guard) | — |
-| **Saved + active** profile | editable, prefill name | **Save** *only if name changed* = true rename: `SAVE=new` → `REMOVE=old` → SAVE_CONFIG (safe because active) | **Delete** (`REMOVE=name` → SAVE_CONFIG) |
+| **Active, unsaved** — `profile_name` is empty **or** `"default"` (the runtime profile a bare `BED_MESH_CALIBRATE` writes), or a just-deleted-but-still-loaded mesh | editable, prefill **blank/suggested** (never `"default"`) | **Save** (`BED_MESH_PROFILE SAVE=name` → SAVE_CONFIG guard) | — |
+| **Active, saved** — `profile_name` ≠ `"default"` and present in `profiles` | editable, prefill name | **Save** *only if name changed* = true rename: `SAVE=new` → `REMOVE=old` → SAVE_CONFIG (safe because active) | **Delete** (`REMOVE=name` → SAVE_CONFIG; mesh **stays loaded as Active-unsaved**, not cleared) |
 | **Previewed, non-active** profile | shown **read-only** (no rename) | **Apply** (`BED_MESH_PROFILE LOAD=name`) | **Delete** (`REMOVE=name` → SAVE_CONFIG) |
 
+- **`"default"` is reserved** (Klipper rejects `BED_MESH_PROFILE SAVE=default`). `isValidProfileName` must reject `default` as a save/rename target, and the post-calibrate mesh (`profile_name == "default"`) is treated as **Active-unsaved**, not as a saved profile.
 - `Save` is enabled only when editing the active mesh and (for a saved profile) the name changed.
 - `Apply` appears only for non-active previews.
-- `Delete` appears whenever a saved profile is in focus.
+- `Delete` appears whenever a saved profile is in focus. Deleting the **active** profile only runs `REMOVE` (+SAVE_CONFIG) — it does **not** unload the mesh; the mesh remains loaded and falls back to the **Active-unsaved** state (Save available). Use **Clear Mesh** to explicitly unload.
 - SAVE_CONFIG keeps its existing amber restart-guard (`BedMeshScreen` WR-02/WR-05 handling).
 
 ## Mesh Config subpage
@@ -63,8 +64,8 @@ Reached via the bottom **Mesh Config** row. Standard lists-first grammar — **e
 
 - **Field rows:**
   - **View Type** → Focus = selector: Filled heatmap (default) · Colored probe points. *(Static iso wireframe added in the fast-follow.)*
-  - **High Color** → Focus = theme data-pool swatch grid. Per-printer override; default = theme high (accent / `seriesColor(0)`).
-  - **Low Color** → Focus = theme data-pool swatch grid. Per-printer override; default = theme low (`seriesColor(1)`).
+  - **High Color** → Focus = theme data-pool swatch grid (4 pool slots + an Accent option). Per-printer override storing a **slot selector** (not ARGB); default = **Accent** (current `seriesColor(0)`).
+  - **Low Color** → Focus = theme data-pool swatch grid. Per-printer override storing a slot selector; default = the slot matching current `seriesColor(1)`.
   - **Preview** → Focus = the current mesh rendered with the user's current settings (the one place the combined result is shown).
 - **Footer:** Back → returns to the main mesh screen.
 
@@ -73,8 +74,8 @@ Reached via the bottom **Mesh Config** row. Standard lists-first grammar — **e
 ### Back-end / data
 
 - **`BED_MESH_CLEAR` command** — new `CommandSpec` in `CommandRegistry` + builder in `PrinterCommands` (gcode `BED_MESH_CLEAR`, runtime-only, no SAVE_CONFIG, availability `ObjectPresent("bed_mesh")`).
-- **Profile-preview parsing** — `BedMeshObject` (`state/PrinterState.kt`) and `BedMeshModel` (`calibration/BedMeshModel.kt`) currently parse only profile *names*. Add each saved profile's `points` (probed matrix) + `mesh_params` extents from the `bed_mesh.profiles` dict, so a non-active profile can be rendered. Build a preview `BedMeshModel` from the selected profile (`probedMatrix = points`; render from points — coarser than the live interpolated mesh, accepted).
-- **Per-printer render prefs** — new DataStore prefs keyed by `profileId` (mirror `TraceStylePrefs`): high color, low color (as theme data-pool selections; default unset → theme), and selected View Type. Holder seeds via `flatMapLatest` on `container.activeProfileId`.
+- **Profile-preview parsing** — `BedMeshObject` (`state/PrinterState.kt:310`), the reducer (`state/PrinterStateReducer.kt:236`, which currently **drops** the profile payloads) and `BedMeshModel` (`calibration/BedMeshModel.kt`) currently keep only profile *names*. Preserve each saved profile's payload — exact shape `profiles[name].points` (probed matrix) **and** `profiles[name].mesh_params` (extents: `min_x/max_x/min_y/max_y`, counts, pps, algo, tension) — so a non-active profile can be rendered without loading it. Build a preview `BedMeshModel` from the selected profile with **`meshMatrix = points` AND `probedMatrix = points`** (the heatmap fill reads `meshMatrix` and treats an empty matrix as empty-state, `BedMeshHeatmapView.kt:136`; coarser than the live interpolated mesh, accepted).
+- **Per-printer render prefs** — new DataStore prefs keyed by `profileId`, wired like **`TemperatureHolder`** (`ui/temperature/TemperatureHolder.kt:65`): the holder takes the prefs + `container.activeProfileId` and seeds via `flatMapLatest`, writes route through the **AppContainer write scope** (intent methods), not a composition scope. Note `BedMeshHolder` currently takes only `scope/store/events` (`ui/shell/AppShell.kt:389`) — this adds the prefs/profileId inputs. Stored values: selected **View Type**, and High/Low color as a **theme data-pool slot selector — NOT an ARGB value** (storing ARGB freezes colors across theme changes). The pool is **4 slots** (`theme/ThemeResolver.kt:15`); `seriesColor(0)` is the **accent** (not a pool slot) and `seriesColor(1)` shifts meaning across Simple/HighContrast palette modes (`theme/SeriesColor.kt:37`). Store a stable selector (slot id `0..3` plus an `Accent`/`Default` sentinel) resolved to a color at render time. Defaults (unset): **High = Accent** (current `seriesColor(0)`), **Low = the slot matching current `seriesColor(1)`**.
 
 ### UI / render
 
@@ -94,6 +95,8 @@ Reached via the bottom **Mesh Config** row. Standard lists-first grammar — **e
 - **Coarse preview:** saved-profile previews render from probed points only (no stored interpolated grid). Visually blockier than the live mesh — accepted in brainstorming.
 - **Rename writes config:** true rename (active mesh) runs SAVE→REMOVE→SAVE_CONFIG and reboots Klipper config — gated behind the existing amber SAVE_CONFIG guard and only offered for the active mesh.
 - **Data-pool size:** the number of theme data-pool colors and `seriesColor(n)` indexing must be confirmed during planning to ensure the swatch grid and the default high/low selections are valid across all palette modes.
+- **`default` reserved (Codex BLOCKER):** the post-calibrate mesh is `profile_name == "default"` and cannot be saved under that name; it is handled as **Active-unsaved**. `isValidProfileName` must reject `default`.
+- **Active Delete leaves a loaded mesh:** `REMOVE` of the active profile does not clear the mesh — the result is an Active-unsaved mesh (Save available). Clear Mesh is the explicit unload.
 - **Mid-print:** the trailing edit pencil and Calibrate/Clear are inert/hidden while printing; the leading-slot e-stop morph is unaffected.
 
 ## Test surface
