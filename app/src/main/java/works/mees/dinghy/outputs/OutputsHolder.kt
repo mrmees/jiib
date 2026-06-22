@@ -70,7 +70,8 @@ data class OutputPending(
  * The screen arms an optimistic state-flip per ±dispatch via [markPending] (keyed by the FULL objectKey),
  * fed the SAME clamped wire value the command sends ([PrinterCommands.outputPctToWire] et al.) so target
  * and wire never disagree. [reached] confirms from live status PER FAMILY — fan `.speed`, pin/pwm `.value`,
- * heater `.target`, LED `color_data[0]` brightness all confirm; a **servo never confirms** (its `.value` is
+ * heater `.target`, LED `color_data[0]` compared as the FULL r/g/b/w tuple when [OutputPending.targetChannels]
+ * is present (else legacy max-brightness fallback) all confirm; a **servo never confirms** (its `.value` is
  * PWM, not the commanded angle) so it relies on the seq-guarded TIMEOUT backstop alone. A dispatch
  * failure/timeout clears the lock via [clearPending].
  *
@@ -157,8 +158,9 @@ class OutputsHolder(
      * True once the live status for [pending].objectKey reaches the dispatched target — PER FAMILY.
      *
      * fan_generic → `.speed`; output_pin (digital or PWM) / pwm_tool → `.value`; led/neopixel/etc →
-     * `color_data[0]` brightness; heater_generic → `heaters[objectKey].target`. **servo always returns
-     * false** — its live `.value` is the PWM duty, NOT the commanded angle, so an angle command can never
+     * `color_data[0]` compared as the full r/g/b/w tuple when [OutputPending.targetChannels] is present
+     * (else legacy max-brightness fallback); heater_generic → `heaters[objectKey].target`. **servo always
+     * returns false** — its live `.value` is the PWM duty, NOT the commanded angle, so an angle command can never
      * be observed as reached; the servo's pending lock releases ONLY via the seq-guarded timeout backstop.
      */
     private fun reached(descriptor: OutputDescriptor, state: PrinterState, pending: OutputPending): Boolean {

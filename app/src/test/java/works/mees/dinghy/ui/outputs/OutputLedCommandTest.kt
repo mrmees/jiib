@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.command.PrinterCommands
+import works.mees.dinghy.command.SetLedArgs
 import works.mees.dinghy.designsystem.hsvToRgb
 import works.mees.dinghy.designsystem.rgbToHsv
 
@@ -71,6 +72,20 @@ class OutputLedCommandTest {
         val cmd = PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w)
         assertTrue("must use bare name: $cmd", cmd.startsWith("SET_LED LED=FILTER_led "))
         assertTrue("must not carry a family prefix", !cmd.contains("LED=led "))
+    }
+
+    @Test
+    fun `pending target channels match the 2dp wire format (busy-lock clears)`() {
+        // The optimistic pending tuple must equal the 2dp values SET_LED actually sends (the printer
+        // echoes those in color_data); raw HSV floats could miss by ~epsilon at half-step values and
+        // wedge the busy lock until timeout.
+        val args = SetLedArgs("strip", 0.125f, 0.336f, 1f, 0.0f)
+        assertEquals(listOf(0.13, 0.34, 1.0, 0.0), ledTargetChannels(args))
+        // …and those are exactly the channels the wire command carries.
+        assertEquals(
+            "SET_LED LED=strip RED=0.13 GREEN=0.34 BLUE=1 WHITE=0",
+            PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w),
+        )
     }
 
     @Test

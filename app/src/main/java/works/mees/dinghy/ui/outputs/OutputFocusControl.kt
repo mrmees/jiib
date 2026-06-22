@@ -289,7 +289,7 @@ private fun OutputFocusControlInner(
                 } else {
                     SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = white)
                 }
-                val targetChannels = listOf(args.r, args.g, args.b, args.w ?: 0f).map { it.toDouble() }
+                val targetChannels = ledTargetChannels(args)
                 holder.markPending(
                     descriptor.objectKey,
                     clampedWireTarget = targetChannels.maxOrNull() ?: 0.0,
@@ -393,6 +393,17 @@ internal fun ledChannelsFromHsv(name: String, h: Float, s: Float, v: Float, whit
     val (r, g, b) = hsvToRgb(h, s, v)
     return SetLedArgs(name, r, g, b, w = white)
 }
+
+/**
+ * The r/g/b/w target the optimistic pending flip waits on — rounded to the SAME 2dp the wire carries
+ * ([PrinterCommands.setLed] formats `%.2f`). The printer echoes the rounded values in `color_data`, so
+ * comparing against the raw HSV floats could miss by ~epsilon at half-step values and wedge the busy
+ * lock until the timeout backstop. Pure + host-testable.
+ */
+internal fun ledTargetChannels(args: SetLedArgs): List<Double> =
+    // Math.round = HALF_UP (floor(x+0.5)) to match String.format("%.2f"); kotlin.math.round is
+    // half-to-even and would disagree at exact half-steps (0.125 → 0.12 vs the wire's 0.13).
+    listOf(args.r, args.g, args.b, args.w ?: 0f).map { Math.round(it.toDouble() * 100.0) / 100.0 }
 
 /**
  * Shared scrubber surface for fan / servo / heater / PWM outputs, hosted inline in the Focus.
