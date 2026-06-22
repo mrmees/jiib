@@ -35,8 +35,8 @@ import works.mees.dinghy.theme.compose.toTextStyle
  * read-only (static_value) pin shows the state readout + "Read-only" caption and NO foot bar.
  *
  * Stateless content seam (no `remember`/dispatcher) — the live wiring lives in [OutputFocusControl].
+ * Identity is carried by the FocusFrame header, so this surface takes no name.
  *
- * @param prettyName the output's display name (identity is carried by the FocusFrame header; unused here).
  * @param isOn       the live On/Off state (null = absent — rendered as Off, both actions available).
  * @param readOnly   value-only when true (static pin): state readout + caption, no foot bar.
  * @param enabled    false while a dispatch to this pin is in-flight (per-objectKey busy).
@@ -47,7 +47,6 @@ import works.mees.dinghy.theme.compose.toTextStyle
  */
 @Composable
 fun OutputToggleControl(
-    prettyName: String,
     isOn: Boolean?,
     readOnly: Boolean,
     enabled: Boolean,

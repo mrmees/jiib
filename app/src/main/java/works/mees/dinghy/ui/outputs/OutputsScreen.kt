@@ -99,8 +99,8 @@ fun OutputsScreen(
  *
  * @param rows        fixture row list.
  * @param selectedKey the currently selected [works.mees.dinghy.outputs.OutputDescriptor.objectKey], or null.
- * @param onSelect    callback when a row or Back-in-Focus is tapped.
- * @param onBack      exits the screen.
+ * @param onSelect    callback when a list row is tapped (selects the output shown in the Focus).
+ * @param onBack      exits the screen (the Field foot-bar Back).
  */
 @Composable
 fun OutputsScreen(

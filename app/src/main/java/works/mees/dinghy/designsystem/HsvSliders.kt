@@ -45,23 +45,24 @@ fun HsvSliders(
     white: Float? = null,
     onWhiteMove: (Float) -> Unit = {},
     onWhiteSettle: (Float) -> Unit = {},
+    enabled: Boolean = true,
 ) {
     val pure = Color.hsv(((hue % 360f) + 360f) % 360f, 1f, 1f)
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Track("H", hue / 360f,
             Brush.horizontalGradient((0..12).map { Color.hsv((it * 30f) % 360f, 1f, 1f) }),
-            onMove = { onMove(it * 360f, sat, value) }, onSettle = { onSettle(it * 360f, sat, value) })
+            onMove = { onMove(it * 360f, sat, value) }, onSettle = { onSettle(it * 360f, sat, value) }, enabled = enabled)
         Track("S", sat,
             Brush.horizontalGradient(listOf(Color.hsv(((hue % 360f) + 360f) % 360f, 0f, value.coerceAtLeast(0.2f)), pure)),
-            onMove = { onMove(hue, it, value) }, onSettle = { onSettle(hue, it, value) })
+            onMove = { onMove(hue, it, value) }, onSettle = { onSettle(hue, it, value) }, enabled = enabled)
         Track("V", value,
             Brush.horizontalGradient(listOf(Color.Black, pure)),
-            onMove = { onMove(hue, sat, it) }, onSettle = { onSettle(hue, sat, it) })
+            onMove = { onMove(hue, sat, it) }, onSettle = { onSettle(hue, sat, it) }, enabled = enabled)
         if (white != null) {
             // RGBW: independent White channel (black→white). Renders only when supplied.
             Track("W", white,
                 Brush.horizontalGradient(listOf(Color.Black, Color.White)),
-                onMove = onWhiteMove, onSettle = onWhiteSettle)
+                onMove = onWhiteMove, onSettle = onWhiteSettle, enabled = enabled)
         }
     }
 }
@@ -73,6 +74,7 @@ private fun Track(
     brush: Brush,
     onMove: (Float) -> Unit,
     onSettle: (Float) -> Unit,
+    enabled: Boolean = true,
 ) {
     val t = LocalTokens.current
     val move by rememberUpdatedState(onMove)
@@ -81,7 +83,8 @@ private fun Track(
         Text(label, style = DinghyType.caption.toTextStyle(t), color = t.text2,
             modifier = Modifier.width(18.dp).padding(end = 6.dp))
         Canvas(
-            Modifier.fillMaxWidth().height(40.dp).pointerInput(Unit) {
+            Modifier.fillMaxWidth().height(40.dp).pointerInput(enabled) {
+                if (!enabled) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val w = size.width.toFloat()

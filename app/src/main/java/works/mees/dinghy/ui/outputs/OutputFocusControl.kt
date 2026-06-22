@@ -156,7 +156,6 @@ private fun OutputFocusControlInner(
             }
 
             FocusScrubberSurface(
-                prettyName = descriptor.prettyName,
                 value = currentPct,
                 range = 0f..100f,
                 step = 1f,
@@ -201,7 +200,6 @@ private fun OutputFocusControlInner(
             }
 
             FocusScrubberSurface(
-                prettyName = descriptor.prettyName,
                 value = 0f,  // servo angle can't be read back (PWM value != angle — SC-3)
                 range = 0f..descriptor.servoAngleMax,
                 step = 5f,
@@ -234,7 +232,6 @@ private fun OutputFocusControlInner(
             }
 
             FocusScrubberSurface(
-                prettyName = descriptor.prettyName,
                 value = currentTemp,
                 range = 0f..PrinterCommands.MAX_TEMP_C.toFloat(),
                 step = 5f,
@@ -264,7 +261,6 @@ private fun OutputFocusControlInner(
             }
 
             FocusScrubberSurface(
-                prettyName = descriptor.prettyName,
                 value = currentPct,
                 range = 0f..100f,
                 step = 1f,
@@ -344,8 +340,7 @@ private fun OutputFocusControlInner(
                 }
 
                 FocusScrubberSurface(
-                    prettyName = descriptor.prettyName,
-                    value = currentPct,
+                        value = currentPct,
                     range = 0f..100f,
                     step = 1f,
                     unit = "%",
@@ -375,8 +370,7 @@ private fun OutputFocusControlInner(
                 }
 
                 OutputToggleControl(
-                    prettyName = descriptor.prettyName,
-                    isOn = isOn,
+                        isOn = isOn,
                     readOnly = descriptor.readOnly,
                     enabled = !busy,
                     failureText = failureText,
@@ -402,8 +396,8 @@ internal fun ledChannelsFromHsv(name: String, h: Float, s: Float, v: Float, whit
 
 /**
  * Shared scrubber surface for fan / servo / heater / PWM outputs, hosted inline in the Focus.
- * Uses the 004 ringed-thumb [Scrubber] (R9 — NO ScreenScaffold, NO background).
- * The Off/Back row is rendered directly below the control (not in a separate gutter).
+ * Uses the 004 ringed-thumb [Scrubber] (R9 — NO ScreenScaffold, NO background). The scrubber fills
+ * the body (centered in the slack) and the `[Off]` foot bar is pinned to the bottom.
  *
  * ## Build-once rule (P19 SC-3)
  * [Scrubber] is placed WITHOUT a `key(value)` wrapper so its internal `working` state
@@ -412,7 +406,6 @@ internal fun ledChannelsFromHsv(name: String, h: Float, s: Float, v: Float, whit
  */
 @Composable
 private fun FocusScrubberSurface(
-    prettyName: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     step: Float,
@@ -429,18 +422,21 @@ private fun FocusScrubberSurface(
         // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
         // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
         // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
-        Scrubber(
-            name = "",
-            value = value.coerceIn(range.start, range.endInclusive),
-            range = range,
-            step = step,
-            unit = unit,
-            uDp = uDp,
-            // Settle: dispatch ONCE on gesture-end / stepper tap; busy guard inside the lambda
-            // (the drag stays live while a dispatch is in flight — pre-004 semantics).
-            onSettle = { v -> if (!busy) onSettle(v) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Weighted body so the foot bar pins to the bottom (matches the LED/switch surfaces).
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            Scrubber(
+                name = "",
+                value = value.coerceIn(range.start, range.endInclusive),
+                range = range,
+                step = step,
+                unit = unit,
+                uDp = uDp,
+                // Settle: dispatch ONCE on gesture-end / stepper tap; busy guard inside the lambda
+                // (the drag stays live while a dispatch is in flight — pre-004 semantics).
+                onSettle = { v -> if (!busy) onSettle(v) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
         // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
         // own navigation; you switch outputs by tapping list rows.
@@ -499,6 +495,7 @@ private fun FocusLedSurface(
                     white = if (ledHasWhite) w else null,
                     onWhiteMove = { w = it },
                     onWhiteSettle = { nw -> w = nw; if (!busy) onSettle(h, s, v, nw * 100f) },
+                    enabled = !busy,
                 )
             } else {
                 // White-only LED: a single brightness scrubber (name-less → centered value, Task 2).

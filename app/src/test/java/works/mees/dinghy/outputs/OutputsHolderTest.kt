@@ -247,4 +247,27 @@ class OutputsHolderTest {
         assertTrue("LED pending holds when only hue/saturation changes at equal max brightness",
             rowFor(holder.rows.value, led.objectKey).busy)
     }
+
+    @Test
+    fun ledPending_clearsWhenLiveReachesFullTuple() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = OutputsHolder(backgroundScope, store)
+        val led = rgbwLed()
+        store.setOutputDescriptors(listOf(led))
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 1.0, 1.0, 0.0).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+        holder.markPending(led.objectKey, clampedWireTarget = 1.0, targetChannels = listOf(1.0, 0.0, 0.0, 0.0))
+        runCurrent()
+        assertTrue("armed busy", rowFor(holder.rows.value, led.objectKey).busy)
+
+        // Live flips to the EXACT commanded tuple → reached() confirms, busy clears (not via timeout).
+        store.seed(PrinterState(outputs = mapOf(
+            led.objectKey to OutputLiveValue(colorData = listOf(listOf(1.0, 0.0, 0.0, 0.0).toImmutableList()).toImmutableList())
+        ).toImmutableMap()))
+        runCurrent()
+        assertFalse("LED busy clears the instant live channels reach the full target tuple",
+            rowFor(holder.rows.value, led.objectKey).busy)
+    }
 }
