@@ -204,13 +204,20 @@ fun BedMeshScreen(
         dispatcherPresent = dispatcher != null,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onCycleScaleMode = { holder.cycleScaleMode() },
-        onSelectProfile = { name -> selectedProfile = name },
+        onSelectProfile = { name ->
+            selectedProfile = name
+            editing = false
+        },
         onClearMesh = {
             dispatcher?.dispatch(CommandRegistry.bedMeshClear, Unit)
             selectedProfile = null
+            editing = false
             // BED_MESH_CLEAR is runtime-only; saved profiles untouched; no SAVE_CONFIG guard.
         },
-        onOpenMeshConfig = { fieldMode = MeshFieldMode.MeshConfig },
+        onOpenMeshConfig = {
+            fieldMode = MeshFieldMode.MeshConfig
+            editing = false
+        },
         onOpenConfigEditor = { item -> fieldMode = MeshFieldMode.MeshConfigEditor(item) },
         onBackToConfigList = { fieldMode = MeshFieldMode.MeshConfig },
         onBackToProfileList = { fieldMode = MeshFieldMode.ProfileList },
@@ -236,15 +243,16 @@ fun BedMeshScreen(
         onShowRemoveGuard = { showRemoveGuard = true },
         onRemoveConfirm = {
             val d = dispatcher
-            val name = selectedProfile
-            if (d != null && name != null) {
-                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(name))
+            val target = selectedProfile ?: vm.model.profileName
+            if (d != null && target.isNotEmpty() && target != "default") {
+                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
                 // WR-02 (27-review): BED_MESH_PROFILE REMOVE only mutates Klipper's RUNTIME state —
                 // without SAVE_CONFIG the profile resurrects on the next firmware restart. Surface
                 // the amber restart guard after the remove dispatch, mirroring the save path.
                 showSaveConfigGuard = true
             }
             selectedProfile = null
+            editing = false
             showRemoveGuard = false
         },
         onRemoveCancel = { showRemoveGuard = false },
@@ -276,14 +284,9 @@ fun BedMeshScreen(
             editing = false
         },
         onEditDelete = {
-            val d = dispatcher
-            val target = selectedProfile ?: vm.model.profileName
-            if (d != null && target.isNotEmpty() && target != "default") {
-                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
-                showSaveConfigGuard = true
-            }
-            selectedProfile = null
-            editing = false
+            // Raise the red ConfirmGuard instead of dispatching immediately.
+            // onRemoveConfirm carries the actual dispatch + SAVE_CONFIG guard + form close.
+            showRemoveGuard = true
         },
         onEditCancel = { editing = false },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
