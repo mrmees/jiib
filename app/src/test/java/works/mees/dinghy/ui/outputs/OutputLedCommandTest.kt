@@ -1,6 +1,7 @@
 package works.mees.dinghy.ui.outputs
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.dinghy.command.PrinterCommands
@@ -8,87 +9,68 @@ import works.mees.dinghy.designsystem.hsvToRgb
 import works.mees.dinghy.designsystem.rgbToHsv
 
 /**
- * Host command-gen tests for the LED page (Phase 19, 19-06). The page computes RGB via [hsvToRgb] from
- * (hue, fixed sat = 1, brightness) and dispatches [PrinterCommands.setLed] with the BARE command name and
- * the WHITE-CHANNEL POLICY (every color dispatch sends WHITE=0, T-19-06-05). These tests pin the exact
- * SET_LED string the wire carries plus the rgbToHsv↔hsvToRgb round-trip the page uses to seed initial state.
+ * Host command-gen tests for the LED Focus surface. The surface now uses FULL H/S/V (+ optional White)
+ * and dispatches the complete r/g/b/w state via [ledChannelsFromHsv] → [PrinterCommands.setLed]:
+ *  - RGB-only LED (white = null): `WHITE=` is OMITTED.
+ *  - RGBW LED (white non-null): `WHITE=` is sent (an independent channel).
+ *  - White-only LED: dispatched as `SET_LED … RED=0 GREEN=0 BLUE=0 WHITE=w` (built in the surface's
+ *    dispatchLed guard, not via [ledChannelsFromHsv]).
+ * This supersedes the retired "every color dispatch carries WHITE=0" policy (T-19-06-05): saturation
+ * is now user-controlled and white is independent.
  */
 class OutputLedCommandTest {
 
-    /** Mirror the page: hue + brightness → hsvToRgb(hue, 1f, brightness/100) → setLed with WHITE=0. */
-    private fun ledCommand(name: String, hue: Float, brightnessPct: Float): String {
-        val (r, g, b) = hsvToRgb(hue, 1f, brightnessPct / 100f)
-        return PrinterCommands.setLed(name, r, g, b, w = 0f)
-    }
-
-    /** Mirror the white-only page (GAP-B): brightness → setLed(name, 0,0,0, w = brightness/100). */
-    private fun whiteCommand(name: String, brightnessPct: Float): String =
-        PrinterCommands.setLed(name, 0f, 0f, 0f, w = (brightnessPct / 100f).coerceIn(0f, 1f))
-
     @Test
-    fun `red full brightness is RED=1 with WHITE=0`() {
+    fun `rgbw dispatch sends all four channels from hsv plus white`() {
+        val args = ledChannelsFromHsv("strip", h = 0f, s = 1f, v = 1f, white = 0.5f)
+        assertEquals("strip", args.name)
+        assertEquals(1f, args.r)
+        assertEquals(0f, args.g)
+        assertEquals(0f, args.b)
+        assertEquals(0.5f, args.w)
         assertEquals(
-            "SET_LED LED=caselight RED=1 GREEN=0 BLUE=0 WHITE=0",
-            ledCommand("caselight", hue = 0f, brightnessPct = 100f),
+            "SET_LED LED=strip RED=1 GREEN=0 BLUE=0 WHITE=0.5",
+            PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w),
         )
     }
 
     @Test
-    fun `green half brightness is GREEN=0_5 with WHITE=0`() {
+    fun `rgb dispatch omits white when no white channel`() {
+        val args = ledChannelsFromHsv("strip", h = 120f, s = 1f, v = 1f, white = null)
+        assertEquals(0f, args.r)
+        assertEquals(1f, args.g)
+        assertEquals(0f, args.b)
+        assertNull("RGB-only LED must omit the white channel so SET_LED does not send WHITE=", args.w)
         assertEquals(
-            "SET_LED LED=caselight RED=0 GREEN=0.5 BLUE=0 WHITE=0",
-            ledCommand("caselight", hue = 120f, brightnessPct = 50f),
+            "SET_LED LED=strip RED=0 GREEN=1 BLUE=0",
+            PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w),
         )
     }
 
     @Test
-    fun `explicit Off is all-zero with WHITE=0 (D-12)`() {
-        assertEquals(
-            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0",
-            PrinterCommands.setLed("caselight", 0f, 0f, 0f, w = 0f),
-        )
+    fun `saturation is honored (no longer fixed at 1)`() {
+        // hue=0 (red) at half saturation, full value → r=1, g=b=0.5 (HSV 0,0.5,1).
+        val args = ledChannelsFromHsv("strip", h = 0f, s = 0.5f, v = 1f, white = null)
+        assertEquals(1f, args.r, 1e-3f)
+        assertEquals(0.5f, args.g, 1e-3f)
+        assertEquals(0.5f, args.b, 1e-3f)
     }
 
     @Test
-    fun `every color dispatch carries WHITE=0 (white-channel policy)`() {
-        // A spread of hue/brightness — WHITE=0 must always be present (no stale white lingers).
-        for (hue in listOf(0f, 60f, 120f, 180f, 240f, 300f)) {
-            for (b in listOf(25f, 50f, 100f)) {
-                val cmd = ledCommand("strip", hue, b)
-                assertTrue("WHITE=0 missing in: $cmd", cmd.endsWith("WHITE=0"))
-            }
-        }
+    fun `white-only dispatch is RGB zero plus white`() {
+        // The white-only branch builds this directly (RGB forced to 0, white = brightness).
+        assertEquals(
+            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0.8",
+            PrinterCommands.setLed("caselight", 0f, 0f, 0f, w = 0.8f),
+        )
     }
 
     @Test
     fun `command uses the BARE name with no family prefix (HIGH-1)`() {
-        val cmd = ledCommand("FILTER_led", hue = 240f, brightnessPct = 100f)
+        val args = ledChannelsFromHsv("FILTER_led", h = 240f, s = 1f, v = 1f, white = null)
+        val cmd = PrinterCommands.setLed(args.name, args.r, args.g, args.b, args.w)
         assertTrue("must use bare name: $cmd", cmd.startsWith("SET_LED LED=FILTER_led "))
         assertTrue("must not carry a family prefix", !cmd.contains("LED=led "))
-    }
-
-    @Test
-    fun `white-only brightness drives the WHITE channel (GAP-B)`() {
-        assertEquals(
-            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0.8",
-            whiteCommand("caselight", brightnessPct = 80f),
-        )
-    }
-
-    @Test
-    fun `white-only Off is all-zero with WHITE=0`() {
-        assertEquals(
-            "SET_LED LED=caselight RED=0 GREEN=0 BLUE=0 WHITE=0",
-            whiteCommand("caselight", brightnessPct = 0f),
-        )
-    }
-
-    @Test
-    fun `white-only command uses the BARE name (HIGH-1)`() {
-        val cmd = whiteCommand("FILTER_led", brightnessPct = 100f)
-        assertTrue("must use bare name: $cmd", cmd.startsWith("SET_LED LED=FILTER_led "))
-        assertTrue("white channel present", cmd.endsWith("WHITE=1"))
-        assertTrue("RGB channels zero", cmd.contains("RED=0 GREEN=0 BLUE=0"))
     }
 
     @Test

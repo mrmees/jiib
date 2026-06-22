@@ -37,10 +37,12 @@ import works.mees.dinghy.command.SetLedArgs
 import works.mees.dinghy.command.SetOutputPinArgs
 import works.mees.dinghy.command.SetServoArgs
 import works.mees.dinghy.command.dispatch
-import works.mees.dinghy.designsystem.ColorWheel
+import works.mees.dinghy.designsystem.HsvSliders
 import works.mees.dinghy.designsystem.Severity
 import works.mees.dinghy.designsystem.SeverityToast
+import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.Scrubber
+import works.mees.dinghy.designsystem.components.footAction
 import works.mees.dinghy.control.ControlSpecs
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.control.OutlinedControl
@@ -292,45 +294,44 @@ private fun OutputFocusControlInner(
             val key = "set_output_led_${descriptor.commandName}"
             val busy = key in inFlight
 
-            fun dispatchColor(hue: Float, brightnessPct: Float) {
-                val (r, g, b) = hsvToRgb(hue, 1f, (brightnessPct / 100f).coerceIn(0f, 1f))
-                holder.markPending(descriptor.objectKey, maxOf(r, g, b).toDouble())
-                // WHITE-CHANNEL POLICY: every color dispatch sends WHITE=0 (T-19-06-05).
-                dispatchCommand(
-                    CommandRegistry.setLed,
-                    SetLedArgs(descriptor.commandName, r, g, b, w = 0f),
+            // Full-state dispatch: SET_LED zeroes any channel not sent (klippy/extras/led.py), so we
+            // always send the complete r/g/b/w. RGB/RGBW → from H/S/V (+ white when present); a
+            // WHITE-ONLY strip must send RGB=0 (NOT hsvToRgb(0,0,v), which is grey) + the white channel.
+            fun dispatchLed(h: Float, s: Float, v: Float, whitePct: Float) {
+                val white = if (descriptor.ledHasWhite) (whitePct / 100f).coerceIn(0f, 1f) else null
+                val args = if (descriptor.ledHasRgb) {
+                    ledChannelsFromHsv(descriptor.commandName, h, s, v, white)
+                } else {
+                    SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = white)
+                }
+                val targetChannels = listOf(args.r, args.g, args.b, args.w ?: 0f).map { it.toDouble() }
+                holder.markPending(
+                    descriptor.objectKey,
+                    clampedWireTarget = targetChannels.maxOrNull() ?: 0.0,
+                    targetChannels = targetChannels,
                 )
-            }
-
-            // GAP-B: a white-only LED dispatches the WHITE channel (RGB=0).
-            fun dispatchWhite(brightnessPct: Float) {
-                val white = (brightnessPct / 100f).coerceIn(0f, 1f)
-                holder.markPending(descriptor.objectKey, white.toDouble())
-                dispatchCommand(
-                    CommandRegistry.setLed,
-                    SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = white),
-                )
+                dispatchCommand(CommandRegistry.setLed, args)
             }
 
             fun dispatchOff() {
-                holder.markPending(descriptor.objectKey, 0.0)
+                holder.markPending(
+                    descriptor.objectKey, 0.0,
+                    targetChannels = listOf(0.0, 0.0, 0.0, 0.0),
+                )
                 dispatchCommand(
                     CommandRegistry.setLed,
-                    SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = 0f),
+                    SetLedArgs(descriptor.commandName, 0f, 0f, 0f, w = if (descriptor.ledHasWhite) 0f else null),
                 )
             }
 
             FocusLedSurface(
-                prettyName = descriptor.prettyName,
                 ledHasRgb = descriptor.ledHasRgb,
                 ledHasWhite = descriptor.ledHasWhite,
-                swatchArgb = output.swatchColor,
+                channels = output.ledChannels,
                 busy = busy,
                 failureText = failureText,
-                onColorSettle = { hue, brightness -> if (!busy) dispatchColor(hue, brightness) },
-                onWhiteSettle = { brightness -> if (!busy) dispatchWhite(brightness) },
+                onSettle = { h, s, v, whitePct -> if (!busy) dispatchLed(h, s, v, whitePct) },
                 onOff = { if (!busy) dispatchOff() },
-                onBack = onBack,
                 uDp = uDp,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -402,6 +403,16 @@ private fun OutputFocusControlInner(
 }
 
 /**
+ * Convert a full HSV color (+ optional independent white channel) into a [SetLedArgs] for [name].
+ * White is passed only when the LED has a white channel ([white] non-null) so `SET_LED` omits `WHITE=`
+ * on plain RGB strips ([PrinterCommands.setLed] appends WHITE only for a non-null w). Pure + host-testable.
+ */
+internal fun ledChannelsFromHsv(name: String, h: Float, s: Float, v: Float, white: Float?): SetLedArgs {
+    val (r, g, b) = hsvToRgb(h, s, v)
+    return SetLedArgs(name, r, g, b, w = white)
+}
+
+/**
  * Shared scrubber surface for fan / servo / heater / PWM outputs, hosted inline in the Focus.
  * Uses the 004 ringed-thumb [Scrubber] (R9 — NO ScreenScaffold, NO background).
  * The Off/Back row is rendered directly below the control (not in a separate gutter).
@@ -467,103 +478,75 @@ private fun FocusScrubberSurface(
 }
 
 /**
- * Inline LED Focus surface (D-19) — brightness 004 [Scrubber] + P19 GAP-B capability-gated hue
- * [ColorWheel] + Off/Back row. All hosted without a [works.mees.dinghy.designsystem.layout.ScreenScaffold].
+ * Inline LED Focus surface — theme-style H/S/V sliders (+ an independent White slider for RGBW) via
+ * [HsvSliders]; a white-only LED shows a single brightness [Scrubber]. Foot = [FootButtonBar] `[Off]`.
+ * No in-Focus Back (the Field list + its Back own navigation). Hosted directly in the FocusFrame body
+ * (no [works.mees.dinghy.designsystem.layout.ScreenScaffold]).
  *
  * ## Channel gating (P19 GAP-B — hide-not-grey)
- * The hue wheel renders ONLY when [ledHasRgb] is true. A white/brightness-only LED shows the
- * brightness control alone — no hue wheel — and dispatches the WHITE channel so the value actually
- * reaches the hardware. This matches OutputLedContent's capability check verbatim.
+ * RGB sliders render only when [ledHasRgb]; the White slider only when [ledHasWhite] too (RGBW). A
+ * white-only LED ([ledHasRgb] false) shows just the brightness scrubber, dispatched as the WHITE channel.
+ * Seeded from the strip's live [channels] (r,g,b,w 0..1) so White survives the round-trip.
  */
 @Composable
 private fun FocusLedSurface(
-    prettyName: String,
     ledHasRgb: Boolean,
     ledHasWhite: Boolean,
-    swatchArgb: Long?,
+    channels: List<Float>?,
     busy: Boolean,
     failureText: String?,
-    onColorSettle: (hue: Float, brightnessPct: Float) -> Unit,
-    onWhiteSettle: (brightnessPct: Float) -> Unit,
+    onSettle: (h: Float, s: Float, v: Float, whitePct: Float) -> Unit,
     onOff: () -> Unit,
-    onBack: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    // Seed hue + brightness from the live color data (swatchArgb encodes the strip's packed RGB).
-    // Unpack from ARGB long: R=(argb >> 16) & 0xFF, G=(argb >> 8) & 0xFF, B=argb & 0xFF.
-    val (seedHue, seedBrightness) = remember(swatchArgb, ledHasRgb) {
-        if (swatchArgb == null) {
-            0f to 0f
-        } else {
-            val r = ((swatchArgb shr 16) and 0xFF).toFloat() / 255f
-            val g = ((swatchArgb shr 8) and 0xFF).toFloat() / 255f
-            val b = (swatchArgb and 0xFF).toFloat() / 255f
-            val (h, _, v) = rgbToHsv(r, g, b)
-            if (ledHasRgb) h to (v * 100f) else 0f to (v * 100f)
-        }
+    // Seed H/S/V + White from the live channels [r,g,b,w]. White is its own axis (NOT derived from HSV).
+    val seed = remember(channels) {
+        val r = channels?.getOrNull(0) ?: 0f
+        val g = channels?.getOrNull(1) ?: 0f
+        val b = channels?.getOrNull(2) ?: 0f
+        val w = channels?.getOrNull(3) ?: 0f
+        val (h, s, v) = rgbToHsv(r, g, b)
+        floatArrayOf(h, s, v, w)
     }
-
-    var hue by remember(seedHue) { mutableFloatStateOf(seedHue) }
-    var brightness by remember(seedBrightness) { mutableFloatStateOf(seedBrightness) }
+    var h by remember(seed) { mutableFloatStateOf(seed[0]) }
+    var s by remember(seed) { mutableFloatStateOf(seed[1]) }
+    var v by remember(seed) { mutableFloatStateOf(seed[2]) }
+    var w by remember(seed) { mutableFloatStateOf(seed[3]) }
 
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Name-less: the FocusFrame header carries the output identity now (2026-06-13) — the old
-        // standalone prettyName Text was a duplicate of the title and has been removed.
-        // GAP-B: the hue wheel renders ONLY for an RGB-capable LED.
-        if (ledHasRgb) {
-            // UAT-5 exception: LED ColorWheel may exceed 1U — it is the sole sanctioned >1U
-            // control in Outputs (owner decision; see docs/ui_design/LAYOUT.md UAT-5).
-            ColorWheel(
-                hue = hue,
-                onHandleMove = { hue = it },
-                onSettle = { settled ->
-                    hue = settled
-                    if (!busy) onColorSettle(settled, brightness)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            if (ledHasRgb) {
+                // Full HSV (+ White for RGBW). Each settle sends the COMPLETE r/g/b/w state.
+                HsvSliders(
+                    hue = h, sat = s, value = v,
+                    onMove = { nh, ns, nv -> h = nh; s = ns; v = nv },
+                    onSettle = { nh, ns, nv -> h = nh; s = ns; v = nv; if (!busy) onSettle(nh, ns, nv, w * 100f) },
+                    white = if (ledHasWhite) w else null,
+                    onWhiteMove = { w = it },
+                    onWhiteSettle = { nw -> w = nw; if (!busy) onSettle(h, s, v, nw * 100f) },
+                )
+            } else {
+                // White-only LED: a single brightness scrubber (name-less → centered value, Task 2).
+                Scrubber(
+                    name = "",
+                    value = w * 100f,
+                    range = 0f..100f,
+                    step = 1f,
+                    unit = "%",
+                    uDp = uDp,
+                    enabled = !busy,
+                    onValueChange = { w = it / 100f },
+                    onSettle = { settled -> w = settled / 100f; if (!busy) onSettle(0f, 0f, settled / 100f, settled) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
-        // Brightness scrubber — 004 ringed-thumb (R9). CRITICAL: build-once — NOT wrapped in
-        // key(brightness); Scrubber re-seeds its working state in place via remember(value, range)
-        // so it survives live value updates without re-creation. Name-less (the LED's prettyName
-        // header is above the wheel); the % unit rides the value.
-        Scrubber(
-            name = "",
-            value = brightness,
-            range = 0f..100f,
-            step = 1f,
-            unit = "%",
-            uDp = uDp,
-            enabled = !busy,
-            onValueChange = { brightness = it },
-            onSettle = { settled ->
-                brightness = settled
-                if (!busy) {
-                    if (ledHasRgb) onColorSettle(hue, settled) else onWhiteSettle(settled)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
         failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        // Foot row: Off (Danger/red) + Back (Neutral) — mirrors OutputLedContent's gutter verbatim.
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Back FIRST (accent — R5/R8); Off stays stop-red.
-            OutlinedControl(
-                label = stringResource(R.string.common_back),
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
-            )
-            OutlinedControl(
-                spec = ControlSpecs.outputOff,
-                onClick = { if (!busy) onOff() },
-                modifier = Modifier.weight(1f),
-            )
-        }
+        FootButtonBar(
+            uDp = uDp,
+            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+        )
     }
 }
 
