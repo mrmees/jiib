@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -76,6 +77,43 @@ import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.command.BedMeshRenameArgs
+import works.mees.dinghy.designsystem.control.OutlinedControl
+
+// ─── Edit-morph classifier ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Which edit-form button set to show. The effective focus target is [selected] if set, else the
+ * active mesh. "default" is reserved (never a saved target) so an active mesh named default ==
+ * Active-unsaved.
+ */
+internal enum class MeshEditKind { ACTIVE_UNSAVED, ACTIVE_SAVED, PREVIEW_NONACTIVE }
+
+/**
+ * Pure classifier: decides which button matrix the edit form shows based on the current printer
+ * state. No side effects; testable without Android.
+ *
+ * @param activeName  the name of the currently active (loaded) mesh profile, or "" if none.
+ * @param isEmpty     true when no mesh data is loaded at all.
+ * @param selected    the profile name the user has tapped in the Field list, or null = none.
+ * @param savedNames  the set of profiles that exist in printer.cfg (survives restart).
+ */
+internal fun classifyMeshEdit(
+    activeName: String,
+    isEmpty: Boolean,
+    selected: String?,
+    savedNames: Set<String>,
+): MeshEditKind {
+    val isActiveTarget = selected == null || selected == activeName
+    return when {
+        !isActiveTarget -> MeshEditKind.PREVIEW_NONACTIVE
+        isEmpty || activeName.isEmpty() || activeName == "default" || activeName !in savedNames ->
+            MeshEditKind.ACTIVE_UNSAVED
+        else -> MeshEditKind.ACTIVE_SAVED
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
  * The Bed-Mesh screen — rebuilt for the jiib redesign (Phase 27, D-11..D-14).
@@ -111,20 +149,25 @@ fun BedMeshScreen(
     var fieldMode by rememberSaveable(stateSaver = MeshFieldModeSaver) {
         mutableStateOf<MeshFieldMode>(MeshFieldMode.ProfileList)
     }
+    // Focus edit-morph state: true = the MeshEditForm is shown in the Focus region.
+    var editing by rememberSaveable { mutableStateOf(false) }
 
     // Confirm guard flags (local only — transient overlays, not navigation state).
     var showRemoveGuard by remember { mutableStateOf(false) }
     var showSaveConfigGuard by remember { mutableStateOf(false) }
 
-    // WR-05 (27-review): the stable dispatch keys of the two persist-relevant profile commands
-    // (their key lambdas ignore the profile name). A Failure under one of these keys means nothing
-    // was persisted — used below to retract the SAVE_CONFIG guard instead of inviting a pointless
-    // Klipper restart.
+    // WR-05 (27-review): the stable dispatch keys of the persist-relevant profile commands.
+    // A Failure under one of these keys means nothing was persisted — used below to retract the
+    // SAVE_CONFIG guard instead of inviting a pointless Klipper restart.
+    // bedMeshProfileRename key is constant ("bed_mesh_profile_rename", independent of args) so
+    // a failed rename also retracts the guard.
     val profilePersistKeys = remember {
         val probe = BedMeshProfileArgs("")
+        val renameProbe = BedMeshRenameArgs("", "")
         setOf(
             CommandRegistry.bedMeshProfileSave.dispatchKey(probe),
             CommandRegistry.bedMeshProfileRemove.dispatchKey(probe),
+            CommandRegistry.bedMeshProfileRename.dispatchKey(renameProbe),
         )
     }
 
@@ -151,6 +194,7 @@ fun BedMeshScreen(
         vm = vm,
         selectedProfile = selectedProfile,
         fieldMode = fieldMode,
+        editing = editing,
         showRemoveGuard = showRemoveGuard,
         showSaveConfigGuard = showSaveConfigGuard,
         toastError = toastError,
@@ -201,6 +245,39 @@ fun BedMeshScreen(
             showSaveConfigGuard = false
         },
         onSaveConfigCancel = { showSaveConfigGuard = false },
+        onEditOpen = { editing = true },
+        onEditApply = { name ->
+            dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad, BedMeshProfileArgs(name))
+            editing = false
+        },
+        onEditSave = { newName ->
+            val d = dispatcher
+            val active = vm.model.profileName
+            val kind = classifyMeshEdit(active, vm.isEmpty, selectedProfile, vm.profileNames.toSet())
+            if (d != null) {
+                if (kind == MeshEditKind.ACTIVE_SAVED && newName != active) {
+                    // Rename = ONE ordered script (SAVE new -> REMOVE old). Using the single
+                    // bedMeshProfileRename command avoids two separate dispatches that could race.
+                    d.dispatch(CommandRegistry.bedMeshProfileRename, BedMeshRenameArgs(old = active, new = newName))
+                } else {
+                    // Active-unsaved save (or active-saved with unchanged name): plain SAVE.
+                    d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(newName))
+                }
+                showSaveConfigGuard = true
+            }
+            editing = false
+        },
+        onEditDelete = {
+            val d = dispatcher
+            val target = selectedProfile ?: vm.model.profileName
+            if (d != null && target.isNotEmpty() && target != "default") {
+                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
+                showSaveConfigGuard = true
+            }
+            selectedProfile = null
+            editing = false
+        },
+        onEditCancel = { editing = false },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
         onCalibrate = { dispatcher?.dispatch(CommandRegistry.bedMeshCalibrate, Unit) },
         onDismissError = { toastError = null },
@@ -277,6 +354,7 @@ internal fun BedMeshContent(
     vm: BedMeshVm,
     selectedProfile: String?,
     fieldMode: MeshFieldMode,
+    editing: Boolean,
     showRemoveGuard: Boolean,
     showSaveConfigGuard: Boolean,
     toastError: String?,
@@ -296,6 +374,11 @@ internal fun BedMeshContent(
     onRemoveCancel: () -> Unit,
     onSaveConfigConfirm: () -> Unit,
     onSaveConfigCancel: () -> Unit,
+    onEditOpen: () -> Unit,
+    onEditApply: (String) -> Unit,
+    onEditSave: (String) -> Unit,
+    onEditDelete: () -> Unit,
+    onEditCancel: () -> Unit,
     onHomeAll: () -> Unit,
     onCalibrate: () -> Unit,
     onDismissError: () -> Unit,
@@ -318,15 +401,37 @@ internal fun BedMeshContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
+                        trailingActionIcon = if (!isPrinting) DinghyIcons.Edit else null,
+                        onTrailingAction = if (!isPrinting) onEditOpen else null,
+                        trailingActionContentDescription = "Edit mesh profile",
                     ) {
-                        BedMeshFocusRegion(
-                            vm = vm,
-                            selectedProfile = selectedProfile,
-                            tokens = t,
-                            onCycleScaleMode = onCycleScaleMode,
-                            uDp = grid.uDp,
-                            modifier = Modifier.fillMaxSize().padding(8.dp),
-                        )
+                        if (editing) {
+                            val kind = classifyMeshEdit(
+                                activeName = vm.model.profileName,
+                                isEmpty = vm.isEmpty,
+                                selected = selectedProfile,
+                                savedNames = vm.profileNames.toSet(),
+                            )
+                            val targetName = selectedProfile ?: vm.model.profileName
+                            MeshEditForm(
+                                kind = kind,
+                                targetName = targetName,
+                                onApply = { onEditApply(targetName) },
+                                onSave = onEditSave,
+                                onDelete = onEditDelete,
+                                onCancel = onEditCancel,
+                                t = t,
+                            )
+                        } else {
+                            BedMeshFocusRegion(
+                                vm = vm,
+                                selectedProfile = selectedProfile,
+                                tokens = t,
+                                onCycleScaleMode = onCycleScaleMode,
+                                uDp = grid.uDp,
+                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                            )
+                        }
                     }
                 },
                 field = {
@@ -723,4 +828,155 @@ private fun BedMeshHeatmapView.ScaleMode.displayLabel(): String = when (this) {
     BedMeshHeatmapView.ScaleMode.PM_025 -> "±0.25"
     BedMeshHeatmapView.ScaleMode.PM_050 -> "±0.50"
     BedMeshHeatmapView.ScaleMode.PM_100 -> "±1.00"
+}
+
+// ─── Edit-morph UI ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Alphanumeric name-entry field for the mesh edit morph. Extracted from the SaveName Field-takeover
+ * (same keyboard type, same validation UX) so both paths share one rendering component.
+ *
+ * Disabled (read-only) when [readOnly] is true — used for PREVIEW_NONACTIVE where the profile name
+ * is informational and cannot be changed from the Focus.
+ */
+@Composable
+private fun MeshNameField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    readOnly: Boolean,
+    t: ThemeTokens,
+) {
+    val valid = PrinterCommands.isValidProfileName(value)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.mesh_save_name_label),
+            color = t.text,
+            style = DinghyType.listLabel.toTextStyle(t),
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TokenTextField(
+            value = value,
+            onValueChange = if (readOnly) ({}) else onValueChange,
+            label = stringResource(R.string.mesh_save_name_hint),
+            isError = value.isNotEmpty() && !valid && !readOnly,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (value.isNotEmpty() && !valid && !readOnly) {
+            Text(
+                text = stringResource(R.string.mesh_save_name_invalid),
+                color = t.stop,
+                style = DinghyType.caption.toTextStyle(t),
+            )
+        }
+    }
+}
+
+/**
+ * Docked-action Focus composable for the mesh profile edit morph (Task 8).
+ *
+ * Shows a name field + contextual button matrix per [MeshEditKind]:
+ * - [MeshEditKind.ACTIVE_UNSAVED]: Save (enabled when name is valid) — names the in-memory mesh.
+ * - [MeshEditKind.ACTIVE_SAVED]: Save (rename, enabled when valid & changed) + Delete.
+ * - [MeshEditKind.PREVIEW_NONACTIVE]: Apply (load this profile) + Delete.
+ *
+ * Read-only name field for [MeshEditKind.PREVIEW_NONACTIVE] (not the active mesh — cannot be
+ * renamed from this context; Apply loads it first).
+ *
+ * All buttons use owner-picked glyphs (DinghyIcons.CheckCircle / Save / Delete — Task 8 brief).
+ */
+@Composable
+private fun MeshEditForm(
+    kind: MeshEditKind,
+    targetName: String,
+    onApply: () -> Unit,
+    onSave: (String) -> Unit,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+    t: ThemeTokens,
+) {
+    var name by rememberSaveable(targetName) {
+        mutableStateOf(if (kind == MeshEditKind.ACTIVE_UNSAVED) "" else targetName)
+    }
+    val readOnly = kind == MeshEditKind.PREVIEW_NONACTIVE
+    val nameValid = PrinterCommands.isValidProfileName(name)
+    val nameChanged = name != targetName
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MeshNameField(
+            value = name,
+            onValueChange = { name = it },
+            readOnly = readOnly,
+            t = t,
+        )
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Primary action row: Apply (preview) or Save (active unsaved/saved)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            when (kind) {
+                MeshEditKind.PREVIEW_NONACTIVE -> {
+                    OutlinedControl(
+                        label = stringResource(R.string.mesh_apply),
+                        onClick = onApply,
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Go,
+                        icon = DinghyIcons.CheckCircle,
+                        contentDescription = stringResource(R.string.mesh_apply),
+                    )
+                }
+                MeshEditKind.ACTIVE_UNSAVED -> {
+                    OutlinedControl(
+                        label = stringResource(R.string.mesh_save_confirm),
+                        onClick = { onSave(name) },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Go,
+                        icon = DinghyIcons.Save,
+                        enabled = nameValid,
+                        contentDescription = stringResource(R.string.mesh_save_confirm),
+                    )
+                }
+                MeshEditKind.ACTIVE_SAVED -> {
+                    OutlinedControl(
+                        label = stringResource(R.string.mesh_save_confirm),
+                        onClick = { onSave(name) },
+                        modifier = Modifier.weight(1f),
+                        intent = Intent.Go,
+                        icon = DinghyIcons.Save,
+                        enabled = nameValid && nameChanged,
+                        contentDescription = stringResource(R.string.mesh_save_confirm),
+                    )
+                }
+            }
+            OutlinedControl(
+                label = stringResource(R.string.common_cancel),
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+                intent = Intent.Accent,
+                icon = DinghyIcons.DialogClose,
+                contentDescription = stringResource(R.string.common_cancel),
+            )
+        }
+
+        // Delete row — shown for any saved-profile target (active saved or previewing non-active)
+        if (kind != MeshEditKind.ACTIVE_UNSAVED) {
+            OutlinedControl(
+                label = stringResource(R.string.mesh_remove),
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth(),
+                intent = Intent.Danger,
+                icon = DinghyIcons.Delete,
+                contentDescription = stringResource(R.string.mesh_remove),
+            )
+        }
+    }
 }
