@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -60,6 +60,7 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.temperature.titleCase
 import kotlin.math.max
 
 /**
@@ -272,7 +273,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         },
     ) {
         Text(
-            text = point.name ?: point.key,
+            text = point.name?.let { titleCase(it) } ?: point.key,
             color = t.text,
             style = DinghyType.listLabel.toTextStyle(t),
             maxLines = 1,
@@ -283,27 +284,17 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
 }
 
 /**
- * Focus = the to-scale bed, centered and filling the pane. Each point is a state glyph at its
- * real bed location + the screw name (see [BedScale]). D-06 fallback: when no coords are
- * available, shows a short prompt.
+ * Focus = the to-scale screw map, centered in the pane (see [BedScale]). D-06 fallback:
+ * when no coords are available, shows a short prompt.
  *
  * SPATIAL CARVE-OUT (D-10): this custom drawn surface is NOT converted to a list.
  */
 @Composable
 private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
     val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCard)
     Box(modifier, contentAlignment = Alignment.Center) {
         if (vm.hasCoords) {
-            BedScale(
-                vm = vm,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction = 0.95f)
-                    .clip(shape)
-                    .border(BorderStroke(2.dp, t.outline), shape)
-                    .background(t.surface),
-            )
+            BedScale(vm = vm)
         } else {
             Text(
                 text = if (vm.loop.totalScrews > 0) {
@@ -320,17 +311,17 @@ private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
 }
 
 /**
- * A to-scale square bed with location-accurate point indicators. Bed extents come from the
- * screw-coord bounding box (with a margin so edge screws aren't clipped); the printer Y axis
- * (up) is flipped to screen Y (down). Each point is its state glyph.
+ * A to-scale, aspect-correct screw map. The screw bounding box (with margin) is drawn
+ * letterboxed into the pane — its real X:Y aspect ratio is preserved, never stretched —
+ * so a 3-screw triangle stays a triangle and a wide bed looks wide. Printer Y (up) is
+ * flipped to screen Y (down). The framed surface is sized to fit via [BoxWithConstraints].
  */
 @Composable
-private fun BedScale(vm: ScrewsTiltVm, modifier: Modifier) {
+private fun BedScale(vm: ScrewsTiltVm) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCard)
     val coordPoints = vm.points.filter { it.x != null && it.y != null }
-    if (coordPoints.isEmpty()) {
-        Box(modifier)
-        return
-    }
+    if (coordPoints.isEmpty()) return
 
     val minX = coordPoints.minOf { it.x!! }
     val maxX = coordPoints.maxOf { it.x!! }
@@ -344,8 +335,32 @@ private fun BedScale(vm: ScrewsTiltVm, modifier: Modifier) {
     val hiX = maxX + padX
     val loY = minY - padY
     val hiY = maxY + padY
-    Box(modifier) {
-        BoxWithPoints(coordPoints, loX, hiX, loY, hiY)
+    val aspect = screwBoxAspect(hiX - loX, hiY - loY) // width / height, clamped
+
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val availW = maxWidth
+        val availH = maxHeight
+        // Largest w x h matching `aspect` (= w/h) that still fits the pane -> letterbox.
+        val frameW: androidx.compose.ui.unit.Dp
+        val frameH: androidx.compose.ui.unit.Dp
+        if (availW / (availH * aspect) > 1f) {
+            // pane wider than the ratio -> height-bound, margin on the sides
+            frameH = availH
+            frameW = availH * aspect
+        } else {
+            // pane taller/narrower than the ratio -> width-bound, margin top/bottom
+            frameW = availW
+            frameH = availW / aspect
+        }
+        Box(
+            Modifier
+                .size(width = frameW, height = frameH)
+                .clip(shape)
+                .border(BorderStroke(2.dp, t.outline), shape)
+                .background(t.surface),
+        ) {
+            BoxWithPoints(coordPoints, loX, hiX, loY, hiY)
+        }
     }
 }
 
@@ -388,15 +403,6 @@ private fun BoxWithPoints(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     DinghyIconView(icon = glyph, tint = tint, sizeDp = fsSp(56f, t.fs).dp)
-                    p.name?.let { name ->
-                        Text(
-                            text = shortScrewName(name),
-                            color = t.text2,
-                            style = DinghyType.body.toTextStyle(t),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                     if (turn != null) {
                         Text(
                             text = "${"%.3f".format(turn.z)} mm",
@@ -411,9 +417,13 @@ private fun BoxWithPoints(
     }
 }
 
-/** Trim a trailing " screw" so corner labels stay short on the bed. */
-private fun shortScrewName(name: String): String =
-    name.trim().removeSuffix("screw").trim().ifEmpty { name.trim() }
+/**
+ * Aspect ratio (width / height) of the padded screw bounding box, clamped so a
+ * near-collinear screw layout can't collapse the drawn frame to a sliver. Callers pass
+ * already-positive spans (bounds use `max(..., 1.0)` + padding), so no divide-by-zero.
+ */
+internal fun screwBoxAspect(spanX: Double, spanY: Double): Float =
+    (spanX / spanY).toFloat().coerceIn(0.25f, 4f)
 
 /** Map a 0..1 fraction to Compose's -1..1 bias for [androidx.compose.ui.BiasAlignment]. */
 private fun BiasAlignment(fx: Float, fy: Float): Alignment =
