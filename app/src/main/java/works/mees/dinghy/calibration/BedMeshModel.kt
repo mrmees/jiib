@@ -67,6 +67,22 @@ data class BedMeshModel(
     val isEmpty: Boolean
         get() = meshMatrix.isEmpty() || profileName.isEmpty()
 
+    /**
+     * Build a renderable model for a SAVED, non-active profile [name] without loading it. The heatmap
+     * fill reads [meshMatrix] (empty == empty-state), so set both matrices to the profile's probed
+     * points — coarser than a live interpolated mesh, by design (spec: accepted). Returns null if absent.
+     */
+    fun previewOf(name: String): BedMeshModel? {
+        val p = profiles[name] ?: return null
+        return copy(
+            profileName = name,
+            meshMatrix = p.points,
+            probedMatrix = p.points,
+            meshMin = MeshPoint(p.minX, p.minY),
+            meshMax = MeshPoint(p.maxX, p.maxY),
+        )
+    }
+
     companion object {
         /**
          * Pure `bed_mesh` walker. Accepts the OUTER `{"bed_mesh": {...}}` object; a malformed/absent
