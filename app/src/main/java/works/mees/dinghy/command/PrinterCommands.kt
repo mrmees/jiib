@@ -209,6 +209,17 @@ object PrinterCommands {
      */
     const val BED_MESH_CALIBRATE = "BED_MESH_CALIBRATE"
 
+    /** `BED_MESH_CLEAR` — unloads the active mesh (runtime only; saved profiles untouched; no SAVE_CONFIG). */
+    const val BED_MESH_CLEAR = "BED_MESH_CLEAR"
+
+    /**
+     * Rename: SAVE under [new] then REMOVE [old] as ONE newline-joined script — Klipper runs the two
+     * commands sequentially, so SAVE is guaranteed to land before REMOVE (a two-dispatch version races,
+     * because CommandDispatcher.dispatch launches asynchronously). Caller must ensure old != new.
+     */
+    fun bedMeshProfileRename(old: String, new: String): String =
+        "BED_MESH_PROFILE SAVE=${sanitizeProfileName(new)}\nBED_MESH_PROFILE REMOVE=${sanitizeProfileName(old)}"
+
     /** `PROBE_CALIBRATE` — open the interactive manual-probe Z-calibrate session (CALIB-05 / D-01). */
     const val PROBE_CALIBRATE = "PROBE_CALIBRATE"
 
@@ -525,10 +536,14 @@ object PrinterCommands {
      * braces with the sanitize `require()` (T-09-05-03).
      */
     fun isValidProfileName(name: String): Boolean =
-        name.isNotEmpty() && name.length <= MAX_PROFILE_NAME_LEN && name.matches(PROFILE_NAME_ALLOWLIST)
+        name.isNotEmpty() &&
+            !name.equals("default", ignoreCase = true) && // "default" is reserved: Klipper rejects SAVE=default
+            name.length <= MAX_PROFILE_NAME_LEN &&
+            name.matches(PROFILE_NAME_ALLOWLIST)
 
     fun sanitizeProfileName(name: String): String {
         require(name.isNotEmpty()) { "bed-mesh profile name must not be blank" }
+        require(!name.equals("default", ignoreCase = true)) { "bed-mesh profile name 'default' is reserved" }
         require(name.length <= MAX_PROFILE_NAME_LEN) {
             "bed-mesh profile name exceeds $MAX_PROFILE_NAME_LEN chars"
         }
