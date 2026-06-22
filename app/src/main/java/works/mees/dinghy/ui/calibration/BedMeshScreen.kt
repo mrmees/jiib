@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -65,6 +66,7 @@ import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
 import works.mees.dinghy.state.PrintState
 import works.mees.dinghy.state.PrinterState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import works.mees.dinghy.calibration.BedMeshViewType
 import works.mees.dinghy.render.BedMeshHeatmapHost
@@ -209,6 +211,12 @@ fun BedMeshScreen(
             // BED_MESH_CLEAR is runtime-only; saved profiles untouched; no SAVE_CONFIG guard.
         },
         onOpenMeshConfig = { fieldMode = MeshFieldMode.MeshConfig },
+        onOpenConfigEditor = { item -> fieldMode = MeshFieldMode.MeshConfigEditor(item) },
+        onBackToConfigList = { fieldMode = MeshFieldMode.MeshConfig },
+        onBackToProfileList = { fieldMode = MeshFieldMode.ProfileList },
+        onSetViewType = { container.setBedMeshViewType(it) },
+        onSetHighColorSel = { container.setBedMeshHighColorSel(it) },
+        onSetLowColorSel = { container.setBedMeshLowColorSel(it) },
         onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
         onSaveNameConfirm = { name ->
             val d = dispatcher
@@ -365,6 +373,12 @@ internal fun BedMeshContent(
     onSelectProfile: (String) -> Unit,
     onClearMesh: () -> Unit,
     onOpenMeshConfig: () -> Unit,
+    onOpenConfigEditor: (MeshConfigItem) -> Unit,
+    onBackToConfigList: () -> Unit,
+    onBackToProfileList: () -> Unit,
+    onSetViewType: (BedMeshViewType) -> Unit,
+    onSetHighColorSel: (Int) -> Unit,
+    onSetLowColorSel: (Int) -> Unit,
     onShowSaveName: () -> Unit,
     onSaveNameConfirm: (String) -> Unit,
     onSaveNameCancel: () -> Unit,
@@ -401,36 +415,53 @@ internal fun BedMeshContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        trailingActionIcon = if (!isPrinting) DinghyIcons.Edit else null,
-                        onTrailingAction = if (!isPrinting) onEditOpen else null,
+                        trailingActionIcon = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) DinghyIcons.Edit else null,
+                        onTrailingAction = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
                     ) {
-                        if (editing) {
-                            val kind = classifyMeshEdit(
-                                activeName = vm.model.profileName,
-                                isEmpty = vm.isEmpty,
-                                selected = selectedProfile,
-                                savedNames = vm.profileNames.toSet(),
-                            )
-                            val targetName = selectedProfile ?: vm.model.profileName
-                            MeshEditForm(
-                                kind = kind,
-                                targetName = targetName,
-                                onApply = { onEditApply(targetName) },
-                                onSave = onEditSave,
-                                onDelete = onEditDelete,
-                                onCancel = onEditCancel,
-                                t = t,
-                            )
-                        } else {
-                            BedMeshFocusRegion(
-                                vm = vm,
-                                selectedProfile = selectedProfile,
-                                tokens = t,
-                                onCycleScaleMode = onCycleScaleMode,
-                                uDp = grid.uDp,
-                                modifier = Modifier.fillMaxSize().padding(8.dp),
-                            )
+                        when {
+                            editing -> {
+                                val kind = classifyMeshEdit(
+                                    activeName = vm.model.profileName,
+                                    isEmpty = vm.isEmpty,
+                                    selected = selectedProfile,
+                                    savedNames = vm.profileNames.toSet(),
+                                )
+                                val targetName = selectedProfile ?: vm.model.profileName
+                                MeshEditForm(
+                                    kind = kind,
+                                    targetName = targetName,
+                                    onApply = { onEditApply(targetName) },
+                                    onSave = onEditSave,
+                                    onDelete = onEditDelete,
+                                    onCancel = onEditCancel,
+                                    t = t,
+                                )
+                            }
+                            fieldMode is MeshFieldMode.MeshConfigEditor -> {
+                                MeshConfigEditorFocus(
+                                    item = (fieldMode as MeshFieldMode.MeshConfigEditor).item,
+                                    vm = vm,
+                                    selectedProfile = selectedProfile,
+                                    tokens = t,
+                                    onCycleScaleMode = onCycleScaleMode,
+                                    onSetViewType = onSetViewType,
+                                    onSetHighColorSel = onSetHighColorSel,
+                                    onSetLowColorSel = onSetLowColorSel,
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                                )
+                            }
+                            else -> {
+                                BedMeshFocusRegion(
+                                    vm = vm,
+                                    selectedProfile = selectedProfile,
+                                    tokens = t,
+                                    onCycleScaleMode = onCycleScaleMode,
+                                    uDp = grid.uDp,
+                                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                                )
+                            }
                         }
                     }
                 },
@@ -590,22 +621,69 @@ internal fun BedMeshContent(
                             )
                         }
 
-                        // MeshConfig and MeshConfigEditor — stubs for Task 9 to fill
                         is MeshFieldMode.MeshConfig -> {
-                            // Task 9: Mesh Config subpage list (View Type / High Color / Low Color / Preview rows)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "Mesh Config — coming in Task 9",
-                                    color = t.text3,
-                                    style = DinghyType.caption.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                )
+                            // Mesh Config subpage: 4 config rows (View Type / High / Low Color / Preview)
+                            ListBlock(modifier = Modifier.weight(1f)) {
+                                item(key = "vt") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.VIEW_TYPE) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.BlurCircular,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "View Type",
+                                            )
+                                        },
+                                    ) { ListRowLabel("View Type") }
+                                }
+                                item(key = "hi") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.HIGH_COLOR) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.HdrStrong,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "High Color",
+                                            )
+                                        },
+                                    ) { ListRowLabel("High Color") }
+                                }
+                                item(key = "lo") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.LOW_COLOR) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.HdrWeak,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Low Color",
+                                            )
+                                        },
+                                    ) { ListRowLabel("Low Color") }
+                                }
+                                item(key = "pv") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.PREVIEW) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.Preview,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Preview",
+                                            )
+                                        },
+                                    ) { ListRowLabel("Preview") }
+                                }
                             }
                             FootButtonBar(
                                 uDp = grid.uDp,
@@ -613,7 +691,7 @@ internal fun BedMeshContent(
                                     FootAction(
                                         label = stringResource(R.string.common_back),
                                         icon = DinghyIcons.Back,
-                                        onClick = { /* Task 9 wires onBackToProfileList */ },
+                                        onClick = onBackToProfileList,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
                                     ),
@@ -622,20 +700,69 @@ internal fun BedMeshContent(
                         }
 
                         is MeshFieldMode.MeshConfigEditor -> {
-                            // Task 9: per-item editor (VIEW_TYPE selector / PoolColorPicker / Preview)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "Config editor — coming in Task 9",
-                                    color = t.text3,
-                                    style = DinghyType.caption.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                )
+                            // Field: config list stays visible (context for the Focus editor).
+                            // Back returns to the MeshConfig list.
+                            ListBlock(modifier = Modifier.weight(1f)) {
+                                item(key = "vt") {
+                                    ListRow(
+                                        selected = fieldMode.item == MeshConfigItem.VIEW_TYPE,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.VIEW_TYPE) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.BlurCircular,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "View Type",
+                                            )
+                                        },
+                                    ) { ListRowLabel("View Type") }
+                                }
+                                item(key = "hi") {
+                                    ListRow(
+                                        selected = fieldMode.item == MeshConfigItem.HIGH_COLOR,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.HIGH_COLOR) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.HdrStrong,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "High Color",
+                                            )
+                                        },
+                                    ) { ListRowLabel("High Color") }
+                                }
+                                item(key = "lo") {
+                                    ListRow(
+                                        selected = fieldMode.item == MeshConfigItem.LOW_COLOR,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.LOW_COLOR) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.HdrWeak,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Low Color",
+                                            )
+                                        },
+                                    ) { ListRowLabel("Low Color") }
+                                }
+                                item(key = "pv") {
+                                    ListRow(
+                                        selected = fieldMode.item == MeshConfigItem.PREVIEW,
+                                        onClick = { onOpenConfigEditor(MeshConfigItem.PREVIEW) },
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.Preview,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Preview",
+                                            )
+                                        },
+                                    ) { ListRowLabel("Preview") }
+                                }
                             }
                             FootButtonBar(
                                 uDp = grid.uDp,
@@ -643,7 +770,7 @@ internal fun BedMeshContent(
                                     FootAction(
                                         label = stringResource(R.string.common_back),
                                         icon = DinghyIcons.Back,
-                                        onClick = { /* Task 9 wires onBackToConfigList */ },
+                                        onClick = onBackToConfigList,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
                                     ),
@@ -816,6 +943,123 @@ private fun ScaleToggle(label: String, onClick: () -> Unit, uDp: Dp) {
             text = label,
             color = t.text,
             style = DinghyType.dataMeta.toTextStyle(t),
+        )
+    }
+}
+
+/**
+ * Focus content for the Mesh Config editor modes (Task 9).
+ *
+ * Dispatches to the appropriate editor based on [item]:
+ * - VIEW_TYPE → [ViewTypeSelector] (2-option tile selector)
+ * - HIGH_COLOR / LOW_COLOR → [PoolColorPicker] (data-pool swatch grid)
+ * - PREVIEW → [BedMeshFocusRegion] with current settings (selectedProfile=null → live mesh)
+ */
+@Composable
+private fun MeshConfigEditorFocus(
+    item: MeshConfigItem,
+    vm: BedMeshVm,
+    selectedProfile: String?,
+    tokens: ThemeTokens,
+    onCycleScaleMode: () -> Unit,
+    onSetViewType: (BedMeshViewType) -> Unit,
+    onSetHighColorSel: (Int) -> Unit,
+    onSetLowColorSel: (Int) -> Unit,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
+    when (item) {
+        MeshConfigItem.VIEW_TYPE -> ViewTypeSelector(
+            current = vm.viewType,
+            onPick = onSetViewType,
+            t = tokens,
+            modifier = modifier,
+        )
+        MeshConfigItem.HIGH_COLOR -> PoolColorPicker(
+            selected = vm.highColorSel,
+            onPick = onSetHighColorSel,
+            t = tokens,
+            modifier = modifier,
+        )
+        MeshConfigItem.LOW_COLOR -> PoolColorPicker(
+            selected = vm.lowColorSel,
+            onPick = onSetLowColorSel,
+            t = tokens,
+            modifier = modifier,
+        )
+        MeshConfigItem.PREVIEW -> BedMeshFocusRegion(
+            vm = vm,
+            selectedProfile = null,  // always preview with current settings
+            tokens = tokens,
+            onCycleScaleMode = onCycleScaleMode,
+            uDp = uDp,
+            modifier = modifier,
+        )
+    }
+}
+
+/**
+ * View-type selector: 2 tiled options (Filled heatmap = HEATMAP, Colored probe points = PROBE_POINTS).
+ * The selected option is highlighted with an accent outline + soft fill (mirrors [PoolColorPicker] tile
+ * treatment). Iso wireframe is a documented fast-follow; no third option added here.
+ */
+@Composable
+private fun ViewTypeSelector(
+    current: BedMeshViewType,
+    onPick: (BedMeshViewType) -> Unit,
+    t: ThemeTokens,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ViewTypeTile(
+            label = "Filled heatmap",
+            viewType = BedMeshViewType.HEATMAP,
+            current = current,
+            onPick = onPick,
+            t = t,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        )
+        ViewTypeTile(
+            label = "Colored probe points",
+            viewType = BedMeshViewType.PROBE_POINTS,
+            current = current,
+            onPick = onPick,
+            t = t,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        )
+    }
+}
+
+/** One view-type selection tile. */
+@Composable
+private fun ViewTypeTile(
+    label: String,
+    viewType: BedMeshViewType,
+    current: BedMeshViewType,
+    onPick: (BedMeshViewType) -> Unit,
+    t: ThemeTokens,
+    modifier: Modifier = Modifier,
+) {
+    val selected = viewType == current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
+            .background(if (selected) t.accentSoft else Color.Transparent)
+            .clickable { onPick(viewType) }
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = label,
+            color = if (selected) t.accent2 else t.text,
+            style = DinghyType.listLabel.toTextStyle(t),
+            textAlign = TextAlign.Center,
         )
     }
 }

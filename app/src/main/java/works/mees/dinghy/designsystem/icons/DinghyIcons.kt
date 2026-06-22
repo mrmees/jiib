@@ -424,6 +424,18 @@ object DinghyIcons {
     val HumidityHigh = DinghyIcon(IconRef.Ligature("humidity_high"), alternate = "humidity_high")
     val WaterDrop    = DinghyIcon(IconRef.Ligature("water_drop"),    alternate = "water_drop")
 
+    // --- Bed Mesh Config subpage row glyphs (Task 9, OWNER-DECIDED — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]). All four ligatures confirmed present in the bundled Material
+    // Symbols ttf (verify_ligatures.py gate). Assigned by owner 2026-06-22.
+    /** Mesh Config → View Type row glyph. */
+    val BlurCircular = DinghyIcon(IconRef.Ligature("blur_circular"), alternate = "blur_circular")
+    /** Mesh Config → High Color row glyph. */
+    val HdrStrong    = DinghyIcon(IconRef.Ligature("hdr_strong"),    alternate = "hdr_strong")
+    /** Mesh Config → Low Color row glyph. */
+    val HdrWeak      = DinghyIcon(IconRef.Ligature("hdr_weak"),      alternate = "hdr_weak")
+    /** Mesh Config → Preview row glyph. */
+    val Preview      = DinghyIcon(IconRef.Ligature("preview"),       alternate = "preview")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -469,5 +481,6 @@ object DinghyIcons {
         TextFields, VpnKey, Search, NetworkPing, XCircle, Numbers,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
+        BlurCircular, HdrStrong, HdrWeak, Preview,
     )
 }
