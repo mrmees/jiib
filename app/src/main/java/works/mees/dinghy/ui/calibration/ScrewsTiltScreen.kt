@@ -61,6 +61,7 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 import works.mees.dinghy.theme.fsSp
+import works.mees.dinghy.ui.temperature.titleCase
 import kotlin.math.max
 
 /**
@@ -273,7 +274,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         },
     ) {
         Text(
-            text = point.name ?: point.key,
+            text = point.name?.let { titleCase(it) } ?: point.key,
             color = t.text,
             style = DinghyType.listLabel.toTextStyle(t),
             maxLines = 1,
