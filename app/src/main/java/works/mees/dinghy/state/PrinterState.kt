@@ -300,11 +300,22 @@ data class ScrewResult(
     val isBase: Boolean = false,
 )
 
+/** A saved bed-mesh profile's renderable payload (probed [points] + bed extents from `mesh_params`). */
+@Immutable
+data class BedMeshProfilePayload(
+    val points: ImmutableList<ImmutableList<Double>> = persistentListOf(),
+    val minX: Double = 0.0,
+    val maxX: Double = 0.0,
+    val minY: Double = 0.0,
+    val maxY: Double = 0.0,
+)
+
 /**
  * `bed_mesh` live object (CALIB-04). [profileName] is `""` when no mesh is ACTIVE (empty-state, Pitfall 4 —
  * SEPARATE from [profileNames] saved-list non-emptiness). [meshMin]/[meshMax] are JSON ARRAYS `[x,y]`
  * (Python tuple → array; 09-01 surprise #4), surfaced as `ImmutableList<Double>`. [meshMatrix] (interpolated)
  * and [probedMatrix] (raw dots) are arrays-of-arrays. [profileNames] are the KEYS of the `profiles` dict.
+ * [profiles] carries the full renderable payload for each saved profile (points + mesh extents).
  */
 @Immutable
 data class BedMeshObject(
@@ -314,6 +325,7 @@ data class BedMeshObject(
     val probedMatrix: ImmutableList<ImmutableList<Double>>? = null,
     val meshMatrix: ImmutableList<ImmutableList<Double>>? = null,
     val profileNames: ImmutableList<String> = persistentListOf(),
+    val profiles: ImmutableMap<String, BedMeshProfilePayload> = persistentMapOf(), // NEW: renderable payloads
 )
 
 /**

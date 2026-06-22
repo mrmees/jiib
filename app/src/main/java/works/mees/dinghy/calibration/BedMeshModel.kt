@@ -27,6 +27,18 @@ import kotlinx.serialization.json.jsonPrimitive
  * the SAME `{"bed_mesh": {...}}` JsonObject the reducer surfaces (the holder consumes this view).
  */
 
+/** A saved profile's renderable payload at the model layer (plain lists for UI use). */
+data class BedMeshProfile(
+    val points: List<List<Double>>,
+    val minX: Double,
+    val maxX: Double,
+    val minY: Double,
+    val maxY: Double,
+)
+
+/** Selectable render styles for the mesh Focus (iso wireframe is a fast-follow, not here yet). */
+enum class BedMeshViewType { HEATMAP, PROBE_POINTS }
+
 /** A bed extent corner as `[x, y]` Doubles (mesh_min / mesh_max). */
 data class MeshPoint(val x: Double, val y: Double)
 
@@ -44,6 +56,8 @@ data class BedMeshModel(
     val meshMax: MeshPoint = MeshPoint(0.0, 0.0),
     /** Saved-profile names (the KEYS of the `profiles` dict), sorted. */
     val profileNames: List<String> = emptyList(),
+    /** Saved-profile renderable payloads (points + bed extents), keyed by profile name. */
+    val profiles: Map<String, BedMeshProfile> = emptyMap(),
 ) {
     /**
      * Empty-state (Pitfall 4): no LOADED mesh. SEPARATE from [profileNames] non-emptiness — a printer
@@ -67,6 +81,20 @@ data class BedMeshModel(
                 meshMin = point(bm["mesh_min"]),
                 meshMax = point(bm["mesh_max"]),
                 profileNames = (bm["profiles"]?.jsonObject?.keys ?: emptySet()).sorted(),
+                profiles = (bm["profiles"]?.jsonObject ?: kotlinx.serialization.json.JsonObject(emptyMap()))
+                    .mapNotNull { (name, value) ->
+                        val pj = value as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                        val pts = matrix(pj["points"])
+                        if (pts.isEmpty()) return@mapNotNull null
+                        val mp = pj["mesh_params"]?.jsonObject
+                        name to BedMeshProfile(
+                            points = pts,
+                            minX = mp?.get("min_x")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            maxX = mp?.get("max_x")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            minY = mp?.get("min_y")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            maxY = mp?.get("max_y")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                        )
+                    }.toMap(),
             )
         }.getOrDefault(BedMeshModel())
 

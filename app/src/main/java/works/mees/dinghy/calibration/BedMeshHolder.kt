@@ -129,14 +129,21 @@ class BedMeshHolder(
                     live.meshMax?.let { put("mesh_max", buildJsonArray { it.forEach { v -> add(JsonPrimitive(v)) } }) }
                     live.meshMatrix?.let { put("mesh_matrix", matrixJson(it)) }
                     live.probedMatrix?.let { put("probed_matrix", matrixJson(it)) }
-                    if (live.profileNames.isNotEmpty()) {
-                        put(
-                            "profiles",
-                            buildJsonObject {
-                                // Only the KEYS matter for the saved-profile list; an empty object value is fine.
-                                live.profileNames.forEach { name -> put(name, buildJsonObject {}) }
-                            },
-                        )
+                    if (live.profiles.isNotEmpty()) {
+                        put("profiles", buildJsonObject {
+                            live.profiles.forEach { (name, p) ->
+                                put(name, buildJsonObject {
+                                    put("points", matrixJson(p.points.map { it.toList() }))
+                                    put("mesh_params", buildJsonObject {
+                                        put("min_x", JsonPrimitive(p.minX)); put("max_x", JsonPrimitive(p.maxX))
+                                        put("min_y", JsonPrimitive(p.minY)); put("max_y", JsonPrimitive(p.maxY))
+                                    })
+                                })
+                            }
+                        })
+                    } else if (live.profileNames.isNotEmpty()) {
+                        // Fallback: names only (no payloads yet this session) — keep the saved-profile list populated.
+                        put("profiles", buildJsonObject { live.profileNames.forEach { put(it, buildJsonObject {}) } })
                     }
                 }
             },
