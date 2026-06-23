@@ -31,26 +31,34 @@
 **Interfaces:**
 - Produces: `suspend fun ProfileStore.upsertAndSetActive(profile: Profile)` — one `edit`: upsert the profile AND force the active-id to `profile.id` (unlike `upsert`, which only auto-selects when none active). `fun AppContainer.saveAndSetActiveProfile(profile: Profile)` — durable wrapper that also seeds Heat Presets / Increment Lists for a NEW profile (parity with `saveProfile`).
 
-- [ ] **Step 1: Write the failing test** — append to `ProfileStoreTest.kt` (uses the existing `newStore()` / `profile()` helpers):
+- [ ] **Step 1: Write the failing test** — append to `ProfileStoreTest.kt` (uses the existing `newStore()` / `profile()` helpers).
+
+> **HOST CONSTRAINT (Codex BLOCK):** the Windows JVM host cannot do back-to-back `edit`s on ONE
+> `.preferences_pb` store (the atomic `.tmp`→final rename throws "multiple instances of DataStore").
+> So this test does a SINGLE write into an empty store, wrapped in `withContext(ioScope.coroutineContext)`
+> + `settle()` exactly like the existing `upsertIntoEmptyStore_setsItActive` test. The "force active even
+> when another is already active" semantics need no multi-write proof: `upsertAndSetActive` writes the
+> active id **unconditionally** (no branch), unlike `upsert`'s D-11 conditional — that is guaranteed by
+> construction, not by a runtime decision.
 
 ```kotlin
 @Test
-fun upsertAndSetActive_forcesActiveEvenWhenOneAlreadyActive() = runTest {
-    val (store, _) = newStore()
-    store.upsert(profile("a"))                       // D-11: "a" becomes active
-    assertEquals("a", store.activeId.first())
-
-    store.upsertAndSetActive(profile("b"))           // must FORCE active → "b"
-    assertEquals(
-        "upsertAndSetActive must force the new profile active even when another is already active",
-        "b",
-        store.activeId.first(),
-    )
-    assertEquals(
-        "both profiles must be persisted",
-        listOf("a", "b"),
-        store.profiles.first().map { it.id },
-    )
+fun upsertAndSetActive_persistsAndActivates() = runTest {
+    val (store, ioScope) = newStore()
+    withContext(ioScope.coroutineContext) {
+        store.upsertAndSetActive(profile(id = "first"))
+        settle()
+        assertEquals(
+            "upsertAndSetActive must make the upserted profile the active one",
+            "first",
+            store.activeId.first(),
+        )
+        assertEquals(
+            "the profile must be persisted",
+            listOf("first"),
+            store.profiles.first().map { it.id },
+        )
+    }
 }
 ```
 
@@ -305,7 +313,7 @@ LaunchedEffect(profile?.id, seed?.host, seed?.port) {
 ```
 
 - [ ] **Step 6: Remove the Find row + scan machinery from the editor.** Delete:
-  - `private const val SCAN_WINDOW_MS` and the `Find` case from `enum class ConnRow` → `enum class ConnRow { Name, Host, Port, ApiKey, Advanced, Delete }` (Delete added in Step 7).
+  - `private const val SCAN_WINDOW_MS` and the `Find` case from `enum class ConnRow` → `enum class ConnRow { Name, Host, Port, ApiKey, Advanced }`. **Do NOT add a `Delete` case** (Codex BLOCK): `ConnFocus`'s `when (selected)` is exhaustive over `ConnRow` and the Delete row is a direct **action** (no Focus editor), so it must not be a `ConnRow` value.
   - the scan state vars: `scanRequest`, `scanning`, `scanned`, `discovered`.
   - the `LaunchedEffect(scanRequest) { … }` scan block.
   - the `ConnRow.Find` Field `item { ConnListRow(ConnRow.Find, …) }`.
@@ -317,12 +325,9 @@ LaunchedEffect(profile?.id, seed?.host, seed?.port) {
 ```kotlin
 var pendingDelete by remember { mutableStateOf(false) }
 ```
-Add a BackHandler ABOVE the `ScreenScaffold` (so a pending guard dismisses first):
+`ConfirmGuard` is a **full-screen composable** (it owns a `ScreenScaffold` + `fillMaxSize`), NOT a Dialog — so it must be rendered via an **early return** that REPLACES the editor while pending (Codex BLOCK; this mirrors the existing pattern at `PrintersScreen.kt:336`). Place this block at the **top of the composable body, before `BoxWithConstraints`**, with the `BackHandler` registered just before it so hardware Back dismisses the guard:
 ```kotlin
 BackHandler(pendingDelete) { pendingDelete = false }
-```
-Render the guard (just before `ScreenScaffold`), only meaningful for an existing profile:
-```kotlin
 if (pendingDelete && profile != null) {
     ConfirmGuard(
         title = stringResource(R.string.printers_delete_confirm_title),
@@ -333,6 +338,7 @@ if (pendingDelete && profile != null) {
         onCancel = { pendingDelete = false },
         destructive = true,
     )
+    return
 }
 ```
 Add the Delete row as the LAST `item` in the Field `ListBlock`, gated on an existing profile (NOT a `ConnListRow` — it is a direct action, `t.stop`-tinted, no Focus editor):
@@ -387,8 +393,8 @@ git commit -m "feat(printers): editor seed seam, remove Find, add Delete row + g
 **Interfaces:**
 - Consumes: `AppContainer.discovery`, `AppContainer.runConnectionProbe`, `ConnectionSeed`, `findPickDecision`, `buildProfileFromConnectionEditorSave` (Task 2/existing).
 - Produces:
-  - `@Composable fun PrinterFindScreen(container: AppContainer, onAddAndConnect: (Profile) -> Unit, onNeedsEditor: (ConnectionSeed) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier)` — owns scan + probe lifecycle, reports outcomes.
-  - `@Composable fun PrinterFindContent(scanning: Boolean, scanned: Boolean, discovered: List<DiscoveredPrinter>, probingHost: String?, onScan: () -> Unit, onPick: (DiscoveredPrinter) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier)` — stateless seam the previews target.
+  - `@Composable fun PrinterFindScreen(container: AppContainer, onAddAndConnect: (Profile) -> Unit, onNeedsEditor: (ConnectionSeed) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier)` — owns scan + probe lifecycle + e-stop wiring, reports outcomes.
+  - `@Composable fun PrinterFindContent(scanning: Boolean, scanned: Boolean, discovered: List<DiscoveredPrinter>, probingHost: String?, isPrinting: Boolean = false, onEmergencyStop: () -> Unit = {}, onScan: () -> Unit, onPick: (DiscoveredPrinter) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier)` — stateless seam the previews target.
 
 - [ ] **Step 1: Create `PrinterFindScreen.kt`.** The stateful screen owns discovery, the bounded scan, and the probe (with cancellation/staleness ownership per Codex), and computes the pick outcome:
 
@@ -397,10 +403,8 @@ package works.mees.dinghy.ui.screen
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -412,11 +416,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
+import works.mees.dinghy.command.CommandRegistry
+import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.Profile
@@ -426,12 +431,13 @@ import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
 import works.mees.dinghy.designsystem.layout.ScreenScaffold
 import works.mees.dinghy.designsystem.layout.rememberUnitGrid
 import works.mees.dinghy.di.AppContainer
+import works.mees.dinghy.state.PrintState
+import works.mees.dinghy.state.PrinterState
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
@@ -440,10 +446,10 @@ import works.mees.dinghy.theme.compose.toTextStyle
 private const val FIND_SCAN_WINDOW_MS = 6000L
 
 /**
- * The Find-on-network takeover. Scans for Moonraker instances, lets the user pick one, probes it
- * (no API key), and reports: a clean connect → [onAddAndConnect] (caller persists + activates), or a
- * failed connect → [onNeedsEditor] (caller opens the editor pre-filled). Owns probe cancellation so a
- * stale probe can't fire after Back.
+ * The Find-on-network takeover. Auto-scans for Moonraker instances on open, lets the user pick one,
+ * probes it (no API key), and reports: a clean connect → [onAddAndConnect] (caller persists +
+ * activates), or a failed connect → [onNeedsEditor] (caller opens the editor pre-filled). Owns probe
+ * cancellation so a stale probe can't fire after Back. The foot Scan button re-scans.
  */
 @Composable
 fun PrinterFindScreen(
@@ -453,7 +459,12 @@ fun PrinterFindScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var scanRequest by remember { mutableStateOf(1) } // auto-scan on open
+    val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
+
+    var scanRequest by remember { mutableStateOf(1) } // auto-scan on open; Scan button re-scans
     var scanning by remember { mutableStateOf(false) }
     var scanned by remember { mutableStateOf(false) }
     var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
@@ -477,6 +488,8 @@ fun PrinterFindScreen(
         scanned = scanned,
         discovered = discovered,
         probingHost = probingHost,
+        isPrinting = isPrinting,
+        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onScan = { if (!scanning) scanRequest++ },
         onPick = { printer ->
             probeJob?.cancel()
@@ -513,6 +526,8 @@ fun PrinterFindContent(
     scanned: Boolean,
     discovered: List<DiscoveredPrinter>,
     probingHost: String?,
+    isPrinting: Boolean = false,
+    onEmergencyStop: () -> Unit = {},
     onScan: () -> Unit,
     onPick: (DiscoveredPrinter) -> Unit,
     onBack: () -> Unit,
@@ -529,14 +544,18 @@ fun PrinterFindContent(
                     icon = DinghyIcons.Search,
                     uDp = uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
                 ) {
                     Column(Modifier.fillMaxSize()) {
+                        // Auto-scan on open means the pre-scan hint is never the initial state; the
+                        // first emission is "Scanning…". Status order: probing > scanning > result.
                         val status = when {
-                            probingHost != null -> stringResource(R.string.conn_test) // "Testing…" reuse
+                            probingHost != null -> stringResource(R.string.printers_find_testing)
                             scanning -> stringResource(R.string.printers_scanning)
                             scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
-                            scanned -> stringResource(R.string.printers_pick_found) // new string (Task 5 adds it)
-                            else -> stringResource(R.string.conn_scan_empty)
+                            else -> stringResource(R.string.printers_pick_found)
                         }
                         Text(text = status, color = t.text2, style = DinghyType.body.toTextStyle(t))
                     }
@@ -582,58 +601,57 @@ fun PrinterFindContent(
         )
     }
 }
-
-@Suppress("unused")
-private fun unusedDpRef(): Dp = 0.dp // keep Dp import honest if refactored; remove if Dp used above
 ```
 
-> Note: remove the `unusedDpRef`/`Dp`/`Spacer`/`height` scaffolding imports if the final body doesn't reference them — the compile step will flag unused imports as warnings, not errors, but keep the file clean.
+> The import list above is the COMPLETE set — no `Dp`/`dp`/`Spacer`/`height`/`OutlinedControl` (the
+> Scan/Back actions are `FootAction`s; the discovered rows are `ListRow`s — no bare `OutlinedControl`).
+> Do not add a `unusedDpRef` placeholder; the file must compile clean with exactly these imports.
 
 - [ ] **Step 2: Add the two new strings** to `app/src/main/res/values/strings.xml` (near the other `printers_*` entries):
 
 ```xml
 <string name="printers_pick_found">Tap a printer to add it.</string>
+<string name="printers_find_testing">Connecting…</string>
 ```
-(The empty/none-found case reuses the existing `printers_scan_none_found`; "Scanning…" reuses `printers_scanning`; the pre-scan hint reuses `conn_scan_empty`.)
+(The none-found case reuses the existing `printers_scan_none_found`; "Scanning…" reuses `printers_scanning`.)
 
-- [ ] **Step 3: Create `PrinterFindPreviews.kt`** with the four scan states (scanning, found, none-found, probing). Mirror the existing `PrintersPreviews.kt` preview wrapper (same `@Preview` annotations + theme wrapper used there):
+- [ ] **Step 3: Create `PrinterFindPreviews.kt`** with the scan states (scanning, found, none-found). Use the package's REAL preview wrapper — `PreviewBox(colorfulDark) { … }` with the `@Nexus7Previews` annotation (confirmed by Codex; same as `PrintersPreviews.kt`). `PreviewBox`, `colorfulDark`, and `@Nexus7Previews` are package-private symbols already defined in `works.mees.dinghy.preview`, so no import needed:
 
 ```kotlin
 package works.mees.dinghy.preview
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.ui.screen.PrinterFindContent
 
-private val SAMPLE = listOf(
+private val findSample = listOf(
     DiscoveredPrinter(name = "ender5plus", host = "192.168.1.120", port = 7125),
     DiscoveredPrinter(name = "voron", host = "192.168.1.121", port = 7125),
 )
 
-@Preview(name = "Find — found", widthDp = 1920, heightDp = 1200)
+@Nexus7Previews
 @Composable
-private fun FindFound() = PreviewSurface { // PreviewSurface = the existing theme wrapper in this package
-    PrinterFindContent(scanning = false, scanned = true, discovered = SAMPLE, probingHost = null,
+private fun FindFound() = PreviewBox(colorfulDark) {
+    PrinterFindContent(scanning = false, scanned = true, discovered = findSample, probingHost = null,
         onScan = {}, onPick = {}, onBack = {})
 }
 
-@Preview(name = "Find — scanning", widthDp = 1920, heightDp = 1200)
+@Nexus7Previews
 @Composable
-private fun FindScanning() = PreviewSurface {
+private fun FindScanning() = PreviewBox(colorfulDark) {
     PrinterFindContent(scanning = true, scanned = false, discovered = emptyList(), probingHost = null,
         onScan = {}, onPick = {}, onBack = {})
 }
 
-@Preview(name = "Find — none", widthDp = 1920, heightDp = 1200)
+@Nexus7Previews
 @Composable
-private fun FindNone() = PreviewSurface {
+private fun FindNone() = PreviewBox(colorfulDark) {
     PrinterFindContent(scanning = false, scanned = true, discovered = emptyList(), probingHost = null,
         onScan = {}, onPick = {}, onBack = {})
 }
 ```
 
-> Before writing this file, open `PrintersPreviews.kt` and copy its exact theme-wrapper helper name and `@Preview` parameters (the placeholder `PreviewSurface` above must be replaced with the real wrapper used in `app/src/main/java/works/mees/dinghy/preview/`). Do not invent a wrapper.
+> Before writing, confirm the exact `PreviewBox`/`colorfulDark`/`@Nexus7Previews` symbol names by opening `PrintersPreviews.kt` (top of file + a sample panel). If a name differs, use the file's actual one — do not invent a wrapper.
 
 - [ ] **Step 4: Build to verify it compiles**
 
@@ -876,6 +894,10 @@ fun PrintersContent(
 ```
 Add the needed imports if missing: `androidx.compose.foundation.layout.Spacer`, `androidx.compose.foundation.layout.height`, `androidx.compose.foundation.lazy.items` (already present), `ListRowIcon`. Remove now-unused: `ConnectionState`, `FocusEdge`, the `ringColor` logic, the empty-state branch (instructions cover empty), `printers_empty_*` usage, and `Alignment`/`TextAlign` if unused.
 
+  **Dead-code/docs cleanup (Codex WARN) — same edit:**
+  - Delete the private `ConnectionState.labelRes()` extension at the bottom of `PrintersScreen.kt` (it is only used by the old active-printer Focus card, now gone). Verify with `grep -n "labelRes" PrintersScreen.kt` → no remaining callers before deleting.
+  - Update the `PrintersScreen` + `PrintersContent` KDoc: drop the `@param onArmDelete` line and rewrite the foot-bar description from "Add / Edit / Delete / Back" to "Back (accent) + Edit (accent-outline, fills when armed); Add + Find are Field rows; Delete lives in the printer editor."
+
 - [ ] **Step 7: Add instruction strings** to `strings.xml`:
 
 ```xml
@@ -885,7 +907,7 @@ Add the needed imports if missing: `androidx.compose.foundation.layout.Spacer`, 
 <string name="printers_help_delete">Delete a printer from inside its own settings.</string>
 ```
 
-- [ ] **Step 8: Update `PrintersPreviews.kt`** — remove the `DeleteArmedMode` preview and every `onArmDelete = {}` arg; remove the `connectionState`/`onArmDelete` args from all `PrintersContent` calls; add `onFind = {}`. Keep Normal + EditArmed + Empty previews. (Open the file and update each `PrintersContent(...)` call to the new signature.)
+- [ ] **Step 8: Update `PrintersPreviews.kt`** — remove the `DeleteArmedMode` preview and every `onArmDelete = {}` arg; remove the `connectionState`/`onArmDelete` args (and the now-unused `ConnectionState` import) from all `PrintersContent` calls; add `onFind = {}`. Keep Normal + EditArmed + Empty previews. Also update the file-level KDoc: drop the "Edit/Delete armed states", "DeleteArmed", and "Connection state: Connected/Error/Disconnected … ringColor" axis lines (the Focus is now instructions, no ring). (Open the file and update each `PrintersContent(...)` call to the new signature.)
 
 - [ ] **Step 9: Build + run the full unit suite**
 
@@ -951,6 +973,13 @@ Expected: `Success` on both.
 - Manual Add separate from Find → Task 5 (`EditorTarget.New()` vs `New(seed)`). ✓
 - Codex: editor BackHandler for guard → Task 3 Step 7. ✓ · probe lifecycle → Task 4 Step 1. ✓ · atomic save+activate → Task 1. ✓ · seed seam keyed in LaunchedEffect → Task 3 Step 5. ✓ · ListRow Delete `t.stop` tint → Task 3 Step 7. ✓ · preview seam (Find via stateless content) → Task 4. ✓ · editor previews note → Find previews added; editor Delete-row visibility verified on-device (Task 6) since editor has no stateless seam — acceptable, called out. · deleteProfile active reassignment → relied on, documented in spec. ✓
 
-**Placeholder scan:** the only deliberate placeholders are the `PreviewSurface` wrapper name (Task 4 Step 3 — engineer must copy the real wrapper from `PrintersPreviews.kt`) and the `unusedDpRef` cleanup note — both explicitly flagged, not silent. No "TBD/handle errors/etc."
+**Placeholder scan:** no placeholders. The preview wrapper is the real `PreviewBox(colorfulDark)` + `@Nexus7Previews` (confirmed against `PrintersPreviews.kt`); the `unusedDpRef` hack was removed. No "TBD/handle errors/etc."
+
+**Codex plan-review fixes folded in (2026-06-23):**
+- Task 1 test → single-write into an empty store with `withContext(ioScope…)` + `settle()` (host can't do back-to-back edits; force-active is unconditional-by-construction).
+- Task 3 → `ConnRow` keeps `{Name,Host,Port,ApiKey,Advanced}` (no `Delete` case — `when(selected)` stays exhaustive); `ConfirmGuard` rendered via **early return** at the top of the body (it's full-screen, not a Dialog), with `BackHandler` before it.
+- Task 4 → `FocusFrame` gets `isPrinting`/`onEmergencyStop`/`onPanic` (e-stop reachable during the Find takeover); status uses new `printers_find_testing` (not `conn_test`); auto-scan keeps the pre-scan hint out of the status set; `unusedDpRef`/extra imports removed; preview uses `PreviewBox(colorfulDark)`/`@Nexus7Previews`; **two** new strings (`printers_pick_found`, `printers_find_testing`).
+- Task 5 → explicit removal of `ConnectionState.labelRes()`, `onArmDelete` KDoc, and the `PrintersPreviews` DeleteArmed/connection-state KDoc axes.
+- Accepted limitation: editor Delete-row present-vs-absent is verified by on-device UAT (Task 6), not a preview — the editor has no stateless content seam and adding one is out of scope.
 
 **Type consistency:** `ConnectionSeed(host, port)`, `FindPickEffect`, `findPickDecision(ProbeResult)`, `editorInitialFields(Profile?, ConnectionSeed?): EditorFields`, `upsertAndSetActive(Profile)`, `saveAndSetActiveProfile(Profile)`, `PrinterMode { Normal, EditArmed }`, `RowTapEffect { SwitchActive, OpenEditor }`, `EditorTarget.New(seed)`, `PrinterFindScreen(container, onAddAndConnect, onNeedsEditor, onBack)` — names used consistently across tasks.
