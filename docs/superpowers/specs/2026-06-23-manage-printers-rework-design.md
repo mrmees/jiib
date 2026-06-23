@@ -69,11 +69,23 @@ is no longer needed on this screen.
   state, the scan `LaunchedEffect`, and the `onScan`/`onPick` plumbing). These move to the Printers
   screen (§4). Editor field rows become: Name / Host / Port / API Key / Advanced.
 - **Add a Delete row at the very bottom, after Advanced** — `DinghyIcons.Delete`, label
-  `printers_delete`, `Intent.Danger` tint. Shown **only when editing an existing printer**
-  (`profile != null`), never when adding. It is a direct **action** row (not a Focus-editor row):
-  tapping it raises a `ConfirmGuard` (reuse `printers_delete_confirm_title/body`, `printers_delete`,
-  `common_back`, `destructive = true`) → on confirm `container.deleteProfile(profile.id)` → `onDone()`
-  (returns to the printer list). The `ConfirmGuard` is hosted inside the editor composable.
+  `printers_delete`, **icon/label tinted `t.stop`** (a `ListRow` does NOT take an `Intent` — apply the
+  token tint explicitly; `Intent` is a control concept, not a row concept). Shown **only when editing an
+  existing printer** (`profile != null`), never when adding. It is a direct **action** row (not a
+  Focus-editor row): tapping it raises a `ConfirmGuard` (reuse `printers_delete_confirm_title/body`,
+  `printers_delete`, `common_back`, `destructive = true`) → on confirm `container.deleteProfile(profile.id)`
+  → `onDone()` (returns to the printer list). The `ConfirmGuard` is hosted inside the editor composable.
+- **Editor needs its own `BackHandler` for the delete guard** (Codex BLOCK). The delete-guard safety
+  currently lives in `PrintersScreen`'s `BackHandler` chain; once the guard moves into the editor, the
+  editor must gate Back so a pending delete `ConfirmGuard` is dismissed first (= "Keep") instead of the
+  parent closing the whole editor. Add `BackHandler(pendingDelete != null) { pendingDelete = null }`
+  inside the editor, ordered ahead of the existing `selected != null → selected = null` / `onDone()`
+  Back logic.
+- **Seed seam for the discovery-failure path** (Codex): the editor currently seeds only via
+  `LaunchedEffect(profile?.id)`. Add an optional `seed: ConnectionSeed?` param
+  (`data class ConnectionSeed(val host: String, val port: Int)`), key the seeding effect on
+  `LaunchedEffect(profile?.id, seed?.host, seed?.port)`, and apply the seed **only when
+  `profile == null`** (a New target). This avoids fighting the existing profile-seeding.
 
 ### 3. Edit-button styling (mechanics)
 
@@ -98,19 +110,29 @@ list. Scan states:
 
 - **Scanning** → "Scanning…" (button disabled).
 - **Found ≥1** → list of discovered printers (host + port), tap to pick.
-- **Scanned, none found** → "Nothing found" message (`conn_scan_empty`). No auto-anything.
+- **Scanned, none found** → "Nothing found" message using the **existing `printers_scan_none_found`**
+  string (NOT `conn_scan_empty`, which is the pre-scan hint "Tap Scan to search your network"). No
+  auto-anything.
+
+**Probe lifecycle (Codex WARN):** the Printers screen owns probe cancellation/staleness exactly like
+the editor does today — cancel any in-flight `probeJob?.cancel()` on a new pick, and a
+`DisposableEffect(Unit) { onDispose { probeJob?.cancel() } }` so a stale probe can't save/set-active
+after the user backs out of the takeover. `runConnectionProbe(config, onResult): Job` runs on the
+process `probeScope` and calls back on `Dispatchers.Main.immediate`.
 
 **On pick** of a discovered printer:
 
 1. Build a `ConnectionConfig` for the discovered host:port (no API key) and run
    `container.runConnectionProbe(config)`.
-2. **Probe OK** → build the profile via `buildProfileFromConnectionEditorSave(existing = null, …)`,
-   `container.saveProfile(...)`, `container.setActiveProfile(id)`, leave the Find takeover → the list
-   shows it active/connected.
+2. **Probe OK** → build the profile via `buildProfileFromConnectionEditorSave(existing = null, …)` and
+   persist + activate via a **new atomic helper `container.saveAndSetActiveProfile(profile)`** (Codex
+   WARN — doing `saveProfile` then `setActiveProfile` as two fire-and-forget writeScope launches can
+   transiently dangle the active id; one helper that saves then sets active in a single write avoids
+   it). Leave the Find takeover → the list shows it active/connected.
 3. **Probe fails** (auth/security/refused/timeout/etc.) → open the editor **pre-filled** with the
-   discovered host/port as a *new, unsaved* profile (same editor used by manual Add, seeded). The user
-   adds an API key / fixes it and Saves. Nothing is persisted until they Save — backing out leaves no
-   dead printer.
+   discovered host/port via the `ConnectionSeed` seam (`EditorTarget.New(seed)`), as a *new, unsaved*
+   profile. The user adds an API key / fixes it and Saves. Nothing is persisted until they Save —
+   backing out leaves no dead printer.
 
 **Manual Add is a separate path:** the Add row opens the same editor with *no* seed (blank). Find
 (discovery) and Add (manual) never share an entry point.
@@ -135,28 +157,41 @@ so it is host-testable without Compose.
 ## Components / units touched
 
 - `PrintersScreen.kt` — Field rows (Add/Find + profiles), 2-button foot bar, instructions Focus,
-  mode-machine trim, scan state + Find takeover, pick decision helper.
-- `PrinterConnectionEditor.kt` — remove Find, add Delete action row + `ConfirmGuard`, accept an
-  optional host/port **seed** for the discovery-failure path.
+  mode-machine trim, scan state + Find takeover, pick decision helper, probe lifecycle (cancel +
+  DisposableEffect). **Update KDoc and ALL `onArmDelete` call sites** when collapsing the mode machine.
+- `PrinterConnectionEditor.kt` — remove Find, add Delete action row + `ConfirmGuard` + its own
+  `BackHandler`, accept an optional `ConnectionSeed` for the discovery-failure path.
+- `AppContainer.kt` — new `saveAndSetActiveProfile(profile)` atomic helper (single writeScope
+  edit: persist remaining + set active), routed through the process writeScope.
+- New `ConnectionSeed(host, port)` type + `EditorTarget.New(seed: ConnectionSeed? = null)`.
 - No new icons (`PrinterAdd`, `Search`, `Delete`, `Edit` all exist) → no icon-law ask.
-- New string resources: instructions block (Printers Focus).
+- New string resources: instructions block (Printers Focus). Reuse existing `printers_scan_none_found`
+  for the empty-scan result.
 
 ## Testing
 
 - `PrintersModeToggleTest` — trim to the 2-mode (`Normal | EditArmed`) machine; drop DeleteArmed
-  assertions.
+  assertions. Also remove DeleteArmed refs in `PrintersPreviews.kt`.
 - New host test for the Find pick→decision pure function (probe-ok → add/connect; probe-fail →
-  open-editor-seeded).
-- Editor: host test that Delete is gated on `profile != null`; confirm `deleteProfile` reassigns the
-  active profile when the deleted one was active (verify existing behaviour before relying on it).
-- `@Preview` matrices updated: Printers (instructions Focus, Add/Find rows, Edit unarmed/armed),
-  editor (Delete row present when editing / absent when adding).
+  open-editor-seeded). Mirror the existing pure-helper pattern (`rowTapEffect`).
+- Editor: host test that Delete is gated on `profile != null`.
+- **Preview-seam drift (Codex WARN):** `PrintersScreen` delegates live layout to the stateless
+  `PrintersContent`. The Find-takeover UI + scan/discovery state must flow **through `PrintersContent`**
+  (or be a separately-previewable stateless Find-panel seam) so previews don't drift from the live
+  screen. `@Preview` matrix: Printers (instructions Focus, Add/Find rows, Edit unarmed/armed, Find
+  takeover scanning/found/none-found states).
+- **Editor previews:** there are currently NO `PrinterConnectionEditor` previews. To preview the
+  Delete row present-vs-absent, either add a stateless editor/content seam or a focused row-list
+  preview harness — call this out as plan work, don't claim previews are merely "updated".
 - Build green (assembleDebug + unit tests); on-device UAT on flox + moto (push matching ABI to both).
 
 ## Risks / notes
 
-- **Deleting the active printer** from its editor (reachable via Printer Settings → Connection): rely
-  on `container.deleteProfile` to reassign/clear the active profile. Verify before shipping.
+- **Deleting the active printer** from its editor (reachable via Printer Settings → Connection):
+  `AppContainer.deleteProfile` → `writeScope.launch { profileStore.delete(id) }`; `ProfileStore.delete`
+  writes the remaining profiles and **sets the first remaining id active** (clears when none remain,
+  leaves active unchanged otherwise). So active reassignment is handled — confirmed by Codex, no extra
+  work needed, but keep the editor-delete UAT case (delete active vs non-active).
 - **Write-scope law** ([[dinghy-compose-write-scope-cancellation]]): every persist (saveProfile,
   setActiveProfile, deleteProfile) routes through `AppContainer` intent helpers on the process-scoped
   writeScope — unchanged from current call sites.
