@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.CompositionLocalProvider
 import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,6 +74,7 @@ import works.mees.dinghy.state.PrinterState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import works.mees.dinghy.calibration.BedMeshViewType
+import works.mees.dinghy.calibration.meshSpan
 import works.mees.dinghy.render.BedMeshHeatmapHost
 import works.mees.dinghy.render.BedMeshHeatmapView
 import works.mees.dinghy.render.resolveMeshColor
@@ -510,15 +513,29 @@ internal fun BedMeshContent(
                                         selected = name == selectedProfile,
                                         onClick = { onSelectProfile(name) },
                                         uDp = grid.uDp,
-                                        trailingContent = if (isActive) {
-                                            {
-                                                Text(
-                                                    text = stringResource(R.string.mesh_profile_active),
-                                                    color = t.accent2,
-                                                    style = DinghyType.caption.toTextStyle(t),
-                                                )
+                                        trailingContent = {
+                                            // Per-profile span (max−min probe Z) + a dot for the active profile.
+                                            val span = vm.model.profiles[name]?.points?.let(::meshSpan)
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                if (span != null) {
+                                                    Text(
+                                                        text = String.format(Locale.US, "%.3f mm", span),
+                                                        color = t.text2,
+                                                        style = DinghyType.dataMeta.toTextStyle(t),
+                                                    )
+                                                }
+                                                if (isActive) {
+                                                    Box(
+                                                        Modifier
+                                                            .size(8.dp)
+                                                            .background(t.accent2, CircleShape),
+                                                    )
+                                                }
                                             }
-                                        } else null,
+                                        },
                                     ) {
                                         // Canonical list-label look (Geist SemiBold 20) — the
                                         // profile NAME is the row label; mono stays for VALUES.
@@ -955,7 +972,7 @@ private fun BedMeshFocusRegion(
  * Focus content for the Mesh Config editor modes (Task 9).
  *
  * Dispatches to the appropriate editor based on [item]:
- * - VIEW_TYPE → [ViewTypeSelector] (2-option tile selector)
+ * - VIEW_TYPE → [ViewTypeSelector] (description + 3 icon-only foot buttons)
  * - HIGH_COLOR / LOW_COLOR → [PoolColorPicker] (data-pool swatch grid)
  * - PREVIEW → [BedMeshFocusRegion] with current settings (selectedProfile=null → live mesh)
  */
@@ -976,6 +993,7 @@ private fun MeshConfigEditorFocus(
             current = vm.viewType,
             onPick = onSetViewType,
             t = tokens,
+            uDp = uDp,
             modifier = modifier,
         )
         MeshConfigItem.HIGH_COLOR -> PoolColorPicker(
@@ -1001,77 +1019,74 @@ private fun MeshConfigEditorFocus(
 }
 
 /**
- * View-type selector: 3 tiled options (Filled heatmap = HEATMAP, Colored probe points = PROBE_POINTS,
- * 3D wireframe grid = ISO). The selected option is highlighted with an accent outline + soft fill
- * (mirrors [PoolColorPicker] tile treatment).
+ * View-type selector: a description of the currently-selected view fills the space above three
+ * icon-only foot buttons — **2D Heatmap** (HEATMAP), **3D Mesh** (ISO), **Probe Points** (PROBE_POINTS),
+ * in that order. Tapping a button selects that view and the description above updates to match; the
+ * active view's button carries a soft accent fill.
  */
 @Composable
 private fun ViewTypeSelector(
     current: BedMeshViewType,
     onPick: (BedMeshViewType) -> Unit,
     t: ThemeTokens,
+    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    val (name, description) = viewTypeBlurb(current)
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ViewTypeTile(
-            label = "Filled heatmap",
-            viewType = BedMeshViewType.HEATMAP,
-            current = current,
-            onPick = onPick,
-            t = t,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        )
-        ViewTypeTile(
-            label = "Colored probe points",
-            viewType = BedMeshViewType.PROBE_POINTS,
-            current = current,
-            onPick = onPick,
-            t = t,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        )
-        ViewTypeTile(
-            label = "3D Grid",
-            viewType = BedMeshViewType.ISO,
-            current = current,
-            onPick = onPick,
-            t = t,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+        // Description of the selected view fills the space above the foot buttons.
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(text = name, color = t.text, style = DinghyType.focusHeroLabel.toTextStyle(t))
+            Spacer(Modifier.height(8.dp))
+            Text(text = description, color = t.text2, style = DinghyType.body.toTextStyle(t))
+        }
+        // Three icon-only foot buttons (count-driven); the active view's button gets a soft accent fill.
+        FootButtonBar(
+            uDp = uDp,
+            actions = listOf(
+                FootAction(
+                    label = "2D Heatmap",
+                    icon = DinghyIcons.MeshView2D,
+                    onClick = { onPick(BedMeshViewType.HEATMAP) },
+                    intent = Intent.Accent,
+                    contentDescription = "2D Heatmap",
+                    fill = if (current == BedMeshViewType.HEATMAP) t.accentSoft else null,
+                ),
+                FootAction(
+                    label = "3D Mesh",
+                    icon = DinghyIcons.MeshViewIso,
+                    onClick = { onPick(BedMeshViewType.ISO) },
+                    intent = Intent.Accent,
+                    contentDescription = "3D Mesh",
+                    fill = if (current == BedMeshViewType.ISO) t.accentSoft else null,
+                ),
+                FootAction(
+                    label = "Probe Points",
+                    icon = DinghyIcons.MeshViewProbe,
+                    onClick = { onPick(BedMeshViewType.PROBE_POINTS) },
+                    intent = Intent.Accent,
+                    contentDescription = "Probe Points",
+                    fill = if (current == BedMeshViewType.PROBE_POINTS) t.accentSoft else null,
+                ),
+            ),
         )
     }
 }
 
-/** One view-type selection tile. */
-@Composable
-private fun ViewTypeTile(
-    label: String,
-    viewType: BedMeshViewType,
-    current: BedMeshViewType,
-    onPick: (BedMeshViewType) -> Unit,
-    t: ThemeTokens,
-    modifier: Modifier = Modifier,
-) {
-    val selected = viewType == current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Column(
-        modifier = modifier
-            .clip(shape)
-            .border(BorderStroke(2.dp, if (selected) t.accentLine else t.outline), shape)
-            .background(if (selected) t.accentSoft else Color.Transparent)
-            .clickable { onPick(viewType) }
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) t.accent2 else t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
-            textAlign = TextAlign.Center,
-        )
-    }
+/** Name + brief description for each bed-mesh view type (shown above the View Type foot buttons). */
+private fun viewTypeBlurb(v: BedMeshViewType): Pair<String, String> = when (v) {
+    BedMeshViewType.HEATMAP -> "2D Heatmap" to
+        "Top-down map. Each cell is shaded by height across the color ramp — the classic flat bed-mesh view."
+    BedMeshViewType.ISO -> "3D Mesh" to
+        "Isometric wireframe. The grid lifts by deviation to show the bed's shape, with lines colored by height."
+    BedMeshViewType.PROBE_POINTS -> "Probe Points" to
+        "Just the measured probe points as height-colored dots — no fill or interpolation between them."
 }
 
 /** Scale-mode display label (Mono numeric for the ± modes). */

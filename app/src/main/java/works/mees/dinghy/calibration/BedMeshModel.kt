@@ -36,6 +36,20 @@ data class BedMeshProfile(
     val maxY: Double,
 )
 
+/**
+ * The mesh "span" — max minus min Z over a probed matrix (the difference between the highest and
+ * lowest probe points). Returns null for an empty matrix. Shown per-profile on the Bed Mesh list.
+ */
+fun meshSpan(points: List<List<Double>>): Double? {
+    var lo = Double.POSITIVE_INFINITY
+    var hi = Double.NEGATIVE_INFINITY
+    for (row in points) for (z in row) {
+        if (z < lo) lo = z
+        if (z > hi) hi = z
+    }
+    return if (hi < lo) null else hi - lo
+}
+
 /** Selectable render styles for the mesh Focus: filled heatmap, colored probe points, 3D wireframe. */
 enum class BedMeshViewType { HEATMAP, PROBE_POINTS, ISO }
 
