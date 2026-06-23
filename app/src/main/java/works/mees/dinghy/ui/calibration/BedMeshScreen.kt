@@ -670,7 +670,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.BlurCircular,
+                                                icon = DinghyIcons.MeshViewIso,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "View Type",
@@ -749,7 +749,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.BlurCircular,
+                                                icon = DinghyIcons.MeshViewIso,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "View Type",
@@ -1001,9 +1001,9 @@ private fun MeshConfigEditorFocus(
 }
 
 /**
- * View-type selector: 2 tiled options (Filled heatmap = HEATMAP, Colored probe points = PROBE_POINTS).
- * The selected option is highlighted with an accent outline + soft fill (mirrors [PoolColorPicker] tile
- * treatment). Iso wireframe is a documented fast-follow; no third option added here.
+ * View-type selector: 3 tiled options (Filled heatmap = HEATMAP, Colored probe points = PROBE_POINTS,
+ * 3D wireframe grid = ISO). The selected option is highlighted with an accent outline + soft fill
+ * (mirrors [PoolColorPicker] tile treatment).
  */
 @Composable
 private fun ViewTypeSelector(
@@ -1027,6 +1027,14 @@ private fun ViewTypeSelector(
         ViewTypeTile(
             label = "Colored probe points",
             viewType = BedMeshViewType.PROBE_POINTS,
+            current = current,
+            onPick = onPick,
+            t = t,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        )
+        ViewTypeTile(
+            label = "3D Grid",
+            viewType = BedMeshViewType.ISO,
             current = current,
             onPick = onPick,
             t = t,

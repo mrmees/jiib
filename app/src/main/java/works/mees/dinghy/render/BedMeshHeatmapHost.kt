@@ -20,14 +20,14 @@ import works.mees.dinghy.theme.ThemeTokens
  * Both pushes happen in `update`:
  *  - `view.applyTokens(tokens)` recolors the ramp endpoints + dot color and `invalidate()`s (theme swap);
  *  - `view.setRampColors(lowColorArgb, highColorArgb)` overrides the ramp from per-printer selectors;
- *  - `view.setViewMode(viewMode)` switches between heatmap fill and colored probe-point dots;
+ *  - `view.setViewMode(viewMode)` switches heatmap fill / colored probe dots / 3D wireframe;
  *  - `view.setMesh(model, scaleMode)` hands the new mesh + active scale and `invalidate()`s (D-13 —
  *    repaint on a new sample / a scale cycle, never per frame; there is no animation loop).
  *
  * @param tokens        the active resolved tokens (the caller collects the flow; THEME-01 — never raw).
  * @param model         the pure [BedMeshModel] (interpolated grid + probe dots + extents).
  * @param scaleMode     the active color-scale mode (D-09 — cycled by the screen's overlay toggle).
- * @param viewMode      HEATMAP (interpolated fill) or PROBE_POINTS (ramp-colored probe dots only).
+ * @param viewMode      HEATMAP (interpolated fill), PROBE_POINTS (ramp-colored dots), or ISO_WIREFRAME (3D grid).
  * @param lowColorArgb  packed ARGB for the ramp's low endpoint (resolved from per-printer selector).
  * @param highColorArgb packed ARGB for the ramp's high endpoint (resolved from per-printer selector).
  * @param midColorArgb  optional packed ARGB for the ramp's midpoint (e.g. tokens.outline); when set
