@@ -249,10 +249,9 @@ fun BedMeshScreen(
             val target = selectedProfile ?: vm.model.profileName
             if (d != null && target.isNotEmpty() && target != "default") {
                 d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
-                // WR-02 (27-review): BED_MESH_PROFILE REMOVE only mutates Klipper's RUNTIME state —
-                // without SAVE_CONFIG the profile resurrects on the next firmware restart. Surface
-                // the amber restart guard after the remove dispatch, mirroring the save path.
-                showSaveConfigGuard = true
+                // WR-02 (27-review, updated): REMOVE is runtime-only by design — the profile
+                // resurrects on the next firmware restart without a manual SAVE_CONFIG, but the
+                // owner does NOT want a restart prompt on delete. No SAVE_CONFIG guard on removal.
             }
             selectedProfile = null
             editing = false

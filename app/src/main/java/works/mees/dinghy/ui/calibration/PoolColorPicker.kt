@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,24 +62,40 @@ internal fun PoolColorPicker(
 
     BoxWithConstraints(modifier) {
         val landscape = maxWidth > maxHeight
-        Row(
+        // Lay tiles as a 4-column × 2-row grid (mirrors SpoolPicker.ColorSwatchGrid chunked pattern).
+        // chunked(4) handles a short final row gracefully — no crash on fewer than 8 entries.
+        val rows = options.chunked(4)
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            options.forEach { sel ->
-                PoolColorTile(
-                    sel = sel,
-                    label = labels[sel] ?: "Accent",
-                    isSelected = sel == selected,
-                    onPick = onPick,
-                    t = t,
-                    landscape = landscape,
+            rows.forEach { rowOptions ->
+                Row(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
-                )
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowOptions.forEach { sel ->
+                        PoolColorTile(
+                            sel = sel,
+                            label = labels[sel] ?: "Accent",
+                            isSelected = sel == selected,
+                            onPick = onPick,
+                            t = t,
+                            landscape = landscape,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+                    // Pad empty cells in a short last row so tiles share equal width
+                    repeat(4 - rowOptions.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
             }
         }
     }

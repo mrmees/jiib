@@ -21,8 +21,10 @@ import java.io.IOException
  */
 class BedMeshRenderPrefs(private val dataStore: DataStore<Preferences>) {
     private fun viewKey(pid: String) = stringPreferencesKey("bm_view_$pid")
-    private fun highKey(pid: String) = intPreferencesKey("bm_high_$pid")
-    private fun lowKey(pid: String) = intPreferencesKey("bm_low_$pid")
+    // v2 suffix: round-1 picks used 0..3 = pool slots; now 0..7 = intent + pool (accent/stop/heat/go/pool0..3).
+    // Old keys are abandoned so stale values fall through to DEFAULT_HIGH/DEFAULT_LOW.
+    private fun highKey(pid: String) = intPreferencesKey("bm_high_v2_$pid")
+    private fun lowKey(pid: String) = intPreferencesKey("bm_low_v2_$pid")
 
     fun viewType(pid: String): Flow<BedMeshViewType> = dataStore.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
