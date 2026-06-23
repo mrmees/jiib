@@ -117,8 +117,10 @@ object OklchRamp {
      * Bake a THEME-DERIVED 32-stop sequential ramp as opaque ARGB ints, interpolated in OKLCH from a
      * LOW endpoint [lowArgb] to a HIGH endpoint [highArgb]. When [midArgb] is non-null the ramp is
      * split at stop MID (=STOPS/2=16): stops 0..MID interpolate low→mid, stops MID..31 interpolate
-     * mid→high, so stop ~16 == mid (outline) and the gradient reads low → neutral → high. When
-     * [midArgb] is null the exact 2-endpoint behavior is preserved (backward compatible).
+     * mid→high, so stop ~16 == mid (the neutral) and the gradient reads low → neutral → high. Callers
+     * pass a theme-INDEPENDENT neutral here (see BedMeshScreen) so the midpoint reads the same in dark
+     * and light mode. When [midArgb] is null the exact 2-endpoint behavior is preserved (backward
+     * compatible).
      * Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive); L and C lerp
      * linearly, hue lerps along the SHORTER arc. All endpoints are token-derived (THEME-01): no raw
      * hex, no status color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes

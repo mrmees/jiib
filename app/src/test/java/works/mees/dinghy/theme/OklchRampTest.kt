@@ -76,6 +76,18 @@ class OklchRampTest {
     }
 
     @Test
+    fun themedRamp_midStopMatchesPassedNeutral_themeIndependent() {
+        // The mid neutral is a theme-INDEPENDENT fixed color (BedMeshScreen passes the blend of the
+        // dark+light outlines), so the gradient's middle stop reads the same regardless of theme.
+        // Stop MID (=16) lands exactly on the passed mid color (endpoints inclusive, boundary t=1.0).
+        val low = 0xFF1E66F5.toInt()   // saturated blue
+        val high = 0xFFE6A817.toInt()  // saturated amber
+        val mid = 0xFF787F8B.toInt()   // the fixed mesh neutral (#787F8B)
+        val baked = OklchRamp.themedRampStops(low, high, mid)
+        assertArgbClose("mid stop == passed neutral", mid, baked[OklchRamp.stopCount / 2])
+    }
+
+    @Test
     fun themedRamp_reTintsWhenEndpointsChange() {
         // Re-baking with different endpoints yields a different ramp (proves it follows the theme).
         val a = OklchRamp.themedRampStops(0xFF1E66F5.toInt(), 0xFFE6A817.toInt())

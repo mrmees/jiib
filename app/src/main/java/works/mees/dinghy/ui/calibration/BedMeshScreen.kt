@@ -136,6 +136,15 @@ internal fun classifyMeshEdit(
  * @param holder    the headless [BedMeshHolder] (heatmap model + scale mode + profiles + error).
  * @param onBack    leave the page (neutral Back).
  */
+/**
+ * The bed-mesh ramp's neutral "zero deviation" midpoint (low → neutral → high). Theme-INDEPENDENT
+ * (a FIXED gray, not `tokens.outline`) so the gradient's middle reads identically in dark and light
+ * mode — the per-theme outline flips dark↔light and dragged the dark-mode middle into a muddy valley
+ * (UAT). Value = the blend of the dark-mode outline (#4B535E) and the light-mode outline (#A4ABB8):
+ * RGB((75+164)/2, (83+171)/2, (94+184)/2) = (120, 127, 139) = #787F8B.
+ */
+private val MESH_MID_NEUTRAL = 0xFF787F8B.toInt()
+
 @Composable
 fun BedMeshScreen(
     container: AppContainer,
@@ -450,7 +459,6 @@ internal fun BedMeshContent(
                                     vm = vm,
                                     selectedProfile = selectedProfile,
                                     tokens = t,
-                                    onCycleScaleMode = onCycleScaleMode,
                                     onSetViewType = onSetViewType,
                                     onSetHighColorSel = onSetHighColorSel,
                                     onSetLowColorSel = onSetLowColorSel,
@@ -463,7 +471,6 @@ internal fun BedMeshContent(
                                     vm = vm,
                                     selectedProfile = selectedProfile,
                                     tokens = t,
-                                    onCycleScaleMode = onCycleScaleMode,
                                     uDp = grid.uDp,
                                     modifier = Modifier.fillMaxSize().padding(8.dp),
                                 )
@@ -517,6 +524,32 @@ internal fun BedMeshContent(
                                         // profile NAME is the row label; mono stays for VALUES.
                                         ListRowLabel(name)
                                     }
+                                }
+
+                                // Color Scale row — cycles the heatmap scale mode IN PLACE (no
+                                // subfocus); current mode shown in the trailing slot. Reuses the
+                                // relocated overlay's "expand" glyph (same control, just moved).
+                                item(key = "__scale__") {
+                                    ListRow(
+                                        selected = false,
+                                        onClick = onCycleScaleMode,
+                                        uDp = grid.uDp,
+                                        leadingContent = {
+                                            ListRowIcon(
+                                                icon = DinghyIcons.BabystepExpand,
+                                                uDp = grid.uDp,
+                                                tint = t.text2,
+                                                contentDescription = "Color Scale",
+                                            )
+                                        },
+                                        trailingContent = {
+                                            Text(
+                                                text = vm.scaleMode.displayLabel(),
+                                                color = t.accent2,
+                                                style = DinghyType.dataMeta.toTextStyle(t),
+                                            )
+                                        },
+                                    ) { ListRowLabel("Color Scale") }
                                 }
 
                                 // Mesh Config row — always at bottom
@@ -833,7 +866,8 @@ internal fun BedMeshContent(
 }
 
 /**
- * The Focus region of the BedMesh screen — the heatmap + scale-mode toggle + empty-state.
+ * The Focus region of the BedMesh screen — the heatmap + empty-state. (Scale-mode cycling moved to
+ * a "Color Scale" Field list row; no overlay here anymore.)
  *
  * The [BedMeshHeatmapHost] already contains the `LocalInspectionMode` → placeholder branch
  * internally (Phase-22 D-05/D-04), so no extra preview guard is needed here.
@@ -845,7 +879,6 @@ private fun BedMeshFocusRegion(
     vm: BedMeshVm,
     selectedProfile: String?,
     tokens: ThemeTokens,
-    onCycleScaleMode: () -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -906,51 +939,14 @@ private fun BedMeshFocusRegion(
                     },
                     lowColorArgb = lowArgb,
                     highColorArgb = highArgb,
-                    midColorArgb = tokens.outline.toArgb(),
+                    midColorArgb = MESH_MID_NEUTRAL,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(t.rCard))
                         .border(BorderStroke(2.dp, t.outline), RoundedCornerShape(t.rCard)),
                 )
             }
-
-            // Scale-mode toggle overlay inset top-left (white/setting intent, 1U, cycles D-09).
-            Box(Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                ScaleToggle(label = vm.scaleMode.displayLabel(), onClick = onCycleScaleMode, uDp = uDp)
-            }
         }
-    }
-}
-
-/** Scale-mode toggle: `expand` glyph + current mode (Mono for numeric), white/setting intent. */
-@Composable
-private fun ScaleToggle(label: String, onClick: () -> Unit, uDp: Dp) {
-    val t = LocalTokens.current
-    val shape = RoundedCornerShape(t.rCtrl)
-    Row(
-        Modifier
-            .heightIn(min = uDp) // 1U (owner All-1U; was a pinned 64dp touch-floor)
-            .clip(shape)
-            .border(BorderStroke(2.dp, t.outline), shape)
-            .background(t.surface2.copy(alpha = 0.45f)) // see-through so the mesh shows behind
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // C-G1: registry-routed (reuses the BabystepExpand "expand" ligature — owner-sanctioned
-        // reuse precedent, DinghyIcons.kt; decorative beside the label → null a11y).
-        DinghyIconView(
-            icon = DinghyIcons.BabystepExpand,
-            tint = t.text,
-            sizeDp = fsSp(22f, t.fs).dp,
-            contentDescription = null,
-        )
-        Text(
-            text = label,
-            color = t.text,
-            style = DinghyType.dataMeta.toTextStyle(t),
-        )
     }
 }
 
@@ -968,7 +964,6 @@ private fun MeshConfigEditorFocus(
     vm: BedMeshVm,
     selectedProfile: String?,
     tokens: ThemeTokens,
-    onCycleScaleMode: () -> Unit,
     onSetViewType: (BedMeshViewType) -> Unit,
     onSetHighColorSel: (Int) -> Unit,
     onSetLowColorSel: (Int) -> Unit,
@@ -998,7 +993,6 @@ private fun MeshConfigEditorFocus(
             vm = vm,
             selectedProfile = null,  // always preview with current settings
             tokens = tokens,
-            onCycleScaleMode = onCycleScaleMode,
             uDp = uDp,
             modifier = modifier,
         )
