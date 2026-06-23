@@ -76,15 +76,19 @@ class OklchRampTest {
     }
 
     @Test
-    fun themedRamp_midStopMatchesPassedNeutral_themeIndependent() {
+    fun themedRamp_bothCenterStopsArePassedNeutral_soFracHalfIsExact() {
         // The mid neutral is a theme-INDEPENDENT fixed color (BedMeshScreen passes the blend of the
-        // dark+light outlines), so the gradient's middle stop reads the same regardless of theme.
-        // Stop MID (=16) lands exactly on the passed mid color (endpoints inclusive, boundary t=1.0).
+        // dark+light outlines). With an EVEN stop count, a rendered frac=0.5 samples position 15.5 and
+        // BLENDS the two center stops — so BOTH center stops (HALF-1 and HALF) must equal the neutral
+        // for the zero-deviation midplane to render exactly the neutral (not biased toward low).
         val low = 0xFF1E66F5.toInt()   // saturated blue
         val high = 0xFFE6A817.toInt()  // saturated amber
         val mid = 0xFF787F8B.toInt()   // the fixed mesh neutral (#787F8B)
         val baked = OklchRamp.themedRampStops(low, high, mid)
-        assertArgbClose("mid stop == passed neutral", mid, baked[OklchRamp.stopCount / 2])
+        val half = OklchRamp.stopCount / 2
+        // Both center stops equal the neutral → the renderer's frac=0.5 blend of them is the neutral too.
+        assertArgbClose("center stop HALF == neutral", mid, baked[half])
+        assertArgbClose("center stop HALF-1 == neutral", mid, baked[half - 1])
     }
 
     @Test
