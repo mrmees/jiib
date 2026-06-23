@@ -543,7 +543,6 @@ object PrinterCommands {
 
     fun sanitizeProfileName(name: String): String {
         require(name.isNotEmpty()) { "bed-mesh profile name must not be blank" }
-        require(!name.equals("default", ignoreCase = true)) { "bed-mesh profile name 'default' is reserved" }
         require(name.length <= MAX_PROFILE_NAME_LEN) {
             "bed-mesh profile name exceeds $MAX_PROFILE_NAME_LEN chars"
         }

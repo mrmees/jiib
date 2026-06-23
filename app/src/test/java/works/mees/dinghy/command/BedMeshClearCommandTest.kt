@@ -21,7 +21,8 @@ class BedMeshClearCommandTest {
         )
     }
 
-    @Test fun defaultProfileNameIsRejected() {
+    @Test fun defaultProfileNameIsRejectedBySaveGate() {
+        // isValidProfileName blocks creating a new "default" profile (Klipper rejects SAVE=default).
         assertFalse(PrinterCommands.isValidProfileName("default"))
         assertTrue(PrinterCommands.isValidProfileName("bed_cold"))
     }
