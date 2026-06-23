@@ -266,6 +266,7 @@ object DinghyIcons {
     val RoutineScrewsTilt = DinghyIcon(IconRef.Ligature("rule_settings"), alternate = "routine_screws_tilt")
     val RoutineZTilt = DinghyIcon(IconRef.Ligature("linear_scale"), alternate = "routine_z_tilt")
     val RoutineQgl = DinghyIcon(IconRef.Ligature("linked_services"), alternate = "routine_qgl")
+    val RoutineOpen = DinghyIcon(IconRef.Ligature("play_arrow"), alternate = "routine_open")          // owner-approved 2026-06-23: Calibration hub Open foot button (play_arrow, font-present via ExecuteMacro)
 
     // --- Phase-27 review fix WR-04 (registry conformance — NOT new icon choices): the rebuilt
     // Move/ScrewsTilt/BedMesh screens still drew these 9 glyphs as raw MaterialSymbol/inline-ligature
@@ -468,7 +469,7 @@ object DinghyIcons {
         Print, Delete, LineWeight, HideTemps, HideTimelapse, HidePrompts,
         MacrosLeader, ManageMacros, ExecuteMacro, UnbookmarkedMacro,
         Visibility, VisibilityOff, Warning, StatMinus1, StatPlus1,
-        RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
+        RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl, RoutineOpen,
         JogXPlus, HomeStateHomed, HomeStateUnhomed, CropFree, CenterFocusStrong,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
         MeshEmpty, BlurOff,

@@ -87,8 +87,10 @@ class DinghyIconsTest {
         //     and MCU action buttons never co-occur; owner-chosen intentional reuse (Part 2, 2026-06-21).
         //   - "refresh": Revert (adjuster revert glyph) + RestartKlipper (MCU action) — adjuster Focus
         //     and device-browser MCU actions never co-occur; owner-chosen intentional reuse (Part 2, 2026-06-21).
+        //   - "play_arrow": ExecuteMacro (Macros screen Execute) + RoutineOpen (Calibration hub Open foot
+        //     button) — Macros and the Calibration hub never co-render; owner-chosen intentional reuse (2026-06-23).
         val allowedSharedLigatures =
-            setOf("output_circle", "palette", "settings", "print", "memory", "refresh")
+            setOf("output_circle", "palette", "settings", "print", "memory", "refresh", "play_arrow")
         val unexpectedDuplicates = DinghyIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->

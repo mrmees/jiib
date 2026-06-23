@@ -2,7 +2,6 @@ package works.mees.dinghy.ui.calibration
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -37,7 +36,6 @@ import works.mees.dinghy.designsystem.components.ListRow
 import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.components.ListRowLabel
 import works.mees.dinghy.designsystem.control.Intent
-import works.mees.dinghy.designsystem.control.OutlinedControl
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.FocusInset
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -95,8 +93,9 @@ fun CalibrationHubScreen(
  *
  * Field = [ListBlock] of [ListRow]s (supported-first, greyed-if-unsupported per D-06 — all 5 always
  * render, unsupported dimmed in [ThemeTokens.text3] but still selectable and openable).
- * Focus = [FocusFrame] with the selected routine's icon (UAT-1: ~75% of U), title, author-written
- * description, and an accent Open button.
+ * Focus = [FocusFrame] with the selected routine's icon (UAT-1: ~75% of U), title, and the
+ * author-written description (fills the content area). The Open action lives in the Field foot bar
+ * after Back (owner 2026-06-23), not in the Focus.
  *
  * D-05: the thin [CalibrationHubScreen] wrapper ensures [selected] is never null on first render
  * (pre-select logic via LaunchedEffect). This composable handles null gracefully with an empty Focus.
@@ -142,7 +141,6 @@ fun CalibrationHubContent(
                         if (selected != null) {
                             HubRoutineFocus(
                                 routine = selected,
-                                onOpen = { onOpen(selected) },
                                 t = t,
                             )
                         }
@@ -175,15 +173,27 @@ fun CalibrationHubContent(
                     }
                     FootButtonBar(
                         uDp = grid.uDp,
-                        actions = listOf(
-                            FootAction(
+                        actions = buildList {
+                            add(FootAction(
                                 label = stringResource(R.string.common_back),
                                 icon = DinghyIcons.Back,
                                 onClick = onBack,
                                 intent = Intent.Accent, // R5: Back = accent
                                 contentDescription = stringResource(R.string.common_back),
-                            ),
-                        ),
+                            ))
+                            // Open the selected routine — docked after Back (owner 2026-06-23, moved
+                            // out of the Focus). Go intent (R5: the expected action). 2 actions → the
+                            // bar renders icon+text, so the play_arrow glyph + "Open" label both show.
+                            selected?.let { sel ->
+                                add(FootAction(
+                                    label = stringResource(R.string.calibration_open_routine),
+                                    icon = DinghyIcons.RoutineOpen,
+                                    onClick = { onOpen(sel) },
+                                    intent = Intent.Go,
+                                    contentDescription = stringResource(R.string.calibration_open_routine),
+                                ))
+                            }
+                        },
                     )
                 },
             )
@@ -198,36 +208,26 @@ fun CalibrationHubContent(
 @Composable
 private fun HubRoutineFocus(
     routine: CalibrationRoutine,
-    onOpen: () -> Unit,
     t: ThemeTokens,
 ) {
-    // fillMaxSize claims the FocusFrame's weight(1f) content area; the weighted description fills the
-    // space above the bottom-docked Open button (constant position across routines/orientations/screen
-    // sizes). The icon + title that used to live here are gone — they're the FocusFrame header now.
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Description owns the space between header and the Open button (weight(1f)) and is VERTICALLY
-        // CENTERED in it (owner UAT 2026-06-15: a top-aligned text body floats high on big screens —
-        // centering reads better across device sizes). TextAutoSize caps it at the 20sp title/list
-        // standard and SHRINKS to fit on tight screens — never grows past 20sp.
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            BasicText(
-                text = stringResource(routineDescRes(routine)),
-                style = DinghyType.body.toTextStyle(t).copy(
-                    color = t.text2,
-                ),
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
-                    maxFontSize = fsSp(20f, t.fs).sp, // caps at the list/title standard — never grows past it
-                    stepSize = 1.sp,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        OutlinedControl(
-            label = stringResource(R.string.calibration_open_routine),
-            onClick = onOpen,
+    // The description now owns the WHOLE Focus content area — the Open button moved to the Field
+    // foot bar (owner 2026-06-23). The icon + title live in the FocusFrame header. Description is
+    // VERTICALLY CENTERED (owner UAT 2026-06-15: a top-aligned text body floats high on big screens —
+    // centering reads better across device sizes). TextAutoSize caps it at 22sp (one notch above the
+    // 20sp list standard — owner 2026-06-23, using the space the Open button vacated) and SHRINKS to
+    // fit on tight screens — never grows past 22sp.
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        BasicText(
+            text = stringResource(routineDescRes(routine)),
+            style = DinghyType.body.toTextStyle(t).copy(
+                color = t.text2,
+            ),
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
+                maxFontSize = fsSp(22f, t.fs).sp, // one notch above the 20sp list standard — never grows past it
+                stepSize = 1.sp,
+            ),
             modifier = Modifier.fillMaxWidth(),
-            intent = Intent.Go, // R5: Open = the expected action
         )
     }
 }
