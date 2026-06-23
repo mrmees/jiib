@@ -93,6 +93,32 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
         strokeWidth = 1.5f * resources.displayMetrics.density
     }
 
+    /** Pre-allocated stroke paint for the iso wireframe — color RE-SET per segment in onDraw (no alloc). */
+    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1.5f * resources.displayMetrics.density
+    }
+
+    // Iso projection cache (ISO_WIREFRAME). Rebuilt ONLY when the inputs below change — never on
+    // incidental recomposition / token push (Codex). Keyed STRUCTURALLY (not by model identity):
+    // BedMeshHolder.buildVm() makes a fresh BedMeshModel on every printer-state emission and previewOf()
+    // copies, so reference identity would rebuild constantly. `meshMatrix` is a List<List<Double>> →
+    // `==` is a deep structural compare (O(N), same order as the draw itself, and this view is static).
+    // Screen coords are post-fit; color is per-draw (a ramp/theme change needs only invalidate()).
+    private var isoScreenX: FloatArray = FloatArray(0)
+    private var isoScreenY: FloatArray = FloatArray(0)
+    private var isoFrac: FloatArray = FloatArray(0)
+    private var isoRows = 0
+    private var isoCols = 0
+    private var isoCacheMatrix: List<List<Double>>? = null
+    private var isoCacheMinX = Double.NaN
+    private var isoCacheMinY = Double.NaN
+    private var isoCacheMaxX = Double.NaN
+    private var isoCacheMaxY = Double.NaN
+    private var isoCacheScale: ScaleMode? = null
+    private var isoCacheW = -1
+    private var isoCacheH = -1
+
     /** The single reusable cell rect — re-set per cell, never reallocated (Pitfall 4). */
     private val cellRect = RectF()
 
@@ -148,6 +174,32 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
+
+        if (viewMode == ViewMode.ISO_WIREFRAME) {
+            val grid = model.meshMatrix
+            if (grid.isEmpty() || grid[0].isEmpty()) {
+                canvas.drawRect(0.5f, 0.5f, w - 0.5f, h - 0.5f, emptyPaint)
+                return
+            }
+            rebuildIsoCacheIfNeeded(w.toInt(), h.toInt())
+            // Draw row-wise then column-wise segments; color each by the ramp at its midpoint frac.
+            // Far rows first (painter's order): row index ascends front→rear, so draw rear→front.
+            for (j in isoRows - 1 downTo 0) {
+                for (i in 0 until isoCols - 1) {
+                    val a = j * isoCols + i; val b = a + 1
+                    linePaint.color = rampColor((isoFrac[a] + isoFrac[b]) * 0.5f)
+                    canvas.drawLine(isoScreenX[a], isoScreenY[a], isoScreenX[b], isoScreenY[b], linePaint)
+                }
+            }
+            for (i in 0 until isoCols) {
+                for (j in isoRows - 1 downTo 1) {
+                    val a = j * isoCols + i; val b = (j - 1) * isoCols + i
+                    linePaint.color = rampColor((isoFrac[a] + isoFrac[b]) * 0.5f)
+                    canvas.drawLine(isoScreenX[a], isoScreenY[a], isoScreenX[b], isoScreenY[b], linePaint)
+                }
+            }
+            return
+        }
 
         // PROBE_POINTS mode: no fill — draw each probed point as a filled circle colored by the ramp.
         if (viewMode == ViewMode.PROBE_POINTS) {
@@ -253,6 +305,39 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     }
 
     /**
+     * (Re)build the iso projection cache iff the mesh, scale mode, or view size changed since the last
+     * build — so incidental invalidate()/recompose does NOT redo the trig (Codex). Color is NOT a cache
+     * input: a theme/ramp change only needs invalidate(), the per-segment rampColor lookup runs at draw.
+     */
+    private fun rebuildIsoCacheIfNeeded(w: Int, h: Int) {
+        if (isoScreenX.isNotEmpty()
+            && isoCacheScale == scaleMode && isoCacheW == w && isoCacheH == h
+            && isoCacheMinX == model.meshMin.x && isoCacheMinY == model.meshMin.y
+            && isoCacheMaxX == model.meshMax.x && isoCacheMaxY == model.meshMax.y
+            && isoCacheMatrix == model.meshMatrix  // deep structural compare (survives fresh-but-equal models)
+        ) return
+        val grid = model.meshMatrix
+        val (loZ, hiZ) = endpoints(grid, scaleMode)
+        val p = IsoProjection.project(
+            grid, model.meshMin.x, model.meshMax.x, model.meshMin.y, model.meshMax.y,
+            loZ, hiZ, ISO_HEIGHT_AMP,
+        )
+        val fit = IsoProjection.fitTransform(p.isoX, p.isoY, w.toDouble(), h.toDouble(), ISO_INSET_PX.toDouble())
+        val n = p.isoX.size
+        if (isoScreenX.size != n) { isoScreenX = FloatArray(n); isoScreenY = FloatArray(n); isoFrac = FloatArray(n) }
+        for (k in 0 until n) {
+            isoScreenX[k] = (p.isoX[k] * fit.scale + fit.dx).toFloat()
+            isoScreenY[k] = (p.isoY[k] * fit.scale + fit.dy).toFloat()
+            isoFrac[k] = p.frac[k].toFloat()
+        }
+        isoRows = p.rows; isoCols = p.cols
+        isoCacheMatrix = model.meshMatrix
+        isoCacheMinX = model.meshMin.x; isoCacheMinY = model.meshMin.y
+        isoCacheMaxX = model.meshMax.x; isoCacheMaxY = model.meshMax.y
+        isoCacheScale = scaleMode; isoCacheW = w; isoCacheH = h
+    }
+
+    /**
      * Look up the baked OKLCH ramp for a normalized [frac] in 0..1: 0 = LOW (the data-pool color) …
      * 1 = HIGH (the accent), interpolated in OKLCH between. Pure index + [lerpArgb] between the two
      * adjacent baked stops — NO OKLCH math (that ran once per `applyTokens` into [rampStops]; RESEARCH
@@ -281,6 +366,12 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
 
         /** Minimum probe-dot radius (px) so a dense grid's dots never vanish entirely. */
         private const val MIN_DOT_PX = 1.5f
+
+        /** Unit-space vertical amplitude for the iso wireframe — how tall a full-band deviation pops. */
+        private const val ISO_HEIGHT_AMP = 0.6
+
+        /** Iso fit inset (px) so the lattice doesn't touch the frame. */
+        private const val ISO_INSET_PX = 8f
 
         /**
          * Pure deviation→ramp-fraction mapping (host-testable). Maps a Z [deviation] to a 0..1 ramp
