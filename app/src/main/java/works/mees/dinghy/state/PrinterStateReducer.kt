@@ -223,6 +223,23 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         // field (BED_MESH_CLEAR sends mesh_matrix []) reads empty → honored as a real clear, because
         // double2dListOrNull distinguishes absent (null) from empty ([] -> emptyList).
         val prev = s.bedMesh ?: BedMeshObject()
+        // Parse the profiles dict ONCE — both profileNames and profiles derive from it; both fall
+        // back to prev when the delta omits the profiles key (LOAD-style delta).
+        val profilesObj = bm.objectOrNull("profiles")
+        val parsedProfiles = profilesObj?.let { obj ->
+            obj.entries.mapNotNull { (name, value) ->
+                val pj = value as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                val pts = pj.double2dListOrNull("points")?.toImmutable2d() ?: return@mapNotNull null
+                val mp = pj.objectOrNull("mesh_params")
+                name to BedMeshProfilePayload(
+                    points = pts,
+                    minX = mp?.doubleOrNullAt("min_x") ?: 0.0,
+                    maxX = mp?.doubleOrNullAt("max_x") ?: 0.0,
+                    minY = mp?.doubleOrNullAt("min_y") ?: 0.0,
+                    maxY = mp?.doubleOrNullAt("max_y") ?: 0.0,
+                )
+            }.toMap().toImmutableMap()
+        }
         s = s.copy(
             bedMesh = BedMeshObject(
                 profileName = bm.stringOrNull("profile_name") ?: prev.profileName,
@@ -232,8 +249,9 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
                 // double2dListOrNull returns raw List<List<Double>>?; toImmutable2d() at boundary.
                 probedMatrix = bm.double2dListOrNull("probed_matrix")?.toImmutable2d() ?: prev.probedMatrix,
                 meshMatrix = bm.double2dListOrNull("mesh_matrix")?.toImmutable2d() ?: prev.meshMatrix,
-                // profileNames: keys().toImmutableList() at boundary.
-                profileNames = bm.objectOrNull("profiles")?.keys?.toImmutableList() ?: prev.profileNames,
+                // profileNames and profiles: both absent when profiles key is omitted → retain prior.
+                profileNames = profilesObj?.keys?.toImmutableList() ?: prev.profileNames,
+                profiles = parsedProfiles ?: prev.profiles, // absent profiles dict -> retain prior payloads
             ),
         )
     }

@@ -115,21 +115,53 @@ object OklchRamp {
 
     /**
      * Bake a THEME-DERIVED 32-stop sequential ramp as opaque ARGB ints, interpolated in OKLCH from a
-     * LOW endpoint [lowArgb] (the active theme's first DATA-POOL color) to a HIGH endpoint [highArgb]
-     * (the theme ACCENT). Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive);
-     * L and C lerp linearly, hue lerps along the SHORTER arc, mirroring [bedMeshRampStops]'s discipline
-     * but with run-time endpoints. Both endpoints are token-derived (THEME-01): no raw hex, no status
-     * color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes + lerps cheaply
-     * per cell per frame (Adreno-320 floor: NO OKLCH math in `onDraw`).
+     * LOW endpoint [lowArgb] to a HIGH endpoint [highArgb]. When [midArgb] is non-null the ramp reads
+     * low → neutral → high, with the neutral occupying BOTH center stops (HALF-1 and HALF, i.e. 15 and
+     * 16): stops 0..HALF-1 interpolate low→mid, stops HALF..31 interpolate mid→high. Both center stops
+     * equal the neutral so a rendered `frac = 0.5` — which samples position 15.5 and BLENDS the two
+     * center stops — is EXACTLY the neutral. Callers pass a theme-INDEPENDENT neutral here (see
+     * BedMeshScreen) so the midpoint reads the same in dark and light mode. When [midArgb] is null the
+     * exact 2-endpoint behavior is preserved (backward compatible).
+     * Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive); L and C lerp
+     * linearly, hue lerps along the SHORTER arc. All endpoints are token-derived (THEME-01): no raw
+     * hex, no status color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes
+     * + lerps cheaply per cell per frame (Adreno-320 floor: NO OKLCH math in `onDraw`).
      */
-    fun themedRampStops(lowArgb: Int, highArgb: Int): IntArray {
+    fun themedRampStops(lowArgb: Int, highArgb: Int, midArgb: Int? = null): IntArray {
         val lo = Palette.hexToOklch(argbToHex(lowArgb))
         val hi = Palette.hexToOklch(argbToHex(highArgb))
+        if (midArgb == null) {
+            return IntArray(STOPS) { i ->
+                val t = if (STOPS == 1) 0.0 else i.toDouble() / (STOPS - 1)
+                val L = lerp(lo.L, hi.L, t)
+                val C = lerp(lo.C, hi.C, t)
+                val H = lerpHueShortArc(lo.H, hi.H, t)
+                hexToArgb(Palette.oklchToHex(L, C, H))
+            }
+        }
+        val mid = Palette.hexToOklch(argbToHex(midArgb))
+        // Even stop count (32): a rendered frac=0.5 samples ramp position (STOPS-1)/2 = 15.5, which
+        // BLENDS the two center stops — it never lands on a single stop. So the neutral must occupy
+        // BOTH center stops (HALF-1 and HALF) for the zero-deviation midplane to render EXACTLY the
+        // neutral (Codex: pinning only stop 16 biased frac=0.5 ~3% toward the low color). Split:
+        // stops 0..HALF-1 = low→mid (stop HALF-1 == mid), stops HALF..STOPS-1 = mid→high (stop HALF == mid).
+        val HALF = STOPS / 2  // = 16
         return IntArray(STOPS) { i ->
-            val t = if (STOPS == 1) 0.0 else i.toDouble() / (STOPS - 1)
-            val L = lerp(lo.L, hi.L, t)
-            val C = lerp(lo.C, hi.C, t)
-            val H = lerpHueShortArc(lo.H, hi.H, t)
+            val loOklch: Palette.OklchValue
+            val hiOklch: Palette.OklchValue
+            val t: Double
+            if (i < HALF) {
+                loOklch = lo
+                hiOklch = mid
+                t = if (HALF == 1) 1.0 else i.toDouble() / (HALF - 1)  // stop HALF-1 → mid
+            } else {
+                loOklch = mid
+                hiOklch = hi
+                t = (i - HALF).toDouble() / (STOPS - 1 - HALF)  // stop HALF → mid, stop STOPS-1 → high
+            }
+            val L = lerp(loOklch.L, hiOklch.L, t)
+            val C = lerp(loOklch.C, hiOklch.C, t)
+            val H = lerpHueShortArc(loOklch.H, hiOklch.H, t)
             hexToArgb(Palette.oklchToHex(L, C, H))
         }
     }

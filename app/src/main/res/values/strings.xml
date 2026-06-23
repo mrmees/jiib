@@ -554,7 +554,6 @@
     <string name="mesh_save_name_label">Save Profile</string>
     <string name="mesh_save_confirm">Save</string>
     <string name="mesh_save_name_invalid">Name must use letters, numbers, underscores, dots, and hyphens only.</string>
-    <string name="mesh_profile_active">Active</string>
     <string name="mesh_empty_state">No saved profiles</string>
     <string name="mesh_empty_state_hint">Run Calibrate to create one.</string>
     <string name="cd_mesh_heatmap">Bed mesh heatmap</string>

@@ -282,6 +282,8 @@ object DinghyIcons {
     val ScrewTurnCcw = DinghyIcon(IconRef.Ligature("rotate_left"), alternate = "screw_turn_ccw")        // ScrewsTilt: turn counter-clockwise
     val ScrewTurnCw = DinghyIcon(IconRef.Ligature("rotate_right"), alternate = "screw_turn_cw")         // ScrewsTilt: turn clockwise
     val MeshEmpty = DinghyIcon(IconRef.Ligature("grid_off"), alternate = "mesh_empty")                  // BedMesh: empty-state Focus
+    /** BedMesh Field — Clear Mesh row leading glyph (owner-assigned 2026-06-22). */
+    val BlurOff = DinghyIcon(IconRef.Ligature("blur_off"), alternate = "blur_off")
 
     // PrintStatus standby-home identity (header law, 2026-06-13). Owner-named "mode_standby".
     // Swapped to the e-stop while printing. Confirmed resolvable in the bundled v2.944 ttf.
@@ -422,6 +424,24 @@ object DinghyIcons {
     val HumidityHigh = DinghyIcon(IconRef.Ligature("humidity_high"), alternate = "humidity_high")
     val WaterDrop    = DinghyIcon(IconRef.Ligature("water_drop"),    alternate = "water_drop")
 
+    // --- Bed Mesh Config subpage row glyphs (Task 9, OWNER-DECIDED — never invent/substitute, icon law
+    // [[dinghy-never-pick-icons-ask]]). All four ligatures confirmed present in the bundled Material
+    // Symbols ttf (verify_ligatures.py gate). Assigned by owner 2026-06-22.
+    /** Mesh Config → View Type row glyph. */
+    val BlurCircular = DinghyIcon(IconRef.Ligature("blur_circular"), alternate = "blur_circular")
+    /** Mesh Config → High Color row glyph. */
+    val HdrStrong    = DinghyIcon(IconRef.Ligature("hdr_strong"),    alternate = "hdr_strong")
+    /** Mesh Config → Low Color row glyph. */
+    val HdrWeak      = DinghyIcon(IconRef.Ligature("hdr_weak"),      alternate = "hdr_weak")
+    /** Mesh Config → Preview row glyph. */
+    val Preview      = DinghyIcon(IconRef.Ligature("preview"),       alternate = "preview")
+    /** Mesh Config → View Type selector: 2D Heatmap option glyph. */
+    val MeshView2D   = DinghyIcon(IconRef.Ligature("contrast_square"), alternate = "contrast_square")
+    /** Mesh Config → View Type selector: 3D Mesh option glyph. */
+    val MeshViewIso  = DinghyIcon(IconRef.Ligature("ssid_chart"),    alternate = "ssid_chart")
+    /** Mesh Config → View Type selector: Probe Points option glyph. */
+    val MeshViewProbe = DinghyIcon(IconRef.Ligature("transition_dissolve"), alternate = "transition_dissolve")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -451,7 +471,7 @@ object DinghyIcons {
         RoutineProbeCalibrate, RoutineBedMesh, RoutineScrewsTilt, RoutineZTilt, RoutineQgl,
         JogXPlus, HomeStateHomed, HomeStateUnhomed, CropFree, CenterFocusStrong,
         ScrewPending, ScrewBase, ScrewInTolerance, ScrewTurnCcw, ScrewTurnCw,
-        MeshEmpty,
+        MeshEmpty, BlurOff,
         LauncherFineTune, SystemRowPrinters, SystemRowSettings, SystemRowTheme,
         SystemRowAbout, SystemRowPower,
         PrintStatusStandby,
@@ -467,5 +487,6 @@ object DinghyIcons {
         TextFields, VpnKey, Search, NetworkPing, XCircle, Numbers,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
+        BlurCircular, HdrStrong, HdrWeak, Preview, MeshView2D, MeshViewIso, MeshViewProbe,
     )
 }

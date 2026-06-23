@@ -60,7 +60,9 @@ import works.mees.dinghy.ui.increments.IncrementControls
 import works.mees.dinghy.ui.macros.MacroPrefs
 import works.mees.dinghy.ui.move.SavedLocation
 import works.mees.dinghy.ui.move.SavedLocationPrefs
+import works.mees.dinghy.calibration.BedMeshViewType
 import works.mees.dinghy.ui.settings.BabystepPrefs
+import works.mees.dinghy.ui.settings.BedMeshRenderPrefs
 import works.mees.dinghy.ui.settings.DisplayPrefs
 import works.mees.dinghy.ui.settings.FontScalePrefs
 import works.mees.dinghy.ui.settings.TraceStylePrefs
@@ -176,6 +178,14 @@ class AppContainer(
      * [works.mees.dinghy.DinghyApp] and injected here (single-writer DataStore invariant).
      */
     incrementDataStore: DataStore<Preferences>,
+    /**
+     * The FOURTEENTH, INDEPENDENT file: bedmesh_render.preferences_pb (Bed Mesh redesign, Task 4).
+     * Backs the per-printer [BedMeshRenderPrefs] (view-type + High/Low ramp-color SLOT selectors,
+     * keyed by profileId). Carries no secrets, kept on its own connection-independent lifecycle per
+     * the separate-file discipline. Created ONCE in [works.mees.dinghy.DinghyApp] (the DataStore
+     * single-writer invariant) and injected here.
+     */
+    bedMeshRenderDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -633,6 +643,22 @@ class AppContainer(
     fun setSensorSelected(sensorName: String, selected: Boolean) {
         val pid = activeProfileId.value ?: return
         writeScope.launch { traceStylePrefs.setSensorSelected(pid, sensorName, selected) }
+    }
+
+    /** Per-printer bed-mesh render prefs (14th store): view-type + High/Low ramp-color slot selectors. */
+    val bedMeshRenderPrefs: BedMeshRenderPrefs = BedMeshRenderPrefs(bedMeshRenderDataStore)
+
+    fun setBedMeshViewType(v: BedMeshViewType) {
+        val pid = activeProfileId.value ?: return
+        writeScope.launch { bedMeshRenderPrefs.setViewType(pid, v) }
+    }
+    fun setBedMeshHighColorSel(sel: Int) {
+        val pid = activeProfileId.value ?: return
+        writeScope.launch { bedMeshRenderPrefs.setHighColorSel(pid, sel) }
+    }
+    fun setBedMeshLowColorSel(sel: Int) {
+        val pid = activeProfileId.value ?: return
+        writeScope.launch { bedMeshRenderPrefs.setLowColorSel(pid, sel) }
     }
 
     /**

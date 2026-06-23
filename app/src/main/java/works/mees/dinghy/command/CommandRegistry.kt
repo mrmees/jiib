@@ -64,6 +64,9 @@ data class TestZArgs(val step: Double)
 /** Bed-mesh profile name arg (D-10) — [name] is allowlist-validated by [PrinterCommands.sanitizeProfileName]. */
 data class BedMeshProfileArgs(val name: String)
 
+/** Rename a bed-mesh profile (SAVE new + REMOVE old in one ordered script). */
+data class BedMeshRenameArgs(val old: String, val new: String)
+
 /**
  * Z-babystep nudge arg (SC-5, Phase 16). [deltaMm] is canonicalized against the fixed
  * [PrinterCommands.BABYSTEP_STEPS] set (sign preserved) by [PrinterCommands.setGcodeOffsetZAdjust] —
@@ -618,6 +621,13 @@ object CommandRegistry {
         availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
     )
 
+    val bedMeshClear: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-BED_MESH_CLEAR",
+        key = { "bed_mesh_clear" },
+        gcode = { PrinterCommands.BED_MESH_CLEAR },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
     val bedMeshProfileSave: CommandSpec<BedMeshProfileArgs> = gcode(
         catalogId = "KGC-BED_MESH_PROFILE_SAVE",
         key = { "bed_mesh_profile_save" },
@@ -636,6 +646,13 @@ object CommandRegistry {
         catalogId = "KGC-BED_MESH_PROFILE_REMOVE",
         key = { "bed_mesh_profile_remove" },
         gcode = { args -> PrinterCommands.bedMeshProfileRemove(args.name) },
+        availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+    )
+
+    val bedMeshProfileRename: CommandSpec<BedMeshRenameArgs> = gcode(
+        catalogId = "KGC-BED_MESH_PROFILE_RENAME",
+        key = { "bed_mesh_profile_rename" },
+        gcode = { args -> PrinterCommands.bedMeshProfileRename(args.old, args.new) },
         availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
     )
 

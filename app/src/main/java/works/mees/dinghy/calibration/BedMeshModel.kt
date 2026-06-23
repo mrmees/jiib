@@ -27,6 +27,32 @@ import kotlinx.serialization.json.jsonPrimitive
  * the SAME `{"bed_mesh": {...}}` JsonObject the reducer surfaces (the holder consumes this view).
  */
 
+/** A saved profile's renderable payload at the model layer (plain lists for UI use). */
+data class BedMeshProfile(
+    val points: List<List<Double>>,
+    val minX: Double,
+    val maxX: Double,
+    val minY: Double,
+    val maxY: Double,
+)
+
+/**
+ * The mesh "span" — max minus min Z over a probed matrix (the difference between the highest and
+ * lowest probe points). Returns null for an empty matrix. Shown per-profile on the Bed Mesh list.
+ */
+fun meshSpan(points: List<List<Double>>): Double? {
+    var lo = Double.POSITIVE_INFINITY
+    var hi = Double.NEGATIVE_INFINITY
+    for (row in points) for (z in row) {
+        if (z < lo) lo = z
+        if (z > hi) hi = z
+    }
+    return if (hi < lo) null else hi - lo
+}
+
+/** Selectable render styles for the mesh Focus: filled heatmap, colored probe points, 3D wireframe. */
+enum class BedMeshViewType { HEATMAP, PROBE_POINTS, ISO }
+
 /** A bed extent corner as `[x, y]` Doubles (mesh_min / mesh_max). */
 data class MeshPoint(val x: Double, val y: Double)
 
@@ -44,6 +70,8 @@ data class BedMeshModel(
     val meshMax: MeshPoint = MeshPoint(0.0, 0.0),
     /** Saved-profile names (the KEYS of the `profiles` dict), sorted. */
     val profileNames: List<String> = emptyList(),
+    /** Saved-profile renderable payloads (points + bed extents), keyed by profile name. */
+    val profiles: Map<String, BedMeshProfile> = emptyMap(),
 ) {
     /**
      * Empty-state (Pitfall 4): no LOADED mesh. SEPARATE from [profileNames] non-emptiness — a printer
@@ -52,6 +80,22 @@ data class BedMeshModel(
      */
     val isEmpty: Boolean
         get() = meshMatrix.isEmpty() || profileName.isEmpty()
+
+    /**
+     * Build a renderable model for a SAVED, non-active profile [name] without loading it. The heatmap
+     * fill reads [meshMatrix] (empty == empty-state), so set both matrices to the profile's probed
+     * points — coarser than a live interpolated mesh, by design (spec: accepted). Returns null if absent.
+     */
+    fun previewOf(name: String): BedMeshModel? {
+        val p = profiles[name] ?: return null
+        return copy(
+            profileName = name,
+            meshMatrix = p.points,
+            probedMatrix = p.points,
+            meshMin = MeshPoint(p.minX, p.minY),
+            meshMax = MeshPoint(p.maxX, p.maxY),
+        )
+    }
 
     companion object {
         /**
@@ -67,6 +111,20 @@ data class BedMeshModel(
                 meshMin = point(bm["mesh_min"]),
                 meshMax = point(bm["mesh_max"]),
                 profileNames = (bm["profiles"]?.jsonObject?.keys ?: emptySet()).sorted(),
+                profiles = (bm["profiles"]?.jsonObject ?: kotlinx.serialization.json.JsonObject(emptyMap()))
+                    .mapNotNull { (name, value) ->
+                        val pj = value as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                        val pts = matrix(pj["points"])
+                        if (pts.isEmpty()) return@mapNotNull null
+                        val mp = pj["mesh_params"]?.jsonObject
+                        name to BedMeshProfile(
+                            points = pts,
+                            minX = mp?.get("min_x")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            maxX = mp?.get("max_x")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            minY = mp?.get("min_y")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                            maxY = mp?.get("max_y")?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                        )
+                    }.toMap(),
             )
         }.getOrDefault(BedMeshModel())
 

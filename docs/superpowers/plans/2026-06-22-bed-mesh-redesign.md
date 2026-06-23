@@ -1238,6 +1238,7 @@ onEditDelete = {
 onEditCancel = { editing = false },
 ```
 > The amber `showSaveConfigGuard` reuses the EXISTING SAVE_CONFIG confirm dialog already in `BedMeshContent`.
+> **Also (Codex re-verify):** add `CommandRegistry.bedMeshProfileRename.dispatchKey(BedMeshRenameArgs("", ""))` to the existing `profilePersistKeys` set (`BedMeshScreen.kt:120, 135`) — that's the set whose server-side `Failure` retracts the SAVE_CONFIG guard. Without it, a failed rename would leave the amber restart guard stuck up. (The rename key is constant `"bed_mesh_profile_rename"`, independent of args.)
 
 - [ ] **Step 7: Build + install + on-device UAT (flox + moto)**
 

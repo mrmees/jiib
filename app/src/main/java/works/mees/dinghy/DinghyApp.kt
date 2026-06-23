@@ -148,6 +148,12 @@ class DinghyApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("increments.preferences_pb") },
         )
+        // The 14th, INDEPENDENT file: bedmesh_render.preferences_pb — per-printer bed-mesh view-type +
+        // High/Low ramp-color SLOT selectors. No secrets; own connection-independent lifecycle. One per process.
+        val bedMeshRenderDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("bedmesh_render.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -163,6 +169,7 @@ class DinghyApp : Application() {
             extrudeMacroDataStore = extrudeMacroDataStore,
             heatPresetDataStore = heatPresetDataStore,
             incrementDataStore = incrementDataStore,
+            bedMeshRenderDataStore = bedMeshRenderDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

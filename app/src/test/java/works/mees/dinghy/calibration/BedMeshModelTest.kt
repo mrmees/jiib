@@ -80,4 +80,15 @@ class BedMeshModelTest {
         // ...yet the saved-profile list still reflects `profiles` keys.
         assertTrue("saved profiles still listed", model.profileNames.contains("default"))
     }
+
+    @Test
+    fun meshSpan_isMaxMinusMin_andNullWhenEmpty() {
+        // max 0.40, min -0.05 → span 0.45
+        assertEquals(0.45, meshSpan(listOf(listOf(0.10, 0.40), listOf(-0.05, 0.25)))!!, 1e-9)
+        // flat mesh → 0.0 span
+        assertEquals(0.0, meshSpan(listOf(listOf(0.2, 0.2)))!!, 1e-9)
+        // empty / empty-rows → null (no span to show)
+        org.junit.Assert.assertNull("empty → null", meshSpan(emptyList()))
+        org.junit.Assert.assertNull("empty rows → null", meshSpan(listOf(emptyList())))
+    }
 }
