@@ -30,6 +30,8 @@ import works.mees.dinghy.theme.ThemeTokens
  * @param viewMode      HEATMAP (interpolated fill) or PROBE_POINTS (ramp-colored probe dots only).
  * @param lowColorArgb  packed ARGB for the ramp's low endpoint (resolved from per-printer selector).
  * @param highColorArgb packed ARGB for the ramp's high endpoint (resolved from per-printer selector).
+ * @param midColorArgb  optional packed ARGB for the ramp's midpoint (e.g. tokens.outline); when set
+ *                      the gradient reads low → mid → high instead of a direct 2-endpoint interpolation.
  * @param modifier      caller layout for the hosted View (the screen wraps it in `aspectRatio(1f)`).
  */
 @Composable
@@ -40,6 +42,7 @@ fun BedMeshHeatmapHost(
     viewMode: BedMeshHeatmapView.ViewMode,
     lowColorArgb: Int,
     highColorArgb: Int,
+    midColorArgb: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     // D-05/D-04: the heatmap AndroidView renders blank under @Preview — short-circuit to a labeled
@@ -51,8 +54,8 @@ fun BedMeshHeatmapHost(
     AndroidView(
         factory = { ctx -> BedMeshHeatmapView(ctx) }, // created once; never recreated on a theme/data change
         update = { view ->
-            view.applyTokens(tokens)                        // D-06 push-tokens + invalidate (recolor, no recreation)
-            view.setRampColors(lowColorArgb, highColorArgb) // override ramp from per-printer selectors
+            view.applyTokens(tokens)                                       // D-06 push-tokens + invalidate (recolor, no recreation)
+            view.setRampColors(lowColorArgb, highColorArgb, midColorArgb)  // override ramp from per-printer selectors
             view.setViewMode(viewMode)                      // switch render mode
             view.setMesh(model, scaleMode)                  // new mesh / scale cycle → invalidate (D-13, no loop)
         },

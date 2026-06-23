@@ -115,21 +115,45 @@ object OklchRamp {
 
     /**
      * Bake a THEME-DERIVED 32-stop sequential ramp as opaque ARGB ints, interpolated in OKLCH from a
-     * LOW endpoint [lowArgb] (the active theme's first DATA-POOL color) to a HIGH endpoint [highArgb]
-     * (the theme ACCENT). Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive);
-     * L and C lerp linearly, hue lerps along the SHORTER arc, mirroring [bedMeshRampStops]'s discipline
-     * but with run-time endpoints. Both endpoints are token-derived (THEME-01): no raw hex, no status
-     * color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes + lerps cheaply
-     * per cell per frame (Adreno-320 floor: NO OKLCH math in `onDraw`).
+     * LOW endpoint [lowArgb] to a HIGH endpoint [highArgb]. When [midArgb] is non-null the ramp is
+     * split at stop MID (=STOPS/2=16): stops 0..MID interpolate low→mid, stops MID..31 interpolate
+     * mid→high, so stop ~16 == mid (outline) and the gradient reads low → neutral → high. When
+     * [midArgb] is null the exact 2-endpoint behavior is preserved (backward compatible).
+     * Stop 0 == [lowArgb] and stop 31 == [highArgb] EXACTLY (endpoints inclusive); L and C lerp
+     * linearly, hue lerps along the SHORTER arc. All endpoints are token-derived (THEME-01): no raw
+     * hex, no status color. Call ONCE per `applyTokens` (32 OKLCH conversions); the View then indexes
+     * + lerps cheaply per cell per frame (Adreno-320 floor: NO OKLCH math in `onDraw`).
      */
-    fun themedRampStops(lowArgb: Int, highArgb: Int): IntArray {
+    fun themedRampStops(lowArgb: Int, highArgb: Int, midArgb: Int? = null): IntArray {
         val lo = Palette.hexToOklch(argbToHex(lowArgb))
         val hi = Palette.hexToOklch(argbToHex(highArgb))
+        if (midArgb == null) {
+            return IntArray(STOPS) { i ->
+                val t = if (STOPS == 1) 0.0 else i.toDouble() / (STOPS - 1)
+                val L = lerp(lo.L, hi.L, t)
+                val C = lerp(lo.C, hi.C, t)
+                val H = lerpHueShortArc(lo.H, hi.H, t)
+                hexToArgb(Palette.oklchToHex(L, C, H))
+            }
+        }
+        val mid = Palette.hexToOklch(argbToHex(midArgb))
+        val MID = STOPS / 2  // = 16
         return IntArray(STOPS) { i ->
-            val t = if (STOPS == 1) 0.0 else i.toDouble() / (STOPS - 1)
-            val L = lerp(lo.L, hi.L, t)
-            val C = lerp(lo.C, hi.C, t)
-            val H = lerpHueShortArc(lo.H, hi.H, t)
+            val loOklch: Palette.OklchValue
+            val hiOklch: Palette.OklchValue
+            val t: Double
+            if (i <= MID) {
+                loOklch = lo
+                hiOklch = mid
+                t = i.toDouble() / MID
+            } else {
+                loOklch = mid
+                hiOklch = hi
+                t = (i - MID).toDouble() / (STOPS - 1 - MID)
+            }
+            val L = lerp(loOklch.L, hiOklch.L, t)
+            val C = lerp(loOklch.C, hiOklch.C, t)
+            val H = lerpHueShortArc(loOklch.H, hiOklch.H, t)
             hexToArgb(Palette.oklchToHex(L, C, H))
         }
     }

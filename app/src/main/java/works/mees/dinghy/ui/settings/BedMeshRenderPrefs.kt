@@ -15,8 +15,9 @@ import java.io.IOException
 /**
  * Per-printer bed-mesh RENDER preferences (the 14th DataStore): view-type + High/Low ramp-color
  * selectors, keyed by profileId (like [TraceStylePrefs]). Colors store a SLOT SELECTOR, never ARGB
- * (an index survives theme changes; an ARGB would freeze the old color). Selector: -1 = Accent
- * sentinel; 0..3 = data-pool slot. Defaults: view HEATMAP, high -1 (accent), low 0 (pool[0]).
+ * (an index survives theme changes; an ARGB would freeze the old color). Selector: 0..7 = index into
+ * bedMeshPoolColors (intents 0..3 = accent/stop/heat/go, data pool 4..7). Defaults: view HEATMAP,
+ * high 0 (accent), low 4 (pool[0]).
  */
 class BedMeshRenderPrefs(private val dataStore: DataStore<Preferences>) {
     private fun viewKey(pid: String) = stringPreferencesKey("bm_view_$pid")
@@ -48,8 +49,7 @@ class BedMeshRenderPrefs(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[lowKey(pid)] = sel }
 
     companion object {
-        const val ACCENT_SEL = -1
-        const val DEFAULT_HIGH = ACCENT_SEL // accent == seriesColor(0)
-        const val DEFAULT_LOW = 0           // pool slot 0 == seriesColor(1) in Colorful
+        const val DEFAULT_HIGH = 0  // accent (index 0 in bedMeshPoolColors)
+        const val DEFAULT_LOW = 4   // pool[0] (index 4 in bedMeshPoolColors)
     }
 }

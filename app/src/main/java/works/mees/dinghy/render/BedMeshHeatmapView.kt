@@ -76,8 +76,8 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
     }
 
     /** Override ramp endpoints (resolved from the per-printer selectors). Re-bakes the OKLCH ramp. */
-    fun setRampColors(lowArgb: Int, highArgb: Int) {
-        rampStops = OklchRamp.themedRampStops(lowArgb = lowArgb, highArgb = highArgb)
+    fun setRampColors(lowArgb: Int, highArgb: Int, midArgb: Int? = null) {
+        rampStops = OklchRamp.themedRampStops(lowArgb = lowArgb, highArgb = highArgb, midArgb = midArgb)
         invalidate()
     }
 

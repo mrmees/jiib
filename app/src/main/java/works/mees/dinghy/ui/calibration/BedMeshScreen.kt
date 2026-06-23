@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.runtime.CompositionLocalProvider
+import works.mees.dinghy.designsystem.layout.LocalUnitDp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.items
@@ -439,6 +442,7 @@ internal fun BedMeshContent(
                                     onDelete = onEditDelete,
                                     onCancel = onEditCancel,
                                     t = t,
+                                    uDp = grid.uDp,
                                 )
                             }
                             fieldMode is MeshFieldMode.MeshConfigEditor -> {
@@ -903,6 +907,7 @@ private fun BedMeshFocusRegion(
                     },
                     lowColorArgb = lowArgb,
                     highColorArgb = highArgb,
+                    midColorArgb = tokens.outline.toArgb(),
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(t.rCard))
@@ -1143,6 +1148,7 @@ private fun MeshEditForm(
     onDelete: () -> Unit,
     onCancel: () -> Unit,
     t: ThemeTokens,
+    uDp: Dp,
 ) {
     var name by rememberSaveable(targetName) {
         mutableStateOf(if (kind == MeshEditKind.ACTIVE_UNSAVED) "" else targetName)
@@ -1152,9 +1158,7 @@ private fun MeshEditForm(
     val nameChanged = name != targetName
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         MeshNameField(
@@ -1165,65 +1169,74 @@ private fun MeshEditForm(
         )
         Spacer(modifier = Modifier.weight(1f))
 
-        // Primary action row: Apply (preview) or Save (active unsaved/saved)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            when (kind) {
-                MeshEditKind.PREVIEW_NONACTIVE -> {
-                    OutlinedControl(
-                        label = stringResource(R.string.mesh_apply),
-                        onClick = onApply,
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
-                        icon = DinghyIcons.CheckCircle,
-                        contentDescription = stringResource(R.string.mesh_apply),
-                    )
+        // Primary action row: Apply (preview) or Save (active unsaved/saved) — 1U docked buttons.
+        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(uDp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                when (kind) {
+                    MeshEditKind.PREVIEW_NONACTIVE -> {
+                        OutlinedControl(
+                            label = stringResource(R.string.mesh_apply),
+                            onClick = onApply,
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Go,
+                            icon = DinghyIcons.CheckCircle,
+                            contentDescription = stringResource(R.string.mesh_apply),
+                        )
+                    }
+                    MeshEditKind.ACTIVE_UNSAVED -> {
+                        OutlinedControl(
+                            label = stringResource(R.string.mesh_save_confirm),
+                            onClick = { onSave(name) },
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Go,
+                            icon = DinghyIcons.Save,
+                            enabled = nameValid,
+                            contentDescription = stringResource(R.string.mesh_save_confirm),
+                        )
+                    }
+                    MeshEditKind.ACTIVE_SAVED -> {
+                        OutlinedControl(
+                            label = stringResource(R.string.mesh_save_confirm),
+                            onClick = { onSave(name) },
+                            modifier = Modifier.weight(1f),
+                            intent = Intent.Go,
+                            icon = DinghyIcons.Save,
+                            enabled = nameValid && nameChanged,
+                            contentDescription = stringResource(R.string.mesh_save_confirm),
+                        )
+                    }
                 }
-                MeshEditKind.ACTIVE_UNSAVED -> {
+                OutlinedControl(
+                    label = stringResource(R.string.common_cancel),
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent,
+                    icon = DinghyIcons.DialogClose,
+                    contentDescription = stringResource(R.string.common_cancel),
+                )
+            }
+        }
+
+        // Delete row — shown for any saved-profile target (active saved or previewing non-active).
+        if (kind != MeshEditKind.ACTIVE_UNSAVED) {
+            CompositionLocalProvider(LocalUnitDp provides uDp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(uDp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     OutlinedControl(
-                        label = stringResource(R.string.mesh_save_confirm),
-                        onClick = { onSave(name) },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
-                        icon = DinghyIcons.Save,
-                        enabled = nameValid,
-                        contentDescription = stringResource(R.string.mesh_save_confirm),
-                    )
-                }
-                MeshEditKind.ACTIVE_SAVED -> {
-                    OutlinedControl(
-                        label = stringResource(R.string.mesh_save_confirm),
-                        onClick = { onSave(name) },
-                        modifier = Modifier.weight(1f),
-                        intent = Intent.Go,
-                        icon = DinghyIcons.Save,
-                        enabled = nameValid && nameChanged,
-                        contentDescription = stringResource(R.string.mesh_save_confirm),
+                        label = stringResource(R.string.mesh_remove),
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
+                        intent = Intent.Danger,
+                        icon = DinghyIcons.Delete,
+                        contentDescription = stringResource(R.string.mesh_remove),
                     )
                 }
             }
-            OutlinedControl(
-                label = stringResource(R.string.common_cancel),
-                onClick = onCancel,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
-                icon = DinghyIcons.DialogClose,
-                contentDescription = stringResource(R.string.common_cancel),
-            )
-        }
-
-        // Delete row — shown for any saved-profile target (active saved or previewing non-active)
-        if (kind != MeshEditKind.ACTIVE_UNSAVED) {
-            OutlinedControl(
-                label = stringResource(R.string.mesh_remove),
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Danger,
-                icon = DinghyIcons.Delete,
-                contentDescription = stringResource(R.string.mesh_remove),
-            )
         }
     }
 }

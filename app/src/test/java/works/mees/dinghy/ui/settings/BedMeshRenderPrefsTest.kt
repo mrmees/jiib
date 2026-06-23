@@ -20,8 +20,8 @@ class BedMeshRenderPrefsTest {
     @Test fun defaultsWhenUnset() = runBlocking {
         val p = BedMeshRenderPrefs(store())
         assertEquals(BedMeshViewType.HEATMAP, p.viewType("printerA").first())
-        assertEquals(-1, p.highColorSel("printerA").first()) // accent sentinel
-        assertEquals(0, p.lowColorSel("printerA").first())   // pool slot 0
+        assertEquals(0, p.highColorSel("printerA").first())  // accent (index 0 in bedMeshPoolColors)
+        assertEquals(4, p.lowColorSel("printerA").first())   // pool[0] (index 4 in bedMeshPoolColors)
     }
 
     @Test fun roundTripsScopedByProfileId() = runBlocking {

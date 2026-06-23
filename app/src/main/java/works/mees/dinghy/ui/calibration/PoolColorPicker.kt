@@ -24,23 +24,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import works.mees.dinghy.render.bedMeshPoolColors
 import works.mees.dinghy.render.resolveMeshColor
 import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.ThemeTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
 /**
- * Pick a bed-mesh ramp color from the theme data-pool (Accent + up to 4 slots).
+ * Pick a bed-mesh ramp color from the full 8-entry pool (intent colors + data pool).
  *
- * Options: -1 = Accent sentinel; 0..3 = pool slots. Each tile is backgrounded by
- * [resolveMeshColor] so the swatches track theme changes live. The selected tile shows an
- * accent outline + soft fill (mirrors the selection treatment in SpoolPicker.ColorTile).
- * Missing pool slots (pool size < 4) are omitted — guard via getOrNull.
+ * Options: 0..7 indices into [bedMeshPoolColors] (0=Accent, 1=Stop, 2=Heat, 3=Go, 4..7=pool
+ * slots). Each tile is backgrounded by [resolveMeshColor] so the swatches track theme changes
+ * live. The selected tile shows an accent outline + soft fill (mirrors SpoolPicker.ColorTile).
  *
  * Layout: fill-to-fit row of tiles, orientation-aware (landscape = label left of swatch,
  * portrait = swatch above label).
  *
- * @param selected stored Int selector (−1 for Accent, 0..3 for pool slots).
+ * @param selected stored Int selector (0..7).
  * @param onPick   called with the new selector when a tile is tapped.
  */
 @Composable
@@ -50,17 +50,13 @@ internal fun PoolColorPicker(
     t: ThemeTokens,
     modifier: Modifier = Modifier,
 ) {
-    // Build visible options: always show the Accent sentinel; show pool slots that exist.
-    val poolSize = t.pool.size
-    val options: List<Int> = buildList {
-        add(-1)                             // Accent sentinel
-        for (slot in 0..3) {
-            if (t.pool.getOrNull(slot) != null) add(slot)
-        }
-    }
+    // Build visible options: all available entries in bedMeshPoolColors (up to 8).
+    val options: List<Int> = bedMeshPoolColors(t).indices.toList()
+    val intentLabels = listOf("Accent", "Stop", "Heat", "Go")
     val labels: Map<Int, String> = buildMap {
-        put(-1, "Accent")
-        for (slot in 0..3) { put(slot, "Pool ${slot + 1}") }
+        for (i in options) {
+            put(i, if (i < intentLabels.size) intentLabels[i] else "Pool ${i - intentLabels.size + 1}")
+        }
     }
 
     BoxWithConstraints(modifier) {
