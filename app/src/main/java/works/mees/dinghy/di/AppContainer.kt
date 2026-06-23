@@ -262,6 +262,23 @@ class AppContainer(
         }
     }
 
+    /**
+     * Persist [profile] AND make it the active printer atomically (the Find/discovery add-and-connect
+     * path), durably. A NEW profile (id not already present) is seeded with the default Heat Presets +
+     * Increment Lists, exactly like [saveProfile]; an existing id reuses its data. The persist + activate
+     * happen in ProfileStore's single `edit` (no transiently-dangling active id).
+     */
+    fun saveAndSetActiveProfile(profile: Profile) {
+        writeScope.launch {
+            val isNew = profileStore.profiles.first().none { it.id == profile.id }
+            profileStore.upsertAndSetActive(profile)
+            if (isNew) {
+                heatPresetPrefs.seedIfEmpty(profile.id, defaultHeatPresets())
+                incrementListPrefs.seedIfEmpty(profile.id, IncrementControls.defaultStringMap())
+            }
+        }
+    }
+
     /** Delete a profile (Settings delete; D-12 auto-pick lives in the writer), durably. */
     fun deleteProfile(id: String) {
         writeScope.launch { profileStore.delete(id) }

@@ -300,6 +300,25 @@ class ProfileStoreTest {
         }
     }
 
+    @Test
+    fun upsertAndSetActive_persistsAndActivates() = runTest {
+        val (store, ioScope) = newStore()
+        withContext(ioScope.coroutineContext) {
+            store.upsertAndSetActive(profile(id = "first"))
+            settle()
+            assertEquals(
+                "upsertAndSetActive must make the upserted profile the active one",
+                "first",
+                store.activeId.first(),
+            )
+            assertEquals(
+                "the profile must be persisted",
+                listOf("first"),
+                store.profiles.first().map { it.id },
+            )
+        }
+    }
+
     /** Let the DataStore IO actor finish a write and release file handles before the next read/write. */
     private suspend fun settle() {
         yield()

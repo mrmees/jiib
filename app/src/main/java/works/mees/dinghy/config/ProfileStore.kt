@@ -75,6 +75,19 @@ class ProfileStore(
     }
 
     /**
+     * Upsert [profile] AND force it active in ONE `edit` (the discovery add-and-connect path). Unlike
+     * [upsert] — which only auto-selects the first profile (D-11) and never steals active afterward — this
+     * ALWAYS writes [profile].id as the active id, because the user just deliberately picked this printer.
+     */
+    suspend fun upsertAndSetActive(profile: Profile) {
+        dataStore.edit { prefs ->
+            val plan = planUpsert(decode(prefs[KEY_PROFILES]), prefs[KEY_ACTIVE_ID], profile)
+            prefs[KEY_PROFILES] = json.encodeToString(PROFILE_LIST_SERIALIZER, plan.profiles)
+            prefs[KEY_ACTIVE_ID] = profile.id
+        }
+    }
+
+    /**
      * Delete the profile with [id]. D-12 auto-pick lives HERE, in the writer (NOT in any read
      * derivation): if [id] was the active profile, the active id is rewritten to the first remaining
      * profile's id, or removed when none remain (→ Connect prompt, D-11). Atomic in one `edit`.
