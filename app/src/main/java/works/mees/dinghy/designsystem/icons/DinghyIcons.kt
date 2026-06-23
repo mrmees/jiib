@@ -435,6 +435,8 @@ object DinghyIcons {
     val HdrWeak      = DinghyIcon(IconRef.Ligature("hdr_weak"),      alternate = "hdr_weak")
     /** Mesh Config → Preview row glyph. */
     val Preview      = DinghyIcon(IconRef.Ligature("preview"),       alternate = "preview")
+    /** Mesh Config → View Type: 3D Grid option glyph. */
+    val MeshViewIso  = DinghyIcon(IconRef.Ligature("ssid_chart"),    alternate = "ssid_chart")
 
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
@@ -481,6 +483,6 @@ object DinghyIcons {
         TextFields, VpnKey, Search, NetworkPing, XCircle, Numbers,
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
-        BlurCircular, HdrStrong, HdrWeak, Preview,
+        BlurCircular, HdrStrong, HdrWeak, Preview, MeshViewIso,
     )
 }
