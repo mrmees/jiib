@@ -36,8 +36,8 @@ data class BedMeshProfile(
     val maxY: Double,
 )
 
-/** Selectable render styles for the mesh Focus (iso wireframe is a fast-follow, not here yet). */
-enum class BedMeshViewType { HEATMAP, PROBE_POINTS }
+/** Selectable render styles for the mesh Focus: filled heatmap, colored probe points, 3D wireframe. */
+enum class BedMeshViewType { HEATMAP, PROBE_POINTS, ISO }
 
 /** A bed extent corner as `[x, y]` Doubles (mesh_min / mesh_max). */
 data class MeshPoint(val x: Double, val y: Double)

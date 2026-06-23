@@ -29,10 +29,8 @@ class BedMeshRenderPrefs(private val dataStore: DataStore<Preferences>) {
     fun viewType(pid: String): Flow<BedMeshViewType> = dataStore.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
         .map { prefs ->
-            when (prefs[viewKey(pid)]) {
-                BedMeshViewType.PROBE_POINTS.name -> BedMeshViewType.PROBE_POINTS
-                else -> BedMeshViewType.HEATMAP
-            }
+            val stored = prefs[viewKey(pid)]
+            BedMeshViewType.entries.firstOrNull { it.name == stored } ?: BedMeshViewType.HEATMAP
         }
 
     fun highColorSel(pid: String): Flow<Int> = dataStore.data

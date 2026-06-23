@@ -936,6 +936,7 @@ private fun BedMeshFocusRegion(
                     viewMode = when (vm.viewType) {
                         BedMeshViewType.HEATMAP -> BedMeshHeatmapView.ViewMode.HEATMAP
                         BedMeshViewType.PROBE_POINTS -> BedMeshHeatmapView.ViewMode.PROBE_POINTS
+                        BedMeshViewType.ISO -> BedMeshHeatmapView.ViewMode.ISO_WIREFRAME
                     },
                     lowColorArgb = lowArgb,
                     highColorArgb = highArgb,

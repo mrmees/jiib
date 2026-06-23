@@ -66,8 +66,8 @@ class BedMeshHeatmapView(context: Context) : View(context), ThemeableView {
         PM_100,
     }
 
-    /** The two render modes: interpolated heatmap fill (default) vs. colored probe dots only. */
-    enum class ViewMode { HEATMAP, PROBE_POINTS }
+    /** The three render modes: interpolated heatmap fill (default), colored probe dots, or 3D wireframe. */
+    enum class ViewMode { HEATMAP, PROBE_POINTS, ISO_WIREFRAME }
 
     private var viewMode: ViewMode = ViewMode.HEATMAP
 
