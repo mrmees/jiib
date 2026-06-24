@@ -40,8 +40,9 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
-/** Bounded settle window for the mDNS scan (lifted from the old editor Find panel). */
-private const val FIND_SCAN_WINDOW_MS = 6000L
+/** Bounded settle window for the mDNS scan — 8s gives serialized resolves time to drain (multiple
+ *  printers resolve one-at-a-time through [ResolveSerializer]). */
+private const val FIND_SCAN_WINDOW_MS = 8000L
 
 /**
  * The Find-on-network takeover. Auto-scans for Moonraker instances on open, lets the user pick one,
