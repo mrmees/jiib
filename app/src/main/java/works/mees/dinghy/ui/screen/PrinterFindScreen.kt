@@ -27,7 +27,6 @@ import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
 import works.mees.dinghy.designsystem.components.ListRow
-import works.mees.dinghy.designsystem.components.ListRowIcon
 import works.mees.dinghy.designsystem.control.Intent
 import works.mees.dinghy.designsystem.icons.DinghyIcons
 import works.mees.dinghy.designsystem.layout.ListBlock
@@ -161,17 +160,22 @@ fun PrinterFindContent(
             field = {
                 ListBlock(modifier = Modifier.weight(1f)) {
                     items(discovered, key = { "${it.host}:${it.port}" }) { p ->
+                        // Show only the hostname (if the mDNS advertisement carried one) + the IP —
+                        // no icon, no port (owner 2026-06-24). Hostname leads with the IP trailing;
+                        // when there's no hostname the IP is the whole row.
+                        val hasHostname = p.name.isNotBlank()
                         ListRow(
                             selected = false,
                             onClick = { onPick(p) },
                             uDp = uDp,
-                            leadingContent = { ListRowIcon(DinghyIcons.SysInfoCpu, uDp, t.text) },
-                            trailingContent = {
-                                Text(p.port.toString(), color = t.text2, style = DinghyType.dataMeta.toTextStyle(t))
+                            trailingContent = if (hasHostname) {
+                                { Text(p.host, color = t.text2, style = DinghyType.dataMeta.toTextStyle(t), maxLines = 1) }
+                            } else {
+                                null
                             },
                         ) {
                             Text(
-                                text = p.name.ifBlank { p.host },
+                                text = if (hasHostname) p.name else p.host,
                                 color = t.text,
                                 style = DinghyType.listLabel.toTextStyle(t),
                                 maxLines = 1,
