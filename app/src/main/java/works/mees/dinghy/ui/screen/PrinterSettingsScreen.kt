@@ -367,10 +367,7 @@ private fun PrinterSettingsNavRow(
 // Connection-state label resource (private to this file)
 // =============================================================================
 
-/**
- * The string resource for a connection state's human label — same mapping as
- * [PrintersScreen]'s private `labelRes()` extension.
- */
+/** The string resource for a connection state's human label. */
 private fun ConnectionState.printerSettingsLabelRes(): Int = when (this) {
     ConnectionState.Connected    -> R.string.conn_state_connected
     ConnectionState.Connecting   -> R.string.conn_state_connecting

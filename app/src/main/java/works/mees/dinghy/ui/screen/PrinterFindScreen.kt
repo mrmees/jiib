@@ -1,7 +1,6 @@
 package works.mees.dinghy.ui.screen
 
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
@@ -147,17 +146,15 @@ fun PrinterFindContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    Column(Modifier.fillMaxSize()) {
-                        // Auto-scan on open means the pre-scan hint is never the initial state; the
-                        // first emission is "Scanning…". Status order: probing > scanning > result.
-                        val status = when {
-                            probingHost != null -> stringResource(R.string.printers_find_testing)
-                            scanning -> stringResource(R.string.printers_scanning)
-                            scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
-                            else -> stringResource(R.string.printers_pick_found)
-                        }
-                        Text(text = status, color = t.text2, style = DinghyType.body.toTextStyle(t))
+                    // Auto-scan on open means the pre-scan hint is never the initial state; the
+                    // first emission is "Scanning…". Status order: probing > scanning > result.
+                    val status = when {
+                        probingHost != null -> stringResource(R.string.printers_find_testing)
+                        scanning -> stringResource(R.string.printers_scanning)
+                        scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
+                        else -> stringResource(R.string.printers_pick_found)
                     }
+                    Text(text = status, color = t.text2, style = DinghyType.body.toTextStyle(t))
                 }
             },
             field = {

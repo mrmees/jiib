@@ -634,7 +634,6 @@
     <string name="printers_edit_key_keep_saved">API key (leave blank to keep saved key)</string>
     <string name="printers_key_saved">Key saved</string>
     <string name="printers_scanning">Scanning…</string>
-    <string name="printers_scan_mdns">Scan (mDNS)</string>
     <string name="printers_clear_key">Clear key</string>
     <string name="printers_scan_none_found">No printers found — enter the host manually.</string>
     <string name="printers_pick_found">Tap a printer to add it.</string>
@@ -805,5 +804,4 @@
     <string name="conn_fail_unknown">Could not connect</string>
     <string name="conn_save_anyway">Save anyway</string>
     <string name="conn_scan">Scan</string>
-    <string name="conn_scan_empty">Tap Scan to search your network</string>
 </resources>
