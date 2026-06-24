@@ -639,6 +639,10 @@
     <string name="printers_scan_none_found">No printers found — enter the host manually.</string>
     <string name="printers_pick_found">Tap a printer to add it.</string>
     <string name="printers_find_testing">Connecting…</string>
+    <string name="printers_help_add">Add a printer with the button at the top of the list.</string>
+    <string name="printers_help_switch">Tap a printer to make it active.</string>
+    <string name="printers_help_edit">To change a printer, tap Edit, then tap the printer.</string>
+    <string name="printers_help_delete">Delete a printer from inside its own settings.</string>
     <string name="conn_state_connected">Connected</string>
     <string name="conn_state_connecting">Connecting…</string>
     <string name="conn_state_syncing">Syncing…</string>
