@@ -637,6 +637,8 @@
     <string name="printers_scan_mdns">Scan (mDNS)</string>
     <string name="printers_clear_key">Clear key</string>
     <string name="printers_scan_none_found">No printers found — enter the host manually.</string>
+    <string name="printers_pick_found">Tap a printer to add it.</string>
+    <string name="printers_find_testing">Connecting…</string>
     <string name="conn_state_connected">Connected</string>
     <string name="conn_state_connecting">Connecting…</string>
     <string name="conn_state_syncing">Syncing…</string>
