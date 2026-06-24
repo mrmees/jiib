@@ -1,5 +1,6 @@
 package works.mees.dinghy.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,18 +27,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.dinghy.R
 import works.mees.dinghy.command.CommandRegistry
 import works.mees.dinghy.command.dispatch
 import works.mees.dinghy.config.ConnectionConfig
 import works.mees.dinghy.config.ConnectionUrls
-import works.mees.dinghy.config.DiscoveredPrinter
 import works.mees.dinghy.config.HostResult
 import works.mees.dinghy.config.Profile
 import works.mees.dinghy.config.buildConnectionUrls
 import works.mees.dinghy.config.normalizeHost
 import works.mees.dinghy.config.resolveAutoSeededOnSave
+import works.mees.dinghy.designsystem.ConfirmGuard
 import works.mees.dinghy.designsystem.components.FocusFrame
 import works.mees.dinghy.designsystem.components.FootAction
 import works.mees.dinghy.designsystem.components.FootButtonBar
@@ -61,11 +60,8 @@ import works.mees.dinghy.theme.DinghyType
 import works.mees.dinghy.theme.compose.LocalTokens
 import works.mees.dinghy.theme.compose.toTextStyle
 
-/** Bounded settle window for mDNS scan. */
-private const val SCAN_WINDOW_MS = 6000L
-
 /** The tappable Field rows; selecting one swaps the Focus into that field's editor. */
-private enum class ConnRow { Name, Host, Port, ApiKey, Find, Advanced }
+private enum class ConnRow { Name, Host, Port, ApiKey, Advanced }
 
 /**
  * Save-time API-key resolution for the connection editor (CR-01).
@@ -139,6 +135,28 @@ internal fun buildProfileFromConnectionEditorSave(
     }
 }
 
+/** The editor's initial field values, resolved from an existing [profile] or a discovery [seed]. */
+internal data class EditorFields(
+    val name: String,
+    val host: String,
+    val port: String,
+    val advancedUrl: String,
+    val keyAlreadySaved: Boolean,
+)
+
+/**
+ * Pure resolution of the editor's seed values. An existing [profile] wins outright; a null profile
+ * (a New target) takes host/port from [seed] when present, else the blank defaults. The API key is
+ * NEVER seeded (T-28-06-01) — only the "(set)" indicator via [keyAlreadySaved].
+ */
+internal fun editorInitialFields(profile: Profile?, seed: ConnectionSeed?): EditorFields = EditorFields(
+    name = profile?.name ?: "",
+    host = profile?.host ?: seed?.host ?: "",
+    port = (profile?.port ?: seed?.port)?.toString() ?: "7125",
+    advancedUrl = profile?.advancedUrl.orEmpty(),
+    keyAlreadySaved = profile?.apiKey != null,
+)
+
 /**
  * The connection editor, rebuilt into the Focus/Field tap-row-to-edit grammar (Connection Editor
  * Redesign, Task 8).
@@ -158,6 +176,7 @@ internal fun PrinterConnectionEditor(
     profile: Profile?,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    seed: ConnectionSeed? = null,
 ) {
     val printerState by container.printerState.collectAsStateWithLifecycle(PrinterState())
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(null)
@@ -179,51 +198,41 @@ internal fun PrinterConnectionEditor(
     var probe by remember { mutableStateOf<ProbeResult?>(null) }
     var probing by remember { mutableStateOf(false) }
     var probeJob by remember { mutableStateOf<Job?>(null) }
-    var scanRequest by remember { mutableStateOf(0) }
-    var scanning by remember { mutableStateOf(false) }
-    var scanned by remember { mutableStateOf(false) }
-    var discovered by remember { mutableStateOf<List<DiscoveredPrinter>>(emptyList()) }
+    var pendingDelete by remember { mutableStateOf(false) }
 
-    // Seed from profile on open — NEVER pre-fill raw API key (T-28-06-01 / MEDIUM-5 / V7).
-    LaunchedEffect(profile?.id) {
-        name = profile?.name ?: ""
-        host = profile?.host ?: ""
-        port = profile?.port?.toString() ?: "7125"
+    // Seed from profile (or discovery seed for a New target) — NEVER pre-fill raw API key.
+    LaunchedEffect(profile?.id, seed?.host, seed?.port) {
+        val init = editorInitialFields(profile, seed)
+        name = init.name
+        host = init.host
+        port = init.port
         apiKey = ""
-        advancedUrl = profile?.advancedUrl.orEmpty()
-        keyAlreadySaved = profile?.apiKey != null
+        advancedUrl = init.advancedUrl
+        keyAlreadySaved = init.keyAlreadySaved
         keyCleared = false
         hostError = null
         portError = false
         selected = null
         probe = null
         probing = false
-        scanned = false
-        discovered = emptyList()
-    }
-
-    // mDNS scan — bounded LaunchedEffect(scanRequest); no persistence, safe to cancel on nav.
-    LaunchedEffect(scanRequest) {
-        if (scanRequest == 0) return@LaunchedEffect
-        scanning = true
-        scanned = false
-        discovered = emptyList()
-        try {
-            withTimeoutOrNull(SCAN_WINDOW_MS) {
-                container.discovery.discover().collect { printer ->
-                    if (discovered.none { it.host == printer.host && it.port == printer.port }) {
-                        discovered = discovered + printer
-                    }
-                }
-            }
-        } finally {
-            scanning = false
-            scanned = true
-        }
     }
 
     DisposableEffect(Unit) {
         onDispose { probeJob?.cancel() }
+    }
+
+    BackHandler(pendingDelete) { pendingDelete = false }
+    if (pendingDelete && profile != null) {
+        ConfirmGuard(
+            title = stringResource(R.string.printers_delete_confirm_title),
+            message = stringResource(R.string.printers_delete_confirm_body),
+            confirmLabel = stringResource(R.string.printers_delete),
+            cancelLabel = stringResource(R.string.common_back),
+            onConfirm = { container.deleteProfile(profile.id); pendingDelete = false; onDone() },
+            onCancel = { pendingDelete = false },
+            destructive = true,
+        )
+        return
     }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -334,9 +343,6 @@ internal fun PrinterConnectionEditor(
                     portError = portError,
                     keyAlreadySaved = keyAlreadySaved,
                     keyCleared = keyCleared,
-                    discovered = discovered,
-                    scanning = scanning,
-                    scanned = scanned,
                     uDp = uDp,
                     isPrinting = isPrinting,
                     estop = estop,
@@ -349,14 +355,6 @@ internal fun PrinterConnectionEditor(
                         apiKey = ""
                         keyAlreadySaved = false
                         keyCleared = true
-                    },
-                    onScan = { if (!scanning) scanRequest++ },
-                    onPick = {
-                        host = it.host
-                        port = it.port.toString()
-                        hostError = null
-                        portError = false
-                        selected = null
                     },
                     onCommitHost = {
                         when (val normalized = normalizeHost(host)) {
@@ -402,13 +400,27 @@ internal fun PrinterConnectionEditor(
                         }
                     }
                     item {
-                        ConnListRow(ConnRow.Find, DinghyIcons.Search, stringResource(R.string.conn_row_find), "", selected, uDp) {
-                            selected = ConnRow.Find
-                        }
-                    }
-                    item {
                         ConnListRow(ConnRow.Advanced, DinghyIcons.LauncherCalibration, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
                             selected = ConnRow.Advanced
+                        }
+                    }
+                    if (profile != null) {
+                        item {
+                            val t = LocalTokens.current
+                            ListRow(
+                                selected = false,
+                                onClick = { pendingDelete = true },
+                                uDp = uDp,
+                                leadingContent = { ListRowIcon(DinghyIcons.Delete, uDp, t.stop) },
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.printers_delete),
+                                    color = t.stop,
+                                    style = DinghyType.listLabel.toTextStyle(t),
+                                    maxLines = 1,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
                 }
@@ -472,9 +484,6 @@ private fun ConnFocus(
     portError: Boolean,
     keyAlreadySaved: Boolean,
     keyCleared: Boolean,
-    discovered: List<DiscoveredPrinter>,
-    scanning: Boolean,
-    scanned: Boolean,
     uDp: Dp,
     isPrinting: Boolean,
     estop: () -> Unit,
@@ -484,8 +493,6 @@ private fun ConnFocus(
     onApiKey: (String) -> Unit,
     onAdvancedUrl: (String) -> Unit,
     onClearKey: () -> Unit,
-    onScan: () -> Unit,
-    onPick: (DiscoveredPrinter) -> Unit,
     onCommitHost: () -> Unit,
     onDone: () -> Unit,
 ) {
@@ -547,14 +554,6 @@ private fun ConnFocus(
                 keyboard = KeyboardType.Uri,
                 onDone = onDone,
             )
-            ConnRow.Find -> ConnFindPanel(
-                discovered = discovered,
-                scanning = scanning,
-                scanned = scanned,
-                uDp = uDp,
-                onScan = onScan,
-                onPick = onPick,
-            )
         }
     }
 }
@@ -604,51 +603,6 @@ private fun ConnTextEditor(
             intent = Intent.Go,
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-}
-
-/** The Find panel: a Scan button + a list of discovered printers (tap to fill host/port). */
-@Composable
-private fun ConnFindPanel(
-    discovered: List<DiscoveredPrinter>,
-    scanning: Boolean,
-    scanned: Boolean,
-    uDp: Dp,
-    onScan: () -> Unit,
-    onPick: (DiscoveredPrinter) -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
-        OutlinedControl(
-            label = if (scanning) stringResource(R.string.printers_scanning) else stringResource(R.string.conn_scan),
-            onClick = onScan,
-            icon = null,
-            intent = Intent.Accent,
-            enabled = !scanning,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(8.dp))
-        if (scanned && !scanning && discovered.isEmpty()) {
-            Text(
-                text = stringResource(R.string.conn_scan_empty),
-                color = LocalTokens.current.text2,
-                style = DinghyType.caption.toTextStyle(LocalTokens.current),
-            )
-        } else {
-            ListBlock(modifier = Modifier.weight(1f)) {
-                items(discovered, key = { "${it.host}:${it.port}" }) { printer ->
-                    ConnListRow(
-                        row = ConnRow.Find,
-                        icon = DinghyIcons.SysInfoCpu,
-                        label = printer.host,
-                        value = printer.port.toString(),
-                        selected = null,
-                        uDp = uDp,
-                    ) {
-                        onPick(printer)
-                    }
-                }
-            }
-        }
     }
 }
 
