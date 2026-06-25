@@ -293,5 +293,5 @@ private sealed interface EditorTarget {
     data class New(val seed: ConnectionSeed? = null) : EditorTarget
 }
 
-// PrinterConnectionEditor, SecureToggleRow, DiscoveredPrinterRow, SCAN_WINDOW_MS, and
-// resolveEditorKeyOnSave have been extracted to PrinterConnectionEditor.kt (Task 4.1).
+// PrinterConnectionEditor + resolveEditorKeyOnSave live in PrinterConnectionEditor.kt; the
+// network-scan (Find) flow lives in PrinterFindScreen.kt.
