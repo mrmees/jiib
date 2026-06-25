@@ -14,3 +14,14 @@ enum class FindPickEffect { AddAndConnect, OpenEditorSeeded }
  */
 fun findPickDecision(probe: ProbeResult): FindPickEffect =
     if (probe.http.ok && probe.ws.ok) FindPickEffect.AddAndConnect else FindPickEffect.OpenEditorSeeded
+
+/** Strips Moonraker's redundant `moonraker @ ` mDNS-instance prefix from a discovered service name,
+ *  leaving just the hostname. Returns "" when nothing useful remains (a bare "moonraker", the prefix
+ *  alone, or an empty advert) — Moonraker is the only thing we connect to, so that label carries no
+ *  information and the row should fall back to the IP. */
+private val MOONRAKER_PREFIX = Regex("(?i)^moonraker\\s*@\\s*")
+
+fun discoveredHostname(serviceName: String): String {
+    val stripped = serviceName.trim().replaceFirst(MOONRAKER_PREFIX, "").trim()
+    return if (stripped.isBlank() || stripped.equals("moonraker", ignoreCase = true)) "" else stripped
+}

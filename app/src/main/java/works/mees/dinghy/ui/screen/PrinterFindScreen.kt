@@ -160,10 +160,12 @@ fun PrinterFindContent(
             field = {
                 ListBlock(modifier = Modifier.weight(1f)) {
                     items(discovered, key = { "${it.host}:${it.port}" }) { p ->
-                        // Show only the hostname (if the mDNS advertisement carried one) + the IP —
-                        // no icon, no port (owner 2026-06-24). Hostname leads with the IP trailing;
-                        // when there's no hostname the IP is the whole row.
-                        val hasHostname = p.name.isNotBlank()
+                        // Show only the hostname (if the mDNS advertisement carried a real one) + the
+                        // IP — no icon, no port (owner 2026-06-24). The "moonraker @ " mDNS prefix is
+                        // stripped (redundant — Moonraker is all we connect to); a name that reduces to
+                        // nothing or to the IP itself is treated as no hostname → the IP is the whole row.
+                        val hostname = discoveredHostname(p.name).takeIf { it.isNotBlank() && it != p.host }
+                        val hasHostname = hostname != null
                         ListRow(
                             selected = false,
                             onClick = { onPick(p) },
@@ -175,7 +177,7 @@ fun PrinterFindContent(
                             },
                         ) {
                             Text(
-                                text = if (hasHostname) p.name else p.host,
+                                text = hostname ?: p.host,
                                 color = t.text,
                                 style = DinghyType.listLabel.toTextStyle(t),
                                 maxLines = 1,
