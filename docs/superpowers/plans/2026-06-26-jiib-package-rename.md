@@ -14,12 +14,12 @@
 - **New package root:** `works.mees.jiib`. **Casing:** lowercase `jiib` (user/Moonraker text), PascalCase `Jiib*` (types), `JIIB` (all-caps tokens).
 - **Replacement scope (git pathspec, reused; tracked files only):**
   `app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts macrobenchmark/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro app/lint-baseline.xml`
-  Always `git grep …` (tracked-only, skips `build/`/`__pycache__`; `-I` skips binaries).
+  Always `git grep …` (tracked-only, skips `build/`/`__pycache__`). **Do NOT use `-I`** — `app/src/test/.../command/BedMeshProfileNameTest.kt` contains a literal NUL byte (test data), so `-I` would treat that Kotlin file as binary and hide it from both rename and gate. Instead, the generic-`dinghy` passes exclude the binary MJPEG fixtures by pathspec: `':!app/src/test/resources/fixtures'`. Specific-pattern passes (`works.mees.dinghy`, `Dinghy`) can't match those binaries, so they need no exclusion.
 - **⚠ EXEMPTIONS — never rename. Gate exclude-regex (verbatim):** `\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary`
   - `[[dinghy-*]]` **and** bare `dinghy-<kebab>` → assistant **memory slugs** (bracketed or not, e.g. `dinghy-compose-write-scope-cancellation`). Covered by `dinghy-`.
   - `dinghy.js` / `theme_theory` → a real file in the **sibling repo**.
   - `dinghy-display` → repo/dir/skill slug (CLIENT_URL, `CLAUDE.md` build-env, `sketch-findings-dinghy-display`). Covered by `dinghy-`. **Exception:** `settings.gradle.kts` `rootProject.name` IS renamed (Task 6).
-  - `dinghyboundary` → arbitrary MJPEG boundary embedded in **binary** `.bin` fixtures; renaming desyncs the test data.
+  - `dinghyboundary` → arbitrary MJPEG boundary embedded in **binary** `.bin` fixtures; renaming desyncs the test data. The fixtures dir is excluded by pathspec from the generic-`dinghy` passes.
   - **`dinghy-specific` is a RENAME target** (→ `jiib-specific`), handled in Task 5 before the gate, so the `dinghy-` exclusion only ever shields true slugs.
 - **OUT OF SCOPE (left historical, like `.planning`):** `docs/commands/*`, `docs/view_specific_notes/`, `docs/moonraker-capabilities.md`, `docs/request-cadence-contract.md`, `docs/top-down-audit-roadmap.md`, `.planning/`, `docs/superpowers/`.
 - **Build command (Windows-side; `./gradlew` does NOT work from WSL):**
@@ -52,19 +52,19 @@ Runs first so `"Dinghy Display"` becomes lowercase `"jiib"`. Hard string literal
 cd /mnt/e/claude/personal/github/dinghy-display
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro"
 # brand literal (has a space; never collides with Theme.DinghyDisplay) -> lowercase jiib (incl golden JSON, tool headers/client names)
-git grep -lzI -e 'Dinghy Display' -- $SCOPE | xargs -0 -r sed -i 's/Dinghy Display/jiib/g'
+git grep -lz -e 'Dinghy Display' -- $SCOPE | xargs -0 -r sed -i 's/Dinghy Display/jiib/g'
 # CLIENT_URL host swap (keeps the dinghy-display slug)
-git grep -lzI -e 'mees.works/dinghy-display' -- $SCOPE | xargs -0 -r sed -i 's#https://mees.works/dinghy-display#https://github.com/mrmees/dinghy-display#g'
+git grep -lz -e 'mees.works/dinghy-display' -- $SCOPE | xargs -0 -r sed -i 's#https://mees.works/dinghy-display#https://github.com/mrmees/dinghy-display#g'
 # quoted frontendId value + bake_tokens path-component + test fixtures
-git grep -lzI -e '"dinghy"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy"/"jiib"/g'
+git grep -lz -e '"dinghy"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy"/"jiib"/g'
 # mDNS lock + backtick frontendId in KDoc
-git grep -lzI -e '"dinghy-mdns"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy-mdns"/"jiib-mdns"/g'
-git grep -lzI -e '`dinghy`' -- $SCOPE | xargs -0 -r sed -i 's/`dinghy`/`jiib`/g'
+git grep -lz -e '"dinghy-mdns"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy-mdns"/"jiib-mdns"/g'
+git grep -lz -e '`dinghy`' -- $SCOPE | xargs -0 -r sed -i 's/`dinghy`/`jiib`/g'
 ```
 
 - [ ] **Step 2: Reword the one all-caps comment that must NOT become "JIIB"** — `bench/SyntheticFeed.kt:130`: change `// "DINGHY"-ish, fixed` to `// fixed deterministic seed` (the hex no longer puns "DINGHY"; prevents a false `DINGHY` straggler in Task 4).
 
-- [ ] **Step 3: Verify** — `git grep -nI -e '"Dinghy Display"' -e 'mees.works/dinghy-display' -e '"dinghy"' -e '"dinghy-mdns"' -e 'DINGHY"-ish' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
+- [ ] **Step 3: Verify** — `git grep -n -e '"Dinghy Display"' -e 'mees.works/dinghy-display' -e '"dinghy"' -e '"dinghy-mdns"' -e 'DINGHY"-ish' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
 
 - [ ] **Step 4: Commit** — `git add -A && git commit -m "rename(jiib): identity literals -> jiib"`
 
@@ -88,11 +88,11 @@ git mv macrobenchmark/src/main/java/works/mees/dinghy macrobenchmark/src/main/ja
 
 ```bash
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr app/build.gradle.kts macrobenchmark/build.gradle.kts app/lint-baseline.xml"
-git grep -lzI -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE \
+git grep -lz -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE \
   | xargs -0 -r sed -i -E 's#works\.mees\.dinghy#works.mees.jiib#g; s#works/mees/dinghy#works/mees/jiib#g'
 ```
 
-- [ ] **Step 3: Verify** — `git grep -nI -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
+- [ ] **Step 3: Verify** — `git grep -n -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
 
 - [ ] **Step 4: Compile checkpoint** — Run `… "E:\Android\gw.bat :app:assembleDebug --no-daemon -Pkotlin.incremental=false" … | tail -20`. Expected: `BUILD SUCCESSFUL`.
 
@@ -123,11 +123,11 @@ git mv app/src/test/java/works/mees/jiib/theme/DinghyTypeTest.kt               a
 
 ```bash
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts"
-git grep -lzI -e 'Dinghy' -e 'DINGHY' -- $SCOPE | xargs -0 -r sed -i -E 's/Dinghy/Jiib/g; s/DINGHY/JIIB/g'
+git grep -lz -e 'Dinghy' -e 'DINGHY' -- $SCOPE | xargs -0 -r sed -i -E 's/Dinghy/Jiib/g; s/DINGHY/JIIB/g'
 ```
 Covers all `Dinghy*` symbols, `Theme.DinghyDisplay`, manifest `.DinghyApp`, `FontConformanceTest` allowlist, `docs/ui_design` symbol refs, `build.gradle.kts:242` comment, `verify_ligatures.py` (`DinghyIcon` regex, `DINGHY_ICONS`), `DINGHY_YANK`, `spoolman-probe.py` "Dinghy" prose.
 
-- [ ] **Step 3: Verify** — `git grep -nI -e 'Dinghy' -e 'DINGHY' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
+- [ ] **Step 3: Verify** — `git grep -n -e 'Dinghy' -e 'DINGHY' -- $SCOPE; echo "exit=$?"`. Expected: no output, `exit=1`.
 
 - [ ] **Step 4: Spot-check** — `grep -nE 'JiibApp|JiibDisplay' app/src/main/AndroidManifest.xml app/src/main/res/values/themes.xml`. Expected: `.JiibApp`, `@style/Theme.JiibDisplay`, `<style name="Theme.JiibDisplay" …>`.
 
@@ -146,7 +146,7 @@ Only lowercase `dinghy` remains (package + symbols done). Apply ONE per-file sed
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md"
-git grep -lzI 'dinghy' -- $SCOPE | while IFS= read -r -d '' f; do
+git grep -lz 'dinghy' -- $SCOPE ':!app/src/test/resources/fixtures' | while IFS= read -r -d '' f; do
   sed -i -E '
     s/dinghy-specific/jiib-specific/g;                                   # the one app-descriptive hyphenated target, BEFORE the dinghy- guard
     s/dinghy\.js/@@A@@/g; s/\[\[dinghy/@@B@@/g; s/dinghyboundary/@@D@@/g; s/dinghy-/@@C@@/g;
@@ -161,7 +161,7 @@ Renames: bare `dinghy`/`dinghyOpts`/`dinghy's`/`parallel_dinghy`/`dinghy tokens`
 - [ ] **Step 2: Verify (gate-equivalent over the lowercase scope)**
 
 ```bash
-git grep -nI -iE 'dinghy' -- $SCOPE | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'; echo "exit=$?"
+git grep -n -iE 'dinghy' -- $SCOPE ':!app/src/test/resources/fixtures' | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'; echo "exit=$?"
 ```
 Expected: no output, `exit=1`. Any printed line = a non-exempt `dinghy` the pipeline missed → fix and re-run.
 
@@ -202,11 +202,11 @@ No new code — the proof. **Do not declare done until every check passes.**
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts macrobenchmark/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro app/lint-baseline.xml"
-git grep -nI -iE 'dinghy' -- $SCOPE | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'; echo "exit=$?"
+git grep -n -iE 'dinghy' -- $SCOPE ':!app/src/test/resources/fixtures' | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'; echo "exit=$?"
 ```
 Expected: **no output**, `exit=1`. Any printed line = a missed rename.
 
-- [ ] **Step 2: Eyeball the `dinghy-` exclusions (guard against the broad exemption hiding a real miss)** — `git grep -nI 'dinghy-' -- $SCOPE`. Confirm EVERY hit is a memory slug (`dinghy-<kebab>`) or the `dinghy-display` repo/skill slug — nothing app-descriptive.
+- [ ] **Step 2: Eyeball the `dinghy-` exclusions (guard against the broad exemption hiding a real miss)** — `git grep -n 'dinghy-' -- $SCOPE ':!app/src/test/resources/fixtures'`. Confirm EVERY hit is a memory slug (`dinghy-<kebab>`) or the `dinghy-display` repo/skill slug — nothing app-descriptive.
 
 - [ ] **Step 3: Full static build + test + macrobench compile**
 
