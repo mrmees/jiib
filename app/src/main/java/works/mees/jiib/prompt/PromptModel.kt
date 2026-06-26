@@ -21,7 +21,7 @@ import androidx.compose.runtime.Immutable
 enum class PromptLifecycle { IDLE, BUILDING, SHOWN, SUPPRESSED }
 
 /**
- * The engine identity + behavior options. Dinghy's identity (D-08) is `frontendId = "jiib"`,
+ * The engine identity + behavior options. Jiib's identity (D-08) is `frontendId = "jiib"`,
  * `frontendCategories = ["touch"]`, with [liveAppend] true (D-02 — content keeps appending after show).
  */
 @Immutable
@@ -82,7 +82,7 @@ enum class PromptItemType(val wire: String) {
  * The INTERNAL reducer state — the full state machine. Folded by `reduce` (PromptReducer.kt); projected
  * to the 6-key [PromptView] by `promptView`. Mirrors `PromptStateData` in types.ts.
  *
- * [size] is parsed + tracked even though Dinghy's renderer clamps every prompt to full-screen (D-06): the
+ * [size] is parsed + tracked even though Jiib's renderer clamps every prompt to full-screen (D-06): the
  * conformance view must expose the authored size verbatim. [pendingTargets]/[pendingSize] are the
  * next-begin bookkeeping consumed (reset to null) at each begin — even a suppressed one (T-12-06).
  */

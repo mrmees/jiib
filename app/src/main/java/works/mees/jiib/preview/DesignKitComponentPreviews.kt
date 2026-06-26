@@ -35,7 +35,7 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.SortOption
 import works.mees.jiib.designsystem.components.SortRow
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.RegisteredRegion
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -68,7 +68,7 @@ private val sampleBlueFilamentColor = Color(0xFF_00_7A_CC.toInt()) // blue filam
  * [ListRow], [FocusFrame], [FillMeter], [FootButtonBar], [FloatingEStop], [SortRow] + [FilterRow].
  *
  * Uses [BoxWithConstraints] → [rememberUnitGrid] to derive `grid.uDp` exactly as a real screen
- * would. All text via [stringResource]; all colors via [LocalTokens.current]; icons via [DinghyIcons].
+ * would. All text via [stringResource]; all colors via [LocalTokens.current]; icons via [JiibIcons].
  */
 @Composable
 private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
@@ -80,21 +80,21 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
         val sortOptions = persistentListOf(
             SortOption(
                 key = SampleSortKey.Name,
-                icon = DinghyIcons.Inventory,
+                icon = JiibIcons.Inventory,
                 label = "Name",
                 contentDescriptionRes = R.string.cd_sort_by_name,
                 directionUp = true,     // active + ascending
             ),
             SortOption(
                 key = SampleSortKey.Material,
-                icon = DinghyIcons.Palette,
+                icon = JiibIcons.Palette,
                 label = "Material",
                 contentDescriptionRes = R.string.cd_sort_by_material,
                 directionUp = null,     // not active
             ),
             SortOption(
                 key = SampleSortKey.Weight,
-                icon = DinghyIcons.Scale,
+                icon = JiibIcons.Scale,
                 label = "Weight",
                 contentDescriptionRes = R.string.cd_sort_by_weight,
                 directionUp = null,     // not active
@@ -105,21 +105,21 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
         val filterOptions = persistentListOf(
             FilterOption(
                 key = SampleFilterKey.Material,
-                icon = DinghyIcons.Inventory,
+                icon = JiibIcons.Inventory,
                 label = "Material",
                 contentDescriptionRes = R.string.cd_filter_by_material,
                 isActive = true,
             ),
             FilterOption(
                 key = SampleFilterKey.Color,
-                icon = DinghyIcons.Palette,
+                icon = JiibIcons.Palette,
                 label = "Color",
                 contentDescriptionRes = R.string.cd_filter_by_color,
                 isActive = false,
             ),
             FilterOption(
                 key = SampleFilterKey.Vendor,
-                icon = DinghyIcons.Storefront,
+                icon = JiibIcons.Storefront,
                 label = "Vendor",
                 contentDescriptionRes = R.string.cd_filter_by_vendor,
                 isActive = false,
@@ -146,7 +146,7 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
             // edge = FocusEdge.Data(sampleFilamentColor) (data carve-out, not brandTint-clamped)
             FocusFrame(
                 title = "Preview",
-                icon = DinghyIcons.LauncherFiles,
+                icon = JiibIcons.LauncherFiles,
                 uDp = 96.dp,
                 edge = FocusEdge.Data(sampleFilamentColor),
                 modifier = Modifier.fillMaxWidth(),
@@ -248,14 +248,14 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
             // ── FootButtonBar ────────────────────────────────────────────────────
             // ≤2 actions → icon+text mode
             FootButtonBar(uDp = grid.uDp, actions = listOf(
-                FootAction("Back", DinghyIcons.Back, {}, Intent.Accent),
-                FootAction("Save", DinghyIcons.Save, {}, Intent.Go),
+                FootAction("Back", JiibIcons.Back, {}, Intent.Accent),
+                FootAction("Save", JiibIcons.Save, {}, Intent.Go),
             ))
             // ≥3 actions → icon-only mode (FOOT_BAR_ICON_ONLY_THRESHOLD)
             FootButtonBar(uDp = grid.uDp, actions = listOf(
-                FootAction("Back", DinghyIcons.Back, {}, Intent.Accent),
-                FootAction("Edit", DinghyIcons.Edit, {}, Intent.Accent),
-                FootAction("Delete", DinghyIcons.Delete, {}, Intent.Danger),
+                FootAction("Back", JiibIcons.Back, {}, Intent.Accent),
+                FootAction("Edit", JiibIcons.Edit, {}, Intent.Accent),
+                FootAction("Delete", JiibIcons.Delete, {}, Intent.Danger),
             ))
         }
     }
@@ -320,7 +320,7 @@ private fun DesignKitComponentRtlSpotCheck() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pseudolocale — standalone, NOT under @Nexus7Previews (see DinghyPreviews.kt note)
+// Pseudolocale — standalone, NOT under @Nexus7Previews (see JiibPreviews.kt note)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(device = NEXUS7, locale = "en-XA", showBackground = true)

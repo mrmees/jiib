@@ -19,7 +19,7 @@ import works.mees.jiib.theme.fsSp
 /**
  * Bake a [TextRole] into a Compose [TextStyle] for the active theme. The ONLY place outside the role
  * plumbing that a text `fontFamily`/`fontSize` is set (FontConformanceTest enforces this). For the
- * shrink-to-fit [works.mees.jiib.theme.DinghyType.focusHero], use [FocusHeroText] instead.
+ * shrink-to-fit [works.mees.jiib.theme.JiibType.focusHero], use [FocusHeroText] instead.
  */
 fun TextRole.toTextStyle(t: ThemeTokens): TextStyle = TextStyle(
     fontFamily = if (role == TypeRole.Ui) Geist else GeistMono,

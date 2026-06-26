@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.BasicText
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.FontScale
 import works.mees.jiib.theme.ThemeOverride
 import works.mees.jiib.theme.compose.LocalTokens
@@ -237,7 +237,7 @@ fun DevThemeCyclerOverlay(
             ) {
                 BasicText(
                     text = "THEME",
-                    style = DinghyType.caption.toTextStyle(t).copy(color = t.text3),
+                    style = JiibType.caption.toTextStyle(t).copy(color = t.text3),
                 )
                 DismissChip(onDismiss = onDismiss)
             }
@@ -309,11 +309,11 @@ private fun CyclerChip(
     ) {
         BasicText(
             text = title,
-            style = DinghyType.caption.toTextStyle(t).copy(color = t.text3),
+            style = JiibType.caption.toTextStyle(t).copy(color = t.text3),
         )
         BasicText(
             text = value,
-            style = DinghyType.caption.toTextStyle(t).copy(color = if (enabled) t.text else t.text3),
+            style = JiibType.caption.toTextStyle(t).copy(color = if (enabled) t.text else t.text3),
         )
     }
 }
@@ -345,7 +345,7 @@ private fun DismissChip(onDismiss: () -> Unit) {
     ) {
         BasicText(
             text = "Dismiss",
-            style = DinghyType.caption.toTextStyle(t).copy(color = t.stop),
+            style = JiibType.caption.toTextStyle(t).copy(color = t.stop),
         )
     }
 }

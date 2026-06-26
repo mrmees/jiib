@@ -32,7 +32,7 @@ import works.mees.jiib.ui.macros.BookmarkedMacrosScreen
  *  - [MacroFieldMode.ManageMode] — system manage-visibility list (D-09)
  *
  * ## Preview font scale note
- * `@Preview(fontScale = …)` is a NO-OP in this app (DinghyTheme pins OS fontScale to 1f — THEME-02).
+ * `@Preview(fontScale = …)` is a NO-OP in this app (JiibTheme pins OS fontScale to 1f — THEME-02).
  * Use [fsLargeSeed]'s `fs` field for large-text previews — NOT the annotation.
  */
 

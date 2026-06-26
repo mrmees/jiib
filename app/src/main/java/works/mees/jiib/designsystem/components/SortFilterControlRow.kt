@@ -5,7 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import kotlinx.collections.immutable.ImmutableList
-import works.mees.jiib.designsystem.icons.DinghyIcon
+import works.mees.jiib.designsystem.icons.JiibIcon
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data classes
@@ -19,7 +19,7 @@ import works.mees.jiib.designsystem.icons.DinghyIcon
  * options (the shared FootButtonBar count rule), else the tile is icon-only and [label] is a11y-only.
  *
  * @param key                  the sort key (opaque to [SortRow]; passed back via [SortRow.onSelect]).
- * @param icon                 the registered [DinghyIcon] glyph rendered on the option tile.
+ * @param icon                 the registered [JiibIcon] glyph rendered on the option tile.
  * @param label                short tile text; shown beside the icon when the row has ≤2 options.
  * @param contentDescriptionRes string resource ID for TalkBack — e.g. `R.string.cd_sort_by_name`.
  * @param directionUp          `true` = ascending arrow; `false` = descending arrow;
@@ -27,7 +27,7 @@ import works.mees.jiib.designsystem.icons.DinghyIcon
  */
 data class SortOption<K>(
     val key: K,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val label: String,
     val contentDescriptionRes: Int,
     val directionUp: Boolean? = null,
@@ -41,14 +41,14 @@ data class SortOption<K>(
  * options (the shared FootButtonBar count rule), else the tile is icon-only and [label] is a11y-only.
  *
  * @param key                  the filter key (opaque to [FilterRow]; passed back via [FilterRow.onSelect]).
- * @param icon                 the registered [DinghyIcon] glyph rendered on the option tile.
+ * @param icon                 the registered [JiibIcon] glyph rendered on the option tile.
  * @param label                short tile text; shown beside the icon when the row has ≤2 options.
  * @param contentDescriptionRes string resource ID for TalkBack.
  * @param isActive             whether this filter is currently active (drives [Intent.Accent] highlight).
  */
 data class FilterOption<K>(
     val key: K,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val label: String,
     val contentDescriptionRes: Int,
     val isActive: Boolean,
@@ -74,7 +74,7 @@ data class FilterOption<K>(
  * The active sort tile overlays a small direction glyph at `Alignment.TopEnd` of its `Box`. This
  * overlay is in addition to the option tile's primary label — it does NOT displace or replace the
  * label. As of the control baseline audit (Phase 3) the glyph is the registered
- * `DinghyIcons.SortAsc` (`arrow_drop_up`) / `DinghyIcons.SortDesc` (`arrow_drop_down`) token pair
+ * `JiibIcons.SortAsc` (`arrow_drop_up`) / `JiibIcons.SortDesc` (`arrow_drop_down`) token pair
  * (master-list §f#1), rendered via the shared [SelectorRow] primitive — no longer a raw ligature.
  *
  * @param options   the sort options; each supplies an icon, a label, and a direction flag.

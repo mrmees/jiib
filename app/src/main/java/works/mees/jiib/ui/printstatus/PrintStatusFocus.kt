@@ -36,13 +36,13 @@ import works.mees.jiib.R
 import kotlinx.collections.immutable.ImmutableMap
 import works.mees.jiib.designsystem.components.FocusEdge
 import works.mees.jiib.designsystem.components.FocusFrame
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.state.KlippyState
 import works.mees.jiib.state.PrintMetadata
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.thumbnailUrl
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -107,7 +107,7 @@ internal fun HomeFocus(
 
     FocusFrame(
         title = title,
-        icon = if (showComplete) DinghyIcons.CheckCircle else DinghyIcons.PrintStatusStandby,
+        icon = if (showComplete) JiibIcons.CheckCircle else JiibIcons.PrintStatusStandby,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
         edge = edge,
@@ -231,8 +231,8 @@ private fun ActivePrintFocus(
         val minData = fsSp(15f, t.fs)
         val maxCap = fsSp(46f, t.fs)                            // grow ceiling — fill the room, don't run away
         // Whole block is normal Geist UI (screenTitle role) — owner: it's the main display, make it look good.
-        val nameStyleBase = DinghyType.screenTitle.toTextStyle(t, maxData * FILENAME_FACTOR)
-        val dataStyleBase = DinghyType.screenTitle.toTextStyle(t, maxData)
+        val nameStyleBase = JiibType.screenTitle.toTextStyle(t, maxData * FILENAME_FACTOR)
+        val dataStyleBase = JiibType.screenTitle.toTextStyle(t, maxData)
         val gapPx = with(density) { BLOCK_LINE_GAP.toPx() }
         val availW = constraints.maxWidth.toFloat()
         val availH = constraints.maxHeight.toFloat()
@@ -270,7 +270,7 @@ private fun ActivePrintFocus(
                 Text(
                     text = filename,
                     color = t.text,
-                    style = DinghyType.screenTitle.toTextStyle(t, nameSp).copy(shadow = shadow),
+                    style = JiibType.screenTitle.toTextStyle(t, nameSp).copy(shadow = shadow),
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
@@ -282,7 +282,7 @@ private fun ActivePrintFocus(
                     Text(
                         text = line,
                         color = t.text,
-                        style = DinghyType.screenTitle.toTextStyle(t, dataSp).copy(shadow = shadow),
+                        style = JiibType.screenTitle.toTextStyle(t, dataSp).copy(shadow = shadow),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,

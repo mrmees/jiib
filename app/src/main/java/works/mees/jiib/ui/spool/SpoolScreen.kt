@@ -66,9 +66,9 @@ import works.mees.jiib.designsystem.components.SortOption
 import works.mees.jiib.designsystem.components.SortRow
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock as DesignListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -76,7 +76,7 @@ import works.mees.jiib.spool.SpoolmanClient
 import works.mees.jiib.spool.SpoolmanSpool
 import works.mees.jiib.spool.normalizeColorHex
 import works.mees.jiib.state.PrintState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -287,21 +287,21 @@ private fun SpoolContent(
         val sortOptions = persistentListOf(
             SortOption(
                 key = SpoolSortKey.NAME,
-                icon = DinghyIcons.MatchCase,
+                icon = JiibIcons.MatchCase,
                 label = stringResource(R.string.spool_sort_name),
                 contentDescriptionRes = R.string.cd_spool_sort_name,
                 directionUp = if (state.sortKey == SpoolSortKey.NAME) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.DATE,
-                icon = DinghyIcons.CalendarClock,
+                icon = JiibIcons.CalendarClock,
                 label = stringResource(R.string.spool_sort_date),
                 contentDescriptionRes = R.string.cd_spool_sort_date,
                 directionUp = if (state.sortKey == SpoolSortKey.DATE) state.sortAscending else null,
             ),
             SortOption(
                 key = SpoolSortKey.REMAINING,
-                icon = DinghyIcons.Scale,
+                icon = JiibIcons.Scale,
                 label = stringResource(R.string.spool_sort_remaining),
                 contentDescriptionRes = R.string.cd_spool_sort_remaining,
                 directionUp = if (state.sortKey == SpoolSortKey.REMAINING) state.sortAscending else null,
@@ -312,21 +312,21 @@ private fun SpoolContent(
         val filterOptions = persistentListOf(
             FilterOption(
                 key = SpoolFilterCategory.TYPE,
-                icon = DinghyIcons.Experiment,
+                icon = JiibIcons.Experiment,
                 label = stringResource(R.string.spool_filter_type),
                 contentDescriptionRes = R.string.cd_spool_filter_type,
                 isActive = state.filters.materialFamilies.isNotEmpty(),
             ),
             FilterOption(
                 key = SpoolFilterCategory.COLOR,
-                icon = DinghyIcons.Palette,
+                icon = JiibIcons.Palette,
                 label = stringResource(R.string.spool_filter_color),
                 contentDescriptionRes = R.string.cd_spool_filter_color,
                 isActive = state.filters.colorSwatchHexes.isNotEmpty() || state.filters.colorSeedHex != null,
             ),
             FilterOption(
                 key = SpoolFilterCategory.MFG,
-                icon = DinghyIcons.Storefront,
+                icon = JiibIcons.Storefront,
                 label = stringResource(R.string.spool_filter_mfg),
                 contentDescriptionRes = R.string.cd_spool_filter_mfg,
                 isActive = state.filters.vendors.isNotEmpty(),
@@ -338,7 +338,7 @@ private fun SpoolContent(
                 // Focus = FocusFrame (color-reactive ring + FillMeter) flush in the registered region.
                 FocusFrame(
                     title = focusTitle,
-                    icon = DinghyIcons.SpoolFilament,
+                    icon = JiibIcons.SpoolFilament,
                     iconTint = spoolColor,
                     uDp = grid.uDp,
                     edge = spoolColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
@@ -348,7 +348,7 @@ private fun SpoolContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    trailingStatusIcon = if (isSelectedLoaded) DinghyIcons.CheckCircle else null,
+                    trailingStatusIcon = if (isSelectedLoaded) JiibIcons.CheckCircle else null,
                     trailingStatusTint = t.go,
                     trailingStatusContentDescription = stringResource(R.string.cd_spool_loaded),
                 ) {
@@ -452,7 +452,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
                     else -> stringResource(R.string.spool_empty_no_match)
                 },
                 color = t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 modifier = Modifier.padding(16.dp),
             )
         }
@@ -516,7 +516,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     Text(
                         text = stringResource(R.string.spool_type_empty),
                         color = t.text2,
-                        style = DinghyType.body.toTextStyle(t),
+                        style = JiibType.body.toTextStyle(t),
                         modifier = Modifier.padding(8.dp),
                     )
                 }
@@ -532,7 +532,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                             Text(
                                 text = label,
                                 color = if (selected) t.accent2 else t.text,
-                                style = DinghyType.listLabel.toTextStyle(t),
+                                style = JiibType.listLabel.toTextStyle(t),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
@@ -572,7 +572,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                     Text(
                         text = stringResource(R.string.spool_mfg_empty),
                         color = t.text2,
-                        style = DinghyType.body.toTextStyle(t),
+                        style = JiibType.body.toTextStyle(t),
                         modifier = Modifier.padding(8.dp),
                     )
                 }
@@ -588,7 +588,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                             Text(
                                 text = vendor,
                                 color = if (selected) t.accent2 else t.text,
-                                style = DinghyType.listLabel.toTextStyle(t),
+                                style = JiibType.listLabel.toTextStyle(t),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
@@ -609,13 +609,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                 label = stringResource(R.string.spool_filter_clear),
                 onClick = onClear,
                 intent = Intent.Danger,
-                icon = DinghyIcons.DeleteSweep, // owner-assigned glyph (2026-06-12; closes WR-02)
+                icon = JiibIcons.DeleteSweep, // owner-assigned glyph (2026-06-12; closes WR-02)
             ),
             FootAction(
                 label = stringResource(R.string.spool_filter_done),
                 onClick = onDone,
                 intent = Intent.Go,
-                icon = DinghyIcons.Check,
+                icon = JiibIcons.Check,
             ),
         ),
     )
@@ -679,7 +679,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                     weightText = filtered
                 },
                 singleLine = true,
-                textStyle = DinghyType.focusHero.toTextStyle(t).copy(color = t.text),
+                textStyle = JiibType.focusHero.toTextStyle(t).copy(color = t.text),
                 cursorBrush = SolidColor(t.accent2),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
@@ -694,7 +694,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 Text(
                     text = stringResource(R.string.spool_measure_placeholder),
                     color = t.text3,
-                    style = DinghyType.focusHero.toTextStyle(t),
+                    style = JiibType.focusHero.toTextStyle(t),
                 )
             }
         }
@@ -713,7 +713,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
             Text(
                 text = stringResource(R.string.spool_measure_hint),
                 color = t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
     }
@@ -725,7 +725,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 label = stringResource(R.string.spool_measure_back),
                 onClick = onCancel,
                 intent = Intent.Danger,
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
             ),
             FootAction(
                 label = stringResource(R.string.spool_measure_set),
@@ -736,7 +736,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                     }
                 },
                 intent = Intent.Go,
-                icon = DinghyIcons.Check,
+                icon = JiibIcons.Check,
             ),
         ),
     )
@@ -752,14 +752,14 @@ private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens
         Text(
             text = label,
             color = t.text2,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = grams?.let { "${it.roundToInt()} g" }
                 ?: stringResource(R.string.spool_measure_weight_not_set),
             color = if (grams == null) t.text3 else t.text,
-            style = DinghyType.statValue.toTextStyle(t),
+            style = JiibType.statValue.toTextStyle(t),
             maxLines = 1,
         )
     }
@@ -790,7 +790,7 @@ private fun spoolFocusTitle(spool: SpoolmanSpool): String =
 /**
  * The Detail card content for the selected spool (inside [FocusFrame]). The spool's identity lives in
  * the Focus header (title = vendor · material · name, icon = spool-colored ev_shadow); the empty state
- * shows a neutral ev_shadow ([DinghyIcons.SpoolFilament]). The card body is the tappable FillMeter
+ * shows a neutral ev_shadow ([JiibIcons.SpoolFilament]). The card body is the tappable FillMeter
  * (also the measure-weight entry) plus the recommended temps and registration date.
  */
 @Composable
@@ -802,8 +802,8 @@ private fun SpoolDetailContent(
 ) {
     if (spool == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            DinghyIconView(
-                DinghyIcons.SpoolFilament,
+            JiibIconView(
+                JiibIcons.SpoolFilament,
                 tint = t.text3,
                 sizeDp = fsSp(64f, t.fs).dp,
                 contentDescription = stringResource(R.string.cd_spool_empty),
@@ -852,27 +852,27 @@ private fun SpoolDetailContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(DinghyIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
-            Text(tempText(filament?.settingsExtruderTemp), color = t.text, style = DinghyType.dataInline.toTextStyle(t), maxLines = 1)
-            DinghyIconView(DinghyIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
-            Text(tempText(filament?.settingsBedTemp), color = t.text, style = DinghyType.dataInline.toTextStyle(t), maxLines = 1)
+            JiibIconView(JiibIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
+            Text(tempText(filament?.settingsExtruderTemp), color = t.text, style = JiibType.dataInline.toTextStyle(t), maxLines = 1)
+            JiibIconView(JiibIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
+            Text(tempText(filament?.settingsBedTemp), color = t.text, style = JiibType.dataInline.toTextStyle(t), maxLines = 1)
         }
         // Registration date.
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(DinghyIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
+            JiibIconView(JiibIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
             Text(
                 text = spool.registered?.substringBefore('T')?.ifBlank { null }
                     ?: stringResource(R.string.spool_value_unset),
                 color = t.text,
-                style = DinghyType.dataInline.toTextStyle(t),
+                style = JiibType.dataInline.toTextStyle(t),
                 maxLines = 1,
             )
         }
         if (spool.archived) {
-            DetailBadge(DinghyIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)
+            DetailBadge(JiibIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)
         }
     }
 }
@@ -927,7 +927,7 @@ private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: Spoo
         Text(
             text = spoolDisplayTitle(spool),
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -939,7 +939,7 @@ private fun androidx.compose.foundation.layout.RowScope.SpoolRowBody(spool: Spoo
             Text(
                 text = meta,
                 color = t.text2,
-                style = DinghyType.dataMeta.toTextStyle(t),
+                style = JiibType.dataMeta.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -959,20 +959,20 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
             text = spool.remainingWeight?.let { "${it.roundToInt()} g" }
                 ?: stringResource(R.string.spool_value_unset),
             color = if (spool.remainingWeight == null) t.text3 else t.text,
-            style = DinghyType.dataInline.toTextStyle(t),
+            style = JiibType.dataInline.toTextStyle(t),
             maxLines = 1,
         )
         if (spool.id == activeId) {
             Text(
                 text = stringResource(R.string.spool_row_badge_loaded),
                 color = t.go,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         } else if (spool.archived) {
             Text(
                 text = stringResource(R.string.spool_row_badge_archived),
                 color = t.heat,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
     }
@@ -990,7 +990,7 @@ private fun tempText(temp: Int?): String =
 /** An icon-led detail badge (loaded green / archived amber). */
 @Composable
 private fun DetailBadge(
-    icon: DinghyIcon,
+    icon: JiibIcon,
     text: String,
     contentDescription: String,
     t: ThemeTokens,
@@ -1001,8 +1001,8 @@ private fun DetailBadge(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
-        Text(text, color = color, style = DinghyType.body.toTextStyle(t))
+        JiibIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
+        Text(text, color = color, style = JiibType.body.toTextStyle(t))
     }
 }
 

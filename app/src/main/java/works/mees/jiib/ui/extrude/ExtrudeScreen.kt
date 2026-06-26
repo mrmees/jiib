@@ -61,8 +61,8 @@ import works.mees.jiib.designsystem.components.Scrubber
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
@@ -74,7 +74,7 @@ import works.mees.jiib.net.JsonRpcMethods
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.spool.SpoolmanSpool
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.spool.SpoolStatusRow
@@ -308,7 +308,7 @@ private fun ExtrudeContent(
             focus = {
                 FocusFrame(
                     title = stringResource(R.string.cd_launcher_extrude),
-                    icon = DinghyIcons.LauncherExtrude,
+                    icon = JiibIcons.LauncherExtrude,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
@@ -358,15 +358,15 @@ private fun ExtrudeContent(
                             }
                             // 2. Macros — Load/Unload presence-gated, then screen-scoped pins (run bare).
                             if (vm.hasLoadMacro) {
-                                item { MacroListRow(loadLabel, DinghyIcons.ExpandCircleUp, onLoad, grid.uDp) }
+                                item { MacroListRow(loadLabel, JiibIcons.ExpandCircleUp, onLoad, grid.uDp) }
                             }
                             if (vm.hasUnloadMacro) {
-                                item { MacroListRow(unloadLabel, DinghyIcons.ExpandCircleDown, onUnload, grid.uDp) }
+                                item { MacroListRow(unloadLabel, JiibIcons.ExpandCircleDown, onUnload, grid.uDp) }
                             }
                             items(vm.pinnedMacros, key = { "pin_${it.name}" }) { m ->
                                 MacroListRow(
                                     label = m.name,
-                                    icon = DinghyIcons.LauncherMacros,
+                                    icon = JiibIcons.LauncherMacros,
                                     onClick = { onRunMacro(m.name) },
                                     uDp = grid.uDp,
                                     busy = "macro_${m.name}" in inFlight,
@@ -385,20 +385,20 @@ private fun ExtrudeContent(
                                     label = stringResource(R.string.common_back),
                                     onClick = onBack,
                                     intent = Intent.Accent, // R5: Back/nav = accent
-                                    icon = DinghyIcons.Back,
+                                    icon = JiibIcons.Back,
                                 ),
                                 FootAction(
                                     label = stringResource(R.string.home_foot_heaters),
                                     onClick = { fieldMode = ExtrudeFieldMode.Heaters },
                                     intent = Intent.Accent,
-                                    icon = DinghyIcons.OutputHeater,
+                                    icon = JiibIcons.OutputHeater,
                                     contentDescription = stringResource(R.string.home_foot_heaters),
                                 ),
                                 FootAction(
                                     label = stringResource(R.string.extrude_macro_settings),
                                     onClick = { fieldMode = ExtrudeFieldMode.MacroSettings },
                                     intent = Intent.Accent,
-                                    icon = DinghyIcons.ManageMacros,
+                                    icon = JiibIcons.ManageMacros,
                                     contentDescription = stringResource(R.string.extrude_macro_settings),
                                 ),
                             ),
@@ -415,7 +415,7 @@ private fun ExtrudeContent(
                                 Text(
                                     text = stringResource(R.string.extrude_no_macros),
                                     color = t.text2,
-                                    style = DinghyType.caption.toTextStyle(t),
+                                    style = JiibType.caption.toTextStyle(t),
                                 )
                             }
                         } else {
@@ -437,7 +437,7 @@ private fun ExtrudeContent(
                                     label = stringResource(R.string.common_back),
                                     onClick = { fieldMode = ExtrudeFieldMode.Main },
                                     intent = Intent.Accent,
-                                    icon = DinghyIcons.Back,
+                                    icon = JiibIcons.Back,
                                 ),
                             ),
                         )
@@ -577,7 +577,7 @@ private fun LabeledSlider(
         Text(
             text = title,
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             modifier = Modifier.weight(1f),
         )
         Scrubber(
@@ -620,13 +620,13 @@ private fun ValueReadout(value: String, unit: String) {
         Text(
             text = value,
             color = t.text,
-            style = DinghyType.focusHero.toTextStyle(t),
+            style = JiibType.focusHero.toTextStyle(t),
             modifier = Modifier.alignByBaseline(),
         )
         Text(
             text = unit,
             color = t.text2,
-            style = DinghyType.statValue.toTextStyle(t),
+            style = JiibType.statValue.toTextStyle(t),
             modifier = Modifier.alignByBaseline(),
         )
     }
@@ -654,7 +654,7 @@ private fun ToolSelector(
                 Text(
                     text = label,
                     color = t.accent2,
-                    style = DinghyType.dataInline.toTextStyle(t),
+                    style = JiibType.dataInline.toTextStyle(t),
                 )
             }
         }
@@ -672,7 +672,7 @@ private fun ToolSelector(
 @Composable
 private fun MacroListRow(
     label: String,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     onClick: () -> Unit,
     uDp: Dp,
     busy: Boolean = false,

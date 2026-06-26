@@ -232,8 +232,8 @@ touch targets — every element keeps its current form (rect buttons, round dots
 
 | State | Glyph | Notes |
 |---|---|---|
-| **stop** | **square-✕** — `DinghyIcons.StatusStop` (`disabled_by_default` ligature) | renamed from the old octagon token in 18.1; the silhouette is a square+✕, NOT an octagon |
-| **caution** | **triangle-!** — `DinghyIcons.Warning` (`warning` ligature) | the universal "warning" silhouette |
+| **stop** | **square-✕** — `JiibIcons.StatusStop` (`disabled_by_default` ligature) | renamed from the old octagon token in 18.1; the silhouette is a square+✕, NOT an octagon |
+| **caution** | **triangle-!** — `JiibIcons.Warning` (`warning` ligature) | the universal "warning" silhouette |
 | **go / ok / homed** | **NONE — color only** | benign states stay quiet; **no circle glyph in jiib** |
 
 **Coverage = safety-critical only.** Only `stop` (square-✕) and `caution` (triangle) get a glyph,
@@ -361,7 +361,7 @@ correct, not a token-purity violation:**
 
 ### Second instance: the color-reactive spool glyph's filament spiral (Phase 18.3, D-10)
 
-The custom **spool glyph** (`DinghyIcons.LauncherSpool` and the SpoolScreen surfaces, converted from the
+The custom **spool glyph** (`JiibIcons.LauncherSpool` and the SpoolScreen surfaces, converted from the
 owner's front-view source art `img/spool.svg`) is the **second named instance** of this same "filament
 color is DATA, not chrome" exception — not a new rule, an extension of *this* carve-out. The glyph's
 **wound-filament spiral** (the coil that shows through the spool-body windows) is tinted by the **loaded
@@ -412,7 +412,7 @@ pressed fill on `OutlinedControl` (ripple OFF), not a glow — see `COMPONENTS.m
 
 All sizes are `fsSp(baseSp, fs)` — base × the S/M/L multiplier; never a bare sp/px. The ramp:
 
-| Tier | Base sp | Role (`DinghyType`) | Use |
+| Tier | Base sp | Role (`JiibType`) | Use |
 |---|---|---|---|
 | Metadata floor | **15** | `caption` (Ui); `dataMeta` / `consoleLine` (Data) | captions, timestamps, fine print — NOTHING renders below this |
 | **List/button default** | **20** | `listLabel`, `buttonLabel`, `body`, `focusHeader` (Ui); `dataInline` (Data) | every list-item label and button label (R11: the size fs=L used to render at the old 17–18 base is now the DEFAULT rendering) |
@@ -423,7 +423,7 @@ All sizes are `fsSp(baseSp, fs)` — base × the S/M/L multiplier; never a bare 
 Secondary text and measurement-unit suffixes may sit below the 20sp default per-case (≥15).
 Bases of 11/13/14sp found in code are NON-CONFORMANT — normalization-audit flags.
 
-**The roles are the enforcement of this ramp.** Every text site uses a `DinghyType` role via
+**The roles are the enforcement of this ramp.** Every text site uses a `JiibType` role via
 `role.toTextStyle(t)` (Compose) or `FocusHeroText` (the shrink-to-fit hero), and the four classic-Views
 surfaces (Console, Files list, GraphView, WebcamView) derive their typeface + base size from the same
 roles through `TextRole.typeface(context)` — one source of truth across both toolkits. Inline

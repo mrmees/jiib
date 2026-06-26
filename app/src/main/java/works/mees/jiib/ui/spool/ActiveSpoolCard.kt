@@ -23,13 +23,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.spool.SpoolmanSpool
 import works.mees.jiib.spool.SpoolmanStatus
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -140,11 +140,11 @@ fun ActiveSpoolCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(icon = DinghyIcons.Inventory, tint = t.text2, sizeDp = fsSp(24f, t.fs).dp, contentDescription = null)
+            JiibIconView(icon = JiibIcons.Inventory, tint = t.text2, sizeDp = fsSp(24f, t.fs).dp, contentDescription = null)
             Text(
                 text = cardTitle(state),
                 color = t.text,
-                style = DinghyType.screenTitle.toTextStyle(t),
+                style = JiibType.screenTitle.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -179,14 +179,14 @@ fun ActiveSpoolCard(
                     onClick = onScan,
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.QrCodeScanner,
+                    icon = JiibIcons.QrCodeScanner,
                 )
                 OutlinedControl(
                     label = "Change",
                     onClick = onChange,
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.SpoolChange,
+                    icon = JiibIcons.SpoolChange,
                 )
                 // Clear only makes sense when something is loaded (D-13 → post_spool_id {}).
                 if (hasActiveSpool) {
@@ -195,7 +195,7 @@ fun ActiveSpoolCard(
                         onClick = onClear,
                         modifier = Modifier.weight(1f),
                         intent = Intent.Danger,
-                        icon = DinghyIcons.SpoolClear,
+                        icon = JiibIcons.SpoolClear,
                     )
                 }
             }
@@ -217,42 +217,42 @@ private fun LoadedBody(state: ActiveSpoolCardState.Loaded, t: ThemeTokens) {
         Text(
             text = listOfNotNull(filament?.material, filament?.name).joinToString(" · ").ifBlank { "—" },
             color = t.text,
-            style = DinghyType.dataInline.toTextStyle(t),
+            style = JiibType.dataInline.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
     // Vendor.
     filament?.vendor?.name?.let { vendor ->
-        SpoolStatRow(DinghyIcons.Storefront, "Vendor", vendor, t)
+        SpoolStatRow(JiibIcons.Storefront, "Vendor", vendor, t)
     }
     // Remaining — the GeistMono tabular hero (26sp).
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon = DinghyIcons.Scale, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
-        Text("Remaining", color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        JiibIconView(icon = JiibIcons.Scale, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
+        Text("Remaining", color = t.text2, style = JiibType.caption.toTextStyle(t))
         Text(
             text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
             color = if (spool.remainingWeight == null) t.text3 else t.text,
-            style = DinghyType.statValue.toTextStyle(t),
+            style = JiibType.statValue.toTextStyle(t),
             maxLines = 1,
         )
     }
     // Location context (inventory only, never the active-spool truth).
-    spool.location?.let { SpoolStatRow(DinghyIcons.SpoolLocation, "Location", it, t) }
+    spool.location?.let { SpoolStatRow(JiibIcons.SpoolLocation, "Location", it, t) }
     // D-09 archived badge.
     if (spool.archived) {
-        StateBadge(DinghyIcons.Archive, "Archived spool — verify before loading", t.heat, t)
+        StateBadge(JiibIcons.Archive, "Archived spool — verify before loading", t.heat, t)
     }
     // D-11 stale / pending usage.
     if (state.stale) {
-        StateBadge(DinghyIcons.SpoolUsageStale, "Usage queued — remaining may be stale", t.heat, t)
+        StateBadge(JiibIcons.SpoolUsageStale, "Usage queued — remaining may be stale", t.heat, t)
     }
     // D-10 reconciled to a new id externally.
     if (state.changedExternally) {
-        StateBadge(DinghyIcons.SpoolChangedExternally, "Active spool changed externally", t.heat, t)
+        StateBadge(JiibIcons.SpoolChangedExternally, "Active spool changed externally", t.heat, t)
     }
 }
 
@@ -281,17 +281,17 @@ private fun ColorSwatch(swatches: List<String>, t: ThemeTokens) {
 
 /** One icon-led metadata row (15–17sp floor; never smaller — D-16). */
 @Composable
-private fun SpoolStatRow(icon: works.mees.jiib.designsystem.icons.DinghyIcon, label: String, value: String, t: ThemeTokens) {
+private fun SpoolStatRow(icon: works.mees.jiib.designsystem.icons.JiibIcon, label: String, value: String, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp)
-        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        JiibIconView(icon, tint = t.text2, sizeDp = fsSp(18f, t.fs).dp)
+        Text(label, color = t.text2, style = JiibType.caption.toTextStyle(t))
         Text(
             value,
             color = t.text,
-            style = DinghyType.dataMeta.toTextStyle(t),
+            style = JiibType.dataMeta.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -300,20 +300,20 @@ private fun SpoolStatRow(icon: works.mees.jiib.designsystem.icons.DinghyIcon, la
 
 /** An amber proceed-at-peril state badge (archived / stale / changed-externally). */
 @Composable
-private fun StateBadge(icon: works.mees.jiib.designsystem.icons.DinghyIcon, text: String, color: Color, t: ThemeTokens) {
+private fun StateBadge(icon: works.mees.jiib.designsystem.icons.JiibIcon, text: String, color: Color, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = color, sizeDp = fsSp(18f, t.fs).dp)
-        Text(text, color = color, style = DinghyType.caption.toTextStyle(t))
+        JiibIconView(icon, tint = color, sizeDp = fsSp(18f, t.fs).dp)
+        Text(text, color = color, style = JiibType.caption.toTextStyle(t))
     }
 }
 
 /** A plain notice line for the non-loaded variants (metadata floor 15sp). */
 @Composable
 private fun CardNotice(text: String, t: ThemeTokens) {
-    Text(text, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+    Text(text, color = t.text2, style = JiibType.caption.toTextStyle(t))
 }
 
 private fun cardTitle(state: ActiveSpoolCardState): String = when (state) {

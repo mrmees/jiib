@@ -11,7 +11,7 @@ import org.junit.Test
  *
  * Pins the dinghy-specific derivation that turns the slim [Palette.generate] output into the full
  * [ThemeTokens] tier set:
- *  - [derivesInBetweenTiers_matchesDinghyJs]: the `lShift`/`rgbaOf`-derived in-between tiers
+ *  - [derivesInBetweenTiers_matchesJiibJs]: the `lShift`/`rgbaOf`-derived in-between tiers
  *    (bg2, surface2/3, text3, hair, outline2, accent2, edgeGlow) match an INDEPENDENT
  *    `dinghy.js`-equivalent derivation (Palette's `internal` helpers + the same dL/alpha
  *    constants) — proving the bridge wires the right source + shift, with no re-ported OKLCH math.
@@ -49,7 +49,7 @@ class TokenBridgeTest {
     private fun rgbaOf(hex: String, a: Double): Color = bake(hex).copy(alpha = a.toFloat())
 
     @Test
-    fun derivesInBetweenTiers_matchesDinghyJs() {
+    fun derivesInBetweenTiers_matchesJiibJs() {
         val g = gen()
         val tok = TokenBridge.build(g, emptyMap(), fs = 1.0f)
         val s = g.surfaces

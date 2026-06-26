@@ -56,8 +56,8 @@ class HeatersModelTest {
         val spool = LoadedSpoolTemps(210, 60, "#fff", "Galaxy")
         val rows = buildHeatersRows(presets, spool, HeatScope.Full, "extruder", caps)
         assertEquals(listOf("heat_off", "heat_spool", "preset_p1", "preset_p2"), rows.map { it.key })
-        assertEquals(works.mees.jiib.designsystem.icons.DinghyIcons.HeatersOff, rows[0].icon)
-        assertEquals(works.mees.jiib.designsystem.icons.DinghyIcons.SpoolFilament, rows[1].icon)
+        assertEquals(works.mees.jiib.designsystem.icons.JiibIcons.HeatersOff, rows[0].icon)
+        assertEquals(works.mees.jiib.designsystem.icons.JiibIcons.SpoolFilament, rows[1].icon)
         assertEquals("#fff", rows[1].tintHex)
     }
 

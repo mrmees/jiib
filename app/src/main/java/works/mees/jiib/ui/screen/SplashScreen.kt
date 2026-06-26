@@ -27,7 +27,7 @@ import works.mees.jiib.net.ConnectionError
 import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.KlippyState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.brandTint
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -91,7 +91,7 @@ fun SplashScreen(
                         text = reasonText(hasConfig, state),
                         color = t.text2,
                         // GeistMono: the reason often carries a verbatim Klippy/MCU message (tabular).
-                        style = DinghyType.dataInline.toTextStyle(t),
+                        style = JiibType.dataInline.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
                     )

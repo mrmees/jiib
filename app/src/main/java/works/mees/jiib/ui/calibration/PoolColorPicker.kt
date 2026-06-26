@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import works.mees.jiib.render.bedMeshPoolColors
 import works.mees.jiib.render.resolveMeshColor
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -126,7 +126,7 @@ private fun PoolColorTile(
     fun TileLabel(mod: Modifier) = Text(
         text = label,
         color = labelColor,
-        style = DinghyType.caption.toTextStyle(t),
+        style = JiibType.caption.toTextStyle(t),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = mod,

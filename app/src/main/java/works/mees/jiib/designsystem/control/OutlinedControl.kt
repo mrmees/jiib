@@ -28,9 +28,9 @@ import androidx.compose.ui.platform.LocalDensity
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import androidx.compose.ui.unit.dp
 import works.mees.jiib.designsystem.MaterialSymbol
-import works.mees.jiib.designsystem.icons.DinghyIcon
+import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.IconRef
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -113,7 +113,7 @@ private fun Intent.softColor(t: ThemeTokens): Color = when (this) {
  * @param contentDescription optional TalkBack label for the [symbol] glyph (WR-05). The MaterialSymbol
  *   renders the icon by typing its raw ligature NAME as Text — without this, an icon-only control
  *   (blank [label]) speaks the ligature name (e.g. "mode_heat_off") or nothing meaningful. A non-null
- *   value overrides the glyph's semantics (the [works.mees.jiib.designsystem.icons.DinghyIconView]
+ *   value overrides the glyph's semantics (the [works.mees.jiib.designsystem.icons.JiibIconView]
  *   Amendment-1 precedent); null leaves semantics unchanged (pre-WR-05 behavior for legacy call sites).
  * @param enabled R10 (26.5-03) TRUE disablement: when false, NO click modifier is installed at all —
  *   no ripple, no consumed tap (the tap falls through or does nothing visibly-interactive), unlike a
@@ -216,41 +216,41 @@ fun OutlinedControl(
                 Text(
                     text = label,
                     color = t.text,
-                    style = DinghyType.buttonLabel.toTextStyle(t),
+                    style = JiibType.buttonLabel.toTextStyle(t),
                 )
             }
         } else {
             Text(
                 text = label,
                 color = t.text,
-                style = DinghyType.buttonLabel.toTextStyle(t),
+                style = JiibType.buttonLabel.toTextStyle(t),
             )
         }
     }
 }
 
 /**
- * Resolves a [DinghyIcon]'s Material Symbols ligature name for use in an [OutlinedControl].
+ * Resolves a [JiibIcon]'s Material Symbols ligature name for use in an [OutlinedControl].
  *
- * Control glyphs in this design system are always Material Symbols ligatures. A [DinghyIcon]
- * whose [DinghyIcon.primary] is an [IconRef.Drawable] cannot be used in a control symbol slot —
+ * Control glyphs in this design system are always Material Symbols ligatures. A [JiibIcon]
+ * whose [JiibIcon.primary] is an [IconRef.Drawable] cannot be used in a control symbol slot —
  * that is a programming error and is surfaced loudly via [IllegalArgumentException].
  *
  * @throws IllegalArgumentException if [icon]'s primary source is [IconRef.Drawable] rather
  *   than [IconRef.Ligature].
  */
-internal fun ligatureOf(icon: DinghyIcon): String =
+internal fun ligatureOf(icon: JiibIcon): String =
     (icon.primary as? IconRef.Ligature)?.name
         ?: throw IllegalArgumentException(
             "OutlinedControl icon must be ligature-backed: ${icon.alternate}"
         )
 
 /**
- * DinghyIcon-aware [OutlinedControl] overload — accepts a registered [DinghyIcon] token so
+ * JiibIcon-aware [OutlinedControl] overload — accepts a registered [JiibIcon] token so
  * redesign components (SortRow, FilterRow, FootButtonBar, FloatingEStop) pass REGISTERED icons
  * by token, never ad-hoc raw ligature strings (closes the icon-registry control-API gap; 23-03).
  *
- * Redesign components pass a registered [DinghyIcon] (e.g. `DinghyIcons.Sort`), never a raw
+ * Redesign components pass a registered [JiibIcon] (e.g. `JiibIcons.Sort`), never a raw
  * ligature string; the string-symbol overload is retained only for pre-redesign call sites.
  *
  * Delegates to the existing [symbol: String?] implementation — single rendering path, no
@@ -263,7 +263,7 @@ fun OutlinedControl(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     intent: Intent = Intent.Neutral,
-    icon: DinghyIcon?,
+    icon: JiibIcon?,
     onLongClick: (() -> Unit)? = null,
     contentDescription: String? = null,
     enabled: Boolean = true,
@@ -285,7 +285,7 @@ fun OutlinedControl(
 /**
  * [ControlSpec]-driven [OutlinedControl] overload (control baseline audit, Phase 2 — 2026-06-14). A
  * NAMED control passes its registered [spec] instead of spelling out label/icon/intent at the call site;
- * the spec composes `R.string` + [DinghyIcon][works.mees.jiib.designsystem.icons.DinghyIcon] +
+ * the spec composes `R.string` + [JiibIcon][works.mees.jiib.designsystem.icons.JiibIcon] +
  * `CommandRegistry` (the catalogId dispatch reference is the CALLER's concern — this overload renders
  * only). [ControlSpec.labelRes] null = icon-only ([ControlSpec.contentDescriptionRes] then supplies the
  * a11y label, enforced by `ControlCatalogDriftTest`).

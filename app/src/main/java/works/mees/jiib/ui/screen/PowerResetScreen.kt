@@ -27,8 +27,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -36,7 +36,7 @@ import works.mees.jiib.systeminfo.HostActionAvailability
 import works.mees.jiib.systeminfo.SystemInfo
 import works.mees.jiib.systeminfo.SystemInfoHolder
 import works.mees.jiib.systeminfo.hostActionAvailability
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import androidx.compose.ui.unit.Dp
@@ -67,7 +67,7 @@ enum class PowerRowIntent { Danger, Warn }
 data class PowerCommand(
     val key: String,
     val label: String,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val intent: PowerRowIntent,
     val enabled: Boolean,
     val disabledReason: String?,
@@ -111,7 +111,7 @@ fun powerResetRows(
     PowerCommand(
         key = "machine_reboot",
         label = labelReboot,
-        icon = DinghyIcons.HostReboot,
+        icon = JiibIcons.HostReboot,
         intent = PowerRowIntent.Danger,
         enabled = avail.canReboot && "machine_reboot" !in inFlightKeys,
         disabledReason = if (!avail.canReboot) avail.powerDisabledReason else null,
@@ -122,7 +122,7 @@ fun powerResetRows(
     PowerCommand(
         key = "machine_shutdown",
         label = labelShutdown,
-        icon = DinghyIcons.SystemRowPower,
+        icon = JiibIcons.SystemRowPower,
         intent = PowerRowIntent.Danger,
         enabled = avail.canShutdown && "machine_shutdown" !in inFlightKeys,
         disabledReason = if (!avail.canShutdown) avail.powerDisabledReason else null,
@@ -133,7 +133,7 @@ fun powerResetRows(
     PowerCommand(
         key = "services_restart_moonraker",
         label = labelRestartMoonraker,
-        icon = DinghyIcons.RestartService,
+        icon = JiibIcons.RestartService,
         intent = PowerRowIntent.Warn,
         enabled = avail.canRestartMoonraker && "services_restart_moonraker" !in inFlightKeys,
         disabledReason = if (!avail.canRestartMoonraker) avail.moonrakerDisabledReason else null,
@@ -144,7 +144,7 @@ fun powerResetRows(
     PowerCommand(
         key = "fw_restart",
         label = labelFirmwareRestart,
-        icon = DinghyIcons.McuFirmwareRestart,
+        icon = JiibIcons.McuFirmwareRestart,
         intent = PowerRowIntent.Warn,
         enabled = "fw_restart" !in inFlightKeys,
         disabledReason = null,
@@ -155,7 +155,7 @@ fun powerResetRows(
     PowerCommand(
         key = "host_restart",
         label = labelRestartKlipper,
-        icon = DinghyIcons.RestartKlipper,
+        icon = JiibIcons.RestartKlipper,
         intent = PowerRowIntent.Warn,
         enabled = "host_restart" !in inFlightKeys,
         disabledReason = null,
@@ -235,7 +235,7 @@ fun PowerResetScreen(
  * Stateless Power / Reset layout (preview seam).
  *
  * Layout:
- *  - **Focus**: [FocusFrame] with title "Power / Reset" + [DinghyIcons.SystemRowPower] + blurb.
+ *  - **Focus**: [FocusFrame] with title "Power / Reset" + [JiibIcons.SystemRowPower] + blurb.
  *    FocusFrame docks the e-stop per the header law (page reachable mid-print).
  *  - **Field**: [ListBlock] of 5 command rows, each tinted to its [PowerRowIntent] color.
  *    Disabled rows are dimmed + show the reason caption.
@@ -244,7 +244,7 @@ fun PowerResetScreen(
  *  - **Foot**: single Back button (Intent.Accent).
  *
  * Intent → token mapping: [PowerRowIntent.Danger] → `t.stop`, [PowerRowIntent.Warn] → `t.heat`.
- * NO inline fontFamily/fontSize — all type via [DinghyType] roles (FontConformanceTest law).
+ * NO inline fontFamily/fontSize — all type via [JiibType] roles (FontConformanceTest law).
  *
  * @param identity    current [SystemInfo] (null = no handshake yet → conservative enable).
  * @param inFlightKeys live in-flight dispatch key set.
@@ -282,7 +282,7 @@ fun PowerResetContent(
             focus = {
                 FocusFrame(
                     title = stringResource(R.string.power_reset_title),
-                    icon = DinghyIcons.SystemRowPower,
+                    icon = JiibIcons.SystemRowPower,
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,7 +293,7 @@ fun PowerResetContent(
                 ) {
                     Text(
                         text = stringResource(R.string.power_reset_blurb),
-                        style = DinghyType.body.toTextStyle(LocalTokens.current),
+                        style = JiibType.body.toTextStyle(LocalTokens.current),
                         color = LocalTokens.current.text2,
                     )
                 }
@@ -315,7 +315,7 @@ fun PowerResetContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                         ),
@@ -376,7 +376,7 @@ private fun PowerCommandRow(
                 Text(
                     text = cmd.disabledReason,
                     color = t.text2.copy(alpha = 0.5f),
-                    style = DinghyType.caption.toTextStyle(t),
+                    style = JiibType.caption.toTextStyle(t),
                 )
             }
         }

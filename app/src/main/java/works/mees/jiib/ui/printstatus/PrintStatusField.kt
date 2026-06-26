@@ -25,10 +25,10 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.RegisteredRegion
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.HomeAction
@@ -118,8 +118,8 @@ internal fun HomeField(
                         onClick = { onNavigate(action.dest) },
                         uDp = uDp,
                         leadingContent = {
-                            // Leading icon — always a registered DinghyIcons token (icon law enforced
-                            // by HomeAction.Destination.icon being a DinghyIcon from DinghyIcons.*).
+                            // Leading icon — always a registered JiibIcons token (icon law enforced
+                            // by HomeAction.Destination.icon being a JiibIcon from JiibIcons.*).
                             // R23: canonical 0.6U list-row icon, U-relative.
                             ListRowIcon(
                                 icon = action.icon,
@@ -150,23 +150,23 @@ internal fun HomeField(
             actions = buildList {
                 if (isPrinting) {
                     if (isPaused) add(FootAction(stringResource(R.string.printstatus_foot_resume),
-                        DinghyIcons.FootResume, onResume, Intent.Go))
+                        JiibIcons.FootResume, onResume, Intent.Go))
                     else add(FootAction(stringResource(R.string.printstatus_foot_pause),
-                        DinghyIcons.PauseCircle, onPause, Intent.Warn))
+                        JiibIcons.PauseCircle, onPause, Intent.Warn))
                     add(FootAction(stringResource(R.string.printstatus_foot_cancel),
-                        DinghyIcons.FootCancel, { showCancelGuard = true }, Intent.Danger))
+                        JiibIcons.FootCancel, { showCancelGuard = true }, Intent.Danger))
                 } else if (isComplete) {
                     // Complete → Dismiss (clears the finished job to standby) + System nav.
                     add(FootAction(stringResource(R.string.printstatus_foot_dismiss),
-                        DinghyIcons.FootDismiss, onDismiss, Intent.Go)) // R5: the expected action on a finished print
+                        JiibIcons.FootDismiss, onDismiss, Intent.Go)) // R5: the expected action on a finished print
                     add(FootAction(stringResource(R.string.home_foot_system),
-                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
+                        JiibIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent)) // R5: plain navigation = accent
                 } else {
                     // Standby: single Heaters button opens the unified Heaters takeover.
                     add(FootAction(stringResource(R.string.home_foot_heaters),
-                        DinghyIcons.OutputHeater, { heatersOpen = true }, Intent.Accent))
+                        JiibIcons.OutputHeater, { heatersOpen = true }, Intent.Accent))
                     add(FootAction(stringResource(R.string.home_foot_system),
-                        DinghyIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent))
+                        JiibIcons.FootSystem, { onNavigate(NavDest.System) }, Intent.Accent))
                 }
             },
         )

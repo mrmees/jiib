@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.finetune.DASH
@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
  * old inline form too long to share the value's line; the weight(1f) value zone absorbs the slack).
  *
  * **Zone 2 — Controls (bottom-docked):** A decrement/increment [OutlinedControl] stepper Row
- * (icon tokens [works.mees.jiib.designsystem.icons.DinghyIcons.Decrease] / [works.mees.jiib.designsystem.icons.DinghyIcons.Increase],
+ * (icon tokens [works.mees.jiib.designsystem.icons.JiibIcons.Decrease] / [works.mees.jiib.designsystem.icons.JiibIcons.Increase],
  * [Intent.Accent], capped at 1U via `height(uDp)`, `enabled = [enabled] && [value] != null`)
  * above the caller-provided `[incrementPicker]` slot.
  *
@@ -142,14 +142,14 @@ fun AdjusterPanel(
                 Row {
                     Text(
                         text = if (value == null) DASH else fmtValue(value, decimals),
-                        style = DinghyType.focusHero.toTextStyle(t),
+                        style = JiibType.focusHero.toTextStyle(t),
                         color = valueColor,
                         modifier = Modifier.alignByBaseline(),
                     )
                     if (value != null && unit.isNotBlank()) {
                         Text(
                             text = unit.trim(),
-                            style = DinghyType.statValue.toTextStyle(t),
+                            style = JiibType.statValue.toTextStyle(t),
                             color = t.text2,
                             modifier = Modifier.alignByBaseline(),
                         )
@@ -165,7 +165,7 @@ fun AdjusterPanel(
                             fmtValue(baseline!!, decimals) + unit.trim(),
                         ),
                         color = t.text3,
-                        style = DinghyType.dataMeta.toTextStyle(t),
+                        style = JiibType.dataMeta.toTextStyle(t),
                     )
                 }
             }

@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.controlHeight
 import works.mees.jiib.designsystem.layout.gapS
@@ -29,16 +29,16 @@ import works.mees.jiib.designsystem.layout.gapS
 
 /**
  * The registered decrement glyph token for a [StepperRow]'s `[−]` tile (control baseline audit,
- * Phase 4): always [DinghyIcons.Decrease] — never a literal `"−"` text label. Pure so the
+ * Phase 4): always [JiibIcons.Decrease] — never a literal `"−"` text label. Pure so the
  * "icon path, not text" contract is host-testable.
  */
-internal fun stepperDecreaseIcon(): DinghyIcon = DinghyIcons.Decrease
+internal fun stepperDecreaseIcon(): JiibIcon = JiibIcons.Decrease
 
 /**
  * The registered increment glyph token for a [StepperRow]'s `[+]` tile: always
- * [DinghyIcons.Increase] — never a literal `"+"` text label.
+ * [JiibIcons.Increase] — never a literal `"+"` text label.
  */
-internal fun stepperIncreaseIcon(): DinghyIcon = DinghyIcons.Increase
+internal fun stepperIncreaseIcon(): JiibIcon = JiibIcons.Increase
 
 /**
  * The dim alpha applied to a [StepperRow] tile that is either truly disabled (`enabled = false`)
@@ -55,7 +55,7 @@ internal const val STEPPER_DIM_ALPHA = 0.38f
  * THE canonical `[−] [center?] [+]` stepper row (control baseline audit, Phase 4) — the shape shared
  * by every discrete ± adjust in the app. Extracted from the hand-rolled ± `Row`s in [AdjusterPanel]
  * (Zone-2 value-adjust), [Scrubber] (the discrete ± row), and the Move Microstep step-size cycler +
- * jog pair. Renders the ± via the registered [DinghyIcons.Decrease] / [DinghyIcons.Increase] icon
+ * jog pair. Renders the ± via the registered [JiibIcons.Decrease] / [JiibIcons.Increase] icon
  * tokens (icon path — NEVER a literal `"−"`/`"+"` text label; icon-registry law).
  *
  * ## Anatomy
@@ -99,8 +99,8 @@ fun StepperRow(
     spacing: Dp = gapS(uDp),
     decreaseContentDescription: String? = null,
     increaseContentDescription: String? = null,
-    decrementIcon: DinghyIcon = DinghyIcons.Decrease,
-    incrementIcon: DinghyIcon = DinghyIcons.Increase,
+    decrementIcon: JiibIcon = JiibIcons.Decrease,
+    incrementIcon: JiibIcon = JiibIcons.Increase,
 ) {
     // R10: true disablement dims + announces disabled; BUSY dims but stays clickable so taps
     // landing during an in-flight commit accumulate (the AdjusterPanel convention, verbatim).

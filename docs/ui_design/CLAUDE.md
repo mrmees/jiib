@@ -63,7 +63,7 @@
   its own. The track record on this is bad — Claude messes it up almost every time (Phase 18.3: invented
   a fake side-view spool instead of using the owner's `img/spool.svg`; earlier phases mis-chose glyphs).
   The procedure when a screen needs an icon:
-  1. **Check first** — is a glyph already selected for this function (in the registry `DinghyIcons`, the
+  1. **Check first** — is a glyph already selected for this function (in the registry `JiibIcons`, the
      hi-fi mockups, an existing screen, or a source asset in `img/`)? Run `ls img/` + grep the repo for
      `*.svg` and the registry before doing anything. If one exists, USE it — never substitute.
   2. **If nothing is already selected, STOP and ASK Matthew** which glyph/asset to use. Do not guess, do

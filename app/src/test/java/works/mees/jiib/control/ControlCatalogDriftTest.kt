@@ -6,7 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.jiib.command.CommandRegistry
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 
 /**
  * Drift-guard for the named-control catalog (control baseline audit, Phase 2 — 2026-06-14). Pure-data
@@ -34,14 +34,14 @@ class ControlCatalogDriftTest {
         )
     }
 
-    /** Every glyph a spec names must be a registered DinghyIcon (no ad-hoc icons). */
+    /** Every glyph a spec names must be a registered JiibIcon (no ad-hoc icons). */
     @Test
-    fun everyIcon_isRegisteredInDinghyIcons() {
-        val registered = DinghyIcons.all.toSet()
+    fun everyIcon_isRegisteredInJiibIcons() {
+        val registered = JiibIcons.all.toSet()
         ControlSpecs.all.forEach { spec ->
             spec.icon?.let { icon ->
                 assertTrue(
-                    "ControlSpec '${spec.key.value}' references an unregistered DinghyIcon: $icon",
+                    "ControlSpec '${spec.key.value}' references an unregistered JiibIcon: $icon",
                     icon in registered,
                 )
             }

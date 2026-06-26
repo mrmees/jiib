@@ -25,7 +25,7 @@ import works.mees.jiib.prompt.PromptAlign
 import works.mees.jiib.prompt.PromptItem
 import works.mees.jiib.prompt.PromptItemType
 import works.mees.jiib.prompt.PromptStyle
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -140,7 +140,7 @@ private fun PromptTextItem(text: String, align: PromptAlign?, modifier: Modifier
     Text(
         text = text,
         color = t.text,
-        style = DinghyType.body.toTextStyle(t),
+        style = JiibType.body.toTextStyle(t),
         textAlign = align.toTextAlign(),
         modifier = modifier,
     )
@@ -189,7 +189,7 @@ internal fun PromptButtonControl(
         Text(
             text = label,
             color = color,
-            style = DinghyType.buttonLabel.toTextStyle(t),
+            style = JiibType.buttonLabel.toTextStyle(t),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

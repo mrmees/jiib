@@ -7,7 +7,7 @@ import works.mees.jiib.theme.ThemeResolver
 import works.mees.jiib.ui.prompt.promptStyleColor
 
 /**
- * The 6-protocol-style → Dinghy-token resolver (12-04 Task 1; UI-SPEC button-mapping table). This is a
+ * The 6-protocol-style → Jiib-token resolver (12-04 Task 1; UI-SPEC button-mapping table). This is a
  * SEPARATE map from `designsystem/control/Intent` — Intent stays the 5-value safety vocabulary; the
  * protocol's 6th style (`info`) resolves to the brighter accent text tint `accent2`, which is NOT an
  * Intent member. Host-testable because `promptStyleColor` is a pure (style, tokens) → Color function;

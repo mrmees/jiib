@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import works.mees.jiib.render.RingBuffer
 import works.mees.jiib.theme.ThemeResolver
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 
 /**
  * Benchmark harness entry point — EXPORTED (registered by plan 01-01's manifest, which
@@ -72,7 +72,7 @@ class BenchActivity : ComponentActivity() {
      * [SyntheticFeed] verbatim — each feed event's progress drives the Compose [ProgressRing] and the
      * graph-sample fills a bounded [RingBuffer] (GRAPH_MAX window) whose snapshot drives the Views
      * [GraphView] through [GraphViewHost]. Both primitives recolor from one [ThemeResolver]'s tokens
-     * (Compose via LocalTokens at the [DinghyTheme] boundary, the Views graph via push-tokens, D-06).
+     * (Compose via LocalTokens at the [JiibTheme] boundary, the Views graph via push-tokens, D-06).
      * Repaint is value-driven at the ~3 Hz cadence — no per-frame animation (D-13).
      */
     private fun mountRenderScene() {
@@ -86,7 +86,7 @@ class BenchActivity : ComponentActivity() {
         val drawArea = !(intent?.getBooleanExtra(EXTRA_NOFILL, false) ?: false)
 
         setContent {
-            DinghyTheme(resolver = resolver) {
+            JiibTheme(resolver = resolver) {
                 val tokens by resolver.tokens.collectAsStateWithLifecycle()
                 RenderBenchScene(
                     state = state,

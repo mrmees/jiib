@@ -30,10 +30,10 @@ import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.RegisteredRegion
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -194,7 +194,7 @@ private fun ConsoleContent(
             RegisteredRegion(Modifier.fillMaxSize()) {
                 FocusFrame(
                     title = stringResource(R.string.cd_launcher_console),
-                    icon = DinghyIcons.LauncherConsole,
+                    icon = JiibIcons.LauncherConsole,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     isPrinting = isPrinting,
@@ -229,7 +229,7 @@ private fun ConsoleContent(
                         // Back FIRST (accent — R5/R8, supersedes D-10's neutral-Back).
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                             contentDescription = stringResource(R.string.common_back),
@@ -239,7 +239,7 @@ private fun ConsoleContent(
                         // Hide-temperatures toggle
                         FootAction(
                             label = stringResource(R.string.cd_console_hide_temps),
-                            icon = DinghyIcons.HideTemps,
+                            icon = JiibIcons.HideTemps,
                             onClick = onToggleTemps,
                             intent = if (hideTemps) Intent.Accent else Intent.Neutral,
                             contentDescription = stringResource(R.string.cd_console_hide_temps),
@@ -248,7 +248,7 @@ private fun ConsoleContent(
                         // Hide-timelapse toggle
                         FootAction(
                             label = stringResource(R.string.cd_console_hide_timelapse),
-                            icon = DinghyIcons.HideTimelapse,
+                            icon = JiibIcons.HideTimelapse,
                             onClick = onToggleTimelapse,
                             intent = if (hideTimelapse) Intent.Accent else Intent.Neutral,
                             contentDescription = stringResource(R.string.cd_console_hide_timelapse),
@@ -257,7 +257,7 @@ private fun ConsoleContent(
                         // Hide-prompts toggle
                         FootAction(
                             label = stringResource(R.string.cd_console_hide_prompts),
-                            icon = DinghyIcons.HidePrompts,
+                            icon = JiibIcons.HidePrompts,
                             onClick = onTogglePrompt,
                             intent = if (hidePrompt) Intent.Accent else Intent.Neutral,
                             contentDescription = stringResource(R.string.cd_console_hide_prompts),
@@ -282,13 +282,13 @@ private fun EmptyConsole(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.console_empty_title),
                 color = t.text,
-                style = DinghyType.focusHeader.toTextStyle(t),
+                style = JiibType.focusHeader.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = stringResource(R.string.console_empty_body),
                 color = t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
         }
@@ -310,7 +310,7 @@ private fun BackfillFailedNotice(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.console_backfill_failed),
             color = t.heat,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
         )
     }
 }

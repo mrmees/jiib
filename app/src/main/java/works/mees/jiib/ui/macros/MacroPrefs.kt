@@ -19,7 +19,7 @@ import java.io.IOException
  *
  * Copies the [works.mees.jiib.config.ConnectionStore] / `ThemePrefs` shape EXACTLY: the [DataStore]
  * is INJECTED (no `preferencesDataStore` delegate), so it is host-testable. The PRODUCTION instance
- * (its OWN `macros.preferences_pb`, NOT shared with connection/theme) is created by DinghyApp and
+ * (its OWN `macros.preferences_pb`, NOT shared with connection/theme) is created by JiibApp and
  * exposed via AppContainer in 08-07.
  *
  * FAIL-SAFE READ CONTRACT (mirrors ConnectionStore, D-02): a read [IOException] (corrupt/partial blob)

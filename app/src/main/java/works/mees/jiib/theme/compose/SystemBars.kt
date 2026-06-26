@@ -64,7 +64,7 @@ internal fun isDarkBackdrop(bg: Color): Boolean = bg.luminance() < 0.5f
  * keep their own window untouched). Every color flows from [LocalTokens] — no raw literals.
  *
  * Call it from MainActivity's composition (the production host) as the first child inside the
- * [DinghyTheme] boundary — deliberately NOT from [DinghyTheme] itself, which is shared with
+ * [JiibTheme] boundary — deliberately NOT from [JiibTheme] itself, which is shared with
  * `@Preview` and benchmark hosts.
  */
 @Composable

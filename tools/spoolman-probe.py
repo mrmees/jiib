@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-spoolman-probe.py - read-only Moonraker/Spoolman contract probe for Dinghy.
+spoolman-probe.py - read-only Moonraker/Spoolman contract probe for Jiib.
 
 This is intentionally a host-side tool, not app code. It lets us capture the
-real response shapes Dinghy's later Spoolman phase will parse while unrelated app
+real response shapes Jiib's later Spoolman phase will parse while unrelated app
 work is active.
 
 Default mode is read-only:
@@ -384,7 +384,7 @@ def http_probe(args: Args) -> dict[str, Any]:
 
 def parse_args(argv: list[str]) -> Args:
     parser = argparse.ArgumentParser(
-        description="Read-only Moonraker Spoolman bridge probe for Dinghy planning fixtures.",
+        description="Read-only Moonraker Spoolman bridge probe for Jiib planning fixtures.",
     )
     parser.add_argument("host", help="Moonraker host or IP")
     parser.add_argument("--port", type=int, default=7125, help="Moonraker port (default: 7125)")

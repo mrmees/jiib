@@ -3,7 +3,7 @@
 > **This is UI LAW (Phase 18).** Every screen built or touched from Phase 19 onward ships, from
 > day one: (a) a `@Preview` matrix that renders in Android Studio across the **6 theme combos +
 > `fs = L`** with **no live Moonraker**, (b) user-facing strings routed through `stringResource`,
-> and (c) glyphs routed through the `DinghyIcon` token registry. This doc is the mechanical
+> and (c) glyphs routed through the `JiibIcon` token registry. This doc is the mechanical
 > copy-template — the 3 Phase-18 exemplars (`PrintStatusPreviews.kt`, `FineTunePreviews.kt`,
 > `SpoolPreviews.kt`) are the worked reference; copy them.
 >
@@ -23,7 +23,7 @@ screen is a mechanical fill-in, not a research project.
 
 Every preview wraps the screen in **`PreviewBox(seed)`** (`preview/PreviewTheming.kt`). `PreviewBox`
 is the ONE preview theme boundary — it drives the real production seam
-`DinghyTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple)))`, so a preview resolves a token set
+`JiibTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple)))`, so a preview resolves a token set
 **byte-identically to runtime**. There is NO preview-only palette.
 
 ```kotlin
@@ -41,7 +41,7 @@ The six named seeds live in `PreviewTheming.kt`: `colorfulDark`, `colorfulLight`
 
 ## 2. The multipreview annotation sets device/orientation ONLY — themes are wrappers
 
-`preview/DinghyPreviews.kt` provides one multipreview annotation:
+`preview/JiibPreviews.kt` provides one multipreview annotation:
 
 - **`@Nexus7Previews`** — the floor-device geometry (`dpi=320`, 1920×1200), portrait + landscape.
 
@@ -108,7 +108,7 @@ SAME seed the Phase-22 backfill reuses; NOT per-preview one-offs). To add a fixt
 
 ### ⚠ The `fs = L` gotcha — `@Preview(fontScale = …)` is a NO-OP
 
-`DinghyTheme` pins OS `fontScale` to `1f` (`--fs` is the sole text-size authority). So
+`JiibTheme` pins OS `fontScale` to `1f` (`--fs` is the sole text-size authority). So
 `@Preview(fontScale = 1.3f)` does **nothing**. The ONLY way to preview the large text size is the
 seed's `fs` field — use `PreviewBox(fsLargeSeed)`. Never reach for the annotation parameter.
 
@@ -146,25 +146,25 @@ User-facing literals route through `stringResource(R.string.…)`; keys live in
 
 ---
 
-## 6. Icon tokenization — `DinghyIcon` / `DinghyIcons` / `DinghyIconView`
+## 6. Icon tokenization — `JiibIcon` / `JiibIcons` / `JiibIconView`
 
 Glyphs route through the registry, not raw `MaterialSymbol(...)` / `painterResource(...)`:
 
-- **`DinghyIcon`** (`designsystem/icons/DinghyIcon.kt`) — `data class DinghyIcon(primary: IconRef,
+- **`JiibIcon`** (`designsystem/icons/JiibIcon.kt`) — `data class JiibIcon(primary: IconRef,
   alternate: String)`. `IconRef` is a sealed one-of: `Ligature(name)` (Material Symbols) or
   `Drawable(resId)` (bundled vector). The **`alternate`** is the canonical one-place remap handle
   (D-07), required **unique** across the registry; the icon carries **no fused label** (D-08 — the
   visible/spoken label is a separate `stringResource` at the call site).
-- **`DinghyIcons`** (`designsystem/icons/DinghyIcons.kt`) — the registry `object`. Add a `val` per
-  icon a screen uses, AND add it to `DinghyIcons.all` (the hand-rolled list the uniqueness test +
+- **`JiibIcons`** (`designsystem/icons/JiibIcons.kt`) — the registry `object`. Add a `val` per
+  icon a screen uses, AND add it to `JiibIcons.all` (the hand-rolled list the uniqueness test +
   `tools/subset-symbols` iterate — no reflection).
-- **`DinghyIconView`** — the ONE render primitive: `DinghyIconView(DinghyIcons.X, sizeDp = …,
+- **`JiibIconView`** — the ONE render primitive: `JiibIconView(JiibIcons.X, sizeDp = …,
   contentDescription = stringResource(R.string.cd_…))`. Call sites think in ONE unit (`sizeDp`); the
   ligature branch derives `sp` via `dpToSp` (pixel-correct only under the `fontScale = 1f` pin). The
   ligature branch OWNS its a11y semantics so TalkBack never speaks the raw ligature name.
 
 To register a new icon: add the `val` + add it to `all` + give it a unique `alternate`. The
-`DinghyIconsTest` enforces resolvable-source + unique-`alternate`.
+`JiibIconsTest` enforces resolvable-source + unique-`alternate`.
 
 ---
 

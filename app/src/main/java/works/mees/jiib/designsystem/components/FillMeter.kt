@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -113,7 +113,7 @@ fun FillMeter(
             Text(
                 text = label,
                 color = t.text2,
-                style = DinghyType.dataMeta.toTextStyle(t),  // Mono metadata floor
+                style = JiibType.dataMeta.toTextStyle(t),  // Mono metadata floor
             )
         }
     }

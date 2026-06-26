@@ -45,9 +45,9 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -56,7 +56,7 @@ import works.mees.jiib.net.ProbeFailure
 import works.mees.jiib.net.ProbeResult
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -254,7 +254,7 @@ internal fun PrinterConnectionEditor(
         val footActions = listOf(
             FootAction(
                 label = back,
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
                 onClick = {
                     when {
                         selected != null -> selected = null
@@ -266,7 +266,7 @@ internal fun PrinterConnectionEditor(
             ),
             FootAction(
                 label = stringResource(R.string.conn_test),
-                icon = DinghyIcons.NetworkPing,
+                icon = JiibIcons.NetworkPing,
                 onClick = {
                     val portInt = port.trim().toIntOrNull()?.takeIf { it in 1..65535 }
                     portError = portInt == null
@@ -298,7 +298,7 @@ internal fun PrinterConnectionEditor(
             ),
             FootAction(
                 label = saveLabel,
-                icon = DinghyIcons.CheckCircle,
+                icon = JiibIcons.CheckCircle,
                 onClick = {
                     val portInt = port.trim().toIntOrNull()?.takeIf { it in 1..65535 }
                     portError = portInt == null
@@ -373,24 +373,24 @@ internal fun PrinterConnectionEditor(
             field = {
                 ListBlock(modifier = Modifier.weight(1f)) {
                     item {
-                        ConnListRow(ConnRow.Name, DinghyIcons.TextFields, stringResource(R.string.conn_row_name), name.ifBlank { stringResource(R.string.conn_row_name) }, selected, uDp) {
+                        ConnListRow(ConnRow.Name, JiibIcons.TextFields, stringResource(R.string.conn_row_name), name.ifBlank { stringResource(R.string.conn_row_name) }, selected, uDp) {
                             selected = ConnRow.Name
                         }
                     }
                     item {
-                        ConnListRow(ConnRow.Host, DinghyIcons.SysInfoCpu, stringResource(R.string.conn_row_host), host.ifBlank { "-" }, selected, uDp) {
+                        ConnListRow(ConnRow.Host, JiibIcons.SysInfoCpu, stringResource(R.string.conn_row_host), host.ifBlank { "-" }, selected, uDp) {
                             selected = ConnRow.Host
                         }
                     }
                     item {
-                        ConnListRow(ConnRow.Port, DinghyIcons.Numbers, stringResource(R.string.conn_row_port), port, selected, uDp) {
+                        ConnListRow(ConnRow.Port, JiibIcons.Numbers, stringResource(R.string.conn_row_port), port, selected, uDp) {
                             selected = ConnRow.Port
                         }
                     }
                     item {
                         ConnListRow(
                             ConnRow.ApiKey,
-                            DinghyIcons.VpnKey,
+                            JiibIcons.VpnKey,
                             stringResource(R.string.conn_row_apikey),
                             if (keyAlreadySaved && !keyCleared) stringResource(R.string.conn_apikey_set) else stringResource(R.string.conn_apikey_unset),
                             selected,
@@ -400,7 +400,7 @@ internal fun PrinterConnectionEditor(
                         }
                     }
                     item {
-                        ConnListRow(ConnRow.Advanced, DinghyIcons.LauncherCalibration, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
+                        ConnListRow(ConnRow.Advanced, JiibIcons.LauncherCalibration, stringResource(R.string.conn_row_advanced), advancedUrl.ifBlank { "-" }, selected, uDp) {
                             selected = ConnRow.Advanced
                         }
                     }
@@ -411,12 +411,12 @@ internal fun PrinterConnectionEditor(
                                 selected = false,
                                 onClick = { pendingDelete = true },
                                 uDp = uDp,
-                                leadingContent = { ListRowIcon(DinghyIcons.Delete, uDp, t.stop) },
+                                leadingContent = { ListRowIcon(JiibIcons.Delete, uDp, t.stop) },
                             ) {
                                 Text(
                                     text = stringResource(R.string.printers_delete),
                                     color = t.stop,
-                                    style = DinghyType.listLabel.toTextStyle(t),
+                                    style = JiibType.listLabel.toTextStyle(t),
                                     maxLines = 1,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -434,7 +434,7 @@ internal fun PrinterConnectionEditor(
 @Composable
 private fun ConnListRow(
     row: ConnRow,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     label: String,
     value: String,
     selected: ConnRow?,
@@ -451,7 +451,7 @@ private fun ConnListRow(
             Text(
                 text = value,
                 color = t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 maxLines = 1,
                 modifier = Modifier.basicMarquee(),
             )
@@ -460,7 +460,7 @@ private fun ConnListRow(
         Text(
             text = label,
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             maxLines = 1,
             modifier = Modifier.fillMaxWidth().basicMarquee(),
         )
@@ -499,7 +499,7 @@ private fun ConnFocus(
     FocusFrame(
         title = profile?.let { stringResource(R.string.conn_title_edit, it.displayName()) }
             ?: stringResource(R.string.conn_title_add),
-        icon = DinghyIcons.SystemRowPrinters,
+        icon = JiibIcons.SystemRowPrinters,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
         isPrinting = isPrinting,
@@ -588,7 +588,7 @@ private fun ConnTextEditor(
             Text(
                 text = warning,
                 color = if (isError) t.stop else t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
         secondaryAction?.let {
@@ -599,7 +599,7 @@ private fun ConnTextEditor(
         OutlinedControl(
             label = stringResource(R.string.common_done),
             onClick = onDone,
-            icon = DinghyIcons.CheckCircle,
+            icon = JiibIcons.CheckCircle,
             intent = Intent.Go,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -619,14 +619,14 @@ private fun ConnSummary(
         Text(
             text = urls.wsUrl.ifBlank { "-" },
             color = t.text,
-            style = DinghyType.dataMeta.toTextStyle(t),
+            style = JiibType.dataMeta.toTextStyle(t),
             maxLines = 1,
             modifier = Modifier.fillMaxWidth().basicMarquee(),
         )
         Spacer(Modifier.height(12.dp))
         when {
-            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = DinghyType.caption.toTextStyle(t))
-            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = DinghyType.caption.toTextStyle(t))
+            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = JiibType.caption.toTextStyle(t))
+            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = JiibType.caption.toTextStyle(t))
             else -> {
                 ProbeLine(stringResource(R.string.conn_test_http), probe.http.ok, probe.http.failure, uDp)
                 ProbeLine(stringResource(R.string.conn_test_ws), probe.ws.ok, probe.ws.failure, uDp)
@@ -643,8 +643,8 @@ private fun ProbeLine(label: String, ok: Boolean, failure: ProbeFailure?, uDp: D
         modifier = Modifier.fillMaxWidth().height(uDp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(
-            icon = if (ok) DinghyIcons.CheckCircle else DinghyIcons.XCircle,
+        JiibIconView(
+            icon = if (ok) JiibIcons.CheckCircle else JiibIcons.XCircle,
             tint = if (ok) t.go else t.stop,
             sizeDp = uDp * 0.5f,
             contentDescription = label,
@@ -652,7 +652,7 @@ private fun ProbeLine(label: String, ok: Boolean, failure: ProbeFailure?, uDp: D
         Text(
             text = if (ok) label else "$label: ${stringResource(failure.toMessageRes())}",
             color = if (ok) t.text else t.stop,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
             maxLines = 1,
             modifier = Modifier.padding(start = 8.dp).basicMarquee(),
         )

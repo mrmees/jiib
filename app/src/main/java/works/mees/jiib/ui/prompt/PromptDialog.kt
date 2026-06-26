@@ -18,13 +18,13 @@ import androidx.compose.ui.unit.dp
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.prompt.PromptView
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
 /**
  * The full-screen Macro Prompt overlay (PROMPT-02, 12-04). An AppShell-level overlay — NOT a Dest (D-05);
- * it is ALWAYS full-screen (Dinghy clamps the protocol `prompt_size` to full-screen, D-06) and occludes
+ * it is ALWAYS full-screen (Jiib clamps the protocol `prompt_size` to full-screen, D-06) and occludes
  * the screen with an OPAQUE `Box(t.bg)`, following the [works.mees.jiib.ui.macros.MacroExecutionPopup]
  * precedent. Built from the design-system primitives:
  *
@@ -81,7 +81,7 @@ fun PromptDialog(
             Text(
                 text = view.title,
                 color = t.text,
-                style = DinghyType.screenTitle.toTextStyle(t),
+                style = JiibType.screenTitle.toTextStyle(t),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
@@ -99,7 +99,7 @@ fun PromptDialog(
                     Text(
                         text = "This prompt has no content.",
                         color = t.text2,
-                        style = DinghyType.caption.toTextStyle(t),
+                        style = JiibType.caption.toTextStyle(t),
                     )
                 } else {
                     for (item in view.items) {

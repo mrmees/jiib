@@ -2,8 +2,8 @@ package works.mees.jiib.ui.heaters
 
 import works.mees.jiib.config.HeatPreset
 import works.mees.jiib.config.sortedForDisplay
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.spool.SpoolmanSpool
 import works.mees.jiib.state.Capabilities
 
@@ -27,7 +27,7 @@ sealed interface HeatDispatch {
 /** One row in the Heaters list — display data + its pre-built, capability-filtered dispatch. */
 data class HeatersRow(
     val key: String,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val label: String,
     val summary: String?,
     val tintHex: String?,
@@ -75,7 +75,7 @@ fun buildHeatersRows(
     // 1. OFF (pinned top, always present).
     rows += HeatersRow(
         key = "heat_off",
-        icon = DinghyIcons.HeatersOff,
+        icon = JiibIcons.HeatersOff,
         label = "OFF",
         summary = null,
         tintHex = null,
@@ -91,7 +91,7 @@ fun buildHeatersRows(
         if (map.isNotEmpty()) {
             rows += HeatersRow(
                 key = "heat_spool",
-                icon = DinghyIcons.SpoolFilament,
+                icon = JiibIcons.SpoolFilament,
                 label = sp.label,
                 summary = heatSummary(map),
                 tintHex = sp.colorHex,
@@ -106,7 +106,7 @@ fun buildHeatersRows(
         if (map.isNotEmpty()) {
             rows += HeatersRow(
                 key = "preset_${preset.id}",
-                icon = DinghyIcons.LauncherTemperature,
+                icon = JiibIcons.LauncherTemperature,
                 label = preset.name,
                 summary = heatSummary(map),
                 tintHex = null,

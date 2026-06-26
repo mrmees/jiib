@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import works.mees.jiib.preview.PreviewPlaceholderBox
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -147,7 +147,7 @@ private fun OverlayPill(
     Text(
         text = text,
         color = tokens.text,
-        style = DinghyType.body.toTextStyle(tokens),
+        style = JiibType.body.toTextStyle(tokens),
         modifier = modifier
             .background(tokens.surface, shape)
             .border(2.dp, tokens.outline, shape)
@@ -175,12 +175,12 @@ private fun DeadEndCard(
         Text(
             text = "Feed unavailable",
             color = tokens.text,
-            style = DinghyType.focusHeader.toTextStyle(tokens),
+            style = JiibType.focusHeader.toTextStyle(tokens),
         )
         Text(
             text = if (serviceName.isBlank()) "No usable stream or snapshot." else "$serviceName has no playable stream.",
             color = tokens.text2,
-            style = DinghyType.caption.toTextStyle(tokens),
+            style = JiibType.caption.toTextStyle(tokens),
             modifier = Modifier.padding(top = 6.dp),
         )
     }

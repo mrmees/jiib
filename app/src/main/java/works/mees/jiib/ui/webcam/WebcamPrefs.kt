@@ -19,7 +19,7 @@ import java.io.IOException
  * SHAPE (the [works.mees.jiib.ui.macros.MacroPrefs] precedent, copied verbatim): the [DataStore] is
  * INJECTED (no `preferencesDataStore` delegate) so it is host-testable; the PRODUCTION instance is its
  * OWN `webcam.preferences_pb` file (NOT shared with theme/connection/macros), created by
- * [works.mees.jiib.DinghyApp] and exposed via [works.mees.jiib.di.AppContainer.webcamPrefs]. Like
+ * [works.mees.jiib.JiibApp] and exposed via [works.mees.jiib.di.AppContainer.webcamPrefs]. Like
  * MacroPrefs it is PROCESS-SCOPED + CONNECTION-INDEPENDENT — the saved preference survives reconnects
  * and printer swaps.
  *

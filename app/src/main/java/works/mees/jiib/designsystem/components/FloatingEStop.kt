@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 
 /**
  * A printing-only floating emergency-stop overlay button (~70% of one unit U).
@@ -24,11 +24,11 @@ import works.mees.jiib.designsystem.icons.DinghyIcons
  * appears only where no header e-stop exists. It is NOT placed per-screen anymore.
  *
  * ## Glyph — registered e-stop icon
- * Renders [DinghyIcons.StatusStop] (`disabled_by_default` ligature) — the owner-assigned e-stop
+ * Renders [JiibIcons.StatusStop] (`disabled_by_default` ligature) — the owner-assigned e-stop
  * shape (square+✕ silhouette). This is the **SAME** registered token as the printer-stop status
  * indicator; it is reused here because it is the canonical owner-assigned emergency-halt glyph.
  * The raw `emergency_stop` string is intentionally NOT used; all glyphs must go through the
- * DinghyIcons registry per icon law ([[dinghy-never-pick-icons-ask]]).
+ * JiibIcons registry per icon law ([[dinghy-never-pick-icons-ask]]).
  *
  * ## Intent
  * [Intent.Danger] — emergency stop is a destructive action that immediately halts the printer
@@ -63,9 +63,9 @@ fun FloatingEStop(
         onLongClick = onHold,
         modifier = modifier.size((uDp * 0.7f).coerceAtLeast(64.dp)),
         intent = Intent.Danger,
-        // Registered e-stop glyph — disabled_by_default (owner-assigned in DinghyIcons.StatusStop).
+        // Registered e-stop glyph — disabled_by_default (owner-assigned in JiibIcons.StatusStop).
         // NOT emergency_stop (that raw string is never used — icon law; 23-05 plan §Task 2).
-        icon = DinghyIcons.StatusStop,
+        icon = JiibIcons.StatusStop,
         // Icon-only control: without this TalkBack speaks the raw ligature name (WR-05). The
         // spoken affordance the retired gutter StopButton carried (Codex W-01).
         contentDescription = stringResource(R.string.cd_emergency_stop),

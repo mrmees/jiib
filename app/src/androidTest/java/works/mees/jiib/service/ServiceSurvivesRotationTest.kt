@@ -12,7 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import works.mees.jiib.DinghyApp
+import works.mees.jiib.JiibApp
 import works.mees.jiib.MainActivity
 import works.mees.jiib.config.ConnectionConfig
 
@@ -30,7 +30,7 @@ import works.mees.jiib.config.ConnectionConfig
 @RunWith(AndroidJUnit4::class)
 class ServiceSurvivesRotationTest {
 
-    private val app: DinghyApp = ApplicationProvider.getApplicationContext()
+    private val app: JiibApp = ApplicationProvider.getApplicationContext()
     private val container get() = app.container
     private val device: UiDevice =
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())

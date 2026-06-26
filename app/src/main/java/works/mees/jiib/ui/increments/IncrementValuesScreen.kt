@@ -35,14 +35,14 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.screen.TokenTextField
@@ -83,7 +83,7 @@ fun IncrementValuesScreen(
                 FocusFrame(
                     title = selectedSpec?.let { rowLabel(it) }
                         ?: stringResource(R.string.increment_values_title),
-                    icon = selectedSpec?.icon ?: DinghyIcons.FineTune,
+                    icon = selectedSpec?.icon ?: JiibIcons.FineTune,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     isPrinting = isPrinting,
@@ -95,7 +95,7 @@ fun IncrementValuesScreen(
                             Text(
                                 text = stringResource(R.string.increment_values_select_hint),
                                 color = LocalTokens.current.text2,
-                                style = DinghyType.body.toTextStyle(LocalTokens.current),
+                                style = JiibType.body.toTextStyle(LocalTokens.current),
                             )
                         }
                     } else {
@@ -120,7 +120,7 @@ fun IncrementValuesScreen(
                         ) {
                             Text(
                                 text = rowLabel(spec),
-                                style = DinghyType.listLabel.toTextStyle(t),
+                                style = JiibType.listLabel.toTextStyle(t),
                                 color = t.text,
                                 maxLines = 1,
                                 modifier = Modifier.fillMaxWidth().basicMarquee(),
@@ -133,7 +133,7 @@ fun IncrementValuesScreen(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                             contentDescription = stringResource(R.string.cd_back),
@@ -179,13 +179,13 @@ private fun IncrementEditor(
         Text(
             text = errorMsg ?: stringResource(R.string.increment_values_input_hint),
             color = if (errorMsg != null) t.stop else t.text2,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
         )
         Spacer(Modifier.weight(1f))
         OutlinedControl(
             label = stringResource(R.string.common_save),
             onClick = { (parse as? IncrementParse.Ok)?.let { onSave(it.canonical) } },
-            icon = DinghyIcons.CheckCircle,
+            icon = JiibIcons.CheckCircle,
             intent = Intent.Go,
             enabled = valid,
             modifier = Modifier.fillMaxWidth(),

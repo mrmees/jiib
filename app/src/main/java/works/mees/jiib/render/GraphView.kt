@@ -8,7 +8,7 @@ import android.graphics.Path
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
 import kotlin.math.roundToInt
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.seriesColor
@@ -127,9 +127,9 @@ class GraphView(context: Context) : View(context), ThemeableView {
      * Focus|Field center seam. Color is pushed from the muted [ThemeTokens.text3] in [applyTokens].
      */
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = DinghyType.statValue.baseSp * density // default; re-set --fs-scaled in applyTokens
+        textSize = JiibType.statValue.baseSp * density // default; re-set --fs-scaled in applyTokens
         textAlign = Paint.Align.RIGHT
-        typeface = DinghyType.statValue.typeface(context)
+        typeface = JiibType.statValue.typeface(context)
     }
 
     /**
@@ -285,7 +285,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
         // reapplyOverrides() re-reads lastTokens (now updated above) and lastOverrides.
         reapplyOverrides()
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
-        labelPaint.textSize = fsSp(DinghyType.statValue.baseSp, t.fs) * density // statValue role — --fs-scaled
+        labelPaint.textSize = fsSp(JiibType.statValue.baseSp, t.fs) * density // statValue role — --fs-scaled
         invalidate()
     }
 

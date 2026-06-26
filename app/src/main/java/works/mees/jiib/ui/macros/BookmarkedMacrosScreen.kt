@@ -59,12 +59,12 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.net.JsonRpcMethods
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.screen.TokenTextField
@@ -297,7 +297,7 @@ private fun MacrosContent(
                 val title = liveMacro?.name ?: stringResource(R.string.cd_launcher_macros)
                 FocusFrame(
                     title = title,
-                    icon = DinghyIcons.LauncherMacros,
+                    icon = JiibIcons.LauncherMacros,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
@@ -319,7 +319,7 @@ private fun MacrosContent(
                                     Text(
                                         text = stringResource(R.string.macros_bookmark_explainer),
                                         color = t.text2,
-                                        style = DinghyType.body.toTextStyle(t),
+                                        style = JiibType.body.toTextStyle(t),
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth(),
                                     )
@@ -327,7 +327,7 @@ private fun MacrosContent(
                                         text = stringResource(R.string.macros_helper_hint),
                                         color = t.text2,
                                         // Match the bookmarking explainer's size (owner 2026-06-17).
-                                        style = DinghyType.body.toTextStyle(t),
+                                        style = JiibType.body.toTextStyle(t),
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth(),
                                     )
@@ -340,7 +340,7 @@ private fun MacrosContent(
                                 Text(
                                     text = stringResource(R.string.macros_focus_select_prompt),
                                     color = t.text2,
-                                    style = DinghyType.body.toTextStyle(t),
+                                    style = JiibType.body.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -418,7 +418,7 @@ private fun ColumnScope.MacroDetailFocusBody(
         Text(
             text = macro.description,
             color = t.text2,
-            style = DinghyType.body.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -430,7 +430,7 @@ private fun ColumnScope.MacroDetailFocusBody(
             Text(
                 text = stringResource(R.string.macros_loading_params),
                 color = t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -447,7 +447,7 @@ private fun ColumnScope.MacroDetailFocusBody(
             Text(
                 text = stringResource(R.string.macros_raw_args_hint),
                 color = t.text3,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -547,13 +547,13 @@ private fun ColumnScope.MacroLauncherField(
         actions = listOf(
             FootAction(
                 label = stringResource(R.string.macros_foot_back),
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
                 onClick = onBack,
                 intent = Intent.Accent, // R5: Back = accent
             ),
             FootAction(
                 label = stringResource(R.string.macros_foot_manage),
-                icon = DinghyIcons.ManageMacros,
+                icon = JiibIcons.ManageMacros,
                 onClick = onManage,
                 intent = Intent.Accent, // R5: plain navigation = accent
                 contentDescription = stringResource(R.string.cd_macros_manage),
@@ -562,7 +562,7 @@ private fun ColumnScope.MacroLauncherField(
             // alpha+semantics (the established disabled convention).
             FootAction(
                 label = stringResource(R.string.macros_foot_execute),
-                icon = DinghyIcons.ExecuteMacro,
+                icon = JiibIcons.ExecuteMacro,
                 onClick = { if (executeEnabled) onExecute() },
                 intent = Intent.Go,
                 contentDescription = stringResource(R.string.cd_macros_execute),
@@ -598,7 +598,7 @@ private fun MacroNumericParamField(
         Text(
             text = paramLabel(param),
             color = t.text2,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -614,7 +614,7 @@ private fun MacroNumericParamField(
                 }
             },
             singleLine = true,
-            textStyle = DinghyType.dataInline.toTextStyle(t).copy(color = t.text),
+            textStyle = JiibType.dataInline.toTextStyle(t).copy(color = t.text),
             cursorBrush = SolidColor(t.accent2),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
@@ -632,7 +632,7 @@ private fun MacroNumericParamField(
                     Text(
                         text = "0",
                         color = t.text3,
-                        style = DinghyType.dataInline.toTextStyle(t),
+                        style = JiibType.dataInline.toTextStyle(t),
                     )
                 }
                 innerField()
@@ -676,7 +676,7 @@ private fun ColumnScope.MacroManageField(
         actions = listOf(
             FootAction(
                 label = stringResource(R.string.macros_foot_back),
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
                 onClick = onBack,
                 intent = Intent.Accent, // R5: Back = accent
             ),
@@ -684,7 +684,7 @@ private fun ColumnScope.MacroManageField(
                 label = stringResource(
                     if (state.revealHidden) R.string.macros_foot_hide else R.string.macros_foot_show,
                 ),
-                icon = if (state.revealHidden) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                icon = if (state.revealHidden) JiibIcons.Visibility else JiibIcons.VisibilityOff,
                 onClick = { onSetRevealHidden(!state.revealHidden) },
                 intent = if (state.revealHidden) Intent.Accent else Intent.Neutral,
             ),
@@ -703,13 +703,13 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.macros_empty_title),
             color = t.text,
-            style = DinghyType.screenTitle.toTextStyle(t),
+            style = JiibType.screenTitle.toTextStyle(t),
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = stringResource(R.string.macros_empty_body),
             color = t.text2,
-            style = DinghyType.caption.toTextStyle(t),
+            style = JiibType.caption.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
@@ -724,7 +724,7 @@ internal fun MacrosUnavailable(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.macros_unavailable),
             color = t.text2,
-            style = DinghyType.body.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
         )
     }
 }

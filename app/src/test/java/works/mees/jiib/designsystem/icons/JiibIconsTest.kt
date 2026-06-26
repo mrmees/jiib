@@ -7,19 +7,19 @@ import org.junit.Test
 
 /**
  * Live registry contract (SC-3b / D-07 / D-08), converted from the 18-01 compile scaffold once the
- * `works.mees.jiib.designsystem.icons` registry exists (built in 18-03). Iterates [DinghyIcons.all]
+ * `works.mees.jiib.designsystem.icons` registry exists (built in 18-03). Iterates [JiibIcons.all]
  * (Amendment 3 — the hand-rolled Phase-22-readiness list, NOT reflection) to enforce:
- *   (a) every entry has a non-blank [DinghyIcon.alternate] remap handle (D-07),
+ *   (a) every entry has a non-blank [JiibIcon.alternate] remap handle (D-07),
  *   (b) every entry resolves to exactly one [IconRef] source (Ligature XOR Drawable — D-08 separable), and
- *   (c) [DinghyIcon.alternate] is UNIQUE across the whole registry (a duplicate makes a fork's remap
+ *   (c) [JiibIcon.alternate] is UNIQUE across the whole registry (a duplicate makes a fork's remap
  *       ambiguous — Codex LOW-8).
  */
-class DinghyIconsTest {
+class JiibIconsTest {
 
     @Test
     fun everyEntry_hasNonBlankAlternate_andResolvableIconRef() {
-        assertFalse("DinghyIcons.all must not be empty", DinghyIcons.all.isEmpty())
-        DinghyIcons.all.forEach { icon ->
+        assertFalse("JiibIcons.all must not be empty", JiibIcons.all.isEmpty())
+        JiibIcons.all.forEach { icon ->
             assertTrue(
                 "alternate remap handle must be non-blank (D-07): $icon",
                 icon.alternate.isNotBlank(),
@@ -41,10 +41,10 @@ class DinghyIconsTest {
 
     @Test
     fun alternate_isUnique_acrossAllEntries() {
-        val alternates = DinghyIcons.all.map { it.alternate }
+        val alternates = JiibIcons.all.map { it.alternate }
         val distinct = alternates.toSet()
         assertEquals(
-            "every DinghyIcon.alternate must be unique (the one-place D-07 remap handle); " +
+            "every JiibIcon.alternate must be unique (the one-place D-07 remap handle); " +
                 "duplicates: ${alternates.groupingBy { it }.eachCount().filter { it.value > 1 }.keys}",
             alternates.size,
             distinct.size,
@@ -91,14 +91,14 @@ class DinghyIconsTest {
         //     button) — Macros and the Calibration hub never co-render; owner-chosen intentional reuse (2026-06-23).
         val allowedSharedLigatures =
             setOf("output_circle", "palette", "settings", "print", "memory", "refresh", "play_arrow")
-        val unexpectedDuplicates = DinghyIcons.all
+        val unexpectedDuplicates = JiibIcons.all
             .groupBy { it.primary }
             .filter { (ref, dups) ->
                 dups.size > 1 && !(ref is IconRef.Ligature && ref.name in allowedSharedLigatures)
             }
             .mapValues { (_, dups) -> dups.map { it.alternate } }
         assertEquals(
-            "every DinghyIcon.primary (rendered IconRef) must be unique across the registry unless " +
+            "every JiibIcon.primary (rendered IconRef) must be unique across the registry unless " +
                 "explicitly allow-listed as a never-co-occurring shared glyph (WR-02). Unexpected " +
                 "duplicate sources → entries: $unexpectedDuplicates",
             emptyMap<IconRef, List<String>>(),
@@ -110,14 +110,14 @@ class DinghyIconsTest {
      * (D-15 / SC-3b / 18.3 SC1+SC6) Drift-guard for the hand-authored printer-domain Drawable keepers.
      * After the Phase-18.1 drawable→ligature flips (StatusStop, BabystepCompress, BabystepExpand,
      * PressureAdvance, Increase, Decrease), the remaining [IconRef.Drawable] entries are EXACTLY the
-     * sanctioned custom printer-domain glyphs Material Symbols lacks (icon-source policy, DinghyIcons.kt
+     * sanctioned custom printer-domain glyphs Material Symbols lacks (icon-source policy, JiibIcons.kt
      * lines 15-21): `Nozzle`, `HeatBed`, and — added in Phase 18.3 — `launcher_spool` (the custom
      * side-view filament-spool vector that retired the `database` ligature placeholder, D-01). Any OTHER
      * [IconRef.Drawable] is an un-flipped 18.1 regression or an unsanctioned custom drawable.
      */
     @Test
     fun registryDrawableEntries_areOnlyTheCustomKeepers() {
-        val drawableBacked = DinghyIcons.all
+        val drawableBacked = JiibIcons.all
             .filter { it.primary is IconRef.Drawable }
             .map { it.alternate }
             .toSet()
@@ -137,11 +137,11 @@ class DinghyIconsTest {
      */
     @Test
     fun routineGlyphs_matchOwnerBucketAssignments() {
-        fun lig(icon: DinghyIcon) = (icon.primary as IconRef.Ligature).name
-        assertEquals("detector", lig(DinghyIcons.RoutineProbeCalibrate))
-        assertEquals("blur_linear", lig(DinghyIcons.RoutineBedMesh))
-        assertEquals("rule_settings", lig(DinghyIcons.RoutineScrewsTilt))
-        assertEquals("linear_scale", lig(DinghyIcons.RoutineZTilt))
-        assertEquals("linked_services", lig(DinghyIcons.RoutineQgl))
+        fun lig(icon: JiibIcon) = (icon.primary as IconRef.Ligature).name
+        assertEquals("detector", lig(JiibIcons.RoutineProbeCalibrate))
+        assertEquals("blur_linear", lig(JiibIcons.RoutineBedMesh))
+        assertEquals("rule_settings", lig(JiibIcons.RoutineScrewsTilt))
+        assertEquals("linear_scale", lig(JiibIcons.RoutineZTilt))
+        assertEquals("linked_services", lig(JiibIcons.RoutineQgl))
     }
 }

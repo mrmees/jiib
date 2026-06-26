@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 import works.mees.jiib.state.ResolvedWebcam
 import works.mees.jiib.state.Webcam
 import works.mees.jiib.theme.ThemeResolver
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 import works.mees.jiib.ui.webcam.FeedOutcome
 import works.mees.jiib.ui.webcam.WebcamFeed
 import works.mees.jiib.ui.webcam.WebcamHolder
@@ -94,7 +94,7 @@ class WebcamLifecycleTest {
 
         var pageVisible by mutableStateOf(true)
         composeRule.setContent {
-            DinghyTheme(resolver) {
+            JiibTheme(resolver) {
                 if (pageVisible) {
                     WebcamScreen(holder = holder, surfaceProvider = works.mees.jiib.render.Media3SurfaceProvider(), onBack = {})
                 }

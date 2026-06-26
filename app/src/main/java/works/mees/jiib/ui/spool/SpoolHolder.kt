@@ -223,7 +223,7 @@ class SpoolHolder(
         scope.coroutineContext[Job]?.invokeOnCompletion { holderJob.cancel() }
 
         // D-10: mirror the upstream active-spool truth so the picker marks the currently-loaded spool and
-        // reconciles an EXTERNAL change (Fluidd/runout-macro) without assuming Dinghy caused it. Read-only.
+        // reconciles an EXTERNAL change (Fluidd/runout-macro) without assuming Jiib caused it. Read-only.
         // 18.3-04 (D-06.2): ALSO drive the live activeSpoolDetail color source off the active id — a
         // best-effort getSpool(id) so the shell/drawer can tint the Spool tile without a load() call.
         holderScope.launch {

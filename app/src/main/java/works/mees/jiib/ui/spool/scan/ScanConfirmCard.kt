@@ -26,15 +26,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.spool.SpoolmanClient
 import works.mees.jiib.spool.SpoolmanSpool
 import works.mees.jiib.spool.normalizeColorHex
 import works.mees.jiib.spool.parseSpoolmanSpoolDetail
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -93,11 +93,11 @@ fun ScanConfirmCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(icon = DinghyIcons.QrCodeScanner, tint = t.accent2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
+            JiibIconView(icon = JiibIcons.QrCodeScanner, tint = t.accent2, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
             Text(
                 text = "Scanned spool #$spoolId",
                 color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
             )
         }
 
@@ -109,18 +109,18 @@ fun ScanConfirmCard(
             Text(
                 text = "Spool $spoolId",
                 color = t.text,
-                style = DinghyType.screenTitle.toTextStyle(t),
+                style = JiibType.screenTitle.toTextStyle(t),
             )
             Text(
                 text = "Details unavailable — confirm to set active anyway.",
                 color = t.text3,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         } else {
             Text(
                 text = "Resolving…",
                 color = t.text3,
-                style = DinghyType.body.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
             )
         }
 
@@ -134,14 +134,14 @@ fun ScanConfirmCard(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
                 intent = Intent.Danger, // back = red (THEME-04).
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
             )
             OutlinedControl(
                 label = "Set active",
                 onClick = { onConfirm(spoolId) }, // confirm-first: the SOLE set-active trigger (D-12).
                 modifier = Modifier.weight(1f),
                 intent = Intent.Go, // green accept/commit.
-                icon = DinghyIcons.CheckCircle,
+                icon = JiibIcons.CheckCircle,
             )
         }
     }
@@ -161,38 +161,38 @@ private fun ConfirmSpoolDetail(spool: SpoolmanSpool, t: ThemeTokens) {
                 text = listOfNotNull(filament?.material, filament?.name)
                     .joinToString(" · ").ifBlank { "Spool ${spool.id}" },
                 color = t.text,
-                style = DinghyType.screenTitle.toTextStyle(t),
+                style = JiibType.screenTitle.toTextStyle(t),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        filament?.vendor?.name?.let { ConfirmRow(DinghyIcons.Storefront, "Vendor", it, t) }
+        filament?.vendor?.name?.let { ConfirmRow(JiibIcons.Storefront, "Vendor", it, t) }
         // Remaining — the GeistMono tabular hero (26sp, D-16).
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(icon = DinghyIcons.Scale, tint = t.text2, sizeDp = fsSp(22f, t.fs).dp, contentDescription = null)
+            JiibIconView(icon = JiibIcons.Scale, tint = t.text2, sizeDp = fsSp(22f, t.fs).dp, contentDescription = null)
             Text(
                 text = spool.remainingWeight?.let { "${it.roundToInt()} g" } ?: "—",
                 color = if (spool.remainingWeight == null) t.text3 else t.text,
-                style = DinghyType.statValue.toTextStyle(t),
+                style = JiibType.statValue.toTextStyle(t),
                 maxLines = 1,
             )
-            Text("remaining", color = t.text2, style = DinghyType.caption.toTextStyle(t))
+            Text("remaining", color = t.text2, style = JiibType.caption.toTextStyle(t))
         }
-        spool.location?.let { ConfirmRow(DinghyIcons.SpoolLocation, "Location", it, t) }
+        spool.location?.let { ConfirmRow(JiibIcons.SpoolLocation, "Location", it, t) }
         if (spool.archived) {
             // D-09: an archived spool is scannable but flagged before confirm.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DinghyIconView(icon = DinghyIcons.Archive, tint = t.heat, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
+                JiibIconView(icon = JiibIcons.Archive, tint = t.heat, sizeDp = fsSp(20f, t.fs).dp, contentDescription = null)
                 Text(
                     text = "Archived — verify before loading",
                     color = t.heat,
-                    style = DinghyType.caption.toTextStyle(t),
+                    style = JiibType.caption.toTextStyle(t),
                 )
             }
         }
@@ -223,17 +223,17 @@ private fun ConfirmSwatch(swatches: List<String>, t: ThemeTokens) {
 
 /** One icon-led detail stat (label/value 17sp — never below the 15sp floor). */
 @Composable
-private fun ConfirmRow(icon: works.mees.jiib.designsystem.icons.DinghyIcon, label: String, value: String, t: ThemeTokens) {
+private fun ConfirmRow(icon: works.mees.jiib.designsystem.icons.JiibIcon, label: String, value: String, t: ThemeTokens) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp)
-        Text(label, color = t.text2, style = DinghyType.caption.toTextStyle(t))
+        JiibIconView(icon, tint = t.text2, sizeDp = fsSp(20f, t.fs).dp)
+        Text(label, color = t.text2, style = JiibType.caption.toTextStyle(t))
         Text(
             value,
             color = t.text,
-            style = DinghyType.dataMeta.toTextStyle(t),
+            style = JiibType.dataMeta.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

@@ -23,10 +23,10 @@ import org.junit.Test
  * distinct from absent; fully-specified arrays compare exact-length; `scale:1` is a numeric Int-vs-Double
  * compare). The EXACT-6-keys structural guard proves no internal reducer field leaks (T-12-07).
  *
- * Dinghy frontend identity (D-08): `frontendId = "jiib"`, `frontendCategories = ["touch"]` — so Dinghy
+ * Jiib frontend identity (D-08): `frontendId = "jiib"`, `frontendCategories = ["touch"]` — so Jiib
  * matches `all`, `jiib`, and `touch`. The JS driver maps `klipperscreen → ["touch"]` and everything else
- * → `["web"]`; the Kotlin port adds a `dinghy → ["touch"]` row. Because Dinghy carries category `touch`,
- * `target-touch-only` (targets `klipperscreen,touch`) is VISIBLE for Dinghy (it behaves like `klipperscreen`,
+ * → `["web"]`; the Kotlin port adds a `dinghy → ["touch"]` row. Because Jiib carries category `touch`,
+ * `target-touch-only` (targets `klipperscreen,touch`) is VISIBLE for Jiib (it behaves like `klipperscreen`,
  * not the hidden `mainsail`/`fluidd`).
  */
 class PromptFixtureTest {
@@ -47,7 +47,7 @@ class PromptFixtureTest {
     }
 
     /**
-     * The conformance gate: replay every fixture under the Dinghy identity (or each named frontend identity
+     * The conformance gate: replay every fixture under the Jiib identity (or each named frontend identity
      * for `expected_by_frontend`), fold the events with `parseAction`/`disconnectEvent` → `reduce`, project
      * `promptView`, assert the EXACT-6-keys shape, then `assertMatchesPartial(view, expected)`.
      */
@@ -73,8 +73,8 @@ class PromptFixtureTest {
             } else {
                 val expected = fx["expected"]
                     ?: error("fixture $id has neither `expected` nor `expected_by_frontend`")
-                // Replay single-run fixtures under Dinghy's own identity (D-08); all carry targets:["all"]
-                // so they are visible regardless, but this exercises the real Dinghy opts.
+                // Replay single-run fixtures under Jiib's own identity (D-08); all carry targets:["all"]
+                // so they are visible regardless, but this exercises the real Jiib opts.
                 runOne(id, "jiib", events, dinghyOpts(), expected, failures)
             }
         }

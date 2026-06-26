@@ -27,7 +27,7 @@ import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -36,7 +36,7 @@ import works.mees.jiib.command.dispatch
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -116,7 +116,7 @@ fun PrintersContent(
             focus = {
                 FocusFrame(
                     title = stringResource(R.string.system_row_printers),
-                    icon = DinghyIcons.SystemRowPrinters,
+                    icon = JiibIcons.SystemRowPrinters,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     isPrinting = isPrinting,
@@ -124,13 +124,13 @@ fun PrintersContent(
                     onPanic = onEmergencyStop,
                 ) {
                     Column(Modifier.fillMaxSize()) {
-                        Text(stringResource(R.string.printers_help_add),    color = t.text2, style = DinghyType.body.toTextStyle(t))
+                        Text(stringResource(R.string.printers_help_add),    color = t.text2, style = JiibType.body.toTextStyle(t))
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_switch), color = t.text2, style = DinghyType.body.toTextStyle(t))
+                        Text(stringResource(R.string.printers_help_switch), color = t.text2, style = JiibType.body.toTextStyle(t))
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_edit),   color = t.text2, style = DinghyType.body.toTextStyle(t))
+                        Text(stringResource(R.string.printers_help_edit),   color = t.text2, style = JiibType.body.toTextStyle(t))
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_delete), color = t.text2, style = DinghyType.body.toTextStyle(t))
+                        Text(stringResource(R.string.printers_help_delete), color = t.text2, style = JiibType.body.toTextStyle(t))
                     }
                 }
             },
@@ -138,34 +138,34 @@ fun PrintersContent(
                 ListBlock(modifier = Modifier.weight(1f)) {
                     item {
                         ListRow(selected = false, onClick = onAdd, uDp = grid.uDp,
-                            leadingContent = { ListRowIcon(DinghyIcons.PrinterAdd, grid.uDp, t.accent2) }) {
+                            leadingContent = { ListRowIcon(JiibIcons.PrinterAdd, grid.uDp, t.accent2) }) {
                             Text(stringResource(R.string.printers_add), color = t.text,
-                                style = DinghyType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
+                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
                         }
                     }
                     item {
                         ListRow(selected = false, onClick = onFind, uDp = grid.uDp,
-                            leadingContent = { ListRowIcon(DinghyIcons.Search, grid.uDp, t.accent2) }) {
+                            leadingContent = { ListRowIcon(JiibIcons.Search, grid.uDp, t.accent2) }) {
                             Text(stringResource(R.string.conn_row_find), color = t.text,
-                                style = DinghyType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
+                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
                         }
                     }
                     items(profiles, key = { it.id }) { profile ->
                         ListRow(selected = profile.id == activeId, onClick = { onRowClick(profile) }, uDp = grid.uDp) {
-                            Text(profile.displayName(), color = t.text, style = DinghyType.listLabel.toTextStyle(t),
+                            Text(profile.displayName(), color = t.text, style = JiibType.listLabel.toTextStyle(t),
                                 modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("${profile.host}:${profile.port}", color = t.text2,
-                                style = DinghyType.dataMeta.toTextStyle(t), maxLines = 1)
+                                style = JiibType.dataMeta.toTextStyle(t), maxLines = 1)
                         }
                     }
                 }
                 FootButtonBar(
                     uDp = grid.uDp,
                     actions = listOf(
-                        FootAction(stringResource(R.string.common_back), DinghyIcons.Back, onBack, Intent.Accent),
+                        FootAction(stringResource(R.string.common_back), JiibIcons.Back, onBack, Intent.Accent),
                         FootAction(
                             label = stringResource(R.string.printers_edit),
-                            icon = DinghyIcons.Edit,
+                            icon = JiibIcons.Edit,
                             onClick = onArmEdit,
                             intent = Intent.Accent, // always outlined in color
                             fill = if (printerMode == PrinterMode.EditArmed) t.accentSoft else null, // filled when armed

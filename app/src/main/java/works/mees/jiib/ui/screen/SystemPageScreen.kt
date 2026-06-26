@@ -37,15 +37,15 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -124,7 +124,7 @@ fun SystemPageContent(
                 FocusFrame(
                     // Title carries the brand + app version (e.g. "jiib 0.1.0").
                     title = "${stringResource(R.string.app_name)} $versionName",
-                    icon = DinghyIcons.FootSystem,
+                    icon = JiibIcons.FootSystem,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
@@ -163,7 +163,7 @@ fun SystemPageContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent, // R5: Back = accent
                         ),
@@ -225,7 +225,7 @@ private fun SystemFocusContent() {
         ) {
             BasicText(
                 text = block,
-                style = DinghyType.body.toTextStyle(t).copy(color = t.text),
+                style = JiibType.body.toTextStyle(t).copy(color = t.text),
                 autoSize = TextAutoSize.StepBased(
                     minFontSize = fsSp(15f, t.fs).sp,
                     maxFontSize = fsSp(34f, t.fs).sp,
@@ -243,12 +243,12 @@ private fun SystemFocusContent() {
 
 private data class SystemNavRow(
     val dest: NavDest,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val labelRes: Int,
 )
 
 private fun systemNavRows(): List<SystemNavRow> = listOf(
-    SystemNavRow(NavDest.AppSettings,     DinghyIcons.AppSettings,     R.string.system_row_app_settings),
-    SystemNavRow(NavDest.PrinterSettings, DinghyIcons.PrinterSettings, R.string.system_row_printer_settings),
-    SystemNavRow(NavDest.ManagePrinters,  DinghyIcons.ManagePrinters,  R.string.printer_settings_manage),
+    SystemNavRow(NavDest.AppSettings,     JiibIcons.AppSettings,     R.string.system_row_app_settings),
+    SystemNavRow(NavDest.PrinterSettings, JiibIcons.PrinterSettings, R.string.system_row_printer_settings),
+    SystemNavRow(NavDest.ManagePrinters,  JiibIcons.ManagePrinters,  R.string.printer_settings_manage),
 )

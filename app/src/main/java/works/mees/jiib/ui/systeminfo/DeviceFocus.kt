@@ -13,7 +13,7 @@ import works.mees.jiib.systeminfo.HostDevice
 import works.mees.jiib.systeminfo.McuDevice
 import works.mees.jiib.systeminfo.hostDetailLines
 import works.mees.jiib.systeminfo.mcuDetailLines
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -48,7 +48,7 @@ fun ColumnScope.HostDetail(
         lines.forEach { line ->
             Text(
                 text = line,
-                style = DinghyType.dataInline.toTextStyle(t),
+                style = JiibType.dataInline.toTextStyle(t),
                 color = t.text,
             )
         }
@@ -84,7 +84,7 @@ fun ColumnScope.McuDetail(
         lines.forEach { line ->
             Text(
                 text = line,
-                style = DinghyType.dataInline.toTextStyle(t),
+                style = JiibType.dataInline.toTextStyle(t),
                 color = t.text,
             )
         }

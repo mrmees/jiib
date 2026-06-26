@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.icons.IconRef
 
 /**
@@ -22,12 +22,12 @@ class StepperRowTest {
 
     @Test
     fun decreaseTile_usesRegisteredDecreaseIcon_notText() {
-        assertSame(DinghyIcons.Decrease, stepperDecreaseIcon())
+        assertSame(JiibIcons.Decrease, stepperDecreaseIcon())
     }
 
     @Test
     fun increaseTile_usesRegisteredIncreaseIcon_notText() {
-        assertSame(DinghyIcons.Increase, stepperIncreaseIcon())
+        assertSame(JiibIcons.Increase, stepperIncreaseIcon())
     }
 
     /**

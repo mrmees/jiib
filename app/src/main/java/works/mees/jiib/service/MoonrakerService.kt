@@ -20,7 +20,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import works.mees.jiib.DinghyApp
+import works.mees.jiib.JiibApp
 import works.mees.jiib.MainActivity
 import works.mees.jiib.R
 import works.mees.jiib.auth.MoonrakerAuth
@@ -83,7 +83,7 @@ class MoonrakerService : Service() {
     }
 
     private val container: AppContainer
-        get() = (application as DinghyApp).container
+        get() = (application as JiibApp).container
 
     override fun onBind(intent: Intent?): IBinder? = null // started, NOT bound — state is process-held.
 
@@ -336,7 +336,7 @@ class MoonrakerService : Service() {
     companion object {
         private const val CHANNEL_ID = "moonraker_connection"
         private const val NOTIF_ID = 1
-        private const val TAG_SPINE = "DinghySpine"
+        private const val TAG_SPINE = "JiibSpine"
 
         /**
          * The extracted config-rebuild loop (Nyquist seam). On every [configFlow] emission it

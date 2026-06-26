@@ -13,8 +13,8 @@ import works.mees.jiib.command.RetractionArgs
 import works.mees.jiib.command.SpeedFactorArgs
 import works.mees.jiib.command.VelocityLimitArgs
 import works.mees.jiib.command.dispatch
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.command.CommandDispatcher
 
 /**
@@ -66,7 +66,7 @@ fun groupColorFor(group: FineTuneParamGroup, pool: List<Color>): Color {
  *
  * @param tuner              the [FineTuneTuner] enum constant this descriptor binds to.
  * @param name               human-readable display name.
- * @param icon               [DinghyIcon] registry token (D-24: never auto-picked).
+ * @param icon               [JiibIcon] registry token (D-24: never auto-picked).
  * @param steps              ordered increment step set (ImmutableList for Compose stability).
  * @param defaultStepIndex   index into [steps] for the session-entry default; 0 = smallest step.
  * @param unit               unit suffix appended to the displayed value (e.g. "%", "mm/s", " s").
@@ -78,7 +78,7 @@ fun groupColorFor(group: FineTuneParamGroup, pool: List<Color>): Color {
 data class FineTuneParam(
     val tuner: FineTuneTuner,
     val name: String,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val steps: ImmutableList<Double>,
     val defaultStepIndex: Int = 0,
     val unit: String,
@@ -107,7 +107,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.SPEED,
         name = "Print Speed",
-        icon = DinghyIcons.Speed,
+        icon = JiibIcons.Speed,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 1,   // 5% default step
         unit = "%",
@@ -117,7 +117,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.FLOW,
         name = "Flow Rate",
-        icon = DinghyIcons.OutputCircle,
+        icon = JiibIcons.OutputCircle,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 0,   // 1% default step
         unit = "%",
@@ -127,7 +127,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.PRESSURE_ADVANCE,
         name = "Pressure Advance",
-        icon = DinghyIcons.PressureAdvance,
+        icon = JiibIcons.PressureAdvance,
         steps = persistentListOf(0.001, 0.005, 0.01),
         defaultStepIndex = 0,
         unit = "",
@@ -137,7 +137,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.SMOOTH_TIME,
         name = "Smooth Time",
-        icon = DinghyIcons.SmoothTime,
+        icon = JiibIcons.SmoothTime,
         steps = persistentListOf(0.01, 0.02, 0.05),
         defaultStepIndex = 0,
         unit = " s",
@@ -147,7 +147,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.PART_FAN,
         name = "Part Fan",
-        icon = DinghyIcons.FanMode,
+        icon = JiibIcons.FanMode,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 1,   // 5% default step
         unit = "%",
@@ -158,7 +158,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.MAX_VELOCITY,
         name = "Max Velocity",
-        icon = DinghyIcons.MaxVelocity,
+        icon = JiibIcons.MaxVelocity,
         steps = persistentListOf(10.0, 50.0, 100.0),
         defaultStepIndex = 0,
         unit = " mm/s",
@@ -168,7 +168,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.MAX_ACCEL,
         name = "Max Accel",
-        icon = DinghyIcons.MaxAccel,
+        icon = JiibIcons.MaxAccel,
         steps = persistentListOf(100.0, 500.0, 1000.0),
         defaultStepIndex = 0,
         unit = " mm/s²",
@@ -178,7 +178,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.MIN_CRUISE,
         name = "Min Cruise",
-        icon = DinghyIcons.MinCruise,
+        icon = JiibIcons.MinCruise,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 0,
         unit = "%",
@@ -188,7 +188,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.SCV,
         name = "Square Corner Vel",
-        icon = DinghyIcons.SquareCornerVelocity,
+        icon = JiibIcons.SquareCornerVelocity,
         steps = persistentListOf(0.1, 0.5, 1.0),
         defaultStepIndex = 0,
         unit = " mm/s",
@@ -199,7 +199,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.RETRACT_LENGTH,
         name = "Retract Length",
-        icon = DinghyIcons.OutputCircle,
+        icon = JiibIcons.OutputCircle,
         steps = persistentListOf(0.1, 0.5, 1.0),
         defaultStepIndex = 0,
         unit = " mm",
@@ -210,7 +210,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.RETRACT_SPEED,
         name = "Retract Speed",
-        icon = DinghyIcons.MaxAccel,
+        icon = JiibIcons.MaxAccel,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 0,
         unit = " mm/s",
@@ -221,7 +221,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.UNRETRACT_EXTRA_LENGTH,
         name = "Unretract Extra",
-        icon = DinghyIcons.InputCircle,
+        icon = JiibIcons.InputCircle,
         steps = persistentListOf(0.1, 0.5, 1.0),
         defaultStepIndex = 0,
         unit = " mm",
@@ -232,7 +232,7 @@ val ALL_FINE_TUNE_PARAMS: List<FineTuneParam> = listOf(
     FineTuneParam(
         tuner = FineTuneTuner.UNRETRACT_SPEED,
         name = "Unretract Speed",
-        icon = DinghyIcons.MaxVelocity,
+        icon = JiibIcons.MaxVelocity,
         steps = persistentListOf(1.0, 5.0, 10.0),
         defaultStepIndex = 0,
         unit = " mm/s",

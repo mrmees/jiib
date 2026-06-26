@@ -36,7 +36,7 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -46,7 +46,7 @@ import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.enumerateSettableHeaters
 import works.mees.jiib.state.heaterDisplayName
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -123,7 +123,7 @@ fun HeatPresetsScreen(
                         focus = {
                             FocusFrame(
                                 title = stringResource(R.string.heat_presets_title),
-                                icon = DinghyIcons.TempPresets,
+                                icon = JiibIcons.TempPresets,
                                 uDp = grid.uDp,
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 isPrinting = isPrinting,
@@ -150,7 +150,7 @@ fun HeatPresetsScreen(
                                     Text(
                                         text = stringResource(R.string.heat_presets_empty_hint),
                                         color = LocalTokens.current.text2,
-                                        style = DinghyType.body.toTextStyle(LocalTokens.current),
+                                        style = JiibType.body.toTextStyle(LocalTokens.current),
                                         textAlign = TextAlign.Center,
                                     )
                                 }
@@ -163,12 +163,12 @@ fun HeatPresetsScreen(
                                             onClick = { selectedId = p.id },
                                             uDp = grid.uDp,
                                             leadingContent = {
-                                                ListRowIcon(DinghyIcons.TempPresets, grid.uDp, t.text)
+                                                ListRowIcon(JiibIcons.TempPresets, grid.uDp, t.text)
                                             },
                                             trailingContent = {
                                                 Text(
                                                     text = presetSummary(p),
-                                                    style = DinghyType.dataMeta.toTextStyle(t),
+                                                    style = JiibType.dataMeta.toTextStyle(t),
                                                     color = t.text2,
                                                 )
                                             },
@@ -184,21 +184,21 @@ fun HeatPresetsScreen(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_back),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.common_delete),
-                                        icon = DinghyIcons.HeatPresetDelete,
+                                        icon = JiibIcons.HeatPresetDelete,
                                         onClick = { showDeleteGuard = true },
                                         intent = Intent.Danger,
                                         enabled = selectedId != null,
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.common_add),
-                                        icon = DinghyIcons.HeatPresetAdd,
+                                        icon = JiibIcons.HeatPresetAdd,
                                         onClick = { editing = HeatPresetEditState.Editing(null) },
                                         intent = Intent.Go,
                                     ),
@@ -280,7 +280,7 @@ private fun HeatPresetDetail(
             Text(
                 text = stringResource(R.string.heat_presets_select_hint),
                 color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
         }
@@ -303,13 +303,13 @@ private fun HeatPresetDetail(
                     Text(
                         text = heaterDisplayName(obj),
                         color = t.text,
-                        style = DinghyType.listLabel.toTextStyle(t),
+                        style = JiibType.listLabel.toTextStyle(t),
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = if (v == 0) stringResource(R.string.heat_presets_off) else "$v°C",
                         color = t.text2,
-                        style = DinghyType.dataInline.toTextStyle(t),
+                        style = JiibType.dataInline.toTextStyle(t),
                     )
                 }
             }
@@ -317,7 +317,7 @@ private fun HeatPresetDetail(
         OutlinedControl(
             label = stringResource(R.string.common_edit),
             onClick = onEdit,
-            icon = DinghyIcons.HeatPresetEdit,
+            icon = JiibIcons.HeatPresetEdit,
             intent = Intent.Accent,
             modifier = Modifier.fillMaxWidth(),
         )

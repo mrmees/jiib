@@ -36,8 +36,8 @@ import works.mees.jiib.R
  * This is the ONE place the spool's filament color is rendered; every surface (launcher tile, drawer
  * tile, mid-print shortcut, the SpoolScreen empty-state + detail pane) routes through it (plan 04).
  *
- * ## Why a dedicated composable (not [DinghyIconView])
- * [DinghyIconView]'s drawable branch is a single FLAT `tint: Color`. The reactive spiral needs a runtime
+ * ## Why a dedicated composable (not [JiibIconView])
+ * [JiibIconView]'s drawable branch is a single FLAT `tint: Color`. The reactive spiral needs a runtime
  * gradient (D-04), which is beyond a flat tint — so the spiral is drawn directly in a Compose [Canvas]
  * via the parsed [SPIRAL_PATH_DATA]. The body still reuses the flat-tint `Icon(painterResource(...))`
  * idiom for the neutral disc.

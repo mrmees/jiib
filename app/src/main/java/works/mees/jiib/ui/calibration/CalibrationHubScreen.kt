@@ -36,12 +36,12 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -125,7 +125,7 @@ fun CalibrationHubContent(
                         selected?.let { routineTitleRes(it) } ?: R.string.cd_launcher_calibration,
                     )
                     val headerIcon = selected?.let { routineIconToken(it) }
-                        ?: DinghyIcons.LauncherCalibration
+                        ?: JiibIcons.LauncherCalibration
                     FocusFrame(
                         title = headerTitle,
                         icon = headerIcon,
@@ -176,7 +176,7 @@ fun CalibrationHubContent(
                         actions = buildList {
                             add(FootAction(
                                 label = stringResource(R.string.common_back),
-                                icon = DinghyIcons.Back,
+                                icon = JiibIcons.Back,
                                 onClick = onBack,
                                 intent = Intent.Accent, // R5: Back = accent
                                 contentDescription = stringResource(R.string.common_back),
@@ -187,7 +187,7 @@ fun CalibrationHubContent(
                             selected?.let { sel ->
                                 add(FootAction(
                                     label = stringResource(R.string.calibration_open_routine),
-                                    icon = DinghyIcons.RoutineOpen,
+                                    icon = JiibIcons.RoutineOpen,
                                     onClick = { onOpen(sel) },
                                     intent = Intent.Go,
                                     contentDescription = stringResource(R.string.calibration_open_routine),
@@ -219,7 +219,7 @@ private fun HubRoutineFocus(
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         BasicText(
             text = stringResource(routineDescRes(routine)),
-            style = DinghyType.body.toTextStyle(t).copy(
+            style = JiibType.body.toTextStyle(t).copy(
                 color = t.text2,
             ),
             autoSize = TextAutoSize.StepBased(
@@ -236,13 +236,13 @@ private fun HubRoutineFocus(
 // Icon token mapping (owner-confirmed tokens from 27-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Maps a [CalibrationRoutine] to its owner-confirmed [DinghyIcons] token (27-01). */
+/** Maps a [CalibrationRoutine] to its owner-confirmed [JiibIcons] token (27-01). */
 internal fun routineIconToken(routine: CalibrationRoutine) = when (routine) {
-    CalibrationRoutine.PROBE_CALIBRATE -> DinghyIcons.RoutineProbeCalibrate
-    CalibrationRoutine.BED_MESH -> DinghyIcons.RoutineBedMesh
-    CalibrationRoutine.SCREWS_TILT -> DinghyIcons.RoutineScrewsTilt
-    CalibrationRoutine.Z_TILT -> DinghyIcons.RoutineZTilt
-    CalibrationRoutine.QUAD_GANTRY_LEVEL -> DinghyIcons.RoutineQgl
+    CalibrationRoutine.PROBE_CALIBRATE -> JiibIcons.RoutineProbeCalibrate
+    CalibrationRoutine.BED_MESH -> JiibIcons.RoutineBedMesh
+    CalibrationRoutine.SCREWS_TILT -> JiibIcons.RoutineScrewsTilt
+    CalibrationRoutine.Z_TILT -> JiibIcons.RoutineZTilt
+    CalibrationRoutine.QUAD_GANTRY_LEVEL -> JiibIcons.RoutineQgl
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

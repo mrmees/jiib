@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import org.junit.Test
 
 /**
@@ -63,12 +63,12 @@ class SelectorRowTest {
 
     @Test
     fun directionArrow_ascending_isSortAsc() {
-        assertSame(DinghyIcons.SortAsc, sortDirectionIcon(directionUp = true))
+        assertSame(JiibIcons.SortAsc, sortDirectionIcon(directionUp = true))
     }
 
     @Test
     fun directionArrow_descending_isSortDesc() {
-        assertSame(DinghyIcons.SortDesc, sortDirectionIcon(directionUp = false))
+        assertSame(JiibIcons.SortDesc, sortDirectionIcon(directionUp = false))
     }
 
     @Test

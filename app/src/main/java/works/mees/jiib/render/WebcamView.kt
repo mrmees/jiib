@@ -9,7 +9,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.views.ThemeableView
@@ -106,25 +106,25 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         strokeWidth = 1.5f * density
     }
 
-    /** Strong chrome text (badge / reconnect / cycle name). [DinghyType.caption] (Ui 15), color `--text`. */
+    /** Strong chrome text (badge / reconnect / cycle name). [JiibType.caption] (Ui 15), color `--text`. */
     private val chromeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = DinghyType.caption.typeface(context)
+        typeface = JiibType.caption.typeface(context)
     }
 
-    /** Dead-end card TITLE — a UI status headline (e.g. "Camera not supported"). [DinghyType.focusHeader] (Ui 20), color `--text`. */
+    /** Dead-end card TITLE — a UI status headline (e.g. "Camera not supported"). [JiibType.focusHeader] (Ui 20), color `--text`. */
     private val cardTitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = DinghyType.focusHeader.typeface(context)
+        typeface = JiibType.focusHeader.typeface(context)
     }
 
     /**
-     * Muted chrome text (the dead-end card body line). [DinghyType.caption] (Ui 15) — replaces the old
+     * Muted chrome text (the dead-end card body line). [JiibType.caption] (Ui 15) — replaces the old
      * sub-floor 13sp; color from `--text-2`.
      */
     private val chromeBodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = DinghyType.caption.typeface(context)
+        typeface = JiibType.caption.typeface(context)
     }
 
     /** The burst-mode glyph for the cycle overlay (a small accent-tinted stack of squares). */
@@ -196,13 +196,13 @@ class WebcamView(context: Context) : View(context), ThemeableView {
         cardOutlinePaint.color = t.outline.toArgb()
 
         chromeTextPaint.color = t.text.toArgb()
-        chromeTextPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density
+        chromeTextPaint.textSize = fsSp(JiibType.caption.baseSp, t.fs) * density
 
         cardTitlePaint.color = t.text.toArgb()
-        cardTitlePaint.textSize = fsSp(DinghyType.focusHeader.baseSp, t.fs) * density
+        cardTitlePaint.textSize = fsSp(JiibType.focusHeader.baseSp, t.fs) * density
 
         chromeBodyPaint.color = t.text2.toArgb()
-        chromeBodyPaint.textSize = fsSp(DinghyType.caption.baseSp, t.fs) * density
+        chromeBodyPaint.textSize = fsSp(JiibType.caption.baseSp, t.fs) * density
 
         glyphPaint.color = t.accent2.toArgb()
         glyphPaint.strokeWidth = 1.5f * density

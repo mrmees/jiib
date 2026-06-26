@@ -63,8 +63,8 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
-import works.mees.jiib.designsystem.icons.DinghyIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ListFrameInset
@@ -75,7 +75,7 @@ import works.mees.jiib.config.HeatPreset
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.render.GraphViewHost
 import works.mees.jiib.spool.SpoolmanSpool
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.Palette
 import works.mees.jiib.theme.ThemePrefs
 import works.mees.jiib.theme.ThemeTokens
@@ -505,7 +505,7 @@ private fun TemperatureContent(
                             // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
                             FocusFrame(
                                 title = stringResource(R.string.cd_launcher_temperature),
-                                icon = DinghyIcons.LauncherTemperature,
+                                icon = JiibIcons.LauncherTemperature,
                                 uDp = grid.uDp,
                                 modifier = Modifier.fillMaxSize(),
                                 isPrinting = isPrinting,
@@ -622,13 +622,13 @@ private fun TemperatureContent(
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
                                                 text = "${fmt(sensor.current)}°",
-                                                style = DinghyType.dataInline.toTextStyle(t),
+                                                style = JiibType.dataInline.toTextStyle(t),
                                                 color = t.text,
                                             )
                                             sensor.target?.let { tgt ->
                                                 Text(
                                                     text = "→ ${fmt(tgt)}°",
-                                                    style = DinghyType.dataMeta.toTextStyle(t),
+                                                    style = JiibType.dataMeta.toTextStyle(t),
                                                     color = rowTint,
                                                 )
                                             }
@@ -648,21 +648,21 @@ private fun TemperatureContent(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.cd_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_back),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.cd_temp_settings),
-                                        icon = DinghyIcons.TempSettings,
+                                        icon = JiibIcons.TempSettings,
                                         onClick = { settingsOpen = true; selectedName = null },
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_temp_settings),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.cd_temp_enter_adjust),
-                                        icon = DinghyIcons.FireCheck,
+                                        icon = JiibIcons.FireCheck,
                                         onClick = { mode = TempMode.Adjust; selectedName = null; settingsOpen = false },
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_temp_enter_adjust),
@@ -677,21 +677,21 @@ private fun TemperatureContent(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.cd_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_back),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.home_foot_heaters),
-                                        icon = DinghyIcons.OutputHeater,
+                                        icon = JiibIcons.OutputHeater,
                                         onClick = { fieldMode = TempFieldMode.PresetPicker },
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.home_foot_heaters),
                                     ),
                                     FootAction(
                                         label = stringResource(R.string.cd_temp_enter_monitor),
-                                        icon = DinghyIcons.MonitorMode,
+                                        icon = JiibIcons.MonitorMode,
                                         onClick = { mode = TempMode.Monitoring; selectedName = null },
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.cd_temp_enter_monitor),
@@ -736,7 +736,7 @@ private fun SensorPickerFocus(
     val t = LocalTokens.current
     FocusFrame(
         title = stringResource(R.string.temp_settings_title),
-        icon = DinghyIcons.TempSettings,
+        icon = JiibIcons.TempSettings,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
         isPrinting = isPrinting,
@@ -756,8 +756,8 @@ private fun SensorPickerFocus(
                             ListRowIcon(icon = iconForSensor(name), uDp = uDp, tint = t.text2)
                         },
                         trailingContent = {
-                            DinghyIconView(
-                                icon = if (isOn) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                            JiibIconView(
+                                icon = if (isOn) JiibIcons.Visibility else JiibIcons.VisibilityOff,
                                 tint = if (isOn) t.accent else t.text2,
                             )
                         },
@@ -843,7 +843,7 @@ private fun SensorAppearanceFocus(
                 onClick = onVisibilityToggle,
                 modifier = Modifier.weight(1f),
                 intent = if (traceVisible) Intent.Accent else Intent.Neutral,
-                icon = if (traceVisible) DinghyIcons.Visibility else DinghyIcons.VisibilityOff,
+                icon = if (traceVisible) JiibIcons.Visibility else JiibIcons.VisibilityOff,
                 contentDescription = stringResource(R.string.cd_temp_trace_visibility),
             )
             OutlinedControl(
@@ -900,13 +900,13 @@ private fun HeaterControlFocus(
             Row {
                 Text(
                     text = shown.toString(),
-                    style = DinghyType.focusHero.toTextStyle(t),
+                    style = JiibType.focusHero.toTextStyle(t),
                     color = t.text,
                     modifier = Modifier.alignByBaseline(),
                 )
                 Text(
                     text = "°C",
-                    style = DinghyType.statValue.toTextStyle(t),
+                    style = JiibType.statValue.toTextStyle(t),
                     color = t.text2,
                     modifier = Modifier.alignByBaseline(),
                 )
@@ -935,7 +935,7 @@ private fun HeaterControlFocus(
                     onClick = { scrubLive = null; onNudge(shown - TEMP_FINE_STEP) },
                     modifier = Modifier.weight(1f).then(dim),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.Decrease,
+                    icon = JiibIcons.Decrease,
                     contentDescription = stringResource(R.string.cd_decrement),
                 )
                 OutlinedControl(
@@ -943,7 +943,7 @@ private fun HeaterControlFocus(
                     onClick = { scrubLive = null; onNudge(shown + TEMP_FINE_STEP) },
                     modifier = Modifier.weight(1f).then(dim),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.Increase,
+                    icon = JiibIcons.Increase,
                     contentDescription = stringResource(R.string.cd_increment),
                 )
             }
@@ -965,13 +965,13 @@ private fun HeaterControlFocus(
 // ── Icon lookup ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Registry icon for a heater sensor name, falling back to [DinghyIcons.LauncherTemperature]
+ * Registry icon for a heater sensor name, falling back to [JiibIcons.LauncherTemperature]
  * when no dedicated glyph exists (D-24 registry-only law — NEVER auto-pick).
  */
 private fun iconForSensor(name: String) = when {
-    name.startsWith("extruder") -> DinghyIcons.Nozzle
-    name == "heater_bed" -> DinghyIcons.HeatBed
-    else -> DinghyIcons.LauncherTemperature
+    name.startsWith("extruder") -> JiibIcons.Nozzle
+    name == "heater_bed" -> JiibIcons.HeatBed
+    else -> JiibIcons.LauncherTemperature
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────────────────────

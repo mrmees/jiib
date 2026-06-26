@@ -30,9 +30,9 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import androidx.compose.foundation.layout.BoxWithConstraints
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
@@ -41,7 +41,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.outputs.OutputRowVm
 import works.mees.jiib.outputs.OutputsHolder
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -188,7 +188,7 @@ private fun OutputsContent(
                     // existing owner-locked OutputSection glyph) with the prompt centered inside.
                     FocusFrame(
                         title = stringResource(R.string.outputs_title),
-                        icon = DinghyIcons.OutputSection,
+                        icon = JiibIcons.OutputSection,
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -201,7 +201,7 @@ private fun OutputsContent(
                             Text(
                                 text = stringResource(R.string.outputs_select_prompt),
                                 color = t.text3,
-                                style = DinghyType.body.toTextStyle(t),
+                                style = JiibType.body.toTextStyle(t),
                             )
                         }
                     }
@@ -231,7 +231,7 @@ private fun OutputsContent(
                                     Text(
                                         text = row.displayValue,
                                         color = t.text2,
-                                        style = DinghyType.dataInline.toTextStyle(t),
+                                        style = JiibType.dataInline.toTextStyle(t),
                                     )
                                 }
                             } else null,
@@ -246,7 +246,7 @@ private fun OutputsContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent, // R5: Back = accent
                             contentDescription = stringResource(R.string.cd_back),
@@ -260,17 +260,17 @@ private fun OutputsContent(
 
 /**
  * The owner-locked per-family row glyph (icon law D-01..D-06 — NEVER invented, NEVER a raw ligature):
- * heater_generic → [DinghyIcons.OutputHeater] (D-01), fan_generic → [DinghyIcons.OutputFan] (D-02),
- * every LED family → [DinghyIcons.OutputLed] (D-03), servo → [DinghyIcons.OutputServo] (D-04),
- * output_pin → [DinghyIcons.OutputPin] (D-05), pwm_tool → [DinghyIcons.OutputPwmTool] (D-06).
+ * heater_generic → [JiibIcons.OutputHeater] (D-01), fan_generic → [JiibIcons.OutputFan] (D-02),
+ * every LED family → [JiibIcons.OutputLed] (D-03), servo → [JiibIcons.OutputServo] (D-04),
+ * output_pin → [JiibIcons.OutputPin] (D-05), pwm_tool → [JiibIcons.OutputPwmTool] (D-06).
  * Unknown family falls back to the Outputs section glyph (defensive; discovery whitelist precludes it).
  */
-private fun glyphFor(family: String): DinghyIcon = when (family) {
-    OutputsHolder.FAMILY_HEATER -> DinghyIcons.OutputHeater
-    OutputsHolder.FAMILY_FAN -> DinghyIcons.OutputFan
-    OutputsHolder.FAMILY_SERVO -> DinghyIcons.OutputServo
-    OutputsHolder.FAMILY_OUTPUT_PIN -> DinghyIcons.OutputPin
-    OutputsHolder.FAMILY_PWM_TOOL -> DinghyIcons.OutputPwmTool
-    in OutputsHolder.LED_FAMILIES -> DinghyIcons.OutputLed
-    else -> DinghyIcons.OutputSection
+private fun glyphFor(family: String): JiibIcon = when (family) {
+    OutputsHolder.FAMILY_HEATER -> JiibIcons.OutputHeater
+    OutputsHolder.FAMILY_FAN -> JiibIcons.OutputFan
+    OutputsHolder.FAMILY_SERVO -> JiibIcons.OutputServo
+    OutputsHolder.FAMILY_OUTPUT_PIN -> JiibIcons.OutputPin
+    OutputsHolder.FAMILY_PWM_TOOL -> JiibIcons.OutputPwmTool
+    in OutputsHolder.LED_FAMILIES -> JiibIcons.OutputLed
+    else -> JiibIcons.OutputSection
 }

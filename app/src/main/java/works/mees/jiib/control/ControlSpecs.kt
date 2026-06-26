@@ -6,11 +6,11 @@ import works.mees.jiib.designsystem.control.ControlKey
 import works.mees.jiib.designsystem.control.ControlSpec
 import works.mees.jiib.designsystem.control.ControlType
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 
 /**
  * The named-control catalog (control baseline audit, Phase 2 — 2026-06-14). Composes the three existing
- * registries: labels/content-descriptions from `R.string`, glyphs from [DinghyIcons], dispatch from
+ * registries: labels/content-descriptions from `R.string`, glyphs from [JiibIcons], dispatch from
  * [CommandRegistry] (referenced by `catalogId`, never copied). This is the APP-level registry (depends on
  * `R` + `CommandRegistry`); the presentation-only [ControlSpec] type lives in the designsystem package.
  *
@@ -28,7 +28,7 @@ object ControlSpecs {
         key = ControlKey("common.back"),
         labelRes = R.string.common_back,
         contentDescriptionRes = R.string.cd_back,
-        icon = DinghyIcons.Back,
+        icon = JiibIcons.Back,
         intent = Intent.Accent,
         type = ControlType.Button,
     )
@@ -37,7 +37,7 @@ object ControlSpecs {
         key = ControlKey("calibration.home_all"),
         labelRes = R.string.calibration_home_all,
         contentDescriptionRes = R.string.cd_calibration_home_all, // icon-only a11y fallback in ≥3 bars
-        icon = DinghyIcons.MoveHomeAll, // owner: home_app_logo (reuses MoveHomeAll)
+        icon = JiibIcons.MoveHomeAll, // owner: home_app_logo (reuses MoveHomeAll)
         intent = Intent.Go, // R19: homing is the expected action of the unhomed state
         type = ControlType.Button,
     )
@@ -46,7 +46,7 @@ object ControlSpecs {
         key = ControlKey("common.home"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_spool_home,
-        icon = DinghyIcons.Home,
+        icon = JiibIcons.Home,
         intent = Intent.Accent,
         type = ControlType.Button,
     )
@@ -55,7 +55,7 @@ object ControlSpecs {
         key = ControlKey("files.delete"),
         labelRes = R.string.files_foot_delete,
         contentDescriptionRes = R.string.cd_files_delete,
-        icon = DinghyIcons.Delete,
+        icon = JiibIcons.Delete,
         intent = Intent.Danger,
         type = ControlType.Button,
     )
@@ -64,7 +64,7 @@ object ControlSpecs {
         key = ControlKey("files.print"),
         labelRes = R.string.files_foot_print,
         contentDescriptionRes = R.string.cd_files_print,
-        icon = DinghyIcons.Print,
+        icon = JiibIcons.Print,
         intent = Intent.Go,
         type = ControlType.Button,
         commandCatalogId = CommandRegistry.printStart.catalogId,
@@ -74,7 +74,7 @@ object ControlSpecs {
         key = ControlKey("macros.execute"),
         labelRes = R.string.macros_foot_execute,
         contentDescriptionRes = R.string.cd_macros_execute,
-        icon = DinghyIcons.ExecuteMacro,
+        icon = JiibIcons.ExecuteMacro,
         intent = Intent.Go,
         type = ControlType.Button,
     )
@@ -83,7 +83,7 @@ object ControlSpecs {
         key = ControlKey("macros.manage"),
         labelRes = R.string.macros_foot_manage,
         contentDescriptionRes = R.string.cd_macros_manage,
-        icon = DinghyIcons.ManageMacros,
+        icon = JiibIcons.ManageMacros,
         intent = Intent.Accent,
         type = ControlType.Button,
     )
@@ -91,7 +91,7 @@ object ControlSpecs {
     val outputOn = ControlSpec(
         key = ControlKey("output.on"),
         labelRes = R.string.output_on,
-        icon = DinghyIcons.Power,
+        icon = JiibIcons.Power,
         intent = Intent.Go, // R5: the expected "turn it on" action
         type = ControlType.Button,
     )
@@ -99,7 +99,7 @@ object ControlSpecs {
     val outputOff = ControlSpec(
         key = ControlKey("output.off"),
         labelRes = R.string.output_off, // LABELED → no contentDescriptionRes required
-        icon = DinghyIcons.PowerOff,
+        icon = JiibIcons.PowerOff,
         intent = Intent.Warn, // §f#3 — Warn app-wide (Outputs Off Danger→Warn)
         type = ControlType.Button,
     )
@@ -108,7 +108,7 @@ object ControlSpecs {
         key = ControlKey("printer.estop"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_emergency_stop,
-        icon = DinghyIcons.StatusStop,
+        icon = JiibIcons.StatusStop,
         intent = Intent.Danger,
         type = ControlType.EStop,
         commandCatalogId = CommandRegistry.emergencyStop.catalogId,
@@ -118,16 +118,16 @@ object ControlSpecs {
         key = ControlKey("spool.load"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_spool_load,
-        icon = DinghyIcons.ExpandCircleUp,
+        icon = JiibIcons.ExpandCircleUp,
         intent = Intent.Go,
         type = ControlType.Button,
     )
 
     val spoolScan = ControlSpec(
         key = ControlKey("spool.scan"),
-        labelRes = null, // icon-only (ONE token per master-list §f #5: DinghyIcons.QrCode)
+        labelRes = null, // icon-only (ONE token per master-list §f #5: JiibIcons.QrCode)
         contentDescriptionRes = R.string.cd_spool_scan,
-        icon = DinghyIcons.QrCode,
+        icon = JiibIcons.QrCode,
         intent = Intent.Accent,
         type = ControlType.Button,
     )
@@ -136,7 +136,7 @@ object ControlSpecs {
         key = ControlKey("spool.unload"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_spool_unload,
-        icon = DinghyIcons.ExpandCircleDown,
+        icon = JiibIcons.ExpandCircleDown,
         intent = Intent.Go,
         type = ControlType.Button,
     )
@@ -145,7 +145,7 @@ object ControlSpecs {
         key = ControlKey("stepper.decrease"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_decrement,
-        icon = DinghyIcons.Decrease,
+        icon = JiibIcons.Decrease,
         intent = Intent.Accent,
         type = ControlType.Stepper,
     )
@@ -154,7 +154,7 @@ object ControlSpecs {
         key = ControlKey("stepper.increase"),
         labelRes = null, // icon-only
         contentDescriptionRes = R.string.cd_increment,
-        icon = DinghyIcons.Increase,
+        icon = JiibIcons.Increase,
         intent = Intent.Accent,
         type = ControlType.Stepper,
     )

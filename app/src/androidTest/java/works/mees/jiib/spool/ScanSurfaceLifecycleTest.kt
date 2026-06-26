@@ -14,7 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import works.mees.jiib.theme.ThemeResolver
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 import works.mees.jiib.ui.spool.scan.ScanState
 import works.mees.jiib.ui.spool.scan.ScanSurface
 import works.mees.jiib.ui.spool.scan.SpoolQrResult
@@ -53,7 +53,7 @@ class ScanSurfaceLifecycleTest {
 
         var surfaceShown by mutableStateOf(true)
         composeRule.setContent {
-            DinghyTheme(resolver) {
+            JiibTheme(resolver) {
                 if (surfaceShown) {
                     ScanSurface(client = null, onConfirm = {}, onUsePicker = {}, onBack = {})
                 }

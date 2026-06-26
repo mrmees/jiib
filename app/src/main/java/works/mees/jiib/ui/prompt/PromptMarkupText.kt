@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
 import works.mees.jiib.prompt.EmphasisTag
 import works.mees.jiib.prompt.MarkupNode
 import works.mees.jiib.prompt.PromptTextSize
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -59,7 +59,7 @@ fun PromptMarkupText(
         // Default run color/size/weight (a run with no <color>/<size>/<b> uses these): `--text`, the body
         // role (Geist 20 Med). Individual spans override color/background/size/weight/style as the AST dictates.
         color = t.text,
-        style = DinghyType.body.toTextStyle(t),
+        style = JiibType.body.toTextStyle(t),
     )
 }
 

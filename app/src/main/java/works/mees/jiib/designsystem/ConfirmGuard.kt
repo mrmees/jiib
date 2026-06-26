@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.layout.ScreenScaffold
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -101,13 +101,13 @@ fun ConfirmGuard(
                     Text(
                         text = title,
                         color = t.text,
-                        style = DinghyType.screenTitle.toTextStyle(t),
+                        style = JiibType.screenTitle.toTextStyle(t),
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = message,
                         color = t.text2,
-                        style = DinghyType.body.toTextStyle(t),
+                        style = JiibType.body.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
                     )

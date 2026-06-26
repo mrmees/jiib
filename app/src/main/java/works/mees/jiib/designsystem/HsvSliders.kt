@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.unit.dp
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -80,7 +80,7 @@ private fun Track(
     val move by rememberUpdatedState(onMove)
     val up by rememberUpdatedState(onSettle)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = DinghyType.caption.toTextStyle(t), color = t.text2,
+        Text(label, style = JiibType.caption.toTextStyle(t), color = t.text2,
             modifier = Modifier.width(18.dp).padding(end = 6.dp))
         Canvas(
             Modifier.fillMaxWidth().height(40.dp).pointerInput(enabled) {

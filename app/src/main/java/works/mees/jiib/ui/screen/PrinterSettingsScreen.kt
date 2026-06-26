@@ -34,8 +34,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -43,7 +43,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.NavDest
@@ -170,7 +170,7 @@ fun PrinterSettingsContent(
                     // Active-printer card: lifted from PrintersContent's active-profile FocusFrame.
                     FocusFrame(
                         title = stringResource(R.string.system_row_printer_settings),
-                        icon = DinghyIcons.PrinterSettings,
+                        icon = JiibIcons.PrinterSettings,
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,26 +183,26 @@ fun PrinterSettingsContent(
                         Text(
                             text = activeProfile.displayName(),
                             color = t.text,
-                            style = DinghyType.focusHeader.toTextStyle(t),
+                            style = JiibType.focusHeader.toTextStyle(t),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = "${activeProfile.host}:${activeProfile.port}",
                             color = t.text2,
-                            style = DinghyType.dataMeta.toTextStyle(t),
+                            style = JiibType.dataMeta.toTextStyle(t),
                         )
                         Text(
                             text = stringResource(connectionState.printerSettingsLabelRes()),
                             color = ringColor ?: t.text2,
-                            style = DinghyType.caption.toTextStyle(t),
+                            style = JiibType.caption.toTextStyle(t),
                         )
                     }
                 } else {
                     // Empty-state card: mirrors PrintersContent's empty FocusFrame branch.
                     FocusFrame(
                         title = stringResource(R.string.system_row_printer_settings),
-                        icon = DinghyIcons.PrinterSettings,
+                        icon = JiibIcons.PrinterSettings,
                         uDp = grid.uDp,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -216,13 +216,13 @@ fun PrinterSettingsContent(
                                 Text(
                                     text = stringResource(R.string.printers_empty_headline),
                                     color = t.text,
-                                    style = DinghyType.focusHeader.toTextStyle(t),
+                                    style = JiibType.focusHeader.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     text = stringResource(R.string.printers_empty_body),
                                     color = t.text2,
-                                    style = DinghyType.caption.toTextStyle(t),
+                                    style = JiibType.caption.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
@@ -237,7 +237,7 @@ fun PrinterSettingsContent(
                         // Row 1: Connection
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.SystemRowPrinters,
+                                icon = JiibIcons.SystemRowPrinters,
                                 label = stringResource(R.string.printer_settings_connection),
                                 onClick = onConnection,
                                 uDp = grid.uDp,
@@ -247,7 +247,7 @@ fun PrinterSettingsContent(
                         // Row 2: Theme & colors
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.SystemRowTheme,
+                                icon = JiibIcons.SystemRowTheme,
                                 label = stringResource(R.string.printer_settings_theme),
                                 onClick = onTheme,
                                 uDp = grid.uDp,
@@ -257,7 +257,7 @@ fun PrinterSettingsContent(
                         // Row 3: Heat Presets — per-printer preheat preset editor
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.TempPresets,
+                                icon = JiibIcons.TempPresets,
                                 label = stringResource(R.string.heat_presets_title),
                                 onClick = onHeatPresets,
                                 uDp = grid.uDp,
@@ -267,7 +267,7 @@ fun PrinterSettingsContent(
                         // Row 4: Increment Values — per-printer step-selector value lists
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.FineTune,
+                                icon = JiibIcons.FineTune,
                                 label = stringResource(R.string.increment_values_title),
                                 onClick = onIncrementValues,
                                 uDp = grid.uDp,
@@ -277,7 +277,7 @@ fun PrinterSettingsContent(
                         // Row 5: System Info — sits just above Power / Reset (owner UAT)
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.SysInfoTile,
+                                icon = JiibIcons.SysInfoTile,
                                 label = stringResource(R.string.printer_settings_system_info),
                                 onClick = onSystemInfo,
                                 uDp = grid.uDp,
@@ -287,7 +287,7 @@ fun PrinterSettingsContent(
                         // Row 6: Power / Reset — navigates to the Power/Reset page (Task A)
                         item {
                             PrinterSettingsNavRow(
-                                icon = DinghyIcons.SystemRowPower,
+                                icon = JiibIcons.SystemRowPower,
                                 label = stringResource(R.string.printer_settings_power),
                                 onClick = onPower,
                                 uDp = grid.uDp,
@@ -305,7 +305,7 @@ fun PrinterSettingsContent(
                                 uDp = grid.uDp,
                                 leadingContent = {
                                     ListRowIcon(
-                                        icon = DinghyIcons.ManagePrinters,
+                                        icon = JiibIcons.ManagePrinters,
                                         uDp = grid.uDp,
                                         tint = t.text,
                                     )
@@ -322,7 +322,7 @@ fun PrinterSettingsContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                         ),
@@ -340,7 +340,7 @@ fun PrinterSettingsContent(
 /** Standard 1U nav-row (leading icon + label, direct-tap → onClick). */
 @Composable
 private fun PrinterSettingsNavRow(
-    icon: DinghyIcon,
+    icon: JiibIcon,
     label: String,
     onClick: () -> Unit,
     uDp: Dp,

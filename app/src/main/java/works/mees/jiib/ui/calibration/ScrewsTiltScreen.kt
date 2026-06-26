@@ -47,8 +47,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -56,7 +56,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -197,7 +197,7 @@ fun ScrewsTiltContent(
                             // Back FIRST (accent — R5/R8), before the state-adaptive primary.
                             add(FootAction(
                                 label = stringResource(R.string.common_back),
-                                icon = DinghyIcons.Back,
+                                icon = JiibIcons.Back,
                                 onClick = onBack,
                                 intent = Intent.Accent,
                                 contentDescription = stringResource(R.string.common_back),
@@ -211,7 +211,7 @@ fun ScrewsTiltContent(
                                     // Running: non-interactive; no abort in current impl.
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_running),
-                                        icon = DinghyIcons.CalibrationWait,
+                                        icon = JiibIcons.CalibrationWait,
                                         onClick = {},
                                         intent = Intent.Neutral,
                                         enabled = false,
@@ -221,7 +221,7 @@ fun ScrewsTiltContent(
                                     // Result shown: Run Again.
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_run_again),
-                                        icon = DinghyIcons.Revert,
+                                        icon = JiibIcons.Revert,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: expected re-run action
                                     ))
@@ -230,7 +230,7 @@ fun ScrewsTiltContent(
                                     // Homed idle: Run.
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_run),
-                                        icon = DinghyIcons.CalibrationRun,
+                                        icon = JiibIcons.CalibrationRun,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: the screen's expected action
                                     ))
@@ -265,7 +265,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         trailingContent = {
             Text(
                 text = turnText,
-                style = DinghyType.dataMeta.toTextStyle(t),
+                style = JiibType.dataMeta.toTextStyle(t),
                 color = t.text2,
                 maxLines = 1,
                 modifier = Modifier.padding(start = 8.dp),
@@ -275,7 +275,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
         Text(
             text = point.name?.let { titleCase(it) } ?: point.key,
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -303,7 +303,7 @@ private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
                     stringResource(R.string.screws_run_prompt)
                 },
                 color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
                 textAlign = TextAlign.Center,
             )
         }
@@ -379,15 +379,15 @@ private fun BoxWithPoints(
             val fx = ((p.x!! - loX) / (hiX - loX)).toFloat().coerceIn(0f, 1f)
             val fy = (1f - ((p.y!! - loY) / (hiY - loY)).toFloat()).coerceIn(0f, 1f)
             val turn = p.turn
-            // 27-review WR-04: the bed-map state glyphs route through the DinghyIcons registry
+            // 27-review WR-04: the bed-map state glyphs route through the JiibIcons registry
             // (promoted verbatim — same glyphs as before, now subset/gate-covered).
             val glyph = when {
-                turn == null -> DinghyIcons.ScrewPending
-                turn.isBase -> DinghyIcons.ScrewBase
-                turn.isInTol -> DinghyIcons.ScrewInTolerance
-                turn.sign == "CCW" -> DinghyIcons.ScrewTurnCcw
-                turn.sign == "CW" -> DinghyIcons.ScrewTurnCw
-                else -> DinghyIcons.ScrewPending
+                turn == null -> JiibIcons.ScrewPending
+                turn.isBase -> JiibIcons.ScrewBase
+                turn.isInTol -> JiibIcons.ScrewInTolerance
+                turn.sign == "CCW" -> JiibIcons.ScrewTurnCcw
+                turn.sign == "CW" -> JiibIcons.ScrewTurnCw
+                else -> JiibIcons.ScrewPending
             }
             val tint = when {
                 turn == null -> t.text2
@@ -402,12 +402,12 @@ private fun BoxWithPoints(
                 contentAlignment = BiasAlignment(fx, fy),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    DinghyIconView(icon = glyph, tint = tint, sizeDp = fsSp(56f, t.fs).dp)
+                    JiibIconView(icon = glyph, tint = tint, sizeDp = fsSp(56f, t.fs).dp)
                     if (turn != null) {
                         Text(
                             text = "${"%.3f".format(turn.z)} mm",
                             color = t.text3,
-                            style = DinghyType.dataMeta.toTextStyle(t),
+                            style = JiibType.dataMeta.toTextStyle(t),
                             maxLines = 1,
                         )
                     }

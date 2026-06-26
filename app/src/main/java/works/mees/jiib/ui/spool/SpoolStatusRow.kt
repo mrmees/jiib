@@ -9,10 +9,10 @@ import androidx.compose.ui.unit.Dp
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.spool.SpoolmanFilament
 import works.mees.jiib.spool.SpoolmanSpool
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -28,7 +28,7 @@ internal fun spoolRowText(filament: SpoolmanFilament?): String? =
         .ifBlank { null }
 
 /**
- * The canonical Spool list row (data-rich, 2026-06-16): leading [DinghyIcons.SpoolFilament]
+ * The canonical Spool list row (data-rich, 2026-06-16): leading [JiibIcons.SpoolFilament]
  * (ev_shadow) tinted to the loaded filament's color (THEME-01 data carve-out — same derivation as
  * the Spool screen header), and the `name / material / vendor` identity text scrolling on overflow.
  * Uncolored icon + "No Spool Loaded" when nothing is loaded; "Spool" when a spool is loaded but
@@ -56,7 +56,7 @@ internal fun SpoolStatusRow(
         uDp = uDp,
         leadingContent = {
             ListRowIcon(
-                icon = DinghyIcons.SpoolFilament,
+                icon = JiibIcons.SpoolFilament,
                 uDp = uDp,
                 tint = spoolColor ?: t.accent,
             )
@@ -65,7 +65,7 @@ internal fun SpoolStatusRow(
         Text(
             text = label,
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             maxLines = 1,
             modifier = Modifier.basicMarquee(),
         )

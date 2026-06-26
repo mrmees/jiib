@@ -20,9 +20,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.controlHeight
 import works.mees.jiib.designsystem.layout.gapS
@@ -58,14 +58,14 @@ internal fun selectorWantsAccentFill(isActive: Boolean): Boolean = isActive
 internal fun selectorTileHeightDp(uDp: Float): Float = maxOf(uDp, 48f)
 
 /**
- * The registered direction-overlay token for a sort tile: ascending → [DinghyIcons.SortAsc]
- * (`arrow_drop_up`), descending → [DinghyIcons.SortDesc] (`arrow_drop_down`), none (not the active
+ * The registered direction-overlay token for a sort tile: ascending → [JiibIcons.SortAsc]
+ * (`arrow_drop_up`), descending → [JiibIcons.SortDesc] (`arrow_drop_down`), none (not the active
  * sort) → null. Replaces the legacy raw `arrow_upward`/`arrow_downward` [MaterialSymbol] block —
  * the master-list §f#1 owner ruling registered this token pair for exactly this indicator.
  */
-internal fun sortDirectionIcon(directionUp: Boolean?): DinghyIcon? = when (directionUp) {
-    true -> DinghyIcons.SortAsc
-    false -> DinghyIcons.SortDesc
+internal fun sortDirectionIcon(directionUp: Boolean?): JiibIcon? = when (directionUp) {
+    true -> JiibIcons.SortAsc
+    false -> JiibIcons.SortDesc
     null -> null
 }
 
@@ -86,10 +86,10 @@ internal fun sortDirectionIcon(directionUp: Boolean?): DinghyIcon? = when (direc
  */
 internal data class SelectorOption<K>(
     val key: K,
-    val icon: DinghyIcon? = null,
+    val icon: JiibIcon? = null,
     val label: String = "",
     val isActive: Boolean = false,
-    val directionIcon: DinghyIcon? = null,
+    val directionIcon: JiibIcon? = null,
     val contentDescription: String? = null,
     /** When false, the tile is dimmed + announced disabled and installs no click (R10). Default true. */
     val enabled: Boolean = true,
@@ -129,7 +129,7 @@ internal fun <K> SelectorRow(
     onSelect: (K) -> Unit,
     uDp: Dp,
     modifier: Modifier = Modifier,
-    leadingTypeTile: DinghyIcon? = null,
+    leadingTypeTile: JiibIcon? = null,
 ) {
     val t = LocalTokens.current
     // 1U tiles (owner All-1U ruling 2026-06-12), floored at 48dp touch target.
@@ -156,7 +156,7 @@ internal fun <K> SelectorRow(
                         .padding(horizontal = gapS(uDp)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    DinghyIconView(
+                    JiibIconView(
                         icon = leadingTypeTile,
                         tint = t.text2,
                         sizeDp = fsSp(20f, t.fs).dp,
@@ -190,7 +190,7 @@ internal fun <K> SelectorRow(
                     )
                     // Direction overlay — registered glyph at TopEnd, non-displacing.
                     if (opt.directionIcon != null) {
-                        DinghyIconView(
+                        JiibIconView(
                             icon = opt.directionIcon,
                             tint = t.accent2,
                             // U-relative (~0.5U) so the arrow_drop caret reads as a clear direction

@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -85,7 +85,7 @@ fun PromptImageItem(
                     Text(
                         text = alt,
                         color = t.text2,
-                        style = DinghyType.caption.toTextStyle(t),
+                        style = JiibType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )

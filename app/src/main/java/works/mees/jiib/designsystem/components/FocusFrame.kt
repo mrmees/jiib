@@ -44,12 +44,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.ConfirmGuard
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.LocalUnitDp
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -228,7 +228,7 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
 @Composable
 fun FocusFrame(
     title: String,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     iconTint: Color? = null,
     uDp: Dp,
     modifier: Modifier = Modifier,
@@ -237,10 +237,10 @@ fun FocusFrame(
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
     contentInset: Dp = FocusInset,
-    trailingActionIcon: DinghyIcon? = null,
+    trailingActionIcon: JiibIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
-    trailingStatusIcon: DinghyIcon? = null,
+    trailingStatusIcon: JiibIcon? = null,
     trailingStatusTint: Color? = null,
     trailingStatusContentDescription: String? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -316,16 +316,16 @@ fun FocusFrame(
 @Composable
 private fun FocusHeader(
     title: String,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     iconTint: Color? = null,
     uDp: Dp,
     isPrinting: Boolean,
     onEmergencyStop: (() -> Unit)?,
     onPanic: (() -> Unit)?,
-    trailingActionIcon: DinghyIcon? = null,
+    trailingActionIcon: JiibIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
-    trailingStatusIcon: DinghyIcon? = null,
+    trailingStatusIcon: JiibIcon? = null,
     trailingStatusTint: Color? = null,
     trailingStatusContentDescription: String? = null,
 ) {
@@ -342,7 +342,7 @@ private fun FocusHeader(
         contentAlignment = Alignment.Center,
     ) {
         val density = LocalDensity.current
-        val titleStyle = remember(t.fs, density.fontScale) { DinghyType.focusHeader.toTextStyle(t) }
+        val titleStyle = remember(t.fs, density.fontScale) { JiibType.focusHeader.toTextStyle(t) }
         val slotPx = with(density) { slot.toPx() }
         val availPx = with(density) { maxWidth.toPx() }
         // Memoize the single-line intrinsic width; re-measure only when the text, width, or scale changes.
@@ -388,8 +388,8 @@ private fun FocusHeader(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    DinghyIconView(
-                        icon = DinghyIcons.StatusStop,
+                    JiibIconView(
+                        icon = JiibIcons.StatusStop,
                         tint = t.stop,
                         sizeDp = slot * IDENTITY_ICON_RATIO,
                         contentDescription = stringResource(R.string.cd_emergency_stop),
@@ -401,7 +401,7 @@ private fun FocusHeader(
                 // don't clip against the 1U header bar or the card's rounded corner. The slot itself
                 // (and thus the e-stop tap target, above) is unchanged — only the inert glyph shrinks.
                 Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
-                    DinghyIconView(
+                    JiibIconView(
                         icon = icon,
                         tint = iconTint ?: t.text2,
                         sizeDp = slot * IDENTITY_ICON_RATIO,
@@ -422,7 +422,7 @@ private fun FocusHeader(
                     .clickable(onClick = onTrailingAction),
                 contentAlignment = Alignment.Center,
             ) {
-                DinghyIconView(
+                JiibIconView(
                     icon = trailingActionIcon,
                     tint = t.text2,
                     sizeDp = slot * IDENTITY_ICON_RATIO,
@@ -439,7 +439,7 @@ private fun FocusHeader(
                     .size(slot),
                 contentAlignment = Alignment.Center,
             ) {
-                DinghyIconView(
+                JiibIconView(
                     icon = trailingStatusIcon,
                     tint = trailingStatusTint ?: t.text2,
                     sizeDp = slot * IDENTITY_ICON_RATIO,

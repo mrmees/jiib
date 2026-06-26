@@ -19,7 +19,7 @@ import java.io.IOException
  * Copies the [works.mees.jiib.ui.macros.MacroPrefs] / [works.mees.jiib.config.ConnectionStore] shape
  * EXACTLY: the [DataStore] is INJECTED (no `preferencesDataStore` delegate), so it is host-testable. The
  * PRODUCTION instance (its OWN `babystep.preferences_pb`, NOT shared with connection/theme/macros/webcam)
- * is created by [works.mees.jiib.DinghyApp] and exposed via [works.mees.jiib.di.AppContainer].
+ * is created by [works.mees.jiib.JiibApp] and exposed via [works.mees.jiib.di.AppContainer].
  *
  * FAIL-SAFE READ CONTRACT (mirrors MacroPrefs/ConnectionStore, D-02): a read [IOException] (corrupt/partial
  * blob) recovers by emitting empty prefs → defaults (enabled=true / layerCount=5), NEVER a crash.

@@ -28,14 +28,14 @@ import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -139,7 +139,7 @@ fun PrinterFindContent(
             focus = {
                 FocusFrame(
                     title = stringResource(R.string.conn_row_find),
-                    icon = DinghyIcons.Search,
+                    icon = JiibIcons.Search,
                     uDp = uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     isPrinting = isPrinting,
@@ -154,7 +154,7 @@ fun PrinterFindContent(
                         scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
                         else -> stringResource(R.string.printers_pick_found)
                     }
-                    Text(text = status, color = t.text2, style = DinghyType.body.toTextStyle(t))
+                    Text(text = status, color = t.text2, style = JiibType.body.toTextStyle(t))
                 }
             },
             field = {
@@ -171,7 +171,7 @@ fun PrinterFindContent(
                             onClick = { onPick(p) },
                             uDp = uDp,
                             trailingContent = if (hasHostname) {
-                                { Text(p.host, color = t.text2, style = DinghyType.dataMeta.toTextStyle(t), maxLines = 1) }
+                                { Text(p.host, color = t.text2, style = JiibType.dataMeta.toTextStyle(t), maxLines = 1) }
                             } else {
                                 null
                             },
@@ -179,7 +179,7 @@ fun PrinterFindContent(
                             Text(
                                 text = hostname ?: p.host,
                                 color = t.text,
-                                style = DinghyType.listLabel.toTextStyle(t),
+                                style = JiibType.listLabel.toTextStyle(t),
                                 maxLines = 1,
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -189,11 +189,11 @@ fun PrinterFindContent(
                 FootButtonBar(
                     uDp = uDp,
                     actions = listOf(
-                        FootAction(stringResource(R.string.common_back), DinghyIcons.Back, onBack, Intent.Accent),
+                        FootAction(stringResource(R.string.common_back), JiibIcons.Back, onBack, Intent.Accent),
                         FootAction(
                             label = if (scanning) stringResource(R.string.printers_scanning)
                                     else stringResource(R.string.conn_scan),
-                            icon = DinghyIcons.Search,
+                            icon = JiibIcons.Search,
                             onClick = onScan,
                             intent = Intent.Accent,
                             enabled = !scanning,

@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import works.mees.jiib.designsystem.control.ControlSpec
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
+import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.IconRef
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.controlHeight
@@ -36,8 +36,8 @@ import works.mees.jiib.designsystem.layout.controlHeight
  *     field = {
  *         ListBlock(modifier = Modifier.weight(1f)) { … }
  *         FootButtonBar(uDp = grid.uDp, actions = listOf(
- *             FootAction("Back", DinghyIcons.Back, onBack, Intent.Accent),
- *             FootAction("Save", DinghyIcons.Save, onSave, Intent.Go),
+ *             FootAction("Back", JiibIcons.Back, onBack, Intent.Accent),
+ *             FootAction("Save", JiibIcons.Save, onSave, Intent.Go),
  *         )) // ≤2 → icon+text; ≥3 → icon-only (FOOT_BAR_ICON_ONLY_THRESHOLD)
  *     },
  * )
@@ -71,7 +71,7 @@ const val FOOT_BAR_ICON_ONLY_THRESHOLD = 3
  */
 data class FootAction(
     val label: String,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val onClick: () -> Unit,
     val intent: Intent = Intent.Neutral,
     val contentDescription: String? = null,

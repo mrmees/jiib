@@ -28,7 +28,7 @@ import java.io.IOException
  * V5 input validation lives in the PURE [sanitize] (host/port range, host trim, blank-key → null) so a
  * malformed host or out-of-range port is rejected BEFORE it can drive the spine.
  *
- * The [DataStore] is INJECTED (no `preferencesDataStore` delegate here) — the DinghyApp (04-03) owns
+ * The [DataStore] is INJECTED (no `preferencesDataStore` delegate here) — the JiibApp (04-03) owns
  * the actual `connection.preferences_pb` file, kept SEPARATE from `theme.preferences_pb` for a cleaner
  * API-key redaction boundary (T-04-01-I; PATTERNS DECIDE note).
  */

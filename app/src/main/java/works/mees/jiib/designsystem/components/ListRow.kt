@@ -21,9 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -166,7 +166,7 @@ fun ListRowLabel(
     Text(
         text = text,
         color = color ?: t.text,
-        style = DinghyType.listLabel.toTextStyle(t),
+        style = JiibType.listLabel.toTextStyle(t),
         // Rows are FIXED at 1U (R23 precondition: multiline must not grow them) — one line,
         // ellipsized. A genuinely-overflowing line may marquee per the panel-text law instead.
         maxLines = 1,
@@ -181,19 +181,19 @@ fun ListRowLabel(
  * 1U, so a U-fraction is visually stable on every device; vertical centering comes from
  * [ListRow]'s row alignment.
  *
- * @param icon the registered [DinghyIcon] (icon law: registry-only).
+ * @param icon the registered [JiibIcon] (icon law: registry-only).
  * @param uDp  one unit U from the screen's unit grid (same value passed to [ListRow]).
  * @param tint icon tint (token-routed at the call site).
  * @param contentDescription a11y label, or null when the row label already speaks.
  */
 @Composable
 fun ListRowIcon(
-    icon: DinghyIcon,
+    icon: JiibIcon,
     uDp: Dp,
     tint: androidx.compose.ui.graphics.Color,
     contentDescription: String? = null,
 ) {
-    DinghyIconView(
+    JiibIconView(
         icon = icon,
         tint = tint,
         sizeDp = uDp * 0.6f,

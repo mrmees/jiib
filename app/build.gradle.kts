@@ -239,7 +239,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.junit)
     // UiAutomator drives device rotation for the 04-03 service-survival gate (ServiceSurvivesRotationTest).
-    // ApplicationProvider (for resolving the process DinghyApp/AppContainer) comes transitively via ext.junit's androidx.test:core.
+    // ApplicationProvider (for resolving the process JiibApp/AppContainer) comes transitively via ext.junit's androidx.test:core.
     androidTestImplementation(libs.androidx.test.uiautomator)
 
     // --- Compose UI test (04-07 ShellPresenceTest) — BOM-governed; the test composes RootController

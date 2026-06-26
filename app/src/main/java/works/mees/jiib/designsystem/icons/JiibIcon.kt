@@ -24,11 +24,11 @@ sealed interface IconRef {
  * [alternate] is the **canonical semantic name** — the D-07 one-place remap handle a fork edits to swap
  * icon sets without find-replacing scattered ligature spellings (e.g. `"back"`, `"save"`, `"lock_open"`).
  *
- * **D-08 (separability):** a [DinghyIcon] carries NO label. The user-facing label is a SEPARATE
- * `stringResource(...)` at the call site; a future combo-mode composes `DinghyIconView(icon) + Text(label)`
+ * **D-08 (separability):** a [JiibIcon] carries NO label. The user-facing label is a SEPARATE
+ * `stringResource(...)` at the call site; a future combo-mode composes `JiibIconView(icon) + Text(label)`
  * without re-plumbing this type.
  *
- * **Invariant:** [alternate] MUST be non-blank and UNIQUE across [DinghyIcons] — a duplicate would make a
- * fork's remap ambiguous (enforced by `DinghyIconsTest`).
+ * **Invariant:** [alternate] MUST be non-blank and UNIQUE across [JiibIcons] — a duplicate would make a
+ * fork's remap ambiguous (enforced by `JiibIconsTest`).
  */
-data class DinghyIcon(val primary: IconRef, val alternate: String)
+data class JiibIcon(val primary: IconRef, val alternate: String)

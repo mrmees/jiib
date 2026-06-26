@@ -227,7 +227,7 @@ class HomeActionTest {
         )
         for (action in actions) {
             if (action is HomeAction.Destination) {
-                // DinghyIcon is a data class — non-null by construction, but this explicitly
+                // JiibIcon is a data class — non-null by construction, but this explicitly
                 // documents the icon-law contract in the test suite.
                 assertTrue("Icon for ${action.dest} must not be the empty string alternate",
                     action.icon.alternate.isNotBlank())

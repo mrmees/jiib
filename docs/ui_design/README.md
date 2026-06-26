@@ -65,6 +65,6 @@ for archaeology only; nothing in them overrides the five docs above.
 ## Assets
 
 - **Fonts:** Geist + Geist Mono (bundled). Material Symbols Outlined font for icons, rendered
-  by ligature via the `DinghyIcons` registry — never auto-pick a glyph (owner law, `CLAUDE.md`).
+  by ligature via the `JiibIcons` registry — never auto-pick a glyph (owner law, `CLAUDE.md`).
 - **Custom printer-domain glyphs** (nozzle, bed, bed-tilt, spool) are owner-approved vector
   drawables converted from `img/*.svg` source art.

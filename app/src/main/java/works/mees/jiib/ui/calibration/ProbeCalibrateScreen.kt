@@ -56,9 +56,9 @@ import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.icons.IconRef
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
@@ -68,7 +68,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -307,7 +307,7 @@ fun ProbeCalibrateContent(
                                         else Modifier.alpha(0.38f).semantics { disabled() },
                                     ),
                                 intent = Intent.Neutral,
-                                icon = DinghyIcons.Increase,
+                                icon = JiibIcons.Increase,
                                 contentDescription = stringResource(R.string.probe_cd_step_larger),
                                 enabled = idx < steps.lastIndex,
                             )
@@ -323,7 +323,7 @@ fun ProbeCalibrateContent(
                                         else Modifier.alpha(0.38f).semantics { disabled() },
                                     ),
                                 intent = Intent.Neutral,
-                                icon = DinghyIcons.Decrease,
+                                icon = JiibIcons.Decrease,
                                 contentDescription = stringResource(R.string.probe_cd_step_smaller),
                                 enabled = idx > 0,
                             )
@@ -339,7 +339,7 @@ fun ProbeCalibrateContent(
                                     // Back is also suppressed here (nav-layer BackHandler handles it).
                                     add(FootAction(
                                         label = stringResource(R.string.probe_starting),
-                                        icon = DinghyIcons.CalibrationWait,
+                                        icon = JiibIcons.CalibrationWait,
                                         onClick = {},
                                         intent = Intent.Neutral,
                                         enabled = false,
@@ -349,7 +349,7 @@ fun ProbeCalibrateContent(
                                     // expected action, R19 motion-as-purpose).
                                     add(FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
@@ -359,14 +359,14 @@ fun ProbeCalibrateContent(
                                     // Back FIRST (accent); Start = go (the screen's expected action).
                                     add(FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
                                     ))
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_start),
-                                        icon = DinghyIcons.CalibrationRun,
+                                        icon = JiibIcons.CalibrationRun,
                                         onClick = onStart,
                                         intent = Intent.Go,
                                     ))
@@ -375,13 +375,13 @@ fun ProbeCalibrateContent(
                                     // Back SUPPRESSED — nav-layer BackHandler in AppShell swallows system Back (D-09 / T-27-04-01).
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_accept),
-                                        icon = DinghyIcons.CheckCircle,
+                                        icon = JiibIcons.CheckCircle,
                                         onClick = onAccept,
                                         intent = Intent.Go,
                                     ))
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_abort),
-                                        icon = DinghyIcons.CalibrationAbort,
+                                        icon = JiibIcons.CalibrationAbort,
                                         onClick = onAbort,
                                         intent = Intent.Danger,
                                     ))
@@ -391,14 +391,14 @@ fun ProbeCalibrateContent(
                                     // hazard-in-process, R5).
                                     add(FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
                                     ))
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_save_config),
-                                        icon = DinghyIcons.Save,
+                                        icon = JiibIcons.Save,
                                         onClick = onSaveGuardShow,
                                         intent = Intent.Warn,
                                     ))
@@ -474,15 +474,15 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(12.dp), // gapM (R13)
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DinghyIconView(
-                icon = DinghyIcon(IconRef.Ligature("detector"), alternate = "detector"),
+            JiibIconView(
+                icon = JiibIcon(IconRef.Ligature("detector"), alternate = "detector"),
                 contentDescription = stringResource(R.string.probe_cd_probe),
                 tint = t.text2,
                 sizeDp = fsSp(56f, t.fs).dp,
                 modifier = Modifier.weight(1f).aspectRatio(1f),
             )
-            DinghyIconView(
-                icon = DinghyIcon(IconRef.Ligature("expand"), alternate = "expand"),
+            JiibIconView(
+                icon = JiibIcon(IconRef.Ligature("expand"), alternate = "expand"),
                 contentDescription = stringResource(R.string.probe_cd_z_offset),
                 tint = t.text2,
                 sizeDp = fsSp(56f, t.fs).dp,
@@ -498,7 +498,7 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
         Text(
             text = zText,
             color = zColor,
-            style = DinghyType.focusHero.toTextStyle(t),
+            style = JiibType.focusHero.toTextStyle(t),
             modifier = Modifier.padding(top = 20.dp),
         )
         if (vm.state != ProbePageState.Idle) {
@@ -510,14 +510,14 @@ private fun ProbeFocus(vm: ProbeCalibrateVm, modifier: Modifier = Modifier) {
                     Text(
                         text = stringResource(R.string.probe_saved_ref, fmtZ(-it)),
                         color = t.text2,
-                        style = DinghyType.statValue.toTextStyle(t),
+                        style = JiibType.statValue.toTextStyle(t),
                     )
                 }
                 currentZ?.let {
                     Text(
                         text = "Z  ${fmtZ(it)}",
                         color = t.text2,
-                        style = DinghyType.statValue.toTextStyle(t),
+                        style = JiibType.statValue.toTextStyle(t),
                     )
                 }
             }
@@ -546,12 +546,12 @@ private fun ZReadoutDisplay(zValue: Double?, modifier: Modifier = Modifier) {
             Text(
                 text = zValue?.let { fmtZ(it) } ?: "—",
                 color = t.text,
-                style = DinghyType.statValue.toTextStyle(t),
+                style = JiibType.statValue.toTextStyle(t),
             )
             Text(
                 text = "mm",
                 color = t.text3,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
     }
@@ -574,12 +574,12 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
             Text(
                 text = fmtStep(value),
                 color = t.text,
-                style = DinghyType.statValue.toTextStyle(t),
+                style = JiibType.statValue.toTextStyle(t),
             )
             Text(
                 text = "mm",
                 color = t.text3,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
     }
@@ -593,9 +593,9 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
  * An outline-led icon button (renders a Material Symbols ligature, not a label).
  *
  * 18.1-03 (D-08/D-09): the glyph is a Material Symbols ligature named by [glyphName] (was a
- * `painter: Painter` drawable). It renders through the a11y-aware [DinghyIconView] so the real
+ * `painter: Painter` drawable). It renders through the a11y-aware [JiibIconView] so the real
  * [contentDescription] is the spoken TalkBack label (NOT the raw ligature name) — without promoting
- * the site into the [DinghyIcons] registry. The disabled/iconTint coloring and ≥64dp button chrome
+ * the site into the [JiibIcons] registry. The disabled/iconTint coloring and ≥64dp button chrome
  * are unchanged; the glyph is sized at a fixed Focus-jog magnitude.
  */
 @Composable
@@ -618,8 +618,8 @@ private fun ProbeIconButton(
         .background(if (enabled) Color.Transparent else t.surface)
     val box = if (enabled) base.clickable(onClick = onClick) else base
     Box(box, contentAlignment = Alignment.Center) {
-        DinghyIconView(
-            icon = DinghyIcon(IconRef.Ligature(glyphName), alternate = glyphName),
+        JiibIconView(
+            icon = JiibIcon(IconRef.Ligature(glyphName), alternate = glyphName),
             contentDescription = contentDescription,
             tint = if (!enabled) t.text3 else (iconTint ?: t.text),
             sizeDp = fsSp(34f, t.fs).dp,

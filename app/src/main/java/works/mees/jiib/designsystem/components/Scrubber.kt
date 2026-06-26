@@ -43,7 +43,7 @@ import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.fractionFromX
 import works.mees.jiib.designsystem.layout.gapM
 import works.mees.jiib.designsystem.fractionFromY
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -348,7 +348,7 @@ fun Scrubber(
                         Text(
                             text = name,
                             color = t.text,
-                            style = DinghyType.listLabel.toTextStyle(t),
+                            style = JiibType.listLabel.toTextStyle(t),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -356,13 +356,13 @@ fun Scrubber(
                         Text(
                             text = fmt(working),
                             color = t.text,
-                            style = DinghyType.focusHero.toTextStyle(t),
+                            style = JiibType.focusHero.toTextStyle(t),
                         )
                         if (unit.isNotEmpty()) {
                             Text(
                                 text = unit,
                                 color = t.text3,
-                                style = DinghyType.dataInline.toTextStyle(t),
+                                style = JiibType.dataInline.toTextStyle(t),
                             )
                         }
                     }
@@ -377,12 +377,12 @@ fun Scrubber(
                     Text(
                         text = fmt(range.start) + unit,
                         color = t.text3,
-                        style = DinghyType.dataMeta.toTextStyle(t),
+                        style = JiibType.dataMeta.toTextStyle(t),
                     )
                     Text(
                         text = fmt(range.endInclusive) + unit,
                         color = t.text3,
-                        style = DinghyType.dataMeta.toTextStyle(t),
+                        style = JiibType.dataMeta.toTextStyle(t),
                     )
                 }
 

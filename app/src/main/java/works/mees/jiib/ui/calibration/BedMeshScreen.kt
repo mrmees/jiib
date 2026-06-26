@@ -61,8 +61,8 @@ import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -78,7 +78,7 @@ import works.mees.jiib.render.BedMeshHeatmapView
 import works.mees.jiib.render.resolveMeshColor
 import works.mees.jiib.ui.screen.TokenTextField
 import works.mees.jiib.designsystem.components.ListRowIcon
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -430,7 +430,7 @@ internal fun BedMeshContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        trailingActionIcon = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) DinghyIcons.Edit else null,
+                        trailingActionIcon = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
                         onTrailingAction = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
                     ) {
@@ -493,7 +493,7 @@ internal fun BedMeshContent(
                                             uDp = grid.uDp,
                                             leadingContent = {
                                                 ListRowIcon(
-                                                    icon = DinghyIcons.BlurOff,
+                                                    icon = JiibIcons.BlurOff,
                                                     uDp = grid.uDp,
                                                     tint = t.text2,
                                                     contentDescription = "Clear Mesh",
@@ -522,7 +522,7 @@ internal fun BedMeshContent(
                                                     Text(
                                                         text = String.format(Locale.US, "%.3f mm", span),
                                                         color = t.text2,
-                                                        style = DinghyType.dataMeta.toTextStyle(t),
+                                                        style = JiibType.dataMeta.toTextStyle(t),
                                                     )
                                                 }
                                                 if (isActive) {
@@ -551,7 +551,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.BabystepExpand,
+                                                icon = JiibIcons.BabystepExpand,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Color Scale",
@@ -561,7 +561,7 @@ internal fun BedMeshContent(
                                             Text(
                                                 text = vm.scaleMode.displayLabel(),
                                                 color = t.accent2,
-                                                style = DinghyType.dataMeta.toTextStyle(t),
+                                                style = JiibType.dataMeta.toTextStyle(t),
                                             )
                                         },
                                     ) { ListRowLabel("Color Scale") }
@@ -575,7 +575,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.Palette,
+                                                icon = JiibIcons.Palette,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Mesh Config",
@@ -591,7 +591,7 @@ internal fun BedMeshContent(
                                 actions = buildList {
                                     add(FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBack,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
@@ -607,7 +607,7 @@ internal fun BedMeshContent(
                                             add(FootAction(
                                                 // owner 2026-06-17: play_circle (CalibrationRun)
                                                 label = stringResource(R.string.mesh_calibrate),
-                                                icon = DinghyIcons.CalibrationRun,
+                                                icon = JiibIcons.CalibrationRun,
                                                 onClick = onCalibrate,
                                                 intent = Intent.Go,
                                                 enabled = dispatcherPresent,
@@ -633,7 +633,7 @@ internal fun BedMeshContent(
                                 Text(
                                     text = stringResource(R.string.mesh_save_name_label),
                                     color = t.text,
-                                    style = DinghyType.listLabel.toTextStyle(t),
+                                    style = JiibType.listLabel.toTextStyle(t),
                                     modifier = Modifier.padding(bottom = 4.dp),
                                 )
                                 TokenTextField(
@@ -647,7 +647,7 @@ internal fun BedMeshContent(
                                     Text(
                                         text = stringResource(R.string.mesh_save_name_invalid),
                                         color = t.stop,
-                                        style = DinghyType.caption.toTextStyle(t),
+                                        style = JiibType.caption.toTextStyle(t),
                                     )
                                 }
                             }
@@ -659,7 +659,7 @@ internal fun BedMeshContent(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.mesh_save_confirm),
-                                        icon = DinghyIcons.CheckCircle,
+                                        icon = JiibIcons.CheckCircle,
                                         onClick = { onSaveNameConfirm(saveName) },
                                         intent = Intent.Go,
                                         enabled = valid && dispatcherPresent,
@@ -667,7 +667,7 @@ internal fun BedMeshContent(
                                     // C7: cancel-with-loss → Intent.Danger (red)
                                     FootAction(
                                         label = stringResource(R.string.common_cancel),
-                                        icon = DinghyIcons.DialogClose,
+                                        icon = JiibIcons.DialogClose,
                                         onClick = onSaveNameCancel,
                                         intent = Intent.Danger,
                                     ),
@@ -685,7 +685,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.MeshViewIso,
+                                                icon = JiibIcons.MeshViewIso,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "View Type",
@@ -700,7 +700,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.HdrStrong,
+                                                icon = JiibIcons.HdrStrong,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "High Color",
@@ -715,7 +715,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.HdrWeak,
+                                                icon = JiibIcons.HdrWeak,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Low Color",
@@ -730,7 +730,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.Preview,
+                                                icon = JiibIcons.Preview,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Preview",
@@ -744,7 +744,7 @@ internal fun BedMeshContent(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBackToProfileList,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
@@ -764,7 +764,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.MeshViewIso,
+                                                icon = JiibIcons.MeshViewIso,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "View Type",
@@ -779,7 +779,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.HdrStrong,
+                                                icon = JiibIcons.HdrStrong,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "High Color",
@@ -794,7 +794,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.HdrWeak,
+                                                icon = JiibIcons.HdrWeak,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Low Color",
@@ -809,7 +809,7 @@ internal fun BedMeshContent(
                                         uDp = grid.uDp,
                                         leadingContent = {
                                             ListRowIcon(
-                                                icon = DinghyIcons.Preview,
+                                                icon = JiibIcons.Preview,
                                                 uDp = grid.uDp,
                                                 tint = t.text2,
                                                 contentDescription = "Preview",
@@ -823,7 +823,7 @@ internal fun BedMeshContent(
                                 actions = listOf(
                                     FootAction(
                                         label = stringResource(R.string.common_back),
-                                        icon = DinghyIcons.Back,
+                                        icon = JiibIcons.Back,
                                         onClick = onBackToConfigList,
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
@@ -922,18 +922,18 @@ private fun BedMeshFocusRegion(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     // 27-review WR-04: registry-backed empty-state glyph (same grid_off, promoted verbatim).
-                    DinghyIconView(icon = DinghyIcons.MeshEmpty, tint = t.text3, sizeDp = fsSp(48f, t.fs).dp)
+                    JiibIconView(icon = JiibIcons.MeshEmpty, tint = t.text3, sizeDp = fsSp(48f, t.fs).dp)
                     Text(
                         text = stringResource(R.string.mesh_no_active_mesh),
                         color = t.text,
-                        style = DinghyType.focusHeader.toTextStyle(t),
+                        style = JiibType.focusHeader.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                     Text(
                         text = stringResource(R.string.mesh_no_active_mesh_hint),
                         color = t.text2,
-                        style = DinghyType.caption.toTextStyle(t),
+                        style = JiibType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 4.dp),
                     )
@@ -1040,9 +1040,9 @@ private fun ViewTypeSelector(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(text = name, color = t.text, style = DinghyType.focusHeroLabel.toTextStyle(t))
+            Text(text = name, color = t.text, style = JiibType.focusHeroLabel.toTextStyle(t))
             Spacer(Modifier.height(8.dp))
-            Text(text = description, color = t.text2, style = DinghyType.body.toTextStyle(t))
+            Text(text = description, color = t.text2, style = JiibType.body.toTextStyle(t))
         }
         // Three icon-only foot buttons (count-driven); the active view's button gets a soft accent fill.
         FootButtonBar(
@@ -1050,7 +1050,7 @@ private fun ViewTypeSelector(
             actions = listOf(
                 FootAction(
                     label = "2D Heatmap",
-                    icon = DinghyIcons.MeshView2D,
+                    icon = JiibIcons.MeshView2D,
                     onClick = { onPick(BedMeshViewType.HEATMAP) },
                     intent = Intent.Accent,
                     contentDescription = "2D Heatmap",
@@ -1058,7 +1058,7 @@ private fun ViewTypeSelector(
                 ),
                 FootAction(
                     label = "3D Mesh",
-                    icon = DinghyIcons.MeshViewIso,
+                    icon = JiibIcons.MeshViewIso,
                     onClick = { onPick(BedMeshViewType.ISO) },
                     intent = Intent.Accent,
                     contentDescription = "3D Mesh",
@@ -1066,7 +1066,7 @@ private fun ViewTypeSelector(
                 ),
                 FootAction(
                     label = "Probe Points",
-                    icon = DinghyIcons.MeshViewProbe,
+                    icon = JiibIcons.MeshViewProbe,
                     onClick = { onPick(BedMeshViewType.PROBE_POINTS) },
                     intent = Intent.Accent,
                     contentDescription = "Probe Points",
@@ -1121,7 +1121,7 @@ private fun MeshNameField(
         Text(
             text = stringResource(R.string.mesh_save_name_label),
             color = t.text,
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             modifier = Modifier.padding(bottom = 4.dp),
         )
         TokenTextField(
@@ -1135,7 +1135,7 @@ private fun MeshNameField(
             Text(
                 text = stringResource(R.string.mesh_save_name_invalid),
                 color = t.stop,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         }
     }
@@ -1152,7 +1152,7 @@ private fun MeshNameField(
  * Read-only name field for [MeshEditKind.PREVIEW_NONACTIVE] (not the active mesh — cannot be
  * renamed from this context; Apply loads it first).
  *
- * All buttons use owner-picked glyphs (DinghyIcons.CheckCircle / Save / Delete — Task 8 brief).
+ * All buttons use owner-picked glyphs (JiibIcons.CheckCircle / Save / Delete — Task 8 brief).
  */
 @Composable
 private fun MeshEditForm(
@@ -1197,7 +1197,7 @@ private fun MeshEditForm(
                             onClick = onApply,
                             modifier = Modifier.weight(1f),
                             intent = Intent.Go,
-                            icon = DinghyIcons.CheckCircle,
+                            icon = JiibIcons.CheckCircle,
                             contentDescription = stringResource(R.string.mesh_apply),
                         )
                     }
@@ -1207,7 +1207,7 @@ private fun MeshEditForm(
                             onClick = { onSave(name) },
                             modifier = Modifier.weight(1f),
                             intent = Intent.Go,
-                            icon = DinghyIcons.Save,
+                            icon = JiibIcons.Save,
                             enabled = nameValid,
                             contentDescription = stringResource(R.string.mesh_save_confirm),
                         )
@@ -1218,7 +1218,7 @@ private fun MeshEditForm(
                             onClick = { onSave(name) },
                             modifier = Modifier.weight(1f),
                             intent = Intent.Go,
-                            icon = DinghyIcons.Save,
+                            icon = JiibIcons.Save,
                             enabled = nameValid && nameChanged,
                             contentDescription = stringResource(R.string.mesh_save_confirm),
                         )
@@ -1229,7 +1229,7 @@ private fun MeshEditForm(
                     onClick = onCancel,
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.DialogClose,
+                    icon = JiibIcons.DialogClose,
                     contentDescription = stringResource(R.string.common_cancel),
                 )
             }
@@ -1247,7 +1247,7 @@ private fun MeshEditForm(
                         onClick = onDelete,
                         modifier = Modifier.fillMaxWidth(),
                         intent = Intent.Danger,
-                        icon = DinghyIcons.Delete,
+                        icon = JiibIcons.Delete,
                         contentDescription = stringResource(R.string.mesh_remove),
                     )
                 }

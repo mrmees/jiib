@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.flowOf
 import works.mees.jiib.theme.FontScale
 import works.mees.jiib.theme.ThemePrefs
 import works.mees.jiib.theme.ThemeResolver
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 import works.mees.jiib.theme.compose.LocalTokens
 
 /**
@@ -20,22 +20,22 @@ import works.mees.jiib.theme.compose.LocalTokens
  * and defeat the point of the harness).
  *
  * ## The bake/theme seam (verified this session)
- * The real Compose boundary is `DinghyTheme(tokensFlow = …, content)` (DinghyTheme.kt:37-51). The
+ * The real Compose boundary is `JiibTheme(tokensFlow = …, content)` (JiibTheme.kt:37-51). The
  * pure per-tuple bake is `ThemeResolver().bake(tuple): ThemeTokens` (ThemeResolver.kt:162) — a
  * no-arg `ThemeResolver()` constructs with all-default fields (every ctor param defaults;
  * AppContainer.kt:454 + BenchActivity.kt:80) and `bake` reads NOTHING mutable. So the compiling,
  * production-faithful seam is:
  *
  * ```
- * DinghyTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple))) { content() }
+ * JiibTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple))) { content() }
  * ```
  *
  * This reuses the ONE token boundary (the `tokensFlow` overload + `bake`) rather than the
  * resolver-based overload, so a preview and the running app resolve a tuple identically.
  *
  * ## ⚠ `--fs` is injected via [ThemePrefs.ThemeTuple.fs], NOT `@Preview(fontScale = …)`
- * `@Preview(fontScale = …)` is a NO-OP in this app: `DinghyTheme` pins the OS `fontScale` to `1f`
- * at DinghyTheme.kt:48 so the in-app S/M/L `--fs` is the SOLE text-size authority (THEME-02/D-04).
+ * `@Preview(fontScale = …)` is a NO-OP in this app: `JiibTheme` pins the OS `fontScale` to `1f`
+ * at JiibTheme.kt:48 so the in-app S/M/L `--fs` is the SOLE text-size authority (THEME-02/D-04).
  * To preview a larger text size you MUST seed the tuple's `fs` field — see [fsLargeSeed]. Setting
  * `@Preview(fontScale = 1.5f)` will render IDENTICALLY to `1f` and mislead you. Always use the
  * `fs`-seeded tuple.
@@ -45,7 +45,7 @@ fun PreviewBox(
     tuple: ThemePrefs.ThemeTuple,
     content: @Composable () -> Unit,
 ) {
-    DinghyTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple))) {
+    JiibTheme(tokensFlow = flowOf(ThemeResolver().bake(tuple))) {
         // Paint the themed shell background so previews are theme-faithful. The screens
         // themselves do NOT fill a root background — the app shell does (MainActivity.kt:79:
         // `Box(Modifier.fillMaxSize().background(LocalTokens.current.bg))`). Without this,
@@ -60,7 +60,7 @@ fun PreviewBox(
 // The SIX canonical theme combo seeds: {Colorful, Simple, HighContrast} × {dark, light}.
 //
 // The combos are explicit named ThemeTuples (NOT a `@Preview` multipreview annotation — an
-// annotation can set device/uiMode/locale but CANNOT select the palette MODE; see DinghyPreviews.kt).
+// annotation can set device/uiMode/locale but CANNOT select the palette MODE; see JiibPreviews.kt).
 // Each is built from the validated default tuple so a future field addition fails to compile here
 // (the single place that must know the tuple shape) rather than silently mis-seeding every preview.
 // ---------------------------------------------------------------------------------------------

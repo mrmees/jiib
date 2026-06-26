@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -32,7 +32,7 @@ import works.mees.jiib.theme.compose.toTextStyle
  *  - text + container  → `text` / `surface` roles (strong text on the raised screen body)
  *  - label / muted     → `text2`          (the muted-text role)
  *
- * Type routes through [works.mees.jiib.theme.DinghyType] roles so the field honors the S/M/L
+ * Type routes through [works.mees.jiib.theme.JiibType] roles so the field honors the S/M/L
  * `--fs` text-size setting (label → caption, input → dataInline).
  *
  * @param value the current field text.
@@ -61,13 +61,13 @@ fun TokenTextField(
         label = {
             Text(
                 text = label,
-                style = DinghyType.caption.toTextStyle(t), // R11 floor
+                style = JiibType.caption.toTextStyle(t), // R11 floor
             )
         },
         singleLine = true,
         isError = isError,
         // Input is connection/API-key DATA — monospace data role.
-        textStyle = DinghyType.dataInline.toTextStyle(t),
+        textStyle = JiibType.dataInline.toTextStyle(t),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation =
             if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,

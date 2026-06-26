@@ -43,15 +43,15 @@ import works.mees.jiib.designsystem.components.StepperRow
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.FontScale
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -221,7 +221,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.TextSize,
                             onClick = { selected = if (selected == AppSetting.TextSize) null else AppSetting.TextSize },
-                            icon = DinghyIcons.TextSize,
+                            icon = JiibIcons.TextSize,
                             label = stringResource(R.string.settings_text_size),
                             indicator = stringResource(textSizeIndicatorRes(fontScale)),
                             uDp = grid.uDp,
@@ -231,7 +231,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.KeepAwake,
                             onClick = { selected = if (selected == AppSetting.KeepAwake) null else AppSetting.KeepAwake },
-                            icon = DinghyIcons.Fluorescent,
+                            icon = JiibIcons.Fluorescent,
                             label = stringResource(R.string.settings_keep_screen_on),
                             indicator = stringResource(onOffRes(keepScreenOn)),
                             uDp = grid.uDp,
@@ -241,7 +241,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.Webcam,
                             onClick = { selected = if (selected == AppSetting.Webcam) null else AppSetting.Webcam },
-                            icon = DinghyIcons.LauncherWebcam,
+                            icon = JiibIcons.LauncherWebcam,
                             label = stringResource(R.string.settings_webcam),
                             indicator = stringResource(onOffRes(webcamEnabled)),
                             uDp = grid.uDp,
@@ -251,7 +251,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.Babystep,
                             onClick = { selected = if (selected == AppSetting.Babystep) null else AppSetting.Babystep },
-                            icon = DinghyIcons.LineWeight,
+                            icon = JiibIcons.LineWeight,
                             label = stringResource(R.string.settings_babystep),
                             indicator = if (babystepOn) {
                                 stringResource(R.string.settings_babystep_layers_count, babystepLayers)
@@ -265,7 +265,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.Battery,
                             onClick = { selected = if (selected == AppSetting.Battery) null else AppSetting.Battery },
-                            icon = DinghyIcons.ShieldLock,
+                            icon = JiibIcons.ShieldLock,
                             label = stringResource(R.string.settings_battery_optimization),
                             indicator = stringResource(
                                 if (isExempt) R.string.settings_battery_exempt_short
@@ -279,7 +279,7 @@ fun AppSettingsContent(
                         AppSettingRow(
                             selected = selected == AppSetting.DevWidgets,
                             onClick = { selected = if (selected == AppSetting.DevWidgets) null else AppSetting.DevWidgets },
-                            icon = DinghyIcons.Experiment,
+                            icon = JiibIcons.Experiment,
                             label = stringResource(R.string.about_dev_widgets),
                             indicator = stringResource(onOffRes(devEnabled)),
                             uDp = grid.uDp,
@@ -291,7 +291,7 @@ fun AppSettingsContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                             contentDescription = stringResource(R.string.cd_back),
@@ -320,7 +320,7 @@ private fun onOffRes(on: Boolean): Int = if (on) R.string.common_on else R.strin
 private fun AppSettingRow(
     selected: Boolean,
     onClick: () -> Unit,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     label: String,
     indicator: String,
     uDp: Dp,
@@ -336,7 +336,7 @@ private fun AppSettingRow(
             Text(
                 text = indicator,
                 color = indicatorColor ?: t.text2,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
             )
         },
     ) {
@@ -381,7 +381,7 @@ private fun AppSettingsFocus(
     @Composable
     fun frame(
         title: String,
-        icon: DinghyIcon,
+        icon: JiibIcon,
         description: String,
         control: (@Composable ColumnScope.() -> Unit)? = null,
     ) {
@@ -395,7 +395,7 @@ private fun AppSettingsFocus(
             onPanic = onEmergencyStop,
         ) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text(text = description, color = t.text2, style = DinghyType.body.toTextStyle(t))
+                Text(text = description, color = t.text2, style = JiibType.body.toTextStyle(t))
             }
             if (control != null) {
                 Column(
@@ -410,19 +410,19 @@ private fun AppSettingsFocus(
     when (selected) {
         null -> frame(
             stringResource(R.string.system_row_app_settings),
-            DinghyIcons.AppSettings,
+            JiibIcons.AppSettings,
             stringResource(R.string.settings_app_settings_placeholder),
         )
         AppSetting.TextSize -> frame(
             stringResource(R.string.settings_text_size),
-            DinghyIcons.TextSize,
+            JiibIcons.TextSize,
             stringResource(R.string.settings_text_size_focus),
         ) {
             TextSizeSelector(selected = fontScale, onSelect = onFontScale, modifier = Modifier.fillMaxWidth())
         }
         AppSetting.KeepAwake -> frame(
             stringResource(R.string.settings_keep_screen_on),
-            DinghyIcons.Fluorescent,
+            JiibIcons.Fluorescent,
             stringResource(R.string.settings_keep_screen_on_focus),
         ) {
             ToggleRow(
@@ -434,7 +434,7 @@ private fun AppSettingsFocus(
         }
         AppSetting.Webcam -> frame(
             stringResource(R.string.settings_webcam),
-            DinghyIcons.LauncherWebcam,
+            JiibIcons.LauncherWebcam,
             stringResource(R.string.settings_webcam_focus),
         ) {
             ToggleRow(
@@ -446,7 +446,7 @@ private fun AppSettingsFocus(
         }
         AppSetting.Babystep -> frame(
             stringResource(R.string.settings_babystep),
-            DinghyIcons.LineWeight,
+            JiibIcons.LineWeight,
             stringResource(R.string.settings_babystep_focus),
         ) {
             ToggleRow(
@@ -464,14 +464,14 @@ private fun AppSettingsFocus(
                     Text(
                         text = stringResource(R.string.settings_babystep_layers_count, babystepLayers),
                         color = t.text,
-                        style = DinghyType.dataInline.toTextStyle(t),
+                        style = JiibType.dataInline.toTextStyle(t),
                     )
                 },
             )
         }
         AppSetting.Battery -> frame(
             stringResource(R.string.settings_battery_optimization),
-            DinghyIcons.ShieldLock,
+            JiibIcons.ShieldLock,
             stringResource(
                 if (isExempt) R.string.settings_battery_exempt else R.string.settings_battery_optimized,
             ),
@@ -486,7 +486,7 @@ private fun AppSettingsFocus(
         }
         AppSetting.DevWidgets -> frame(
             stringResource(R.string.about_dev_widgets),
-            DinghyIcons.Experiment,
+            JiibIcons.Experiment,
             stringResource(R.string.settings_dev_widgets_focus),
         ) {
             ToggleRow(

@@ -19,7 +19,7 @@ import java.io.IOException
  * Copies the [BabystepPrefs] shape EXACTLY: the [DataStore] is INJECTED (no `preferencesDataStore`
  * delegate), so it is host-testable. The PRODUCTION instance (its OWN `display.preferences_pb`, NOT
  * shared with connection/theme/macros/webcam/profiles/babystep/tracestyle) is created by
- * [works.mees.jiib.DinghyApp] and exposed via [works.mees.jiib.di.AppContainer].
+ * [works.mees.jiib.JiibApp] and exposed via [works.mees.jiib.di.AppContainer].
  *
  * FAIL-SAFE READ CONTRACT (mirrors BabystepPrefs/MacroPrefs, D-02): a read [java.io.IOException]
  * (corrupt/partial blob) recovers by emitting empty prefs → the default (keepScreenOn=true), NEVER

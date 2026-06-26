@@ -3,7 +3,7 @@ package works.mees.jiib.command
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Headless command definition model for Dinghy-sent operations.
+ * Headless command definition model for Jiib-sent operations.
  *
  * This layer is deliberately plain Kotlin: no Android, no Compose, no service ownership. It is the
  * catalog-linked shape later phases can register into while keeping transport behavior in the

@@ -46,8 +46,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.components.shouldShowBaseline
-import works.mees.jiib.designsystem.icons.DinghyIcons
-import works.mees.jiib.designsystem.icons.DinghyIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -56,7 +56,7 @@ import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -336,7 +336,7 @@ private fun FineTuneContent(
                     trailingActionIcon = run {
                         val v = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
                         val base = vm.baselineForTuner(selectedTuner)
-                        if (shouldShowBaseline(v, base, selectedParam.decimals)) DinghyIcons.Revert else null
+                        if (shouldShowBaseline(v, base, selectedParam.decimals)) JiibIcons.Revert else null
                     },
                     onTrailingAction = vm.baselineForTuner(selectedTuner)?.let { base ->
                         { onNudgeToBaseline(selectedParam, base) }
@@ -405,7 +405,7 @@ private fun FineTuneContent(
                                     // No-space value/unit to match the Focus hero value (UAT 2026-06-13).
                                     text = if (displayValue == null) DASH
                                            else fmtValue(displayValue, param.decimals) + param.unit.trim(),
-                                    style = DinghyType.dataInline.toTextStyle(t),
+                                    style = JiibType.dataInline.toTextStyle(t),
                                     color = t.text2,
                                 )
                             },
@@ -425,14 +425,14 @@ private fun FineTuneContent(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             intent = Intent.Accent,
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             contentDescription = stringResource(R.string.cd_back),
                         ),
                         FootAction(
                             label = stringResource(R.string.finetune_reset_all),
                             onClick = onResetAll,
                             intent = Intent.Warn,
-                            icon = DinghyIcons.ResetSettings, // distinct from per-field Revert glyph
+                            icon = JiibIcons.ResetSettings, // distinct from per-field Revert glyph
                         ),
                     ),
                 )

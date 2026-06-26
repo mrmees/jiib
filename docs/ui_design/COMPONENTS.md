@@ -122,7 +122,7 @@ tighter may pass a smaller `contentInset` value (affects sides + bottom) — the
 `FocusInset / 2` (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner
 UAT). Every other screen uses the 16dp default.
 
-**Mandatory required params:** `title: String`, `icon: DinghyIcon`, `uDp: Dp`, plus the e-stop
+**Mandatory required params:** `title: String`, `icon: JiibIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
 compiler-enforced — there is no title-less or icon-less `FocusFrame`.
 
@@ -185,7 +185,7 @@ currently showing**:
   tapped to arrive — the same as the old D9 "nav entry" rule.
 
 **Exceptions to the nav-entry fallback:**
-- **PrintStatus** needs a bespoke glyph (`DinghyIcons.PrintStatusStandby` at idle) because it is
+- **PrintStatus** needs a bespoke glyph (`JiibIcons.PrintStatusStandby` at idle) because it is
   reached from a morphing home tile that has no single fixed icon.
 - **Hub / list-detail Focus pages** drive the header from the **currently SELECTED item**, not a
   fixed nav-entry glyph — the header is part of the selection feedback (selecting a different list
@@ -196,7 +196,7 @@ currently showing**:
 **Trailing-action slot (optional, end-aligned):**
 
 `FocusFrame` exposes an optional trailing-action slot at the end of the 1U header, mirroring the
-start identity icon slot in position. Parameters: `trailingActionIcon: DinghyIcon?`,
+start identity icon slot in position. Parameters: `trailingActionIcon: JiibIcon?`,
 `onTrailingAction: (() -> Unit)?`, `trailingActionContentDescription: String?`. When populated:
 
 - **Bare glyph — no outline, no fill.** The slot renders a plain, tappable glyph with **no
@@ -209,7 +209,7 @@ start identity icon slot in position. Parameters: `trailingActionIcon: DinghyIco
   state — reverting to a default is the canonical case. Caution or destructive actions belong in the
   foot bar under the four-class intent scheme, not in the header.
 
-**First consumer:** revert-to-default (`DinghyIcons.Revert` / `refresh` glyph), shown only when
+**First consumer:** revert-to-default (`JiibIcons.Revert` / `refresh` glyph), shown only when
 the current value deviates from the item's default/baseline. It spends no intent color because
 resetting to a known-good default is always safe.
 
@@ -387,7 +387,7 @@ authored FLUSH — they never add their own frame padding; the region owns it. E
 (non-region-child) uses — e.g. a `ListBlock` inside a `FocusFrame` body — add their own
 inset explicitly.
 
-#### `DinghyType`
+#### `JiibType`
 
 The named text-role catalog — the **type analog of the other component classes**. A call site
 says WHAT a piece of text is (a list label, a live value, a console line); the role owns its
@@ -499,15 +499,15 @@ spool is currently the loaded one**:
 
 | State | Button | Icon | Intent |
 |---|---|---|---|
-| Selected spool **IS** the loaded one | **Unload** | `DinghyIcons.ExpandCircleDown` (`expand_circle_down`) | `Intent.Go` (R5 — expected action of this state; was Neutral) |
-| Selected spool is **NOT** the loaded one | **Load** | `DinghyIcons.ExpandCircleUp` (`expand_circle_up`) | `Intent.Go` (R5 — was Accent) |
+| Selected spool **IS** the loaded one | **Unload** | `JiibIcons.ExpandCircleDown` (`expand_circle_down`) | `Intent.Go` (R5 — expected action of this state; was Neutral) |
+| Selected spool is **NOT** the loaded one | **Load** | `JiibIcons.ExpandCircleUp` (`expand_circle_up`) | `Intent.Go` (R5 — was Accent) |
 
 The other foot buttons (Home, Scan) are always present. This three-button foot bar is the
 canonical `FootButtonBar` usage.
 
 ### Icon-registry-only law
 
-All icons on all screens come from `DinghyIcons.kt` or are requested via the owner. **Never
+All icons on all screens come from `JiibIcons.kt` or are requested via the owner. **Never
 auto-pick a Material Symbol or create a custom drawable independently.** See
 `docs/ui_design/CLAUDE.md §"Icons: never the same glyph twice…"` and the never-auto-pick law
 that follows it. This applies to the SortFilterControlRow Sort direction-overlay glyph
@@ -630,10 +630,10 @@ glyphs size to the 0.6U tier.
 - `IncrementPicker`
 - `Scrubber` ± row
 
-**± = `DinghyIcons.Decrease` / `DinghyIcons.Increase` (compliance pass, 2026-06-13):**
+**± = `JiibIcons.Decrease` / `JiibIcons.Increase` (compliance pass, 2026-06-13):**
 
 The decrement and increment actions in AdjusterPanel and Scrubber ± rows use the
-**`DinghyIcons.Decrease` / `DinghyIcons.Increase` icon tokens**, rendered through `OutlinedControl`'s
+**`JiibIcons.Decrease` / `JiibIcons.Increase` icon tokens**, rendered through `OutlinedControl`'s
 icon path — NOT the literal `"−"` / `"+"` text glyphs. This **supersedes the WR-11 exemption**
 ("locale-independent literal math glyph is acceptable for ±"); that exemption was a
 compatibility workaround and is now retired. Any `"−"` or `"+"` text in an adjuster ± button is

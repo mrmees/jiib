@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import works.mees.jiib.spool.normalizeColorHex
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -144,7 +144,7 @@ private fun ColorTile(
     fun TileLabel(mod: Modifier) = Text(
         text = name,
         color = labelColor,
-        style = DinghyType.caption.toTextStyle(t),
+        style = JiibType.caption.toTextStyle(t),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = mod,

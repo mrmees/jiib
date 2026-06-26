@@ -12,7 +12,7 @@ enum class TypeRole { Ui, Data }
  * plain [FontWeight] value). See `docs/ui_design/THEMING.md` §"The type ramp".
  *
  * Sizes are base sp values; the renderer scales them with `fsSp(baseSp, fs)` for the S/M/L `--fs`
- * setting. [maxSp]/[minSp] are set ONLY for shrink-to-fit roles ([DinghyType.focusHero]).
+ * setting. [maxSp]/[minSp] are set ONLY for shrink-to-fit roles ([JiibType.focusHero]).
  */
 data class TextRole(
     val role: TypeRole,
@@ -26,7 +26,7 @@ data class TextRole(
  * The app's named text classes (R11 type ramp made enforceable). A call site says WHAT the text is;
  * the role owns the family/size/weight. Adding/retuning a tier is a one-line edit here.
  */
-object DinghyType {
+object JiibType {
     // Geist — system / UI text
     val screenTitle = TextRole(TypeRole.Ui, 22f, FontWeight.SemiBold)
     val focusHeader = TextRole(TypeRole.Ui, 20f, FontWeight.SemiBold)

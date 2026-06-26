@@ -26,7 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.service.MoonrakerService
 import works.mees.jiib.state.ConnectionState
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.SyncSystemBarsToTheme
 import works.mees.jiib.ui.route.NavDest
@@ -37,14 +37,14 @@ import works.mees.jiib.ui.shell.parseStartDest
  * The launcher entry point and the ONE Compose host for the whole app (04-07). It grows up from the
  * Phase-1 scaffold placeholder into the real shell host:
  *
- *  1. resolves the process-scoped [works.mees.jiib.di.AppContainer] off the [DinghyApp] (D-02);
+ *  1. resolves the process-scoped [works.mees.jiib.di.AppContainer] off the [JiibApp] (D-02);
  *  2. STARTS the foreground service ([MoonrakerService]) that OWNS the Moonraker spine (SHELL-03/D-01)
  *     — the service, not this Activity, owns the connection, so it survives rotation/screen-off;
- *  3. hosts the whole UI in EXACTLY ONE [DinghyTheme] boundary (the single token/`--fs` authority) and
+ *  3. hosts the whole UI in EXACTLY ONE [JiibTheme] boundary (the single token/`--fs` authority) and
  *     delegates ALL top-level routing to the single [RootController] (review #2). MainActivity itself
  *     does NOT branch on routes/Dest — it composes the one controller and nothing else.
  *
- * The host shape is `setContent { DinghyTheme(resolver) { Surface { … } } }` with [RootController]
+ * The host shape is `setContent { JiibTheme(resolver) { Surface { … } } }` with [RootController]
  * as the sole body. No Navigation-Compose.
  */
 class MainActivity : ComponentActivity() {
@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val container = (application as DinghyApp).container
+        val container = (application as JiibApp).container
 
         // Start the FGS that owns the spine (SHELL-03/D-01). Idempotent: the started service is
         // START_STICKY and re-delivers cleanly; the spine is process-held in the AppContainer.
@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
             // Collects the override-aware effectiveTokens flow (15.2-01 HIGH-1): a transient dev override
             // re-themes the whole app (Compose + Views) without persisting; the persisted path is a PURE
             // bake of the canonical tuple (never the async-lagged themeResolver.tokens).
-            DinghyTheme(container.effectiveTokens) {
+            JiibTheme(container.effectiveTokens) {
                 // 260611-cj1: system bars follow the ACTIVE tokens, not the system uiMode — the
                 // no-arg enableEdgeToEdge() baseline above is refined reactively from here (white
                 // nav bar on system-light API 34; live restyle on every theme change).

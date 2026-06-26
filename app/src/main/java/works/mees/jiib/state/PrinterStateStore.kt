@@ -181,7 +181,7 @@ class PrinterStateStore(
     // Read ONCE at handshake from `configfile.settings.<section>` via the SAME existing one-shot
     // configfile query (Pitfall 3 — no extra query), modeled on the minExtrudeTemp seam. Long-press
     // reset re-sends the normal setter with these baselines so reset targets the PRINTER's config, not
-    // a Dinghy default. All nullable (default null) — when a baseline is null (e.g. firmware_retraction
+    // a Jiib default. All nullable (default null) — when a baseline is null (e.g. firmware_retraction
     // on the dev printers, or any absent config section) the holder's reset for that tuner is a NO-OP
     // (REVIEW #3, enforced in 17-05); never dispatch a bare/invalid command.
     //

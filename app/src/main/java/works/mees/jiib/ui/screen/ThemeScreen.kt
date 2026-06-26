@@ -44,9 +44,9 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -54,7 +54,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.PaletteMode
 import works.mees.jiib.theme.StatusSlot
 import works.mees.jiib.theme.ThemeResolver
@@ -180,7 +180,7 @@ internal fun ThemeContent(
                             selected = selected == ThemeRow.DarkLight,
                             onClick = { selectRow(ThemeRow.DarkLight) },
                             uDp = grid.uDp,
-                            leadingContent = { ListRowIcon(icon = DinghyIcons.Contrast, uDp = grid.uDp, tint = t.text) },
+                            leadingContent = { ListRowIcon(icon = JiibIcons.Contrast, uDp = grid.uDp, tint = t.text) },
                             trailingContent = {
                                 androidx.compose.material3.Switch(
                                     checked = working.dark,
@@ -197,11 +197,11 @@ internal fun ThemeContent(
                             },
                         ) { ListRowLabel(stringResource(R.string.theme_row_dark_light)) }
                     }
-                    item { ThemeSelectorRow(ThemeRow.PaletteMode, selected, DinghyIcons.InvertColors,
+                    item { ThemeSelectorRow(ThemeRow.PaletteMode, selected, JiibIcons.InvertColors,
                         stringResource(R.string.theme_row_palette_mode), stringResource(paletteModeLabelRes(working.paletteMode)), grid.uDp, selectRow) }
-                    item { ThemeSelectorRow(ThemeRow.Seed, selected, DinghyIcons.Colors,
+                    item { ThemeSelectorRow(ThemeRow.Seed, selected, JiibIcons.Colors,
                         stringResource(R.string.theme_row_seed), "", grid.uDp, selectRow) }
-                    item { ThemeSelectorRow(ThemeRow.Colors, selected, DinghyIcons.Palette,
+                    item { ThemeSelectorRow(ThemeRow.Colors, selected, JiibIcons.Palette,
                         stringResource(R.string.theme_row_colors),
                         if (hasCustomColors(working)) stringResource(R.string.theme_indicator_custom)
                         else stringResource(R.string.theme_indicator_default), grid.uDp, selectRow) }
@@ -211,7 +211,7 @@ internal fun ThemeContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = {
                                 // Codex fix #5: contextual step-back (swatch → grid → list → exit-with-discard).
                                 when {
@@ -232,7 +232,7 @@ internal fun ThemeContent(
 
 @Composable
 private fun ThemeSelectorRow(
-    row: ThemeRow, selected: ThemeRow?, icon: DinghyIcon, label: String, indicator: String, uDp: Dp,
+    row: ThemeRow, selected: ThemeRow?, icon: JiibIcon, label: String, indicator: String, uDp: Dp,
     onSelect: (ThemeRow?) -> Unit,
 ) {
     val t = LocalTokens.current
@@ -242,7 +242,7 @@ private fun ThemeSelectorRow(
         uDp = uDp,
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = t.text) },
         trailingContent = if (indicator.isBlank()) null else {
-            { Text(indicator, color = t.text2, style = DinghyType.caption.toTextStyle(t)) }
+            { Text(indicator, color = t.text2, style = JiibType.caption.toTextStyle(t)) }
         },
     ) { ListRowLabel(label) }
 }
@@ -259,7 +259,7 @@ private fun ThemeFocus(
     val t = LocalTokens.current
 
     @Composable
-    fun frame(title: String, icon: DinghyIcon, body: @Composable ColumnScope.() -> Unit) {
+    fun frame(title: String, icon: JiibIcon, body: @Composable ColumnScope.() -> Unit) {
         FocusFrame(title = title, icon = icon, uDp = uDp, modifier = modifier,
             isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop, content = body)
     }
@@ -267,24 +267,24 @@ private fun ThemeFocus(
     @Composable
     fun explainer(text: String) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text, color = t.text2, style = DinghyType.body.toTextStyle(t))
+            Text(text, color = t.text2, style = JiibType.body.toTextStyle(t))
         }
     }
 
     when (selected) {
-        null -> frame(stringResource(R.string.theme_screen_title), DinghyIcons.Palette) {
+        null -> frame(stringResource(R.string.theme_screen_title), JiibIcons.Palette) {
             explainer(stringResource(R.string.theme_intro))
         }
-        ThemeRow.DarkLight -> frame(stringResource(R.string.theme_row_dark_light), DinghyIcons.Contrast) {
+        ThemeRow.DarkLight -> frame(stringResource(R.string.theme_row_dark_light), JiibIcons.Contrast) {
             explainer(stringResource(R.string.theme_dark_light_focus))
         }
-        ThemeRow.PaletteMode -> frame(stringResource(R.string.theme_row_palette_mode), DinghyIcons.InvertColors) {
+        ThemeRow.PaletteMode -> frame(stringResource(R.string.theme_row_palette_mode), JiibIcons.InvertColors) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.theme_palette_mode_focus), color = t.text2, style = DinghyType.body.toTextStyle(t))
+                Text(stringResource(R.string.theme_palette_mode_focus), color = t.text2, style = JiibType.body.toTextStyle(t))
             }
             PaletteModeSegment(working.paletteMode, onPaletteMode, uDp)
         }
-        ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), DinghyIcons.Colors) {
+        ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), JiibIcons.Colors) {
             val hue = seedHexToHue(working.seedHex)
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 works.mees.jiib.designsystem.HueSlider(
@@ -306,7 +306,7 @@ private fun ThemeFocus(
         ThemeRow.Colors -> {
             val ed = editingSwatch
             if (ed == null) {
-                frame(stringResource(R.string.theme_row_colors), DinghyIcons.Palette) {
+                frame(stringResource(R.string.theme_row_colors), JiibIcons.Palette) {
                     val tk = LocalTokens.current
                     ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
                     // FIX B: ONE action row of three (5U budget) — Randomize · Revert · Save.
@@ -319,15 +319,15 @@ private fun ThemeFocus(
                                         accentOverride = null, poolShift = nextShift(working.poolShift))
                                 }
                             },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Shuffle,
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Shuffle,
                             contentDescription = stringResource(R.string.theme_randomize))
                         OutlinedControl("",
                             onClick = { container?.clearThemeDraft() },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = DinghyIcons.Revert,
+                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Revert,
                             contentDescription = stringResource(R.string.theme_revert))
                         OutlinedControl("",
                             onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
-                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = DinghyIcons.Save,
+                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = JiibIcons.Save,
                             contentDescription = stringResource(R.string.theme_save))
                     }
                 }
@@ -372,12 +372,12 @@ private fun PaletteModeSegment(current: String, onPick: (String) -> Unit, uDp: D
 }
 
 /** A palette-mode chip: the mode key, its label (a11y), and its owner-chosen glyph. Order = display order. */
-private data class PaletteModeChip(val mode: String, val labelRes: Int, val icon: DinghyIcon)
+private data class PaletteModeChip(val mode: String, val labelRes: Int, val icon: JiibIcon)
 
 private val PALETTE_MODES = listOf(
-    PaletteModeChip(ThemeResolver.MODE_COLORFUL, R.string.theme_mode_colorful, DinghyIcons.HumidityHigh),
-    PaletteModeChip(ThemeResolver.MODE_HIGH_CONTRAST, R.string.theme_mode_high_contrast, DinghyIcons.InvertColors),
-    PaletteModeChip(ThemeResolver.MODE_SIMPLE, R.string.theme_mode_simple, DinghyIcons.WaterDrop),
+    PaletteModeChip(ThemeResolver.MODE_COLORFUL, R.string.theme_mode_colorful, JiibIcons.HumidityHigh),
+    PaletteModeChip(ThemeResolver.MODE_HIGH_CONTRAST, R.string.theme_mode_high_contrast, JiibIcons.InvertColors),
+    PaletteModeChip(ThemeResolver.MODE_SIMPLE, R.string.theme_mode_simple, JiibIcons.WaterDrop),
 )
 
 @androidx.annotation.StringRes
@@ -405,10 +405,10 @@ private fun ColumnScope.ThemeSwatchGrid(
                 t.pool.take(4).forEachIndexed { i, c -> SwatchCell(c, uDp, Modifier.weight(1f), number = i + 1) { onTap(ThemeSwatch.Pool(i)) } }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SwatchCell(t.accent, uDp, Modifier.weight(1f), symbol = DinghyIcons.Star) { onTap(ThemeSwatch.Accent) }
-                SwatchCell(statusFill(StatusSlot.Stop, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.StatusStop) { onTap(ThemeSwatch.Status(StatusSlot.Stop)) }
-                SwatchCell(statusFill(StatusSlot.Caution, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.Warning) { onTap(ThemeSwatch.Status(StatusSlot.Caution)) }
-                SwatchCell(statusFill(StatusSlot.Go, working, t), uDp, Modifier.weight(1f), symbol = DinghyIcons.CheckCircle) { onTap(ThemeSwatch.Status(StatusSlot.Go)) }
+                SwatchCell(t.accent, uDp, Modifier.weight(1f), symbol = JiibIcons.Star) { onTap(ThemeSwatch.Accent) }
+                SwatchCell(statusFill(StatusSlot.Stop, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.StatusStop) { onTap(ThemeSwatch.Status(StatusSlot.Stop)) }
+                SwatchCell(statusFill(StatusSlot.Caution, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.Warning) { onTap(ThemeSwatch.Status(StatusSlot.Caution)) }
+                SwatchCell(statusFill(StatusSlot.Go, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.CheckCircle) { onTap(ThemeSwatch.Status(StatusSlot.Go)) }
             }
         }
     }
@@ -425,7 +425,7 @@ private fun statusFill(slot: StatusSlot, working: ThemePrefs.ThemeTuple, t: Them
 @Composable
 private fun SwatchCell(
     fill: Color, uDp: Dp, modifier: Modifier,
-    number: Int? = null, symbol: DinghyIcon? = null, onClick: () -> Unit,
+    number: Int? = null, symbol: JiibIcon? = null, onClick: () -> Unit,
 ) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
@@ -433,8 +433,8 @@ private fun SwatchCell(
     Box(modifier.height(uDp).clip(shape).background(fill)
         .border(BorderStroke(2.dp, t.outline), shape)
         .clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        if (number != null) Text(number.toString(), color = ink, style = DinghyType.dataInline.toTextStyle(t))
-        if (symbol != null) DinghyIconView(icon = symbol, tint = ink,
+        if (number != null) Text(number.toString(), color = ink, style = JiibType.dataInline.toTextStyle(t))
+        if (symbol != null) JiibIconView(icon = symbol, tint = ink,
             sizeDp = (uDp * 0.45f), contentDescription = null)
     }
 }
@@ -476,7 +476,7 @@ private fun ThemeSwatchEditor(
                 else -> R.string.theme_mode_colorful
             })
             Text(stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
-                color = t.text3, style = DinghyType.caption.toTextStyle(t))
+                color = t.text3, style = JiibType.caption.toTextStyle(t))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)
@@ -536,13 +536,13 @@ private fun swatchTitle(sw: ThemeSwatch): String = when (sw) {
         StatusSlot.Go -> R.string.theme_status_slot_go
     })
 }
-private fun swatchIcon(sw: ThemeSwatch): DinghyIcon = when (sw) {
-    is ThemeSwatch.Pool -> DinghyIcons.Palette
-    ThemeSwatch.Accent -> DinghyIcons.Star
+private fun swatchIcon(sw: ThemeSwatch): JiibIcon = when (sw) {
+    is ThemeSwatch.Pool -> JiibIcons.Palette
+    ThemeSwatch.Accent -> JiibIcons.Star
     is ThemeSwatch.Status -> when (sw.slot) {
-        StatusSlot.Stop -> DinghyIcons.StatusStop
-        StatusSlot.Caution -> DinghyIcons.Warning
-        StatusSlot.Go -> DinghyIcons.CheckCircle
+        StatusSlot.Stop -> JiibIcons.StatusStop
+        StatusSlot.Caution -> JiibIcons.Warning
+        StatusSlot.Go -> JiibIcons.CheckCircle
     }
 }
 

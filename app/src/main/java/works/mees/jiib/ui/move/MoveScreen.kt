@@ -69,9 +69,9 @@ import works.mees.jiib.designsystem.components.StepperRow
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -81,7 +81,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -271,7 +271,7 @@ internal fun MoveHubContent(
                                 val shownY = staged?.second ?: vm.y
                                 Text(
                                     text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
-                                    style = DinghyType.statValue.toTextStyle(t),
+                                    style = JiibType.statValue.toTextStyle(t),
                                     color = t.text,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
@@ -311,7 +311,7 @@ internal fun MoveHubContent(
                                 Text(
                                     text = "Tap to move, hold to refine",
                                     color = t.text2,
-                                    style = DinghyType.caption.toTextStyle(t),
+                                    style = JiibType.caption.toTextStyle(t),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -345,7 +345,7 @@ internal fun MoveHubContent(
                                     // TOP: centered X/Y coordinate readout showing the working target.
                                     Text(
                                         text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
-                                        style = DinghyType.statValue.toTextStyle(t),
+                                        style = JiibType.statValue.toTextStyle(t),
                                         color = t.text,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier
@@ -469,7 +469,7 @@ internal fun MoveHubContent(
                                     ) {
                                         Text(
                                             text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
-                                            style = DinghyType.statValue.toTextStyle(t),
+                                            style = JiibType.statValue.toTextStyle(t),
                                             color = t.text,
                                             maxLines = 1,
                                             softWrap = false,
@@ -538,7 +538,7 @@ internal fun MoveHubContent(
                                     ) {
                                         BasicText(
                                             text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
-                                            style = DinghyType.focusHero.toTextStyle(t).copy(
+                                            style = JiibType.focusHero.toTextStyle(t).copy(
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
                                             ),
@@ -560,12 +560,12 @@ internal fun MoveHubContent(
                                         onIncrement = { stepIndex = (stepIndex + 1) % steps.size },
                                         uDp = grid.uDp,
                                         intent = Intent.Accent,
-                                        decrementIcon = DinghyIcons.StatMinus1,
-                                        incrementIcon = DinghyIcons.StatPlus1,
+                                        decrementIcon = JiibIcons.StatMinus1,
+                                        incrementIcon = JiibIcons.StatPlus1,
                                         center = {
                                             Text(
                                                 text = fmtStep(activeStep),
-                                                style = DinghyType.dataInline.toTextStyle(t),
+                                                style = JiibType.dataInline.toTextStyle(t),
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
                                             )
@@ -606,7 +606,7 @@ internal fun MoveHubContent(
                                     BasicText(
                                         text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
                                             if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
-                                        style = DinghyType.focusHero.toTextStyle(t).copy(
+                                        style = JiibType.focusHero.toTextStyle(t).copy(
                                             color = t.text,
                                             textAlign = TextAlign.Center,
                                         ),
@@ -775,7 +775,7 @@ internal fun MoveHubContent(
                                         // Polling cadence note — the poll loop above is literally delay(500).
                                         Text(
                                             text = "Polls Every 500ms",
-                                            style = DinghyType.caption.toTextStyle(t),
+                                            style = JiibType.caption.toTextStyle(t),
                                             color = t.text3,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.fillMaxWidth(),
@@ -799,39 +799,39 @@ internal fun MoveHubContent(
                     // Homing rows (never "selected") — gated by availability. Home All moved to the foot bar.
                     if (avail.homeXY) {
                         item("home_xy") {
-                            MoveRow("Home XY", DinghyIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeXY() }
+                            MoveRow("Home XY", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeXY() }
                         }
                     }
                     if (avail.homeZ) {
                         item("home_z") {
-                            MoveRow("Home Z", DinghyIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeAxis("Z") }
+                            MoveRow("Home Z", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeAxis("Z") }
                         }
                     }
                     // Mode-selecting nav rows (selected = this row's mode == current mode).
                     if (avail.touchMove) {
                         item("touch_move") {
-                            MoveRow("Touch Move", DinghyIcons.MoveTouch, mode == MoveMode.TouchMove, grid.uDp, t.accent) {
+                            MoveRow("Touch Move", JiibIcons.MoveTouch, mode == MoveMode.TouchMove, grid.uDp, t.accent) {
                                 mode = MoveMode.TouchMove
                             }
                         }
                     }
                     if (avail.xy) {
                         item("xy") {
-                            MoveRow("XY Position", DinghyIcons.MoveXY, mode == MoveMode.XY, grid.uDp, t.accent) {
+                            MoveRow("XY Position", JiibIcons.MoveXY, mode == MoveMode.XY, grid.uDp, t.accent) {
                                 mode = MoveMode.XY
                             }
                         }
                     }
                     if (avail.z) {
                         item("z") {
-                            MoveRow("Z Position", DinghyIcons.MoveZ, mode == MoveMode.Z, grid.uDp, t.accent) {
+                            MoveRow("Z Position", JiibIcons.MoveZ, mode == MoveMode.Z, grid.uDp, t.accent) {
                                 mode = MoveMode.Z
                             }
                         }
                     }
                     if (avail.microstep) {
                         item("microstep") {
-                            MoveRow("Microstep", DinghyIcons.FineTune, mode == MoveMode.Microstep, grid.uDp, t.accent) {
+                            MoveRow("Microstep", JiibIcons.FineTune, mode == MoveMode.Microstep, grid.uDp, t.accent) {
                                 mode = MoveMode.Microstep
                             }
                         }
@@ -840,14 +840,14 @@ internal fun MoveHubContent(
                     // known coordinate frame). Hidden entirely otherwise. Add Bookmark leads the group.
                     if (vm.allHomed) {
                         item("add_bookmark") {
-                            MoveRow("Add Bookmark", DinghyIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent) {
+                            MoveRow("Add Bookmark", JiibIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent) {
                                 mode = MoveMode.SaveDialog
                             }
                         }
                         items(savedLocations, key = { "bookmark_${it.name}" }) { loc ->
                             MoveRow(
                                 loc.name,
-                                DinghyIcons.SavedLocation,
+                                JiibIcons.SavedLocation,
                                 mode == MoveMode.Bookmark(loc.name),
                                 grid.uDp,
                                 t.accent,
@@ -858,7 +858,7 @@ internal fun MoveHubContent(
                     item("endstops") {
                         MoveRow(
                             "Endstops",
-                            DinghyIcons.CenterFocusStrong,
+                            JiibIcons.CenterFocusStrong,
                             mode == MoveMode.Endstops,
                             grid.uDp,
                             t.accent,
@@ -869,7 +869,7 @@ internal fun MoveHubContent(
                     // destructive on a translucent row. Un-homes the printer → the LaunchedEffect above
                     // drops any transient Focus and the bookmark group + motion rows collapse.
                     item("disable_motors") {
-                        MoveRow("Disable Motors", DinghyIcons.MoveDisableMotors, false, grid.uDp, t.stop) {
+                        MoveRow("Disable Motors", JiibIcons.MoveDisableMotors, false, grid.uDp, t.stop) {
                             onDisableSteppers()
                         }
                     }
@@ -882,7 +882,7 @@ internal fun MoveHubContent(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             intent = Intent.Accent,
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             contentDescription = "Back",
                         ),
                         // Home All (go) — the expected homing action.
@@ -890,7 +890,7 @@ internal fun MoveHubContent(
                             label = stringResource(R.string.move_home_all),
                             onClick = { onHomeAll() },
                             intent = Intent.Go,
-                            icon = DinghyIcons.MoveHomeAll,
+                            icon = JiibIcons.MoveHomeAll,
                             contentDescription = "Home all",
                         ),
                     ),
@@ -918,14 +918,14 @@ internal fun MoveHubContent(
 }
 
 /** Header title + icon per the current [MoveMode] (header law). */
-private fun moveModeHeader(mode: MoveMode): Pair<String, DinghyIcon> = when (mode) {
-    MoveMode.TouchMove -> "Touch Move" to DinghyIcons.MoveTouch
-    MoveMode.XY -> "XY Position" to DinghyIcons.MoveXY
-    MoveMode.Z -> "Z Position" to DinghyIcons.MoveZ
-    MoveMode.Microstep -> "Microstep" to DinghyIcons.FineTune
-    is MoveMode.Bookmark -> mode.name to DinghyIcons.SavedLocation
-    MoveMode.SaveDialog -> "Save Location" to DinghyIcons.SaveLocation
-    MoveMode.Endstops -> "Endstops" to DinghyIcons.CenterFocusStrong
+private fun moveModeHeader(mode: MoveMode): Pair<String, JiibIcon> = when (mode) {
+    MoveMode.TouchMove -> "Touch Move" to JiibIcons.MoveTouch
+    MoveMode.XY -> "XY Position" to JiibIcons.MoveXY
+    MoveMode.Z -> "Z Position" to JiibIcons.MoveZ
+    MoveMode.Microstep -> "Microstep" to JiibIcons.FineTune
+    is MoveMode.Bookmark -> mode.name to JiibIcons.SavedLocation
+    MoveMode.SaveDialog -> "Save Location" to JiibIcons.SaveLocation
+    MoveMode.Endstops -> "Endstops" to JiibIcons.CenterFocusStrong
 }
 
 /**
@@ -974,9 +974,9 @@ private fun ZRangeLabels(top: String, bottom: String) {
         modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = top, style = DinghyType.dataInline.toTextStyle(t), color = t.text2)
+        Text(text = top, style = JiibType.dataInline.toTextStyle(t), color = t.text2)
         Spacer(Modifier.weight(1f))
-        Text(text = bottom, style = DinghyType.dataInline.toTextStyle(t), color = t.text2)
+        Text(text = bottom, style = JiibType.dataInline.toTextStyle(t), color = t.text2)
     }
 }
 
@@ -984,7 +984,7 @@ private fun ZRangeLabels(top: String, bottom: String) {
 @Composable
 private fun MoveRow(
     label: String,
-    icon: DinghyIcon,
+    icon: JiibIcon,
     selected: Boolean,
     uDp: androidx.compose.ui.unit.Dp,
     tint: androidx.compose.ui.graphics.Color,
@@ -1006,14 +1006,14 @@ private fun MoveRow(
 private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
     val t = LocalTokens.current
     val color = if (status.triggered) t.accent else t.text3
-    val glyph = if (status.triggered) DinghyIcons.CenterFocusStrong else DinghyIcons.CropFree
+    val glyph = if (status.triggered) JiibIcons.CenterFocusStrong else JiibIcons.CropFree
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = uDp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(
+        JiibIconView(
             icon = glyph,
             tint = color,
             sizeDp = uDp * 0.6f,
@@ -1022,13 +1022,13 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
         Spacer(Modifier.width(12.dp))
         Text(
             text = endstopLabel(status.name),
-            style = DinghyType.listLabel.toTextStyle(t),
+            style = JiibType.listLabel.toTextStyle(t),
             color = t.text,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = if (status.triggered) "TRIGGERED" else "OPEN",
-            style = DinghyType.statValue.toTextStyle(t),
+            style = JiibType.statValue.toTextStyle(t),
             color = color,
         )
     }
@@ -1038,7 +1038,7 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
 private fun FocusCenteredHint(text: String) {
     val t = LocalTokens.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = DinghyType.body.toTextStyle(t), color = t.text3)
+        Text(text, style = JiibType.body.toTextStyle(t), color = t.text3)
     }
 }
 
@@ -1058,7 +1058,7 @@ private fun FocusHint(text: String, modifier: Modifier = Modifier) {
         Text(
             text = text,
             color = t.text2,
-            style = DinghyType.body.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
     }

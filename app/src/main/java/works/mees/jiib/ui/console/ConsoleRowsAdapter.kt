@@ -7,7 +7,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.jiib.R
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.views.typeface
 
@@ -152,11 +152,11 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         )
         gravity = Gravity.START or Gravity.CENTER_VERTICAL
         setPadding(dp(12), dp(4), dp(12), dp(4))
-        // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the DinghyType.consoleLine
+        // Geist Mono (UI-SPEC mandatory tabular for console lines) resolved from the JiibType.consoleLine
         // role — single source of truth shared with the Compose toolkit; falls back to platform monospace.
-        typeface = DinghyType.consoleLine.typeface(context)
+        typeface = JiibType.consoleLine.typeface(context)
         // consoleLine base (15sp) as the unbound fallback; bind() rescales to the active --fs (WR-04).
-        textSize = DinghyType.consoleLine.baseSp
+        textSize = JiibType.consoleLine.baseSp
         setTextIsSelectable(false)
     }
 
@@ -166,7 +166,7 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
         if (p != null) {
             // Honor the active S/M/L --fs (WR-04): consoleLine base * fs, matching fsSp() on Compose surfaces.
             // The glyph below is sized off this scaled textSize, so it tracks --fs too.
-            textSize = fsSp(DinghyType.consoleLine.baseSp, p.fs)
+            textSize = fsSp(JiibType.consoleLine.baseSp, p.fs)
             setBackgroundColor(p.background)
             setTextColor(
                 when (line.severity) {

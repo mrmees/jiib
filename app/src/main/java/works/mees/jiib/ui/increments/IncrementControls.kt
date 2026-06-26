@@ -2,8 +2,8 @@ package works.mees.jiib.ui.increments
 
 import works.mees.jiib.command.PrinterCommands
 import works.mees.jiib.config.formatIncrementList
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.ui.finetune.ALL_FINE_TUNE_PARAMS
 
 /**
@@ -20,7 +20,7 @@ data class IncrementControlSpec(
     val key: String,
     val group: String,
     val controlTitle: String?,
-    val icon: DinghyIcon,
+    val icon: JiibIcon,
     val maxCount: Int?,
     val defaultValues: List<Double>,
 )
@@ -43,19 +43,19 @@ object IncrementControls {
     private val unlimited: List<IncrementControlSpec> = listOf(
         IncrementControlSpec(
             key = "move_microstep", group = "Move", controlTitle = null,
-            icon = DinghyIcons.FineTune, maxCount = null,
+            icon = JiibIcons.FineTune, maxCount = null,
             defaultValues = listOf(0.01, 0.025, 0.1, 0.25, 1.0, 2.5, 10.0),
         ),
         IncrementControlSpec(
             // Babystep is setting-only this phase (no live selector yet). Owner-chosen `stacks` icon.
             // Default mirrors PrinterCommands.BABYSTEP_STEPS.
             key = "babystep", group = "Print", controlTitle = null,
-            icon = DinghyIcons.Babystep, maxCount = null,
+            icon = JiibIcons.Babystep, maxCount = null,
             defaultValues = PrinterCommands.BABYSTEP_STEPS.toList(),
         ),
         IncrementControlSpec(
             key = "probe_testz", group = "Calibrate", controlTitle = null,
-            icon = DinghyIcons.RoutineProbeCalibrate, maxCount = null,
+            icon = JiibIcons.RoutineProbeCalibrate, maxCount = null,
             defaultValues = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0),
         ),
     )

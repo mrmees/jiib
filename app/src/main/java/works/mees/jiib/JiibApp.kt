@@ -15,7 +15,7 @@ import works.mees.jiib.di.AppContainer
 
 /**
  * The process [Application] — the ONE owner of the [AppContainer] service-locator and the real
- * DataStore files (D-02, NO Hilt). Registered as `android:name=".DinghyApp"` (04-03 manifest).
+ * DataStore files (D-02, NO Hilt). Registered as `android:name=".JiibApp"` (04-03 manifest).
  *
  * SEPARATE preference files (PATTERNS DECIDE): `connection.preferences_pb`, `theme.preferences_pb`,
  * `macros.preferences_pb`, `webcam.preferences_pb`, (Phase-14) `profiles.preferences_pb`, (Phase-16)
@@ -27,7 +27,7 @@ import works.mees.jiib.di.AppContainer
  * [PreferenceDataStoreFactory.create] (one instance per process — the single-writer invariant DataStore
  * needs) on its own IO-backed scope.
  */
-class DinghyApp : Application() {
+class JiibApp : Application() {
 
     /** The process-scoped service-locator the Activity and the service both resolve via this app. */
     lateinit var container: AppContainer

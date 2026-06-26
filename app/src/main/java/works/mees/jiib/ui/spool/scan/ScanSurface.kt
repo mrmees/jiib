@@ -31,13 +31,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import works.mees.jiib.R
-import works.mees.jiib.designsystem.icons.DinghyIconView
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.preview.PreviewPlaceholderBox
 import works.mees.jiib.spool.SpoolmanClient
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -120,7 +120,7 @@ fun ScanSurface(
                 )
 
                 ScanState.PermissionDenied -> DegradePanel(
-                    icon = DinghyIcons.ScanNoPermission,
+                    icon = JiibIcons.ScanNoPermission,
                     title = "Camera permission denied",
                     body = "Grant camera access to scan a QR, or use the manual picker instead.",
                     onUsePicker = onUsePicker,
@@ -128,7 +128,7 @@ fun ScanSurface(
                 )
 
                 ScanState.NoCamera -> DegradePanel(
-                    icon = DinghyIcons.ScanNoCamera,
+                    icon = JiibIcons.ScanNoCamera,
                     title = "No camera available",
                     body = "This device has no usable camera. Use the manual picker instead.",
                     onUsePicker = onUsePicker,
@@ -136,7 +136,7 @@ fun ScanSurface(
                 )
 
                 ScanState.Busy -> DegradePanel(
-                    icon = DinghyIcons.ScanCameraBusy,
+                    icon = JiibIcons.ScanCameraBusy,
                     title = "Camera unavailable",
                     body = "The camera couldn't be opened (in use by another app). Try again, or use the picker.",
                     onUsePicker = onUsePicker,
@@ -172,7 +172,7 @@ fun ScanSurface(
                 onClick = onBack,
                 modifier = Modifier.weight(1f),
                 intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
             )
             if (livePreview) {
                 OutlinedControl(
@@ -180,7 +180,7 @@ fun ScanSurface(
                     onClick = { useBackCamera = !useBackCamera },
                     modifier = Modifier.weight(1f),
                     intent = Intent.Accent,
-                    icon = DinghyIcons.ScanCameraFlip,
+                    icon = JiibIcons.ScanCameraFlip,
                 )
             }
         }
@@ -291,7 +291,7 @@ private fun ScanHint(text: String, t: ThemeTokens, modifier: Modifier = Modifier
         Text(
             text = text,
             color = t.text,
-            style = DinghyType.body.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         )
@@ -304,7 +304,7 @@ private fun ScanHint(text: String, t: ThemeTokens, modifier: Modifier = Modifier
  */
 @Composable
 private fun DegradePanel(
-    icon: works.mees.jiib.designsystem.icons.DinghyIcon,
+    icon: works.mees.jiib.designsystem.icons.JiibIcon,
     title: String,
     body: String,
     onUsePicker: () -> Unit,
@@ -316,17 +316,17 @@ private fun DegradePanel(
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        DinghyIconView(icon, tint = t.text3, sizeDp = fsSp(64f, t.fs).dp)
+        JiibIconView(icon, tint = t.text3, sizeDp = fsSp(64f, t.fs).dp)
         Text(
             text = title,
             color = t.text,
-            style = DinghyType.screenTitle.toTextStyle(t),
+            style = JiibType.screenTitle.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
         Text(
             text = body,
             color = t.text2,
-            style = DinghyType.body.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
         )
         OutlinedControl(
@@ -334,7 +334,7 @@ private fun DegradePanel(
             onClick = onUsePicker,
             modifier = Modifier.fillMaxWidth(),
             intent = Intent.Accent,
-            icon = DinghyIcons.ScanUsePicker,
+            icon = JiibIcons.ScanUsePicker,
         )
     }
 }

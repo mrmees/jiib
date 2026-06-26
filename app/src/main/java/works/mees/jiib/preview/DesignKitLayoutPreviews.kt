@@ -195,7 +195,7 @@ private fun DesignKitLayoutRtlSpotCheck() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pseudolocale — standalone, NOT under @Nexus7Previews (see DinghyPreviews.kt note)
+// Pseudolocale — standalone, NOT under @Nexus7Previews (see JiibPreviews.kt note)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(device = NEXUS7, locale = "en-XA", showBackground = true)

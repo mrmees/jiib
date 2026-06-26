@@ -18,7 +18,7 @@ import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusHeroText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -63,7 +63,7 @@ fun OutputToggleControl(
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
             FocusHeroText(
                 text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
-                role = DinghyType.focusHero,
+                role = JiibType.focusHero,
                 t = t,
                 color = if (isOn == true) t.go else t.text3,
             )
@@ -72,7 +72,7 @@ fun OutputToggleControl(
             Text(
                 text = stringResource(R.string.output_read_only),
                 color = t.text3,
-                style = DinghyType.caption.toTextStyle(t),
+                style = JiibType.caption.toTextStyle(t),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
         }

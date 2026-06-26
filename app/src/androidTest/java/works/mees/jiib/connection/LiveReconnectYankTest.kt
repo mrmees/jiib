@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
  * REAL-socket-failure complement to [LiveSocketReconnectTest] (which proves connect + handshake):
  * here a genuine OkHttp `onFailure` is induced by yanking the device Wi-Fi mid-stream.
  *
- * Driven by the orchestrator, NOT self-contained: this test logs `DINGHY_YANK: READY` once connected
+ * Driven by the orchestrator, NOT self-contained: this test logs `JIIB_YANK: READY` once connected
  * and then waits. An external driver (adb `svc wifi disable` → wait → `svc wifi enable`, over USB so
  * adb survives the Wi-Fi drop) watches logcat for that marker and performs the toggle. The test then
  * asserts: state goes stale-but-retained on drop, and returns Connected + non-stale after resync.
@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit
 class LiveReconnectYankTest {
 
     private companion object {
-        const val TAG = "DINGHY_YANK"
+        const val TAG = "JIIB_YANK"
         const val DEFAULT_HOST = "192.168.1.50" // PLACEHOLDER — overridden via moonrakerHost arg.
         const val DEFAULT_PORT = "7125"
         const val CONNECT_TIMEOUT_MS = 20_000L

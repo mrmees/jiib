@@ -12,17 +12,17 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import works.mees.jiib.control.ControlSpecs
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.theme.ThemeResolver
-import works.mees.jiib.theme.compose.DinghyTheme
+import works.mees.jiib.theme.compose.JiibTheme
 
 @RunWith(AndroidJUnit4::class)
 class FootButtonBarRenderTest {
     @get:Rule val rule = createComposeRule()
-    private fun action(label: String) = FootAction(label = label, icon = DinghyIcons.Back, onClick = {})
+    private fun action(label: String) = FootAction(label = label, icon = JiibIcons.Back, onClick = {})
 
     @Test fun twoActions_renderLabels() {
-        rule.setContent { DinghyTheme(ThemeResolver()) {
+        rule.setContent { JiibTheme(ThemeResolver()) {
             FootButtonBar(uDp = 48.dp, actions = listOf(action("Alpha"), action("Beta")))
         } }
         rule.onNodeWithText("Alpha").assertIsDisplayed()
@@ -30,7 +30,7 @@ class FootButtonBarRenderTest {
     }
 
     @Test fun threeActions_renderNoLabels() {
-        rule.setContent { DinghyTheme(ThemeResolver()) {
+        rule.setContent { JiibTheme(ThemeResolver()) {
             FootButtonBar(uDp = 48.dp, actions = listOf(action("Alpha"), action("Beta"), action("Gamma")))
         } }
         rule.onAllNodesWithText("Alpha").assertCountEquals(0) // ≥3 → icon-only
@@ -43,7 +43,7 @@ class FootButtonBarRenderTest {
     @Test fun footAction_nullLabelSpec_doesNotThrow() {
         // spoolLoad has labelRes=null and contentDescriptionRes=cd_spool_load — footAction must
         // fall through to contentDescriptionRes without throwing (Codex-F1 no-label path).
-        rule.setContent { DinghyTheme(ThemeResolver()) {
+        rule.setContent { JiibTheme(ThemeResolver()) {
             FootButtonBar(
                 uDp = 48.dp,
                 actions = listOf(

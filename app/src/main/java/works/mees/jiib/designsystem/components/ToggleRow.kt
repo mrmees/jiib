@@ -32,7 +32,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -151,7 +151,7 @@ fun ToggleRow(
             Text(
                 text = label,
                 color = t.text,
-                style = DinghyType.listLabel.toTextStyle(t),
+                style = JiibType.listLabel.toTextStyle(t),
                 // A long label (e.g. a verbose Klipper macro name) must not wrap past the 1U row floor.
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -160,7 +160,7 @@ fun ToggleRow(
                 Text(
                     text = subLabel,
                     color = t.text3,
-                    style = DinghyType.caption.toTextStyle(t),
+                    style = JiibType.caption.toTextStyle(t),
                 )
             }
         }

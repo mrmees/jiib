@@ -5,9 +5,9 @@ import works.mees.jiib.prompt.PromptStyle
 import works.mees.jiib.theme.ThemeTokens
 
 /**
- * The 6-protocol-style → Dinghy role-token resolver (UI-SPEC "Content & Footer button style → color"
+ * The 6-protocol-style → Jiib role-token resolver (UI-SPEC "Content & Footer button style → color"
  * table; 12-04 Task 1). The Macro Prompt Protocol carries SIX semantic button styles
- * (`primary`/`secondary`/`info`/`warning`/`error`/`success`); Dinghy's `designsystem/control/Intent`
+ * (`primary`/`secondary`/`info`/`warning`/`error`/`success`); Jiib's `designsystem/control/Intent`
  * is the FIVE-value safety vocabulary. `info` is the one style with no matching Intent member, so this
  * is a SEPARATE map (Intent stays 5 — do NOT add a 6th member) and `info` resolves to the brighter
  * accent text tint `accent2` so it reads as distinct-but-related to `primary` (UI-SPEC §Color).

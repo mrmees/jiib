@@ -38,7 +38,7 @@ import works.mees.jiib.ui.extrude.SensorRowVm
  *
  * A `@Preview` annotation cannot select the Colorful/Simple/High-Contrast palette MODE; the themes
  * MUST be explicit [PreviewBox] seed wrappers. `fs = L` is injected via [fsLargeSeed] (NOT
- * `@Preview(fontScale = …)`, which is a NO-OP — DinghyTheme pins fontScale to 1f).
+ * `@Preview(fontScale = …)`, which is a NO-OP — JiibTheme pins fontScale to 1f).
  */
 
 // ─────────────────────────────────────────────────────────────────────────────

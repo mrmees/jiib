@@ -23,7 +23,7 @@ import kotlinx.collections.immutable.ImmutableMap
 import works.mees.jiib.R
 import works.mees.jiib.state.HeaterState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -32,8 +32,8 @@ import works.mees.jiib.ui.spool.ActiveSpoolCardState
 
 /**
  * The non-printing home Focus state digest + its pure formatting helpers. Renders Heaters (OFF, or one
- * row per active heater) · Motors · Homed · Spool — label start-aligned (Geist [DinghyType.focusHeroLabel])
- * and value end-aligned (Mono [DinghyType.focusHero]). See
+ * row per active heater) · Motors · Homed · Spool — label start-aligned (Geist [JiibType.focusHeroLabel])
+ * and value end-aligned (Mono [JiibType.focusHero]). See
  * docs/superpowers/specs/2026-06-16-standby-focus-digest-design.md. The helpers are host-testable; the
  * composables consume them.
  */
@@ -97,7 +97,7 @@ private data class DigestRowData(val label: String, val value: String, val color
  * (Geist) + a right-aligned value column (Mono), every row at ONE font size — the largest at which the
  * widest row (longest label + widest value) fits the Focus width on a single line (R-CDX-3 / owner
  * 2026-06-16). Nothing wraps and nothing truncates in the normal case; more rows / longer names just
- * shrink the whole block. The font floor is [DinghyType.focusHero]'s minSp; a label that still overflows
+ * shrink the whole block. The font floor is [JiibType.focusHero]'s minSp; a label that still overflows
  * at the floor ellipsizes (pathological-name safety net).
  *
  * Heater values are colored from [heaterColors] (per-printer trace override) else the accent-first
@@ -142,10 +142,10 @@ internal fun HomeDigest(
 
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val labelBase = DinghyType.focusHeroLabel.toTextStyle(t)
-    val valueBase = DinghyType.focusHero.toTextStyle(t)
+    val labelBase = JiibType.focusHeroLabel.toTextStyle(t)
+    val valueBase = JiibType.focusHero.toTextStyle(t)
     val maxScaled = labelBase.fontSize.value          // already fs-scaled (fsSp(40, fs))
-    val minScaled = fsSp(DinghyType.focusHero.minSp ?: 15f, t.fs)
+    val minScaled = fsSp(JiibType.focusHero.minSp ?: 15f, t.fs)
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val availPx = if (constraints.hasBoundedWidth) constraints.maxWidth.toFloat() else Float.MAX_VALUE
@@ -172,7 +172,7 @@ internal fun HomeDigest(
                     Text(
                         r.label,
                         color = t.text2,
-                        style = DinghyType.focusHeroLabel.toTextStyle(t, sizeSp),
+                        style = JiibType.focusHeroLabel.toTextStyle(t, sizeSp),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
@@ -182,7 +182,7 @@ internal fun HomeDigest(
                     Text(
                         r.value,
                         color = r.color,
-                        style = DinghyType.focusHero.toTextStyle(t, sizeSp),
+                        style = JiibType.focusHero.toTextStyle(t, sizeSp),
                         maxLines = 1,
                         softWrap = false,
                     )

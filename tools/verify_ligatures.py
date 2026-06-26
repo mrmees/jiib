@@ -10,7 +10,7 @@ drawables to their canonical Material Symbol, rendered as a FONT LIGATURE from t
 if the bundled font actually resolves the glyph by name — otherwise the call site renders
 "tofu" (an empty box) with NO build error and NO crash. This script is the device-free
 precondition for every such flip: it traverses the font's GSUB table and proves that every
-Material Symbol name the app needs (every current `IconRef.Ligature(name)` in DinghyIcons
+Material Symbol name the app needs (every current `IconRef.Ligature(name)` in JiibIcons
 PLUS the 13 D-08 conversion targets) resolves as a real ligature.
 
 It is the load-bearing gate run BEFORE any drawable is deleted in later 18.1 waves. The
@@ -40,7 +40,7 @@ import sys
 from fontTools.ttLib import TTFont
 
 FONT = "app/src/main/res/font/material_symbols_outlined.ttf"
-DINGHY_ICONS = "app/src/main/java/works/mees/jiib/designsystem/icons/DinghyIcons.kt"
+JIIB_ICONS = "app/src/main/java/works/mees/jiib/designsystem/icons/JiibIcons.kt"
 
 
 def resolvable_ligatures(path):
@@ -65,7 +65,7 @@ def resolvable_ligatures(path):
     return out
 
 
-# Every IconRef.Ligature(...) name currently in DinghyIcons + every D-08 conversion target.
+# Every IconRef.Ligature(...) name currently in JiibIcons + every D-08 conversion target.
 NEEDED = {
     # Spool filter-picker Clear (owner-assigned, 2026-06-12 wide pass):
     "delete_sweep",
@@ -122,7 +122,7 @@ NEEDED = {
     "print", "delete", "mode_heat_off", "video_camera_back", "chat_error",
     "code", "bookmark_manager", "play_arrow", "radio_button_unchecked",
     # Phase-25 review fix WR-07: the Macros Show-hidden toggle pair, carried forward verbatim from
-    # the old SystemMacrosScreen and now registered in DinghyIcons (Visibility/VisibilityOff).
+    # the old SystemMacrosScreen and now registered in JiibIcons (Visibility/VisibilityOff).
     # ("warning" — the SpoolWarningGuard glyph, now also registered — is already in the D-08 list above.)
     "visibility", "visibility_off",
     # Phase-27 plan 01 (calibration hub routine tokens) — 5 owner-blessed ligatures promoted from raw
@@ -132,7 +132,7 @@ NEEDED = {
     # RoutineZTilt=vertical_align_center, RoutineQgl=crop_square.
     "straighten", "grid_on", "architecture", "vertical_align_center", "crop_square",
     # Phase-27 review fix WR-04: the 9 glyphs the rebuilt Move/ScrewsTilt/BedMesh screens were
-    # drawing as raw, un-registered ligatures — promoted VERBATIM to DinghyIcons tokens
+    # drawing as raw, un-registered ligatures — promoted VERBATIM to JiibIcons tokens
     # (JogXPlus / HomeStateHomed / HomeStateUnhomed / Screw* / MeshEmpty). Shipping glyphs
     # preserved unchanged; this is drift-guarding, not icon selection.
     "arrow_forward", "in_home_mode", "wifi_home", "point_scan", "anchor", "commit",
@@ -165,25 +165,25 @@ NEEDED = {
 
 
 def registered_ligatures(path):
-    """Scrape every IconRef.Ligature("name") declared in DinghyIcons.kt → {name: token}.
+    """Scrape every IconRef.Ligature("name") declared in JiibIcons.kt → {name: token}.
 
     Hardening (2026-06-17): the curated NEEDED set only checked a hand-maintained subset, so
     registry tokens added without updating NEEDED (e.g. SpoolClear=remove_circle, location_on,
     fluorescent) escaped the gate and rendered as literal text on-device. This derives the check
-    set from the registry itself, so any new `val X = DinghyIcon(IconRef.Ligature("...")` is
+    set from the registry itself, so any new `val X = JiibIcon(IconRef.Ligature("...")` is
     verified automatically and a missing glyph fails the build.
     """
     src = open(path, encoding="utf-8").read()
-    pat = re.compile(r'val\s+(\w+)\s*=\s*DinghyIcon\(IconRef\.Ligature\("([^"]+)"\)')
+    pat = re.compile(r'val\s+(\w+)\s*=\s*JiibIcon\(IconRef\.Ligature\("([^"]+)"\)')
     return {lig: tok for tok, lig in pat.findall(src)}
 
 
 def main():
     have = resolvable_ligatures(FONT)
 
-    registered = registered_ligatures(DINGHY_ICONS)
+    registered = registered_ligatures(JIIB_ICONS)
     # Check set = the curated NEEDED names (D-08 conversion targets / non-registry call sites)
-    # UNION every ligature actually registered in DinghyIcons.
+    # UNION every ligature actually registered in JiibIcons.
     check = set(NEEDED) | set(registered)
 
     # OpenType/TTF glyph names cannot start with a digit; the font stores them with a leading
@@ -197,7 +197,7 @@ def main():
     if missing:
         for lig in missing:
             who = registered.get(lig, "(NEEDED set only)")
-            print(f"  MISSING: {lig}  <- DinghyIcons.{who}")
+            print(f"  MISSING: {lig}  <- JiibIcons.{who}")
     sys.exit(1 if missing else 0)
 
 

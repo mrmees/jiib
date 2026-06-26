@@ -23,8 +23,8 @@ import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcon
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -38,7 +38,7 @@ import works.mees.jiib.systeminfo.SystemInfoHolder
 import works.mees.jiib.systeminfo.decodeThrottleConditions
 import works.mees.jiib.systeminfo.formatCpuLoad
 import works.mees.jiib.systeminfo.formatLoad
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -198,7 +198,7 @@ fun SystemInformationContent(
                     actions = listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
-                            icon = DinghyIcons.Back,
+                            icon = JiibIcons.Back,
                             onClick = onBack,
                             intent = Intent.Accent,
                         ),
@@ -209,9 +209,9 @@ fun SystemInformationContent(
     }
 }
 
-private fun deviceIcon(device: Device): DinghyIcon = when (device) {
-    is HostDevice -> DinghyIcons.SysInfoHost
-    is McuDevice -> DinghyIcons.McuDevice
+private fun deviceIcon(device: Device): JiibIcon = when (device) {
+    is HostDevice -> JiibIcons.SysInfoHost
+    is McuDevice -> JiibIcons.McuDevice
 }
 
 @Composable
@@ -233,9 +233,9 @@ private fun DeviceRow(device: Device, selected: Boolean, onClick: () -> Unit, uD
             )
         },
     ) {
-        Text(device.displayName, color = t.text, style = DinghyType.listLabel.toTextStyle(t))
+        Text(device.displayName, color = t.text, style = JiibType.listLabel.toTextStyle(t))
         Spacer(Modifier.weight(1f))
-        Text(deviceGlance(device), color = t.text2, style = DinghyType.dataMeta.toTextStyle(t))
+        Text(deviceGlance(device), color = t.text2, style = JiibType.dataMeta.toTextStyle(t))
     }
 }
 

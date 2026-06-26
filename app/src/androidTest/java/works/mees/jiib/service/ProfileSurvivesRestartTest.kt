@@ -31,7 +31,7 @@ import java.io.File
  *
  * Mirrors [ServiceSurvivesRotationTest]'s real-store discipline: a REAL [PreferenceDataStoreFactory.create]
  * over a real file in the instrumentation target context's `datastore/` dir (same `produceFile` shape as
- * [works.mees.jiib.DinghyApp]'s `profiles.preferences_pb`). "Process death + cold start" is simulated by
+ * [works.mees.jiib.JiibApp]'s `profiles.preferences_pb`). "Process death + cold start" is simulated by
  * CANCELLING the first store's scope (DataStore is single-writer per file — releasing the file lock) and
  * then constructing a SECOND [ProfileStore] over a FRESH [DataStore] instance reading the SAME persisted
  * bytes off disk.
@@ -113,10 +113,10 @@ class ProfileSurvivesRestartTest {
         storeFile.delete()
     }
 
-    /** A fresh app-lifetime-style scope per "process" (mirrors DinghyApp's IO-backed DataStore scope). */
+    /** A fresh app-lifetime-style scope per "process" (mirrors JiibApp's IO-backed DataStore scope). */
     private fun newStoreScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /** A REAL DataStore over [storeFile] — same `PreferenceDataStoreFactory.create` shape as DinghyApp. */
+    /** A REAL DataStore over [storeFile] — same `PreferenceDataStoreFactory.create` shape as JiibApp. */
     private fun createDataStore(scope: CoroutineScope): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(scope = scope, produceFile = { storeFile })
 

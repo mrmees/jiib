@@ -497,7 +497,7 @@
 
     <!-- ============== calibration hub (Phase 27) — routine icon contentDescriptions ============== -->
     <!-- These cd_* strings correspond to the 5 RoutineProbeCalibrate / RoutineBedMesh /
-         RoutineScrewsTilt / RoutineZTilt / RoutineQgl DinghyIcons tokens registered in 27-01.
+         RoutineScrewsTilt / RoutineZTilt / RoutineQgl JiibIcons tokens registered in 27-01.
          The routine row's visible text label covers the name; these are TalkBack-only. -->
     <string name="cd_routine_probe_calibrate">Probe calibrate</string>
     <string name="cd_routine_bed_mesh">Bed mesh</string>

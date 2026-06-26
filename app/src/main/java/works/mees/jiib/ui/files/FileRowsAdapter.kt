@@ -21,7 +21,7 @@ import java.util.Locale
 import works.mees.jiib.state.FileBrowserRow
 import works.mees.jiib.state.FileBrowserRowKind
 import works.mees.jiib.state.thumbnailUrl
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.views.typeface
 
@@ -128,7 +128,7 @@ class FileRowView(context: android.content.Context) : LinearLayout(context) {
         thumbImage.scaleType = ImageView.ScaleType.CENTER_CROP
         thumbLabel.gravity = Gravity.CENTER
         // dataMeta role (Data Mono 15) — single source of truth; --fs-scaled per-bind from the palette.
-        thumbLabel.typeface = DinghyType.dataMeta.typeface(context)
+        thumbLabel.typeface = JiibType.dataMeta.typeface(context)
 
         val textColumn = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -139,18 +139,18 @@ class FileRowView(context: android.content.Context) : LinearLayout(context) {
         title.maxLines = 1
         title.ellipsize = android.text.TextUtils.TruncateAt.END
         // The FILENAME is printer data → dataInline role (Data Mono 20). Was Typeface.DEFAULT_BOLD/17sp.
-        title.typeface = DinghyType.dataInline.typeface(context)
+        title.typeface = JiibType.dataInline.typeface(context)
         meta.maxLines = 1
         meta.ellipsize = android.text.TextUtils.TruncateAt.END
         // Size/date metadata → dataMeta role (Data 15).
-        meta.typeface = DinghyType.dataMeta.typeface(context)
+        meta.typeface = JiibType.dataMeta.typeface(context)
         textColumn.addView(title)
         textColumn.addView(meta)
 
         selectedMark.gravity = Gravity.CENTER
         selectedMark.text = "SEL"
         // caption role (Ui 15).
-        selectedMark.typeface = DinghyType.caption.typeface(context)
+        selectedMark.typeface = JiibType.caption.typeface(context)
         selectedMark.layoutParams = LayoutParams(dp(32), dp(48))
 
         addView(thumbFrame)
@@ -172,10 +172,10 @@ class FileRowView(context: android.content.Context) : LinearLayout(context) {
         // Apply each role's base size scaled by the active --fs (the palette carries it; the adapter
         // cannot read LocalTokens — mirrors ConsoleRowPalette.fs). Family/weight are fixed in init.
         val fs = palette.fs
-        title.textSize = fsSp(DinghyType.dataInline.baseSp, fs)
-        meta.textSize = fsSp(DinghyType.dataMeta.baseSp, fs)
-        thumbLabel.textSize = fsSp(DinghyType.dataMeta.baseSp, fs)
-        selectedMark.textSize = fsSp(DinghyType.caption.baseSp, fs)
+        title.textSize = fsSp(JiibType.dataInline.baseSp, fs)
+        meta.textSize = fsSp(JiibType.dataMeta.baseSp, fs)
+        thumbLabel.textSize = fsSp(JiibType.dataMeta.baseSp, fs)
+        selectedMark.textSize = fsSp(JiibType.caption.baseSp, fs)
 
         title.text = row.name
         title.setTextColor(palette.text)

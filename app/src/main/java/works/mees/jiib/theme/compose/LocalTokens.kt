@@ -14,9 +14,9 @@ import works.mees.jiib.theme.ThemeTokens
  * cheaper behavior — `static` reads are untracked (no per-read snapshot bookkeeping), which is what
  * we want when the value changes rarely (a theme/`--fs` change) but is read pervasively.
  *
- * The default throws: a component reading tokens outside a [DinghyTheme] is a programming error,
+ * The default throws: a component reading tokens outside a [JiibTheme] is a programming error,
  * surfaced loudly rather than silently rendering with a wrong fallback palette.
  */
 val LocalTokens = staticCompositionLocalOf<ThemeTokens> {
-    error("No ThemeTokens provided — wrap your content in DinghyTheme { … }")
+    error("No ThemeTokens provided — wrap your content in JiibTheme { … }")
 }

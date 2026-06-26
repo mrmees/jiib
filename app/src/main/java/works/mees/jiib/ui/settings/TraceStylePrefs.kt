@@ -19,7 +19,7 @@ import java.io.IOException
  * Copies the [BabystepPrefs] / [works.mees.jiib.ui.macros.MacroPrefs] shape EXACTLY: the
  * [DataStore] is INJECTED (no `preferencesDataStore` delegate), so it is host-testable. The
  * PRODUCTION instance (its OWN `tracestyle.preferences_pb`, NOT shared with any other store)
- * is created by [works.mees.jiib.DinghyApp] and exposed via [works.mees.jiib.di.AppContainer].
+ * is created by [works.mees.jiib.JiibApp] and exposed via [works.mees.jiib.di.AppContainer].
  *
  * ## PER-PRINTER scoping (pre-merge review fix, 2026-06-14)
  * Trace color / visibility / selection are scoped by the ACTIVE PROFILE'S stable UUID

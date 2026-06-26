@@ -29,7 +29,7 @@ import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListFrameInset
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -39,7 +39,7 @@ import works.mees.jiib.render.WebcamView
 import works.mees.jiib.render.WebcamViewHost
 import works.mees.jiib.state.Webcam
 import works.mees.jiib.state.selectsH264Rung
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -229,7 +229,7 @@ private fun WebcamBackBar(
         actions = listOf(
             FootAction(
                 label = stringResource(R.string.common_back),
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
                 onClick = onBack,
                 intent = Intent.Accent, // R5/R8 (supersedes D-10): Back = accent.
             ),
@@ -315,7 +315,7 @@ private fun CamPicker(
                 Text(
                     text = cam.name.ifBlank { stringResource(R.string.webcam_cam_unnamed) },
                     color = if (isSelected) t.accent2 else t.text,
-                    style = DinghyType.dataInline.toTextStyle(t),
+                    style = JiibType.dataInline.toTextStyle(t),
                 )
                 if (isSelected) {
                     // Expanded Moonraker info for the selected cam (service + resolution/aspect).
@@ -323,13 +323,13 @@ private fun CamPicker(
                     Text(
                         text = service,
                         color = t.text2,
-                        style = DinghyType.dataMeta.toTextStyle(t),
+                        style = JiibType.dataMeta.toTextStyle(t),
                     )
                     cam.aspectRatio?.takeIf { it.isNotBlank() }?.let { aspect ->
                         Text(
                             text = stringResource(R.string.webcam_aspect_format, aspect),
                             color = t.text3,
-                            style = DinghyType.dataMeta.toTextStyle(t),
+                            style = JiibType.dataMeta.toTextStyle(t),
                         )
                     }
                 }

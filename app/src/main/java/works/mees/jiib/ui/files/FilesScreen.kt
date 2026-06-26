@@ -57,8 +57,8 @@ import works.mees.jiib.designsystem.components.SortOption
 import works.mees.jiib.designsystem.components.SortRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.icons.DinghyIcons
-import works.mees.jiib.designsystem.icons.DinghyIconView
+import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -73,7 +73,7 @@ import works.mees.jiib.state.FilePreviewMetadata
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.thumbnailUrl
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -375,14 +375,14 @@ private fun FilesContent(
         val sortOptions = persistentListOf(
             SortOption(
                 key = FileSortField.Date,
-                icon = DinghyIcons.CalendarClock,
+                icon = JiibIcons.CalendarClock,
                 label = stringResource(R.string.files_sort_date),
                 contentDescriptionRes = R.string.cd_files_sort_date,
                 directionUp = if (state.sortField == FileSortField.Date) state.sortAscending else null,
             ),
             SortOption(
                 key = FileSortField.Size,
-                icon = DinghyIcons.LineWeight,
+                icon = JiibIcons.LineWeight,
                 label = stringResource(R.string.files_sort_size),
                 contentDescriptionRes = R.string.cd_files_sort_size,
                 directionUp = if (state.sortField == FileSortField.Size) state.sortAscending else null,
@@ -395,7 +395,7 @@ private fun FilesContent(
                 // E-stop now docks into the FocusFrame header (header slot morphs when isPrinting).
                 FocusFrame(
                     title = state.selectedFile?.name ?: stringResource(R.string.cd_launcher_files),
-                    icon = DinghyIcons.LauncherFiles,
+                    icon = JiibIcons.LauncherFiles,
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -470,8 +470,8 @@ private fun FilesDetailContent(
     if (selected == null) {
         // Nothing selected — empty-state glyph centered in the card.
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            DinghyIconView(
-                icon = DinghyIcons.LauncherFiles,
+            JiibIconView(
+                icon = JiibIcons.LauncherFiles,
                 tint = t.text3,
                 sizeDp = fsSp(64f, t.fs).dp,
                 contentDescription = null,
@@ -507,22 +507,22 @@ private fun FilesDetailContent(
         // active-print Focus data block.
         val lines: List<FileStat> = buildList {
             preview?.let { p ->
-                p.estimatedTime?.let { add(FileStat(DinghyIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it))) }
+                p.estimatedTime?.let { add(FileStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it))) }
                 p.filamentTotal?.let { ft ->
                     val w = p.filamentWeightTotal?.let { g -> " · ${"%.1f".format(Locale.US, g)} g" }.orEmpty()
-                    add(FileStat(DinghyIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w"))
+                    add(FileStat(JiibIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w"))
                 }
-                p.layerCount?.let { add(FileStat(DinghyIcons.Layers, stringResource(R.string.files_stat_layers), it.toString())) }
-                p.objectHeight?.let { add(FileStat(DinghyIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm")) }
+                p.layerCount?.let { add(FileStat(JiibIcons.Layers, stringResource(R.string.files_stat_layers), it.toString())) }
+                p.objectHeight?.let { add(FileStat(JiibIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm")) }
             }
             (preview?.sizeBytes ?: selected.sizeBytes)?.let {
-                add(FileStat(DinghyIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it)))
+                add(FileStat(JiibIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it)))
             }
             (preview?.modifiedEpochSeconds ?: selected.modifiedEpochSeconds)?.let {
-                add(FileStat(DinghyIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it)))
+                add(FileStat(JiibIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it)))
             }
             if (preview == null) {
-                add(FileStat(DinghyIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading)))
+                add(FileStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading)))
             }
         }
 
@@ -538,7 +538,7 @@ private fun FilesDetailContent(
 
 /** One future-print stat line: icon + dim label + GeistMono value. */
 private data class FileStat(
-    val icon: works.mees.jiib.designsystem.icons.DinghyIcon,
+    val icon: works.mees.jiib.designsystem.icons.JiibIcon,
     val label: String,
     val value: String,
 )
@@ -565,8 +565,8 @@ private fun FilesFocusStats(
     val density = LocalDensity.current
 
     BoxWithConstraints(modifier) {
-        val labelStyle = DinghyType.caption.toTextStyle(t, fsSp(15f, t.fs))
-        val valueStyle = DinghyType.dataInline.toTextStyle(t, fsSp(20f, t.fs))
+        val labelStyle = JiibType.caption.toTextStyle(t, fsSp(15f, t.fs))
+        val valueStyle = JiibType.dataInline.toTextStyle(t, fsSp(20f, t.fs))
         val availW = with(density) { maxWidth.toPx() }
         val availH = with(density) { maxHeight.toPx() }
         val iconRefPx = with(density) { fsSp(18f, t.fs).dp.toPx() }
@@ -603,7 +603,7 @@ private fun FilesFocusStats(
 /** One icon-led stat line in the future-print card: icon + dim label + GeistMono value. */
 @Composable
 private fun FileStatRow(
-    icon: works.mees.jiib.designsystem.icons.DinghyIcon,
+    icon: works.mees.jiib.designsystem.icons.JiibIcon,
     label: String,
     value: String,
     t: ThemeTokens,
@@ -613,13 +613,13 @@ private fun FileStatRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DinghyIconView(icon, tint = t.text2, sizeDp = (fsSp(18f, t.fs) * scale).dp, contentDescription = null)
+        JiibIconView(icon, tint = t.text2, sizeDp = (fsSp(18f, t.fs) * scale).dp, contentDescription = null)
         // Single-line / no-wrap matches how FilesFocusStats MEASURES these rows (softWrap = false). A
         // wrapping label would blow past the measured height and overflow the fill-to-fit block.
         Text(
             label,
             color = t.text2,
-            style = DinghyType.caption.toTextStyle(t, fsSp(15f, t.fs) * scale),
+            style = JiibType.caption.toTextStyle(t, fsSp(15f, t.fs) * scale),
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis,
@@ -627,7 +627,7 @@ private fun FileStatRow(
         Text(
             value,
             color = t.text,
-            style = DinghyType.dataInline.toTextStyle(t, fsSp(20f, t.fs) * scale),
+            style = JiibType.dataInline.toTextStyle(t, fsSp(20f, t.fs) * scale),
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis,
@@ -679,7 +679,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                     else -> stringResource(R.string.files_empty)
                 },
                 color = t.text2,
-                style = DinghyType.body.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(16.dp),
             )
@@ -711,13 +711,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
         actions = listOf(
             FootAction(
                 label = stringResource(R.string.common_back),
-                icon = DinghyIcons.Back,
+                icon = JiibIcons.Back,
                 onClick = onBack,
                 intent = Intent.Accent, // R5: Back = accent
             ),
             FootAction(
                 label = stringResource(R.string.files_foot_print),
-                icon = DinghyIcons.Print,
+                icon = JiibIcons.Print,
                 onClick = { if (startEnabled) onStartPrint() },
                 intent = Intent.Go, // R5: Print = the expected action
                 contentDescription = stringResource(R.string.cd_files_print),
@@ -727,7 +727,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
             ),
             FootAction(
                 label = stringResource(R.string.files_foot_delete),
-                icon = DinghyIcons.Delete,
+                icon = JiibIcons.Delete,
                 onClick = { if (deleteEnabled) onDelete() },
                 intent = Intent.Danger,
                 contentDescription = stringResource(R.string.cd_files_delete),
@@ -789,7 +789,7 @@ private fun FilesListRow(
             Text(
                 text = row.name,
                 color = if (selected) t.accent2 else t.text,
-                style = DinghyType.dataInline.toTextStyle(t),
+                style = JiibType.dataInline.toTextStyle(t),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
@@ -804,13 +804,13 @@ private fun FilesListRow(
                 Text(
                     text = row.modifiedEpochSeconds?.let { formatDate(it) }.orEmpty(),
                     color = t.text2,
-                    style = DinghyType.dataMeta.toTextStyle(t),
+                    style = JiibType.dataMeta.toTextStyle(t),
                     maxLines = 1,
                 )
                 Text(
                     text = row.sizeBytes?.let { formatBytes(it) }.orEmpty(),
                     color = t.text2,
-                    style = DinghyType.dataMeta.toTextStyle(t),
+                    style = JiibType.dataMeta.toTextStyle(t),
                     maxLines = 1,
                 )
             }
@@ -856,13 +856,13 @@ private fun SpoolWarningGuard(
                     Text(
                         text = stringResource(R.string.files_confirm_print_title, fileName),
                         color = t.text,
-                        style = DinghyType.screenTitle.toTextStyle(t),
+                        style = JiibType.screenTitle.toTextStyle(t),
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = stringResource(R.string.files_spool_warning_subtitle),
                         color = t.text2,
-                        style = DinghyType.body.toTextStyle(t),
+                        style = JiibType.body.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
                     )
@@ -875,8 +875,8 @@ private fun SpoolWarningGuard(
                             // The original SpoolWarningGuard glyph (preserved, not newly chosen) —
                             // now routed through the registry token (WR-07: raw ligature strings
                             // bypass the planned font subset + the verify_ligatures gate).
-                            DinghyIconView(
-                                icon = DinghyIcons.Warning,
+                            JiibIconView(
+                                icon = JiibIcons.Warning,
                                 tint = t.heat,
                                 sizeDp = fsSp(18f, t.fs).dp,
                                 contentDescription = null,
@@ -884,7 +884,7 @@ private fun SpoolWarningGuard(
                             Text(
                                 text = w.message,
                                 color = t.heat,
-                                style = DinghyType.body.toTextStyle(t),
+                                style = JiibType.body.toTextStyle(t),
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -892,7 +892,7 @@ private fun SpoolWarningGuard(
                     Text(
                         text = fileDetails,
                         color = t.text3,
-                        style = DinghyType.caption.toTextStyle(t),
+                        style = JiibType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
                     )
@@ -902,14 +902,14 @@ private fun SpoolWarningGuard(
                             onClick = onPickSpool,
                             modifier = Modifier.weight(1f),
                             intent = Intent.Accent,
-                            icon = DinghyIcons.Inventory,
+                            icon = JiibIcons.Inventory,
                         )
                         OutlinedControl(
                             label = stringResource(R.string.files_spool_warning_scan),
                             onClick = onScan,
                             modifier = Modifier.weight(1f),
                             intent = Intent.Accent,
-                            icon = DinghyIcons.QrCode,
+                            icon = JiibIcons.QrCode,
                         )
                     }
                     Spacer(Modifier.size(12.dp))

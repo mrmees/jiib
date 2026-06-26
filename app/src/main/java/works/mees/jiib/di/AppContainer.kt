@@ -70,7 +70,7 @@ import works.mees.jiib.ui.webcam.WebcamPrefs
 
 /**
  * The process-scoped service-locator (no DI framework — D-02). It hoists all dependency assembly into
- * an [android.app.Application]-held singleton ([DinghyApp] owns the instance and
+ * an [android.app.Application]-held singleton ([JiibApp] owns the instance and
  * the two DataStore files). It owns the headless, connection-independent state — [ThemePrefs],
  * [ConnectionStore], and a [ThemeResolver] seeded once from persisted theme prefs — and exposes ONE
  * publication point for the live spine.
@@ -108,7 +108,7 @@ class AppContainer(
     /**
      * The FIFTH, INDEPENDENT file: profiles.preferences_pb (MULTI-01, Phase 14). Backs the managed
      * PROFILE SET + active-profile selection ([ProfileStore]) — the Phase-14 generalization of the
-     * single [ConnectionStore]. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore
+     * single [ConnectionStore]. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore
      * single-writer invariant) and injected here. Inserted before [discovery] so [discovery] stays the
      * last (non-DataStore) ctor param.
      */
@@ -117,7 +117,7 @@ class AppContainer(
      * The SIXTH, INDEPENDENT file: babystep.preferences_pb (D-06, Phase 16). Backs the process-scoped
      * babystep app setting ([BabystepPrefs]: enable toggle + first-layer-window layer-count). Carries no
      * secrets (like macros/webcam), kept on its own connection-independent lifecycle per the separate-file
-     * discipline. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore single-writer invariant) and
+     * discipline. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore single-writer invariant) and
      * injected here.
      */
     babystepDataStore: DataStore<Preferences>,
@@ -126,7 +126,7 @@ class AppContainer(
      * process-scoped per-sensor trace color + visibility settings ([TraceStylePrefs]: flat key-map
      * of sensor-name→ARGB-Int for color, sensor-name→Boolean for visibility). Carries no secrets
      * (like macros/webcam/babystep), kept on its own connection-independent lifecycle per the
-     * separate-file discipline. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore
+     * separate-file discipline. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore
      * single-writer invariant) and injected here.
      */
     traceStyleDataStore: DataStore<Preferences>,
@@ -136,14 +136,14 @@ class AppContainer(
      * the dedicated-display use case, plus the app-global webcam-enabled toggle added 2026-06-15).
      * Carries no secrets (like macros/webcam/babystep/tracestyle),
      * kept on its own connection-independent lifecycle per the separate-file discipline. Created
-     * ONCE in [works.mees.jiib.DinghyApp] (the DataStore single-writer invariant) and injected here.
+     * ONCE in [works.mees.jiib.JiibApp] (the DataStore single-writer invariant) and injected here.
      */
     displayDataStore: DataStore<Preferences>,
     /**
      * The NINTH, INDEPENDENT file: savedlocations.preferences_pb (Move hub, feat/move-hub-redesign).
      * Backs the process-scoped named toolhead-position store ([SavedLocationPrefs]: ordered list of
      * [SavedLocation], identity = name). Carries no secrets, kept on its own connection-independent
-     * lifecycle per the separate-file discipline. Created ONCE in [works.mees.jiib.DinghyApp]
+     * lifecycle per the separate-file discipline. Created ONCE in [works.mees.jiib.JiibApp]
      * (the DataStore single-writer invariant) and injected here.
      */
     savedLocationDataStore: DataStore<Preferences>,
@@ -152,7 +152,7 @@ class AppContainer(
      * Backs the process-scoped app-global font-scale setting ([FontScalePrefs]: S/M/L FontScale
      * choice). Replaces the retired per-printer [Profile.fsChoice] as the SOLE source of `--fs`.
      * Carries no secrets, kept on its own connection-independent lifecycle per the separate-file
-     * discipline. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore single-writer
+     * discipline. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore single-writer
      * invariant) and injected here.
      */
     fontScaleDataStore: DataStore<Preferences>,
@@ -161,7 +161,7 @@ class AppContainer(
      * process-scoped EXTRUDE-screen-scoped pinned filament macro NAMEs ([ExtrudeMacroPrefs]: a
      * Set<String> of macro names), DELIBERATELY INDEPENDENT of the global Macros bookmarks
      * ([macroPrefs]). Carries no secrets, kept on its own connection-independent lifecycle per the
-     * separate-file discipline. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore
+     * separate-file discipline. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore
      * single-writer invariant) and injected here.
      */
     extrudeMacroDataStore: DataStore<Preferences>,
@@ -169,20 +169,20 @@ class AppContainer(
      * The TWELFTH, INDEPENDENT file: heat_presets.preferences_pb (Heat Presets). Backs the per-printer
      * [HeatPresetPrefs] (a JSON list keyed `presets_<profileId>`). Carries no secrets, kept on its own
      * connection-independent lifecycle per the separate-file discipline. Created ONCE in
-     * [works.mees.jiib.DinghyApp] (the DataStore single-writer invariant) and injected here.
+     * [works.mees.jiib.JiibApp] (the DataStore single-writer invariant) and injected here.
      */
     heatPresetDataStore: DataStore<Preferences>,
     /**
      * The THIRTEENTH, INDEPENDENT file: increments.preferences_pb (per-printer increment value lists).
      * Backs [IncrementListPrefs] (JSON map keyed `increments_<profileId>`). Created once in
-     * [works.mees.jiib.DinghyApp] and injected here (single-writer DataStore invariant).
+     * [works.mees.jiib.JiibApp] and injected here (single-writer DataStore invariant).
      */
     incrementDataStore: DataStore<Preferences>,
     /**
      * The FOURTEENTH, INDEPENDENT file: bedmesh_render.preferences_pb (Bed Mesh redesign, Task 4).
      * Backs the per-printer [BedMeshRenderPrefs] (view-type + High/Low ramp-color SLOT selectors,
      * keyed by profileId). Carries no secrets, kept on its own connection-independent lifecycle per
-     * the separate-file discipline. Created ONCE in [works.mees.jiib.DinghyApp] (the DataStore
+     * the separate-file discipline. Created ONCE in [works.mees.jiib.JiibApp] (the DataStore
      * single-writer invariant) and injected here.
      */
     bedMeshRenderDataStore: DataStore<Preferences>,
@@ -191,7 +191,7 @@ class AppContainer(
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
      * machinery is acquired only inside `discover()` on collect and released on `awaitClose`. Injected
      * (rather than built here) because constructing it needs an Android Context, which the container
-     * deliberately does not hold — [works.mees.jiib.DinghyApp] supplies the Context-bound instance.
+     * deliberately does not hold — [works.mees.jiib.JiibApp] supplies the Context-bound instance.
      */
     val discovery: MoonrakerDiscovery,
 ) {
@@ -1036,7 +1036,7 @@ class AppContainer(
         }
 
     /**
-     * The override-aware EFFECTIVE token flow the single Compose [DinghyTheme] boundary collects — a PURE
+     * The override-aware EFFECTIVE token flow the single Compose [JiibTheme] boundary collects — a PURE
      * derivation of its combine inputs (HIGH-1, the foundational fix). It BAKES IN BOTH branches via the
      * pure [ThemeResolver.bake] (HIGH-2 — no shared-mutable resolver to tear): the persisted/normal path
      * returns `bake(base)`, the override path returns `bake(ov.mergeOnto(base))`.

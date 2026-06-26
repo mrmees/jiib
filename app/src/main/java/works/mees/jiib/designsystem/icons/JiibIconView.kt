@@ -15,7 +15,7 @@ import works.mees.jiib.designsystem.MaterialSymbol
 import works.mees.jiib.theme.compose.LocalTokens
 
 /**
- * The unifying icon render primitive (RESEARCH Q6). Renders a [DinghyIcon] from EITHER source behind one
+ * The unifying icon render primitive (RESEARCH Q6). Renders a [JiibIcon] from EITHER source behind one
  * call: the [IconRef.Ligature] branch delegates to the unchanged [MaterialSymbol] glyph primitive, the
  * [IconRef.Drawable] branch to `Icon(painterResource(...))`. Call sites think in ONE unit — the icon-box
  * size [sizeDp] (Codex LOW-8) — and never pass a raw `sp`.
@@ -23,8 +23,8 @@ import works.mees.jiib.theme.compose.LocalTokens
  * ## Sizing (Amendment 2 — dp↔sp)
  * A ligature glyph is *typographic* (sized in `sp`) while a drawable icon box is *layout* (sized in `dp`).
  * To give callers one mental model we accept [sizeDp] for both and, in the ligature branch, derive the
- * glyph's `sizeSp` via [dpToSp]. That derivation is pixel-correct ONLY because [works.mees.jiib.theme.compose.DinghyTheme]
- * pins `fontScale = 1f` (DinghyTheme.kt:48) — see [dpToSp]. The drawable branch sizes the painter in `dp`
+ * glyph's `sizeSp` via [dpToSp]. That derivation is pixel-correct ONLY because [works.mees.jiib.theme.compose.JiibTheme]
+ * pins `fontScale = 1f` (JiibTheme.kt:48) — see [dpToSp]. The drawable branch sizes the painter in `dp`
  * directly; a raw `sp` is NEVER passed to it.
  *
  * ## Accessibility (Amendment 1 — TalkBack)
@@ -36,8 +36,8 @@ import works.mees.jiib.theme.compose.LocalTokens
  * behaviour on null/non-null.
  */
 @Composable
-fun DinghyIconView(
-    icon: DinghyIcon,
+fun JiibIconView(
+    icon: JiibIcon,
     modifier: Modifier = Modifier,
     tint: Color = LocalTokens.current.text,
     sizeDp: Dp = 32.dp,
@@ -73,7 +73,7 @@ fun DinghyIconView(
  * Convert an icon-box [sizeDp] to the `sp` magnitude the ligature glyph fills.
  *
  * Amendment 2: this 1:1 numeric mapping is correct ONLY under the app-wide invariant that OS `fontScale`
- * is pinned to `1f` at the Compose root ([works.mees.jiib.theme.compose.DinghyTheme] / DinghyTheme.kt:48),
+ * is pinned to `1f` at the Compose root ([works.mees.jiib.theme.compose.JiibTheme] / JiibTheme.kt:48),
  * where `--fs` is the sole text-size authority. Under that pin a dp value and its sp value share the same
  * physical pixel size, so a 32.dp icon box wants a 32sp glyph. If that pin is ever relaxed this helper is
  * the ONE place to revisit (it would then need a real Density to convert dp→px→sp).

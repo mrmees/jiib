@@ -23,10 +23,10 @@ import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.state.SettableHeater
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.screen.TokenTextField
@@ -165,7 +165,7 @@ fun HeatPresetWizard(
         focus = {
             FocusFrame(
                 title = stringResource(R.string.heat_presets_wizard_title),
-                icon = DinghyIcons.TempPresets,
+                icon = JiibIcons.TempPresets,
                 uDp = uDp,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isPrinting = isPrinting,
@@ -177,7 +177,7 @@ fun HeatPresetWizard(
                     Text(
                         text = stringResource(R.string.heat_presets_name_label),
                         color = t.text,
-                        style = DinghyType.listLabel.toTextStyle(t),
+                        style = JiibType.listLabel.toTextStyle(t),
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     TokenTextField(
@@ -192,7 +192,7 @@ fun HeatPresetWizard(
                     Text(
                         text = field.displayName,
                         color = t.text,
-                        style = DinghyType.focusHeader.toTextStyle(t),
+                        style = JiibType.focusHeader.toTextStyle(t),
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     TokenTextField(
@@ -206,7 +206,7 @@ fun HeatPresetWizard(
                     Text(
                         text = stringResource(R.string.heat_presets_skip_hint),
                         color = t.text2,
-                        style = DinghyType.caption.toTextStyle(t),
+                        style = JiibType.caption.toTextStyle(t),
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
@@ -228,7 +228,7 @@ fun HeatPresetWizard(
                 actions = listOf(
                     FootAction(
                         label = stringResource(R.string.common_cancel),
-                        icon = DinghyIcons.DialogClose,
+                        icon = JiibIcons.DialogClose,
                         onClick = onCancel,
                         intent = Intent.Danger,
                     ),
@@ -238,7 +238,7 @@ fun HeatPresetWizard(
                         } else {
                             stringResource(R.string.common_next)
                         },
-                        icon = DinghyIcons.CheckCircle,
+                        icon = JiibIcons.CheckCircle,
                         onClick = {
                             if (!onLastStep) {
                                 step = safeStep + 1

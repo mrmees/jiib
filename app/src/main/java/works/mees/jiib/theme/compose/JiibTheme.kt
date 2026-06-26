@@ -35,7 +35,7 @@ import works.mees.jiib.theme.TokensDark
  * re-introduce `fontScale`, or `--fs` stops being sole authority.
  */
 @Composable
-fun DinghyTheme(
+fun JiibTheme(
     tokensFlow: Flow<ThemeTokens>,
     content: @Composable () -> Unit,
 ) {
@@ -57,7 +57,7 @@ fun DinghyTheme(
  * bare [ThemeResolver] with no override layer. Both share the SAME `--fs` density authority.
  */
 @Composable
-fun DinghyTheme(
+fun JiibTheme(
     resolver: ThemeResolver,
     content: @Composable () -> Unit,
-) = DinghyTheme(tokensFlow = resolver.tokens, content = content)
+) = JiibTheme(tokensFlow = resolver.tokens, content = content)

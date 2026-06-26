@@ -19,9 +19,9 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.spool.parseNormalizedHex
@@ -63,7 +63,7 @@ fun HeatersList(
                     uDp = uDp,
                     leadingContent = { ListRowIcon(icon = row.icon, uDp = uDp, tint = tint) },
                     trailingContent = row.summary?.let { s ->
-                        { Text(text = s, style = DinghyType.dataInline.toTextStyle(t), color = t.text2) }
+                        { Text(text = s, style = JiibType.dataInline.toTextStyle(t), color = t.text2) }
                     },
                 ) {
                     ListRowLabel(row.label)
@@ -75,7 +75,7 @@ fun HeatersList(
             actions = listOf(
                 FootAction(
                     label = stringResource(R.string.cd_back),
-                    icon = DinghyIcons.Back,
+                    icon = JiibIcons.Back,
                     onClick = onBack,
                     intent = Intent.Accent,
                     contentDescription = stringResource(R.string.cd_back),

@@ -42,11 +42,11 @@ import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
-import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -185,7 +185,7 @@ fun TiltContent(
                             // Back FIRST (accent — R5/R8), before the state-adaptive primary.
                             add(FootAction(
                                 label = stringResource(R.string.common_back),
-                                icon = DinghyIcons.Back,
+                                icon = JiibIcons.Back,
                                 onClick = onBack,
                                 intent = Intent.Accent,
                                 contentDescription = stringResource(R.string.common_back),
@@ -199,7 +199,7 @@ fun TiltContent(
                                     // Running: non-interactive.
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_running),
-                                        icon = DinghyIcons.CalibrationWait,
+                                        icon = JiibIcons.CalibrationWait,
                                         onClick = {},
                                         intent = Intent.Neutral,
                                         enabled = false,
@@ -209,7 +209,7 @@ fun TiltContent(
                                     // Result shown: Run Again.
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_run_again),
-                                        icon = DinghyIcons.Revert,
+                                        icon = JiibIcons.Revert,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: expected re-run action
                                     ))
@@ -218,7 +218,7 @@ fun TiltContent(
                                     // Homed idle: Run (variant-selected, gated on not Running).
                                     add(FootAction(
                                         label = stringResource(R.string.calibration_run),
-                                        icon = DinghyIcons.CalibrationRun,
+                                        icon = JiibIcons.CalibrationRun,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: the screen's expected action
                                         enabled = !running,
@@ -309,12 +309,12 @@ private fun TiltFieldBody(
                             Text(
                                 text = adj.stepper,
                                 color = t.text2,
-                                style = DinghyType.dataInline.toTextStyle(t),
+                                style = JiibType.dataInline.toTextStyle(t),
                             )
                             Text(
                                 text = String.format(Locale.US, "%+.4f mm", adj.mm),
                                 color = t.text,
-                                style = DinghyType.dataInline.toTextStyle(t),
+                                style = JiibType.dataInline.toTextStyle(t),
                             )
                         }
                     }
@@ -332,7 +332,7 @@ private fun TiltHeadlineText(text: String, color: Color) {
     Text(
         text = text,
         color = color,
-        style = DinghyType.screenTitle.toTextStyle(t),
+        style = JiibType.screenTitle.toTextStyle(t),
     )
 }
 
@@ -342,7 +342,7 @@ private fun TiltBodyText(text: String) {
     Text(
         text = text,
         color = t.text2,
-        style = DinghyType.body.toTextStyle(t),
+        style = JiibType.body.toTextStyle(t),
         modifier = Modifier.padding(top = 8.dp),
     )
 }

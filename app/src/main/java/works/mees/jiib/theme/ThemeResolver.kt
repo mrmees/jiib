@@ -20,7 +20,7 @@ const val DEFAULT_POOL_MAX_ITEMS: Int = 4
  * it holds the seed/mode/pool inputs and, on each discrete change, calls [Palette.generate] →
  * [TokenBridge.build] ONCE, caching the complete [ThemeTokens] on the UNCHANGED `StateFlow<ThemeTokens>`
  * boundary. That boundary is the whole reason the substrate is "extended not rewritten" — Compose
- * `DinghyTheme` and the Views `ThemeableView` consume the same flow untouched, and the render loop only
+ * `JiibTheme` and the Views `ThemeableView` consume the same flow untouched, and the render loop only
  * ever reads CACHED Color ints (the device never does color math — the Adreno-320 fill-rate floor).
  *
  * Headless and synchronous (no conflation — a theme change is rare, unlike the ~4 Hz printer state).
@@ -162,7 +162,7 @@ class ThemeResolver(
 
     /**
      * Bake an arbitrary theme TUPLE to a snapshot [ThemeTokens] PURELY (HIGH-2): it reads NO `var` field,
-     * mutates NOTHING, and never assigns `_tokens` — so concurrent collectors (DinghyTheme + every Views
+     * mutates NOTHING, and never assigns `_tokens` — so concurrent collectors (JiibTheme + every Views
      * host) cannot tear each other's bake, and the persisted-theme `seedTheme()` path that drives `_tokens`
      * is untouched. Reuses the SAME [computeFrom] generate/fail-safe body as the live path. The tuple's
      * wire-form overrides are mapped to the runtime [Color] form via the SAME [toComposeColor] conversion
