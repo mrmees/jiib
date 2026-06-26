@@ -8,7 +8,7 @@
   - contentDescription (a11y) keys:  cd_<thing>          e.g. cd_back  (TalkBack-only, never shown)
   - <area> = the screen/feature owning the string (printstatus, finetune, spool, common, …).
 
-  ## Scope boundary (IN / OUT — see parallel_dinghy/phase-tokenization-staging.md)
+  ## Scope boundary (IN / OUT — see parallel_jiib/phase-tokenization-staging.md)
   IN  = APP vocabulary authored by us (labels, titles, actions, status words, a11y descriptions).
   OUT = pass-through DATA — filenames, console output, macro params, raw Moonraker fields — those are
         rendered VERBATIM and are NEVER given string keys.

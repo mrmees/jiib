@@ -16,10 +16,10 @@ import org.junit.Test
  */
 class PromptReducerTest {
 
-    private val dinghy = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
+    private val jiib = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
 
     /** Fold a list of raw action lines under [opts] (default Jiib identity). */
-    private fun run(lines: List<String>, opts: PromptOpts = dinghy): PromptStateData {
+    private fun run(lines: List<String>, opts: PromptOpts = jiib): PromptStateData {
         var s = initialPromptState(opts)
         for (l in lines) {
             val ev = parseAction(l)
@@ -179,7 +179,7 @@ class PromptReducerTest {
     // clean from freshIdle(epoch+1).
     @Test
     fun replaceActivePromptStartsClean() {
-        var s = initialPromptState(dinghy)
+        var s = initialPromptState(jiib)
         for (l in listOf(
             "// action:prompt_begin First",
             "// action:prompt_text replaced",

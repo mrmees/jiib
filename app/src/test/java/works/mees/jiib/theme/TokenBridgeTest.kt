@@ -9,7 +9,7 @@ import org.junit.Test
  * GREEN token-bridge derivation test (was the plan 15-01 Wave-0 RED scaffold; turned GREEN in
  * 15-03 when [TokenBridge] landed).
  *
- * Pins the dinghy-specific derivation that turns the slim [Palette.generate] output into the full
+ * Pins the jiib-specific derivation that turns the slim [Palette.generate] output into the full
  * [ThemeTokens] tier set:
  *  - [derivesInBetweenTiers_matchesJiibJs]: the `lShift`/`rgbaOf`-derived in-between tiers
  *    (bg2, surface2/3, text3, hair, outline2, accent2, edgeGlow) match an INDEPENDENT

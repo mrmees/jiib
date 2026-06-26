@@ -25,7 +25,7 @@ import org.junit.Test
  *
  * Jiib frontend identity (D-08): `frontendId = "jiib"`, `frontendCategories = ["touch"]` — so Jiib
  * matches `all`, `jiib`, and `touch`. The JS driver maps `klipperscreen → ["touch"]` and everything else
- * → `["web"]`; the Kotlin port adds a `dinghy → ["touch"]` row. Because Jiib carries category `touch`,
+ * → `["web"]`; the Kotlin port adds a `jiib → ["touch"]` row. Because Jiib carries category `touch`,
  * `target-touch-only` (targets `klipperscreen,touch`) is VISIBLE for Jiib (it behaves like `klipperscreen`,
  * not the hidden `mainsail`/`fluidd`).
  */
@@ -75,7 +75,7 @@ class PromptFixtureTest {
                     ?: error("fixture $id has neither `expected` nor `expected_by_frontend`")
                 // Replay single-run fixtures under Jiib's own identity (D-08); all carry targets:["all"]
                 // so they are visible regardless, but this exercises the real Jiib opts.
-                runOne(id, "jiib", events, dinghyOpts(), expected, failures)
+                runOne(id, "jiib", events, jiibOpts(), expected, failures)
             }
         }
         if (failures.isNotEmpty()) {
@@ -83,7 +83,7 @@ class PromptFixtureTest {
         }
     }
 
-    private fun dinghyOpts() = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
+    private fun jiibOpts() = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
 
     /** Fold one fixture's events under [opts], project the view, assert shape + partial value match. */
     private fun runOne(

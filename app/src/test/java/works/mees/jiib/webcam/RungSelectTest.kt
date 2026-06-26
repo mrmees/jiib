@@ -80,7 +80,7 @@ class RungSelectTest {
             null,
             "",
             "multipart/x-mixed-replace;boundary=x",
-            "MULTIPART/X-MIXED-REPLACE; boundary=dinghy",
+            "MULTIPART/X-MIXED-REPLACE; boundary=jiib",
             "image/jpeg",
             "text/html",
             "application/sdp",

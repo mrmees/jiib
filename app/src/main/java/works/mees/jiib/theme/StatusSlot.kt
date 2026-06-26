@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
  * pool-index keys "0".."63"). Use this enum EVERYWHERE in the status-override path — no bare `"stop"`
  * string literals, no integer keys for status.
  *
- * `Caution` maps to the dinghy `heat` token (D-13: dinghy's `heat` IS the caution color).
+ * `Caution` maps to the jiib `heat` token (D-13: jiib's `heat` IS the caution color).
  */
 enum class StatusSlot(val key: String) {
     Stop("stop"),

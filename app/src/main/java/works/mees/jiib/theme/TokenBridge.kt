@@ -5,9 +5,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 
 /**
- * The dinghy-specific glue between the pure generator and the app's full token vocabulary — a port
+ * The jiib-specific glue between the pure generator and the app's full token vocabulary — a port
  * of `../theme_theory/app/dinghy.js`'s `tokensFromPalette()`. [Palette.generate] emits a slim,
- * pure-neutral palette (surfaces / theme / status / pool / directional, as String hexes); dinghy
+ * pure-neutral palette (surfaces / theme / status / pool / directional, as String hexes); jiib
  * needs more surface/outline tiers (bg2, surface2/3, text3, hair, outline2) plus the accent/heat/go/
  * stop/directional alpha variants. We DERIVE those in-between tiers here, in Kotlin, by calling
  * 15-02's `internal` [Palette.hexToOklch] / [Palette.oklchToHex] helpers (an `lShift`) — so
@@ -144,7 +144,7 @@ object TokenBridge {
             accentLine = rgbaOf(accentHex, if (d) 0.55 else 0.50),
             accentGlow = rgbaOf(accentHex, if (d) 0.35 else 0.20),
             // --- status = 3 dedicated pool slots, MODE-GATED user overrides applied above (D-03/D-04).
-            // dinghy's `heat` IS the caution color (D-13). The soft/glow alpha variants derive from the
+            // jiib's `heat` IS the caution color (D-13). The soft/glow alpha variants derive from the
             // RESOLVED status color (so an override drives its halo too), not the raw generated hex. ---
             heat = cautionColor,
             heatSoft = cautionColor.copy(alpha = if (d) 0.16f else 0.14f),

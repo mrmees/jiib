@@ -31,7 +31,7 @@ of CSS variables. The pipeline:
    `color.js`) takes the user seed + dark/light flag + palette mode and produces the chrome
    (surfaces/text/accent/status) **plus** the contrast-ranked data **pool** and the directional hues —
    all as OKLCH string hexes.
-2. **Bridge → dinghy tokens.** `theme/TokenBridge.kt` maps the generator output onto dinghy's role
+2. **Bridge → jiib tokens.** `theme/TokenBridge.kt` maps the generator output onto jiib's role
    tokens and **derives the in-between tiers** (the `-soft` / `-line` / `-glow` alpha variants) in
    Kotlin. It also applies sparse user overrides (status + pool indices) and re-derives the directional
    standards (D-07, below).
@@ -94,7 +94,7 @@ ground.)
 `--heat` / `ThemeTokens.heat` is the **caution / proceed-at-peril** role color. It is **no longer a
 nozzle/bed "amber heat" identity color.** Heater / temperature IDENTITY is carried by
 `directional.temperature` (= the accent) and the data **pool** — never by `--heat`. (`StatusSlot.Caution`
-maps to `heat`: in dinghy, `heat` *is* the caution color.)
+maps to `heat`: in jiib, `heat` *is* the caution color.)
 
 ### Status colors are USER-OVERRIDABLE (D-03)
 
