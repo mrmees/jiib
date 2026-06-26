@@ -2,27 +2,32 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rename the app's internal identity from `dinghy`/`works.mees.dinghy` to `jiib`/`works.mees.jiib` — package namespace, applicationId, `Dinghy*` code symbols, Moonraker-visible strings, and build tooling — with the app compiling, passing its full test suite, and launching on-device under the new identity.
+**Goal:** Rename the app's internal identity from `dinghy`/`works.mees.dinghy` to `jiib`/`works.mees.jiib` — package namespace, applicationId, `Dinghy*` code symbols, Moonraker-visible strings, build tooling, and live UI-law docs — with the app compiling, passing its full test suite, and launching on-device under the new identity.
 
-**Architecture:** Ordered, scripted rename slices on branch `rename/works-mees-jiib`. Each slice is independently verifiable (grep + compile). The safety net is the compiler + the ~250-file unit suite + an exemption-aware grep gate + an on-device launch smoke (manifest class-loading and macrobench `setClassName` are runtime-resolved, so only a real launch proves them). Spec: `docs/superpowers/specs/2026-06-26-jiib-package-rename-design.md`.
+**Architecture:** Ordered, case-aware replacement passes on branch `rename/works-mees-jiib`, operating over **tracked files only** (never `build/` or `__pycache__`). Each slice ends in a grep + compile checkpoint. Safety net = compiler + the ~250-file unit suite + an exemption-aware `git grep` gate + an on-device launch smoke (manifest class-loading and macrobench `setClassName` are runtime-resolved — only a real launch proves them). Spec: `docs/superpowers/specs/2026-06-26-jiib-package-rename-design.md`.
 
 **Tech Stack:** Kotlin / Jetpack Compose, Gradle (AGP 8.7.x), Windows-side build via `E:\Android\gw.bat`, adb to two devices.
 
 ## Global Constraints
 
-- **Branch:** all work on `rename/works-mees-jiib` (already created). Never commit the rename to `master` directly.
-- **New package root:** `works.mees.jiib` (keep the `mees` owner segment; swap only `dinghy`).
-- **Brand casing:** user-facing/Moonraker-visible text is lowercase `jiib`. Kotlin type identifiers are PascalCase `Jiib*` (e.g. `JiibApp`, `JiibType`). Both are correct.
-- **⚠ Lowercase `dinghy` EXEMPTIONS — never rename these (they are NOT the app):**
-  - `[[dinghy-*]]` wiki-links → references to assistant **memory slugs** (files outside this repo).
+- **Branch:** all work on `rename/works-mees-jiib` (already created). Never commit the rename to `master`.
+- **New package root:** `works.mees.jiib` (keep `mees` owner segment; swap only `dinghy`).
+- **Brand casing:** user-facing / Moonraker-visible text is lowercase `jiib`. Kotlin types are PascalCase `Jiib*`. All-caps tokens are `JIIB`. All three are correct.
+- **Replacement scope (a git pathspec — reused throughout; tracked files only):**
+  `app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts macrobenchmark/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro app/lint-baseline.xml`
+  Use `git grep -lzI … | xargs -0 -r sed -i …` (the `-I` skips binaries, `-z`/`-0` are path-safe, `-r` no-ops on empty lists).
+- **⚠ EXEMPTIONS — never rename; the gate excludes them. Verbatim exclude-regex:** `\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary`
+  - `[[dinghy-*]]` **and** bare `dinghy-<kebab>` → assistant **memory slugs** (e.g. `dinghy-compose-write-scope-cancellation`, bracketed or not). The `dinghy-` exclusion covers all of them.
   - `dinghy.js` / `../theme_theory/app/dinghy.js` / `theme_theory` → a real file in the **sibling repo**.
-  - `dinghy-display` **slug** wherever it appears → the current repo/dir/skill name (the GitHub `CLIENT_URL`, `CLAUDE.md` build-env paths, and `sketch-findings-dinghy-display`). All follow the deferred repo rename.
+  - `dinghy-display` → the repo/dir/skill slug (CLIENT_URL, `CLAUDE.md` build-env, `sketch-findings-dinghy-display`); matched by `dinghy-`. **Exception:** `settings.gradle.kts` `rootProject.name` IS renamed (Task 5) — it is the one `dinghy-display` we change.
+  - `dinghyboundary` → an arbitrary MJPEG boundary token embedded in **binary** `.bin` fixtures; renaming would desync the test data.
+- **OUT OF SCOPE (left as historical/data, like `.planning`):** `docs/commands/*.json|*.jsonl` (captured Moonraker payloads), `docs/view_specific_notes/`, `docs/moonraker-capabilities.md`, `docs/request-cadence-contract.md`, `docs/top-down-audit-roadmap.md`, all of `.planning/`, and `docs/superpowers/` (the rename docs themselves).
 - **Build command (Windows-side; `./gradlew` does NOT work from WSL):**
   `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat <args>" 2>&1 | tr -d '\r' | tail -40`
   Exit code is authoritative. **One Gradle build at a time** (concurrent builds corrupt Kotlin caches on drvfs).
-- **Stale-APK trap:** before any on-device UAT, force-rebuild (`--rerun-tasks`) and verify the APK mtime is newer than the last rename commit; suspect a stale build before re-diagnosing.
-- **Test devices (push the matching ABI slice to BOTH):** flox = Nexus 7 2013, `armeabi-v7a`, adb id `0a64b42e`. moto = Moto G Play 2024, `arm64-v8a`, adb id `ZY22LBDRM9`. adb: `E:\Android\Sdk\platform-tools\adb.exe`.
-- **Consequence (expected, not a bug):** new applicationId = fresh `/data/data/works.mees.jiib/`, so saved settings reset on both devices and the old `works.mees.dinghy` app installs side-by-side.
+- **Stale-APK trap:** before any on-device check, force-rebuild (`--rerun-tasks`) and verify the APK mtime is newer than the last rename commit before `adb install`.
+- **Test devices (push the matching ABI slice to BOTH):** flox = Nexus 7 2013, `armeabi-v7a`, adb `0a64b42e`. moto = Moto G Play 2024, `arm64-v8a`, adb `ZY22LBDRM9`. adb: `E:\Android\Sdk\platform-tools\adb.exe`.
+- **Consequence (expected, not a bug):** new applicationId = fresh `/data/data/works.mees.jiib/`; saved settings reset on both devices and the old `works.mees.dinghy` app installs side-by-side.
 
 ---
 
@@ -39,87 +44,67 @@ git tag -a archive/dinghy-pre-rename -m "Wholesale backup before dinghy->jiib in
 
 - [ ] **Step 2: Verify**
 
-Run: `git tag -l 'archive/*' && git show -s --oneline archive/dinghy-pre-rename`
-Expected: lists `archive/dinghy-pre-rename` and `archive/gallery-pre-delete`, pointing at the current HEAD commit.
+Run: `git show -s --oneline archive/dinghy-pre-rename`
+Expected: prints the current HEAD commit (`60dd2dab …` or later).
 
 ---
 
-### Task 2: §C — Moonraker-visible strings + identity prose (do FIRST)
+### Task 2: Identity strings + prose → `jiib` (BEFORE any dir move)
 
-Done before any blanket pass so `"Dinghy Display"` becomes `"jiib"`, not `"Jiib Display"`. Pure string/comment edits — no structural change.
+Runs first so `"Dinghy Display"` becomes lowercase `"jiib"` (not `"Jiib Display"`). Pure content edits.
 
-**Files (modify):**
-- `app/src/main/java/works/mees/dinghy/net/ConnectionProbe.kt:80,82`
-- `app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt:86,91`
-- `app/src/main/java/works/mees/dinghy/service/MoonrakerService.kt:149`
-- `app/src/main/java/works/mees/dinghy/prompt/PromptModel.kt:24,29`
-- `app/src/main/java/works/mees/dinghy/prompt/PromptEngine.kt:53`
-- `app/src/main/java/works/mees/dinghy/prompt/PromptReducer.kt:38`
-- `app/src/main/java/works/mees/dinghy/DinghyApp.kt:182`
-- `app/src/main/java/works/mees/dinghy/theme/StatusSlot.kt:13`
-- `app/src/main/java/works/mees/dinghy/theme/TokenBridge.kt:8,10` (keep line 9 `../theme_theory/app/dinghy.js`)
-- `tools/ws-capture.py:89`, `tools/spoolman-probe.py:40`
+**Files (modify):** across the replacement scope — notably `net/ConnectionProbe.kt`, `net/MoonrakerSession.kt`, `service/MoonrakerService.kt`, `prompt/PromptModel.kt`, `prompt/PromptEngine.kt`, `prompt/PromptReducer.kt`, `prompt/PromptFixtureTest.kt`, `prompt/PromptReducerTest.kt`, `DinghyApp.kt`, `theme/StatusSlot.kt`, `theme/TokenBridge.kt`, `bench/SyntheticFeed.kt`, `tools/ws-capture.py`, `tools/spoolman-probe.py`, `tools/oklch-bake/bake_tokens.py`, `app/src/test/resources/golden/*.json`, `app/src/main/res/values/strings.xml`, `docs/ui_design/THEMING.md`.
 
-- [ ] **Step 1: Functional string literals (safe targeted seds)**
+- [ ] **Step 1: Literal/string passes (case-sensitive, exemption-safe)**
 
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
-# clientName "Dinghy Display" -> "jiib"
-sed -i 's#"Dinghy Display"#"jiib"#g' \
-  app/src/main/java/works/mees/dinghy/net/ConnectionProbe.kt \
-  app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt
-# CLIENT_URL host swap (app + comment + 2 python tools); keeps the dinghy-display slug
-sed -i 's#https://mees.works/dinghy-display#https://github.com/mrmees/dinghy-display#g' \
-  app/src/main/java/works/mees/dinghy/net/ConnectionProbe.kt \
-  app/src/main/java/works/mees/dinghy/net/MoonrakerSession.kt \
-  app/src/main/java/works/mees/dinghy/service/MoonrakerService.kt \
-  tools/ws-capture.py tools/spoolman-probe.py
-# frontendId value (PromptModel has "dinghy" only on lines 24 & 29)
-sed -i 's#"dinghy"#"jiib"#g' app/src/main/java/works/mees/dinghy/prompt/PromptModel.kt
-# mDNS lock name
-sed -i 's#"dinghy-mdns"#"jiib-mdns"#g' app/src/main/java/works/mees/dinghy/DinghyApp.kt
-# backtick-wrapped frontendId value in two KDoc lines (no memory-links in these files)
-sed -i 's#`dinghy`#`jiib`#g' \
-  app/src/main/java/works/mees/dinghy/prompt/PromptEngine.kt \
-  app/src/main/java/works/mees/dinghy/prompt/PromptReducer.kt
+SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro"
+# brand literal (has a space — never collides with Theme.DinghyDisplay) -> lowercase jiib
+git grep -lzI -e 'Dinghy Display' -- $SCOPE | xargs -0 -r sed -i 's/Dinghy Display/jiib/g'
+# CLIENT_URL host swap (keeps the dinghy-display slug); app + python tools + the DO-NOT-REGRESS comment
+git grep -lzI -e 'mees.works/dinghy-display' -- $SCOPE | xargs -0 -r sed -i 's#https://mees.works/dinghy-display#https://github.com/mrmees/dinghy-display#g'
+# frontendId value + bake_tokens path-component "dinghy" + test fixtures asserting frontendId
+git grep -lzI -e '"dinghy"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy"/"jiib"/g'
+# mDNS multicast lock
+git grep -lzI -e '"dinghy-mdns"' -- $SCOPE | xargs -0 -r sed -i 's/"dinghy-mdns"/"jiib-mdns"/g'
+# backtick-wrapped frontendId in KDoc (PromptEngine/PromptReducer)
+git grep -lzI -e '`dinghy`' -- $SCOPE | xargs -0 -r sed -i 's/`dinghy`/`jiib`/g'
 ```
 
-- [ ] **Step 2: Surgical lowercase-prose edits (explicit — exemptions nearby)**
+- [ ] **Step 2: Surgical lowercase-prose edits (explicit — exemptions sit nearby)**
 
-`StatusSlot.kt:13` — replace:
-`* \`Caution\` maps to the dinghy \`heat\` token (D-13: dinghy's \`heat\` IS the caution color).`
-with:
-`* \`Caution\` maps to the jiib \`heat\` token (D-13: jiib's \`heat\` IS the caution color).`
+Apply each exactly; **do not** touch `TokenBridge.kt` line 9 (`../theme_theory/app/dinghy.js`):
 
-`TokenBridge.kt:8` — replace `The dinghy-specific glue` with `The jiib-specific glue`.
-`TokenBridge.kt:10` — the line ends `… as String hexes); dinghy`; replace that trailing `; dinghy` with `; jiib`.
-**DO NOT touch line 9 (`of \`../theme_theory/app/dinghy.js\`'s …`).**
+- `theme/StatusSlot.kt:13` — `the dinghy \`heat\` token (D-13: dinghy's \`heat\`` → `the jiib \`heat\` token (D-13: jiib's \`heat\``
+- `theme/TokenBridge.kt:8` — `The dinghy-specific glue` → `The jiib-specific glue`
+- `theme/TokenBridge.kt:10` — trailing `; dinghy` → `; jiib`
+- `theme/TokenBridge.kt:147` — `dinghy's heat` → `jiib's heat`
+- `bench/SyntheticFeed.kt:130` — comment `// "DINGHY"-ish, fixed` → `// fixed deterministic seed` (the hex no longer needs the dinghy pun, and avoids a false `DINGHY` straggler)
+- `app/src/main/res/values/strings.xml:11` — `parallel_dinghy/` → `parallel_jiib/`
+- `docs/ui_design/THEMING.md:34` — `onto dinghy's role` and `Bridge → dinghy tokens` → `…jiib's role`, `Bridge → jiib tokens`
+- `docs/ui_design/THEMING.md:97` — `in dinghy, \`heat\`` → `in jiib, \`heat\``
 
-(The PascalCase `Dinghy`/`Dinghy's` in `PromptModel:24`, `PromptEngine:53`, `PromptReducer:38` are intentionally left for Task 4's blanket pass.)
+- [ ] **Step 3: Verify functional literals are gone (scoped; ignores binaries)**
 
-- [ ] **Step 3: Verify the functional swaps landed**
-
-Run:
 ```bash
-grep -rn '"Dinghy Display"\|mees.works/dinghy-display\|"dinghy"\|"dinghy-mdns"' app/src tools
+git grep -nI -e '"Dinghy Display"' -e 'mees.works/dinghy-display' -e '"dinghy"' -e '"dinghy-mdns"' -- $SCOPE; echo "exit=$?"
 ```
-Expected: **no output** (all functional literals gone; `frontendId`/clientName/CLIENT_URL/mdns all updated).
+Expected: no output, `exit=1`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A && git commit -m "rename(jiib): §C Moonraker-visible strings + identity prose -> jiib"
+git add -A && git commit -m "rename(jiib): identity strings + prose -> jiib"
 ```
 
 ---
 
-### Task 3: §A — Package identity `works.mees.dinghy` → `works.mees.jiib`
+### Task 3: Package identity `works.mees.dinghy` → `works.mees.jiib`
 
-Moves the four source trees and rewrites the package token everywhere. Symbols stay `Dinghy*` (renamed in Task 4); this slice must still compile.
+Moves the four source trees and rewrites both dotted and **slash** package forms (the slash form catches `FontConformanceTest.kt` and `lint-baseline.xml`, which the dotted token misses). Symbols stay `Dinghy*` (Task 4) — this slice still compiles.
 
-**Files:**
-- Move: `app/src/{main,test,androidTest}/java/works/mees/dinghy/` and `macrobenchmark/src/main/java/works/mees/dinghy/`
-- Modify: every `.kt` containing `works.mees.dinghy`; `app/build.gradle.kts:33,40`; `macrobenchmark/build.gradle.kts:18`; `app/lint-baseline.xml`
+**Files:** move `app/src/{main,test,androidTest}/java/works/mees/dinghy/` and `macrobenchmark/src/main/java/works/mees/dinghy/`; modify every scope file containing `works.mees.dinghy` or `works/mees/dinghy`; `app/build.gradle.kts:33,40`; `macrobenchmark/build.gradle.kts:18`.
 
 - [ ] **Step 1: Move the four package dir trees (preserves history)**
 
@@ -131,81 +116,77 @@ git mv app/src/androidTest/java/works/mees/dinghy app/src/androidTest/java/works
 git mv macrobenchmark/src/main/java/works/mees/dinghy macrobenchmark/src/main/java/works/mees/jiib
 ```
 
-- [ ] **Step 2: Rewrite the package token in all source (covers package decls, imports, FQNs, the macrobench `TARGET_PACKAGE`/`BENCH_ACTIVITY` string constants, and the gfxinfo comment)**
+- [ ] **Step 2: Rewrite dotted + slash package tokens (covers package decls, imports, FQNs, `FontConformanceTest` srcdir, macrobench `TARGET_PACKAGE`/`BENCH_ACTIVITY`/gfxinfo, gradle namespace+applicationId, lint baseline, doc paths)**
 
 ```bash
-grep -rl 'works\.mees\.dinghy' --include=*.kt app macrobenchmark \
-  | xargs sed -i 's/works\.mees\.dinghy/works.mees.jiib/g'
+SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr app/build.gradle.kts macrobenchmark/build.gradle.kts app/lint-baseline.xml"
+git grep -lzI -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE \
+  | xargs -0 -r sed -i -E 's#works\.mees\.dinghy#works.mees.jiib#g; s#works/mees/dinghy#works/mees/jiib#g'
 ```
 
-- [ ] **Step 3: Build config — namespace, applicationId, macrobench namespace**
+- [ ] **Step 3: Verify the package token is gone**
 
 ```bash
-sed -i 's/works\.mees\.dinghy/works.mees.jiib/g' app/build.gradle.kts macrobenchmark/build.gradle.kts
+git grep -nI -e 'works.mees.dinghy' -e 'works/mees/dinghy' -- $SCOPE; echo "exit=$?"
 ```
+Expected: no output, `exit=1`. (Manifest `android:name=".DinghyApp"` is relative and still resolves — class renamed in Task 4.)
 
-- [ ] **Step 4: Lint baseline paths**
-
-```bash
-sed -i 's#works/mees/dinghy#works/mees/jiib#g' app/lint-baseline.xml
-```
-
-- [ ] **Step 5: Verify the package token is gone**
-
-Run: `grep -rn 'works\.mees\.dinghy\|works/mees/dinghy' app macrobenchmark`
-Expected: **no output.** (`android:name=".DinghyApp"` in the manifest is relative and still resolves — class renamed in Task 4.)
-
-- [ ] **Step 6: Compile checkpoint (symbols still `Dinghy*`, package now `jiib`)**
+- [ ] **Step 4: Compile checkpoint (symbols still `Dinghy*`, package now `jiib`)**
 
 Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug --no-daemon -Pkotlin.incremental=false" 2>&1 | tr -d '\r' | tail -20`
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add -A && git commit -m "rename(jiib): §A package works.mees.dinghy -> works.mees.jiib (dirs + token + gradle)"
+git add -A && git commit -m "rename(jiib): package works.mees.dinghy -> works.mees.jiib (dirs + dotted/slash token + gradle)"
 ```
 
 ---
 
-### Task 4: §B — Code symbols `Dinghy*` → `Jiib*`
+### Task 4: Code symbols `Dinghy*` → `Jiib*` (and `DINGHY` → `JIIB`)
 
-**Files:**
-- Rename (10, now under `…/jiib/`): `JiibApp.kt`, `designsystem/icons/{JiibIcon,JiibIcons,JiibIconView}.kt`, `theme/JiibType.kt`, `theme/compose/{JiibTheme,JiibTextStyle}.kt`, `preview/JiibPreviews.kt`, and tests `designsystem/icons/JiibIconsTest.kt`, `theme/JiibTypeTest.kt`
-- Modify: all `.kt`/`.xml` referencing `Dinghy`; `app/src/main/AndroidManifest.xml:67,76`; `app/src/main/res/values/themes.xml:8`
+**Files:** rename 10 files (now under `…/jiib/`); modify every scope file containing `Dinghy`/`DINGHY`; `AndroidManifest.xml`; `res/values/themes.xml`.
 
-- [ ] **Step 1: Rename the 10 files**
+- [ ] **Step 1: Rename the 10 `Dinghy*` files**
 
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
-git mv app/src/main/java/works/mees/jiib/DinghyApp.kt                         app/src/main/java/works/mees/jiib/JiibApp.kt
-git mv app/src/main/java/works/mees/jiib/designsystem/icons/DinghyIcon.kt     app/src/main/java/works/mees/jiib/designsystem/icons/JiibIcon.kt
-git mv app/src/main/java/works/mees/jiib/designsystem/icons/DinghyIcons.kt    app/src/main/java/works/mees/jiib/designsystem/icons/JiibIcons.kt
-git mv app/src/main/java/works/mees/jiib/designsystem/icons/DinghyIconView.kt app/src/main/java/works/mees/jiib/designsystem/icons/JiibIconView.kt
-git mv app/src/main/java/works/mees/jiib/theme/DinghyType.kt                  app/src/main/java/works/mees/jiib/theme/JiibType.kt
-git mv app/src/main/java/works/mees/jiib/theme/compose/DinghyTheme.kt         app/src/main/java/works/mees/jiib/theme/compose/JiibTheme.kt
-git mv app/src/main/java/works/mees/jiib/theme/compose/DinghyTextStyle.kt     app/src/main/java/works/mees/jiib/theme/compose/JiibTextStyle.kt
-git mv app/src/main/java/works/mees/jiib/preview/DinghyPreviews.kt            app/src/main/java/works/mees/jiib/preview/JiibPreviews.kt
+B=app/src/main/java/works/mees/jiib
+git mv $B/DinghyApp.kt                          $B/JiibApp.kt
+git mv $B/designsystem/icons/DinghyIcon.kt      $B/designsystem/icons/JiibIcon.kt
+git mv $B/designsystem/icons/DinghyIcons.kt     $B/designsystem/icons/JiibIcons.kt
+git mv $B/designsystem/icons/DinghyIconView.kt  $B/designsystem/icons/JiibIconView.kt
+git mv $B/theme/DinghyType.kt                   $B/theme/JiibType.kt
+git mv $B/theme/compose/DinghyTheme.kt          $B/theme/compose/JiibTheme.kt
+git mv $B/theme/compose/DinghyTextStyle.kt      $B/theme/compose/JiibTextStyle.kt
+git mv $B/preview/DinghyPreviews.kt             $B/preview/JiibPreviews.kt
 git mv app/src/test/java/works/mees/jiib/designsystem/icons/DinghyIconsTest.kt app/src/test/java/works/mees/jiib/designsystem/icons/JiibIconsTest.kt
-git mv app/src/test/java/works/mees/jiib/theme/DinghyTypeTest.kt              app/src/test/java/works/mees/jiib/theme/JiibTypeTest.kt
+git mv app/src/test/java/works/mees/jiib/theme/DinghyTypeTest.kt               app/src/test/java/works/mees/jiib/theme/JiibTypeTest.kt
 ```
 
-- [ ] **Step 2: Blanket symbol replace (covers all `Dinghy*` symbols, `Theme.DinghyDisplay`, `DinghySpine`, manifest `.DinghyApp`, `FontConformanceTest` allowlist, and any remaining PascalCase prose)**
+- [ ] **Step 2: Blanket symbol replace (Pascal + all-caps) over the scope**
 
 ```bash
-grep -rl 'Dinghy' --include=*.kt --include=*.xml app macrobenchmark \
-  | xargs sed -i 's/Dinghy/Jiib/g'
+SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts"
+git grep -lzI -e 'Dinghy' -e 'DINGHY' -- $SCOPE \
+  | xargs -0 -r sed -i -E 's/Dinghy/Jiib/g; s/DINGHY/JIIB/g'
 ```
+Covers: every `Dinghy*` symbol + `Theme.DinghyDisplay`→`Theme.JiibDisplay` + manifest `.DinghyApp`→`.JiibApp` + `FontConformanceTest` allowlist + `DinghyIcons`/`DinghyType` refs in `docs/ui_design` + `build.gradle.kts:242` comment + `verify_ligatures.py` (`DinghyIcon` regex, `DINGHY_ICONS`) + `DINGHY_YANK`→`JIIB_YANK`.
 
-- [ ] **Step 3: Verify no `Dinghy` remains (PascalCase fully gone)**
+- [ ] **Step 3: Verify no `Dinghy`/`DINGHY` remains in scope**
 
-Run: `grep -rn 'Dinghy' app macrobenchmark`
-Expected: **no output.**
+```bash
+git grep -nI -e 'Dinghy' -e 'DINGHY' -- $SCOPE; echo "exit=$?"
+```
+Expected: no output, `exit=1`.
 
-- [ ] **Step 4: Spot-check the manifest + theme rewired**
+- [ ] **Step 4: Spot-check manifest + theme**
 
-Run: `grep -nE 'JiibApp|JiibDisplay' app/src/main/AndroidManifest.xml app/src/main/res/values/themes.xml`
-Expected: `android:name=".JiibApp"`, `android:theme="@style/Theme.JiibDisplay"`, and `<style name="Theme.JiibDisplay" …>`.
+```bash
+grep -nE 'JiibApp|JiibDisplay' app/src/main/AndroidManifest.xml app/src/main/res/values/themes.xml
+```
+Expected: `android:name=".JiibApp"`, `android:theme="@style/Theme.JiibDisplay"`, `<style name="Theme.JiibDisplay" …>`.
 
 - [ ] **Step 5: Compile checkpoint**
 
@@ -215,146 +196,84 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A && git commit -m "rename(jiib): §B Dinghy* code symbols -> Jiib* (+ theme, manifest, 10 files)"
+git add -A && git commit -m "rename(jiib): Dinghy*/DINGHY symbols -> Jiib*/JIIB (+ manifest, theme, docs, 10 files)"
 ```
 
 ---
 
-### Task 5: §D — Build tooling (`tools/`)
+### Task 5: `rootProject.name`, lint baseline, tools sanity
 
-These hardcode the package path / symbols and even **emit** Kotlin with the old package; they break silently if skipped.
-
-**Files (modify):** `tools/verify_ligatures.py`, `tools/oklch-bake/bake_tokens.py`, `tools/gfxinfo-parser/parse_framestats.py`, `tools/oklch-ramp-oracle.mjs`
-
-- [ ] **Step 1: Update the scripts**
-
-```bash
-cd /mnt/e/claude/personal/github/dinghy-display
-# path + DinghyIcon(s) symbol + the DinghyIcon( regex + "Dinghy Display" header
-sed -i 's#works/mees/dinghy#works/mees/jiib#g; s/Dinghy/Jiib/g' tools/verify_ligatures.py
-# emits `package works.mees.jiib.theme` and the path components list ("…","mees","jiib","theme",…)
-sed -i 's/works\.mees\.dinghy/works.mees.jiib/g; s/"dinghy"/"jiib"/g' tools/oklch-bake/bake_tokens.py
-# package refs in comments / shell example
-sed -i 's/works\.mees\.dinghy/works.mees.jiib/g' tools/gfxinfo-parser/parse_framestats.py tools/oklch-ramp-oracle.mjs
-```
-
-- [ ] **Step 2: Verify the ligature tool still resolves its target (the renamed `JiibIcons.kt`)**
-
-Run: `cd /mnt/e/claude/personal/github/dinghy-display && python tools/verify_ligatures.py; echo "exit=$?"`
-Expected: it reads `app/src/main/java/works/mees/jiib/designsystem/icons/JiibIcons.kt` and reports its normal ligature summary (no "file not found", no Python traceback). `exit=0`.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add -A && git commit -m "rename(jiib): §D update tools/ (path, symbols, emitted package)"
-```
-
----
-
-### Task 6: §G — Config/doc comments + `rootProject.name`
-
-Cosmetic, live files only. `.gradle.kts`/`.properties`/`.toml` are NOT covered by Task 4's `*.kt`/`*.xml` sweep.
-
-**Files (modify):** `settings.gradle.kts:34`, `gradle.properties:1`, `gradle/libs.versions.toml:2`, `app/proguard-rules.pro:1`, `app/build.gradle.kts:242`, `app/src/main/res/values/strings.xml:11`, project `CLAUDE.md`
-
-- [ ] **Step 1: rootProject.name + config comments**
+- [ ] **Step 1: rootProject.name (the one intentional `dinghy-display` rename)**
 
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
 sed -i 's/rootProject.name = "dinghy-display"/rootProject.name = "jiib"/' settings.gradle.kts
-sed -i 's/Dinghy Display/jiib/g' gradle.properties gradle/libs.versions.toml app/proguard-rules.pro
-sed -i 's/Dinghy/Jiib/g' app/build.gradle.kts   # the DinghyApp/AppContainer comment on :242
-sed -i 's#parallel_dinghy/#parallel_jiib/#' app/src/main/res/values/strings.xml
+grep -n 'rootProject.name' settings.gradle.kts   # expect: rootProject.name = "jiib"
 ```
 
-- [ ] **Step 2: CLAUDE.md header** — replace the project line `**Dinghy Display**` (and any "Dinghy Display" in the project description) with `**jiib**`. Leave `.planning/**` untouched.
-
-```bash
-sed -i 's/Dinghy Display/jiib/g' CLAUDE.md
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add -A && git commit -m "rename(jiib): §G config/doc comments + rootProject.name -> jiib"
-```
-
----
-
-### Task 7: Regenerate the lint baseline
-
-The Task-3 path sed kept it syntactically valid, but symbol-bearing issue messages may now be stale. Regenerate cleanly so the release lint gate is trustworthy.
-
-- [ ] **Step 1: Regenerate**
+- [ ] **Step 2: Regenerate the lint baseline (Task 3 fixed its paths; regen clears stale symbol-bearing messages)**
 
 Run: `/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:updateLintBaseline --no-daemon" 2>&1 | tr -d '\r' | tail -15`
-Expected: `BUILD SUCCESSFUL`; `app/lint-baseline.xml` rewritten.
+Expected: `BUILD SUCCESSFUL`; then `grep -c 'works/mees/dinghy' app/lint-baseline.xml` → `0`.
 
-- [ ] **Step 2: Verify no stale package path remains in the baseline**
+- [ ] **Step 3: Tools sanity — the ligature gate must still find its (renamed) target**
 
-Run: `grep -c 'works/mees/dinghy' app/lint-baseline.xml; echo done`
-Expected: `0` then `done`.
+Run: `python tools/verify_ligatures.py; echo "exit=$?"`
+Expected: it reads `app/src/main/java/works/mees/jiib/designsystem/icons/JiibIcons.kt`, prints its normal summary, `exit=0` (no traceback, no "file not found").
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add app/lint-baseline.xml && git commit -m "rename(jiib): regenerate lint baseline for works.mees.jiib"
+git add -A && git commit -m "rename(jiib): rootProject.name -> jiib, regenerate lint baseline"
 ```
 
 ---
 
-### Task 8: Final verification gate
+### Task 6: Final verification gate
 
 No new code — this is the proof. **Do not declare done until every check passes.**
 
-- [ ] **Step 1: Exemption-aware grep gate (the whole-tree proof)**
+- [ ] **Step 1: Exemption-aware `git grep` gate (whole-scope proof; skips binaries & build/)**
 
-Run:
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
-grep -rniE 'dinghy' \
-  app/src macrobenchmark tools settings.gradle.kts app/build.gradle.kts \
-  macrobenchmark/build.gradle.kts gradle.properties gradle/libs.versions.toml \
-  app/proguard-rules.pro app/lint-baseline.xml CLAUDE.md \
-  | grep -vE '\[\[dinghy|dinghy\.js|theme_theory|dinghy-display'
+SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md app/build.gradle.kts macrobenchmark/build.gradle.kts settings.gradle.kts gradle.properties gradle/libs.versions.toml app/proguard-rules.pro app/lint-baseline.xml"
+git grep -nI -iE 'dinghy' -- $SCOPE | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'
 echo "exit=$?"
 ```
-Expected: **no output**, `exit=1` (grep found nothing after exclusions). The exclusions are the §E exemptions: memory links, the sibling `dinghy.js`, and the `dinghy-display` repo/dir/skill slug (CLIENT_URL, CLAUDE.md build-env, `sketch-findings-dinghy-display`). Any OTHER line printed = a missed rename → fix and re-run.
+Expected: **no output**, `exit=1`. Every printed line is a missed rename → fix and re-run. (The exclusions are the documented exemptions; `git grep -I` skips the binary `.bin` fixtures and never reads `build/`/`__pycache__`.)
 
-- [ ] **Step 2: Full static build + test + macrobench**
+- [ ] **Step 2: Full static build + test + macrobench compile**
 
-Run:
 ```bash
-/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest --no-daemon -Pkotlin.incremental=false --rerun-tasks" 2>&1 | tr -d '\r' | tail -40
+/mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :macrobenchmark:assembleRelease --no-daemon -Pkotlin.incremental=false --rerun-tasks" 2>&1 | tr -d '\r' | tail -40
 ```
-Expected: `BUILD SUCCESSFUL`. A unit-test failure fails the build (FontConformance + serialization round-trips exercised here). (The macrobenchmark module's launch constants are string-only — not compile-checked — and were already verified by Step 1's grep gate; a real macrobench perf run is deferred to perf work, not a v1-ship gate.)
+Expected: `BUILD SUCCESSFUL`. A unit-test failure fails the build. **Watch-point:** the golden JSON fixtures under `app/src/test/resources/golden/` had their `Dinghy Display` client-name strings rewritten in Task 2 — if a golden-comparison test fails because a fixture is captured *input* that must stay verbatim, revert that one file (`git checkout archive/dinghy-pre-rename -- <file>`), add it to the exemptions, and re-run Step 1.
 
 - [ ] **Step 3: On-device launch smoke — flox + moto (debug)**
 
-For each device id (`0a64b42e`, `ZY22LBDRM9`): install the matching-ABI debug APK, launch, and confirm the renamed app starts (instantiates `JiibApp`, starts `MoonrakerService`), connects to a printer, and survives one typed-Navigation hop.
-
 ```bash
 ADB=/mnt/e/Android/Sdk/platform-tools/adb.exe
-ls app/build/outputs/apk/debug/   # confirm exact split-ABI filenames first
+ls app/build/outputs/apk/debug/    # confirm exact split-ABI filenames first
 $ADB -s 0a64b42e install -r app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
 $ADB -s 0a64b42e shell monkey -p works.mees.jiib -c android.intent.category.LAUNCHER 1
 $ADB -s ZY22LBDRM9 install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
 $ADB -s ZY22LBDRM9 shell monkey -p works.mees.jiib -c android.intent.category.LAUNCHER 1
 ```
-Expected: both launch as `works.mees.jiib` with no crash; owner confirms connect + one navigation. (Verify APK mtime > last commit first — stale-APK trap.)
+Expected: both launch as `works.mees.jiib` with no crash (instantiates `JiibApp`, starts `MoonrakerService`); owner confirms connect to a printer + one typed-Navigation hop. (Verify APK mtime > last commit first — stale-APK trap.)
 
 - [ ] **Step 4: On-device install + launch smoke — release APK (R8 path)**
 
-Build the release APK (debug-sign it per `E:\Android\sign-release.bat` since signing is deferred), install on at least one device, launch, confirm no crash. R8 minification can break reflection/serialization that the debug build hides.
+Debug-sign the release APK (`E:\Android\sign-release.bat <in> <out>` — signing is deferred), install on at least one device, launch, confirm no crash. R8 can break reflection/serialization the debug build hides.
 
 - [ ] **Step 5: Codex correctness pass on the full diff**
 
-Run Codex read-only over `git diff archive/dinghy-pre-rename..HEAD` with the spec, asking it to confirm no missed surface, no broken exemption, and no behavior change. Fix agreeable findings; re-run gate steps 1–2 if code changed.
+Run Codex read-only over `git diff archive/dinghy-pre-rename..HEAD` with the spec: confirm no missed surface, no broken exemption, no behavior change. Fix agreeable findings; re-run Steps 1–2 if code changed.
 
-- [ ] **Step 6: Final commit (if Codex/lint produced fixes) and stop**
+- [ ] **Step 6: Final commit (if Codex/golden fixes were applied), then stop**
 
 ```bash
 git add -A && git commit -m "rename(jiib): final verification fixes" || echo "nothing to commit — gate clean"
 ```
 
-Then hand back to the owner for the PR-to-`master` decision (the repo/dir rename + `.claude/skills/sketch-findings-dinghy-display` + assistant-memory path updates remain a separate, deferred follow-up).
+Hand back to the owner for the PR-to-`master` decision. **Deferred follow-ups (NOT this plan):** the repo/dir rename (`dinghy-display` → `jiib`), `.claude/skills/sketch-findings-dinghy-display`, the historical `docs/commands/`+`view_specific_notes/` data, and assistant-memory path updates.
