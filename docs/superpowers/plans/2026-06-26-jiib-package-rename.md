@@ -4,7 +4,7 @@
 
 **Goal:** Rename the app's internal identity from `dinghy`/`works.mees.dinghy` to `jiib`/`works.mees.jiib` — package namespace, applicationId, `Dinghy*` symbols, lowercase identifiers/prose, Moonraker-visible strings, build tooling, and live UI-law docs — with the app compiling, passing its full test suite, and launching on-device under the new identity.
 
-**Architecture:** Ordered, case-aware replacement passes on branch `rename/works-mees-jiib`, over **tracked files only**. Hard literals and Pascal/caps symbols use scoped `git grep | xargs sed`; bare-lowercase `dinghy` uses a per-file loop that **skips any file carrying an exemption marker** (so memory links / `dinghy.js` / slugs are never corrupted). Safety net = compiler + ~250-file unit suite + an exemption-aware `git grep` gate + on-device launch smoke (manifest class-loading & macrobench `setClassName` are runtime-resolved). Spec: `docs/superpowers/specs/2026-06-26-jiib-package-rename-design.md`.
+**Architecture:** Ordered, case-aware replacement passes on branch `rename/works-mees-jiib`, over **tracked files only**. Hard literals and Pascal/caps symbols use scoped `git grep | xargs sed`; bare-lowercase `dinghy` uses a per-file **mask-protect** sed (protect every exemption substring, rename, restore) — correct even for files that mix an exemption and a real target. Safety net = compiler + ~250-file unit suite + an exemption-aware `git grep` gate + on-device launch smoke (manifest class-loading & macrobench `setClassName` are runtime-resolved). Spec: `docs/superpowers/specs/2026-06-26-jiib-package-rename-design.md`.
 
 **Tech Stack:** Kotlin / Jetpack Compose, Gradle (AGP 8.7.x), Windows-side build via `E:\Android\gw.bat`, adb to two devices.
 
@@ -137,37 +137,35 @@ Covers all `Dinghy*` symbols, `Theme.DinghyDisplay`, manifest `.DinghyApp`, `Fon
 
 ---
 
-### Task 5: Bare-lowercase `dinghy` identifiers/prose (exemption-skipping loop)
+### Task 5: Bare-lowercase `dinghy` identifiers/prose (universal mask-protect)
 
-Only lowercase `dinghy` remains now (package + symbols done). Rename it per-file, **skipping any file that carries an exemption marker** so memory links / `dinghy.js` / slugs / `dinghyboundary` are never touched.
+Only lowercase `dinghy` remains (package + symbols done). Apply ONE per-file sed to **every** `dinghy`-bearing file — no skipping. It protects each exemption substring, renames the rest, then restores. This is correct even for files that **mix** an exemption and a real target (e.g. `THEMING.md` has both `theme_theory` and `dinghy tokens`; `TokenBridge.kt` has `dinghy.js` and `dinghy-specific`).
 
-- [ ] **Step 1: Per-file loop**
+- [ ] **Step 1: Universal mask-protect rename (null-delimited file list — path-safe)**
 
 ```bash
 cd /mnt/e/claude/personal/github/dinghy-display
 SCOPE="app/src macrobenchmark/src tools docs/ui_design docs/adr CLAUDE.md"
-for f in $(git grep -lI 'dinghy' -- $SCOPE); do
-  if git grep -qI -e '\[\[dinghy' -e 'dinghy-' -e 'dinghy\.js' -e 'theme_theory' -e 'dinghyboundary' -- "$f"; then
-    echo "SKIP (exemption present): $f"
-  else
-    sed -i 's/dinghy/jiib/g' "$f"; echo "cleaned: $f"
-  fi
+git grep -lzI 'dinghy' -- $SCOPE | while IFS= read -r -d '' f; do
+  sed -i -E '
+    s/dinghy-specific/jiib-specific/g;                                   # the one app-descriptive hyphenated target, BEFORE the dinghy- guard
+    s/dinghy\.js/@@A@@/g; s/\[\[dinghy/@@B@@/g; s/dinghyboundary/@@D@@/g; s/dinghy-/@@C@@/g;
+    s/dinghy/jiib/g;                                                     # bare prose/identifiers (dinghyOpts, val dinghy, parallel_dinghy, dinghy tokens, ; dinghy, dinghy'"'"'s)
+    s/@@A@@/dinghy.js/g; s/@@B@@/[[dinghy/g; s/@@C@@/dinghy-/g; s/@@D@@/dinghyboundary/g
+  ' "$f"
+  echo "processed: $f"
 done
 ```
-Expected `cleaned:` — `PromptFixtureTest.kt`, `PromptReducerTest.kt`, `webcam/RungSelectTest.kt`, `theme/StatusSlot.kt`, `res/values/strings.xml` (`parallel_dinghy`→`parallel_jiib`), `docs/ui_design/THEMING.md`. Expected `SKIP` — files whose only `dinghy` is a memory link / slug / `dinghy.js` / `dinghyboundary` (those stay exempt), **plus** `TokenBridge.kt` & `TokenBridgeTest.kt` (handled next).
+Renames: bare `dinghy`/`dinghyOpts`/`dinghy's`/`parallel_dinghy`/`dinghy tokens`/`boundary=dinghy`/`dinghy-specific`. Preserves: `[[dinghy-*]]`, unbracketed `dinghy-<slug>`, `dinghy-display`, `dinghy.js`, `dinghyboundary` (incl. the binary-coupled fixtures, which `-I` never reads anyway).
 
-- [ ] **Step 2: Mask-protect sed for the two `dinghy.js`-bearing files (renames `dinghy-specific`, `dinghy's`, `; dinghy`; keeps `dinghy.js`)**
+- [ ] **Step 2: Verify (gate-equivalent over the lowercase scope)**
 
 ```bash
-for f in app/src/main/java/works/mees/jiib/theme/TokenBridge.kt \
-         app/src/test/java/works/mees/jiib/theme/TokenBridgeTest.kt ; do
-  sed -i -E 's/dinghy\.js/@@DJS@@/g; s/dinghy/jiib/g; s/@@DJS@@/dinghy.js/g' "$f"
-done
+git grep -nI -iE 'dinghy' -- $SCOPE | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'; echo "exit=$?"
 ```
+Expected: no output, `exit=1`. Any printed line = a non-exempt `dinghy` the pipeline missed → fix and re-run.
 
-- [ ] **Step 3: Review the SKIP list** — every remaining `SKIP` file's `dinghy` must be ONLY exemptions. Confirm: `git grep -nI 'dinghy' -- $SCOPE | grep -ivE '\[\[dinghy|dinghy-|dinghy\.js|theme_theory|dinghyboundary'` returns **nothing** (exit 1). If a line prints, that file held a non-exempt lowercase `dinghy` the loop skipped — apply the Step-2 mask-protect sed to it and re-check.
-
-- [ ] **Step 4: Commit** — `git add -A && git commit -m "rename(jiib): bare-lowercase dinghy identifiers/prose -> jiib"`
+- [ ] **Step 3: Commit** — `git add -A && git commit -m "rename(jiib): bare-lowercase dinghy identifiers/prose -> jiib"`
 
 ---
 
@@ -223,7 +221,7 @@ Expected: `BUILD SUCCESSFUL`. **Watch-point:** Task 2 rewrote `Dinghy Display` c
 ADB=/mnt/e/Android/Sdk/platform-tools/adb.exe
 ls app/build/outputs/apk/debug/    # confirm exact split-ABI filenames
 # stale-APK guard: APK must be newer than the branch tip
-find app/build/outputs/apk/debug -name '*.apk' -newer .git/refs/heads/rename/works-mees-jiib -printf '%f  NEWER-OK\n' || echo "STALE — rebuild with --rerun-tasks"
+find app/build/outputs/apk/debug -name '*.apk' -newer "$(git rev-parse --git-path refs/heads/rename/works-mees-jiib)" -printf '%f  NEWER-OK\n' || echo "STALE — rebuild with --rerun-tasks"
 $ADB -s 0a64b42e install -r app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
 $ADB -s 0a64b42e shell monkey -p works.mees.jiib -c android.intent.category.LAUNCHER 1
 $ADB -s ZY22LBDRM9 install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
